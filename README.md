@@ -3,7 +3,7 @@
 
 ----
 
-***KubeSphere*** is a distribution of [Kubernetes](https://kubernetes.io), aimed to provide quiick setup, friendly and easily use, and powerful management features for Kubernetes clusters, which could help both personal and enterprise users, reduce their learning curve of Kubernetes, accelerate their transform process from other container platforms to Kubernetes.   
+***KubeSphere*** is a distribution of [Kubernetes](https://kubernetes.io), aimed to provide quick setup, friendly and easily use, and powerful management features for Kubernetes clusters, which could help both personal and enterprise users, reduce their learning curve of Kubernetes, accelerate their transform process from other container platforms to Kubernetes.   
 
 **Features:**
 TBD
