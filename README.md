@@ -2,8 +2,7 @@
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 
 ----
-
-***KubeSphere*** is a distribution of [Kubernetes](https://kubernetes.io), aimed to provide quick setup, friendly and easily use, and powerful management features for Kubernetes clusters, which could help both personal and enterprise users, reduce their learning curve of Kubernetes, accelerate their transform process from other container platforms to Kubernetes.   
+***KubeSphere*** is a distribution of [Kubernetes](https://kubernetes.io), aimed to provide quick setup, friendly and easily use, and powerful management features for Kubernetes clusters, which could help both personal and enterprise users, reduce their learning curve of Kubernetes, accelerate their transform process from other container platforms to Kubernetes.   
 
 **Features:**
  - Multiple IaaS platform support, including baremetal/KVM/QingCloud, and more will be supported in future release.  
