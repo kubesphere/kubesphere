@@ -56,8 +56,6 @@ update-builder:
 
 .PHONY: generate-in-local
 generate-in-local:
-	cd ./api && make generate
-	cd ./pkg/cmd/api && make
 	go generate ./pkg/version/
 
 .PHONY: generate
@@ -95,65 +93,11 @@ build: fmt
 	@docker image prune -f 1>/dev/null 2>&1
 	@echo "build done"
 
-.PHONY: compose-update
-compose-update: build compose-up
-	@echo "compose-update done"
-
-.PHONY: compose-update-service-without-deps
-compose-update-service-without-deps: build
-	docker-compose up -d --no-dep $(COMPOSE_APP_SERVICES)
-	@echo "compose-update-service-without-deps done"
-
-.PHONY: compose-logs-f
-compose-logs-f:
-	docker-compose logs -f $(COMPOSE_APP_SERVICES)
-
-
-compose-update-%:
-	docker-compose up -d --no-deps $*
-	@echo "compose-update done"
-
-.PHONY: compose-up
-compose-up:
-	docker-compose up -d
-	@echo "compose-up done"
-
-.PHONY: compose-down
-compose-down:
-	docker-compose down
-	@echo "compose-down done"
-
 .PHONY: release
 release:
 	@echo "TODO"
-
-.PHONY: test
-test:
-	@make unit-test
-	@make e2e-test
-	@echo "test done"
-
-
-.PHONY: e2e-test
-e2e-test:
-	go test -v ./test/...
-	@echo "e2e-test done"
-
-.PHONY: ci-test
-ci-test:
-	# build with production Dockerfile, not dev version
-	@docker build -t $(TARG.Name) -f ./Dockerfile .
-	@make compose-up
-	#sleep 20
-	#@make unit-test
-	#@make e2e-test
-	#@echo "ci-test done"
 
 .PHONY: clean
 clean:
 	-make -C ./pkg/version clean
 	@echo "ok"
-
-.PHONY: unit-test
-unit-test:
-	@echo "unit-test done"
