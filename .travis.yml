@@ -6,7 +6,7 @@ services:
 language: go
 
 go:
-  - 1.9
+  - 1.10
   - tip
 
 go_import_path: kubesphere.io/kubesphere
@@ -22,4 +22,3 @@ before_script:
 
 script:
   - make fmt-check
-  - make ci-test
