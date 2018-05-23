@@ -1,0 +1,15 @@
+dependencies:
+  pre:
+    # setup ipv6
+    - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
+  post:
+    # install golint
+    - go get github.com/golang/lint/golint
+
+test:
+  pre:
+    # run analysis before tests
+    - go vet ./...
+    # set min_confidence > 0.8 to ignore "error strings should not be capitalized or end with punctuation or a newline"
+    - test -z "$(golint -min_confidence 0.81 ./... | tee /dev/stderr)"
+    - test -z "$(gofmt -s -l . | tee /dev/stderr)"
