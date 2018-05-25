@@ -21,23 +21,25 @@ import (
         "kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
         "kubesphere.io/kubesphere/pkg/apis/v1alpha/kubeconfig"
         "kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
-		"kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
+		    "kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
+        "kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
 )
 
 func init() {
-	ws := new(restful.WebService)
-    ws.Path("/api/v1alpha")
+	      ws := new(restful.WebService)
+        ws.Path("/api/v1alpha")
 
-    nodes.Register(ws,"/nodes")
-    kubeconfig.Register(ws, "/namespaces/{namespace}/kubeconfig")
-    kubectl.Register(ws, "/namespaces/{namespace}/kubectl")
-    terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
+        nodes.Register(ws,"/nodes")
+        kubeconfig.Register(ws, "/namespaces/{namespace}/kubeconfig")
+        kubectl.Register(ws, "/namespaces/{namespace}/kubectl")
+        terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
+        registries.Register(ws,"/registries")
 
-    // add webservice to default container
-    restful.Add(ws)
+        // add webservice to default container
+        restful.Add(ws)
 
-    // add websocket handler to default container
-    terminal.RegisterWebSocketHandler(restful.DefaultContainer, "/api/v1alpha/sockjs/")
+        // add websocket handler to default container
+        terminal.RegisterWebSocketHandler(restful.DefaultContainer, "/api/v1alpha/sockjs/")
 
 }
 
