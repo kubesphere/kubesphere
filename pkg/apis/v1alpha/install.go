@@ -23,6 +23,7 @@ import (
         "kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
 		    "kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
         "kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
+        "kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 )
 
 func init() {
@@ -34,12 +35,4 @@ func init() {
         kubectl.Register(ws, "/namespaces/{namespace}/kubectl")
         terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
         registries.Register(ws,"/registries")
-
-        // add webservice to default container
-        restful.Add(ws)
-
-        // add websocket handler to default container
-        terminal.RegisterWebSocketHandler(restful.DefaultContainer, "/api/v1alpha/sockjs/")
-
-}
-
+        storage.Register(ws, "/storage")
