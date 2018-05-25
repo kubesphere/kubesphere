@@ -3,6 +3,8 @@ package models
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	v12 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -10,15 +12,22 @@ import (
 )
 
 type pvcListBySc struct {
-	Claims []simplePvcList `json:"persistentvolumeclaims"`
-	Name   string          `json:"name"`
+	Name   string                      `json:"name"`
+	Claims []v12.PersistentVolumeClaim `json:"persistentvolumeclaims"`
 }
 
-type simplePvcList struct {
-	Claim     string `json:"name"`
-	Namespace string `json:"namespace"`
+type scMetrics struct {
+	Name    string         `json:"name"`
+	Metrics storageMetrics `json:"metrics"`
 }
 
+type storageMetrics struct {
+	Capacity string `json:"capacity,omitempty"`
+	Usage    string `json:"usage,omitempty"`
+}
+
+// List all PersistentVolumeClaims of a specific StorageClass
+// Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/persistentvolumeclaims"
 func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 
 	scName := request.PathParameter("storageclass")
@@ -30,17 +39,34 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	result := constants.ResultMessage{
 		Kind:       constants.KIND,
 		ApiVersion: constants.APIVERSION,
-		Data:       pvcListBySc{Claims: claims, Name: scName}}
+		Data:       pvcListBySc{scName, claims}}
 
 	response.WriteAsJson(result)
 }
 
-func getPvcListBySc(storageclass string) (res []simplePvcList, err error) {
+// Get metrics of a specific StorageClass
+// Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/metrics"
+func GetScMetrics(request *restful.Request, response *restful.Response) {
+	scName := request.PathParameter("storageclass")
+	glog.Infof("Run GetPvcListBySc: SC = %s", scName)
+
+	metrics, err := getScMetrics(scName)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+	}
+	result := constants.ResultMessage{
+		Kind:       constants.KIND,
+		ApiVersion: constants.APIVERSION,
+		Data:       scMetrics{Name: scName, Metrics: metrics},
+	}
+	response.WriteAsJson(result)
+}
+
+func getPvcListBySc(storageclass string) (res []v12.PersistentVolumeClaim, err error) {
 
 	cli := client.NewK8sClient()
 	claimList, err := cli.CoreV1().PersistentVolumeClaims("").List(v1.ListOptions{})
 	if err != nil {
-		glog.Error("Read all PVC err: ", err)
 		return nil, err
 	}
 
@@ -48,7 +74,24 @@ func getPvcListBySc(storageclass string) (res []simplePvcList, err error) {
 		if *claim.Spec.StorageClassName != storageclass {
 			continue
 		}
-		res = append(res, simplePvcList{Claim: claim.Name, Namespace: claim.Namespace})
+		res = append(res, claim)
 	}
 	return res, nil
+}
+
+func getScMetrics(storageclass string) (res storageMetrics, err error) {
+	cli := client.NewK8sClient()
+	pvList, err := cli.CoreV1().PersistentVolumes().List(v1.ListOptions{})
+	if err != nil {
+		return storageMetrics{}, err
+	}
+
+	var total resource.Quantity
+	for _, volume := range pvList.Items {
+		if volume.Spec.StorageClassName != storageclass {
+			continue
+		}
+		total.Add(volume.Spec.Capacity[v12.ResourceStorage])
+	}
+	return storageMetrics{Usage: total.String()}, nil
 }
