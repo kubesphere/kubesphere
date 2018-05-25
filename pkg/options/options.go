@@ -21,7 +21,20 @@ import (
 	goflag "flag"
 	"github.com/spf13/pflag"
 	"net"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
+
+
+const (
+	// High enough QPS to fit all expected use cases. QPS=0 is not set here, because
+	// client code is overriding it.
+	DefaultQPS = 1e6
+	// High enough Burst to fit all expected use cases. Burst=0 is not set here, because
+	// client code is overriding it.
+	DefaultBurst = 1e6
+)
+
 
 // ServerRunOptions runs a kubernetes api server.
 type ServerRunOptions struct {
@@ -98,6 +111,33 @@ func (s *ServerRunOptions) GetKeyFile() string {
 func (s *ServerRunOptions) GetKubeConfigFile() string {
 	return s.kubeConfigFile
 }
+
+func (s *ServerRunOptions) GetKubeConfig() (kubeConfig *rest.Config, err error) {
+
+	kubeConfigFile := s.kubeConfigFile
+
+	if len(kubeConfigFile) > 0 {
+
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil{
+			return nil, err
+		}
+	}
+
+	kubeConfig.QPS = DefaultQPS
+	kubeConfig.Burst = DefaultBurst
+
+	return kubeConfig, nil
+
+}
+
 
 var ServerOptions = NewServerRunOptions()
 
