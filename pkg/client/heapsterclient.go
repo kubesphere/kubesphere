@@ -17,26 +17,39 @@ limitations under the License.
 package client
 
 import (
-	"fmt"
 	"net/http"
 
-	"os"
+	"github.com/golang/glog"
 	"io/ioutil"
+	"os"
 )
 
+const (
+	DefaultHeapsterScheme  = "http"
+	DefaultHeapsterService = "heapster" //"heapster"
+	DefaultHeapsterPort    = "80"       // use the first exposed port on the service
+)
+
+var (
+	prefix = "/api/v1/model"
+)
 
 func GetHeapsterMetrics(url string) string {
-	response, err := http.Get(url)
+	//glog.Info("Querying data from " + DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
+	response, err := http.Get(DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
 	if err != nil {
-		fmt.Printf("%s", err)
+		glog.Error(err)
 		os.Exit(1)
 	} else {
 		defer response.Body.Close()
+
 		contents, err := ioutil.ReadAll(response.Body)
+
 		if err != nil {
-			fmt.Printf("%s", err)
+			glog.Error(err)
 			os.Exit(1)
 		}
+
 		return string(contents)
 	}
 	return ""

@@ -18,14 +18,12 @@ package models
 
 import (
 	"encoding/base64"
-	"github.com/emicklei/go-restful"
 	"context"
 
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
 
 	"kubesphere.io/kubesphere/pkg/constants"
-	"github.com/golang/glog"
 
 )
 
@@ -37,113 +35,59 @@ type AuthInfo struct {
 }
 
 
-func RegistryLoginAuth(request *restful.Request, response *restful.Response) {
+const DOCKERCLIENTERROR = "Docker client error"
+
+func RegistryLoginAuth(authinfo AuthInfo) constants.ResultMessage {
 
 	var result constants.ResultMessage
 
-	authinfo := AuthInfo{}
+	data := make(map[string]interface{})
 
-	err := request.ReadEntity(&authinfo)
+	datastr := []byte(authinfo.Username + ":" + authinfo.Password)
+	auth := base64.StdEncoding.EncodeToString(datastr)
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts()
 
-	if err == nil {
+	if err != nil {
 
-		datastr := []byte(authinfo.Username + ":" + authinfo.Password)
-		auth := base64.StdEncoding.EncodeToString(datastr)
-		ctx := context.Background()
-		cli, err := client.NewEnvClient()
+		data["message"] = DOCKERCLIENTERROR
+		data["reason"] = err.Error()
+	}
 
-		if err != nil {
-			panic(err)
-		}
+	authcfg := types.AuthConfig{
 
-		authcfg := types.AuthConfig{
+		Username:      authinfo.Username,
+		Password:      authinfo.Password,
+		Auth:          auth,
+		ServerAddress: authinfo.ServerHost,
+	}
 
-			Username:      authinfo.Username,
-			Password:      authinfo.Password,
-			Auth:          auth,
-			ServerAddress: authinfo.ServerHost,
-		}
+	authmsg, err := cli.RegistryLogin(ctx, authcfg)
 
-		auth_msg, err := cli.RegistryLogin(ctx, authcfg)
-		data := make(map[string]string)
+	cli.Close()
 
-		if err == nil {
+	if err != nil {
 
-
-			data["status"] = auth_msg.Status
-			result.Data = data
-			result.ApiVersion = constants.APIVERSION
-			result.Kind = constants.KIND
-			glog.Infoln(result)
-			response.WriteAsJson(result)
-		} else {
-
-
-			data["status"] = "Login Failed"
-			result.Data = data
-			result.ApiVersion = constants.APIVERSION
-			result.Kind = constants.KIND
-			glog.Infoln(result)
-			response.WriteAsJson(result)
-		}
-
-	} else {
-
-		result.Data = err
-		result.ApiVersion = constants.APIVERSION
-		result.Kind = constants.KIND
-		glog.Infoln(result)
-		response.WriteAsJson(result)
-
+		data["message"] = DOCKERCLIENTERROR
+		data["reason"] = err.Error()
 
 	}
 
-}
+	if authmsg.Status == "Login Succeeded" {
 
-func RegistryKey(request *restful.Request, response *restful.Response)  {
-
-
-	var result constants.ResultMessage
-
-	authinfo := AuthInfo{}
-
-
-
-	err := request.ReadEntity(&authinfo)
-
-	if err == nil {
-
-		datastr := []byte(authinfo.Username + ":" + authinfo.Password)
-		auth := base64.StdEncoding.EncodeToString(datastr)
-
-		dockercfg := "{\"auths\":{\""+authinfo.ServerHost+"\":{\"username\":\""+authinfo.Username+"\",\"password\":\""+authinfo.Password+"\",\"auth\":\""+auth+"\"}}}"
-
-		dockerconfigjson := base64.StdEncoding.EncodeToString([]byte(dockercfg))
-
-
-		data := make(map[string]string)
-
-		data["dockerconfigjson"] = dockerconfigjson
-
-		result.Data = data
-
-		result.ApiVersion = constants.APIVERSION
-		result.Kind = constants.KIND
-
-		glog.Infoln(result)
-
-		response.WriteAsJson(result)
-
+		data["message"] = "Verified"
 
 	} else {
 
+		data["message"] = "Unverified"
+		data["reason"] = "Username or password is incorrect "
 
-		result.Data = err
-		result.ApiVersion = constants.APIVERSION
-		result.Kind = constants.KIND
-		glog.Infoln(result)
-		response.WriteAsJson(result)
 	}
+
+	result.Data = data
+
+
+	return result
 
 }
 
