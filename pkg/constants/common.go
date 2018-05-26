@@ -18,8 +18,6 @@ package constants
 
 type ResultMessage struct {
 
-	Kind	string `json:"kind"`
-	ApiVersion	string `json:"apiVersion"`
 	Data	interface{} `json:"data"`
 
 	
