@@ -18,16 +18,49 @@ package nodes
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
+	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath).To(models.HandleNodes).Filter(route.RouteLogging)).
+	ws.Route(ws.GET(subPath).To(handleNodes).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
-
+	ws.Route(ws.GET(subPath+"/{nodename}").To(handleSingleNode).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 }
 
+func handleNodes(request *restful.Request, response *restful.Response) {
+	var result constants.ResultMessage
+	var resultNodes []models.ResultNode
+	var resultNode models.ResultNode
 
+	nodes := models.GetNodes()
+
+	for _, node := range nodes {
+
+		resultNode = models.FormatNodeMetrics(node)
+		resultNodes = append(resultNodes, resultNode)
+
+	}
+
+	result.Data = resultNodes
+	response.WriteAsJson(result)
+}
+
+func handleSingleNode(request *restful.Request, response *restful.Response) {
+	nodeName := request.PathParameter("nodename")
+	var result constants.ResultMessage
+	var resultNodes []models.ResultNode
+	var resultNode models.ResultNode
+
+	resultNode = models.FormatNodeMetrics(nodeName)
+	resultNodes = append(resultNodes, resultNode)
+
+	result.Data = resultNodes
+	response.WriteAsJson(result)
+}

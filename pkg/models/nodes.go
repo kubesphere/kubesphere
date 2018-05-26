@@ -17,33 +17,128 @@ limitations under the License.
 package models
 
 import (
-	"github.com/emicklei/go-restful"
+	"encoding/json"
 
-	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
+
 	"kubesphere.io/kubesphere/pkg/client"
+
+	ksutil "kubesphere.io/kubesphere/pkg/util"
+
+	"fmt"
+	"strconv"
 )
 
-type ResultMessage struct {
-	Ret  int         `json:"ret"`
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data"`
+type ResultNodes struct {
+	Nodes []ResultNode `json:"nodes"`
+}
+type ResultNode struct {
+	NodeName string       `json:"node_name"`
+	CPU      []CPUNode    `json:"cpu"`
+	Memory   []MemoryNode `json:"memory"`
 }
 
-func HandleNodes(request *restful.Request, response *restful.Response) {
+type CPUNode struct {
+	TimeStamp      string `json:"timestamp"`
+	UsedCPU        string `json:"used_cpu"`
+	TotalCPU       string `json:"total_cpu"`
+	CPUUtilization string `json:"cpu_utilization"`
+}
 
-	var result ResultMessage
+type MemoryNode struct {
+	TimeStamp         string `json:"timestamp"`
+	UsedMemory        string `json:"used_mem"`
+	TotalMemory       string `json:"total_mem"`
+	MemoryUtilization string `json:"mem_utilization"`
+}
 
+/*
+Get all nodes in default cluster
+*/
+func GetNodes() []string {
+	nodesList := client.GetHeapsterMetrics("/nodes")
+	var nodes []string
+	dec := json.NewDecoder(strings.NewReader(nodesList))
+	err := dec.Decode(&nodes)
+	if err != nil {
+		glog.Error(err)
+	}
+	return nodes
+}
 
-	data := make(map[string]string)
+/*
+Format cpu/memory data for specified node
+*/
+func FormatNodeMetrics(nodeName string) ResultNode {
+	var resultNode ResultNode
+	var nodeCPUMetrics []CPUNode
+	var nodeMemMetrics []MemoryNode
+	var cpuMetrics CPUNode
+	var memMetrics MemoryNode
+	var total_cpu float64
+	var total_mem float64
 
+	cpuNodeAllocated := client.GetHeapsterMetrics("/nodes/" + nodeName + "/metrics/cpu/node_allocatable")
+	if cpuNodeAllocated != "" {
+		var err error
+		total_cpu, err = strconv.ParseFloat(ksutil.JsonRawMessage(cpuNodeAllocated).Find("metrics").ToList()[0].Find("value").ToString(), 64)
+		if err == nil {
+			total_cpu = total_cpu / 1000
+		}
+	}
 
-	data["output"] = client.GetHeapsterMetrics("http://139.198.0.79/api/monitor/v1/model/namespaces/kube-system/pods/qingcloud-volume-provisioner-i-o5pmakm7/metrics/cpu/request")
+	cpuUsageRate := client.GetHeapsterMetrics("/nodes/" + nodeName + "/metrics/cpu/usage_rate")
+	if cpuUsageRate != "" {
+		metrics := ksutil.JsonRawMessage(cpuUsageRate).Find("metrics").ToList()
 
-	result.Data = data
-	result.Ret = http.StatusOK
-	result.Msg = "success"
-	glog.Infoln(result)
-	response.WriteAsJson(result)
+		for _, metric := range metrics {
+			timestamp := metric.Find("timestamp")
+			cpu_utilization, _ := strconv.ParseFloat(metric.Find("value").ToString(), 64)
+			cpuMetrics.TimeStamp = timestamp.ToString()
+			cpuMetrics.TotalCPU = fmt.Sprintf("%.1f", total_cpu)
+			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization/1000)
+			cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", total_cpu*cpu_utilization/1000)
+
+			glog.Info("node " + nodeName + " has total cpu " + fmt.Sprintf("%.1f", total_cpu) + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization/1000) + " at time" + timestamp.ToString())
+			nodeCPUMetrics = append(nodeCPUMetrics, cpuMetrics)
+		}
+
+	}
+
+	memNodeAllocated := client.GetHeapsterMetrics("/nodes/" + nodeName + "/metrics/memory/node_allocatable")
+	var total_mem_bytes, used_mem_bytes float64
+	if memNodeAllocated != "" {
+		var err error
+		total_mem_bytes, err = strconv.ParseFloat(ksutil.JsonRawMessage(memNodeAllocated).Find("metrics").ToList()[0].Find("value").ToString(), 64)
+		if err == nil {
+			total_mem = total_mem_bytes / 1024 / 1024 / 1024
+		}
+	}
+
+	memUsage := client.GetHeapsterMetrics("/nodes/" + nodeName + "/metrics/memory/usage")
+	if memUsage != "" {
+		metrics := ksutil.JsonRawMessage(memUsage).Find("metrics").ToList()
+
+		for _, metric := range metrics {
+			timestamp := metric.Find("timestamp")
+			used_mem_bytes, _ = strconv.ParseFloat(metric.Find("value").ToString(), 64)
+			used_mem := used_mem_bytes / 1024 / 1024 / 1024
+
+			memMetrics.TimeStamp = timestamp.ToString()
+			memMetrics.TotalMemory = fmt.Sprintf("%.1f", total_mem)
+			memMetrics.UsedMemory = fmt.Sprintf("%.1f", used_mem)
+			memMetrics.MemoryUtilization = fmt.Sprintf("%.3f", used_mem_bytes/total_mem_bytes)
+			glog.Info("node " + nodeName + " has total mem " + fmt.Sprintf("%.1f", total_mem) + " mem utilization " + fmt.Sprintf("%.3f", used_mem_bytes/total_mem_bytes) + " at time" + timestamp.ToString())
+			nodeMemMetrics = append(nodeMemMetrics, memMetrics)
+		}
+	}
+
+	resultNode.NodeName = nodeName
+
+	resultNode.CPU = nodeCPUMetrics
+	resultNode.Memory = nodeMemMetrics
+
+	return resultNode
 }

@@ -21,6 +21,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
@@ -29,7 +30,7 @@ import (
 func init() {
 
 	ws := new(restful.WebService)
-	ws.Path("/api/v1alpha")
+	ws.Path("/api/v1alpha1")
 
 	nodes.Register(ws, "/nodes")
 	kubeconfig.Register(ws, "/namespaces/{namespace}/kubeconfig")
@@ -37,7 +38,8 @@ func init() {
 	registries.Register(ws, "/registries")
 	storage.Register(ws, "/storage")
 	volumes.Register(ws, "/volumes")
-
+	nodes.Register(ws, "/nodes")
+	pods.Register(ws)
 	// add webservice to default container
 	restful.Add(ws)
 
