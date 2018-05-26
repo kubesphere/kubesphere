@@ -26,8 +26,7 @@ func GetPodListByPvc(request *restful.Request, response *restful.Response) {
 		response.WriteError(http.StatusInternalServerError, err)
 	}
 	result := constants.ResultMessage{
-		Kind:       constants.KIND,
-		ApiVersion: constants.APIVERSION,
+
 		Data: podListByPvc{
 			Name: pvcName, Namespace: nsName, Pods: pods}}
 

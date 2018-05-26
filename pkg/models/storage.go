@@ -34,8 +34,7 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 		response.WriteError(http.StatusInternalServerError, err)
 	}
 	result := constants.ResultMessage{
-		Kind:       constants.KIND,
-		ApiVersion: constants.APIVERSION,
+
 		Data:       pvcListBySc{scName, claims}}
 
 	response.WriteAsJson(result)
@@ -50,8 +49,7 @@ func GetScMetrics(request *restful.Request, response *restful.Response) {
 		response.WriteError(http.StatusInternalServerError, err)
 	}
 	result := constants.ResultMessage{
-		Kind:       constants.KIND,
-		ApiVersion: constants.APIVERSION,
+
 		Data:       scMetrics{Name: scName, Metrics: metrics},
 	}
 	response.WriteAsJson(result)

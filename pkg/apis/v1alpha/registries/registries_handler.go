@@ -20,17 +20,32 @@ import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/filter/route"
+	"net/http"
 )
 
-func Register(ws *restful.WebService,subPath string) {
+func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.POST(subPath+"/login").To(models.RegistryLoginAuth).Filter(route.RouteLogging)).
+	ws.Route(ws.POST(subPath + "/validation").To(handlerRegistryValidation).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST(subPath+"/key").To(models.RegistryKey).Filter(route.RouteLogging)).
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
+}
+
+func handlerRegistryValidation(request *restful.Request, response *restful.Response) {
+
+	authinfo := models.AuthInfo{}
+
+	err := request.ReadEntity(&authinfo)
+
+	if err != nil {
+
+		response.WriteError(http.StatusInternalServerError, err)
+
+	}
+
+	result := models.RegistryLoginAuth(authinfo)
+
+	response.WriteAsJson(result)
 
 }
 
