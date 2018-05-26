@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,9 +28,7 @@ type storageMetrics struct {
 // List all PersistentVolumeClaims of a specific StorageClass
 // Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/persistentvolumeclaims"
 func GetPvcListBySc(request *restful.Request, response *restful.Response) {
-
 	scName := request.PathParameter("storageclass")
-	glog.Infof("Run GetPvcListBySc: SC = %s", scName)
 	claims, err := getPvcListBySc(scName)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -48,8 +45,6 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 // Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/metrics"
 func GetScMetrics(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
-	glog.Infof("Run GetPvcListBySc: SC = %s", scName)
-
 	metrics, err := getScMetrics(scName)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
