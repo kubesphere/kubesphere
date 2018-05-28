@@ -27,7 +27,7 @@ import (
 const (
 	DefaultHeapsterScheme  = "http"
 	DefaultHeapsterService = "heapster" //"heapster"
-	DefaultHeapsterPort    = "80"       // use the first exposed port on the service
+	DefaultHeapsterPort    = "80"        // use the first exposed port on the service
 )
 
 var (
