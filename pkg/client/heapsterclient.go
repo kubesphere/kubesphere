@@ -19,9 +19,10 @@ package client
 import (
 	"net/http"
 
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
+
+	"github.com/golang/glog"
 )
 
 const (

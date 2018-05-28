@@ -23,7 +23,6 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-
 )
 
 func Register(ws *restful.WebService) {
@@ -33,6 +32,9 @@ func Register(ws *restful.WebService) {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").To(handlePodsUnderNameSpace).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET("/nodes/{nodename}/namespaces/{namespace}/pods").To(handlePodsUnderNodeAndNameSpace).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 }
@@ -46,7 +48,7 @@ func handleAllPods(request *restful.Request, response *restful.Response) {
 
 	for _, namespace := range namespaces {
 
-		resultNameSpace = models.FormatNameSpaceMetrics(namespace)
+		resultNameSpace = models.FormatPodsMetrics("", namespace)
 		resultNameSpaces = append(resultNameSpaces, resultNameSpace)
 
 	}
@@ -60,7 +62,20 @@ func handlePodsUnderNameSpace(request *restful.Request, response *restful.Respon
 	var resultNameSpaces []models.ResultNameSpace
 	var resultNameSpace models.ResultNameSpace
 
-	resultNameSpace = models.FormatNameSpaceMetrics(request.PathParameter("namespace"))
+	resultNameSpace = models.FormatPodsMetrics("", request.PathParameter("namespace"))
+
+	resultNameSpaces = append(resultNameSpaces, resultNameSpace)
+
+	result.Data = resultNameSpaces
+	response.WriteAsJson(result)
+}
+
+func handlePodsUnderNodeAndNameSpace(request *restful.Request, response *restful.Response) {
+	var result constants.ResultMessage
+	var resultNameSpaces []models.ResultNameSpace
+	var resultNameSpace models.ResultNameSpace
+
+	resultNameSpace = models.FormatPodsMetrics(request.PathParameter("nodename"), request.PathParameter("namespace"))
 
 	resultNameSpaces = append(resultNameSpaces, resultNameSpace)
 
