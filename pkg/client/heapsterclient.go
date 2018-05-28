@@ -19,15 +19,16 @@ package client
 import (
 	"net/http"
 
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
+
+	"github.com/golang/glog"
 )
 
 const (
 	DefaultHeapsterScheme  = "http"
 	DefaultHeapsterService = "heapster" //"heapster"
-	DefaultHeapsterPort    = "80"        // use the first exposed port on the service
+	DefaultHeapsterPort    = "80"       // use the first exposed port on the service
 )
 
 var (

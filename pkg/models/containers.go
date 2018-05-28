@@ -64,7 +64,7 @@ func GetContainers(namespace, podName string) []string {
 func FormatContainersMetrics(nodeName, namespace, podName string) ResultNameSpaceForContainer {
 	var resultNameSpaceForContainer ResultNameSpaceForContainer
 	var resultPodsForContainer []ResultPodForContainer
-	var resultPodForContainer ResultPodForContainer
+
 	var pods []string
 	if nodeName == "" {
 		pods = GetPods(namespace)
@@ -76,6 +76,7 @@ func FormatContainersMetrics(nodeName, namespace, podName string) ResultNameSpac
 	resultNameSpaceForContainer.PodsCount = strconv.Itoa(len(pods))
 
 	if podName != "" {
+		var resultPodForContainer ResultPodForContainer
 		resultPodForContainer.PodName = podName
 		resultPodForContainer = FormatPodMetricsWithContainers(namespace, podName)
 		resultPodsForContainer = append(resultPodsForContainer, resultPodForContainer)
@@ -83,6 +84,7 @@ func FormatContainersMetrics(nodeName, namespace, podName string) ResultNameSpac
 		return resultNameSpaceForContainer
 	}
 	for _, pod := range pods {
+		var resultPodForContainer ResultPodForContainer
 		resultPodForContainer.PodName = pod
 		resultPodForContainer = FormatPodMetricsWithContainers(namespace, pod)
 		resultPodsForContainer = append(resultPodsForContainer, resultPodForContainer)
@@ -96,17 +98,18 @@ func FormatPodMetricsWithContainers(namespace, pod string) ResultPodForContainer
 	var resultPod ResultPodForContainer
 	var containers []string
 	var resultContainers []ResultContainer
-	var resultContainer ResultContainer
-	var containerCPUMetrics []CPUContainer
-	var containerMemMetrics []MemoryContainer
-	var cpuMetrics CPUContainer
-	var memMetrics MemoryContainer
 
 	resultPod.PodName = pod
 	containers = GetContainers(namespace, pod)
 	resultPod.ContainersCount = strconv.Itoa(len(containers))
 
 	for _, container := range containers {
+		var resultContainer ResultContainer
+		var containerCPUMetrics []CPUContainer
+		var containerMemMetrics []MemoryContainer
+		var cpuMetrics CPUContainer
+		var memMetrics MemoryContainer
+
 		resultContainer.ContainerName = container
 		cpuRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/cpu/request")
 		cpuRequest = ksutil.JsonRawMessage(cpuRequest).Find("metrics").ToList()[0].Find("value").ToString()
