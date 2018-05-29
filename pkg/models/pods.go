@@ -13,6 +13,8 @@ import (
 
 	"fmt"
 	"strconv"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ResultNameSpaces struct {
@@ -62,7 +64,6 @@ func GetNameSpaces() []string {
 Get all pods under specified namespace in default cluster
 */
 func GetPods(namespace string) []string {
-	fmt.Println(namespace)
 	podsList := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods")
 	var pods []string
 	dec := json.NewDecoder(strings.NewReader(podsList))
@@ -73,12 +74,30 @@ func GetPods(namespace string) []string {
 	return pods
 }
 
-func FormatNameSpaceMetrics(namespace string) ResultNameSpace {
+func GetPodsForNode(nodeName, namespace string) []string {
+	var pods []string
+	cli := client.NewK8sClient()
+	podList, err := cli.CoreV1().Pods(namespace).List(v1.ListOptions{FieldSelector: "spec.nodeName=" + nodeName})
+	if err != nil {
+		glog.Error(err)
+	} else {
+		for _, pod := range podList.Items {
+			pods = append(pods, pod.Name)
+		}
+	}
+	return pods
+}
+
+func FormatPodsMetrics(nodeName, namespace string) ResultNameSpace {
 	var resultNameSpace ResultNameSpace
 	var resultPods []ResultPod
 	var resultPod ResultPod
-
-	pods := GetPods(namespace)
+	var pods []string
+	if nodeName == "" {
+		pods = GetPods(namespace)
+	} else {
+		pods = GetPodsForNode(nodeName, namespace)
+	}
 
 	resultNameSpace.NameSpace = namespace
 	resultNameSpace.PodsCount = strconv.Itoa(len(pods))
@@ -92,6 +111,7 @@ func FormatNameSpaceMetrics(namespace string) ResultNameSpace {
 }
 
 func FormatPodMetrics(namespace, pod string) ResultPod {
+
 	var resultPod ResultPod
 	var podCPUMetrics []CPUPod
 	var podMemMetrics []MemoryPod
@@ -115,10 +135,10 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 		resultPod.CPULimit = "inf"
 	}
 	memoryRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/request")
-	resultPod.MemoryRequest = convertMemory(memoryRequest)
+	resultPod.MemoryRequest = ConvertMemory(memoryRequest)
 
 	memoryLimit := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")
-	resultPod.MemoryLimit = convertMemory(memoryLimit)
+	resultPod.MemoryLimit = ConvertMemory(memoryLimit)
 
 	cpuUsageRate := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/usage_rate")
 	if cpuUsageRate != "" {
@@ -171,7 +191,7 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 	return resultPod
 }
 
-func convertMemory(memBytes string) string {
+func ConvertMemory(memBytes string) string {
 	var mem string
 
 	if memBytes != "" {
@@ -193,4 +213,18 @@ func convertMemory(memBytes string) string {
 		mem = "inf"
 	}
 	return mem
+}
+
+func getNodeNameForPod(podName, namespace string) string {
+	var nodeName string
+	cli := client.NewK8sClient()
+
+	pod, err := cli.CoreV1().Pods(namespace).Get(podName, v1.GetOptions{})
+
+	if err != nil {
+		glog.Error(err)
+	} else {
+		nodeName = pod.Spec.NodeName
+	}
+	return nodeName
 }

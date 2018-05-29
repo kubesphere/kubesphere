@@ -18,6 +18,7 @@ package v1alpha
 
 import (
 	"github.com/emicklei/go-restful"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
@@ -33,7 +34,6 @@ func init() {
 	ws := new(restful.WebService)
 	ws.Path("/api/v1alpha1")
 
-	nodes.Register(ws, "/nodes")
 	kubeconfig.Register(ws, "/namespaces/{namespace}/kubeconfig")
 	kubectl.Register(ws, "/namespaces/{namespace}/kubectl")
 	registries.Register(ws, "/registries")
@@ -41,7 +41,11 @@ func init() {
 	volumes.Register(ws, "/volumes")
 	nodes.Register(ws, "/nodes")
 	pods.Register(ws)
+
 	dashboard.Register(ws,"/dashboard")
+
+	containers.Register(ws)
+
 	// add webservice to default container
 	restful.Add(ws)
 
