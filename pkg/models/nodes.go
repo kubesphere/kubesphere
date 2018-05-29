@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client"
 
 	ksutil "kubesphere.io/kubesphere/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"fmt"
 	"strconv"
@@ -35,9 +36,11 @@ type ResultNodes struct {
 	Nodes []ResultNode `json:"nodes"`
 }
 type ResultNode struct {
-	NodeName string       `json:"node_name"`
-	CPU      []CPUNode    `json:"cpu"`
-	Memory   []MemoryNode `json:"memory"`
+	NodeName     string       `json:"node_name"`
+	PodsCount    string       `json:"pods_count"`
+	PodsCapacity string       `json:"pods_capacity"`
+	CPU          []CPUNode    `json:"cpu"`
+	Memory       []MemoryNode `json:"memory"`
 }
 
 type CPUNode struct {
@@ -136,9 +139,25 @@ func FormatNodeMetrics(nodeName string) ResultNode {
 	}
 
 	resultNode.NodeName = nodeName
-
+	resultNode.PodsCount = strconv.Itoa(len(GetPodsForNode(nodeName,"")))
+	resultNode.PodsCapacity = getPodsCapacity(nodeName)
 	resultNode.CPU = nodeCPUMetrics
 	resultNode.Memory = nodeMemMetrics
 
 	return resultNode
+}
+
+func getPodsCapacity(nodeName string) string {
+	var pods_capacity string
+	cli := client.NewK8sClient()
+
+	node, err := cli.CoreV1().Nodes().Get(nodeName,metav1.GetOptions{})
+
+	if err != nil {
+		glog.Error(err)
+	} else {
+		pods_capacity = node.Status.Capacity.Pods().String()
+	}
+	fmt.Println(pods_capacity)
+	return pods_capacity
 }
