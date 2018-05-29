@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/dashboard"
 )
 
 func init() {
@@ -40,7 +41,11 @@ func init() {
 	volumes.Register(ws, "/volumes")
 	nodes.Register(ws, "/nodes")
 	pods.Register(ws)
+
+	dashboard.Register(ws,"/dashboard")
+
 	containers.Register(ws)
+
 	// add webservice to default container
 	restful.Add(ws)
 

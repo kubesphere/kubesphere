@@ -23,6 +23,8 @@ import (
 	"github.com/golang/glog"
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/options"
+	"kubesphere.io/kubesphere/pkg/util"
+	"kubesphere.io/kubesphere/pkg/models"
 	"net"
 	"net/http"
 )
@@ -77,6 +79,15 @@ func (server *kubeSphereServer) run() {
 
 		go func() { glog.Fatal(http.ListenAndServe(insecureAddr, nil)) }()
 	}
+
+
+	//add schedule task
+
+	go func() {
+
+		util.ScheduleTask(models.StorePodsStatis,"00:00:00", "5s")
+
+	}()
 
 	select {}
 }
