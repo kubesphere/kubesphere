@@ -35,32 +35,28 @@ func Register(ws *restful.WebService, subPath string) {
 }
 
 func handleNodes(request *restful.Request, response *restful.Response) {
-	var result constants.ResultMessage
-	var resultNodes []models.ResultNode
+	var result constants.PageableResponse
 	var resultNode models.ResultNode
 
 	nodes := models.GetNodes()
 
-	for _, node := range nodes {
-
+	var total_count int
+	for i, node := range nodes {
 		resultNode = models.FormatNodeMetrics(node)
-		resultNodes = append(resultNodes, resultNode)
-
+		result.Items = append(result.Items, resultNode)
+		total_count = i
 	}
+	total_count = total_count + 1
 
-	result.Data = resultNodes
+	result.TotalCount = total_count
 	response.WriteAsJson(result)
 }
 
 func handleSingleNode(request *restful.Request, response *restful.Response) {
 	nodeName := request.PathParameter("nodename")
-	var result constants.ResultMessage
-	var resultNodes []models.ResultNode
 	var resultNode models.ResultNode
 
 	resultNode = models.FormatNodeMetrics(nodeName)
-	resultNodes = append(resultNodes, resultNode)
 
-	result.Data = resultNodes
-	response.WriteAsJson(result)
+	response.WriteAsJson(resultNode)
 }
