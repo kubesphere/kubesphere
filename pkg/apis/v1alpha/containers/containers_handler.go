@@ -25,6 +25,9 @@ import (
 )
 
 func Register(ws *restful.WebService) {
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{podname}/containers/{containername}").To(handleContainerUnderNameSpaceAndPod).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{podname}/containers").To(handleContainersUnderNameSpaceAndPod).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
@@ -33,28 +36,23 @@ func Register(ws *restful.WebService) {
 		Produces(restful.MIME_JSON)
 }
 
+func handleContainerUnderNameSpaceAndPod(request *restful.Request, response *restful.Response) {
+	var resultContainer models.ResultContainer
+	resultContainer = models.FormatContainerMetrics(request.PathParameter("namespace"), request.PathParameter("podname"), request.PathParameter("containername"))
+	resultContainer.NodeName = models.GetNodeNameForPod(request.PathParameter("podname"), request.PathParameter("namespace"))
+	response.WriteAsJson(resultContainer)
+}
 func handleContainersUnderNameSpaceAndPod(request *restful.Request, response *restful.Response) {
-	var result constants.ResultMessage
-	var resultNameSpaces []models.ResultNameSpaceForContainer
-	var resultNameSpace models.ResultNameSpaceForContainer
+	var resultNameSpace constants.PageableResponse
 
 	resultNameSpace = models.FormatContainersMetrics("", request.PathParameter("namespace"), request.PathParameter("podname"))
-
-	resultNameSpaces = append(resultNameSpaces, resultNameSpace)
-
-	result.Data = resultNameSpaces
-	response.WriteAsJson(result)
+	response.WriteAsJson(resultNameSpace)
 }
 
 func handleContainersUnderNodeAndNameSpaceAndPod(request *restful.Request, response *restful.Response) {
-	var result constants.ResultMessage
-	var resultNameSpaces []models.ResultNameSpaceForContainer
-	var resultNameSpace models.ResultNameSpaceForContainer
+	var resultNameSpace constants.PageableResponse
 
 	resultNameSpace = models.FormatContainersMetrics(request.PathParameter("nodename"), request.PathParameter("namespace"), request.PathParameter("podname"))
 
-	resultNameSpaces = append(resultNameSpaces, resultNameSpace)
-
-	result.Data = resultNameSpaces
-	response.WriteAsJson(result)
+	response.WriteAsJson(resultNameSpace)
 }

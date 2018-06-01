@@ -23,24 +23,38 @@ import (
 
 	"github.com/golang/glog"
 
-	"kubesphere.io/kubesphere/pkg/client"
-
-	ksutil "kubesphere.io/kubesphere/pkg/util"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/client"
+	ksutil "kubesphere.io/kubesphere/pkg/util"
 
 	"fmt"
 	"strconv"
 )
 
-type ResultNodes struct {
-	Nodes []ResultNode `json:"nodes"`
-}
+const (
+	//status: "False"
+	OutOfDisk = "OutOfDisk"
+	//status: "False"
+	MemoryPressure = "MemoryPressure"
+	//status: "False"
+	DiskPressure = "DiskPressure"
+	//status: "False"
+	PIDPressure = "PIDPressure"
+	//status: "True"
+	KubeletReady = "Ready"
+)
+
 type ResultNode struct {
-	NodeName     string       `json:"node_name"`
-	PodsCount    string       `json:"pods_count"`
-	PodsCapacity string       `json:"pods_capacity"`
-	CPU          []CPUNode    `json:"cpu"`
-	Memory       []MemoryNode `json:"memory"`
+	NodeName      string       `json:"node_name"`
+	NodeStatus    string       `json:"node_status"`
+	PodsCount     string       `json:"pods_count"`
+	PodsCapacity  string       `json:"pods_capacity"`
+	UsedFS        string       `json:"used_fs"`
+	TotalFS       string       `json:"total_fs"`
+	FSUtilization string       `json:"fs_utilization"`
+	CPU           []CPUNode    `json:"cpu"`
+	Memory        []MemoryNode `json:"memory"`
 }
 
 type CPUNode struct {
@@ -98,13 +112,13 @@ func FormatNodeMetrics(nodeName string) ResultNode {
 
 		for _, metric := range metrics {
 			timestamp := metric.Find("timestamp")
-			cpu_utilization, _ := strconv.ParseFloat(metric.Find("value").ToString(), 64)
+			cpu_utilization, _ := strconv.ParseFloat(ConvertCPUUsageRate(metric.Find("value").ToString()), 64)
 			cpuMetrics.TimeStamp = timestamp.ToString()
 			cpuMetrics.TotalCPU = fmt.Sprintf("%.1f", total_cpu)
-			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization/1000)
-			cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", total_cpu*cpu_utilization/1000)
+			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization)
+			cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", total_cpu*cpu_utilization)
 
-			glog.Info("node " + nodeName + " has total cpu " + fmt.Sprintf("%.1f", total_cpu) + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization/1000) + " at time" + timestamp.ToString())
+			glog.Info("node " + nodeName + " has total cpu " + fmt.Sprintf("%.1f", total_cpu) + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization) + " at time" + timestamp.ToString())
 			nodeCPUMetrics = append(nodeCPUMetrics, cpuMetrics)
 		}
 
@@ -139,25 +153,65 @@ func FormatNodeMetrics(nodeName string) ResultNode {
 	}
 
 	resultNode.NodeName = nodeName
-	resultNode.PodsCount = strconv.Itoa(len(GetPodsForNode(nodeName,"")))
-	resultNode.PodsCapacity = getPodsCapacity(nodeName)
+	resultNode.PodsCount = strconv.Itoa(len(GetPodsForNode(nodeName, "")))
+	nodeResObj := getNodeResObj(nodeName)
+	resultNode.PodsCapacity = nodeResObj.Status.Capacity.Pods().String()
+	resultNode.NodeStatus = getNodeStatus(nodeResObj)
+	resultNode.UsedFS, resultNode.TotalFS, resultNode.FSUtilization = getNodeFileSystemStatus(nodeResObj)
 	resultNode.CPU = nodeCPUMetrics
 	resultNode.Memory = nodeMemMetrics
 
 	return resultNode
 }
 
-func getPodsCapacity(nodeName string) string {
-	var pods_capacity string
+func getNodeResObj(nodeName string) *v1.Node {
 	cli := client.NewK8sClient()
 
-	node, err := cli.CoreV1().Nodes().Get(nodeName,metav1.GetOptions{})
+	node, err := cli.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 
 	if err != nil {
 		glog.Error(err)
 	} else {
-		pods_capacity = node.Status.Capacity.Pods().String()
+		return node
 	}
-	fmt.Println(pods_capacity)
-	return pods_capacity
+	return nil
+}
+
+func getNodeStatus(node *v1.Node) string {
+
+	status := "Ready"
+	conditions := node.Status.Conditions
+	for _, cond := range conditions {
+		if cond.Type == DiskPressure && cond.Status == "True" {
+			status = "NotReady"
+			break
+		}
+		if cond.Type == OutOfDisk && cond.Status == "True" {
+			status = "NotReady"
+			break
+		}
+		if cond.Type == MemoryPressure && cond.Status == "True" {
+			status = "NotReady"
+		}
+		if cond.Type == PIDPressure && cond.Status == "True" {
+			status = "NotReady"
+			break
+		}
+		if cond.Type == KubeletReady && cond.Status == "False" {
+			status = "NotReady"
+			break
+		}
+	}
+	return status
+}
+
+func getNodeFileSystemStatus(node *v1.Node) (string, string, string) {
+
+	nodeMetricsAsStr := client.GetCAdvisorMetrics(node.Annotations["alpha.kubernetes.io/provided-node-ip"])
+	if nodeMetricsAsStr != "" {
+		usedBytesAsStr, _ := strconv.ParseFloat(ksutil.JsonRawMessage(nodeMetricsAsStr).Find("node").Find("fs").Find("usedBytes").ToString(), 64)
+		capacityBytesAsStr, _ := strconv.ParseFloat(ksutil.JsonRawMessage(nodeMetricsAsStr).Find("node").Find("fs").Find("capacityBytes").ToString(), 64)
+		return fmt.Sprintf("%.1f", usedBytesAsStr/1024/1024/1024), fmt.Sprintf("%.1f", capacityBytesAsStr/1024/1024/1024), fmt.Sprintf("%.3f", usedBytesAsStr/capacityBytesAsStr)
+	}
+	return "", "", ""
 }

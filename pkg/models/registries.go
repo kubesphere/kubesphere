@@ -22,9 +22,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
-
-	"kubesphere.io/kubesphere/pkg/constants"
-
+	"github.com/golang/glog"
 )
 
 
@@ -34,14 +32,19 @@ type AuthInfo struct {
 	ServerHost string `json:"serverhost"`
 }
 
+type ValidationMsg struct {
+
+	Message string `json:"message"`
+	Reason string `json:"reason"`
+}
+
+
 
 const DOCKERCLIENTERROR = "Docker client error"
 
-func RegistryLoginAuth(authinfo AuthInfo) constants.ResultMessage {
+func RegistryLoginAuth(authinfo AuthInfo) ValidationMsg {
 
-	var result constants.ResultMessage
-
-	data := make(map[string]interface{})
+	var result ValidationMsg
 
 	datastr := []byte(authinfo.Username + ":" + authinfo.Password)
 	auth := base64.StdEncoding.EncodeToString(datastr)
@@ -50,8 +53,8 @@ func RegistryLoginAuth(authinfo AuthInfo) constants.ResultMessage {
 
 	if err != nil {
 
-		data["message"] = DOCKERCLIENTERROR
-		data["reason"] = err.Error()
+		glog.Error(err)
+
 	}
 
 	authcfg := types.AuthConfig{
@@ -68,24 +71,20 @@ func RegistryLoginAuth(authinfo AuthInfo) constants.ResultMessage {
 
 	if err != nil {
 
-		data["message"] = DOCKERCLIENTERROR
-		data["reason"] = err.Error()
+		glog.Error(err)
 
 	}
 
 	if authmsg.Status == "Login Succeeded" {
 
-		data["message"] = "Verified"
+		result.Message = "Verified"
 
 	} else {
 
-		data["message"] = "Unverified"
-		data["reason"] = "Username or password is incorrect "
+		result.Message = "Unverified"
+		result.Reason = "Username or password is incorrect "
 
 	}
-
-	result.Data = data
-
 
 	return result
 
