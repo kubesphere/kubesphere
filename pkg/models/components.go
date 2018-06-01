@@ -25,17 +25,16 @@ import (
 )
 
 const KUBESYSTEM = "kube-system"
-const OPENPITRIX = "openpitrix"
+const OPENPITRIX = "openpitrix-system"
 
 type Components struct {
-	Name              string    `json:"name"`
-	Version           string    `json:"version"`
-	Kind              string    `json:"kind"`
-	HealthStatus      string    `json:"healthStatus"`
-	Replicas          int       `json:"replicas"`
-	AvailableReplicas int       `json:"availableReplicas"`
-	SelfLink          string    `json:"selfLink"`
-	UpdateTime        time.Time `json:"updateTime"`
+	Name         string    `json:"name"`
+	Version      string    `json:"version"`
+	Kind         string    `json:"kind"`
+	Replicas     int       `json:"replicas"`
+	HealthStatus string    `json:"healthStatus"`
+	SelfLink     string    `json:"selfLink"`
+	UpdateTime   time.Time `json:"updateTime"`
 }
 
 /***
@@ -79,19 +78,25 @@ func GetComponents() (result []Components, err error) {
 					components.Kind = "Pod"
 					components.SelfLink = pod.SelfLink
 					version := strings.Split(pod.Spec.Containers[0].Image, ":")
-					components.Version = version[1]
+
+					if len(version) < 2 {
+
+						components.Version = "latest"
+
+					} else {
+
+						components.Version = version[1]
+
+					}
+					components.Replicas = 1
 
 					if pod.Status.Phase == "Running" {
 
 						components.HealthStatus = "health"
-						components.Replicas = 1
-						components.AvailableReplicas = 1
 
 					} else {
 
-						components.HealthStatus = "fault"
-						components.Replicas = 1
-						components.AvailableReplicas = 0
+						components.HealthStatus = "unhealth"
 
 					}
 					components.UpdateTime = pod.Status.Conditions[0].LastTransitionTime.Time
@@ -127,19 +132,25 @@ func GetComponents() (result []Components, err error) {
 			components.Kind = "Pod"
 			components.SelfLink = pod.SelfLink
 			version := strings.Split(pod.Spec.Containers[0].Image, ":")
-			components.Version = version[1]
+
+			if len(version) < 2 {
+
+				components.Version = "latest"
+
+			} else {
+
+				components.Version = version[1]
+
+			}
+			components.Replicas = 1
 
 			if pod.Status.Phase == "Running" {
 
 				components.HealthStatus = "health"
-				components.Replicas = 1
-				components.AvailableReplicas = 1
 
 			} else {
 
 				components.HealthStatus = "fault"
-				components.Replicas = 1
-				components.AvailableReplicas = 0
 
 			}
 			components.UpdateTime = pod.Status.Conditions[0].LastTransitionTime.Time
@@ -174,12 +185,20 @@ func GetComponents() (result []Components, err error) {
 			components.Kind = "Daemonset"
 			components.SelfLink = ds.SelfLink
 			version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
-			components.Version = version[1]
+
+			if len(version) < 2 {
+
+				components.Version = "latest"
+
+			} else {
+
+				components.Version = version[1]
+
+			}
 			components.UpdateTime = ds.CreationTimestamp.Time
-			components.AvailableReplicas = int(ds.Status.NumberAvailable)
 			components.Replicas = int(ds.Status.DesiredNumberScheduled)
 
-			if components.AvailableReplicas == components.Replicas {
+			if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled {
 
 				components.HealthStatus = "health"
 
@@ -221,6 +240,7 @@ func GetComponents() (result []Components, err error) {
 						components.Name = dm.Name
 						components.Kind = "Deployment"
 						components.SelfLink = dm.SelfLink
+						components.Replicas = int(dm.Status.Replicas)
 						version := strings.Split(dm.Spec.Template.Spec.Containers[0].Image, ":")
 						if len(version) < 2 {
 
@@ -233,10 +253,8 @@ func GetComponents() (result []Components, err error) {
 						}
 
 						components.UpdateTime = dm.Status.Conditions[0].LastUpdateTime.Time
-						components.AvailableReplicas = int(dm.Status.AvailableReplicas)
-						components.Replicas = int(dm.Status.Replicas)
 
-						if components.AvailableReplicas == components.Replicas {
+						if dm.Status.AvailableReplicas == dm.Status.Replicas {
 
 							components.HealthStatus = "health"
 
