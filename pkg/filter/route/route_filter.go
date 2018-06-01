@@ -20,19 +20,21 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"strings"
+	"time"
 )
 
 // Route Filter (defines FilterFunction)
 func RouteLogging(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 
+		start := time.Now()
 		chain.ProcessFilter(req, resp)
-		glog.Infof("%s - \"%s %s %s\" %d %d",
+		glog.Infof("%s - \"%s %s %s\" %d %dms",
 			strings.Split(req.Request.RemoteAddr, ":")[0],
 			req.Request.Method,
 			req.Request.URL.RequestURI(),
 			req.Request.Proto,
 			resp.StatusCode(),
-			resp.ContentLength(),
+			time.Now().Sub(start)/1000000,
 		)
 
 }
