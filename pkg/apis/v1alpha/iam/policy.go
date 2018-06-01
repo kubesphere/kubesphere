@@ -41,7 +41,7 @@ type userRuleList struct {
 	Rules        map[string][]rule `json:"rules"`
 }
 
-// TODO design all frontend-facing rules
+// TODO stored in etcd, allow updates
 var (
 	clusterRoleRuleGroup = []rule{projectsManagement, userManagement, roleManagement, registryManagement,
 		volumeManagement, storageclassManagement, nodeManagement, appCatalogManagement, appManagement}
