@@ -14,40 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package registries
+package components
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/filter/route"
+	"kubesphere.io/kubesphere/pkg/models"
 	"net/http"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func Register(ws *restful.WebService, subPath string) {
-
-	ws.Route(ws.POST(subPath + "/validation").To(handlerRegistryValidation).Filter(route.RouteLogging)).
-		Consumes(restful.MIME_JSON).
+	ws.Route(ws.GET(subPath).To(handleGetComponents).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 }
 
-func handlerRegistryValidation(request *restful.Request, response *restful.Response) {
+//get all components
 
-	authinfo := models.AuthInfo{}
+func handleGetComponents(request *restful.Request, response *restful.Response) {
 
-	err := request.ReadEntity(&authinfo)
+	result, err := models.GetComponents()
 
 	if err != nil {
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-
 	}
-
-	result := models.RegistryLoginAuth(authinfo)
 
 	response.WriteAsJson(result)
 
 }
-
-
