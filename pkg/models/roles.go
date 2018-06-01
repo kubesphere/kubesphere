@@ -33,7 +33,7 @@ func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
 		}
 	}
 
-	return roleBindingList.Items, nil
+	return items, nil
 }
 
 func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
@@ -53,7 +53,7 @@ func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
 		}
 	}
 
-	return roleBindingList.Items, nil
+	return items, nil
 }
 
 func GetClusterRole(name string) (*v1.ClusterRole, error) {

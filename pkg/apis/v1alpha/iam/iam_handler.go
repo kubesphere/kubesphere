@@ -110,7 +110,7 @@ func clusterRoleUsersHandler(req *restful.Request, resp *restful.Response) {
 
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind {
+			if subject.Kind == v1.UserKind && !strings.HasPrefix(subject.Name, "system") {
 				users = append(users, subject.Name)
 			}
 		}
