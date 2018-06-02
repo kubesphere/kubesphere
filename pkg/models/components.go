@@ -28,13 +28,15 @@ const KUBESYSTEM = "kube-system"
 const OPENPITRIX = "openpitrix-system"
 
 type Components struct {
-	Name         string    `json:"name"`
-	Version      string    `json:"version"`
-	Kind         string    `json:"kind"`
-	Replicas     int       `json:"replicas"`
-	HealthStatus string    `json:"healthStatus"`
-	SelfLink     string    `json:"selfLink"`
-	UpdateTime   time.Time `json:"updateTime"`
+	Name         string    		`json:"name"`
+	Version      string    		`json:"version"`
+	Kind         string    		`json:"kind"`
+	Namespace    string    		`json:"namespace"`
+	Label        interface{}	`json:"label"`
+	Replicas     int       		`json:"replicas"`
+	HealthStatus string    		`json:"healthStatus"`
+	SelfLink     string    		`json:"selfLink"`
+	UpdateTime   time.Time 		`json:"updateTime"`
 }
 
 /***
@@ -77,6 +79,8 @@ func GetComponents() (result []Components, err error) {
 					components.Name = template
 					components.Kind = "Pod"
 					components.SelfLink = pod.SelfLink
+					components.Label = pod.Labels
+					components.Namespace = pod.Namespace
 					version := strings.Split(pod.Spec.Containers[0].Image, ":")
 
 					if len(version) < 2 {
@@ -131,6 +135,8 @@ func GetComponents() (result []Components, err error) {
 			components.Name = "kube-addon-manager"
 			components.Kind = "Pod"
 			components.SelfLink = pod.SelfLink
+			components.Label = pod.Labels
+			components.Namespace = pod.Namespace
 			version := strings.Split(pod.Spec.Containers[0].Image, ":")
 
 			if len(version) < 2 {
@@ -180,6 +186,8 @@ func GetComponents() (result []Components, err error) {
 			components.Name = ds.Name
 			components.Kind = "Daemonset"
 			components.SelfLink = ds.SelfLink
+			components.Label = ds.Labels
+			components.Namespace = ds.Namespace
 			version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
 
 			if len(version) < 2 {
@@ -236,6 +244,8 @@ func GetComponents() (result []Components, err error) {
 						components.Name = dm.Name
 						components.Kind = "Deployment"
 						components.SelfLink = dm.SelfLink
+						components.Label = dm.Labels
+						components.Namespace = dm.Namespace
 						components.Replicas = int(dm.Status.Replicas)
 						version := strings.Split(dm.Spec.Template.Spec.Containers[0].Image, ":")
 						if len(version) < 2 {
