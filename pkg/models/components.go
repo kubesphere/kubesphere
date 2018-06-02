@@ -28,15 +28,15 @@ const KUBESYSTEM = "kube-system"
 const OPENPITRIX = "openpitrix-system"
 
 type Components struct {
-	Name         string    		`json:"name"`
-	Version      string    		`json:"version"`
-	Kind         string    		`json:"kind"`
-	Namespace    string    		`json:"namespace"`
-	Label        interface{}	`json:"label"`
-	Replicas     int       		`json:"replicas"`
-	HealthStatus string    		`json:"healthStatus"`
-	SelfLink     string    		`json:"selfLink"`
-	UpdateTime   time.Time 		`json:"updateTime"`
+	Name         string      `json:"name"`
+	Version      string      `json:"version"`
+	Kind         string      `json:"kind"`
+	Namespace    string      `json:"namespace"`
+	Label        interface{} `json:"label"`
+	Replicas     int         `json:"replicas"`
+	HealthStatus string      `json:"healthStatus"`
+	SelfLink     string      `json:"selfLink"`
+	UpdateTime   time.Time   `json:"updateTime"`
 }
 
 /***
@@ -178,41 +178,49 @@ func GetComponents() (result []Components, err error) {
 		return result, err
 	}
 
+	templates = []string{"flannel", "kube-proxy", "calico"}
+
 	if len(dsList.Items) > 0 {
 
 		for _, ds := range dsList.Items {
 
+			for _, template := range templates {
 
-			components.Name = ds.Name
-			components.Kind = "Daemonset"
-			components.SelfLink = ds.SelfLink
-			components.Label = ds.Labels
-			components.Namespace = ds.Namespace
-			version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
+				if strings.Contains(ds.Name, template) {
 
-			if len(version) < 2 {
+					components.Name = ds.Name
+					components.Kind = "Daemonset"
+					components.SelfLink = ds.SelfLink
+					components.Label = ds.Labels
+					components.Namespace = ds.Namespace
+					version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
 
-				components.Version = "latest"
+					if len(version) < 2 {
 
-			} else {
+						components.Version = "latest"
 
-				components.Version = version[1]
+					} else {
+
+						components.Version = version[1]
+
+					}
+
+					components.UpdateTime = ds.CreationTimestamp.Time
+					components.Replicas = int(ds.Status.DesiredNumberScheduled)
+
+					if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled {
+
+						components.HealthStatus = "health"
+
+					} else {
+
+						components.HealthStatus = "unhealth"
+
+					}
+					result = append(result, components)
+				}
 
 			}
-			components.UpdateTime = ds.CreationTimestamp.Time
-			components.Replicas = int(ds.Status.DesiredNumberScheduled)
-
-			if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled {
-
-				components.HealthStatus = "health"
-
-			} else {
-
-				components.HealthStatus = "unhealth"
-
-			}
-
-			result = append(result, components)
 
 		}
 
