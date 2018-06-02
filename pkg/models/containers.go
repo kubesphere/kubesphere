@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
 
 	ksutil "kubesphere.io/kubesphere/pkg/util"
 
@@ -15,18 +16,8 @@ import (
 	"strconv"
 )
 
-type ResultNameSpaceForContainer struct {
-	NameSpace string                  `json:"namespace"`
-	PodsCount string                  `json:"pods_count"`
-	Pods      []ResultPodForContainer `json:"pods"`
-}
-
-type ResultPodForContainer struct {
-	PodName         string            `json:"pod_name"`
-	ContainersCount string            `json:"containers_count"`
-	Containers      []ResultContainer `json:"containers"`
-}
 type ResultContainer struct {
+	NodeName      string            `json:"node_name"`
 	ContainerName string            `json:"container_name"`
 	CPURequest    string            `json:"cpu_request"`
 	CPULimit      string            `json:"cpu_limit"`
@@ -61,128 +52,100 @@ func GetContainers(namespace, podName string) []string {
 	return containers
 }
 
-func FormatContainersMetrics(nodeName, namespace, podName string) ResultNameSpaceForContainer {
-	var resultNameSpaceForContainer ResultNameSpaceForContainer
-	var resultPodsForContainer []ResultPodForContainer
+func FormatContainersMetrics(nodeName, namespace, podName string) constants.PageableResponse {
 
-	var pods []string
-	if nodeName == "" {
-		pods = GetPods(namespace)
-	} else {
-		pods = GetPodsForNode(nodeName, namespace)
-	}
+	var result constants.PageableResponse
+	var resultContainer ResultContainer
+	var containers []string
+	var total_count int
+	containers = GetContainers(namespace, podName)
 
-	resultNameSpaceForContainer.NameSpace = namespace
-	resultNameSpaceForContainer.PodsCount = strconv.Itoa(len(pods))
+	for i, container := range containers {
+		resultContainer = FormatContainerMetrics(namespace, podName, container)
+		if nodeName != "" {
+			resultContainer.NodeName = nodeName
+		} else {
+			resultContainer.NodeName = GetNodeNameForPod(podName, namespace)
+		}
+		result.Items = append(result.Items, resultContainer)
+		total_count = i
+	}
+	result.TotalCount = total_count + 1
 
-	if podName != "" {
-		var resultPodForContainer ResultPodForContainer
-		resultPodForContainer.PodName = podName
-		resultPodForContainer = FormatPodMetricsWithContainers(namespace, podName)
-		resultPodsForContainer = append(resultPodsForContainer, resultPodForContainer)
-		resultNameSpaceForContainer.Pods = resultPodsForContainer
-		return resultNameSpaceForContainer
-	}
-	for _, pod := range pods {
-		var resultPodForContainer ResultPodForContainer
-		resultPodForContainer.PodName = pod
-		resultPodForContainer = FormatPodMetricsWithContainers(namespace, pod)
-		resultPodsForContainer = append(resultPodsForContainer, resultPodForContainer)
-	}
-	resultNameSpaceForContainer.Pods = resultPodsForContainer
-	return resultNameSpaceForContainer
+	return result
 }
 
-func FormatPodMetricsWithContainers(namespace, pod string) ResultPodForContainer {
+func FormatContainerMetrics(namespace, podName, containerName string) ResultContainer {
+	var resultContainer ResultContainer
+	var containerCPUMetrics []CPUContainer
+	var containerMemMetrics []MemoryContainer
+	var cpuMetrics CPUContainer
+	var memMetrics MemoryContainer
 
-	var resultPod ResultPodForContainer
-	var containers []string
-	var resultContainers []ResultContainer
-
-	resultPod.PodName = pod
-	containers = GetContainers(namespace, pod)
-	resultPod.ContainersCount = strconv.Itoa(len(containers))
-
-	for _, container := range containers {
-		var resultContainer ResultContainer
-		var containerCPUMetrics []CPUContainer
-		var containerMemMetrics []MemoryContainer
-		var cpuMetrics CPUContainer
-		var memMetrics MemoryContainer
-
-		resultContainer.ContainerName = container
-		cpuRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/cpu/request")
-		cpuRequest = ksutil.JsonRawMessage(cpuRequest).Find("metrics").ToList()[0].Find("value").ToString()
-		if cpuRequest != "" && cpuRequest != "0" {
-			resultContainer.CPURequest = cpuRequest
-		} else {
-			resultContainer.CPURequest = "inf"
-		}
-
-		cpuLimit := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/cpu/limit")
-		cpuLimit = ksutil.JsonRawMessage(cpuLimit).Find("metrics").ToList()[0].Find("value").ToString()
-		if cpuLimit != "" && cpuLimit != "0" {
-			resultContainer.CPULimit = cpuLimit
-		} else {
-			resultContainer.CPULimit = "inf"
-		}
-		memoryRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/memory/request")
-		resultContainer.MemoryRequest = ConvertMemory(memoryRequest)
-
-		memoryLimit := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/memory/limit")
-		resultContainer.MemoryLimit = ConvertMemory(memoryLimit)
-
-		cpuUsageRate := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/cpu/usage_rate")
-		if cpuUsageRate != "" {
-			metrics := ksutil.JsonRawMessage(cpuUsageRate).Find("metrics").ToList()
-
-			for _, metric := range metrics {
-				timestamp := metric.Find("timestamp")
-				cpu_utilization, _ := strconv.ParseFloat(metric.Find("value").ToString(), 64)
-				cpuMetrics.TimeStamp = timestamp.ToString()
-				cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization/1000)
-				if resultContainer.CPULimit != "inf" {
-					cpu_limit, _ := strconv.ParseFloat(resultContainer.CPULimit, 64)
-					cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", cpu_limit*cpu_utilization/1000)
-				} else {
-					cpuMetrics.UsedCPU = "inf"
-				}
-				glog.Info("pod " + pod + " has limit cpu " + resultContainer.CPULimit + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization/1000) + " at time" + timestamp.ToString())
-				containerCPUMetrics = append(containerCPUMetrics, cpuMetrics)
-			}
-
-		}
-
-		resultContainer.CPU = containerCPUMetrics
-
-		var used_mem_bytes float64
-
-		memUsage := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/containers/" + container + "/metrics/memory/usage")
-		if memUsage != "" {
-			metrics := ksutil.JsonRawMessage(memUsage).Find("metrics").ToList()
-
-			for _, metric := range metrics {
-				timestamp := metric.Find("timestamp")
-				used_mem_bytes, _ = strconv.ParseFloat(metric.Find("value").ToString(), 64)
-				used_mem := used_mem_bytes / 1024 / 1024
-				memMetrics.TimeStamp = timestamp.ToString()
-				memMetrics.UsedMemory = fmt.Sprintf("%.1f", used_mem)
-				if resultContainer.MemoryLimit != "inf" {
-					mem_limit, _ := strconv.ParseFloat(resultContainer.MemoryLimit, 64)
-					memMetrics.MemoryUtilization = fmt.Sprintf("%.3f", used_mem/mem_limit)
-				} else {
-					memMetrics.MemoryUtilization = "inf"
-				}
-
-				glog.Info("pod " + pod + " has limit mem " + resultContainer.MemoryLimit + " mem utilization " + memMetrics.MemoryUtilization + " at time" + timestamp.ToString())
-				containerMemMetrics = append(containerMemMetrics, memMetrics)
-			}
-		}
-
-		resultContainer.Memory = containerMemMetrics
-		resultContainers = append(resultContainers, resultContainer)
+	resultContainer.ContainerName = containerName
+	cpuRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/cpu/request")
+	cpuRequest = ksutil.JsonRawMessage(cpuRequest).Find("metrics").ToList()[0].Find("value").ToString()
+	if cpuRequest != "" && cpuRequest != "0" {
+		resultContainer.CPURequest = cpuRequest
+	} else {
+		resultContainer.CPURequest = "inf"
 	}
-	resultPod.Containers = resultContainers
 
-	return resultPod
+	cpuLimit := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/cpu/limit")
+	cpuLimit = ksutil.JsonRawMessage(cpuLimit).Find("metrics").ToList()[0].Find("value").ToString()
+	if cpuLimit != "" && cpuLimit != "0" {
+		resultContainer.CPULimit = cpuLimit
+	} else {
+		resultContainer.CPULimit = "inf"
+	}
+	memoryRequest := ksutil.JsonRawMessage(client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/memory/request")).Find("metrics").ToList()[0].Find("value").ToString()
+	resultContainer.MemoryRequest = ConvertMemory(memoryRequest)
+
+	memoryLimit := ksutil.JsonRawMessage(client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/memory/limit")).Find("metrics").ToList()[0].Find("value").ToString()
+	resultContainer.MemoryLimit = ConvertMemory(memoryLimit)
+
+	cpuUsageRate := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/cpu/usage_rate")
+	if cpuUsageRate != "" {
+		metrics := ksutil.JsonRawMessage(cpuUsageRate).Find("metrics").ToList()
+
+		for _, metric := range metrics {
+			timestamp := metric.Find("timestamp")
+			cpu_utilization, _ := strconv.ParseFloat(ConvertCPUUsageRate(metric.Find("value").ToString()), 64)
+			cpuMetrics.TimeStamp = timestamp.ToString()
+			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization)
+			if resultContainer.CPULimit != "inf" {
+				cpu_limit, _ := strconv.ParseFloat(resultContainer.CPULimit, 64)
+				cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", cpu_limit*cpu_utilization)
+			} else {
+				cpuMetrics.UsedCPU = "inf"
+			}
+			glog.Info("pod " + podName + " has limit cpu " + resultContainer.CPULimit + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization) + " at time" + timestamp.ToString())
+			containerCPUMetrics = append(containerCPUMetrics, cpuMetrics)
+		}
+
+	}
+
+	resultContainer.CPU = containerCPUMetrics
+
+	var used_mem_bytes float64
+
+	memUsage := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/memory/usage")
+	if memUsage != "" {
+		metrics := ksutil.JsonRawMessage(memUsage).Find("metrics").ToList()
+
+		for _, metric := range metrics {
+			timestamp := metric.Find("timestamp")
+			used_mem_bytes, _ = strconv.ParseFloat(metric.Find("value").ToString(), 64)
+			used_mem := used_mem_bytes / 1024 / 1024
+			memMetrics.TimeStamp = timestamp.ToString()
+			memMetrics.UsedMemory = fmt.Sprintf("%.1f", used_mem)
+			memMetrics.MemoryUtilization = fmt.Sprintf("%.3f", CalculateMemoryUsage(memoryRequest, memoryLimit, metric.Find("value").ToString()))
+			glog.Info("pod " + podName + " has limit mem " + resultContainer.MemoryLimit + " mem utilization " + memMetrics.MemoryUtilization + " at time" + timestamp.ToString())
+			containerMemMetrics = append(containerMemMetrics, memMetrics)
+		}
+	}
+
+	resultContainer.Memory = containerMemMetrics
+
+	return resultContainer
 }
