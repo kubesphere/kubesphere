@@ -150,7 +150,7 @@ func GetComponents() (result []Components, err error) {
 
 			} else {
 
-				components.HealthStatus = "fault"
+				components.HealthStatus = "unhealth"
 
 			}
 			components.UpdateTime = pod.Status.Conditions[0].LastTransitionTime.Time
@@ -176,10 +176,6 @@ func GetComponents() (result []Components, err error) {
 
 		for _, ds := range dsList.Items {
 
-			if strings.Contains(ds.Name, "fluent-bit") {
-
-				continue
-			}
 
 			components.Name = ds.Name
 			components.Kind = "Daemonset"
@@ -204,7 +200,7 @@ func GetComponents() (result []Components, err error) {
 
 			} else {
 
-				components.HealthStatus = "fault"
+				components.HealthStatus = "unhealth"
 
 			}
 
@@ -260,7 +256,7 @@ func GetComponents() (result []Components, err error) {
 
 						} else {
 
-							components.HealthStatus = "fault"
+							components.HealthStatus = "unhealth"
 
 						}
 
