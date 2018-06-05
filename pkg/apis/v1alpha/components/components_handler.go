@@ -40,8 +40,11 @@ func handleGetComponents(request *restful.Request, response *restful.Response) {
 	if err != nil {
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-	}
 
-	response.WriteAsJson(result)
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
 
 }
