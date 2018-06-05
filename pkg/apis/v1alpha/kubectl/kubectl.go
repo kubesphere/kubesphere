@@ -17,16 +17,18 @@ limitations under the License.
 package kubectl
 
 import (
-	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath).Consumes("*/*").Produces(restful.MIME_JSON).To(handleKubectl).Doc("use to " +
+	ws.Route(ws.GET(subPath).Consumes("*/*").Produces(restful.MIME_JSON).To(handleKubectl).Doc("use to "+
 		"get a kubectl pod in specified namespaces").Param(ws.PathParameter("namespace",
-		"namespace").DataType("string")).Do(returns200,returns500))
+		"namespace").DataType("string")).Do(returns200, returns500))
 
 }
 

@@ -18,16 +18,17 @@ package models
 
 import (
 	"bytes"
-	"github.com/golang/glog"
-	"text/template"
 	"encoding/base64"
+	"text/template"
+
+	"github.com/golang/glog"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
-var kubeconfigTemp =
-	"apiVersion: v1\n" +
+var kubeconfigTemp = "apiVersion: v1\n" +
 	"clusters:\n" +
 	"- cluster:\n" +
 	"    certificate-authority-data: {{.Certificate}}\n" +
@@ -51,9 +52,9 @@ const DefaultServiceAccount = "default"
 
 type Config struct {
 	Certificate string
-	Server    string
-	User string
-	Token string
+	Server      string
+	User        string
+	Token       string
 }
 
 func GetKubeConfig(namespace string) (string, error) {
@@ -77,24 +78,24 @@ func GetKubeConfig(namespace string) (string, error) {
 func getKubeConfig(namespace, apiserverHost string) (*Config, error) {
 	k8sClient := client.NewK8sClient()
 	saInfo, err := k8sClient.CoreV1().ServiceAccounts(namespace).Get(DefaultServiceAccount, meta_v1.GetOptions{})
-	if err != nil{
+	if err != nil {
 		glog.Errorln(err)
 		return nil, err
 	}
 	secretName := saInfo.Secrets[0].Name
 
 	secretInfo, err := k8sClient.CoreV1().Secrets(namespace).Get(secretName, meta_v1.GetOptions{})
-	if err != nil{
+	if err != nil {
 		glog.Errorln(err)
 		return nil, err
 	}
 
 	secretData := secretInfo.Data
 	certificate := string(secretData["ca.crt"])
-	certificate= base64.StdEncoding.EncodeToString([]byte(certificate))
+	certificate = base64.StdEncoding.EncodeToString([]byte(certificate))
 	server := apiserverHost
 	token := string(secretData["token"])
 	user := string(secretData["namespace"])
 
-	return &Config{Certificate:certificate, Server:server, Token:token, User:user}, nil
+	return &Config{Certificate: certificate, Server: server, Token: token, User: user}, nil
 }

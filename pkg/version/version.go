@@ -18,8 +18,10 @@ package version
 
 import (
 	"fmt"
-	"github.com/spf13/pflag"
 	"os"
+
+	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 

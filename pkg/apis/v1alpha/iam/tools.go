@@ -13,13 +13,14 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 
- */
+*/
 
 package iam
 
 import (
 	"k8s.io/api/rbac/v1"
 	"k8s.io/kubernetes/pkg/util/slice"
+
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
@@ -121,7 +122,7 @@ func getClusterRoleRules(name string) ([]rule, error) {
 
 	rules := make([]rule, 0)
 
-	for i := 0; i < len(clusterRoleRuleGroup); i ++ {
+	for i := 0; i < len(clusterRoleRuleGroup); i++ {
 		rule := rule{Name: clusterRoleRuleGroup[i].Name}
 		rule.Actions = make([]action, 0)
 		for j := 0; j < (len(clusterRoleRuleGroup[i].Actions)); j++ {
@@ -143,7 +144,7 @@ func getRoleRules(namespace string, name string) ([]rule, error) {
 		return nil, err
 	}
 	rules := make([]rule, 0)
-	for i := 0; i < len(roleRuleGroup); i ++ {
+	for i := 0; i < len(roleRuleGroup); i++ {
 		rule := rule{Name: roleRuleGroup[i].Name}
 		rule.Actions = make([]action, 0)
 		for j := 0; j < len(roleRuleGroup[i].Actions); j++ {

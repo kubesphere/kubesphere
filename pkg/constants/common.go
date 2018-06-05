@@ -25,6 +25,6 @@ type PageableResponse struct {
 	TotalCount int           `json:"total_count"`
 }
 
-const APIVERSION  = "v1alpha1"
+const APIVERSION = "v1alpha1"
 
-const KIND  = "kubesphere"
+const KIND = "kubesphere"

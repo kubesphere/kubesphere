@@ -18,17 +18,18 @@ package v1alpha
 
 import (
 	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
 )
 
 func init() {
@@ -45,7 +46,7 @@ func init() {
 	pods.Register(ws)
 	containers.Register(ws)
 	iam.Register(ws)
-	components.Register(ws,"/components")
+	components.Register(ws, "/components")
 
 	routes.Register(ws)
 
