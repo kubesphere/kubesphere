@@ -39,7 +39,7 @@ func Register(ws *restful.WebService) {
 	ws.Route(ws.GET("/users/{username}/rules").To(userRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	//role->rules
 	ws.Route(ws.GET("/clusterroles/{name}/rules").To(clusterRoleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
-	ws.Route(ws.GET("/namespace/{namespace}/roles/{name}/rules").To(roleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
+	ws.Route(ws.GET("/namespaces/{namespace}/roles/{name}/rules").To(roleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	//role->users
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{name}/users").To(roleUsersHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	ws.Route(ws.GET("/clusterroles/{name}/users").To(clusterRoleUsersHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
