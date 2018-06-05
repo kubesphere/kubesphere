@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
 )
 
 func init() {
@@ -45,6 +46,9 @@ func init() {
 	containers.Register(ws)
 	iam.Register(ws)
 	components.Register(ws,"/components")
+
+	routes.Register(ws)
+
 	// add webservice to default container
 	restful.Add(ws)
 
