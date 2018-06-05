@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/service/allocator := pkg/registry/core/service/allocator/bitmap.go pkg/registry/core/service/allocator/bitmap_test.go pkg/registry/core/service/allocator/interfaces.go pkg/registry/core/service/allocator/utils.go pkg/registry/core/service/allocator/utils_test.go

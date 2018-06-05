@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/app/phases/controlplane := cmd/kubeadm/app/phases/controlplane/manifests.go cmd/kubeadm/app/phases/controlplane/manifests_test.go cmd/kubeadm/app/phases/controlplane/volumes.go cmd/kubeadm/app/phases/controlplane/volumes_test.go

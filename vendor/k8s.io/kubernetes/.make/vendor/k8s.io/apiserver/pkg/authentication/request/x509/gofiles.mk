@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/request/x509 := vendor/k8s.io/apiserver/pkg/authentication/request/x509/doc.go vendor/k8s.io/apiserver/pkg/authentication/request/x509/x509.go vendor/k8s.io/apiserver/pkg/authentication/request/x509/x509_test.go

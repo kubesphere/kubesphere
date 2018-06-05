@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/initialization := vendor/k8s.io/apiserver/pkg/admission/plugin/initialization/initialization.go vendor/k8s.io/apiserver/pkg/admission/plugin/initialization/initialization_test.go

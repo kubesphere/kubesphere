@@ -1,0 +1,1 @@
+gofiles__pkg/registry/admissionregistration/mutatingwebhookconfiguration := pkg/registry/admissionregistration/mutatingwebhookconfiguration/doc.go pkg/registry/admissionregistration/mutatingwebhookconfiguration/strategy.go

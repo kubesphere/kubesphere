@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/internalinterfaces := pkg/client/informers/informers_generated/internalversion/internalinterfaces/factory_interfaces.go

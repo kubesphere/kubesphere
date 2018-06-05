@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/autoscaling/internalversion := pkg/client/listers/autoscaling/internalversion/expansion_generated.go pkg/client/listers/autoscaling/internalversion/horizontalpodautoscaler.go

@@ -1,0 +1,1 @@
+gofiles__test/integration/auth := test/integration/auth/accessreview_test.go test/integration/auth/auth_test.go test/integration/auth/bootstraptoken_test.go test/integration/auth/main_test.go test/integration/auth/node_test.go test/integration/auth/rbac_test.go test/integration/auth/svcaccttoken_test.go

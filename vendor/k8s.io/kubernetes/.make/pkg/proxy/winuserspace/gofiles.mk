@@ -1,0 +1,1 @@
+gofiles__pkg/proxy/winuserspace := pkg/proxy/winuserspace/loadbalancer.go pkg/proxy/winuserspace/proxier.go pkg/proxy/winuserspace/proxier_test.go pkg/proxy/winuserspace/proxysocket.go pkg/proxy/winuserspace/roundrobin.go pkg/proxy/winuserspace/roundrobin_test.go pkg/proxy/winuserspace/types.go

@@ -17,16 +17,26 @@ limitations under the License.
 package registries
 
 import (
-	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/filter/route"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/filter/route"
+	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
 	ws.Route(ws.POST(subPath + "/validation").To(handlerRegistryValidation).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST(subPath).To(handleCreateRegistries).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET(subPath + "/{project}").To(handleQueryRegistries).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -42,12 +52,55 @@ func handlerRegistryValidation(request *restful.Request, response *restful.Respo
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 
+	} else {
+
+		result := models.RegistryLoginAuth(authinfo)
+
+		response.WriteAsJson(result)
+
 	}
-
-	result := models.RegistryLoginAuth(authinfo)
-
-	response.WriteAsJson(result)
 
 }
 
+func handleCreateRegistries(request *restful.Request, response *restful.Response) {
 
+	registries := models.Registries{}
+
+	err := request.ReadEntity(&registries)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	}
+
+	result, err := models.CreateRegistries(registries)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}
+
+func handleQueryRegistries(request *restful.Request, response *restful.Response) {
+
+	project := request.PathParameter("project")
+	result, err := models.QueryRegistries(project)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}

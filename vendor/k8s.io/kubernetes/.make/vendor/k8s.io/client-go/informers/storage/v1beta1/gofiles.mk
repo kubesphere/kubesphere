@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/storage/v1beta1 := vendor/k8s.io/client-go/informers/storage/v1beta1/interface.go vendor/k8s.io/client-go/informers/storage/v1beta1/storageclass.go vendor/k8s.io/client-go/informers/storage/v1beta1/volumeattachment.go

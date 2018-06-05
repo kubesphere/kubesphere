@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/conversion/queryparams := vendor/k8s.io/apimachinery/pkg/conversion/queryparams/convert.go vendor/k8s.io/apimachinery/pkg/conversion/queryparams/convert_test.go vendor/k8s.io/apimachinery/pkg/conversion/queryparams/doc.go

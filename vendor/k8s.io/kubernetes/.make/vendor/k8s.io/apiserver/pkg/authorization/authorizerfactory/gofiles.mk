@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authorization/authorizerfactory := vendor/k8s.io/apiserver/pkg/authorization/authorizerfactory/builtin.go vendor/k8s.io/apiserver/pkg/authorization/authorizerfactory/builtin_test.go vendor/k8s.io/apiserver/pkg/authorization/authorizerfactory/delegating.go

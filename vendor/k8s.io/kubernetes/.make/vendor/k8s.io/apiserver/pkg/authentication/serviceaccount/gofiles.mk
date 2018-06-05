@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/serviceaccount := vendor/k8s.io/apiserver/pkg/authentication/serviceaccount/util.go vendor/k8s.io/apiserver/pkg/authentication/serviceaccount/util_test.go

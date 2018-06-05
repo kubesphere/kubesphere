@@ -17,11 +17,13 @@ limitations under the License.
 package models
 
 import (
-	"kubesphere.io/kubesphere/pkg/client"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
-	"github.com/golang/glog"
 	"strings"
+	"time"
+
+	"github.com/golang/glog"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const KUBESYSTEM = "kube-system"
@@ -66,7 +68,7 @@ func GetComponents() (result []Components, err error) {
 
 	var components Components
 
-	templates := [] string{"kube-apiserver", "etcd", "kube-scheduler", "kube-controller-manager", "cloud-controller-manager"}
+	templates := []string{"kube-apiserver", "etcd", "kube-scheduler", "kube-controller-manager", "cloud-controller-manager"}
 
 	if len(podlists.Items) > 0 {
 
@@ -191,7 +193,7 @@ func GetComponents() (result []Components, err error) {
 					components.Name = ds.Name
 					components.Kind = "Daemonset"
 					components.SelfLink = ds.SelfLink
-					components.Label = ds.Labels
+					components.Label = ds.Spec.Selector.MatchLabels
 					components.Namespace = ds.Namespace
 					version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
 
@@ -252,7 +254,7 @@ func GetComponents() (result []Components, err error) {
 						components.Name = dm.Name
 						components.Kind = "Deployment"
 						components.SelfLink = dm.SelfLink
-						components.Label = dm.Labels
+						components.Label = dm.Spec.Selector.MatchLabels
 						components.Namespace = dm.Namespace
 						components.Replicas = int(dm.Status.Replicas)
 						version := strings.Split(dm.Spec.Template.Spec.Containers[0].Image, ":")

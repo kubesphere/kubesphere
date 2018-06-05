@@ -1,0 +1,1 @@
+gofiles__pkg/apis/core/v1 := pkg/apis/core/v1/conversion.go pkg/apis/core/v1/conversion_test.go pkg/apis/core/v1/defaults.go pkg/apis/core/v1/defaults_test.go pkg/apis/core/v1/doc.go pkg/apis/core/v1/register.go

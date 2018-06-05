@@ -1,0 +1,1 @@
+gofiles__test/e2e/instrumentation/logging/elasticsearch := test/e2e/instrumentation/logging/elasticsearch/basic.go test/e2e/instrumentation/logging/elasticsearch/kibana.go test/e2e/instrumentation/logging/elasticsearch/utils.go

@@ -1,0 +1,1 @@
+gofiles__cmd/kubelet/app/options := cmd/kubelet/app/options/container_runtime.go cmd/kubelet/app/options/globalflags.go cmd/kubelet/app/options/globalflags_linux.go cmd/kubelet/app/options/globalflags_other.go cmd/kubelet/app/options/options.go cmd/kubelet/app/options/options_test.go cmd/kubelet/app/options/osflags_others.go cmd/kubelet/app/options/osflags_windows.go

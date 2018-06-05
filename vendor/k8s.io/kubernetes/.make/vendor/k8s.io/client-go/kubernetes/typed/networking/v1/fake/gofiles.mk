@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/typed/networking/v1/fake := vendor/k8s.io/client-go/kubernetes/typed/networking/v1/fake/doc.go vendor/k8s.io/client-go/kubernetes/typed/networking/v1/fake/fake_networking_client.go vendor/k8s.io/client-go/kubernetes/typed/networking/v1/fake/fake_networkpolicy.go

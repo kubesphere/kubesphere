@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/metrics := vendor/k8s.io/apiserver/pkg/admission/metrics/metrics.go vendor/k8s.io/apiserver/pkg/admission/metrics/metrics_test.go vendor/k8s.io/apiserver/pkg/admission/metrics/testutil_test.go

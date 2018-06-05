@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/images := pkg/kubelet/images/doc.go pkg/kubelet/images/helpers.go pkg/kubelet/images/image_gc_manager.go pkg/kubelet/images/image_gc_manager_test.go pkg/kubelet/images/image_manager.go pkg/kubelet/images/image_manager_test.go pkg/kubelet/images/puller.go pkg/kubelet/images/types.go

@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/test/cmd := cmd/kubeadm/test/cmd/completion_test.go cmd/kubeadm/test/cmd/init_test.go cmd/kubeadm/test/cmd/join_test.go cmd/kubeadm/test/cmd/token_test.go cmd/kubeadm/test/cmd/util.go cmd/kubeadm/test/cmd/version_test.go

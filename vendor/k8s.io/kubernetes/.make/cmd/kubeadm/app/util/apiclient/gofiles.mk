@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/app/util/apiclient := cmd/kubeadm/app/util/apiclient/clientbacked_dryrun.go cmd/kubeadm/app/util/apiclient/dryrunclient.go cmd/kubeadm/app/util/apiclient/dryrunclient_test.go cmd/kubeadm/app/util/apiclient/idempotency.go cmd/kubeadm/app/util/apiclient/init_dryrun.go cmd/kubeadm/app/util/apiclient/init_dryrun_test.go cmd/kubeadm/app/util/apiclient/wait.go

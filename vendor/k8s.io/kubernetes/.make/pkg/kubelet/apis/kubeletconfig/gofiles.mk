@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/apis/kubeletconfig := pkg/kubelet/apis/kubeletconfig/doc.go pkg/kubelet/apis/kubeletconfig/helpers.go pkg/kubelet/apis/kubeletconfig/helpers_test.go pkg/kubelet/apis/kubeletconfig/register.go pkg/kubelet/apis/kubeletconfig/types.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/metrics/pkg/apis/custom_metrics := vendor/k8s.io/metrics/pkg/apis/custom_metrics/doc.go vendor/k8s.io/metrics/pkg/apis/custom_metrics/register.go vendor/k8s.io/metrics/pkg/apis/custom_metrics/types.go

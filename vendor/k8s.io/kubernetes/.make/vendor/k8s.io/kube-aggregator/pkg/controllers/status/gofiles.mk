@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/controllers/status := vendor/k8s.io/kube-aggregator/pkg/controllers/status/available_controller.go vendor/k8s.io/kube-aggregator/pkg/controllers/status/available_controller_test.go

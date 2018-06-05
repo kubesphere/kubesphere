@@ -1,0 +1,1 @@
+gofiles__pkg/controller/nodelifecycle := pkg/controller/nodelifecycle/metrics.go pkg/controller/nodelifecycle/node_lifecycle_controller.go pkg/controller/nodelifecycle/node_lifecycle_controller_test.go

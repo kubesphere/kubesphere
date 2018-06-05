@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/autoscaling/v2beta1 := vendor/k8s.io/client-go/informers/autoscaling/v2beta1/horizontalpodautoscaler.go vendor/k8s.io/client-go/informers/autoscaling/v2beta1/interface.go

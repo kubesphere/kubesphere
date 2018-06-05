@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/request/anonymous := vendor/k8s.io/apiserver/pkg/authentication/request/anonymous/anonymous.go vendor/k8s.io/apiserver/pkg/authentication/request/anonymous/anonymous_test.go

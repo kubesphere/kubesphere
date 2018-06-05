@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/policy/internalversion := pkg/client/listers/policy/internalversion/eviction.go pkg/client/listers/policy/internalversion/expansion_generated.go pkg/client/listers/policy/internalversion/poddisruptionbudget_expansion.go pkg/client/listers/policy/internalversion/poddisruptionbudget.go pkg/client/listers/policy/internalversion/podsecuritypolicy.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/apiserver/validation := vendor/k8s.io/apiextensions-apiserver/pkg/apiserver/validation/validation.go vendor/k8s.io/apiextensions-apiserver/pkg/apiserver/validation/validation_test.go

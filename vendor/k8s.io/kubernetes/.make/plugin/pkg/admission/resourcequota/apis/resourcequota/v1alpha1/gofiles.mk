@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/resourcequota/apis/resourcequota/v1alpha1 := plugin/pkg/admission/resourcequota/apis/resourcequota/v1alpha1/defaults.go plugin/pkg/admission/resourcequota/apis/resourcequota/v1alpha1/doc.go plugin/pkg/admission/resourcequota/apis/resourcequota/v1alpha1/register.go plugin/pkg/admission/resourcequota/apis/resourcequota/v1alpha1/types.go

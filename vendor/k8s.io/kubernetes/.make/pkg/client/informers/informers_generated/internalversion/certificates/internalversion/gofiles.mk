@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/certificates/internalversion := pkg/client/informers/informers_generated/internalversion/certificates/internalversion/certificatesigningrequest.go pkg/client/informers/informers_generated/internalversion/certificates/internalversion/interface.go

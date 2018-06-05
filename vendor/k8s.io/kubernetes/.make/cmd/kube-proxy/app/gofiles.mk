@@ -1,0 +1,1 @@
+gofiles__cmd/kube-proxy/app := cmd/kube-proxy/app/conntrack.go cmd/kube-proxy/app/init_others.go cmd/kube-proxy/app/init_windows.go cmd/kube-proxy/app/server.go cmd/kube-proxy/app/server_others.go cmd/kube-proxy/app/server_others_test.go cmd/kube-proxy/app/server_test.go cmd/kube-proxy/app/server_windows.go

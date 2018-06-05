@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/audit/buffered := vendor/k8s.io/apiserver/plugin/pkg/audit/buffered/buffered.go vendor/k8s.io/apiserver/plugin/pkg/audit/buffered/buffered_test.go vendor/k8s.io/apiserver/plugin/pkg/audit/buffered/doc.go

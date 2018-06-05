@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle := vendor/k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle/admission.go vendor/k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle/admission_test.go

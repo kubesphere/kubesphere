@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/controllers/openapi := vendor/k8s.io/kube-aggregator/pkg/controllers/openapi/aggregator.go vendor/k8s.io/kube-aggregator/pkg/controllers/openapi/aggregator_test.go vendor/k8s.io/kube-aggregator/pkg/controllers/openapi/controller.go vendor/k8s.io/kube-aggregator/pkg/controllers/openapi/downloader.go

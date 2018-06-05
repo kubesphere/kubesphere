@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/authenticator/request/basicauth := vendor/k8s.io/apiserver/plugin/pkg/authenticator/request/basicauth/basicauth.go vendor/k8s.io/apiserver/plugin/pkg/authenticator/request/basicauth/basicauth_test.go

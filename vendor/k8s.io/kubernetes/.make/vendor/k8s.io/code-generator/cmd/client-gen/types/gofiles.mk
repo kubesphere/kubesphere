@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/cmd/client-gen/types := vendor/k8s.io/code-generator/cmd/client-gen/types/helpers.go vendor/k8s.io/code-generator/cmd/client-gen/types/helpers_test.go vendor/k8s.io/code-generator/cmd/client-gen/types/types.go

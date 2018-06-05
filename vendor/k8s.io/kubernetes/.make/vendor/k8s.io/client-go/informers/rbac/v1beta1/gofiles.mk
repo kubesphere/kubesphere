@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/rbac/v1beta1 := vendor/k8s.io/client-go/informers/rbac/v1beta1/clusterrolebinding.go vendor/k8s.io/client-go/informers/rbac/v1beta1/clusterrole.go vendor/k8s.io/client-go/informers/rbac/v1beta1/interface.go vendor/k8s.io/client-go/informers/rbac/v1beta1/rolebinding.go vendor/k8s.io/client-go/informers/rbac/v1beta1/role.go

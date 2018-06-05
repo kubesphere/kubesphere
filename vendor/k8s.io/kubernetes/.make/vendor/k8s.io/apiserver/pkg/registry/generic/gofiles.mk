@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/registry/generic := vendor/k8s.io/apiserver/pkg/registry/generic/doc.go vendor/k8s.io/apiserver/pkg/registry/generic/matcher.go vendor/k8s.io/apiserver/pkg/registry/generic/options.go vendor/k8s.io/apiserver/pkg/registry/generic/storage_decorator.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/_examples/crd/informers/externalversions/internalinterfaces := vendor/k8s.io/code-generator/_examples/crd/informers/externalversions/internalinterfaces/factory_interfaces.go

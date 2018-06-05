@@ -1,0 +1,1 @@
+gofiles__pkg/controller/garbagecollector/metaonly := pkg/controller/garbagecollector/metaonly/metaonly.go pkg/controller/garbagecollector/metaonly/metaonly_test.go pkg/controller/garbagecollector/metaonly/types.go

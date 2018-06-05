@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/util/jsonpath := vendor/k8s.io/client-go/util/jsonpath/doc.go vendor/k8s.io/client-go/util/jsonpath/jsonpath.go vendor/k8s.io/client-go/util/jsonpath/jsonpath_test.go vendor/k8s.io/client-go/util/jsonpath/node.go vendor/k8s.io/client-go/util/jsonpath/parser.go vendor/k8s.io/client-go/util/jsonpath/parser_test.go

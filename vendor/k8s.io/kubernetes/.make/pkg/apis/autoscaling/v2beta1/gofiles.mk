@@ -1,0 +1,1 @@
+gofiles__pkg/apis/autoscaling/v2beta1 := pkg/apis/autoscaling/v2beta1/defaults.go pkg/apis/autoscaling/v2beta1/defaults_test.go pkg/apis/autoscaling/v2beta1/doc.go pkg/apis/autoscaling/v2beta1/register.go

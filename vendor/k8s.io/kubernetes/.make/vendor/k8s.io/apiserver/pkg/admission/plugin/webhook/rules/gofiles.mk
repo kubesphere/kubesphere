@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/rules := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/rules/rules.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/rules/rules_test.go

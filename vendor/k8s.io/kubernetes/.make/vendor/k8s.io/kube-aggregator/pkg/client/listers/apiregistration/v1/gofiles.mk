@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1 := vendor/k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1/apiservice.go vendor/k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1/expansion_generated.go

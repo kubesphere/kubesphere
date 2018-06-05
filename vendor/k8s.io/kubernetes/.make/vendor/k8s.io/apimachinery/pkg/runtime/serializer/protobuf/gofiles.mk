@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/runtime/serializer/protobuf := vendor/k8s.io/apimachinery/pkg/runtime/serializer/protobuf/doc.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/protobuf/protobuf.go

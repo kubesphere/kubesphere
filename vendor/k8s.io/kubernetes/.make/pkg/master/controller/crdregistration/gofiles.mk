@@ -1,0 +1,1 @@
+gofiles__pkg/master/controller/crdregistration := pkg/master/controller/crdregistration/crdregistration_controller.go pkg/master/controller/crdregistration/crdregistration_controller_test.go

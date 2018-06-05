@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/testing := vendor/k8s.io/client-go/testing/actions.go vendor/k8s.io/client-go/testing/fake.go vendor/k8s.io/client-go/testing/fixture.go vendor/k8s.io/client-go/testing/fixture_test.go

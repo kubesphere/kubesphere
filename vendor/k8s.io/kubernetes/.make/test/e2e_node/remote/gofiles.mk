@@ -1,0 +1,1 @@
+gofiles__test/e2e_node/remote := test/e2e_node/remote/cadvisor_e2e.go test/e2e_node/remote/node_conformance.go test/e2e_node/remote/node_e2e.go test/e2e_node/remote/remote.go test/e2e_node/remote/ssh.go test/e2e_node/remote/types.go test/e2e_node/remote/utils.go

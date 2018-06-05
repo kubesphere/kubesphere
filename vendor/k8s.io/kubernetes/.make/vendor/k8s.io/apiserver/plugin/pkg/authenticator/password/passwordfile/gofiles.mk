@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/authenticator/password/passwordfile := vendor/k8s.io/apiserver/plugin/pkg/authenticator/password/passwordfile/passwordfile.go vendor/k8s.io/apiserver/plugin/pkg/authenticator/password/passwordfile/passwordfile_test.go

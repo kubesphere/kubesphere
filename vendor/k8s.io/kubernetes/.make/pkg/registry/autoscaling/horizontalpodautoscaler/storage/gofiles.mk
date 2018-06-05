@@ -1,0 +1,1 @@
+gofiles__pkg/registry/autoscaling/horizontalpodautoscaler/storage := pkg/registry/autoscaling/horizontalpodautoscaler/storage/storage.go pkg/registry/autoscaling/horizontalpodautoscaler/storage/storage_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/server/portforward := pkg/kubelet/server/portforward/constants.go pkg/kubelet/server/portforward/httpstream.go pkg/kubelet/server/portforward/httpstream_test.go pkg/kubelet/server/portforward/portforward.go pkg/kubelet/server/portforward/websocket.go pkg/kubelet/server/portforward/websocket_test.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/cmd/lister-gen/generators := vendor/k8s.io/code-generator/cmd/lister-gen/generators/expansion.go vendor/k8s.io/code-generator/cmd/lister-gen/generators/lister.go vendor/k8s.io/code-generator/cmd/lister-gen/generators/tags.go

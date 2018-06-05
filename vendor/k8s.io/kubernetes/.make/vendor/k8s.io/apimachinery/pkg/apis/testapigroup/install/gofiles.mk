@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/apis/testapigroup/install := vendor/k8s.io/apimachinery/pkg/apis/testapigroup/install/install.go vendor/k8s.io/apimachinery/pkg/apis/testapigroup/install/roundtrip_test.go

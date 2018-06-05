@@ -1,0 +1,1 @@
+gofiles__pkg/credentialprovider/gcp := pkg/credentialprovider/gcp/doc.go pkg/credentialprovider/gcp/jwt.go pkg/credentialprovider/gcp/jwt_test.go pkg/credentialprovider/gcp/metadata.go pkg/credentialprovider/gcp/metadata_test.go

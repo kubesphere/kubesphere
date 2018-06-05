@@ -1,0 +1,1 @@
+gofiles__pkg/util/bandwidth := pkg/util/bandwidth/doc.go pkg/util/bandwidth/fake_shaper.go pkg/util/bandwidth/interfaces.go pkg/util/bandwidth/linux.go pkg/util/bandwidth/linux_test.go pkg/util/bandwidth/unsupported.go pkg/util/bandwidth/utils.go pkg/util/bandwidth/utils_test.go

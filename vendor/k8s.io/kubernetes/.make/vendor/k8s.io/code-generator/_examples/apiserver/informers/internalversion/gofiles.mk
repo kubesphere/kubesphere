@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/_examples/apiserver/informers/internalversion := vendor/k8s.io/code-generator/_examples/apiserver/informers/internalversion/factory.go vendor/k8s.io/code-generator/_examples/apiserver/informers/internalversion/generic.go

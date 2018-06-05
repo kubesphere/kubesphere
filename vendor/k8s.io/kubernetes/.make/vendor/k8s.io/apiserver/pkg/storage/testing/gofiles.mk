@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/storage/testing := vendor/k8s.io/apiserver/pkg/storage/testing/doc.go vendor/k8s.io/apiserver/pkg/storage/testing/types.go vendor/k8s.io/apiserver/pkg/storage/testing/utils.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/runtime/serializer/streaming := vendor/k8s.io/apimachinery/pkg/runtime/serializer/streaming/streaming.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/streaming/streaming_test.go

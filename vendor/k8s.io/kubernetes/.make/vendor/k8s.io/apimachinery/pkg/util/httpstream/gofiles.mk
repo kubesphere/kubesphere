@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/httpstream := vendor/k8s.io/apimachinery/pkg/util/httpstream/doc.go vendor/k8s.io/apimachinery/pkg/util/httpstream/httpstream.go vendor/k8s.io/apimachinery/pkg/util/httpstream/httpstream_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/cm/cpumanager/state := pkg/kubelet/cm/cpumanager/state/state_file.go pkg/kubelet/cm/cpumanager/state/state_file_test.go pkg/kubelet/cm/cpumanager/state/state.go pkg/kubelet/cm/cpumanager/state/state_mem.go

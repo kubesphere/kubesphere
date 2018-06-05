@@ -1,0 +1,1 @@
+gofiles__pkg/proxy/ipvs := pkg/proxy/ipvs/ipset.go pkg/proxy/ipvs/ipset_test.go pkg/proxy/ipvs/netlink.go pkg/proxy/ipvs/netlink_linux.go pkg/proxy/ipvs/netlink_unsupported.go pkg/proxy/ipvs/proxier.go pkg/proxy/ipvs/proxier_test.go

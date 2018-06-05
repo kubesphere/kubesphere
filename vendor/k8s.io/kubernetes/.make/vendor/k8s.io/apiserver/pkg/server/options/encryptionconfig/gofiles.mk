@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/server/options/encryptionconfig := vendor/k8s.io/apiserver/pkg/server/options/encryptionconfig/config.go vendor/k8s.io/apiserver/pkg/server/options/encryptionconfig/config_test.go vendor/k8s.io/apiserver/pkg/server/options/encryptionconfig/types.go

@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/networking/internalversion := pkg/client/informers/informers_generated/internalversion/networking/internalversion/interface.go pkg/client/informers/informers_generated/internalversion/networking/internalversion/networkpolicy.go

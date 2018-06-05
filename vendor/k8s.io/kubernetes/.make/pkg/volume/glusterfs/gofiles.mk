@@ -1,0 +1,1 @@
+gofiles__pkg/volume/glusterfs := pkg/volume/glusterfs/doc.go pkg/volume/glusterfs/glusterfs.go pkg/volume/glusterfs/glusterfs_minmax.go pkg/volume/glusterfs/glusterfs_minmax_test.go pkg/volume/glusterfs/glusterfs_test.go pkg/volume/glusterfs/glusterfs_util.go

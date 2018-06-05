@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/auth/authorizer/node := plugin/pkg/auth/authorizer/node/graph.go plugin/pkg/auth/authorizer/node/graph_populator.go plugin/pkg/auth/authorizer/node/graph_test.go plugin/pkg/auth/authorizer/node/intset.go plugin/pkg/auth/authorizer/node/intset_test.go plugin/pkg/auth/authorizer/node/node_authorizer.go plugin/pkg/auth/authorizer/node/node_authorizer_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/util/term := pkg/kubectl/util/term/resizeevents.go pkg/kubectl/util/term/resizeevents_windows.go pkg/kubectl/util/term/resize.go pkg/kubectl/util/term/term.go pkg/kubectl/util/term/term_writer.go pkg/kubectl/util/term/term_writer_test.go

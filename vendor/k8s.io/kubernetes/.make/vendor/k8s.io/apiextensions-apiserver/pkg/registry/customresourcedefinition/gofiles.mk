@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition := vendor/k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition/etcd.go vendor/k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition/strategy.go

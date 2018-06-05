@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/app/phases/bootstraptoken/node := cmd/kubeadm/app/phases/bootstraptoken/node/tlsbootstrap.go cmd/kubeadm/app/phases/bootstraptoken/node/token.go cmd/kubeadm/app/phases/bootstraptoken/node/token_test.go

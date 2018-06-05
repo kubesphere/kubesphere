@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/resourcequota := plugin/pkg/admission/resourcequota/admission.go plugin/pkg/admission/resourcequota/admission_test.go plugin/pkg/admission/resourcequota/config.go plugin/pkg/admission/resourcequota/controller.go plugin/pkg/admission/resourcequota/doc.go plugin/pkg/admission/resourcequota/resource_access.go

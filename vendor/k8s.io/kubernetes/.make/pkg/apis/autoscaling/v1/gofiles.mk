@@ -1,0 +1,1 @@
+gofiles__pkg/apis/autoscaling/v1 := pkg/apis/autoscaling/v1/conversion.go pkg/apis/autoscaling/v1/defaults.go pkg/apis/autoscaling/v1/defaults_test.go pkg/apis/autoscaling/v1/doc.go pkg/apis/autoscaling/v1/register.go

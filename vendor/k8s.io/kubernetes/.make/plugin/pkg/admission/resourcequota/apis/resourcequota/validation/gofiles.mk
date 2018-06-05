@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/resourcequota/apis/resourcequota/validation := plugin/pkg/admission/resourcequota/apis/resourcequota/validation/validation.go plugin/pkg/admission/resourcequota/apis/resourcequota/validation/validation_test.go

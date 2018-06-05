@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/plugins := pkg/kubectl/plugins/env.go pkg/kubectl/plugins/env_test.go pkg/kubectl/plugins/loader.go pkg/kubectl/plugins/loader_test.go pkg/kubectl/plugins/plugins.go pkg/kubectl/plugins/plugins_test.go pkg/kubectl/plugins/runner.go pkg/kubectl/plugins/runner_test.go

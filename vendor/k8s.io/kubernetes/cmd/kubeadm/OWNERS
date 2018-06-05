@@ -1,0 +1,18 @@
+approvers:
+- jbeda
+- luxas
+- krousey
+- timothysc
+reviewers:
+- luxas
+- dmmcquay
+- krousey
+- timothysc
+- fabriziopandini
+- jamiehannaford
+- kad
+- xiangpengzhao
+- kargakis
+labels: 
+- area/kubeadm
+- sig/cluster-lifecycle

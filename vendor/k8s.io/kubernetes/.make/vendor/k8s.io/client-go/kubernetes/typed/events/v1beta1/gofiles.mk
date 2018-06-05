@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/typed/events/v1beta1 := vendor/k8s.io/client-go/kubernetes/typed/events/v1beta1/doc.go vendor/k8s.io/client-go/kubernetes/typed/events/v1beta1/event.go vendor/k8s.io/client-go/kubernetes/typed/events/v1beta1/events_client.go vendor/k8s.io/client-go/kubernetes/typed/events/v1beta1/generated_expansion.go

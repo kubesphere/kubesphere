@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts/certs.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts/doc.go

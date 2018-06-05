@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/rest/watch := vendor/k8s.io/client-go/rest/watch/decoder.go vendor/k8s.io/client-go/rest/watch/decoder_test.go vendor/k8s.io/client-go/rest/watch/encoder.go vendor/k8s.io/client-go/rest/watch/encoder_test.go

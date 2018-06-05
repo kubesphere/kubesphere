@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/audit/truncate := vendor/k8s.io/apiserver/plugin/pkg/audit/truncate/doc.go vendor/k8s.io/apiserver/plugin/pkg/audit/truncate/truncate.go vendor/k8s.io/apiserver/plugin/pkg/audit/truncate/truncate_test.go

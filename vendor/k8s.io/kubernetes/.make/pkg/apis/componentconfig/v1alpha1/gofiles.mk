@@ -1,0 +1,1 @@
+gofiles__pkg/apis/componentconfig/v1alpha1 := pkg/apis/componentconfig/v1alpha1/defaults.go pkg/apis/componentconfig/v1alpha1/defaults_test.go pkg/apis/componentconfig/v1alpha1/doc.go pkg/apis/componentconfig/v1alpha1/register.go pkg/apis/componentconfig/v1alpha1/types.go

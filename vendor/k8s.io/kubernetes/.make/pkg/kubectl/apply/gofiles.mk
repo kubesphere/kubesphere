@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/apply := pkg/kubectl/apply/doc.go pkg/kubectl/apply/element.go pkg/kubectl/apply/empty_element.go pkg/kubectl/apply/error.go pkg/kubectl/apply/list_element.go pkg/kubectl/apply/map_element.go pkg/kubectl/apply/primitive_element.go pkg/kubectl/apply/type_element.go pkg/kubectl/apply/visitor.go

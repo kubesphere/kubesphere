@@ -1,0 +1,1 @@
+gofiles__pkg/apis/core := pkg/apis/core/annotation_key_constants.go pkg/apis/core/doc.go pkg/apis/core/field_constants.go pkg/apis/core/json.go pkg/apis/core/objectreference.go pkg/apis/core/register.go pkg/apis/core/resource.go pkg/apis/core/taint.go pkg/apis/core/taint_test.go pkg/apis/core/toleration.go pkg/apis/core/toleration_test.go pkg/apis/core/types.go

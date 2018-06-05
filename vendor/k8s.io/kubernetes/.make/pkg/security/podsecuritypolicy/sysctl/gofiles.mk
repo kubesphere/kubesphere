@@ -1,0 +1,1 @@
+gofiles__pkg/security/podsecuritypolicy/sysctl := pkg/security/podsecuritypolicy/sysctl/mustmatchpatterns.go pkg/security/podsecuritypolicy/sysctl/mustmatchpatterns_test.go pkg/security/podsecuritypolicy/sysctl/types.go

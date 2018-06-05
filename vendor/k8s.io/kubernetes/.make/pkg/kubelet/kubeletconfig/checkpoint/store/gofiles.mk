@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/kubeletconfig/checkpoint/store := pkg/kubelet/kubeletconfig/checkpoint/store/fakestore.go pkg/kubelet/kubeletconfig/checkpoint/store/fsstore.go pkg/kubelet/kubeletconfig/checkpoint/store/fsstore_test.go pkg/kubelet/kubeletconfig/checkpoint/store/store.go pkg/kubelet/kubeletconfig/checkpoint/store/store_test.go

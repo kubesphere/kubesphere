@@ -1,0 +1,1 @@
+gofiles__test/integration/framework := test/integration/framework/etcd.go test/integration/framework/master_utils.go test/integration/framework/perf_utils.go test/integration/framework/serializer.go test/integration/framework/util.go

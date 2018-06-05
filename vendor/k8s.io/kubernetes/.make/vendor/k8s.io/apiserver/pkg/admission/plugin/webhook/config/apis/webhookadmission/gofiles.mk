@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission/doc.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission/register.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission/types.go

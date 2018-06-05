@@ -1,0 +1,1 @@
+gofiles__pkg/volume/scaleio := pkg/volume/scaleio/sio_client.go pkg/volume/scaleio/sio_mgr.go pkg/volume/scaleio/sio_mgr_test.go pkg/volume/scaleio/sio_plugin.go pkg/volume/scaleio/sio_util.go pkg/volume/scaleio/sio_util_test.go pkg/volume/scaleio/sio_volume.go pkg/volume/scaleio/sio_volume_test.go

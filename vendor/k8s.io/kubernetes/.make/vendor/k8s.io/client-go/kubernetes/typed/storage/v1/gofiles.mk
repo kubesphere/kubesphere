@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/typed/storage/v1 := vendor/k8s.io/client-go/kubernetes/typed/storage/v1/doc.go vendor/k8s.io/client-go/kubernetes/typed/storage/v1/generated_expansion.go vendor/k8s.io/client-go/kubernetes/typed/storage/v1/storageclass.go vendor/k8s.io/client-go/kubernetes/typed/storage/v1/storage_client.go

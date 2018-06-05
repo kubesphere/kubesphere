@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/authorizer/webhook := vendor/k8s.io/apiserver/plugin/pkg/authorizer/webhook/certs_test.go vendor/k8s.io/apiserver/plugin/pkg/authorizer/webhook/webhook.go vendor/k8s.io/apiserver/plugin/pkg/authorizer/webhook/webhook_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/dockershim/cm := pkg/kubelet/dockershim/cm/container_manager.go pkg/kubelet/dockershim/cm/container_manager_linux.go pkg/kubelet/dockershim/cm/container_manager_unsupported.go pkg/kubelet/dockershim/cm/container_manager_windows.go

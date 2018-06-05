@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/server/resourceconfig := vendor/k8s.io/apiserver/pkg/server/resourceconfig/doc.go vendor/k8s.io/apiserver/pkg/server/resourceconfig/helpers.go vendor/k8s.io/apiserver/pkg/server/resourceconfig/helpers_test.go

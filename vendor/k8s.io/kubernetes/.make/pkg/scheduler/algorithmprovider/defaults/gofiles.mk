@@ -1,0 +1,1 @@
+gofiles__pkg/scheduler/algorithmprovider/defaults := pkg/scheduler/algorithmprovider/defaults/compatibility_test.go pkg/scheduler/algorithmprovider/defaults/defaults.go pkg/scheduler/algorithmprovider/defaults/defaults_test.go

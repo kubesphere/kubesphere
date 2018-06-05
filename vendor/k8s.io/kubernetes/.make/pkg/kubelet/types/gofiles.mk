@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/types := pkg/kubelet/types/constants.go pkg/kubelet/types/doc.go pkg/kubelet/types/labels.go pkg/kubelet/types/labels_test.go pkg/kubelet/types/pod_update.go pkg/kubelet/types/pod_update_test.go pkg/kubelet/types/types.go pkg/kubelet/types/types_test.go

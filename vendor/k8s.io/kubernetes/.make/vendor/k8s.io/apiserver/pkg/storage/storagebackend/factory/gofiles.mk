@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/storage/storagebackend/factory := vendor/k8s.io/apiserver/pkg/storage/storagebackend/factory/etcd2.go vendor/k8s.io/apiserver/pkg/storage/storagebackend/factory/etcd3.go vendor/k8s.io/apiserver/pkg/storage/storagebackend/factory/factory.go vendor/k8s.io/apiserver/pkg/storage/storagebackend/factory/tls_test.go

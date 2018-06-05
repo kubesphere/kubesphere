@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/replicationcontroller := pkg/registry/core/replicationcontroller/doc.go pkg/registry/core/replicationcontroller/registry.go pkg/registry/core/replicationcontroller/strategy.go pkg/registry/core/replicationcontroller/strategy_test.go

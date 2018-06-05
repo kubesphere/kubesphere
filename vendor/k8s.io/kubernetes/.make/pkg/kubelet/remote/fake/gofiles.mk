@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/remote/fake := pkg/kubelet/remote/fake/doc.go pkg/kubelet/remote/fake/endpoint.go pkg/kubelet/remote/fake/endpoint_windows.go pkg/kubelet/remote/fake/fake_image_service.go pkg/kubelet/remote/fake/fake_runtime.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake := vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake/clientset_generated.go vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake/doc.go vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake/register.go

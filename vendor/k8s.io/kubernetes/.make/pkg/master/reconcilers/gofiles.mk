@@ -1,0 +1,1 @@
+gofiles__pkg/master/reconcilers := pkg/master/reconcilers/doc.go pkg/master/reconcilers/lease.go pkg/master/reconcilers/lease_test.go pkg/master/reconcilers/mastercount.go pkg/master/reconcilers/none.go pkg/master/reconcilers/reconcilers.go

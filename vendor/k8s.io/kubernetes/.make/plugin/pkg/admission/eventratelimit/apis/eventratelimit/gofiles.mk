@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/eventratelimit/apis/eventratelimit := plugin/pkg/admission/eventratelimit/apis/eventratelimit/doc.go plugin/pkg/admission/eventratelimit/apis/eventratelimit/register.go plugin/pkg/admission/eventratelimit/apis/eventratelimit/types.go

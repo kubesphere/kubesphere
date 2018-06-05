@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/dockershim/network/kubenet := pkg/kubelet/dockershim/network/kubenet/kubenet.go pkg/kubelet/dockershim/network/kubenet/kubenet_linux.go pkg/kubelet/dockershim/network/kubenet/kubenet_linux_test.go pkg/kubelet/dockershim/network/kubenet/kubenet_unsupported.go

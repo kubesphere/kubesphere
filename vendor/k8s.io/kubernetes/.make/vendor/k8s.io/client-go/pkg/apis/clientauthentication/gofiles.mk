@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/pkg/apis/clientauthentication := vendor/k8s.io/client-go/pkg/apis/clientauthentication/doc.go vendor/k8s.io/client-go/pkg/apis/clientauthentication/register.go vendor/k8s.io/client-go/pkg/apis/clientauthentication/types.go

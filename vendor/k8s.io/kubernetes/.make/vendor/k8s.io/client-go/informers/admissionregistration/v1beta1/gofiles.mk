@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/admissionregistration/v1beta1 := vendor/k8s.io/client-go/informers/admissionregistration/v1beta1/interface.go vendor/k8s.io/client-go/informers/admissionregistration/v1beta1/mutatingwebhookconfiguration.go vendor/k8s.io/client-go/informers/admissionregistration/v1beta1/validatingwebhookconfiguration.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/request/websocket := vendor/k8s.io/apiserver/pkg/authentication/request/websocket/protocol.go vendor/k8s.io/apiserver/pkg/authentication/request/websocket/protocol_test.go

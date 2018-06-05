@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/lifecycle := pkg/kubelet/lifecycle/admission_failure_handler_stub.go pkg/kubelet/lifecycle/doc.go pkg/kubelet/lifecycle/handlers.go pkg/kubelet/lifecycle/handlers_test.go pkg/kubelet/lifecycle/interfaces.go pkg/kubelet/lifecycle/predicate.go pkg/kubelet/lifecycle/predicate_test.go

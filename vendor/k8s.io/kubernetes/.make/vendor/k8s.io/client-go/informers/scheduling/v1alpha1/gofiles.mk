@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/scheduling/v1alpha1 := vendor/k8s.io/client-go/informers/scheduling/v1alpha1/interface.go vendor/k8s.io/client-go/informers/scheduling/v1alpha1/priorityclass.go

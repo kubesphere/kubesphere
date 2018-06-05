@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/tools/portforward := vendor/k8s.io/client-go/tools/portforward/doc.go vendor/k8s.io/client-go/tools/portforward/portforward.go vendor/k8s.io/client-go/tools/portforward/portforward_test.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/labels := vendor/k8s.io/apimachinery/pkg/labels/doc.go vendor/k8s.io/apimachinery/pkg/labels/labels.go vendor/k8s.io/apimachinery/pkg/labels/labels_test.go vendor/k8s.io/apimachinery/pkg/labels/selector.go vendor/k8s.io/apimachinery/pkg/labels/selector_test.go

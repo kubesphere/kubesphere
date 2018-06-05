@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/apis/admissionregistration := pkg/client/listers/apis/admissionregistration/expansion_generated.go pkg/client/listers/apis/admissionregistration/initializerconfiguration.go

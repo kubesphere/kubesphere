@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/prober := pkg/kubelet/prober/common_test.go pkg/kubelet/prober/prober.go pkg/kubelet/prober/prober_manager.go pkg/kubelet/prober/prober_manager_test.go pkg/kubelet/prober/prober_test.go pkg/kubelet/prober/worker.go pkg/kubelet/prober/worker_test.go

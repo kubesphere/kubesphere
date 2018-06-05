@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/initializer := vendor/k8s.io/apiserver/pkg/admission/initializer/initializer.go vendor/k8s.io/apiserver/pkg/admission/initializer/initializer_test.go vendor/k8s.io/apiserver/pkg/admission/initializer/interfaces.go

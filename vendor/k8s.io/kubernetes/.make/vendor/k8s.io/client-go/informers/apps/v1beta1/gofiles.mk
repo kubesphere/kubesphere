@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/apps/v1beta1 := vendor/k8s.io/client-go/informers/apps/v1beta1/controllerrevision.go vendor/k8s.io/client-go/informers/apps/v1beta1/deployment.go vendor/k8s.io/client-go/informers/apps/v1beta1/interface.go vendor/k8s.io/client-go/informers/apps/v1beta1/statefulset.go

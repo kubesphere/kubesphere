@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/storage/value/encrypt/secretbox := vendor/k8s.io/apiserver/pkg/storage/value/encrypt/secretbox/secretbox.go vendor/k8s.io/apiserver/pkg/storage/value/encrypt/secretbox/secretbox_test.go

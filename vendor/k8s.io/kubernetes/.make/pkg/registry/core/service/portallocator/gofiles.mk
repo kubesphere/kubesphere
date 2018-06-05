@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/service/portallocator := pkg/registry/core/service/portallocator/allocator.go pkg/registry/core/service/portallocator/allocator_test.go pkg/registry/core/service/portallocator/operation.go

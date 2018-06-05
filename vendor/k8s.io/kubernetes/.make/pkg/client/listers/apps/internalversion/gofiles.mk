@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/apps/internalversion := pkg/client/listers/apps/internalversion/controllerrevision.go pkg/client/listers/apps/internalversion/expansion_generated.go pkg/client/listers/apps/internalversion/statefulset_expansion.go pkg/client/listers/apps/internalversion/statefulset.go

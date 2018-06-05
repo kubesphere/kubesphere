@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/dockershim/network/cni := pkg/kubelet/dockershim/network/cni/cni.go pkg/kubelet/dockershim/network/cni/cni_others.go pkg/kubelet/dockershim/network/cni/cni_test.go pkg/kubelet/dockershim/network/cni/cni_windows.go

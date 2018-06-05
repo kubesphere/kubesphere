@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/storage/value := vendor/k8s.io/apiserver/pkg/storage/value/metrics.go vendor/k8s.io/apiserver/pkg/storage/value/transformer.go vendor/k8s.io/apiserver/pkg/storage/value/transformer_test.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/types := vendor/k8s.io/apimachinery/pkg/types/doc.go vendor/k8s.io/apimachinery/pkg/types/namespacedname.go vendor/k8s.io/apimachinery/pkg/types/nodename.go vendor/k8s.io/apimachinery/pkg/types/patch.go vendor/k8s.io/apimachinery/pkg/types/uid.go

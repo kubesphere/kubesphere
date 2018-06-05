@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/dockershim/network/testing := pkg/kubelet/dockershim/network/testing/fake_host.go pkg/kubelet/dockershim/network/testing/mock_network_plugin.go pkg/kubelet/dockershim/network/testing/plugins_test.go

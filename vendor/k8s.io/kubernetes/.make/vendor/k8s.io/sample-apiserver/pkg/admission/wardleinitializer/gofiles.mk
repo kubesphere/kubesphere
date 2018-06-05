@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/admission/wardleinitializer := vendor/k8s.io/sample-apiserver/pkg/admission/wardleinitializer/interfaces.go vendor/k8s.io/sample-apiserver/pkg/admission/wardleinitializer/wardleinitializer.go vendor/k8s.io/sample-apiserver/pkg/admission/wardleinitializer/wardleinitializer_test.go

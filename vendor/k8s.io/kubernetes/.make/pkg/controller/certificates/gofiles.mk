@@ -1,0 +1,1 @@
+gofiles__pkg/controller/certificates := pkg/controller/certificates/certificate_controller.go pkg/controller/certificates/certificate_controller_test.go pkg/controller/certificates/certificate_controller_utils.go

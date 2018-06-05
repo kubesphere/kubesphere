@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/util/flushwriter := vendor/k8s.io/apiserver/pkg/util/flushwriter/doc.go vendor/k8s.io/apiserver/pkg/util/flushwriter/writer.go vendor/k8s.io/apiserver/pkg/util/flushwriter/writer_test.go

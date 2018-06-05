@@ -1,0 +1,1 @@
+gofiles__pkg/controller/clusterroleaggregation := pkg/controller/clusterroleaggregation/clusterroleaggregation_controller.go pkg/controller/clusterroleaggregation/clusterroleaggregation_controller_test.go

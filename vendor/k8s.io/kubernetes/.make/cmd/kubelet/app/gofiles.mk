@@ -1,0 +1,1 @@
+gofiles__cmd/kubelet/app := cmd/kubelet/app/auth.go cmd/kubelet/app/init_others.go cmd/kubelet/app/init_windows.go cmd/kubelet/app/plugins.go cmd/kubelet/app/server.go cmd/kubelet/app/server_linux.go cmd/kubelet/app/server_test.go cmd/kubelet/app/server_unsupported.go

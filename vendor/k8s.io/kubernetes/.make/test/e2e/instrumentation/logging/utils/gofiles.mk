@@ -1,0 +1,1 @@
+gofiles__test/e2e/instrumentation/logging/utils := test/e2e/instrumentation/logging/utils/logging_agent.go test/e2e/instrumentation/logging/utils/logging_pod.go test/e2e/instrumentation/logging/utils/log_provider.go test/e2e/instrumentation/logging/utils/misc.go test/e2e/instrumentation/logging/utils/types.go test/e2e/instrumentation/logging/utils/wait.go

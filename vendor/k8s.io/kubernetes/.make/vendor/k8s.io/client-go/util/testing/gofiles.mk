@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/util/testing := vendor/k8s.io/client-go/util/testing/fake_handler.go vendor/k8s.io/client-go/util/testing/fake_handler_test.go vendor/k8s.io/client-go/util/testing/tmpdir.go

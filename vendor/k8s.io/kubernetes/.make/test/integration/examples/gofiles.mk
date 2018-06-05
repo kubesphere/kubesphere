@@ -1,0 +1,1 @@
+gofiles__test/integration/examples := test/integration/examples/apiserver_test.go test/integration/examples/main_test.go test/integration/examples/setup_test.go test/integration/examples/webhook_test.go

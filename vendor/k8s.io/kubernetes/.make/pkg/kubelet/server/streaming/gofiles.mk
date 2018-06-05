@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/server/streaming := pkg/kubelet/server/streaming/errors.go pkg/kubelet/server/streaming/request_cache.go pkg/kubelet/server/streaming/request_cache_test.go pkg/kubelet/server/streaming/server.go pkg/kubelet/server/streaming/server_test.go

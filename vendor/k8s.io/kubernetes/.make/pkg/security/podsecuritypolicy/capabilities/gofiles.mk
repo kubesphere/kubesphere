@@ -1,0 +1,1 @@
+gofiles__pkg/security/podsecuritypolicy/capabilities := pkg/security/podsecuritypolicy/capabilities/capabilities.go pkg/security/podsecuritypolicy/capabilities/capabilities_test.go pkg/security/podsecuritypolicy/capabilities/doc.go pkg/security/podsecuritypolicy/capabilities/types.go

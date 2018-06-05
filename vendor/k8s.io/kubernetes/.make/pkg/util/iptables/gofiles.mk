@@ -1,0 +1,1 @@
+gofiles__pkg/util/iptables := pkg/util/iptables/doc.go pkg/util/iptables/iptables.go pkg/util/iptables/iptables_linux.go pkg/util/iptables/iptables_test.go pkg/util/iptables/iptables_unsupported.go pkg/util/iptables/save_restore.go

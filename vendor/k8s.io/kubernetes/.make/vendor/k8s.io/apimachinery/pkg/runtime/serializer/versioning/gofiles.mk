@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/runtime/serializer/versioning := vendor/k8s.io/apimachinery/pkg/runtime/serializer/versioning/versioning.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/versioning/versioning_test.go

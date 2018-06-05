@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/componentstatus := pkg/registry/core/componentstatus/doc.go pkg/registry/core/componentstatus/rest.go pkg/registry/core/componentstatus/rest_test.go pkg/registry/core/componentstatus/validator.go pkg/registry/core/componentstatus/validator_test.go

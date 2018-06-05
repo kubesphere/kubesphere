@@ -1,0 +1,1 @@
+gofiles__pkg/controller/volume/attachdetach/statusupdater := pkg/controller/volume/attachdetach/statusupdater/fake_node_status_updater.go pkg/controller/volume/attachdetach/statusupdater/node_status_updater.go

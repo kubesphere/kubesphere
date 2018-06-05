@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/scheduling/internalversion := pkg/client/informers/informers_generated/internalversion/scheduling/internalversion/interface.go pkg/client/informers/informers_generated/internalversion/scheduling/internalversion/priorityclass.go

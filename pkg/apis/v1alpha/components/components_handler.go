@@ -17,11 +17,13 @@ limitations under the License.
 package components
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
 	"kubesphere.io/kubesphere/pkg/models"
-	"net/http"
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func Register(ws *restful.WebService, subPath string) {
@@ -40,8 +42,11 @@ func handleGetComponents(request *restful.Request, response *restful.Response) {
 	if err != nil {
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-	}
 
-	response.WriteAsJson(result)
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
 
 }

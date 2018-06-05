@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/fake := vendor/k8s.io/client-go/kubernetes/fake/clientset_generated.go vendor/k8s.io/client-go/kubernetes/fake/doc.go vendor/k8s.io/client-go/kubernetes/fake/register.go

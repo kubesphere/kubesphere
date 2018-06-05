@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset/fake := vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset/fake/clientset_generated.go vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset/fake/doc.go vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset/fake/register.go

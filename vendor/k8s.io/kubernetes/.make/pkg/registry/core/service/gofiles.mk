@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/service := pkg/registry/core/service/doc.go pkg/registry/core/service/proxy.go pkg/registry/core/service/registry.go pkg/registry/core/service/strategy.go pkg/registry/core/service/strategy_test.go

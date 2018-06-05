@@ -1,0 +1,1 @@
+gofiles__pkg/registry/admissionregistration/validatingwebhookconfiguration/storage := pkg/registry/admissionregistration/validatingwebhookconfiguration/storage/storage.go

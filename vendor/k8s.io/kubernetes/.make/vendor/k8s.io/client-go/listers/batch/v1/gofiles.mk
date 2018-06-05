@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/listers/batch/v1 := vendor/k8s.io/client-go/listers/batch/v1/expansion_generated.go vendor/k8s.io/client-go/listers/batch/v1/job_expansion.go vendor/k8s.io/client-go/listers/batch/v1/job.go
