@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/plugin/pkg/authenticator/token/oidc := vendor/k8s.io/apiserver/plugin/pkg/authenticator/token/oidc/oidc.go vendor/k8s.io/apiserver/plugin/pkg/authenticator/token/oidc/oidc_test.go

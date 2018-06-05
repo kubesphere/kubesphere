@@ -1,0 +1,1 @@
+gofiles__pkg/security/podsecuritypolicy/group := pkg/security/podsecuritypolicy/group/doc.go pkg/security/podsecuritypolicy/group/mustrunas.go pkg/security/podsecuritypolicy/group/mustrunas_test.go pkg/security/podsecuritypolicy/group/runasany.go pkg/security/podsecuritypolicy/group/runasany_test.go pkg/security/podsecuritypolicy/group/types.go

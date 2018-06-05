@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/server := pkg/kubelet/server/auth.go pkg/kubelet/server/auth_test.go pkg/kubelet/server/doc.go pkg/kubelet/server/server.go pkg/kubelet/server/server_test.go pkg/kubelet/server/server_websocket_test.go

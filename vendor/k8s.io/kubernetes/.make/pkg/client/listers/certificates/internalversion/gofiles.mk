@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/certificates/internalversion := pkg/client/listers/certificates/internalversion/certificatesigningrequest.go pkg/client/listers/certificates/internalversion/expansion_generated.go

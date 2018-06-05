@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/strategicpatch := vendor/k8s.io/apimachinery/pkg/util/strategicpatch/errors.go vendor/k8s.io/apimachinery/pkg/util/strategicpatch/meta.go vendor/k8s.io/apimachinery/pkg/util/strategicpatch/patch.go vendor/k8s.io/apimachinery/pkg/util/strategicpatch/patch_test.go vendor/k8s.io/apimachinery/pkg/util/strategicpatch/types.go

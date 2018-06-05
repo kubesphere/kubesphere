@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/scheme := vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/scheme/doc.go vendor/k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/scheme/register.go

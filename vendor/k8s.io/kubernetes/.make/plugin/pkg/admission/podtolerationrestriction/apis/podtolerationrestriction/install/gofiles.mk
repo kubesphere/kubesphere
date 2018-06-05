@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/install := plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/install/install.go

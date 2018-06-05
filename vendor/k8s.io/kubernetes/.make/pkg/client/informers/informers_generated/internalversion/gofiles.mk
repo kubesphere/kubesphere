@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion := pkg/client/informers/informers_generated/internalversion/factory.go pkg/client/informers/informers_generated/internalversion/generic.go

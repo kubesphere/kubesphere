@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/apis/cr/v1 := vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/apis/cr/v1/doc.go vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/apis/cr/v1/register.go vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/apis/cr/v1/types.go

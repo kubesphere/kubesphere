@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/persistentvolumeclaim := pkg/registry/core/persistentvolumeclaim/doc.go pkg/registry/core/persistentvolumeclaim/strategy.go pkg/registry/core/persistentvolumeclaim/strategy_test.go

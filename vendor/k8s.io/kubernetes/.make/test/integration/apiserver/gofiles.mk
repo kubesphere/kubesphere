@@ -1,0 +1,1 @@
+gofiles__test/integration/apiserver := test/integration/apiserver/apiserver_test.go test/integration/apiserver/main_test.go test/integration/apiserver/patch_test.go test/integration/apiserver/print_test.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/validating := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/validating/dispatcher.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/validating/doc.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/validating/plugin.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/validating/plugin_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/controller/daemon := pkg/controller/daemon/daemon_controller.go pkg/controller/daemon/daemon_controller_test.go pkg/controller/daemon/doc.go pkg/controller/daemon/update.go pkg/controller/daemon/update_test.go

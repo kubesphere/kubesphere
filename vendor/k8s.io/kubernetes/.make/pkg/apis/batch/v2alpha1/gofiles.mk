@@ -1,0 +1,1 @@
+gofiles__pkg/apis/batch/v2alpha1 := pkg/apis/batch/v2alpha1/conversion.go pkg/apis/batch/v2alpha1/defaults.go pkg/apis/batch/v2alpha1/defaults_test.go pkg/apis/batch/v2alpha1/doc.go pkg/apis/batch/v2alpha1/register.go

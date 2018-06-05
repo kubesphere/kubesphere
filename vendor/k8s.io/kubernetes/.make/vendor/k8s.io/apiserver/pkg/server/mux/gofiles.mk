@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/server/mux := vendor/k8s.io/apiserver/pkg/server/mux/doc.go vendor/k8s.io/apiserver/pkg/server/mux/pathrecorder.go vendor/k8s.io/apiserver/pkg/server/mux/pathrecorder_test.go

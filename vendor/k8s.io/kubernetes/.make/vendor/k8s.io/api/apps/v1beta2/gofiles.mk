@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/api/apps/v1beta2 := vendor/k8s.io/api/apps/v1beta2/doc.go vendor/k8s.io/api/apps/v1beta2/generated.pb.go vendor/k8s.io/api/apps/v1beta2/register.go vendor/k8s.io/api/apps/v1beta2/types.go vendor/k8s.io/api/apps/v1beta2/types_swagger_doc_generated.go

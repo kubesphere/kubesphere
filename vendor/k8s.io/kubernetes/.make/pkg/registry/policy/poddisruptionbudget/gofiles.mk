@@ -1,0 +1,1 @@
+gofiles__pkg/registry/policy/poddisruptionbudget := pkg/registry/policy/poddisruptionbudget/doc.go pkg/registry/policy/poddisruptionbudget/strategy.go pkg/registry/policy/poddisruptionbudget/strategy_test.go

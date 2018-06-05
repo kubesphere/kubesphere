@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/podtolerationrestriction := plugin/pkg/admission/podtolerationrestriction/admission.go plugin/pkg/admission/podtolerationrestriction/admission_test.go plugin/pkg/admission/podtolerationrestriction/config.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/errors := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/errors/doc.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/errors/errors.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/errors/statuserror.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/errors/statuserror_test.go

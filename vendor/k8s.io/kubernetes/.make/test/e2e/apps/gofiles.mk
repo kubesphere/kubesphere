@@ -1,0 +1,1 @@
+gofiles__test/e2e/apps := test/e2e/apps/cronjob.go test/e2e/apps/daemon_restart.go test/e2e/apps/daemon_set.go test/e2e/apps/deployment.go test/e2e/apps/disruption.go test/e2e/apps/framework.go test/e2e/apps/job.go test/e2e/apps/network_partition.go test/e2e/apps/rc.go test/e2e/apps/replica_set.go test/e2e/apps/statefulset.go test/e2e/apps/types.go

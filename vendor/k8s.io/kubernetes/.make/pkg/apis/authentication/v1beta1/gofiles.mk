@@ -1,0 +1,1 @@
+gofiles__pkg/apis/authentication/v1beta1 := pkg/apis/authentication/v1beta1/conversion.go pkg/apis/authentication/v1beta1/defaults.go pkg/apis/authentication/v1beta1/doc.go pkg/apis/authentication/v1beta1/register.go

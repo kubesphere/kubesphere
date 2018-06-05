@@ -1,0 +1,1 @@
+gofiles__pkg/registry/scheduling/priorityclass := pkg/registry/scheduling/priorityclass/doc.go pkg/registry/scheduling/priorityclass/registry.go pkg/registry/scheduling/priorityclass/strategy.go pkg/registry/scheduling/priorityclass/strategy_test.go

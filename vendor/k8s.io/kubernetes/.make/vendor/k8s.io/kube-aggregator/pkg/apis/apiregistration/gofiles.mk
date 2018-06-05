@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/apis/apiregistration := vendor/k8s.io/kube-aggregator/pkg/apis/apiregistration/doc.go vendor/k8s.io/kube-aggregator/pkg/apis/apiregistration/helpers.go vendor/k8s.io/kube-aggregator/pkg/apis/apiregistration/register.go vendor/k8s.io/kube-aggregator/pkg/apis/apiregistration/types.go

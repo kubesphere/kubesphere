@@ -1,0 +1,1 @@
+gofiles__pkg/controller/cronjob := pkg/controller/cronjob/cronjob_controller.go pkg/controller/cronjob/cronjob_controller_test.go pkg/controller/cronjob/doc.go pkg/controller/cronjob/injection.go pkg/controller/cronjob/utils.go pkg/controller/cronjob/utils_test.go

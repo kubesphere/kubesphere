@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-controller/pkg/client/informers/externalversions/internalinterfaces := vendor/k8s.io/sample-controller/pkg/client/informers/externalversions/internalinterfaces/factory_interfaces.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/conversion := vendor/k8s.io/apimachinery/pkg/conversion/converter.go vendor/k8s.io/apimachinery/pkg/conversion/converter_test.go vendor/k8s.io/apimachinery/pkg/conversion/deep_equal.go vendor/k8s.io/apimachinery/pkg/conversion/doc.go vendor/k8s.io/apimachinery/pkg/conversion/helper.go vendor/k8s.io/apimachinery/pkg/conversion/helper_test.go

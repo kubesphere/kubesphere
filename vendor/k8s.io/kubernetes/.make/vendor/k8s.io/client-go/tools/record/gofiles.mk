@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/tools/record := vendor/k8s.io/client-go/tools/record/doc.go vendor/k8s.io/client-go/tools/record/event.go vendor/k8s.io/client-go/tools/record/events_cache.go vendor/k8s.io/client-go/tools/record/events_cache_test.go vendor/k8s.io/client-go/tools/record/event_test.go vendor/k8s.io/client-go/tools/record/fake.go

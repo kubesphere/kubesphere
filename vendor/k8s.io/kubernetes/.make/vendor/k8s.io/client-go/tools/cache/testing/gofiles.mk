@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/tools/cache/testing := vendor/k8s.io/client-go/tools/cache/testing/fake_controller_source.go vendor/k8s.io/client-go/tools/cache/testing/fake_controller_source_test.go

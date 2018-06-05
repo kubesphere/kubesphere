@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/scale/scheme/extensionsv1beta1 := vendor/k8s.io/client-go/scale/scheme/extensionsv1beta1/conversion.go vendor/k8s.io/client-go/scale/scheme/extensionsv1beta1/doc.go vendor/k8s.io/client-go/scale/scheme/extensionsv1beta1/register.go

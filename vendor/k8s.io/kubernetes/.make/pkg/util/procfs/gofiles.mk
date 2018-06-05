@@ -1,0 +1,1 @@
+gofiles__pkg/util/procfs := pkg/util/procfs/doc.go pkg/util/procfs/procfs_fake.go pkg/util/procfs/procfs.go pkg/util/procfs/procfs_linux.go pkg/util/procfs/procfs_linux_test.go pkg/util/procfs/procfs_unsupported.go

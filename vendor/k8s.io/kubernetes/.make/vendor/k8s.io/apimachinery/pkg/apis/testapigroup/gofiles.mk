@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/apis/testapigroup := vendor/k8s.io/apimachinery/pkg/apis/testapigroup/doc.go vendor/k8s.io/apimachinery/pkg/apis/testapigroup/register.go vendor/k8s.io/apimachinery/pkg/apis/testapigroup/types.go

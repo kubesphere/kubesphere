@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-controller/pkg/client/listers/samplecontroller/v1alpha1 := vendor/k8s.io/sample-controller/pkg/client/listers/samplecontroller/v1alpha1/expansion_generated.go vendor/k8s.io/sample-controller/pkg/client/listers/samplecontroller/v1alpha1/foo.go

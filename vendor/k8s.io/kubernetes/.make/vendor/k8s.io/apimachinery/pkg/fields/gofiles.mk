@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/fields := vendor/k8s.io/apimachinery/pkg/fields/doc.go vendor/k8s.io/apimachinery/pkg/fields/fields.go vendor/k8s.io/apimachinery/pkg/fields/fields_test.go vendor/k8s.io/apimachinery/pkg/fields/requirements.go vendor/k8s.io/apimachinery/pkg/fields/selector.go vendor/k8s.io/apimachinery/pkg/fields/selector_test.go

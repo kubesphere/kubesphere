@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/scale/scheme/autoscalingv1 := vendor/k8s.io/client-go/scale/scheme/autoscalingv1/conversion.go vendor/k8s.io/client-go/scale/scheme/autoscalingv1/doc.go vendor/k8s.io/client-go/scale/scheme/autoscalingv1/register.go

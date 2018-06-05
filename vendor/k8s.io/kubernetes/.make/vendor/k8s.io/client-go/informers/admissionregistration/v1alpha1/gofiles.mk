@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/admissionregistration/v1alpha1 := vendor/k8s.io/client-go/informers/admissionregistration/v1alpha1/initializerconfiguration.go vendor/k8s.io/client-go/informers/admissionregistration/v1alpha1/interface.go

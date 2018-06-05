@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/kubeletconfig/checkpoint := pkg/kubelet/kubeletconfig/checkpoint/configmap.go pkg/kubelet/kubeletconfig/checkpoint/configmap_test.go pkg/kubelet/kubeletconfig/checkpoint/download.go pkg/kubelet/kubeletconfig/checkpoint/download_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/quota/evaluator/core := pkg/quota/evaluator/core/doc.go pkg/quota/evaluator/core/persistent_volume_claims.go pkg/quota/evaluator/core/persistent_volume_claims_test.go pkg/quota/evaluator/core/pods.go pkg/quota/evaluator/core/pods_test.go pkg/quota/evaluator/core/registry.go pkg/quota/evaluator/core/services.go pkg/quota/evaluator/core/services_test.go

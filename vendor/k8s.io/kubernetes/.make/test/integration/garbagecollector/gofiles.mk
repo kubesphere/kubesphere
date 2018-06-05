@@ -1,0 +1,1 @@
+gofiles__test/integration/garbagecollector := test/integration/garbagecollector/cluster_scoped_owner_test.go test/integration/garbagecollector/garbage_collector_test.go test/integration/garbagecollector/main_test.go

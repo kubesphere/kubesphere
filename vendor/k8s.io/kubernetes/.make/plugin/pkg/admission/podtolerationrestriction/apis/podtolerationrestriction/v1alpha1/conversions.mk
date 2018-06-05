@@ -1,0 +1,1 @@
+conversions__plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/v1alpha1 := plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction

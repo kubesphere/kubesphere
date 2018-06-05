@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/cmd/util/openapi := pkg/kubectl/cmd/util/openapi/doc.go pkg/kubectl/cmd/util/openapi/extensions.go pkg/kubectl/cmd/util/openapi/openapi_getter.go pkg/kubectl/cmd/util/openapi/openapi_getter_test.go pkg/kubectl/cmd/util/openapi/openapi.go pkg/kubectl/cmd/util/openapi/openapi_suite_test.go pkg/kubectl/cmd/util/openapi/openapi_test.go

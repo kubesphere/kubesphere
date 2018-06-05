@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/cmd/util/openapi/validation := pkg/kubectl/cmd/util/openapi/validation/validation.go pkg/kubectl/cmd/util/openapi/validation/validation_suite_test.go pkg/kubectl/cmd/util/openapi/validation/validation_test.go

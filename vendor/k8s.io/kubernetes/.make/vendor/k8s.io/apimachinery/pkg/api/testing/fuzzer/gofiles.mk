@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/api/testing/fuzzer := vendor/k8s.io/apimachinery/pkg/api/testing/fuzzer/fuzzer.go vendor/k8s.io/apimachinery/pkg/api/testing/fuzzer/valuefuzz.go vendor/k8s.io/apimachinery/pkg/api/testing/fuzzer/valuefuzz_test.go

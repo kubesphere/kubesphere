@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/batch/internalversion := pkg/client/informers/informers_generated/internalversion/batch/internalversion/cronjob.go pkg/client/informers/informers_generated/internalversion/batch/internalversion/interface.go pkg/client/informers/informers_generated/internalversion/batch/internalversion/job.go

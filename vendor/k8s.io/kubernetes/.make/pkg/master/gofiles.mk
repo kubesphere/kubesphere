@@ -1,0 +1,1 @@
+gofiles__pkg/master := pkg/master/client_ca_hook.go pkg/master/client_ca_hook_test.go pkg/master/client_util.go pkg/master/controller.go pkg/master/controller_test.go pkg/master/doc.go pkg/master/import_known_versions.go pkg/master/import_known_versions_test.go pkg/master/master.go pkg/master/master_openapi_test.go pkg/master/master_test.go pkg/master/services.go

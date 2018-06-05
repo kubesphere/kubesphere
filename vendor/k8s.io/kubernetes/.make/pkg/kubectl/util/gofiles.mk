@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/util := pkg/kubectl/util/service_port.go pkg/kubectl/util/service_port_test.go pkg/kubectl/util/umask.go pkg/kubectl/util/umask_windows.go pkg/kubectl/util/util.go pkg/kubectl/util/util_test.go

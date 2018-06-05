@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/cmd/rollout := pkg/kubectl/cmd/rollout/rollout.go pkg/kubectl/cmd/rollout/rollout_history.go pkg/kubectl/cmd/rollout/rollout_pause.go pkg/kubectl/cmd/rollout/rollout_pause_test.go pkg/kubectl/cmd/rollout/rollout_resume.go pkg/kubectl/cmd/rollout/rollout_status.go pkg/kubectl/cmd/rollout/rollout_undo.go

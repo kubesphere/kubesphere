@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-controller/pkg/client/clientset/versioned := vendor/k8s.io/sample-controller/pkg/client/clientset/versioned/clientset.go vendor/k8s.io/sample-controller/pkg/client/clientset/versioned/doc.go

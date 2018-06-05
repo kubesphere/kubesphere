@@ -1,0 +1,1 @@
+gofiles__pkg/apis/extensions/v1beta1 := pkg/apis/extensions/v1beta1/conversion.go pkg/apis/extensions/v1beta1/defaults.go pkg/apis/extensions/v1beta1/defaults_test.go pkg/apis/extensions/v1beta1/doc.go pkg/apis/extensions/v1beta1/register.go

@@ -1,0 +1,1 @@
+gofiles__pkg/controller := pkg/controller/client_builder.go pkg/controller/controller_ref_manager.go pkg/controller/controller_ref_manager_test.go pkg/controller/controller_utils.go pkg/controller/controller_utils_test.go pkg/controller/doc.go pkg/controller/lookup_cache.go

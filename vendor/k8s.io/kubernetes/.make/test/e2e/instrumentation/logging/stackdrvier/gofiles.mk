@@ -1,0 +1,1 @@
+gofiles__test/e2e/instrumentation/logging/stackdrvier := test/e2e/instrumentation/logging/stackdrvier/basic.go test/e2e/instrumentation/logging/stackdrvier/soak.go test/e2e/instrumentation/logging/stackdrvier/utils.go

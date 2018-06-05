@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/cmd/client-gen/args := vendor/k8s.io/code-generator/cmd/client-gen/args/args.go vendor/k8s.io/code-generator/cmd/client-gen/args/gvpackages.go vendor/k8s.io/code-generator/cmd/client-gen/args/gvpackages_test.go vendor/k8s.io/code-generator/cmd/client-gen/args/gvtype.go

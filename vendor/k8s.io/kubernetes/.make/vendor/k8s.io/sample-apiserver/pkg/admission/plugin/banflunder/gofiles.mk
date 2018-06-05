@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/admission/plugin/banflunder := vendor/k8s.io/sample-apiserver/pkg/admission/plugin/banflunder/admission.go vendor/k8s.io/sample-apiserver/pkg/admission/plugin/banflunder/admission_test.go

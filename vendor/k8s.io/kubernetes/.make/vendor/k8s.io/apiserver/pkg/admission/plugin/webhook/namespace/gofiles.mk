@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/namespace := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/namespace/doc.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/namespace/matcher.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/namespace/matcher_test.go

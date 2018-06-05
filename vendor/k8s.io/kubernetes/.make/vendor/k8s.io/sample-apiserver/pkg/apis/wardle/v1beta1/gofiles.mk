@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1 := vendor/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1/doc.go vendor/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1/register.go vendor/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1/types.go

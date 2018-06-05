@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/token/tokenfile := vendor/k8s.io/apiserver/pkg/authentication/token/tokenfile/tokenfile.go vendor/k8s.io/apiserver/pkg/authentication/token/tokenfile/tokenfile_test.go

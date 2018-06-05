@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/cache := vendor/k8s.io/apimachinery/pkg/util/cache/cache.go vendor/k8s.io/apimachinery/pkg/util/cache/cache_test.go vendor/k8s.io/apimachinery/pkg/util/cache/lruexpirecache.go vendor/k8s.io/apimachinery/pkg/util/cache/lruexpirecache_test.go

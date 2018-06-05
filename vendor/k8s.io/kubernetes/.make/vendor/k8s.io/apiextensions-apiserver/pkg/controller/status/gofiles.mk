@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/controller/status := vendor/k8s.io/apiextensions-apiserver/pkg/controller/status/naming_controller.go vendor/k8s.io/apiextensions-apiserver/pkg/controller/status/naming_controller_test.go

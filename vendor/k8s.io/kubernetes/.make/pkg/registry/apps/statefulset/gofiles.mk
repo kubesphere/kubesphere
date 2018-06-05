@@ -1,0 +1,1 @@
+gofiles__pkg/registry/apps/statefulset := pkg/registry/apps/statefulset/doc.go pkg/registry/apps/statefulset/registry.go pkg/registry/apps/statefulset/strategy.go pkg/registry/apps/statefulset/strategy_test.go

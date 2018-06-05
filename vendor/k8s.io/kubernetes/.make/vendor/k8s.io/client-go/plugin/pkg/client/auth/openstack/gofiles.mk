@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/plugin/pkg/client/auth/openstack := vendor/k8s.io/client-go/plugin/pkg/client/auth/openstack/openstack.go vendor/k8s.io/client-go/plugin/pkg/client/auth/openstack/openstack_test.go

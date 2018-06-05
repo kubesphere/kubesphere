@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/runtime/serializer/json := vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/json_test.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/meta.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/meta_test.go

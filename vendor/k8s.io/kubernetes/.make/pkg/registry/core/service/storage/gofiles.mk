@@ -1,0 +1,1 @@
+gofiles__pkg/registry/core/service/storage := pkg/registry/core/service/storage/rest.go pkg/registry/core/service/storage/rest_test.go pkg/registry/core/service/storage/storage.go pkg/registry/core/service/storage/storage_test.go

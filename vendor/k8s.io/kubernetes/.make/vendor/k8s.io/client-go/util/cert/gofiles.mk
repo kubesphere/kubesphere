@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/util/cert := vendor/k8s.io/client-go/util/cert/cert.go vendor/k8s.io/client-go/util/cert/csr.go vendor/k8s.io/client-go/util/cert/csr_test.go vendor/k8s.io/client-go/util/cert/io.go vendor/k8s.io/client-go/util/cert/pem.go vendor/k8s.io/client-go/util/cert/pem_test.go

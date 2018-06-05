@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/initializer := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/initializer/initializer.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/initializer/initializer_test.go

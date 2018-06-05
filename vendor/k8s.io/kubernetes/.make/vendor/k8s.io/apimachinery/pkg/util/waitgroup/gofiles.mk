@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/waitgroup := vendor/k8s.io/apimachinery/pkg/util/waitgroup/doc.go vendor/k8s.io/apimachinery/pkg/util/waitgroup/waitgroup.go vendor/k8s.io/apimachinery/pkg/util/waitgroup/waitgroup_test.go

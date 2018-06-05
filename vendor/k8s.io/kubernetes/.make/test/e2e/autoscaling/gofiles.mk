@@ -1,0 +1,1 @@
+gofiles__test/e2e/autoscaling := test/e2e/autoscaling/autoscaling_timer.go test/e2e/autoscaling/cluster_autoscaler_scalability.go test/e2e/autoscaling/cluster_size_autoscaling.go test/e2e/autoscaling/custom_metrics_stackdriver_autoscaling.go test/e2e/autoscaling/dns_autoscaling.go test/e2e/autoscaling/framework.go test/e2e/autoscaling/horizontal_pod_autoscaling.go

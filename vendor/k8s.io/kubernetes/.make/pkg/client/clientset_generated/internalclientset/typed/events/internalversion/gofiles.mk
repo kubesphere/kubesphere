@@ -1,0 +1,1 @@
+gofiles__pkg/client/clientset_generated/internalclientset/typed/events/internalversion := pkg/client/clientset_generated/internalclientset/typed/events/internalversion/doc.go pkg/client/clientset_generated/internalclientset/typed/events/internalversion/events_client.go pkg/client/clientset_generated/internalclientset/typed/events/internalversion/generated_expansion.go

@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/batch/internalversion := pkg/client/listers/batch/internalversion/cronjob.go pkg/client/listers/batch/internalversion/expansion_generated.go pkg/client/listers/batch/internalversion/job_expansion.go pkg/client/listers/batch/internalversion/job.go pkg/client/listers/batch/internalversion/job_test.go

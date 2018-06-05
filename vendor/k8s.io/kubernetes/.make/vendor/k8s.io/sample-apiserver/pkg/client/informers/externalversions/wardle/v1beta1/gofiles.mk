@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/client/informers/externalversions/wardle/v1beta1 := vendor/k8s.io/sample-apiserver/pkg/client/informers/externalversions/wardle/v1beta1/flunder.go vendor/k8s.io/sample-apiserver/pkg/client/informers/externalversions/wardle/v1beta1/interface.go

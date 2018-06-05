@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/third_party/forked/golang/template := vendor/k8s.io/client-go/third_party/forked/golang/template/exec.go vendor/k8s.io/client-go/third_party/forked/golang/template/funcs.go

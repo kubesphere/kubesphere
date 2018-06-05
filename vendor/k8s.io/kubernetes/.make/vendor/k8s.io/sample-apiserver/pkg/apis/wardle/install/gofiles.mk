@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/apis/wardle/install := vendor/k8s.io/sample-apiserver/pkg/apis/wardle/install/install.go vendor/k8s.io/sample-apiserver/pkg/apis/wardle/install/roundtrip_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/eviction := pkg/kubelet/eviction/doc.go pkg/kubelet/eviction/eviction_manager.go pkg/kubelet/eviction/eviction_manager_test.go pkg/kubelet/eviction/helpers.go pkg/kubelet/eviction/helpers_test.go pkg/kubelet/eviction/threshold_notifier_linux.go pkg/kubelet/eviction/threshold_notifier_unsupported.go pkg/kubelet/eviction/types.go

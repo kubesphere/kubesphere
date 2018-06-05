@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/server/remotecommand := pkg/kubelet/server/remotecommand/attach.go pkg/kubelet/server/remotecommand/doc.go pkg/kubelet/server/remotecommand/exec.go pkg/kubelet/server/remotecommand/httpstream.go pkg/kubelet/server/remotecommand/websocket.go

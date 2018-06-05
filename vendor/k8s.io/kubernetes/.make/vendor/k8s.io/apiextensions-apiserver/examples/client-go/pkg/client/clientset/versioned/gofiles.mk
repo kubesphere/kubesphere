@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/client/clientset/versioned := vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/client/clientset/versioned/clientset.go vendor/k8s.io/apiextensions-apiserver/examples/client-go/pkg/client/clientset/versioned/doc.go

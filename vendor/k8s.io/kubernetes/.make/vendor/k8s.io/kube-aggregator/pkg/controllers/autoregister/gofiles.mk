@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/controllers/autoregister := vendor/k8s.io/kube-aggregator/pkg/controllers/autoregister/autoregister_controller.go vendor/k8s.io/kube-aggregator/pkg/controllers/autoregister/autoregister_controller_test.go

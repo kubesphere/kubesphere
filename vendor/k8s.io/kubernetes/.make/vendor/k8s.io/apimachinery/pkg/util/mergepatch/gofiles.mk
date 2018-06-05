@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/mergepatch := vendor/k8s.io/apimachinery/pkg/util/mergepatch/errors.go vendor/k8s.io/apimachinery/pkg/util/mergepatch/util.go vendor/k8s.io/apimachinery/pkg/util/mergepatch/util_test.go

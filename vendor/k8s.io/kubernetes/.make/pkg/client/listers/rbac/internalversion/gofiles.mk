@@ -1,0 +1,1 @@
+gofiles__pkg/client/listers/rbac/internalversion := pkg/client/listers/rbac/internalversion/clusterrolebinding.go pkg/client/listers/rbac/internalversion/clusterrole.go pkg/client/listers/rbac/internalversion/expansion_generated.go pkg/client/listers/rbac/internalversion/rolebinding.go pkg/client/listers/rbac/internalversion/role.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/generic := vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/conversion.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/conversion_test.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/interfaces.go vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/webhook.go

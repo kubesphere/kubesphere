@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/code-generator/cmd/client-gen/generators/util := vendor/k8s.io/code-generator/cmd/client-gen/generators/util/tags.go vendor/k8s.io/code-generator/cmd/client-gen/generators/util/tags_test.go

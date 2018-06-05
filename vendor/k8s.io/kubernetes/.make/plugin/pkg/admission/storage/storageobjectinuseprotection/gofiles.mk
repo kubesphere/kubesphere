@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/storage/storageobjectinuseprotection := plugin/pkg/admission/storage/storageobjectinuseprotection/admission.go plugin/pkg/admission/storage/storageobjectinuseprotection/admission_test.go

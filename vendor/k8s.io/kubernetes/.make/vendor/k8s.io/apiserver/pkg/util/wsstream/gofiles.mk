@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/util/wsstream := vendor/k8s.io/apiserver/pkg/util/wsstream/conn.go vendor/k8s.io/apiserver/pkg/util/wsstream/conn_test.go vendor/k8s.io/apiserver/pkg/util/wsstream/doc.go vendor/k8s.io/apiserver/pkg/util/wsstream/stream.go vendor/k8s.io/apiserver/pkg/util/wsstream/stream_test.go

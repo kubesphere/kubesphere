@@ -1,0 +1,1 @@
+gofiles__pkg/credentialprovider/rancher := pkg/credentialprovider/rancher/doc.go pkg/credentialprovider/rancher/rancher_registry_credentials.go pkg/credentialprovider/rancher/rancher_registry_credentials_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/controller/replicaset := pkg/controller/replicaset/doc.go pkg/controller/replicaset/replica_set.go pkg/controller/replicaset/replica_set_test.go pkg/controller/replicaset/replica_set_utils.go pkg/controller/replicaset/replica_set_utils_test.go

@@ -1,0 +1,1 @@
+gofiles__pkg/client/clientset_generated/internalclientset/fake := pkg/client/clientset_generated/internalclientset/fake/clientset_generated.go pkg/client/clientset_generated/internalclientset/fake/doc.go pkg/client/clientset_generated/internalclientset/fake/register.go

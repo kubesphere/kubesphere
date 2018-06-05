@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/server/httplog := vendor/k8s.io/apiserver/pkg/server/httplog/doc.go vendor/k8s.io/apiserver/pkg/server/httplog/httplog.go vendor/k8s.io/apiserver/pkg/server/httplog/httplog_test.go

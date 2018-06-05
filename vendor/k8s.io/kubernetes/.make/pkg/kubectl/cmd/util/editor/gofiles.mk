@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/cmd/util/editor := pkg/kubectl/cmd/util/editor/editoptions.go pkg/kubectl/cmd/util/editor/editoptions_test.go pkg/kubectl/cmd/util/editor/editor.go pkg/kubectl/cmd/util/editor/editor_test.go

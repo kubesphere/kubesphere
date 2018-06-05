@@ -1,0 +1,1 @@
+gofiles__pkg/volume/azure_file := pkg/volume/azure_file/azure_file.go pkg/volume/azure_file/azure_file_test.go pkg/volume/azure_file/azure_provision.go pkg/volume/azure_file/azure_util.go pkg/volume/azure_file/doc.go

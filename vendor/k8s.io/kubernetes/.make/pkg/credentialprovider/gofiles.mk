@@ -1,0 +1,1 @@
+gofiles__pkg/credentialprovider := pkg/credentialprovider/config.go pkg/credentialprovider/config_test.go pkg/credentialprovider/doc.go pkg/credentialprovider/keyring.go pkg/credentialprovider/keyring_test.go pkg/credentialprovider/plugins.go pkg/credentialprovider/provider.go pkg/credentialprovider/provider_test.go

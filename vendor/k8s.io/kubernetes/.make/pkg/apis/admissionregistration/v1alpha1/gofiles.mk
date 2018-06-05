@@ -1,0 +1,1 @@
+gofiles__pkg/apis/admissionregistration/v1alpha1 := pkg/apis/admissionregistration/v1alpha1/defaults.go pkg/apis/admissionregistration/v1alpha1/doc.go pkg/apis/admissionregistration/v1alpha1/register.go

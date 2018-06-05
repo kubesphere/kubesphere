@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/app/cmd/upgrade := cmd/kubeadm/app/cmd/upgrade/apply.go cmd/kubeadm/app/cmd/upgrade/apply_test.go cmd/kubeadm/app/cmd/upgrade/common.go cmd/kubeadm/app/cmd/upgrade/common_test.go cmd/kubeadm/app/cmd/upgrade/plan.go cmd/kubeadm/app/cmd/upgrade/plan_test.go cmd/kubeadm/app/cmd/upgrade/upgrade.go

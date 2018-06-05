@@ -1,0 +1,1 @@
+gofiles__pkg/client/clientset_generated/internalclientset/scheme := pkg/client/clientset_generated/internalclientset/scheme/doc.go pkg/client/clientset_generated/internalclientset/scheme/register_custom.go pkg/client/clientset_generated/internalclientset/scheme/register.go

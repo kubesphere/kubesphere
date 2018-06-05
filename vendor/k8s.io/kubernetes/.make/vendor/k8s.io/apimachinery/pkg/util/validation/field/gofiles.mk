@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/validation/field := vendor/k8s.io/apimachinery/pkg/util/validation/field/errors.go vendor/k8s.io/apimachinery/pkg/util/validation/field/errors_test.go vendor/k8s.io/apimachinery/pkg/util/validation/field/path.go vendor/k8s.io/apimachinery/pkg/util/validation/field/path_test.go

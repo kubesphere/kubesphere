@@ -1,0 +1,1 @@
+gofiles__pkg/registry/apps/deployment := pkg/registry/apps/deployment/doc.go pkg/registry/apps/deployment/registry.go pkg/registry/apps/deployment/strategy.go pkg/registry/apps/deployment/strategy_test.go

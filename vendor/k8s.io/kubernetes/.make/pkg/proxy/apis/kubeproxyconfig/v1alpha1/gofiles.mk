@@ -1,0 +1,1 @@
+gofiles__pkg/proxy/apis/kubeproxyconfig/v1alpha1 := pkg/proxy/apis/kubeproxyconfig/v1alpha1/defaults.go pkg/proxy/apis/kubeproxyconfig/v1alpha1/doc.go pkg/proxy/apis/kubeproxyconfig/v1alpha1/register.go pkg/proxy/apis/kubeproxyconfig/v1alpha1/types.go

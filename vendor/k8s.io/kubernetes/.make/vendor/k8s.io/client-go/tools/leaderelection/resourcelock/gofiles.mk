@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/tools/leaderelection/resourcelock := vendor/k8s.io/client-go/tools/leaderelection/resourcelock/configmaplock.go vendor/k8s.io/client-go/tools/leaderelection/resourcelock/endpointslock.go vendor/k8s.io/client-go/tools/leaderelection/resourcelock/interface.go

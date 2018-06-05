@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/errors := vendor/k8s.io/apimachinery/pkg/util/errors/doc.go vendor/k8s.io/apimachinery/pkg/util/errors/errors.go vendor/k8s.io/apimachinery/pkg/util/errors/errors_test.go

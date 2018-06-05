@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/authentication/request/union := vendor/k8s.io/apiserver/pkg/authentication/request/union/unionauth_test.go vendor/k8s.io/apiserver/pkg/authentication/request/union/union.go

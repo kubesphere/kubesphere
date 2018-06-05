@@ -1,0 +1,1 @@
+gofiles__pkg/client/informers/informers_generated/internalversion/settings/internalversion := pkg/client/informers/informers_generated/internalversion/settings/internalversion/interface.go pkg/client/informers/informers_generated/internalversion/settings/internalversion/podpreset.go

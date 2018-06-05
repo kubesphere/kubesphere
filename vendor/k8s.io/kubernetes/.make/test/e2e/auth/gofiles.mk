@@ -1,0 +1,1 @@
+gofiles__test/e2e/auth := test/e2e/auth/audit.go test/e2e/auth/certificates.go test/e2e/auth/framework.go test/e2e/auth/metadata_concealment.go test/e2e/auth/node_authz.go test/e2e/auth/pod_security_policy.go test/e2e/auth/service_accounts.go

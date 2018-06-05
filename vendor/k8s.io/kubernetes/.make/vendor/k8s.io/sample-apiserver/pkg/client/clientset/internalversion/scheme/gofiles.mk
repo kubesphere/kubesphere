@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/client/clientset/internalversion/scheme := vendor/k8s.io/sample-apiserver/pkg/client/clientset/internalversion/scheme/doc.go vendor/k8s.io/sample-apiserver/pkg/client/clientset/internalversion/scheme/register.go

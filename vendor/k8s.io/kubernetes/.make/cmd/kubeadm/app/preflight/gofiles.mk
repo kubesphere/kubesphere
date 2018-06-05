@@ -1,0 +1,1 @@
+gofiles__cmd/kubeadm/app/preflight := cmd/kubeadm/app/preflight/checks.go cmd/kubeadm/app/preflight/checks_test.go cmd/kubeadm/app/preflight/checks_unix.go cmd/kubeadm/app/preflight/checks_windows.go cmd/kubeadm/app/preflight/utils.go cmd/kubeadm/app/preflight/utils_test.go

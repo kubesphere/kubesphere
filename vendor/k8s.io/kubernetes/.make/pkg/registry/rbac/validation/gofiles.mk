@@ -1,0 +1,1 @@
+gofiles__pkg/registry/rbac/validation := pkg/registry/rbac/validation/policy_compact.go pkg/registry/rbac/validation/policy_compact_test.go pkg/registry/rbac/validation/policy_comparator.go pkg/registry/rbac/validation/policy_comparator_test.go pkg/registry/rbac/validation/rule.go pkg/registry/rbac/validation/rule_test.go

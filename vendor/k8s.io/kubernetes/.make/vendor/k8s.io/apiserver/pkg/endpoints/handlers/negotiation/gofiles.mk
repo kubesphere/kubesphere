@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/endpoints/handlers/negotiation := vendor/k8s.io/apiserver/pkg/endpoints/handlers/negotiation/doc.go vendor/k8s.io/apiserver/pkg/endpoints/handlers/negotiation/errors.go vendor/k8s.io/apiserver/pkg/endpoints/handlers/negotiation/negotiate.go vendor/k8s.io/apiserver/pkg/endpoints/handlers/negotiation/negotiate_test.go

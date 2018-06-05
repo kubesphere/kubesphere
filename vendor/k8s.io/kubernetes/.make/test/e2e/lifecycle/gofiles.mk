@@ -1,0 +1,1 @@
+gofiles__test/e2e/lifecycle := test/e2e/lifecycle/addon_update.go test/e2e/lifecycle/cluster_upgrade.go test/e2e/lifecycle/framework.go test/e2e/lifecycle/ha_master.go test/e2e/lifecycle/reboot.go test/e2e/lifecycle/resize_nodes.go test/e2e/lifecycle/restart.go

@@ -1,0 +1,1 @@
+gofiles__pkg/apis/componentconfig := pkg/apis/componentconfig/doc.go pkg/apis/componentconfig/helpers.go pkg/apis/componentconfig/helpers_test.go pkg/apis/componentconfig/register.go pkg/apis/componentconfig/types.go

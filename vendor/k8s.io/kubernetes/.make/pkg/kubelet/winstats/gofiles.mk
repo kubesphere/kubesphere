@@ -1,0 +1,1 @@
+gofiles__pkg/kubelet/winstats := pkg/kubelet/winstats/doc.go pkg/kubelet/winstats/perfcounter_nodestats.go pkg/kubelet/winstats/perfcounters.go pkg/kubelet/winstats/version.go pkg/kubelet/winstats/winstats.go pkg/kubelet/winstats/winstats_test.go

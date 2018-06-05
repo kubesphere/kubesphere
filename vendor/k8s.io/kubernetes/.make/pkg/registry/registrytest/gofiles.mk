@@ -1,0 +1,1 @@
+gofiles__pkg/registry/registrytest := pkg/registry/registrytest/categoriesProvider.go pkg/registry/registrytest/doc.go pkg/registry/registrytest/endpoint.go pkg/registry/registrytest/etcd.go pkg/registry/registrytest/node.go pkg/registry/registrytest/service.go pkg/registry/registrytest/shortNamesProvider.go pkg/registry/registrytest/validate.go

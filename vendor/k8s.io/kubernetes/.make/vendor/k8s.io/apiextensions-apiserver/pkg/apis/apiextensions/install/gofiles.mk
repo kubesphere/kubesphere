@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install := vendor/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install/install.go vendor/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install/roundtrip_test.go

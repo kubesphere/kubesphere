@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion/internalinterfaces := vendor/k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion/internalinterfaces/factory_interfaces.go

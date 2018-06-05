@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/imagepolicy := plugin/pkg/admission/imagepolicy/admission.go plugin/pkg/admission/imagepolicy/admission_test.go plugin/pkg/admission/imagepolicy/certs_test.go plugin/pkg/admission/imagepolicy/config.go plugin/pkg/admission/imagepolicy/config_test.go plugin/pkg/admission/imagepolicy/doc.go

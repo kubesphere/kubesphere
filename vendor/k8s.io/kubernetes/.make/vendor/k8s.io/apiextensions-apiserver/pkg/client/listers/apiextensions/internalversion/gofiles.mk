@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/internalversion := vendor/k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/internalversion/customresourcedefinition.go vendor/k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/internalversion/expansion_generated.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/audit/policy := vendor/k8s.io/apiserver/pkg/audit/policy/checker.go vendor/k8s.io/apiserver/pkg/audit/policy/checker_test.go vendor/k8s.io/apiserver/pkg/audit/policy/reader.go vendor/k8s.io/apiserver/pkg/audit/policy/reader_test.go

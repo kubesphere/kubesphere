@@ -1,0 +1,1 @@
+gofiles__pkg/security/podsecuritypolicy := pkg/security/podsecuritypolicy/doc.go pkg/security/podsecuritypolicy/factory.go pkg/security/podsecuritypolicy/provider.go pkg/security/podsecuritypolicy/provider_test.go pkg/security/podsecuritypolicy/types.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/util/intstr := vendor/k8s.io/apimachinery/pkg/util/intstr/generated.pb.go vendor/k8s.io/apimachinery/pkg/util/intstr/intstr.go vendor/k8s.io/apimachinery/pkg/util/intstr/intstr_test.go

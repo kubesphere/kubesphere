@@ -1,0 +1,1 @@
+gofiles__pkg/cloudprovider/providers/vsphere/vclib/diskmanagers := pkg/cloudprovider/providers/vsphere/vclib/diskmanagers/vdm.go pkg/cloudprovider/providers/vsphere/vclib/diskmanagers/virtualdisk.go pkg/cloudprovider/providers/vsphere/vclib/diskmanagers/vmdm.go

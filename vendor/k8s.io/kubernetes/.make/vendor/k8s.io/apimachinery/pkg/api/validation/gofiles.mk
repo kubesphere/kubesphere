@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/api/validation := vendor/k8s.io/apimachinery/pkg/api/validation/doc.go vendor/k8s.io/apimachinery/pkg/api/validation/generic.go vendor/k8s.io/apimachinery/pkg/api/validation/objectmeta.go vendor/k8s.io/apimachinery/pkg/api/validation/objectmeta_test.go

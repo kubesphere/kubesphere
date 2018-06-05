@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake := vendor/k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake/doc.go vendor/k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake/fake_podpreset.go vendor/k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake/fake_settings_client.go

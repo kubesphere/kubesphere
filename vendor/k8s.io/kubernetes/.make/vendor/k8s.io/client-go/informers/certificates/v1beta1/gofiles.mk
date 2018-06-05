@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/informers/certificates/v1beta1 := vendor/k8s.io/client-go/informers/certificates/v1beta1/certificatesigningrequest.go vendor/k8s.io/client-go/informers/certificates/v1beta1/interface.go

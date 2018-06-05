@@ -1,0 +1,1 @@
+gofiles__plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/validation := plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/validation/validation.go plugin/pkg/admission/podtolerationrestriction/apis/podtolerationrestriction/validation/validation_test.go

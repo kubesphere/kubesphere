@@ -1,0 +1,1 @@
+gofiles__pkg/registry/admissionregistration/initializerconfiguration := pkg/registry/admissionregistration/initializerconfiguration/doc.go pkg/registry/admissionregistration/initializerconfiguration/strategy.go

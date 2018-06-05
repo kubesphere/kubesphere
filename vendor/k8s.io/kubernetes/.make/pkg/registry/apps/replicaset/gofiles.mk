@@ -1,0 +1,1 @@
+gofiles__pkg/registry/apps/replicaset := pkg/registry/apps/replicaset/doc.go pkg/registry/apps/replicaset/registry.go pkg/registry/apps/replicaset/strategy.go pkg/registry/apps/replicaset/strategy_test.go

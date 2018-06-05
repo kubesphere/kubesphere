@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/registry/wardle/fischer := vendor/k8s.io/sample-apiserver/pkg/registry/wardle/fischer/etcd.go vendor/k8s.io/sample-apiserver/pkg/registry/wardle/fischer/strategy.go

@@ -1,0 +1,1 @@
+gofiles__pkg/kubectl/cmd/get := pkg/kubectl/cmd/get/get_flags.go pkg/kubectl/cmd/get/get.go pkg/kubectl/cmd/get/get_test.go pkg/kubectl/cmd/get/humanreadable_flags.go pkg/kubectl/cmd/get/humanreadable_flags_test.go

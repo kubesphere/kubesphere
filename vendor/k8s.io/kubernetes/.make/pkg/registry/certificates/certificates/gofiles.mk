@@ -1,0 +1,1 @@
+gofiles__pkg/registry/certificates/certificates := pkg/registry/certificates/certificates/doc.go pkg/registry/certificates/certificates/registry.go pkg/registry/certificates/certificates/strategy.go pkg/registry/certificates/certificates/strategy_test.go

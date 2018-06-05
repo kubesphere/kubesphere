@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/kube-aggregator/pkg/client/informers/externalversions := vendor/k8s.io/kube-aggregator/pkg/client/informers/externalversions/factory.go vendor/k8s.io/kube-aggregator/pkg/client/informers/externalversions/generic.go

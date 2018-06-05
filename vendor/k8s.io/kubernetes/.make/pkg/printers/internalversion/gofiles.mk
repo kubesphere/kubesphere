@@ -1,0 +1,1 @@
+gofiles__pkg/printers/internalversion := pkg/printers/internalversion/describe.go pkg/printers/internalversion/describe_test.go pkg/printers/internalversion/printers.go pkg/printers/internalversion/printers_test.go pkg/printers/internalversion/sorted_resource_name_list_test.go

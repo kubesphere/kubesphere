@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiextensions-apiserver/test/integration/testserver := vendor/k8s.io/apiextensions-apiserver/test/integration/testserver/resources.go vendor/k8s.io/apiextensions-apiserver/test/integration/testserver/start.go

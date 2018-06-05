@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apimachinery/pkg/runtime/serializer/testing := vendor/k8s.io/apimachinery/pkg/runtime/serializer/testing/doc.go vendor/k8s.io/apimachinery/pkg/runtime/serializer/testing/types.go

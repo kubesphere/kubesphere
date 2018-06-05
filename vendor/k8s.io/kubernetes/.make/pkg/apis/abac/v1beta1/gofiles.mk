@@ -1,0 +1,1 @@
+gofiles__pkg/apis/abac/v1beta1 := pkg/apis/abac/v1beta1/conversion.go pkg/apis/abac/v1beta1/conversion_test.go pkg/apis/abac/v1beta1/doc.go pkg/apis/abac/v1beta1/register.go pkg/apis/abac/v1beta1/types.go

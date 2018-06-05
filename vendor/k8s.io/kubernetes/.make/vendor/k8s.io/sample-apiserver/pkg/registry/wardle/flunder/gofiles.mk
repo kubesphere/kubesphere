@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/sample-apiserver/pkg/registry/wardle/flunder := vendor/k8s.io/sample-apiserver/pkg/registry/wardle/flunder/etcd.go vendor/k8s.io/sample-apiserver/pkg/registry/wardle/flunder/strategy.go

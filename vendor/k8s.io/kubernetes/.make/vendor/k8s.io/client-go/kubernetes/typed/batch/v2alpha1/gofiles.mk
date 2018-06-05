@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/kubernetes/typed/batch/v2alpha1 := vendor/k8s.io/client-go/kubernetes/typed/batch/v2alpha1/batch_client.go vendor/k8s.io/client-go/kubernetes/typed/batch/v2alpha1/cronjob.go vendor/k8s.io/client-go/kubernetes/typed/batch/v2alpha1/doc.go vendor/k8s.io/client-go/kubernetes/typed/batch/v2alpha1/generated_expansion.go

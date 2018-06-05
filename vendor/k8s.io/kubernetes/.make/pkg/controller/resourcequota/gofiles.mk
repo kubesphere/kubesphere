@@ -1,0 +1,1 @@
+gofiles__pkg/controller/resourcequota := pkg/controller/resourcequota/doc.go pkg/controller/resourcequota/resource_quota_controller.go pkg/controller/resourcequota/resource_quota_controller_test.go pkg/controller/resourcequota/resource_quota_monitor.go

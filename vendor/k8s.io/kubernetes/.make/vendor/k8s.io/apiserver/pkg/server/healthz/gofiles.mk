@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/apiserver/pkg/server/healthz := vendor/k8s.io/apiserver/pkg/server/healthz/doc.go vendor/k8s.io/apiserver/pkg/server/healthz/healthz.go vendor/k8s.io/apiserver/pkg/server/healthz/healthz_test.go

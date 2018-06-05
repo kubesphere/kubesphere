@@ -1,0 +1,1 @@
+gofiles__test/e2e_node/services := test/e2e_node/services/apiserver.go test/e2e_node/services/etcd.go test/e2e_node/services/internal_services.go test/e2e_node/services/kubelet.go test/e2e_node/services/logs.go test/e2e_node/services/namespace_controller.go test/e2e_node/services/server.go test/e2e_node/services/services.go test/e2e_node/services/util.go

@@ -1,0 +1,1 @@
+gofiles__vendor/k8s.io/client-go/util/certificate := vendor/k8s.io/client-go/util/certificate/certificate_manager.go vendor/k8s.io/client-go/util/certificate/certificate_manager_test.go vendor/k8s.io/client-go/util/certificate/certificate_store.go vendor/k8s.io/client-go/util/certificate/certificate_store_test.go
