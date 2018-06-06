@@ -18,6 +18,7 @@ package main
 
 import (
 	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/app"
 	"kubesphere.io/kubesphere/pkg/logs"
 	"kubesphere.io/kubesphere/pkg/options"
