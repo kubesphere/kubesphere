@@ -17,11 +17,13 @@ limitations under the License.
 package components
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
 	"kubesphere.io/kubesphere/pkg/models"
-	"net/http"
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func Register(ws *restful.WebService, subPath string) {

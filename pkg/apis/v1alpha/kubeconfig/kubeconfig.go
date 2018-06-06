@@ -15,8 +15,10 @@
 package kubeconfig
 
 import (
-	"github.com/emicklei/go-restful"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
@@ -24,11 +26,10 @@ const DefaultServiceAccount = "default"
 
 type Config struct {
 	Certificate string
-	Server    string
-	User string
-	Token string
+	Server      string
+	User        string
+	Token       string
 }
-
 
 func Register(ws *restful.WebService, subPath string) {
 

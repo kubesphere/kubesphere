@@ -17,15 +17,15 @@ limitations under the License.
 package models
 
 import (
-	"strings"
 	"io/ioutil"
+	"strings"
 
+	"github.com/golang/glog"
 	coreV1 "k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	extensionsV1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/api/rbac/v1beta1"
-	"github.com/golang/glog"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	"kubesphere.io/kubesphere/pkg/client"
 )
@@ -37,7 +37,7 @@ type Router struct {
 	Annotations string `json:"annotations"`
 }
 
-func GetAllRouters() ([] *coreV1.Service, error) {
+func GetAllRouters() ([]*coreV1.Service, error) {
 
 	k8sClient := client.NewK8sClient()
 

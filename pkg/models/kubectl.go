@@ -19,13 +19,14 @@ package models
 import (
 	"fmt"
 	"math/rand"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/client"
+
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-)
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
+	"kubesphere.io/kubesphere/pkg/client"
+)
 
 const (
 	deploymentName = "kubectl"
@@ -33,7 +34,7 @@ const (
 
 type kubectlPodInfo struct {
 	Namespace string `json: "namespace"`
-	Pod string `json: "podname"`
+	Pod       string `json: "podname"`
 	Container string `json: "container"`
 }
 
@@ -47,36 +48,35 @@ func GetKubectlPod(namespace string) (kubectlPodInfo, error) {
 
 	selectors := deploy.Spec.Selector.MatchLabels
 	labelSelector := labels.Set(selectors).AsSelector().String()
-	podList, err := k8sClient.CoreV1().Pods(namespace).List(meta_v1.ListOptions{LabelSelector:labelSelector})
+	podList, err := k8sClient.CoreV1().Pods(namespace).List(meta_v1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorln(err)
 		return kubectlPodInfo{}, err
 	}
 
 	pod, err := selectCorrectPod(namespace, podList.Items)
-	if err != nil{
+	if err != nil {
 		glog.Errorln(err)
 		return kubectlPodInfo{}, err
 	}
 
-	info := kubectlPodInfo{Namespace:pod.Namespace, Pod:pod.Name, Container:pod.Status.ContainerStatuses[0].Name}
+	info := kubectlPodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
 
 	return info, nil
 
 }
 
-
 func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err error) {
 
 	var kubectPodList []v1.Pod
-	for _, pod := range pods{
-		for _, condition := range pod.Status.Conditions{
-			if condition.Type == "Ready" && condition.Status == "True"{
+	for _, pod := range pods {
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == "True" {
 				kubectPodList = append(kubectPodList, pod)
 			}
 		}
 	}
-	if len(kubectPodList) < 1{
+	if len(kubectPodList) < 1 {
 		err = fmt.Errorf("cannot find valid kubectl pod in namespace:%s", namespace)
 		return v1.Pod{}, err
 	}

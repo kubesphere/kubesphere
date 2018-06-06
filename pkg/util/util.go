@@ -18,8 +18,9 @@ package util
 
 import (
 	"encoding/json"
-	"github.com/golang/glog"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 type JsonRawMessage []byte
