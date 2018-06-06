@@ -19,9 +19,9 @@ package iam
 
 import (
 	"k8s.io/api/rbac/v1"
-	"k8s.io/kubernetes/pkg/util/slice"
 
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/util/slice"
 )
 
 func getUserRules(username string) (map[string][]rule, error) {
@@ -36,7 +36,7 @@ func getUserRules(username string) (map[string][]rule, error) {
 	namespaces := make([]string, 0)
 
 	for i := 0; i < len(roles); i++ {
-		if !slice.ContainsString(namespaces, roles[i].Namespace, nil) {
+		if !slice.ContainsString(namespaces, roles[i].Namespace) {
 			namespaces = append(namespaces, roles[i].Namespace)
 		}
 	}
@@ -207,17 +207,17 @@ func ruleValidate(rules []v1.PolicyRule, rule v1.PolicyRule) bool {
 
 func verbValidate(rules []v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, resourceName string, verb string) bool {
 	for _, rule := range rules {
-		if slice.ContainsString(rule.APIGroups, apiGroup, nil) || slice.ContainsString(rule.APIGroups, v1.APIGroupAll, nil) {
-			if slice.ContainsString(rule.Verbs, verb, nil) || slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
+		if slice.ContainsString(rule.APIGroups, apiGroup) || slice.ContainsString(rule.APIGroups, v1.APIGroupAll) {
+			if slice.ContainsString(rule.Verbs, verb) || slice.ContainsString(rule.Verbs, v1.VerbAll) {
 				if nonResourceURL == "" {
-					if slice.ContainsString(rule.Resources, resource, nil) || slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
+					if slice.ContainsString(rule.Resources, resource) || slice.ContainsString(rule.Resources, v1.ResourceAll) {
 						if resourceName == "" {
 							return true
-						} else if slice.ContainsString(rule.ResourceNames, resourceName, nil) || slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
+						} else if slice.ContainsString(rule.ResourceNames, resourceName) || slice.ContainsString(rule.Resources, v1.ResourceAll) {
 							return true
 						}
 					}
-				} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL, nil) || slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll, nil) {
+				} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL) || slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll) {
 					return true
 				}
 			}
