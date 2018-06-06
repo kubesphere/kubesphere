@@ -222,6 +222,15 @@ var (
 	volumes = rule{
 		Name: "volumes",
 		Actions: []action{
+			{Name: "view",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumes"},
+					},
+				},
+			},
 			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
@@ -244,15 +253,6 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{""},
-						Resources: []string{"persistentvolumes"},
-					},
-				},
-			},
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
@@ -282,19 +282,19 @@ var (
 					},
 				},
 			},
-			{Name: "delete",
+			{Name: "edit",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"delete", "deletecollection"},
+						Verbs:     []string{"update", "patch"},
 						APIGroups: []string{"storage.k8s.io"},
 						Resources: []string{"storageclasses"},
 					},
 				},
 			},
-			{Name: "edit",
+			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"update", "patch"},
+						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{"storage.k8s.io"},
 						Resources: []string{"storageclasses"},
 					},
@@ -306,10 +306,10 @@ var (
 	images = rule{
 		Name: "images",
 		Actions: []action{
-			{Name: "create",
+			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"create"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{""},
 						Resources: []string{
 							"secrets",
@@ -317,10 +317,10 @@ var (
 					},
 				},
 			},
-			{Name: "delete",
+			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"delete", "deletecollection"},
+						Verbs:     []string{"create"},
 						APIGroups: []string{""},
 						Resources: []string{
 							"secrets",
@@ -339,10 +339,10 @@ var (
 					},
 				},
 			},
-			{Name: "view",
+			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{""},
 						Resources: []string{
 							"secrets",
@@ -395,6 +395,33 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
 		},
 	}
 
@@ -405,6 +432,33 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"daemonsets"},
 					},
@@ -425,18 +479,22 @@ var (
 					},
 				},
 			},
-		},
-	}
-
-	routes = rule{
-		Name: "routes",
-		Actions: []action{
 			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"create"},
-						APIGroups: []string{"extensions"},
-						Resources: []string{"ingresses"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+					},
+				},
+			},
+
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
 					},
 				},
 			},
@@ -444,6 +502,30 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+					},
+				},
+			},
+		},
+	}
+
+	routes = rule{
+		Name: "routes",
+		Actions: []action{
+			{Name: "view",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"extensions"},
+						Resources: []string{"ingresses"},
+					},
+				},
+			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
 						APIGroups: []string{"extensions"},
 						Resources: []string{"ingresses"},
 					},
@@ -458,10 +540,10 @@ var (
 					},
 				},
 			},
-			{Name: "view",
+			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{"extensions"},
 						Resources: []string{"ingresses"},
 					},
@@ -472,19 +554,19 @@ var (
 	pvc = rule{
 		Name: "persistentvolumeclaims",
 		Actions: []action{
-			{Name: "create",
+			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"create"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumeclaims"},
 					},
 				},
 			},
-			{Name: "delete",
+			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"delete", "deletecollection"},
+						Verbs:     []string{"create"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumeclaims"},
 					},
@@ -499,10 +581,10 @@ var (
 					},
 				},
 			},
-			{Name: "view",
+			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumeclaims"},
 					},
@@ -536,21 +618,23 @@ var (
 					},
 				},
 			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments"},
-					},
-				},
-			},
+
 			{Name: "edit",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"update", "patch"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"deployments", "deployments/rollback"},
+					},
+				},
+			},
+
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"deployments"},
 					},
 				},
 			},
