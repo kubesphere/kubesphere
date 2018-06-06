@@ -28,8 +28,8 @@ import (
 
 const KUBESYSTEM = "kube-system"
 const OPENPITRIX = "openpitrix-system"
-const ISTIO  = "istio-system"
-const KUBESPHERE  = "kubesphere-system"
+const ISTIO = "istio-system"
+const KUBESPHERE = "kubesphere-system"
 
 type Components struct {
 	Name         string      `json:"name"`
@@ -230,9 +230,9 @@ func GetComponents() (result []Components, err error) {
 
 	}
 
-	templates = []string{"kube-dns", "heapster", "monitoring-influxdb", "iam", "openpitrix","istio","kubesphere"}
+	templates = []string{"kube-dns", "heapster", "monitoring-influxdb", "iam", "openpitrix", "istio", "kubesphere"}
 
-	namespaces := []string{KUBESYSTEM, OPENPITRIX,ISTIO,KUBESPHERE}
+	namespaces := []string{KUBESYSTEM, OPENPITRIX, ISTIO, KUBESPHERE}
 
 	for _, ns := range namespaces {
 
