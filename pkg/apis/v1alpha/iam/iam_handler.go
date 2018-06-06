@@ -25,7 +25,7 @@ import (
 	"strings"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"k8s.io/api/rbac/v1"
-	"k8s.io/kubernetes/pkg/util/slice"
+	"kubesphere.io/kubesphere/pkg/util/slice"
 )
 
 func Register(ws *restful.WebService) {
@@ -89,7 +89,7 @@ func roleUsersHandler(req *restful.Request, resp *restful.Response) {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind &&
 				!strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(users, subject.Name, nil) {
+				!slice.ContainsString(users, subject.Name) {
 				users = append(users, subject.Name)
 			}
 		}
@@ -114,7 +114,7 @@ func clusterRoleUsersHandler(req *restful.Request, resp *restful.Response) {
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(users, subject.Name, nil) {
+				!slice.ContainsString(users, subject.Name) {
 				users = append(users, subject.Name)
 			}
 		}
