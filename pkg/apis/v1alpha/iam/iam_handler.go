@@ -25,7 +25,7 @@ import (
 	"strings"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"k8s.io/api/rbac/v1"
-	"k8s.io/kubernetes/pkg/util/slice"
+	"kubesphere.io/kubesphere/pkg/util/slice"
 )
 
 func Register(ws *restful.WebService) {
@@ -39,7 +39,7 @@ func Register(ws *restful.WebService) {
 	ws.Route(ws.GET("/users/{username}/rules").To(userRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	//role->rules
 	ws.Route(ws.GET("/clusterroles/{name}/rules").To(clusterRoleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
-	ws.Route(ws.GET("/namespace/{namespace}/roles/{name}/rules").To(roleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
+	ws.Route(ws.GET("/namespaces/{namespace}/roles/{name}/rules").To(roleRulesHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	//role->users
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{name}/users").To(roleUsersHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
 	ws.Route(ws.GET("/clusterroles/{name}/users").To(clusterRoleUsersHandler).Filter(route.RouteLogging)).Produces(restful.MIME_JSON)
@@ -89,7 +89,7 @@ func roleUsersHandler(req *restful.Request, resp *restful.Response) {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind &&
 				!strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(users, subject.Name, nil) {
+				!slice.ContainsString(users, subject.Name) {
 				users = append(users, subject.Name)
 			}
 		}
@@ -114,7 +114,7 @@ func clusterRoleUsersHandler(req *restful.Request, resp *restful.Response) {
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(users, subject.Name, nil) {
+				!slice.ContainsString(users, subject.Name) {
 				users = append(users, subject.Name)
 			}
 		}
