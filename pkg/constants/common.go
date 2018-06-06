@@ -16,13 +16,15 @@ limitations under the License.
 
 package constants
 
-type ResultMessage struct {
-
-	Data	interface{} `json:"data"`
-
-	
+type MessageResponse struct {
+	Message string `json:"message"`
 }
 
-const APIVERSION  = "v1alpha"
+type PageableResponse struct {
+	Items      []interface{} `json:"items"`
+	TotalCount int           `json:"total_count"`
+}
 
-const KIND  = "kubesphere"
+const APIVERSION = "v1alpha1"
+
+const KIND = "kubesphere"

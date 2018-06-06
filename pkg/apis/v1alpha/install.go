@@ -18,11 +18,16 @@ package v1alpha
 
 import (
 	"github.com/emicklei/go-restful"
+
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/kubectl"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
   "kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
@@ -33,7 +38,6 @@ func init() {
 	ws := new(restful.WebService)
 	ws.Path("/api/v1alpha1")
 
-	nodes.Register(ws, "/nodes")
 	kubeconfig.Register(ws, "/namespaces/{namespace}/kubeconfig")
 	kubectl.Register(ws, "/namespaces/{namespace}/kubectl")
 	registries.Register(ws, "/registries")
@@ -42,6 +46,12 @@ func init() {
 	nodes.Register(ws, "/nodes")
   terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
 	pods.Register(ws)
+	containers.Register(ws)
+	iam.Register(ws)
+	components.Register(ws, "/components")
+
+	routes.Register(ws)
+
 	// add webservice to default container
 	restful.Add(ws)
 

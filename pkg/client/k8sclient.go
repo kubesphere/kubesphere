@@ -16,11 +16,13 @@ limitations under the License.
 
 package client
 
-
 import (
-	"kubesphere.io/kubesphere/pkg/options"
-	"k8s.io/client-go/kubernetes"
 	"github.com/golang/glog"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"kubesphere.io/kubesphere/pkg/options"
 )
 
 var k8sClient *kubernetes.Clientset
@@ -38,7 +40,7 @@ func NewK8sClient() *kubernetes.Clientset {
 	}
 
 	k8sClient, err = kubernetes.NewForConfig(kubeConfig)
-	if err != nil{
+	if err != nil {
 		glog.Error(err)
 		panic(err)
 	}

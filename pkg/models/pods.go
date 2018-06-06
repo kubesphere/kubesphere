@@ -13,18 +13,18 @@ import (
 
 	"fmt"
 	"strconv"
+
+	"math"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-type ResultNameSpaces struct {
-	NameSpaces []ResultNameSpace `json:"namespaces"`
-}
-type ResultNameSpace struct {
-	NameSpace string      `json:"namespace"`
-	PodsCount string      `json:"pods_count"`
-	Pods      []ResultPod `json:"pods"`
-}
 type ResultPod struct {
 	PodName       string      `json:"pod_name"`
+	NameSpace     string      `json:"namespace"`
+	NodeName      string      `json:"node_name"`
 	CPURequest    string      `json:"cpu_request"`
 	CPULimit      string      `json:"cpu_limit"`
 	MemoryRequest string      `json:"mem_request"`
@@ -62,7 +62,6 @@ func GetNameSpaces() []string {
 Get all pods under specified namespace in default cluster
 */
 func GetPods(namespace string) []string {
-	fmt.Println(namespace)
 	podsList := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods")
 	var pods []string
 	dec := json.NewDecoder(strings.NewReader(podsList))
@@ -73,25 +72,48 @@ func GetPods(namespace string) []string {
 	return pods
 }
 
-func FormatNameSpaceMetrics(namespace string) ResultNameSpace {
-	var resultNameSpace ResultNameSpace
-	var resultPods []ResultPod
-	var resultPod ResultPod
-
-	pods := GetPods(namespace)
-
-	resultNameSpace.NameSpace = namespace
-	resultNameSpace.PodsCount = strconv.Itoa(len(pods))
-
-	for _, pod := range pods {
-		resultPod = FormatPodMetrics(namespace, pod)
-		resultPods = append(resultPods, resultPod)
+func GetPodsForNode(nodeName, namespace string) []string {
+	var pods []string
+	cli := client.NewK8sClient()
+	podList, err := cli.CoreV1().Pods(namespace).List(v1.ListOptions{FieldSelector: "spec.nodeName=" + nodeName})
+	if err != nil {
+		glog.Error(err)
+	} else {
+		for _, pod := range podList.Items {
+			pods = append(pods, pod.Name)
+		}
 	}
-	resultNameSpace.Pods = resultPods
-	return resultNameSpace
+	return pods
+}
+
+func FormatPodsMetrics(nodeName, namespace string) constants.PageableResponse {
+	var result constants.PageableResponse
+
+	var resultPod ResultPod
+	var pods []string
+	if nodeName == "" {
+		pods = GetPods(namespace)
+	} else {
+		pods = GetPodsForNode(nodeName, namespace)
+	}
+
+	var total_count int
+	for i, pod := range pods {
+		resultPod = FormatPodMetrics(namespace, pod)
+		if nodeName != "" {
+			resultPod.NodeName = nodeName
+		} else {
+			resultPod.NodeName = GetNodeNameForPod(pod, namespace)
+		}
+		result.Items = append(result.Items, resultPod)
+		total_count = i
+	}
+	result.TotalCount = total_count + 1
+	return result
 }
 
 func FormatPodMetrics(namespace, pod string) ResultPod {
+
 	var resultPod ResultPod
 	var podCPUMetrics []CPUPod
 	var podMemMetrics []MemoryPod
@@ -99,6 +121,7 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 	var memMetrics MemoryPod
 
 	resultPod.PodName = pod
+	resultPod.NameSpace = namespace
 	cpuRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/request")
 	cpuRequest = ksutil.JsonRawMessage(cpuRequest).Find("metrics").ToList()[0].Find("value").ToString()
 	if cpuRequest != "" && cpuRequest != "0" {
@@ -114,11 +137,11 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 	} else {
 		resultPod.CPULimit = "inf"
 	}
-	memoryRequest := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/request")
-	resultPod.MemoryRequest = convertMemory(memoryRequest)
+	memoryRequest := ksutil.JsonRawMessage(client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/request")).Find("metrics").ToList()[0].Find("value").ToString()
+	resultPod.MemoryRequest = ConvertMemory(memoryRequest)
 
-	memoryLimit := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")
-	resultPod.MemoryLimit = convertMemory(memoryLimit)
+	memoryLimit := ksutil.JsonRawMessage(client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")).Find("metrics").ToList()[0].Find("value").ToString()
+	resultPod.MemoryLimit = ConvertMemory(memoryLimit)
 
 	cpuUsageRate := client.GetHeapsterMetrics("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/usage_rate")
 	if cpuUsageRate != "" {
@@ -126,16 +149,16 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 
 		for _, metric := range metrics {
 			timestamp := metric.Find("timestamp")
-			cpu_utilization, _ := strconv.ParseFloat(metric.Find("value").ToString(), 64)
+			cpu_utilization, _ := strconv.ParseFloat(ConvertCPUUsageRate(metric.Find("value").ToString()), 64)
 			cpuMetrics.TimeStamp = timestamp.ToString()
-			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization/1000)
+			cpuMetrics.CPUUtilization = fmt.Sprintf("%.3f", cpu_utilization)
 			if resultPod.CPULimit != "inf" {
 				cpu_limit, _ := strconv.ParseFloat(resultPod.CPULimit, 64)
-				cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", cpu_limit*cpu_utilization/1000)
+				cpuMetrics.UsedCPU = fmt.Sprintf("%.1f", cpu_limit*cpu_utilization)
 			} else {
 				cpuMetrics.UsedCPU = "inf"
 			}
-			glog.Info("pod " + pod + " has limit cpu " + resultPod.CPULimit + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization/1000) + " at time" + timestamp.ToString())
+			glog.Info("pod " + pod + " has limit cpu " + resultPod.CPULimit + " CPU utilization " + fmt.Sprintf("%.3f", cpu_utilization) + " at time" + timestamp.ToString())
 			podCPUMetrics = append(podCPUMetrics, cpuMetrics)
 		}
 
@@ -155,12 +178,7 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 			used_mem := used_mem_bytes / 1024 / 1024
 			memMetrics.TimeStamp = timestamp.ToString()
 			memMetrics.UsedMemory = fmt.Sprintf("%.1f", used_mem)
-			if resultPod.MemoryLimit != "inf" {
-				mem_limit, _ := strconv.ParseFloat(resultPod.MemoryLimit, 64)
-				memMetrics.MemoryUtilization = fmt.Sprintf("%.3f", used_mem/mem_limit)
-			} else {
-				memMetrics.MemoryUtilization = "inf"
-			}
+			memMetrics.MemoryUtilization = fmt.Sprintf("%.3f", CalculateMemoryUsage(memoryRequest, memoryLimit, metric.Find("value").ToString()))
 
 			glog.Info("pod " + pod + " has limit mem " + resultPod.MemoryLimit + " mem utilization " + memMetrics.MemoryUtilization + " at time" + timestamp.ToString())
 			podMemMetrics = append(podMemMetrics, memMetrics)
@@ -171,15 +189,12 @@ func FormatPodMetrics(namespace, pod string) ResultPod {
 	return resultPod
 }
 
-func convertMemory(memBytes string) string {
+func ConvertMemory(memBytes string) string {
 	var mem string
 
 	if memBytes != "" {
-		memMetric := ksutil.JsonRawMessage(memBytes).Find("metrics").ToList()[0].Find("value").ToString()
-
-		if memMetric != "" && memMetric != "0" {
-
-			memBytes, error := strconv.ParseFloat(memMetric, 64)
+		if memBytes != "" && memBytes != "0" {
+			memBytes, error := strconv.ParseFloat(memBytes, 64)
 			if error == nil {
 				mem = fmt.Sprintf("%.3f", memBytes/1024/1024)
 			} else {
@@ -193,4 +208,76 @@ func convertMemory(memBytes string) string {
 		mem = "inf"
 	}
 	return mem
+}
+
+func CalculateMemoryUsage(requestMem, limitMem, usedMem string) float64 {
+	var requestMemInBytes, limitMemInBytes, usedMemInBytes, memUsage float64
+	if requestMem != "" && requestMem != "0" && requestMem != "inf" {
+		requestMemInBytes, _ = strconv.ParseFloat(requestMem, 64)
+	} else {
+		glog.Info("memory request is not set")
+		requestMemInBytes = 0
+	}
+	if limitMem != "" && limitMem != "0" && limitMem != "inf" {
+		limitMemInBytes, _ = strconv.ParseFloat(limitMem, 64)
+	} else {
+		glog.Info("memory limit is not set")
+		limitMemInBytes = 0
+	}
+	if usedMem != "" && usedMem != "0" {
+		usedMemInBytes, _ = strconv.ParseFloat(usedMem, 64)
+	} else {
+		usedMemInBytes = 0
+	}
+
+	if usedMemInBytes > 0 {
+		if requestMemInBytes > 0 && limitMemInBytes > 0 {
+			if usedMemInBytes > requestMemInBytes {
+				glog.Info("used memory is higher than memory request")
+				memUsage = usedMemInBytes / limitMemInBytes
+			} else {
+				memUsage = usedMemInBytes / requestMemInBytes
+			}
+		} else if requestMemInBytes > 0 && limitMemInBytes == 0 {
+			if usedMemInBytes > requestMemInBytes {
+				glog.Info("used memory is higher than memory request")
+				memUsage = 0
+			} else {
+				memUsage = usedMemInBytes / requestMemInBytes
+			}
+		} else if requestMemInBytes == 0 && limitMemInBytes > 0 {
+			if usedMemInBytes <= limitMemInBytes {
+				memUsage = usedMemInBytes / limitMemInBytes
+			}
+		} else {
+			memUsage = 0
+		}
+	} else {
+		memUsage = 0
+	}
+	return memUsage
+}
+
+func ConvertCPUUsageRate(cpuUsageRate string) string {
+	if cpuUsageRate != "" && cpuUsageRate != "0" {
+		rate, _ := strconv.ParseFloat(cpuUsageRate, 64)
+		rateBase := math.Pow10(strings.Count(cpuUsageRate, "") - 1)
+		return fmt.Sprintf("%.3f", rate/rateBase)
+	} else {
+		return "0"
+	}
+}
+
+func GetNodeNameForPod(podName, namespace string) string {
+	var nodeName string
+	cli := client.NewK8sClient()
+
+	pod, err := cli.CoreV1().Pods(namespace).Get(podName, v1.GetOptions{})
+
+	if err != nil {
+		glog.Error(err)
+	} else {
+		nodeName = pod.Spec.NodeName
+	}
+	return nodeName
 }

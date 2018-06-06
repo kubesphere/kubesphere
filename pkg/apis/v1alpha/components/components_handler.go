@@ -14,41 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubectl
+package components
 
 import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
 
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/filter/route"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
-
-	ws.Route(ws.GET(subPath).Consumes("*/*").Produces(restful.MIME_JSON).To(handleKubectl).Doc("use to "+
-		"get a kubectl pod in specified namespaces").Param(ws.PathParameter("namespace",
-		"namespace").DataType("string")).Do(returns200, returns500))
+	ws.Route(ws.GET(subPath).To(handleGetComponents).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 
 }
 
-func handleKubectl(req *restful.Request, resp *restful.Response) {
+//get all components
 
-	ns := req.PathParameter("namespace")
+func handleGetComponents(request *restful.Request, response *restful.Response) {
 
-	kubectlPod, err := models.GetKubectlPod(ns)
+	result, err := models.GetComponents()
 
 	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
 	}
 
-	resp.WriteEntity(kubectlPod)
-}
-
-func returns200(b *restful.RouteBuilder) {
-	b.Returns(http.StatusOK, "OK", nil)
-}
-
-func returns500(b *restful.RouteBuilder) {
-	b.Returns(http.StatusInternalServerError, "fail", nil)
 }

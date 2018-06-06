@@ -19,9 +19,10 @@ package client
 import (
 	"net/http"
 
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
+
+	"github.com/golang/glog"
 )
 
 const (
@@ -37,6 +38,26 @@ var (
 func GetHeapsterMetrics(url string) string {
 	//glog.Info("Querying data from " + DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
 	response, err := http.Get(DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
+	if err != nil {
+		glog.Error(err)
+		os.Exit(1)
+	} else {
+		defer response.Body.Close()
+
+		contents, err := ioutil.ReadAll(response.Body)
+
+		if err != nil {
+			glog.Error(err)
+			os.Exit(1)
+		}
+
+		return string(contents)
+	}
+	return ""
+}
+func GetCAdvisorMetrics(nodeAddr string) string {
+
+	response, err := http.Get("http://" + nodeAddr + ":10255/stats/summary")
 	if err != nil {
 		glog.Error(err)
 		os.Exit(1)
