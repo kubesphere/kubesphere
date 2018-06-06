@@ -20,7 +20,6 @@ import (
 	"testing"
 )
 
-
 func TestContainsString(t *testing.T) {
 	src := []string{"aa", "bb", "cc"}
 	if !ContainsString(src, "bb") {

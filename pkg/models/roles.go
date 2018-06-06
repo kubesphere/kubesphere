@@ -2,8 +2,9 @@ package models
 
 import (
 	"k8s.io/api/rbac/v1"
-	"kubesphere.io/kubesphere/pkg/client"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const ClusterRoleKind = "ClusterRole"
