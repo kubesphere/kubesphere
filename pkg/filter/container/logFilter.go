@@ -17,9 +17,10 @@ limitations under the License.
 package container
 
 import (
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"strings"
 )
 
 func logFilter() restful.FilterFunction {

@@ -19,12 +19,14 @@ package app
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
-	"kubesphere.io/kubesphere/pkg/options"
 	"net"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+
+	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
+	"kubesphere.io/kubesphere/pkg/options"
 )
 
 type kubeSphereServer struct {

@@ -72,7 +72,7 @@ func GetAllRouters(request *restful.Request, response *restful.Response) {
 	if err != nil {
 		glog.Error(err)
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-	}  else {
+	} else {
 		response.WriteAsJson(routers)
 	}
 }
