@@ -86,10 +86,10 @@ fmt-check: fmt-all
 
 .PHONY: build
 build: fmt
-	mkdir -p ./tmp/bin
+	mkdir -p ./tmp/bin && cp -r ./install/ ./tmp/
 	$(call get_build_flags)
 	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
-	@docker build -t $(TARG.Name) -f ./Dockerfile.dev ./tmp/bin
+	@docker build -t $(TARG.Name) -f ./Dockerfile.dev ./tmp
 	@docker image prune -f 1>/dev/null 2>&1
 	@echo "build done"
 
