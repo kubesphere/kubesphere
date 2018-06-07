@@ -48,7 +48,9 @@ type Components struct {
 * there are master component, node component,addons component , kubesphere component
 *
  */
-func GetComponents() (result []Components, err error) {
+func GetComponents() ([]Components, error) {
+
+	result := make([]Components,0)
 
 	k8sClient := client.NewK8sClient()
 
