@@ -179,7 +179,9 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 }
 
 //query registries host
-func QueryRegistries(project string) (regList []Registries, err error) {
+func QueryRegistries(project string) ([]Registries, error) {
+
+	regList := make([]Registries, 0)
 
 	k8sclient := kubeclient.NewK8sClient()
 
