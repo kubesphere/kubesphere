@@ -19,7 +19,6 @@ package routes
 import (
 	"github.com/emicklei/go-restful"
 
-	"errors"
 	"net/http"
 	"strings"
 
@@ -64,6 +63,11 @@ func Register(ws *restful.WebService) {
 		Produces(restful.MIME_JSON))
 }
 
+type Router struct {
+	RouterType  string            `json:"type"`
+	Annotations map[string]string `json:"annotations"`
+}
+
 // Get all namespace ingress controller services
 func GetAllRouters(request *restful.Request, response *restful.Response) {
 
@@ -99,7 +103,7 @@ func CreateRouter(request *restful.Request, response *restful.Response) {
 
 	namespace := request.PathParameter("namespace")
 
-	newRouter := models.Router{}
+	newRouter := Router{}
 	err := request.ReadEntity(&newRouter)
 
 	if err != nil {
@@ -145,7 +149,7 @@ func UpdateRouter(request *restful.Request, response *restful.Response) {
 
 	namespace := request.PathParameter("namespace")
 
-	newRouter := models.Router{}
+	newRouter := Router{}
 	err := request.ReadEntity(&newRouter)
 
 	if err != nil {
@@ -166,30 +170,14 @@ func UpdateRouter(request *restful.Request, response *restful.Response) {
 	}
 }
 
-func ParseParameter(router models.Router) (routerType v1.ServiceType, annotationMap map[string]string, err error) {
+func ParseParameter(router Router) (routerType v1.ServiceType, annotationMap map[string]string, err error) {
 
 	routerType = v1.ServiceTypeNodePort
-	annotationMap = make(map[string]string)
 
 	if strings.Compare(strings.ToLower(router.RouterType), "loadbalancer") == 0 {
-		annotations := router.Annotations
-
-		annotation := strings.FieldsFunc(annotations, func(r rune) bool {
-			return r == ',' || r == '='
-		})
-
-		if len(annotation)%2 != 0 {
-			glog.Error("Wrong annotations, missing key or value")
-			return routerType, annotationMap, errors.New("wrong annotations, missing key or value")
-		}
-
-		for i := 0; i < len(annotation); i += 2 {
-			annotationMap[annotation[i]] = annotation[i+1]
-		}
-
-		return v1.ServiceTypeLoadBalancer, annotationMap, nil
+		return v1.ServiceTypeLoadBalancer, router.Annotations, nil
 	} else {
-		return v1.ServiceTypeNodePort, nil, nil
+		return v1.ServiceTypeNodePort, make(map[string]string, 0), nil
 	}
 
 }

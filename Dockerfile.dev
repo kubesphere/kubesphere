@@ -5,6 +5,6 @@ RUN apk add --update ca-certificates \
     && mkdir -p /etc/kubesphere/ingress-controller
 
 COPY ./bin/* /usr/local/bin/
-COPY ./ingress-controller /etc/kubesphere/ingress-controller
+COPY ./install/ingress-controller /etc/kubesphere/ingress-controller
 
 CMD ["sh"]
