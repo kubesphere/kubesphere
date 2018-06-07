@@ -43,14 +43,14 @@ type userRuleList struct {
 
 // TODO stored in etcd, allow updates
 var (
-	clusterRoleRuleGroup = []rule{projectsManagement, userManagement, roleManagement, registryManagement,
-		volumeManagement, storageclassManagement, nodeManagement, appCatalogManagement, appManagement}
+	clusterRoleRuleGroup = []rule{projects, users, roles, images,
+		volumes, storageclasses, nodes, appCatalog, apps}
 
-	roleRuleGroup = []rule{deploymentManagement, projectManagement, statefulsetManagement, daemonsetManagement,
-		serviceManagement, routeManagement, pvcManagement}
+	roleRuleGroup = []rule{deployments, project, statefulsets, daemonsets,
+		services, routes, pvc}
 
-	projectsManagement = rule{
-		Name: "projectsManagement",
+	projects = rule{
+		Name: "projects",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -82,8 +82,31 @@ var (
 		},
 	}
 
-	userManagement = rule{
-		Name: "userManagement",
+	project = rule{
+		Name: "project",
+		Actions: []action{
+			{Name: "members",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "create", "delete"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"rolebindings"},
+					},
+				},
+			},
+			{Name: "member_roles",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "create", "delete", "patch", "update"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"roles"},
+					},
+				},
+			},
+		},
+	}
+	users = rule{
+		Name: "users",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -129,8 +152,8 @@ var (
 		},
 	}
 
-	roleManagement = rule{
-		Name: "roleManagement",
+	roles = rule{
+		Name: "roles",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -169,7 +192,7 @@ var (
 					},
 				},
 			},
-			{Name: "roleBinding",
+			{Name: "role_binding",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"create", "delete", "deletecollection"},
@@ -181,8 +204,8 @@ var (
 		},
 	}
 
-	nodeManagement = rule{
-		Name: "nodeManagement",
+	nodes = rule{
+		Name: "nodes",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -196,8 +219,8 @@ var (
 		},
 	}
 
-	volumeManagement = rule{
-		Name: "volumeManagement",
+	volumes = rule{
+		Name: "volumes",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -208,11 +231,38 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumes"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumes"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumes"},
+					},
+				},
+			},
 		},
 	}
 
-	storageclassManagement = rule{
-		Name: "storageclassManagement",
+	storageclasses = rule{
+		Name: "storageclasses",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -223,19 +273,79 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"storage.k8s.io"},
+						Resources: []string{"storageclasses"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"storage.k8s.io"},
+						Resources: []string{"storageclasses"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"storage.k8s.io"},
+						Resources: []string{"storageclasses"},
+					},
+				},
+			},
 		},
 	}
 
-	registryManagement = rule{
-		Name: "registryManagement",
+	images = rule{
+		Name: "images",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
-						APIGroups: []string{"extend.kubesphere.io"},
+						APIGroups: []string{""},
 						Resources: []string{
-							"registries",
+							"secrets",
+						},
+					},
+				},
+			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
 						},
 					},
 				},
@@ -243,8 +353,8 @@ var (
 		},
 	}
 
-	appCatalogManagement = rule{
-		Name: "appCatalogManagement",
+	appCatalog = rule{
+		Name: "app_catalog",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -258,8 +368,8 @@ var (
 		},
 	}
 
-	appManagement = rule{
-		Name: "appManagement",
+	apps = rule{
+		Name: "apps",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -273,8 +383,8 @@ var (
 		},
 	}
 
-	statefulsetManagement = rule{
-		Name: "statefulsetManagement",
+	statefulsets = rule{
+		Name: "statefulsets",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -285,11 +395,38 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
 		},
 	}
 
-	daemonsetManagement = rule{
-		Name: "daemonsetManagement",
+	daemonsets = rule{
+		Name: "daemonsets",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -300,11 +437,38 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"daemonsets"},
+					},
+				},
+			},
 		},
 	}
 
-	serviceManagement = rule{
-		Name: "serviceManagement",
+	services = rule{
+		Name: "services",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -315,11 +479,39 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+					},
+				},
+			},
+
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+					},
+				},
+			},
 		},
 	}
 
-	routeManagement = rule{
-		Name: "routeManagement",
+	routes = rule{
+		Name: "routes",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -330,10 +522,37 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"extensions"},
+						Resources: []string{"ingresses"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"extensions"},
+						Resources: []string{"ingresses"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"extensions"},
+						Resources: []string{"ingresses"},
+					},
+				},
+			},
 		},
 	}
-	pvcManagement = rule{
-		Name: "pvcManagement",
+	pvc = rule{
+		Name: "persistentvolumeclaims",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -344,11 +563,38 @@ var (
 					},
 				},
 			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumeclaims"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumeclaims"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumeclaims"},
+					},
+				},
+			},
 		},
 	}
 
-	deploymentManagement = rule{
-		Name: "deploymentManagement",
+	deployments = rule{
+		Name: "deployments",
 		Actions: []action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
@@ -372,15 +618,7 @@ var (
 					},
 				},
 			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments"},
-					},
-				},
-			},
+
 			{Name: "edit",
 				Rules: []v1.PolicyRule{
 					{
@@ -390,44 +628,22 @@ var (
 					},
 				},
 			},
+
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps", "extensions"},
+						Resources: []string{"deployments"},
+					},
+				},
+			},
 			{Name: "scale",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"create", "update", "patch", "delete"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"deployments/scale"},
-					},
-				},
-			},
-		},
-	}
-	projectManagement = rule{
-		Name: "projectManagement",
-		Actions: []action{
-			{Name: "memberManagement",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "list", "create", "delete"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"rolebindings"},
-					},
-				},
-			},
-			{Name: "memberRoleManagement",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "list", "create", "delete"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete"},
-						APIGroups: []string{"extend.kubesphere.io"},
-						Resources: []string{"namespace"},
 					},
 				},
 			},

@@ -26,5 +26,7 @@ type PageableResponse struct {
 }
 
 const APIVERSION = "v1alpha1"
-
 const KIND = "kubesphere"
+
+const DATA_HOME = "/etc/kubesphere"
+const INGRESS_CONTROLLER_FOLDER = DATA_HOME + "/ingress-controller"
