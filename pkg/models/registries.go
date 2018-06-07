@@ -68,13 +68,12 @@ func convert2DockerJson(authinfo AuthInfo) []byte {
 }
 
 type Registries struct {
-	DisplayName   string `json:"display_name,omitempty"`
-	Description   string `json:"description,omitempty"`
-	AuthProject   string `json:"auth_project,omitempty"`
-	RegServerHost string `json:"reg_server_host,omitempty"`
-	RegUsername   string `json:"reg_username,omitempty"`
-	RegPassword   string `json:"reg_password,omitempty"`
-	CreateUser    string `json:"create_user,omitempty"`
+	DisplayName   string      `json:"display_name,omitempty"`
+	AuthProject   string      `json:"auth_project,omitempty"`
+	RegServerHost string      `json:"reg_server_host,omitempty"`
+	RegUsername   string      `json:"reg_username,omitempty"`
+	RegPassword   string      `json:"reg_password,omitempty"`
+	Annotations   interface{} `json:"annotations"`
 }
 
 type ValidationMsg struct {
@@ -142,7 +141,7 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 	secret.Kind = SECRET
 	secret.APIVersion = APIVERSION
 	secret.Type = TYPE
-	secret.Name = registries.DisplayName + ".key"
+	secret.Name = registries.DisplayName
 
 	authinfo := NewAuthInfo(registries)
 	data := make(map[string][]byte)
@@ -152,12 +151,17 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 	k8sclient := kubeclient.NewK8sClient()
 
 	labels := make(map[string]string)
-	annotations := make(map[string]string)
+
 	labels["app"] = "dockerhubkey"
 	secret.Labels = labels
 
-	annotations["description"] = registries.Description
-	annotations["createuser"] = registries.CreateUser
+	annotations := make(map[string]string)
+
+	for key, value := range registries.Annotations.(map[string]interface{}) {
+
+		annotations[key] = value.(string)
+
+	}
 	secret.Annotations = annotations
 
 	for _, pro := range projects {
@@ -179,7 +183,9 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 }
 
 //query registries host
-func QueryRegistries(project string) (regList []Registries, err error) {
+func QueryRegistries(project string) ([]Registries, error) {
+
+	regList := make([]Registries, 0)
 
 	k8sclient := kubeclient.NewK8sClient()
 
