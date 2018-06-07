@@ -21,19 +21,40 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
 var k8sClient *kubernetes.Clientset
 
+func getKubeConfig() (kubeConfig *rest.Config, err error) {
+
+	kubeConfigFile := options.ServerOptions.GetKubeConfigFile()
+
+	if len(kubeConfigFile) > 0 {
+
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return kubeConfig, nil
+
+}
 
 func NewK8sClient() *kubernetes.Clientset {
 	if k8sClient != nil {
 		return k8sClient
 	}
 
-	kubeConfig, err := options.ServerOptions.GetKubeConfig()
+	kubeConfig, err := getKubeConfig()
 	if err != nil {
 		glog.Error(err)
 		panic(err)

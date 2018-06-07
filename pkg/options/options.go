@@ -19,13 +19,12 @@ package options
 
 import (
 	goflag "flag"
-	"net"
+	"github.com/spf13/pflag"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/spf13/pflag"
+	"net"
+	"strings"
 )
-
 
 const (
 	// High enough QPS to fit all expected use cases. QPS=0 is not set here, because
@@ -35,7 +34,6 @@ const (
 	// client code is overriding it.
 	DefaultBurst = 1e6
 )
-
 
 // ServerRunOptions runs a kubernetes api server.
 type ServerRunOptions struct {
@@ -47,6 +45,11 @@ type ServerRunOptions struct {
 	certFile            string
 	keyFile             string
 	kubeConfigFile      string
+	etcdEndpoints       string
+	etcdCertFile        string
+	etcdKeyFile         string
+	etcdCaFile          string
+	kubectlImage        string
 }
 
 // NewServerRunOptions creates a new ServerRunOptions object with default parameters
@@ -79,6 +82,20 @@ func (s *ServerRunOptions) addFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.kubeConfigFile, "kubeconfig", "",
 		"Path to kubeconfig file with authorization and master location information.")
+
+	fs.StringVar(&s.etcdEndpoints, "etcd-endpoints", "",
+		"Server addresses of etcd")
+	fs.StringVar(&s.etcdCertFile, "etcd-tls-cert-file", "",
+		"Cert File use to connect etcd in https mode.")
+
+	fs.StringVar(&s.etcdKeyFile, "etcd-tls-key-file", "",
+		"Privatekey File use to connect etcd in https mode.")
+
+	fs.StringVar(&s.etcdCaFile, "etcd-tls-ca-file", "",
+		"CA Fileuse to connect etcd in https mode.")
+
+	fs.StringVar(&s.kubectlImage, "kubectl-image", "kubectl:1.0",
+		"kubectl pod's image")
 }
 
 func (s *ServerRunOptions) GetApiServerHost() string {
@@ -127,7 +144,7 @@ func (s *ServerRunOptions) GetKubeConfig() (kubeConfig *rest.Config, err error) 
 	} else {
 
 		kubeConfig, err = rest.InClusterConfig()
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -139,6 +156,29 @@ func (s *ServerRunOptions) GetKubeConfig() (kubeConfig *rest.Config, err error) 
 
 }
 
+func (s *ServerRunOptions) GetEtcdEndPoints() []string {
+	endpoints := strings.Split(s.etcdEndpoints, ",")
+	for k, v := range endpoints {
+		endpoints[k] = strings.TrimSpace(v)
+	}
+	return endpoints
+}
+
+func (s *ServerRunOptions) GetEtcdCertFile() string {
+	return s.etcdCertFile
+}
+
+func (s *ServerRunOptions) GetEtcdKeyFile() string {
+	return s.etcdKeyFile
+}
+
+func (s *ServerRunOptions) GetEtcdCaFile() string {
+	return s.etcdCaFile
+}
+
+func (s *ServerRunOptions) GetKubectlImage() string {
+	return s.kubectlImage
+}
 
 var ServerOptions = NewServerRunOptions()
 

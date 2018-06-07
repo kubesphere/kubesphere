@@ -19,10 +19,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	restful "github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"io"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/options"
-	"github.com/golang/glog"
+	"net/http"
 )
 
 // TerminalResponse is sent by handleExecShell. The Id is a random session id that binds the original REST request and the SockJS connection.
@@ -38,7 +38,6 @@ import (
 type TerminalResponse struct {
 	Id string `json:"id"`
 }
-
 
 // PtyHandler is what remotecommand expects from a pty
 type PtyHandler interface {
@@ -179,9 +178,8 @@ func handleTerminalSession(session sockjs.Session) {
 	}
 
 	terminalSession.sockJSSession = session
-	terminalSession.bound <- nil
-	glog.Infof("session size: %d", len(terminalSessions))
 	terminalSessions[msg.SessionID] = terminalSession
+	terminalSession.bound <- nil
 }
 
 // CreateAttachHandler is called from main for /api/sockjs
@@ -242,7 +240,7 @@ func genTerminalSessionId() (string, error) {
 	}
 	id := make([]byte, hex.EncodedLen(len(bytes)))
 	hex.Encode(id, bytes)
-	glog.Infof("genTerminalSessionId, id:"+string(id))
+	glog.Infof("genTerminalSessionId, id:" + string(id))
 	return string(id), nil
 }
 
@@ -291,7 +289,6 @@ func WaitForTerminal(k8sClient kubernetes.Interface, cfg *rest.Config, request *
 		terminalSessions[sessionId].Close(1, "Process exited")
 	}
 }
-
 
 // Handles execute shell API call
 func HandleExecShell(request *restful.Request) (*TerminalResponse, error) {

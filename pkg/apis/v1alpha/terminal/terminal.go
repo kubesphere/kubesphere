@@ -16,10 +16,9 @@ package terminal
 
 import (
 	"github.com/emicklei/go-restful"
-	"net/http"
 	"kubesphere.io/kubesphere/pkg/models"
+	"net/http"
 )
-
 
 func Register(ws *restful.WebService, subPath string) {
 
@@ -37,8 +36,7 @@ func handleExecShell(req *restful.Request, resp *restful.Response) {
 
 }
 
-func RegisterWebSocketHandler(container *restful.Container, path string){
-	handler := models.CreateTerminalHandler(path[0:len(path)-1])
+func RegisterWebSocketHandler(container *restful.Container, path string) {
+	handler := models.CreateTerminalHandler(path[0 : len(path)-1])
 	container.Handle(path, handler)
 }
-

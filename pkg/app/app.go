@@ -19,14 +19,19 @@ package app
 import (
 	"crypto/tls"
 	"fmt"
-	"net"
-	"net/http"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-
+	"k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
+	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/jobs/cronjobs"
+	"kubesphere.io/kubesphere/pkg/models/jobs/resources"
 	"kubesphere.io/kubesphere/pkg/options"
+	"net"
+	"net/http"
 )
 
 type kubeSphereServer struct {
@@ -53,7 +58,29 @@ func newKubeSphereServer(options *options.ServerRunOptions) *kubeSphereServer {
 	return &s
 }
 
+func preCheck() error {
+	k8sClient := client.NewK8sClient()
+	nsList, err := k8sClient.CoreV1().Namespaces().List(meta_v1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, ns := range nsList.Items {
+		if ns.Name == constants.NameSpace {
+			return nil
+		}
+	}
+	namespace := v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: constants.NameSpace}}
+	_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
+	return err
+}
 func (server *kubeSphereServer) run() {
+	err := preCheck()
+	if err != nil {
+		glog.Error(err)
+		return
+	}
+	go resources.Run()
+	go cronjobs.Run()
 
 	if len(server.certFile) > 0 && len(server.keyFile) > 0 {
 		servingCert, err := tls.LoadX509KeyPair(server.certFile, server.keyFile)
