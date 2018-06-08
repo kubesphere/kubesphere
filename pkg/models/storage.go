@@ -23,31 +23,40 @@ type StorageMetrics struct {
 	Usage    string `json:"usage,omitempty"`
 }
 
+// List persistent volume claims of a specific storage class
 func GetPvcListBySc(storageclass string) (res []v12.PersistentVolumeClaim, err error) {
-
+	// Create Kubernetes client
 	cli := client.NewK8sClient()
+	// Get all persistent volume claims
 	claimList, err := cli.CoreV1().PersistentVolumeClaims("").List(v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-
+	// Select persistent volume claims which
+	// storage class name is equal to the specific storage class.
 	for _, claim := range claimList.Items {
-		if *claim.Spec.StorageClassName != storageclass {
+		if claim.Spec.StorageClassName != nil &&
+			*claim.Spec.StorageClassName == storageclass {
+			res = append(res, claim)
+		} else {
 			continue
 		}
-		res = append(res, claim)
 	}
 	return res, nil
 }
 
+// Get metrics of a specific storage class
 func GetScMetrics(storageclass string) (res StorageMetrics, err error) {
+	// Create Kubernetes client
 	cli := client.NewK8sClient()
+	// Get persistent volumes
 	pvList, err := cli.CoreV1().PersistentVolumes().List(v1.ListOptions{})
 	if err != nil {
 		return StorageMetrics{}, err
 	}
 
 	var total resource.Quantity
+	// Gathering metrics of a specific storage class
 	for _, volume := range pvList.Items {
 		if volume.Spec.StorageClassName != storageclass {
 			continue
