@@ -68,13 +68,12 @@ func convert2DockerJson(authinfo AuthInfo) []byte {
 }
 
 type Registries struct {
-	DisplayName   string `json:"display_name,omitempty"`
-	Description   string `json:"description,omitempty"`
-	AuthProject   string `json:"auth_project,omitempty"`
-	RegServerHost string `json:"reg_server_host,omitempty"`
-	RegUsername   string `json:"reg_username,omitempty"`
-	RegPassword   string `json:"reg_password,omitempty"`
-	CreateUser    string `json:"create_user,omitempty"`
+	DisplayName   string      `json:"display_name,omitempty"`
+	AuthProject   string      `json:"auth_project,omitempty"`
+	RegServerHost string      `json:"reg_server_host,omitempty"`
+	RegUsername   string      `json:"reg_username,omitempty"`
+	RegPassword   string      `json:"reg_password,omitempty"`
+	Annotations   interface{} `json:"annotations"`
 }
 
 type ValidationMsg struct {
@@ -142,7 +141,7 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 	secret.Kind = SECRET
 	secret.APIVersion = APIVERSION
 	secret.Type = TYPE
-	secret.Name = registries.DisplayName + ".key"
+	secret.Name = registries.DisplayName
 
 	authinfo := NewAuthInfo(registries)
 	data := make(map[string][]byte)
@@ -152,12 +151,17 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 	k8sclient := kubeclient.NewK8sClient()
 
 	labels := make(map[string]string)
-	annotations := make(map[string]string)
+
 	labels["app"] = "dockerhubkey"
 	secret.Labels = labels
 
-	annotations["description"] = registries.Description
-	annotations["createuser"] = registries.CreateUser
+	annotations := make(map[string]string)
+
+	for key, value := range registries.Annotations.(map[string]interface{}) {
+
+		annotations[key] = value.(string)
+
+	}
 	secret.Annotations = annotations
 
 	for _, pro := range projects {
@@ -179,7 +183,9 @@ func CreateRegistries(registries Registries) (msg constants.MessageResponse, err
 }
 
 //query registries host
-func QueryRegistries(project string) (regList []Registries, err error) {
+func QueryRegistries(project string) ([]Registries, error) {
+
+	regList := make([]Registries, 0)
 
 	k8sclient := kubeclient.NewK8sClient()
 
@@ -203,14 +209,6 @@ func QueryRegistries(project string) (regList []Registries, err error) {
 
 			reg.DisplayName = secret.Name
 			reg.AuthProject = project
-
-			if err != nil {
-
-				glog.Errorln(err)
-				return regList, err
-
-			}
-
 			var data map[string]interface{}
 			err := json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
 
@@ -236,5 +234,232 @@ func QueryRegistries(project string) (regList []Registries, err error) {
 	}
 
 	return regList, nil
+
+}
+
+//list all registries
+func ListAllRegistries() ([]Registries, error) {
+
+	result := make([]Registries, 0)
+
+	var registries Registries
+	var options meta_v1.ListOptions
+
+	k8sclient := kubeclient.NewK8sClient()
+	projects, err := k8sclient.CoreV1().Namespaces().List(options)
+	if err != nil {
+
+		return result, err
+	}
+
+	options.LabelSelector = "app=dockerhubkey"
+
+	for _, project := range projects.Items {
+
+		secrets, err := k8sclient.CoreV1().Secrets(project.Name).List(options)
+
+		if err != nil {
+			return result, err
+		}
+
+		if len(secrets.Items) > 0 {
+
+			for _, secret := range secrets.Items {
+
+				registries.DisplayName = secret.Name
+				registries.AuthProject = secret.Namespace
+				var data map[string]interface{}
+				err := json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
+
+				if err != nil {
+
+					glog.Errorln(err)
+					return result, err
+
+				}
+
+				hostMap := data["auths"].(map[string]interface{})
+
+				for key, val := range hostMap {
+
+					registries.RegServerHost = key
+					info := val.(map[string]interface{})
+					registries.RegUsername = info["username"].(string)
+					registries.RegPassword = info["password"].(string)
+
+				}
+
+				registries.Annotations = secret.Annotations
+
+				if len(result) == 0 {
+
+					result = append(result, registries)
+
+				} else {
+
+					if !containSame(registries, result) {
+
+						result = append(result, registries)
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	return result, nil
+
+}
+
+//delete registries
+
+func DeleteRegistries(name string) (constants.MessageResponse, error) {
+
+	var msg constants.MessageResponse
+
+	k8sclient := kubeclient.NewK8sClient()
+	var options meta_v1.ListOptions
+	projects, err := k8sclient.CoreV1().Namespaces().List(options)
+	if err != nil {
+
+		return msg, err
+
+	}
+	var deloptions *meta_v1.DeleteOptions
+
+	for _, project := range projects.Items {
+
+		k8sclient.CoreV1().Secrets(project.Name).Delete(name, deloptions)
+
+	}
+	msg.Message = "success"
+
+	return msg, nil
+
+}
+
+func containSame(registries Registries, list []Registries) bool {
+
+	flag := false
+
+	for ind, reg := range list {
+
+		if reg.DisplayName == registries.DisplayName {
+			list[ind].AuthProject = reg.AuthProject + "," + registries.AuthProject
+			flag = true
+		}
+
+	}
+
+	return flag
+
+}
+
+func UpdateRegistries(name string, registries Registries) (Registries, error) {
+
+	DeleteRegistries(name)
+
+	k8sclient := kubeclient.NewK8sClient()
+	projects := strings.Split(registries.AuthProject, ",")
+
+	var secret v1.Secret
+
+	secret.Kind = SECRET
+	secret.APIVersion = APIVERSION
+	secret.Type = TYPE
+	secret.Name = registries.DisplayName
+
+	authinfo := NewAuthInfo(registries)
+	data := make(map[string][]byte)
+	data[".dockerconfigjson"] = convert2DockerJson(*authinfo)
+
+	secret.Data = data
+	labels := make(map[string]string)
+
+	labels["app"] = "dockerhubkey"
+	secret.Labels = labels
+
+	annotations := make(map[string]string)
+
+	for key, value := range registries.Annotations.(map[string]interface{}) {
+
+		annotations[key] = value.(string)
+
+	}
+	secret.Annotations = annotations
+
+	for _, pro := range projects {
+
+		glog.Infof("alter secret %s in %s ", registries.DisplayName, pro)
+		_, err := k8sclient.CoreV1().Secrets(pro).Create(&secret)
+
+		if err != nil {
+			glog.Error(err)
+			return registries, err
+		}
+
+	} //end for
+
+	return registries, nil
+
+}
+
+func GetReisgtries(name string) (Registries, error) {
+
+	var reg Registries
+
+	k8sclient := kubeclient.NewK8sClient()
+	var getoptions meta_v1.GetOptions
+
+	getoptions.Kind = SECRET
+	var options meta_v1.ListOptions
+	projects, err := k8sclient.CoreV1().Namespaces().List(options)
+
+	if err != nil {
+
+		return reg, err
+	}
+
+	if len(projects.Items) > 0 {
+
+		for _, project := range projects.Items {
+
+			secret, err := k8sclient.CoreV1().Secrets(project.Name).Get(name, getoptions)
+
+			if err == nil {
+
+				reg.DisplayName = secret.Name
+				var data map[string]interface{}
+				json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
+
+				if len(reg.AuthProject) == 0 {
+					reg.AuthProject = secret.Namespace
+				} else {
+					reg.AuthProject = reg.AuthProject + "," + secret.Namespace
+				}
+
+				hostMap := data["auths"].(map[string]interface{})
+
+				for key, val := range hostMap {
+
+					reg.RegServerHost = key
+					info := val.(map[string]interface{})
+					reg.RegUsername = info["username"].(string)
+					reg.RegPassword = info["password"].(string)
+
+				}
+				reg.Annotations = secret.Annotations
+
+			}
+
+		}
+
+	}
+
+	return reg, nil
 
 }
