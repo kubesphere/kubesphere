@@ -17,7 +17,7 @@ func Register(ws *restful.WebService, subPath string) {
 }
 
 // List all pods of a specific PVC
-// Extended API URL: "GET /api/v1alpha/volumes/namespaces/{namespace}/persistentvolumeclaims/{name}/pods"
+// Extended API URL: "GET /api/v1alpha1/volumes/namespaces/{namespace}/persistentvolumeclaims/{name}/pods"
 func GetPodListByPvc(request *restful.Request, response *restful.Response) {
 	pvcName := request.PathParameter("pvc")
 	nsName := request.PathParameter("namespace")
