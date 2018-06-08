@@ -28,20 +28,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
-
-const RouterYamlDirectory = "/etc/kubesphere/ingress-controller/"
-
-type Router struct {
-	RouterType  string `json:"type"`
-	Annotations string `json:"annotations"`
-}
 
 func GetAllRouters() ([]*coreV1.Service, error) {
 
 	k8sClient := client.NewK8sClient()
 
-	routers := []*coreV1.Service{}
+	routers := make([]*coreV1.Service, 0)
 
 	opts := metaV1.ListOptions{}
 
@@ -103,14 +97,14 @@ func LoadYamls() ([]string, error) {
 
 	var yamls []string
 
-	files, err := ioutil.ReadDir(RouterYamlDirectory)
+	files, err := ioutil.ReadDir(constants.INGRESS_CONTROLLER_FOLDER)
 	if err != nil {
 		glog.Error(err)
 		return nil, err
 	}
 
 	for _, file := range files {
-		content, err := ioutil.ReadFile(RouterYamlDirectory + "/" + file.Name())
+		content, err := ioutil.ReadFile(constants.INGRESS_CONTROLLER_FOLDER + "/" + file.Name())
 
 		if err != nil {
 			glog.Error(err)
@@ -308,16 +302,14 @@ func UpdateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 		return router, nil
 	}
 
-	if router.Spec.Type != routerType {
-		router.Spec.Type = routerType
-		router.SetAnnotations(annotations)
+	router.Spec.Type = routerType
+	router.SetAnnotations(annotations)
 
-		router, err = k8sClient.CoreV1().Services(namespace).Update(router)
+	router, err = k8sClient.CoreV1().Services(namespace).Update(router)
 
-		if err != nil {
-			glog.Error(err)
-			return router, err
-		}
+	if err != nil {
+		glog.Error(err)
+		return router, err
 	}
 
 	return router, nil
