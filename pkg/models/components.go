@@ -50,7 +50,7 @@ type Components struct {
  */
 func GetComponents() ([]Components, error) {
 
-	result := make([]Components,0)
+	result := make([]Components, 0)
 
 	k8sClient := client.NewK8sClient()
 
