@@ -28,6 +28,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/client"
 	ksutil "kubesphere.io/kubesphere/pkg/util"
+	//kubeclient "kubesphere.io/kubesphere/pkg/client"
 
 	"fmt"
 	"strconv"
@@ -215,4 +216,10 @@ func getNodeFileSystemStatus(node *v1.Node) (string, string, string) {
 		return fmt.Sprintf("%.1f", usedBytesAsStr/1024/1024/1024), fmt.Sprintf("%.1f", capacityBytesAsStr/1024/1024/1024), fmt.Sprintf("%.3f", usedBytesAsStr/capacityBytesAsStr)
 	}
 	return "", "", ""
+}
+
+func DrainNode(nodename string) {
+
+	//k8sclient := kubeclient.NewK8sClient()
+
 }

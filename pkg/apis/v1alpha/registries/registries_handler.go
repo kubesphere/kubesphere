@@ -36,7 +36,22 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.PATCH(subPath + "/{name}").To(handleUpdateRegistries).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET(subPath + "/{project}").To(handleQueryRegistries).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET(subPath).To(handlerListRegistries).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.DELETE(subPath + "/{name}").To(handlerDeleteRegistries).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET(subPath + "/{project}/{name}").To(handlerGetRegistries).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -94,6 +109,86 @@ func handleQueryRegistries(request *restful.Request, response *restful.Response)
 
 	project := request.PathParameter("project")
 	result, err := models.QueryRegistries(project)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}
+
+func handlerListRegistries(request *restful.Request, response *restful.Response) {
+
+	result, err := models.ListAllRegistries()
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}
+
+func handlerDeleteRegistries(request *restful.Request, response *restful.Response) {
+
+	name := request.PathParameter("name")
+	result, err := models.DeleteRegistries(name)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}
+
+func handleUpdateRegistries(request *restful.Request, response *restful.Response) {
+
+	name := request.PathParameter("name")
+
+	registries := models.Registries{}
+
+	err := request.ReadEntity(&registries)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		result, err := models.UpdateRegistries(name, registries)
+
+		if err != nil {
+
+			response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+		} else {
+
+			response.WriteAsJson(result)
+
+		}
+
+	}
+
+}
+
+func handlerGetRegistries(request *restful.Request, response *restful.Response) {
+
+	name := request.PathParameter("name")
+	project := request.PathParameter("project")
+	result, err := models.GetReisgtries(project, name)
 
 	if err != nil {
 
