@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kubeconfig
+package terminal
 
 import (
 	"net/http"
@@ -22,30 +22,23 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
-const DefaultServiceAccount = "default"
-
-type Config struct {
-	Certificate string
-	Server      string
-	User        string
-	Token       string
-}
-
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath).To(handleKubeconfig))
+	ws.Route(ws.GET(subPath).To(handleExecShell))
 
 }
 
-func handleKubeconfig(req *restful.Request, resp *restful.Response) {
-
-	ns := req.PathParameter("namespace")
-
-	kubectlConfig, err := models.GetKubeConfig(ns)
-
+func handleExecShell(req *restful.Request, resp *restful.Response) {
+	res, err := models.HandleExecShell(req)
 	if err != nil {
 		resp.WriteError(http.StatusInternalServerError, err)
 	}
 
-	resp.WriteEntity(kubectlConfig)
+	resp.WriteEntity(res)
+
+}
+
+func RegisterWebSocketHandler(container *restful.Container, path string) {
+	handler := models.CreateTerminalHandler(path[0 : len(path)-1])
+	container.Handle(path, handler)
 }
