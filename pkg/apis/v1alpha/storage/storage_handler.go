@@ -22,7 +22,7 @@ func Register(ws *restful.WebService, subPath string) {
 }
 
 // List all PersistentVolumeClaims of a specific StorageClass
-// Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/persistentvolumeclaims"
+// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{name}/persistentvolumeclaims"
 func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
 	claims, err := models.GetPvcListBySc(scName)
@@ -35,7 +35,7 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 }
 
 // Get metrics of a specific StorageClass
-// Extended API URL: "GET /api/v1alpha/storage/storageclasses/{name}/metrics"
+// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{name}/metrics"
 func GetScMetrics(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
 	metrics, err := models.GetScMetrics(scName)
