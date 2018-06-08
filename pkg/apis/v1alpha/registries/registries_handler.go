@@ -72,17 +72,19 @@ func handleCreateRegistries(request *restful.Request, response *restful.Response
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 
-	}
-
-	result, err := models.CreateRegistries(registries)
-
-	if err != nil {
-
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-
 	} else {
 
-		response.WriteAsJson(result)
+		result, err := models.CreateRegistries(registries)
+
+		if err != nil {
+
+			response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+		} else {
+
+			response.WriteAsJson(result)
+
+		}
 
 	}
 
