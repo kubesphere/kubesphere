@@ -51,7 +51,7 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.DELETE(subPath + "/{name}").To(handlerDeleteRegistries).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
-	ws.Route(ws.GET(subPath + "/{project}/{name}").To(handlerGetRegistries).Filter(route.RouteLogging)).
+	ws.Route(ws.GET(subPath + "/detail/{name}").To(handlerGetRegistries).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -187,8 +187,7 @@ func handleUpdateRegistries(request *restful.Request, response *restful.Response
 func handlerGetRegistries(request *restful.Request, response *restful.Response) {
 
 	name := request.PathParameter("name")
-	project := request.PathParameter("project")
-	result, err := models.GetReisgtries(project, name)
+	result, err := models.GetReisgtries(name)
 
 	if err != nil {
 

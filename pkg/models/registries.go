@@ -359,10 +359,11 @@ func containSame(registries Registries, list []Registries) bool {
 
 }
 
-func UpdateRegistries(name string, registries Registries) (msg constants.MessageResponse, err error) {
+func UpdateRegistries(name string, registries Registries) (Registries, error) {
 
 	DeleteRegistries(name)
 
+	k8sclient := kubeclient.NewK8sClient()
 	projects := strings.Split(registries.AuthProject, ",")
 
 	var secret v1.Secret
@@ -377,7 +378,10 @@ func UpdateRegistries(name string, registries Registries) (msg constants.Message
 	data[".dockerconfigjson"] = convert2DockerJson(*authinfo)
 
 	secret.Data = data
-	k8sclient := kubeclient.NewK8sClient()
+	labels := make(map[string]string)
+
+	labels["app"] = "dockerhubkey"
+	secret.Labels = labels
 
 	annotations := make(map[string]string)
 
@@ -395,18 +399,16 @@ func UpdateRegistries(name string, registries Registries) (msg constants.Message
 
 		if err != nil {
 			glog.Error(err)
-			return msg, err
+			return registries, err
 		}
 
 	} //end for
 
-	msg.Message = "success"
-
-	return msg, nil
+	return registries, nil
 
 }
 
-func GetReisgtries(project, name string) (Registries, error) {
+func GetReisgtries(name string) (Registries, error) {
 
 	var reg Registries
 
@@ -414,30 +416,47 @@ func GetReisgtries(project, name string) (Registries, error) {
 	var getoptions meta_v1.GetOptions
 
 	getoptions.Kind = SECRET
-
-	secret, err := k8sclient.CoreV1().Secrets(project).Get(name, getoptions)
+	var options meta_v1.ListOptions
+	projects, err := k8sclient.CoreV1().Namespaces().List(options)
 
 	if err != nil {
 
 		return reg, err
+	}
 
-	} else {
+	if len(projects.Items) > 0 {
 
-		reg.DisplayName = secret.Name
-		var data map[string]interface{}
-		json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
+		for _, project := range projects.Items {
 
-		hostMap := data["auths"].(map[string]interface{})
+			secret, err := k8sclient.CoreV1().Secrets(project.Name).Get(name, getoptions)
 
-		for key, val := range hostMap {
+			if err == nil {
 
-			reg.RegServerHost = key
-			info := val.(map[string]interface{})
-			reg.RegUsername = info["username"].(string)
-			reg.RegPassword = info["password"].(string)
+				reg.DisplayName = secret.Name
+				var data map[string]interface{}
+				json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
+
+				if len(reg.AuthProject) == 0 {
+					reg.AuthProject = secret.Namespace
+				} else {
+					reg.AuthProject = reg.AuthProject + "," + secret.Namespace
+				}
+
+				hostMap := data["auths"].(map[string]interface{})
+
+				for key, val := range hostMap {
+
+					reg.RegServerHost = key
+					info := val.(map[string]interface{})
+					reg.RegUsername = info["username"].(string)
+					reg.RegPassword = info["password"].(string)
+
+				}
+				reg.Annotations = secret.Annotations
+
+			}
 
 		}
-		reg.Annotations = secret.Annotations
 
 	}
 
