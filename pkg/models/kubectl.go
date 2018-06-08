@@ -18,29 +18,28 @@ package models
 
 import (
 	"fmt"
-	"math/rand"
-
 	"github.com/golang/glog"
+	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
 	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/options"
+	"math/rand"
 )
 
-const (
-	deploymentName = "kubectl"
-)
+const namespace = constants.NameSpace
 
 type kubectlPodInfo struct {
-	Namespace string `json: "namespace"`
-	Pod       string `json: "podname"`
-	Container string `json: "container"`
+	Namespace string `json:"namespace"`
+	Pod       string `json:"pod"`
+	Container string `json:"container"`
 }
 
-func GetKubectlPod(namespace string) (kubectlPodInfo, error) {
+func GetKubectlPod(user string) (kubectlPodInfo, error) {
 	k8sClient := client.NewK8sClient()
-	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(deploymentName, meta_v1.GetOptions{})
+	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, meta_v1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
 		return kubectlPodInfo{}, err
@@ -83,4 +82,54 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 
 	random := rand.Intn(len(kubectPodList))
 	return kubectPodList[random], nil
+}
+
+func CreateKubectlPod(user string) error {
+
+	replica := int32(1)
+	selector := meta_v1.LabelSelector{MatchLabels: map[string]string{"user": user}}
+	config := v1.ConfigMapVolumeSource{Items: []v1.KeyToPath{{Key: "config", Path: "config"}}, LocalObjectReference: v1.LocalObjectReference{Name: user}}
+	deployment := v1beta2.Deployment{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name: user,
+		},
+		Spec: v1beta2.DeploymentSpec{
+			Replicas: &replica,
+			Selector: &selector,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: meta_v1.ObjectMeta{
+					Labels: map[string]string{
+						"user": user,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{Name: "kubectl",
+							Image:        options.ServerOptions.GetKubectlImage(),
+							VolumeMounts: []v1.VolumeMount{{Name: "kubeconfig", MountPath: "/root/.kube"}},
+						},
+					},
+					Volumes: []v1.Volume{{Name: "kubeconfig", VolumeSource: v1.VolumeSource{ConfigMap: &config}}},
+				},
+			},
+		},
+	}
+
+	k8sClient := client.NewK8sClient()
+	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Create(&deployment)
+
+	return err
+}
+
+func DelKubectlPod(user string) error {
+	k8sClient := client.NewK8sClient()
+	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, meta_v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	replicas := int32(0)
+	deploy.Spec.Replicas = &replicas
+	k8sClient.AppsV1beta2().Deployments(namespace).Update(deploy)
+	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &meta_v1.DeleteOptions{})
+	return err
 }
