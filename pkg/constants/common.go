@@ -33,4 +33,6 @@ const (
 	QuotaKey          = "resource-quota"
 	WorkloadStatusKey = "workload-status"
 	NameSpace         = "kubesphere"
+    DATA_HOME = "/etc/kubesphere"
+    INGRESS_CONTROLLER_FOLDER = DATA_HOME + "/ingress-controller"
 )
