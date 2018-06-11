@@ -48,12 +48,11 @@ type Components struct {
 * there are master component, node component,addons component , kubesphere component
 *
  */
-func GetComponents() (result []Components, err error) {
+func GetComponents() ([]Components, error) {
 
+	result := make([]Components, 0)
 	k8sClient := client.NewK8sClient()
-
 	label := "tier=control-plane"
-
 	option := meta_v1.ListOptions{
 
 		LabelSelector: label,
@@ -120,7 +119,6 @@ func GetComponents() (result []Components, err error) {
 	}
 
 	label = "component=kube-addon-manager"
-
 	option.LabelSelector = label
 
 	kubeaddon, err := k8sClient.CoreV1().Pods(KUBESYSTEM).List(option)
@@ -172,7 +170,6 @@ func GetComponents() (result []Components, err error) {
 	}
 
 	option.LabelSelector = ""
-
 	dsList, err := k8sClient.AppsV1beta2().DaemonSets(KUBESYSTEM).List(option)
 
 	if err != nil {
@@ -231,7 +228,6 @@ func GetComponents() (result []Components, err error) {
 	}
 
 	templates = []string{"kube-dns", "heapster", "monitoring-influxdb", "iam", "openpitrix", "istio", "kubesphere"}
-
 	namespaces := []string{KUBESYSTEM, OPENPITRIX, ISTIO, KUBESPHERE}
 
 	for _, ns := range namespaces {
