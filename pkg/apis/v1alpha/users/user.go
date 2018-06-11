@@ -71,6 +71,13 @@ func delUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
+	err = models.DeleteRoleBindings(user)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		return
+	}
+
 	resp.WriteEntity(constants.MessageResponse{Message: "successfully deleted"})
 }
 
