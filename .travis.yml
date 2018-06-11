@@ -21,4 +21,4 @@ before_script:
   - docker --version
 
 script:
-  - make fmt-check
+  - make fmt-check && make build
