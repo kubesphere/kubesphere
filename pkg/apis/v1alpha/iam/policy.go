@@ -44,10 +44,26 @@ type userRuleList struct {
 // TODO stored in etcd, allow updates
 var (
 	clusterRoleRuleGroup = []rule{projects, users, roles, images,
-		volumes, storageclasses, nodes, appCatalog, apps}
+		volumes, storageclasses, nodes, appCatalog, apps, components,
+		deployments, statefulsets, daemonsets, services, routes, pvc}
 
-	roleRuleGroup = []rule{deployments, project, statefulsets, daemonsets,
+	roleRuleGroup = []rule{project, deployments, statefulsets, daemonsets,
 		services, routes, pvc}
+
+	components = rule{
+		Name: "components",
+		Actions: []action{
+			{Name: "view",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"kubsphere.io"},
+						Resources: []string{"components"},
+					},
+				},
+			},
+		},
+	}
 
 	projects = rule{
 		Name: "projects",
@@ -112,7 +128,7 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
-						APIGroups: []string{"iam.kubesphere.io"},
+						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
 					{
@@ -126,7 +142,7 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"create"},
-						APIGroups: []string{"iam.kubesphere.io"},
+						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
 				},
@@ -135,7 +151,7 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"iam.kubesphere.io"},
+						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
 				},
@@ -144,7 +160,7 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"iam.kubesphere.io"},
+						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
 				},
@@ -360,7 +376,34 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
-						APIGroups: []string{"extend.kubesphere.io"},
+						APIGroups: []string{"openpitrix.io"},
+						Resources: []string{"appcatalog"},
+					},
+				},
+			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"openpitrix.io"},
+						Resources: []string{"appcatalog"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"openpitrix.io"},
+						Resources: []string{"appcatalog"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"openpitrix.io"},
 						Resources: []string{"appcatalog"},
 					},
 				},
@@ -375,7 +418,7 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
-						APIGroups: []string{"extend.kubesphere.io"},
+						APIGroups: []string{"openpitrix.io"},
 						Resources: []string{"apps"},
 					},
 				},
