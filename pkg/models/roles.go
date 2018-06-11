@@ -4,10 +4,66 @@ import (
 	"k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"strings"
+
+	"github.com/golang/glog"
+
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const ClusterRoleKind = "ClusterRole"
+
+func DeleteRoleBindings(username string) error {
+	k8s := client.NewK8sClient()
+
+	roleBindings, err := k8s.RbacV1().RoleBindings("").List(meta_v1.ListOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	for _, roleBinding := range roleBindings.Items {
+
+		length1 := len(roleBinding.Subjects)
+
+		for index, subject := range roleBinding.Subjects {
+			if subject.Kind == v1.UserKind && subject.Name == username {
+				roleBinding.Subjects = append(roleBinding.Subjects[:index], roleBinding.Subjects[index+1:]...)
+				index--
+			}
+		}
+
+		length2 := len(roleBinding.Subjects)
+
+		if length2 == 0 {
+			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{})
+		} else if length2 < length1 {
+			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Update(&roleBinding)
+		}
+	}
+
+	clusterRoleBindingList, err := k8s.RbacV1().ClusterRoleBindings().List(meta_v1.ListOptions{})
+
+	for _, roleBinding := range clusterRoleBindingList.Items {
+		length1 := len(roleBinding.Subjects)
+
+		for index, subject := range roleBinding.Subjects {
+			if subject.Kind == v1.UserKind && subject.Name == username {
+				roleBinding.Subjects = append(roleBinding.Subjects[:index], roleBinding.Subjects[index+1:]...)
+				index--
+			}
+		}
+
+		length2 := len(roleBinding.Subjects)
+		if length2 == 0 {
+			k8s.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, &meta_v1.DeleteOptions{})
+		} else if length2 < length1 {
+			k8s.RbacV1().ClusterRoleBindings().Update(&roleBinding)
+		}
+	}
+
+	return nil
+}
 
 func GetRole(namespace string, name string) (*v1.Role, error) {
 	k8s := client.NewK8sClient()
@@ -77,32 +133,42 @@ func GetRoles(username string) ([]v1.Role, error) {
 	roles := make([]v1.Role, 0)
 
 	for _, roleBinding := range roleBindings.Items {
+
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-
 					clusterRole, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
-
-					if err != nil {
+					if err == nil {
+						var role = v1.Role(*clusterRole)
+						role.Namespace = roleBinding.Namespace
+						roles = append(roles, role)
+						break
+					} else if strings.HasSuffix(err.Error(), "not found") {
+						glog.Infoln(err.Error())
+						break
+					} else {
 						return nil, err
 					}
-
-					var role = v1.Role(*clusterRole)
-					role.Namespace = roleBinding.Namespace
-
-					roles = append(roles, role)
 
 				} else {
-					rule, err := k8s.RbacV1().Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+					if subject.Kind == v1.UserKind && subject.Name == username {
+						rule, err := k8s.RbacV1().Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+						if err == nil {
+							roles = append(roles, *rule)
+							break
+						} else if strings.HasSuffix(err.Error(), "not found") {
+							glog.Infoln(err.Error())
+							break
+						} else {
+							return nil, err
+						}
 
-					if err != nil {
-						return nil, err
 					}
 
-					roles = append(roles, *rule)
 				}
 			}
 		}
+
 	}
 
 	return roles, nil
@@ -123,14 +189,16 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-
 					rule, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
-
-					if err != nil {
+					if err == nil {
+						roles = append(roles, *rule)
+						break
+					} else if strings.HasSuffix(err.Error(), "not found") {
+						glog.Infoln(err.Error())
+						break
+					} else {
 						return nil, err
 					}
-
-					roles = append(roles, *rule)
 				}
 			}
 		}
