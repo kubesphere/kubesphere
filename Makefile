@@ -85,7 +85,7 @@ fmt-check: fmt-all
 	)
 
 .PHONY: build
-build: fmt
+build:
 	mkdir -p ./tmp/bin && cp -r ./install/ ./tmp/
 	$(call get_build_flags)
 	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
