@@ -23,10 +23,14 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	v1 "k8s.io/api/core/v1"
+	v1beta2 "k8s.io/api/apps/v1beta2"
+	"k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
+	kubeclient "kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
 	ksutil "kubesphere.io/kubesphere/pkg/util"
 )
 
@@ -212,4 +216,73 @@ func getNodeFileSystemStatus(node *v1.Node) (string, string, string) {
 		return fmt.Sprintf("%.1f", usedBytesAsStr/1024/1024/1024), fmt.Sprintf("%.1f", capacityBytesAsStr/1024/1024/1024), fmt.Sprintf("%.3f", usedBytesAsStr/capacityBytesAsStr)
 	}
 	return "", "", ""
+}
+
+func DrainNode(nodename string) (msg constants.MessageResponse, err error) {
+
+	k8sclient := kubeclient.NewK8sClient()
+	var options metav1.ListOptions
+	pods := make([]v1.Pod, 0)
+	options.FieldSelector = "spec.nodeName=" + nodename
+	podList, err := k8sclient.CoreV1().Pods("").List(options)
+	if err != nil {
+
+		glog.Fatal(err)
+		return msg, err
+
+	}
+	options.FieldSelector = ""
+	daemonsetList, err := k8sclient.AppsV1beta2().DaemonSets("").List(options)
+
+	if err != nil {
+
+		glog.Fatal(err)
+		return msg, err
+
+	}
+	if len(podList.Items) > 0 {
+
+		for _, pod := range podList.Items {
+
+			if !containDaemonset(pod, *daemonsetList) {
+
+				pods = append(pods, pod)
+			}
+		}
+	}
+	//create eviction
+	var eviction policy.Eviction
+	eviction.Kind = "Eviction"
+	eviction.APIVersion = "policy/v1beta1"
+	if len(pods) > 0 {
+
+		for _, pod := range pods {
+
+			eviction.Namespace = pod.Namespace
+			eviction.Name = pod.Name
+			err := k8sclient.CoreV1().Pods(pod.Namespace).Evict(&eviction)
+			if err != nil {
+				return msg, err
+			}
+		}
+
+	}
+	msg.Message = fmt.Sprintf("success")
+	return msg, nil
+
+}
+
+func containDaemonset(pod v1.Pod, daemonsetList v1beta2.DaemonSetList) bool {
+
+	flag := false
+	for _, daemonset := range daemonsetList.Items {
+
+		if strings.Contains(pod.Name, daemonset.Name) {
+
+			flag = true
+		}
+
+	}
+	return flag
+
 }
