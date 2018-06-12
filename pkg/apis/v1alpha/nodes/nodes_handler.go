@@ -19,6 +19,8 @@ package nodes
 import (
 	"github.com/emicklei/go-restful"
 
+	"net/http"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -30,6 +32,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 	ws.Route(ws.GET(subPath+"/{nodename}").To(handleSingleNode).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST(subPath+"/{nodename}/drainage").To(handleDrainNode).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 }
@@ -59,4 +65,22 @@ func handleSingleNode(request *restful.Request, response *restful.Response) {
 	resultNode = models.FormatNodeMetrics(nodeName)
 
 	response.WriteAsJson(resultNode)
+}
+
+func handleDrainNode(request *restful.Request, response *restful.Response) {
+
+	nodeName := request.PathParameter("nodename")
+
+	result, err := models.DrainNode(nodeName)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
 }
