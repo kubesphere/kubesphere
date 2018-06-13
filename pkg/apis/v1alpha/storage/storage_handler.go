@@ -19,10 +19,15 @@ func Register(ws *restful.WebService, subPath string) {
 		To(GetScMetrics).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET(subPath+"/storageclasses/metrics").
+		To(GetScMetricsList).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 }
 
 // List all PersistentVolumeClaims of a specific StorageClass
-// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{name}/persistentvolumeclaims"
+// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{storageclass}/persistentvolumeclaims"
 func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
 	claims, err := models.GetPvcListBySc(scName)
@@ -34,14 +39,23 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	response.WriteAsJson(result)
 }
 
-// Get metrics of a specific StorageClass
-// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{name}/metrics"
+// Get StorageClass item
+// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/{storageclass}/metrics"
 func GetScMetrics(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
-	metrics, err := models.GetScMetrics(scName)
+	result, err := models.GetScItemMetrics(scName)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 	}
-	result := models.ScMetrics{Name: scName, Metrics: metrics}
+	response.WriteAsJson(result)
+}
+
+// Get StorageClass item list
+// Extended API URL: "GET /api/v1alpha1/storage/storageclasses/metrics"
+func GetScMetricsList(request *restful.Request, response *restful.Response) {
+	result, err := models.GetScItemMetricsList()
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+	}
 	response.WriteAsJson(result)
 }
