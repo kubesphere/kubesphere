@@ -40,6 +40,7 @@ func GetPvcListBySc(storageclass string) (res []v12.PersistentVolumeClaim, err e
 	// Get all persistent volume claims
 	claimList, err := cli.CoreV1().PersistentVolumeClaims("").List(v1.ListOptions{})
 	if err != nil {
+		glog.Errorf("list persistent volumes error: name: \"%s\", error msg: \"%s\"", storageclass, err.Error())
 		return nil, err
 	}
 	// Select persistent volume claims which
@@ -63,7 +64,8 @@ func GetScEntityMetrics(scname string) (ScMetrics, error) {
 	// Get PV
 	pvList, err := cli.CoreV1().PersistentVolumes().List(v1.ListOptions{})
 	if err != nil {
-		glog.Error(err)
+		glog.Errorf("list persistent volume request error: error msg: \"%s\"", err.Error())
+		return ScMetrics{}, err
 	}
 	// Get PVC
 	pvcList, err := GetPvcListBySc(scname)
@@ -95,6 +97,7 @@ func GetScEntity(scname string) (res v13.StorageClass, err error) {
 	// Get SC
 	sc, err := cli.StorageV1().StorageClasses().Get(scname, v1.GetOptions{})
 	if err != nil {
+		glog.Errorf("get storage class request error: name: \"%s\", error msg: \"%s\"", scname, err.Error())
 		return v13.StorageClass{}, err
 	}
 	return *sc, nil
@@ -124,6 +127,7 @@ func GetScItemMetricsList() (res ScMetricsItemList, err error) {
 	// Get StorageClass list
 	scList, err := cli.StorageV1().StorageClasses().List(v1.ListOptions{})
 	if err != nil {
+		glog.Errorf("list storage classes request error: error msg: \"%s\"", err.Error())
 		return ScMetricsItemList{}, err
 	}
 	if scList == nil {
@@ -132,11 +136,11 @@ func GetScItemMetricsList() (res ScMetricsItemList, err error) {
 	// Set return value
 	res = ScMetricsItemList{}
 	for _, v := range scList.Items {
-		metrics, err := GetScEntityMetrics(v.GetName())
+		item, err := GetScItemMetrics(v.GetName())
 		if err != nil {
 			return ScMetricsItemList{}, err
 		}
-		res.Items = append(res.Items, ScMetricsItem{v.GetName(), metrics})
+		res.Items = append(res.Items, item)
 	}
 	return res, nil
 }
