@@ -239,67 +239,55 @@ func QueryRegistries(project string) ([]Registries, error) {
 func ListAllRegistries() ([]Registries, error) {
 
 	result := make([]Registries, 0)
-
+	k8sclient := kubeclient.NewK8sClient()
 	var registries Registries
 	var options meta_v1.ListOptions
+	options.LabelSelector = "app=dockerhubkey"
 
-	k8sclient := kubeclient.NewK8sClient()
-	projects, err := k8sclient.CoreV1().Namespaces().List(options)
+	secrets, err := k8sclient.CoreV1().Secrets("").List(options)
+
 	if err != nil {
-
 		return result, err
 	}
 
-	options.LabelSelector = "app=dockerhubkey"
+	if len(secrets.Items) > 0 {
 
-	for _, project := range projects.Items {
+		for _, secret := range secrets.Items {
 
-		secrets, err := k8sclient.CoreV1().Secrets(project.Name).List(options)
+			registries.DisplayName = secret.Name
+			registries.AuthProject = secret.Namespace
+			var data map[string]interface{}
+			err := json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
 
-		if err != nil {
-			return result, err
-		}
+			if err != nil {
 
-		if len(secrets.Items) > 0 {
+				glog.Errorln(err)
+				return result, err
 
-			for _, secret := range secrets.Items {
+			}
 
-				registries.DisplayName = secret.Name
-				registries.AuthProject = secret.Namespace
-				var data map[string]interface{}
-				err := json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
+			hostMap := data["auths"].(map[string]interface{})
 
-				if err != nil {
+			for key, val := range hostMap {
 
-					glog.Errorln(err)
-					return result, err
+				registries.RegServerHost = key
+				info := val.(map[string]interface{})
+				registries.RegUsername = info["username"].(string)
+				registries.RegPassword = info["password"].(string)
 
-				}
+			}
 
-				hostMap := data["auths"].(map[string]interface{})
+			registries.Annotations = secret.Annotations
 
-				for key, val := range hostMap {
+			if len(result) == 0 {
 
-					registries.RegServerHost = key
-					info := val.(map[string]interface{})
-					registries.RegUsername = info["username"].(string)
-					registries.RegPassword = info["password"].(string)
+				result = append(result, registries)
 
-				}
+			} else {
 
-				registries.Annotations = secret.Annotations
-
-				if len(result) == 0 {
+				if !containSame(registries, result) {
 
 					result = append(result, registries)
-
-				} else {
-
-					if !containSame(registries, result) {
-
-						result = append(result, registries)
-
-					}
 
 				}
 
@@ -310,33 +298,6 @@ func ListAllRegistries() ([]Registries, error) {
 	}
 
 	return result, nil
-
-}
-
-//delete registries
-
-func DeleteRegistries(name string) (constants.MessageResponse, error) {
-
-	var msg constants.MessageResponse
-
-	k8sclient := kubeclient.NewK8sClient()
-	var options meta_v1.ListOptions
-	projects, err := k8sclient.CoreV1().Namespaces().List(options)
-	if err != nil {
-
-		return msg, err
-
-	}
-	var deloptions *meta_v1.DeleteOptions
-
-	for _, project := range projects.Items {
-
-		k8sclient.CoreV1().Secrets(project.Name).Delete(name, deloptions)
-
-	}
-	msg.Message = "success"
-
-	return msg, nil
 
 }
 
@@ -357,6 +318,36 @@ func containSame(registries Registries, list []Registries) bool {
 
 }
 
+//delete registries
+
+func DeleteRegistries(name string) (constants.MessageResponse, error) {
+
+	var msg constants.MessageResponse
+	k8sclient := kubeclient.NewK8sClient()
+
+	var options meta_v1.ListOptions
+	options.FieldSelector = "metadata.name=" + name
+	secretList, err := k8sclient.CoreV1().Secrets("").List(options)
+
+	if err != nil {
+		return msg, err
+	}
+
+	if len(secretList.Items) > 0 {
+		for _, secret := range secretList.Items {
+			err := k8sclient.CoreV1().Secrets(secret.Namespace).Delete(secret.Name, &meta_v1.DeleteOptions{})
+			if err != nil {
+				return msg, err
+			}
+		}
+	}
+	msg.Message = "success"
+	return msg, nil
+
+}
+
+//update registries
+
 func UpdateRegistries(name string, registries Registries) (Registries, error) {
 
 	DeleteRegistries(name)
@@ -370,19 +361,14 @@ func UpdateRegistries(name string, registries Registries) (Registries, error) {
 	secret.APIVersion = APIVERSION
 	secret.Type = TYPE
 	secret.Name = registries.DisplayName
-
 	authinfo := NewAuthInfo(registries)
 	data := make(map[string][]byte)
 	data[".dockerconfigjson"] = convert2DockerJson(*authinfo)
-
 	secret.Data = data
 	labels := make(map[string]string)
-
 	labels["app"] = "dockerhubkey"
 	secret.Labels = labels
-
 	annotations := make(map[string]string)
-
 	for key, value := range registries.Annotations.(map[string]interface{}) {
 
 		annotations[key] = value.(string)
@@ -406,52 +392,45 @@ func UpdateRegistries(name string, registries Registries) (Registries, error) {
 
 }
 
+// Get registries detail
 func GetReisgtries(name string) (Registries, error) {
 
 	var reg Registries
 
 	k8sclient := kubeclient.NewK8sClient()
-	var getoptions meta_v1.GetOptions
 
-	getoptions.Kind = SECRET
 	var options meta_v1.ListOptions
-	projects, err := k8sclient.CoreV1().Namespaces().List(options)
+	options.FieldSelector = "metadata.name=" + name
+	secretList, err := k8sclient.CoreV1().Secrets("").List(options)
 
 	if err != nil {
 
 		return reg, err
 	}
 
-	if len(projects.Items) > 0 {
+	if len(secretList.Items) > 0 {
 
-		for _, project := range projects.Items {
+		for _, secret := range secretList.Items {
 
-			secret, err := k8sclient.CoreV1().Secrets(project.Name).Get(name, getoptions)
+			secret, err := k8sclient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, meta_v1.GetOptions{})
 
 			if err == nil {
-
 				reg.DisplayName = secret.Name
 				var data map[string]interface{}
 				json.Unmarshal(secret.Data[".dockerconfigjson"], &data)
-
 				if len(reg.AuthProject) == 0 {
 					reg.AuthProject = secret.Namespace
 				} else {
 					reg.AuthProject = reg.AuthProject + "," + secret.Namespace
 				}
-
 				hostMap := data["auths"].(map[string]interface{})
-
 				for key, val := range hostMap {
-
 					reg.RegServerHost = key
 					info := val.(map[string]interface{})
 					reg.RegUsername = info["username"].(string)
 					reg.RegPassword = info["password"].(string)
-
 				}
 				reg.Annotations = secret.Annotations
-
 			}
 
 		}
