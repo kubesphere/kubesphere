@@ -19,10 +19,10 @@ produces:
 consumes:
   - "application/json"
   - "text/plain"
-basePath: "/v1.37"
+basePath: "/v1.38"
 info:
   title: "Docker Engine API"
-  version: "1.37"
+  version: "1.38"
   x-logo:
     url: "https://docs.docker.com/images/logo-docker-main.png"
   description: |
@@ -49,8 +49,8 @@ info:
     the URL is not supported by the daemon, a HTTP `400 Bad Request` error message
     is returned.
 
-    If you omit the version-prefix, the current version of the API (v1.37) is used.
-    For example, calling `/info` is the same as calling `/v1.37/info`. Using the
+    If you omit the version-prefix, the current version of the API (v1.38) is used.
+    For example, calling `/info` is the same as calling `/v1.38/info`. Using the
     API without a version-prefix is deprecated and will be removed in a future release.
 
     Engine releases in the near future should support this version of the API,
@@ -772,6 +772,16 @@ definitions:
               - "default"
               - "process"
               - "hyperv"
+          MaskedPaths:
+            type: "array"
+            description: "The list of paths to be masked inside the container (this overrides the default set of paths)"
+            items:
+              type: "string"
+          ReadonlyPaths:
+            type: "array"
+            description: "The list of paths to be set as read-only inside the container (this overrides the default set of paths)"
+            items:
+              type: "string"
 
   ContainerConfig:
     description: "Configuration for a container that is portable between hosts"
@@ -1859,6 +1869,13 @@ definitions:
                 type: "string"
                 x-nullable: false
                 example: "plugins.sock"
+              ProtocolScheme:
+                type: "string"
+                example: "some.protocol/v1.0"
+                description: "Protocol to use for clients connecting to the plugin."
+                enum:
+                  - ""
+                  - "moby.plugins.http/v1"
           Entrypoint:
             type: "array"
             items:
@@ -2449,7 +2466,15 @@ definitions:
     properties:
       PluginSpec:
         type: "object"
-        description: "Invalid when specified with `ContainerSpec`. *(Experimental release only.)*"
+        description: |
+          Plugin spec for the service.  *(Experimental release only.)*
+
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
         properties:
           Name:
             description: "The name or 'alias' to use for the plugin."
@@ -2476,7 +2501,15 @@ definitions:
                     type: "string"
       ContainerSpec:
         type: "object"
-        description: "Invalid when specified with `PluginSpec`."
+        description: |
+          Container spec for the service.
+
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
         properties:
           Image:
             description: "The image name to use for the container"
@@ -2688,6 +2721,26 @@ definitions:
               - "default"
               - "process"
               - "hyperv"
+          Init:
+            description: "Run an init inside the container that forwards signals and reaps processes. This field is omitted if empty, and the default (as configured on the daemon) is used."
+            type: "boolean"
+            x-nullable: true
+      NetworkAttachmentSpec:
+        description: |
+          Read-only spec type for non-swarm containers attached to swarm overlay
+          networks.
+
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
+        type: "object"
+        properties:
+          ContainerID:
+            description: "ID of the container represented by this task"
+            type: "string"
       Resources:
         description: "Resource requirements which apply to each individual container created as part of the service."
         type: "object"
@@ -3815,7 +3868,7 @@ definitions:
           - "process"
       InitBinary:
         description: |
-          Name and, optional, path of the the `docker-init` binary.
+          Name and, optional, path of the `docker-init` binary.
 
           If the path is omitted, the daemon searches the host's `$PATH` for the
           binary and uses the first result.
@@ -4033,7 +4086,7 @@ definitions:
           - "https://registry-3.docker.io/"
       Secure:
         description: |
-          Indicates if the the registry is part of the list of insecure
+          Indicates if the registry is part of the list of insecure
           registries.
 
           If `false`, the registry is insecure. Insecure registries accept
@@ -4663,7 +4716,11 @@ paths:
               AppArmorProfile:
                 type: "string"
               ExecIDs:
-                type: "string"
+                description: "IDs of exec instances that are running in the container."
+                type: "array"
+                items:
+                  type: "string"
+                x-nullable: true
               HostConfig:
                 $ref: "#/definitions/HostConfig"
               GraphDriver:
@@ -4720,6 +4777,9 @@ paths:
                 StopTimeout: 10
               Created: "2015-01-06T15:47:31.485331387Z"
               Driver: "devicemapper"
+              ExecIDs:
+                - "b35395de42bc8abd327f9dd65d913b9ba28c74d2f0734eeeae84fa1c616a0fca"
+                - "3fc1232e5cd20c8de182ed81178503dc6437f4e7ef12b52cc5e8de020652f1c4"
               HostConfig:
                 MaximumIOps: 0
                 MaximumIOBps: 0
@@ -5095,9 +5155,9 @@ paths:
         This endpoint returns a live stream of a container’s resource usage
         statistics.
 
-        The `precpu_stats` is the CPU statistic of last read, which is used
-        for calculating the CPU usage percentage. It is not the same as the
-        `cpu_stats` field.
+        The `precpu_stats` is the CPU statistic of the *previous* read, and is
+        used to calculate the CPU usage percentage. It is not an exact copy
+        of the `cpu_stats` field.
 
         If either `precpu_stats.online_cpus` or `cpu_stats.online_cpus` is
         nil then for compatibility with older daemons the length of the
