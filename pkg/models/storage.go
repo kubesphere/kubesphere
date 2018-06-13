@@ -5,7 +5,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/golang/glog"
+	v13 "k8s.io/api/storage/v1"
 	"kubesphere.io/kubesphere/pkg/client"
+	"strconv"
 )
 
 type PvcListBySc struct {
@@ -14,13 +17,20 @@ type PvcListBySc struct {
 }
 
 type ScMetrics struct {
-	Name    string         `json:"name"`
-	Metrics StorageMetrics `json:"metrics"`
+	Capacity  string `json:"capacity,omitempty"`
+	Usage     string `json:"usage,omitempty"`
+	PvcNumber string `json:"pvcNumber"`
 }
 
-type StorageMetrics struct {
-	Capacity string `json:"capacity,omitempty"`
-	Usage    string `json:"usage,omitempty"`
+// StorageClass metrics item
+type ScMetricsItem struct {
+	Name    string    `json:"name"`
+	Metrics ScMetrics `json:"metrics"`
+}
+
+// StorageClass metrics items list
+type ScMetricsItemList struct {
+	Items []ScMetricsItem `json:"items"`
 }
 
 // List persistent volume claims of a specific storage class
@@ -45,23 +55,88 @@ func GetPvcListBySc(storageclass string) (res []v12.PersistentVolumeClaim, err e
 	return res, nil
 }
 
-// Get metrics of a specific storage class
-func GetScMetrics(storageclass string) (res StorageMetrics, err error) {
+// Get info of metrics
+func GetScEntityMetrics(scname string) (ScMetrics, error) {
 	// Create Kubernetes client
 	cli := client.NewK8sClient()
-	// Get persistent volumes
+
+	// Get PV
 	pvList, err := cli.CoreV1().PersistentVolumes().List(v1.ListOptions{})
 	if err != nil {
-		return StorageMetrics{}, err
+		glog.Error(err)
+	}
+	// Get PVC
+	pvcList, err := GetPvcListBySc(scname)
+	if err != nil {
+		return ScMetrics{}, err
 	}
 
+	// Get storage usage
+	// Gathering usage of a specific StorageClass
 	var total resource.Quantity
-	// Gathering metrics of a specific storage class
 	for _, volume := range pvList.Items {
-		if volume.Spec.StorageClassName != storageclass {
+		if volume.Spec.StorageClassName != scname {
 			continue
 		}
 		total.Add(volume.Spec.Capacity[v12.ResourceStorage])
 	}
-	return StorageMetrics{Usage: total.String()}, nil
+	usage := total.String()
+
+	// Get PVC number
+	pvcNum := len(pvcList)
+
+	return ScMetrics{Usage: usage, PvcNumber: strconv.Itoa(pvcNum)}, nil
+}
+
+// Get raw information of a SC
+func GetScEntity(scname string) (res v13.StorageClass, err error) {
+	// Create Kubernetes client
+	cli := client.NewK8sClient()
+	// Get SC
+	sc, err := cli.StorageV1().StorageClasses().Get(scname, v1.GetOptions{})
+	if err != nil {
+		return v13.StorageClass{}, err
+	}
+	return *sc, nil
+}
+
+// Get SC item
+func GetScItemMetrics(scname string) (res ScMetricsItem, err error) {
+	// Check SC exist
+	_, err = GetScEntity(scname)
+	if err != nil {
+		return ScMetricsItem{}, err
+	}
+
+	metrics, err := GetScEntityMetrics(scname)
+	if err != nil {
+		return ScMetricsItem{}, err
+	}
+
+	result := ScMetricsItem{scname, metrics}
+	return result, nil
+}
+
+// Get SC item list
+func GetScItemMetricsList() (res ScMetricsItemList, err error) {
+	// Create Kubernetes client
+	cli := client.NewK8sClient()
+	// Get StorageClass list
+	scList, err := cli.StorageV1().StorageClasses().List(v1.ListOptions{})
+	if err != nil {
+		return ScMetricsItemList{}, err
+	}
+	if scList == nil {
+		return ScMetricsItemList{}, nil
+	}
+	// Set return value
+	res = ScMetricsItemList{}
+	for _, v := range scList.Items {
+		metrics, err := GetScEntityMetrics(v.GetName())
+		if err != nil {
+			return ScMetricsItemList{}, err
+		}
+		res.Items = append(res.Items, ScMetricsItem{v.GetName(), metrics})
+	}
+	return res, nil
 }
