@@ -1,12 +1,10 @@
 package models
 
 import (
-	"k8s.io/api/rbac/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"strings"
-
 	"github.com/golang/glog"
+	"k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
 )
@@ -143,7 +141,7 @@ func GetRoles(username string) ([]v1.Role, error) {
 						role.Namespace = roleBinding.Namespace
 						roles = append(roles, role)
 						break
-					} else if strings.HasSuffix(err.Error(), "not found") {
+					} else if apierrors.IsNotFound(err) {
 						glog.Infoln(err.Error())
 						break
 					} else {
@@ -156,7 +154,7 @@ func GetRoles(username string) ([]v1.Role, error) {
 						if err == nil {
 							roles = append(roles, *rule)
 							break
-						} else if strings.HasSuffix(err.Error(), "not found") {
+						} else if apierrors.IsNotFound(err) {
 							glog.Infoln(err.Error())
 							break
 						} else {
@@ -193,7 +191,7 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 					if err == nil {
 						roles = append(roles, *rule)
 						break
-					} else if strings.HasSuffix(err.Error(), "not found") {
+					} else if apierrors.IsNotFound(err) {
 						glog.Infoln(err.Error())
 						break
 					} else {

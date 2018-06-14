@@ -18,8 +18,15 @@
 package iam
 
 import (
+	"encoding/json"
+	"io/ioutil"
+
+	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
 )
+
+const rulesConfigPath = "/etc/kubesphere/rules.json"
+const clusterRulesConfigPath = "/etc/kubesphere/clusterrules.json"
 
 type roleList struct {
 	ClusterRoles []v1.ClusterRole `json:"clusterRoles" protobuf:"bytes,2,rep,name=clusterRoles"`
@@ -41,14 +48,35 @@ type userRuleList struct {
 	Rules        map[string][]rule `json:"rules"`
 }
 
-// TODO stored in etcd, allow updates
+func init() {
+	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
+	if err == nil {
+		config := &[]rule{}
+		json.Unmarshal(rulesConfig, config)
+		if len(*config) > 0 {
+			roleRuleGroup = *config
+			glog.Info("rules config load success")
+		}
+	}
+
+	clusterRulesConfig, err := ioutil.ReadFile(clusterRulesConfigPath)
+
+	if err == nil {
+		config := &[]rule{}
+		json.Unmarshal(clusterRulesConfig, config)
+		if len(*config) > 0 {
+			clusterRoleRuleGroup = *config
+			glog.Info("cluster rules config load success")
+		}
+	}
+}
+
 var (
 	clusterRoleRuleGroup = []rule{projects, users, roles, images,
-		volumes, storageclasses, nodes, appCatalog, apps, components,
-		deployments, statefulsets, daemonsets, services, routes}
+		volumes, storageclasses, nodes, appCatalog, apps, components, deployments, statefulsets, daemonsets, pods, services, routes}
 
-	roleRuleGroup = []rule{project, deployments, statefulsets, daemonsets,
-		services, routes}
+	roleRuleGroup = []rule{project, deployments, statefulsets, daemonsets, pods,
+		services, routes, volumes}
 
 	components = rule{
 		Name: "components",
@@ -86,6 +114,15 @@ var (
 					},
 				},
 			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+				},
+			},
 			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
@@ -95,12 +132,6 @@ var (
 					},
 				},
 			},
-		},
-	}
-
-	project = rule{
-		Name: "project",
-		Actions: []action{
 			{Name: "members",
 				Rules: []v1.PolicyRule{
 					{
@@ -121,6 +152,48 @@ var (
 			},
 		},
 	}
+
+	project = rule{
+		Name: "projects",
+		Actions: []action{
+			{Name: "members",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "create", "delete"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"rolebindings"},
+					},
+				},
+			},
+			{Name: "member_roles",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "create", "delete", "patch", "update"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"roles"},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+				},
+			},
+		},
+	}
 	users = rule{
 		Name: "users",
 		Actions: []action{
@@ -134,7 +207,7 @@ var (
 					{
 						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"rolebindings", "clusterrolebindings"},
+						Resources: []string{"clusterrolebindings"},
 					},
 				},
 			},
@@ -145,6 +218,11 @@ var (
 						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
+					{
+						Verbs:     []string{"create", "delete", "deletecollection"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"clusterrolebindings"},
+					},
 				},
 			},
 			{Name: "edit",
@@ -153,6 +231,11 @@ var (
 						Verbs:     []string{"update", "patch"},
 						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
+					},
+					{
+						Verbs:     []string{"create", "delete", "deletecollection"},
+						APIGroups: []string{"rbac.authorization.k8s.io"},
+						Resources: []string{"clusterrolebindings"},
 					},
 				},
 			},
@@ -176,7 +259,7 @@ var (
 					{
 						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles", "clusterroles"},
+						Resources: []string{"clusterroles"},
 					},
 				},
 			},
@@ -186,7 +269,7 @@ var (
 					{
 						Verbs:     []string{"create"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles", "clusterroles"},
+						Resources: []string{"clusterroles"},
 					},
 				},
 			},
@@ -195,7 +278,7 @@ var (
 					{
 						Verbs:     []string{"update", "patch"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles", "clusterroles"},
+						Resources: []string{"clusterroles"},
 					},
 				},
 			},
@@ -204,16 +287,7 @@ var (
 					{
 						Verbs:     []string{"delete", "deletecollection"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles", "clusterroles"},
-					},
-				},
-			},
-			{Name: "role_binding",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create", "delete", "deletecollection"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"rolebindings", "clusterrolebindings"},
+						Resources: []string{"clusterroles"},
 					},
 				},
 			},
@@ -232,6 +306,24 @@ var (
 					},
 				},
 			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"nodes"},
+					},
+				},
+			},
+			{Name: "drain",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"*"},
+						APIGroups: []string{"kubesphere.io"},
+						Resources: []string{"nodes"},
+					},
+				},
+			},
 		},
 	}
 
@@ -245,18 +337,14 @@ var (
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"list"},
 						APIGroups: []string{""},
-						Resources: []string{"persistentvolumes"},
+						Resources: []string{"namespaces"},
 					},
 				},
 			},
-			{Name: "delete",
+			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -269,6 +357,15 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"persistentvolumes"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
@@ -330,6 +427,11 @@ var (
 						Resources: []string{
 							"secrets",
 						},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
 					},
 				},
 			},
@@ -436,6 +538,16 @@ var (
 						APIGroups: []string{"apps"},
 						Resources: []string{"statefulsets"},
 					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"pods", "pods/log", "pods/status"},
+					},
 				},
 			},
 			{Name: "create",
@@ -478,6 +590,16 @@ var (
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"daemonsets"},
 					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"pods", "pods/log", "pods/status"},
+					},
 				},
 			},
 			{Name: "create",
@@ -519,6 +641,11 @@ var (
 						Verbs:     []string{"get", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"services"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
 					},
 				},
 			},
@@ -563,6 +690,11 @@ var (
 						APIGroups: []string{"extensions"},
 						Resources: []string{"ingresses"},
 					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
 				},
 			},
 			{Name: "create",
@@ -603,11 +735,17 @@ var (
 					{
 						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{
-							"deployments",
-							"deployments/rollback",
-							"deployments/scale",
-						},
+						Resources: []string{"deployments", "deployments/scale"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"pods", "pods/log", "pods/status"},
 					},
 				},
 			},
@@ -646,6 +784,21 @@ var (
 						Verbs:     []string{"create", "update", "patch", "delete"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"deployments/scale"},
+					},
+				},
+			},
+		},
+	}
+
+	pods = rule{
+		Name: "pods",
+		Actions: []action{
+			{Name: "terminal",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"*"},
+						APIGroups: []string{"kubesphere.io"},
+						Resources: []string{"terminal"},
 					},
 				},
 			},

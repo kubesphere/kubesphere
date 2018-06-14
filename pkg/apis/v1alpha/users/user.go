@@ -21,6 +21,8 @@ import (
 
 	"github.com/emicklei/go-restful"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
@@ -60,13 +62,14 @@ func delUser(req *restful.Request, resp *restful.Response) {
 
 	err := models.DelKubectlPod(user)
 
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
 	err = models.DelKubeConfig(user)
-	if err != nil {
+
+	if err != nil && !apierrors.IsNotFound(err) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
