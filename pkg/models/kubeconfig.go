@@ -245,7 +245,7 @@ func CreateKubeConfig(user string) error {
 	}
 
 	data := map[string]string{"config": string(config)}
-	var configmap = v1.ConfigMap{metav1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, metav1.ObjectMeta{Name: user}, data}
+	var configmap = v1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: user}, Data: data}
 	_, err = k8sClient.CoreV1().ConfigMaps(kubectlNamespace).Create(&configmap)
 	if err != nil {
 		glog.Errorln(err)

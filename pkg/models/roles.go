@@ -139,7 +139,7 @@ func GetRoles(username string) ([]v1.Role, error) {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
 					clusterRole, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
 					if err == nil {
-						var role = v1.Role(*clusterRole)
+						var role = v1.Role{TypeMeta: (*clusterRole).TypeMeta, ObjectMeta: (*clusterRole).ObjectMeta, Rules: (*clusterRole).Rules}
 						role.Namespace = roleBinding.Namespace
 						roles = append(roles, role)
 						break
