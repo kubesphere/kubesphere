@@ -1,7 +1,6 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/docker/docker/api/types"
 )
 
@@ -19,34 +20,29 @@ func (cli *Client) ContainerStatPath(ctx context.Context, containerID, path stri
 	query := url.Values{}
 	query.Set("path", filepath.ToSlash(path)) // Normalize the paths used in the API.
 
-	urlStr := "/containers/" + containerID + "/archive"
+	urlStr := fmt.Sprintf("/containers/%s/archive", containerID)
 	response, err := cli.head(ctx, urlStr, query, nil)
 	if err != nil {
-		return types.ContainerPathStat{}, wrapResponseError(err, response, "container:path", containerID+":"+path)
+		return types.ContainerPathStat{}, err
 	}
 	defer ensureReaderClosed(response)
 	return getContainerPathStatFromHeader(response.header)
 }
 
 // CopyToContainer copies content into the container filesystem.
-// Note that `content` must be a Reader for a TAR archive
-func (cli *Client) CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, options types.CopyToContainerOptions) error {
+func (cli *Client) CopyToContainer(ctx context.Context, container, path string, content io.Reader, options types.CopyToContainerOptions) error {
 	query := url.Values{}
-	query.Set("path", filepath.ToSlash(dstPath)) // Normalize the paths used in the API.
+	query.Set("path", filepath.ToSlash(path)) // Normalize the paths used in the API.
 	// Do not allow for an existing directory to be overwritten by a non-directory and vice versa.
 	if !options.AllowOverwriteDirWithFile {
 		query.Set("noOverwriteDirNonDir", "true")
 	}
 
-	if options.CopyUIDGID {
-		query.Set("copyUIDGID", "true")
-	}
-
-	apiPath := "/containers/" + containerID + "/archive"
+	apiPath := fmt.Sprintf("/containers/%s/archive", container)
 
 	response, err := cli.putRaw(ctx, apiPath, query, content, nil)
 	if err != nil {
-		return wrapResponseError(err, response, "container:path", containerID+":"+dstPath)
+		return err
 	}
 	defer ensureReaderClosed(response)
 
@@ -58,15 +54,15 @@ func (cli *Client) CopyToContainer(ctx context.Context, containerID, dstPath str
 }
 
 // CopyFromContainer gets the content from the container and returns it as a Reader
-// for a TAR archive to manipulate it in the host. It's up to the caller to close the reader.
-func (cli *Client) CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, types.ContainerPathStat, error) {
+// to manipulate it in the host. It's up to the caller to close the reader.
+func (cli *Client) CopyFromContainer(ctx context.Context, container, srcPath string) (io.ReadCloser, types.ContainerPathStat, error) {
 	query := make(url.Values, 1)
 	query.Set("path", filepath.ToSlash(srcPath)) // Normalize the paths used in the API.
 
-	apiPath := "/containers/" + containerID + "/archive"
+	apiPath := fmt.Sprintf("/containers/%s/archive", container)
 	response, err := cli.get(ctx, apiPath, query, nil)
 	if err != nil {
-		return nil, types.ContainerPathStat{}, wrapResponseError(err, response, "container:path", containerID+":"+srcPath)
+		return nil, types.ContainerPathStat{}, err
 	}
 
 	if response.statusCode != http.StatusOK {
