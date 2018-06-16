@@ -1,10 +1,9 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
+	"github.com/docker/docker/api/types/filters"
 	"net/url"
 	"regexp"
-
-	"github.com/docker/docker/api/types/filters"
 )
 
 var headerRegexp = regexp.MustCompile(`\ADocker/.+\s\((.+)\)\z`)
@@ -24,7 +23,7 @@ func getDockerOS(serverHeader string) string {
 func getFiltersQuery(f filters.Args) (url.Values, error) {
 	query := url.Values{}
 	if f.Len() > 0 {
-		filterJSON, err := filters.ToJSON(f)
+		filterJSON, err := filters.ToParam(f)
 		if err != nil {
 			return query, err
 		}

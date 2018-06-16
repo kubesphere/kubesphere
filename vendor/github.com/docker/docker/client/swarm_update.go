@@ -1,15 +1,15 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"strconv"
 
 	"github.com/docker/docker/api/types/swarm"
+	"golang.org/x/net/context"
 )
 
-// SwarmUpdate updates the swarm.
+// SwarmUpdate updates the Swarm.
 func (cli *Client) SwarmUpdate(ctx context.Context, version swarm.Version, swarm swarm.Spec, flags swarm.UpdateFlags) error {
 	query := url.Values{}
 	query.Set("version", strconv.FormatUint(version.Index, 10))
