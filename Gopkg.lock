@@ -8,6 +8,12 @@
   version = "v0.4.7"
 
 [[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -19,8 +25,8 @@
     "pkg/transport",
     "pkg/types"
   ]
-  revision = "56536de5511128d0c7997aa2b792a4de575da536"
-  version = "v3.3.7"
+  revision = "33245c6b5b49130ca99280408fadfab01aac0e48"
+  version = "v3.3.8"
 
 [[projects]]
   branch = "master"
@@ -32,7 +38,6 @@
   revision = "749f6afb4572201e3c37325d0ffedb6f32be8950"
 
 [[projects]]
-  branch = "master"
   name = "github.com/docker/docker"
   packages = [
     "api",
@@ -47,13 +52,17 @@
     "api/types/registry",
     "api/types/strslice",
     "api/types/swarm",
-    "api/types/swarm/runtime",
     "api/types/time",
     "api/types/versions",
     "api/types/volume",
-    "client"
+    "client",
+    "pkg/ioutils",
+    "pkg/longpath",
+    "pkg/system",
+    "pkg/tlsconfig"
   ]
-  revision = "692df4699c3dcbe4645e9b90cc40091b1f2519d4"
+  revision = "90d35abf7b3535c1c319c872900fbd76374e521c"
+  version = "v17.05.0-ce-rc3"
 
 [[projects]]
   branch = "master"
@@ -70,6 +79,12 @@
   packages = ["."]
   revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
   version = "v0.3.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/docker/libtrust"
+  packages = ["."]
+  revision = "aabc10ec26b754e797f9028f4589c5b7bd90dc20"
 
 [[projects]]
   branch = "master"
@@ -183,15 +198,6 @@
   version = "v1.0.0-rc1"
 
 [[projects]]
-  name = "github.com/opencontainers/image-spec"
-  packages = [
-    "specs-go",
-    "specs-go/v1"
-  ]
-  revision = "d60099175f88c47cd379c4738d158884749ed235"
-  version = "v1.0.1"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -207,7 +213,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "a8fb68e7206f8c78be19b432c58eb52a6aa34462"
 
 [[projects]]
   branch = "master"
@@ -233,7 +239,7 @@
     "unix",
     "windows"
   ]
-  revision = "8ee9f3e146b708d082f4bab861e5759d1edf8c00"
+  revision = "8014b7b116a67fea23fbb82cd834c9ad656ea44b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -468,6 +474,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3a835656d614522efea125721424042ef0f7159446907bedccef8fd249a69e0d"
+  inputs-digest = "b2288044e5efe64ef14fdfd4c683ef878fa2908149ed66c095dce9d96e39b333"
   solver-name = "gps-cdcl"
   solver-version = 1
