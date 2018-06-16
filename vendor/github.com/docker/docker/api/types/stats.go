@@ -1,6 +1,6 @@
 // Package types is used for API stability in the types and response to the
 // consumers of the API stats endpoint.
-package types // import "github.com/docker/docker/api/types"
+package types
 
 import "time"
 
@@ -46,9 +46,6 @@ type CPUStats struct {
 
 	// System Usage. Linux only.
 	SystemUsage uint64 `json:"system_cpu_usage,omitempty"`
-
-	// Online CPUs. Linux only.
-	OnlineCPUs uint32 `json:"online_cpus,omitempty"`
 
 	// Throttling Data. Linux only.
 	ThrottlingData ThrottlingData `json:"throttling_data,omitempty"`

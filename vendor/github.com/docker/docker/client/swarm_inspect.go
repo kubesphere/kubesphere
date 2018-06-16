@@ -1,13 +1,13 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/docker/docker/api/types/swarm"
+	"golang.org/x/net/context"
 )
 
-// SwarmInspect inspects the swarm.
+// SwarmInspect inspects the Swarm.
 func (cli *Client) SwarmInspect(ctx context.Context) (swarm.Swarm, error) {
 	serverResp, err := cli.get(ctx, "/swarm", nil, nil)
 	if err != nil {

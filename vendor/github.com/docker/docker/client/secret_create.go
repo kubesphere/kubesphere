@@ -1,20 +1,19 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"golang.org/x/net/context"
 )
 
 // SecretCreate creates a new Secret.
 func (cli *Client) SecretCreate(ctx context.Context, secret swarm.SecretSpec) (types.SecretCreateResponse, error) {
+	var headers map[string][]string
+
 	var response types.SecretCreateResponse
-	if err := cli.NewVersionError("1.25", "secret create"); err != nil {
-		return response, err
-	}
-	resp, err := cli.post(ctx, "/secrets/create", nil, secret, nil)
+	resp, err := cli.post(ctx, "/secrets/create", nil, secret, headers)
 	if err != nil {
 		return response, err
 	}

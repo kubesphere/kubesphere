@@ -1,4 +1,4 @@
-package swarm // import "github.com/docker/docker/api/types/swarm"
+package swarm
 
 // Node represents a node.
 type Node struct {
@@ -52,7 +52,6 @@ type NodeDescription struct {
 	Platform  Platform          `json:",omitempty"`
 	Resources Resources         `json:",omitempty"`
 	Engine    EngineDescription `json:",omitempty"`
-	TLSInfo   TLSInfo           `json:",omitempty"`
 }
 
 // Platform represents the platform (Arch/OS).

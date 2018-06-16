@@ -11,7 +11,7 @@ type Plugin struct {
 	// Required: true
 	Config PluginConfig `json:"Config"`
 
-	// True if the plugin is running. False if the plugin is not running, only installed.
+	// True when the plugin is running. False when the plugin is not running, only installed.
 	// Required: true
 	Enabled bool `json:"Enabled"`
 
@@ -42,9 +42,6 @@ type PluginConfig struct {
 	// Required: true
 	Description string `json:"Description"`
 
-	// Docker Version used to create the plugin
-	DockerVersion string `json:"DockerVersion,omitempty"`
-
 	// documentation
 	// Required: true
 	Documentation string `json:"Documentation"`
@@ -61,10 +58,6 @@ type PluginConfig struct {
 	// Required: true
 	Interface PluginConfigInterface `json:"Interface"`
 
-	// ipc host
-	// Required: true
-	IpcHost bool `json:"IpcHost"`
-
 	// linux
 	// Required: true
 	Linux PluginConfigLinux `json:"Linux"`
@@ -76,10 +69,6 @@ type PluginConfig struct {
 	// network
 	// Required: true
 	Network PluginConfigNetwork `json:"Network"`
-
-	// pid host
-	// Required: true
-	PidHost bool `json:"PidHost"`
 
 	// propagated mount
 	// Required: true
@@ -120,9 +109,6 @@ type PluginConfigArgs struct {
 // PluginConfigInterface The interface between Docker and the plugin
 // swagger:model PluginConfigInterface
 type PluginConfigInterface struct {
-
-	// Protocol to use for clients connecting to the plugin.
-	ProtocolScheme string `json:"ProtocolScheme,omitempty"`
 
 	// socket
 	// Required: true

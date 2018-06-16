@@ -15,9 +15,9 @@
 package terminal
 
 import (
-	"net/http"
-
 	"github.com/emicklei/go-restful"
+
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/models"
 )
