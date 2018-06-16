@@ -31,6 +31,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET(subPath+"/{namespace}").To(handleGetComponentsByNamespace).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
 }
 
 //get all components
@@ -39,6 +43,25 @@ func handleGetComponents(request *restful.Request, response *restful.Response) {
 
 	result, err := models.GetComponents()
 
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
+
+}
+
+//get components from ns
+
+func handleGetComponentsByNamespace(request *restful.Request, response *restful.Response) {
+
+	ns := request.PathParameter("namespace")
+
+	result, err := models.GetComponentsByNamespace(ns)
 	if err != nil {
 
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})

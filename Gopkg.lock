@@ -8,6 +8,12 @@
   version = "v0.4.7"
 
 [[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -32,7 +38,6 @@
   revision = "749f6afb4572201e3c37325d0ffedb6f32be8950"
 
 [[projects]]
-  branch = "master"
   name = "github.com/docker/docker"
   packages = [
     "api",
@@ -47,13 +52,17 @@
     "api/types/registry",
     "api/types/strslice",
     "api/types/swarm",
-    "api/types/swarm/runtime",
     "api/types/time",
     "api/types/versions",
     "api/types/volume",
-    "client"
+    "client",
+    "pkg/ioutils",
+    "pkg/longpath",
+    "pkg/system",
+    "pkg/tlsconfig"
   ]
-  revision = "de0abf4315fd1d737aedc2e9f410c8125ad1a7fc"
+  revision = "90d35abf7b3535c1c319c872900fbd76374e521c"
+  version = "v17.05.0-ce-rc3"
 
 [[projects]]
   branch = "master"
@@ -70,6 +79,12 @@
   packages = ["."]
   revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
   version = "v0.3.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/docker/libtrust"
+  packages = ["."]
+  revision = "aabc10ec26b754e797f9028f4589c5b7bd90dc20"
 
 [[projects]]
   branch = "master"
@@ -199,15 +214,6 @@
   packages = ["."]
   revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
   version = "v1.0.0-rc1"
-
-[[projects]]
-  name = "github.com/opencontainers/image-spec"
-  packages = [
-    "specs-go",
-    "specs-go/v1"
-  ]
-  revision = "d60099175f88c47cd379c4738d158884749ed235"
-  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -492,6 +498,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cd655ecbe7567a163c75d4b4fb9f0e51f1b6a8c94cfe28a2542a82990e610741"
+  inputs-digest = "a1aa0da3f3fabe007676d84dfb6b91542cb3f3d652bf70e982ee8451e094c0e4"
   solver-name = "gps-cdcl"
   solver-version = 1

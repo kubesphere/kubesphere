@@ -88,7 +88,7 @@ func RegistryLoginAuth(authinfo AuthInfo) ValidationMsg {
 	datastr := []byte(authinfo.Username + ":" + authinfo.Password)
 	auth := base64.StdEncoding.EncodeToString(datastr)
 	ctx := context.Background()
-	cli, err := client.NewClientWithOpts()
+	cli, err := client.NewEnvClient()
 
 	if err != nil {
 

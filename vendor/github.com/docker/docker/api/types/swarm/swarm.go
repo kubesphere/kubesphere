@@ -1,15 +1,13 @@
-package swarm // import "github.com/docker/docker/api/types/swarm"
+package swarm
 
 import "time"
 
-// ClusterInfo represents info about the cluster for outputting in "info"
+// ClusterInfo represents info about the cluster for outputing in "info"
 // it contains the same information as "Swarm", but without the JoinTokens
 type ClusterInfo struct {
 	ID string
 	Meta
-	Spec                   Spec
-	TLSInfo                TLSInfo
-	RootRotationInProgress bool
+	Spec Spec
 }
 
 // Swarm represents a swarm.
@@ -109,16 +107,6 @@ type CAConfig struct {
 	// ExternalCAs is a list of CAs to which a manager node will make
 	// certificate signing requests for node certificates.
 	ExternalCAs []*ExternalCA `json:",omitempty"`
-
-	// SigningCACert and SigningCAKey specify the desired signing root CA and
-	// root CA key for the swarm.  When inspecting the cluster, the key will
-	// be redacted.
-	SigningCACert string `json:",omitempty"`
-	SigningCAKey  string `json:",omitempty"`
-
-	// If this value changes, and there is no specified signing cert and key,
-	// then the swarm is forced to generate a new root certificate ane key.
-	ForceRotate uint64 `json:",omitempty"`
 }
 
 // ExternalCAProtocol represents type of external CA.
@@ -138,17 +126,12 @@ type ExternalCA struct {
 	// Options is a set of additional key/value pairs whose interpretation
 	// depends on the specified CA type.
 	Options map[string]string `json:",omitempty"`
-
-	// CACert specifies which root CA is used by this external CA.  This certificate must
-	// be in PEM format.
-	CACert string
 }
 
 // InitRequest is the request used to init a swarm.
 type InitRequest struct {
 	ListenAddr       string
 	AdvertiseAddr    string
-	DataPathAddr     string
 	ForceNewCluster  bool
 	Spec             Spec
 	AutoLockManagers bool
@@ -159,7 +142,6 @@ type InitRequest struct {
 type JoinRequest struct {
 	ListenAddr    string
 	AdvertiseAddr string
-	DataPathAddr  string
 	RemoteAddrs   []string
 	JoinToken     string // accept by secret
 	Availability  NodeAvailability

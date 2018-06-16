@@ -27,6 +27,7 @@ import (
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	kubeclient "kubesphere.io/kubesphere/pkg/client"
@@ -265,9 +266,29 @@ func DrainNode(nodename string) (msg constants.MessageResponse, err error) {
 				return msg, err
 			}
 		}
+	}
+
+	data := []byte(" {\"spec\":{\"unschedulable\":true}}")
+	nodestatus, err := k8sclient.CoreV1().Nodes().Patch(nodename, types.StrategicMergePatchType, data)
+
+	if err != nil {
+
+		glog.Fatal(err)
+		return msg, err
 
 	}
-	msg.Message = fmt.Sprintf("success")
+
+	if nodestatus.Spec.Unschedulable {
+
+		msg.Message = fmt.Sprintf("success")
+
+	} else {
+
+		glog.Fatal(err)
+		return msg, err
+
+	}
+
 	return msg, nil
 
 }
