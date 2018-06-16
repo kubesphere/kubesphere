@@ -20,19 +20,18 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"net"
-	"net/http"
-
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"net"
+	"net/http"
+
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/jobs/cronjobs"
-	"kubesphere.io/kubesphere/pkg/models/jobs/resources"
+	"kubesphere.io/kubesphere/pkg/models/controllers"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
@@ -81,8 +80,8 @@ func (server *kubeSphereServer) run() {
 		glog.Error(err)
 		return
 	}
-	go resources.Run()
-	go cronjobs.Run()
+
+	go controllers.Run()
 
 	if len(server.certFile) > 0 && len(server.keyFile) > 0 {
 		servingCert, err := tls.LoadX509KeyPair(server.certFile, server.keyFile)

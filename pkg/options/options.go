@@ -51,6 +51,10 @@ type ServerRunOptions struct {
 	etcdKeyFile         string
 	etcdCaFile          string
 	kubectlImage        string
+	mysqlUser           string
+	mysqlPasswd         string
+	mysqlAddress        string
+	opAddress           string
 }
 
 // NewServerRunOptions creates a new ServerRunOptions object with default parameters
@@ -97,6 +101,17 @@ func (s *ServerRunOptions) addFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.kubectlImage, "kubectl-image", "kubectl:1.0",
 		"kubectl pod's image")
+	fs.StringVar(&s.mysqlAddress, "mysql-addr", "127.0.0.1:3306",
+		"Address of mysql, exp:127.0.0.1:3306.")
+
+	fs.StringVar(&s.mysqlPasswd, "mysql-password", "123456",
+		"Password of mysql")
+
+	fs.StringVar(&s.mysqlUser, "mysql-user", "mysql",
+		"User of mysql.")
+
+	fs.StringVar(&s.opAddress, "openpitrix-address", "http://openpitrix-api-gateway.openpitrix-system.svc",
+		"Address of openPitrix")
 }
 
 func (s *ServerRunOptions) GetApiServerHost() string {
@@ -179,6 +194,22 @@ func (s *ServerRunOptions) GetEtcdCaFile() string {
 
 func (s *ServerRunOptions) GetKubectlImage() string {
 	return s.kubectlImage
+}
+
+func (s *ServerRunOptions) GetMysqlAddr() string {
+	return s.mysqlAddress
+}
+
+func (s *ServerRunOptions) GetMysqlUser() string {
+	return s.mysqlUser
+}
+
+func (s *ServerRunOptions) GetMysqlPassword() string {
+	return s.mysqlPasswd
+}
+
+func (s *ServerRunOptions) GetOpAddress() string {
+	return s.opAddress
 }
 
 var ServerOptions = NewServerRunOptions()
