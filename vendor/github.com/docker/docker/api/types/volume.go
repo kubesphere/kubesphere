@@ -7,9 +7,6 @@ package types
 // swagger:model Volume
 type Volume struct {
 
-	// Date/Time the volume was created.
-	CreatedAt string `json:"CreatedAt,omitempty"`
-
 	// Name of the volume driver used by the volume.
 	// Required: true
 	Driver string `json:"Driver"`
@@ -47,23 +44,15 @@ type Volume struct {
 	UsageData *VolumeUsageData `json:"UsageData,omitempty"`
 }
 
-// VolumeUsageData Usage details about the volume. This information is used by the
-// `GET /system/df` endpoint, and omitted in other endpoints.
-//
+// VolumeUsageData volume usage data
 // swagger:model VolumeUsageData
 type VolumeUsageData struct {
 
-	// The number of containers referencing this volume. This field
-	// is set to `-1` if the reference-count is not available.
-	//
+	// The number of containers referencing this volume.
 	// Required: true
 	RefCount int64 `json:"RefCount"`
 
-	// Amount of disk space used by the volume (in bytes). This information
-	// is only available for volumes created with the `"local"` volume
-	// driver. For volumes created with other volume drivers, this field
-	// is set to `-1` ("not available")
-	//
+	// The disk space used by the volume (local driver only)
 	// Required: true
 	Size int64 `json:"Size"`
 }
