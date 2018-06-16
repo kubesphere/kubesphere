@@ -17,7 +17,6 @@ limitations under the License.
 package models
 
 import (
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -31,34 +30,151 @@ const OPENPITRIX = "openpitrix-system"
 const ISTIO = "istio-system"
 const KUBESPHERE = "kubesphere-system"
 
+type ComponentsCount struct {
+	KubernetesCount int `json:"kubernetesCount"`
+	OpenpitrixCount int `json:"openpitrixCount"`
+	KubesphereCount int `json:"kubesphereCount"`
+	IstioCount      int `json:"istioCount"`
+}
+
 type Components struct {
 	Name         string      `json:"name"`
-	Version      string      `json:"version"`
-	Kind         string      `json:"kind"`
 	Namespace    string      `json:"namespace"`
-	Label        interface{} `json:"label"`
-	Replicas     int         `json:"replicas"`
-	HealthStatus string      `json:"healthStatus"`
 	SelfLink     string      `json:"selfLink"`
-	UpdateTime   time.Time   `json:"updateTime"`
+	Label        interface{} `json:"label"`
+	HealthStatus string      `json:"healthStatus"`
+	CreateTime   time.Time   `json:"updateTime"`
 }
 
 /***
-* get all components from k8s and kubesphere system,
-* there are master component, node component,addons component , kubesphere component
+* get all components from k8s and kubesphere system
 *
  */
-func GetComponents() ([]Components, error) {
+func GetComponents() (map[string]interface{}, error) {
 
-	result := make([]Components, 0)
+	result := make(map[string]interface{})
+	componentsList := make([]Components, 0)
 	k8sClient := client.NewK8sClient()
-	label := "tier=control-plane"
+	var count ComponentsCount
+	var components Components
+	label := "kubernetes.io/cluster-service=true"
 	option := meta_v1.ListOptions{
 
 		LabelSelector: label,
 	}
 
-	podlists, err := k8sClient.CoreV1().Pods(KUBESYSTEM).List(option)
+	namespaces := []string{KUBESYSTEM, OPENPITRIX, ISTIO, KUBESPHERE}
+	for _, ns := range namespaces {
+
+		if ns != KUBESYSTEM {
+			option.LabelSelector = ""
+		}
+		servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
+
+		if err != nil {
+
+			glog.Error(err)
+
+			return result, err
+		}
+
+		if len(servicelists.Items) > 0 {
+
+			for _, service := range servicelists.Items {
+
+				switch ns {
+
+				case KUBESYSTEM:
+					count.KubernetesCount++
+				case OPENPITRIX:
+					count.OpenpitrixCount++
+				case KUBESPHERE:
+					count.KubesphereCount++
+
+				default:
+					count.IstioCount++
+				}
+
+				components.Name = service.Name
+				components.Namespace = service.Namespace
+				components.CreateTime = service.CreationTimestamp.Time
+				components.Label = service.Spec.Selector
+				components.SelfLink = service.SelfLink
+				label := service.Spec.Selector
+				combination := ""
+				for key, val := range label {
+
+					labelstr := key + "=" + val
+
+					if combination == "" {
+
+						combination = labelstr
+
+					} else {
+
+						combination = combination + "," + labelstr
+
+					}
+
+				}
+				option := meta_v1.ListOptions{
+					LabelSelector: combination,
+				}
+				podsList, err := k8sClient.CoreV1().Pods(ns).List(option)
+
+				if err != nil {
+
+					glog.Error(err)
+					return result, err
+				}
+
+				if len(podsList.Items) > 0 {
+
+					for _, pod := range podsList.Items {
+
+						if pod.Status.Phase == "Running" {
+
+							components.HealthStatus = "health"
+
+						} else {
+
+							components.HealthStatus = "unhealth"
+
+						}
+
+					}
+
+				}
+
+				componentsList = append(componentsList, components)
+
+			}
+
+		}
+
+	}
+	result["count"] = count
+	result["item"] = componentsList
+	return result, nil
+
+}
+
+func GetComponentsByNamespace(ns string) ([]Components, error) {
+
+	result := make([]Components, 0)
+	k8sClient := client.NewK8sClient()
+	var components Components
+
+	label := "kubernetes.io/cluster-service=true"
+	option := meta_v1.ListOptions{
+
+		LabelSelector: label,
+	}
+	if ns != KUBESYSTEM {
+		option.LabelSelector = ""
+	}
+
+	servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
 
 	if err != nil {
 
@@ -67,35 +183,46 @@ func GetComponents() ([]Components, error) {
 		return result, err
 	}
 
-	var components Components
+	if len(servicelists.Items) > 0 {
 
-	templates := []string{"kube-apiserver", "etcd", "kube-scheduler", "kube-controller-manager", "cloud-controller-manager"}
+		for _, service := range servicelists.Items {
 
-	if len(podlists.Items) > 0 {
+			components.Name = service.Name
+			components.Namespace = service.Namespace
+			components.CreateTime = service.CreationTimestamp.Time
+			components.SelfLink = service.SelfLink
+			components.Label = service.Spec.Selector
+			label := service.Spec.Selector
+			combination := ""
+			for key, val := range label {
 
-		for _, pod := range podlists.Items {
+				labelstr := key + "=" + val
 
-			for _, template := range templates {
+				if combination == "" {
 
-				if strings.Contains(pod.Name, template) {
+					combination = labelstr
 
-					components.Name = template
-					components.Kind = "Pod"
-					components.SelfLink = pod.SelfLink
-					components.Label = pod.Labels
-					components.Namespace = pod.Namespace
-					version := strings.Split(pod.Spec.Containers[0].Image, ":")
+				} else {
 
-					if len(version) < 2 {
+					combination = combination + "," + labelstr
 
-						components.Version = "latest"
+				}
 
-					} else {
+			}
+			option := meta_v1.ListOptions{
+				LabelSelector: combination,
+			}
+			podsList, err := k8sClient.CoreV1().Pods(ns).List(option)
 
-						components.Version = version[1]
+			if err != nil {
 
-					}
-					components.Replicas = 1
+				glog.Error(err)
+				return result, err
+			}
+
+			if len(podsList.Items) > 0 {
+
+				for _, pod := range podsList.Items {
 
 					if pod.Status.Phase == "Running" {
 
@@ -106,185 +233,12 @@ func GetComponents() ([]Components, error) {
 						components.HealthStatus = "unhealth"
 
 					}
-					components.UpdateTime = pod.Status.Conditions[0].LastTransitionTime.Time
-
-					result = append(result, components)
 
 				}
 
 			}
-
-		}
-
-	}
-
-	label = "component=kube-addon-manager"
-	option.LabelSelector = label
-
-	kubeaddon, err := k8sClient.CoreV1().Pods(KUBESYSTEM).List(option)
-
-	if err != nil {
-
-		glog.Error(err)
-
-		return result, err
-	}
-
-	if len(kubeaddon.Items) > 0 {
-
-		for _, pod := range kubeaddon.Items {
-
-			components.Name = "kube-addon-manager"
-			components.Kind = "Pod"
-			components.SelfLink = pod.SelfLink
-			components.Label = pod.Labels
-			components.Namespace = pod.Namespace
-			version := strings.Split(pod.Spec.Containers[0].Image, ":")
-
-			if len(version) < 2 {
-
-				components.Version = "latest"
-
-			} else {
-
-				components.Version = version[1]
-
-			}
-			components.Replicas = 1
-
-			if pod.Status.Phase == "Running" {
-
-				components.HealthStatus = "health"
-
-			} else {
-
-				components.HealthStatus = "unhealth"
-
-			}
-			components.UpdateTime = pod.Status.Conditions[0].LastTransitionTime.Time
 
 			result = append(result, components)
-
-		}
-
-	}
-
-	option.LabelSelector = ""
-	dsList, err := k8sClient.AppsV1beta2().DaemonSets(KUBESYSTEM).List(option)
-
-	if err != nil {
-
-		glog.Error(err)
-
-		return result, err
-	}
-
-	templates = []string{"flannel", "kube-proxy", "calico"}
-
-	if len(dsList.Items) > 0 {
-
-		for _, ds := range dsList.Items {
-
-			for _, template := range templates {
-
-				if strings.Contains(ds.Name, template) {
-
-					components.Name = ds.Name
-					components.Kind = "Daemonset"
-					components.SelfLink = ds.SelfLink
-					components.Label = ds.Spec.Selector.MatchLabels
-					components.Namespace = ds.Namespace
-					version := strings.Split(ds.Spec.Template.Spec.Containers[0].Image, ":")
-
-					if len(version) < 2 {
-
-						components.Version = "latest"
-
-					} else {
-
-						components.Version = version[1]
-
-					}
-
-					components.UpdateTime = ds.CreationTimestamp.Time
-					components.Replicas = int(ds.Status.DesiredNumberScheduled)
-
-					if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled {
-
-						components.HealthStatus = "health"
-
-					} else {
-
-						components.HealthStatus = "unhealth"
-
-					}
-					result = append(result, components)
-				}
-
-			}
-
-		}
-
-	}
-
-	templates = []string{"kube-dns", "heapster", "monitoring-influxdb", "iam", "openpitrix", "istio", "kubesphere"}
-	namespaces := []string{KUBESYSTEM, OPENPITRIX, ISTIO, KUBESPHERE}
-
-	for _, ns := range namespaces {
-
-		deployList, err := k8sClient.AppsV1beta1().Deployments(ns).List(option)
-
-		if err != nil {
-
-			glog.Error(err)
-
-			return result, err
-		}
-
-		if len(deployList.Items) > 0 {
-
-			for _, dm := range deployList.Items {
-
-				for _, template := range templates {
-
-					if strings.Contains(dm.Name, template) {
-
-						components.Name = dm.Name
-						components.Kind = "Deployment"
-						components.SelfLink = dm.SelfLink
-						components.Label = dm.Spec.Selector.MatchLabels
-						components.Namespace = dm.Namespace
-						components.Replicas = int(dm.Status.Replicas)
-						version := strings.Split(dm.Spec.Template.Spec.Containers[0].Image, ":")
-						if len(version) < 2 {
-
-							components.Version = "latest"
-
-						} else {
-
-							components.Version = version[1]
-
-						}
-
-						components.UpdateTime = dm.Status.Conditions[0].LastUpdateTime.Time
-
-						if dm.Status.AvailableReplicas == dm.Status.Replicas {
-
-							components.HealthStatus = "health"
-
-						} else {
-
-							components.HealthStatus = "unhealth"
-
-						}
-
-						result = append(result, components)
-
-					}
-
-				}
-
-			}
 
 		}
 
