@@ -28,10 +28,6 @@ type PageableResponse struct {
 const (
 	APIVERSION                = "v1alpha1"
 	KIND                      = "kubesphere"
-	Root                      = "/kubesphere"
-	UpdateCircle              = 60
-	QuotaKey                  = "resource-quota"
-	WorkloadStatusKey         = "workload-status"
 	NameSpace                 = "kubesphere"
 	DATA_HOME                 = "/etc/kubesphere"
 	INGRESS_CONTROLLER_FOLDER = DATA_HOME + "/ingress-controller"

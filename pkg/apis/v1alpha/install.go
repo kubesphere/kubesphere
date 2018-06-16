@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/quota"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/resources"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
@@ -52,6 +53,7 @@ func init() {
 	terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
 	workloadstatus.Register(ws, "/status")
 	quota.Register(ws, "/quota")
+	resources.Register(ws, "/resources")
 
 	// add webservice to default container
 	restful.Add(ws)

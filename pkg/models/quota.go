@@ -17,50 +17,115 @@ limitations under the License.
 package models
 
 import (
-	"k8s.io/api/core/v1"
-
-	"encoding/json"
-	"errors"
-	"time"
-
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/controllers"
 )
 
+const (
+	podsKey                   = "count/pods"
+	daemonsetsKey             = "count/daemonsets.apps"
+	deploymentsKey            = "count/deployments.apps"
+	ingressKey                = "count/ingresses.extensions"
+	rolesKey                  = "count/roles.rbac.authorization.k8s.io"
+	clusterRolesKey           = "count/cluster-role"
+	servicesKey               = "count/services"
+	statefulsetsKey           = "count/statefulsets.apps"
+	persistentvolumeclaimsKey = "persistentvolumeclaims"
+	storageClassesKey         = "count/storageClass"
+	namespaceKey              = "count/namespace"
+)
+
+var resourceMap = map[string]string{daemonsetsKey: controllers.Daemonsets, deploymentsKey: controllers.Deployments,
+	ingressKey: controllers.Ingresses, rolesKey: controllers.Roles, servicesKey: controllers.Services,
+	statefulsetsKey: controllers.Statefulsets, persistentvolumeclaimsKey: controllers.PersistentVolumeClaim, podsKey: controllers.Pods,
+	namespaceKey: controllers.Namespaces, storageClassesKey: controllers.StorageClasses, clusterRolesKey: controllers.ClusterRoles}
+
 type resourceQuota struct {
-	NameSpace       string                 `json:"namespace"`
-	Data            v1.ResourceQuotaStatus `json:"data"`
-	UpdateTimeStamp int64                  `json:"updateTimeStamp"`
+	NameSpace string                 `json:"namespace"`
+	Data      v1.ResourceQuotaStatus `json:"data"`
 }
 
-func GetNamespaceQuota(namespace string) (*resourceQuota, error) {
-
-	cli, err := client.NewEtcdClient()
+func getUsage(namespace, resource string) int {
+	ctl, err := getController(resource)
 	if err != nil {
-		glog.Error(err)
+		return 0
 	}
-	defer cli.Close()
-
-	key := constants.Root + "/" + constants.QuotaKey + "/" + namespace
-	value, err := cli.Get(key)
-	var data = v1.ResourceQuotaStatus{make(v1.ResourceList), make(v1.ResourceList)}
-	var res = resourceQuota{Data: data}
-
-	err = json.Unmarshal(value, &res)
-	if time.Now().Unix()-res.UpdateTimeStamp > 5*constants.UpdateCircle {
-		err = errors.New("internal server error")
-		return nil, err
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return &res, nil
+	return ctl.Count(namespace)
 }
 
 func GetClusterQuota() (*resourceQuota, error) {
 
-	return GetNamespaceQuota("\"\"")
+	quota := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
+	for k, v := range resourceMap {
+		used := getUsage("", v)
+		var quantity resource.Quantity
+		quantity.Set(int64(used))
+		quota.Used[v1.ResourceName(k)] = quantity
+	}
+
+	return &resourceQuota{NameSpace: "\"\"", Data: quota}, nil
+
+}
+
+func GetNamespaceQuota(namespace string) (*resourceQuota, error) {
+	quota, err := getNamespaceResourceQuota(namespace)
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+	if quota == nil {
+		quota = &v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
+	}
+
+	for k, v := range resourceMap {
+		if _, exist := quota.Used[v1.ResourceName(k)]; !exist {
+			if k == namespaceKey || k == storageClassesKey {
+				continue
+			}
+
+			used := getUsage(namespace, v)
+			var quantity resource.Quantity
+			quantity.Set(int64(used))
+			quota.Used[v1.ResourceName(k)] = quantity
+		}
+	}
+
+	return &resourceQuota{NameSpace: namespace, Data: *quota}, nil
+}
+
+func updateNamespaceQuota(tmpResourceList, resourceList v1.ResourceList) {
+	if tmpResourceList == nil {
+		tmpResourceList = resourceList
+	}
+	for resource, usage := range resourceList {
+		tmpUsage, exist := tmpResourceList[resource]
+		if !exist {
+			tmpResourceList[resource] = usage
+		}
+		if tmpUsage.Cmp(usage) == 1 {
+			tmpResourceList[resource] = usage
+		}
+	}
+
+}
+
+func getNamespaceResourceQuota(namespace string) (*v1.ResourceQuotaStatus, error) {
+	quotaList, err := client.NewK8sClient().CoreV1().ResourceQuotas(namespace).List(metaV1.ListOptions{})
+	if err != nil || len(quotaList.Items) == 0 {
+		return nil, err
+	}
+
+	quotaStatus := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
+
+	for _, quota := range quotaList.Items {
+		updateNamespaceQuota(quotaStatus.Hard, quota.Status.Hard)
+		updateNamespaceQuota(quotaStatus.Used, quota.Status.Used)
+	}
+
+	return &quotaStatus, nil
 }
