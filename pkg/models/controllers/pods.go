@@ -106,7 +106,7 @@ func (ctl *PodCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var po Pod
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart pod controller")
 			}
 			object := event.Object.(*v1.Pod)
 			if event.Type == watch.Deleted {

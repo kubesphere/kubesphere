@@ -19,13 +19,11 @@ package controllers
 import (
 	"encoding/json"
 	"time"
-
-	"github.com/golang/glog"
 	"k8s.io/api/apps/v1beta2"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/watch"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"kubesphere.io/kubesphere/pkg/client"
 )
 
 func (ctl *DeploymentCtl) generateObject(item v1beta2.Deployment) *Deployment {
@@ -46,7 +44,7 @@ func (ctl *DeploymentCtl) generateObject(item v1beta2.Deployment) *Deployment {
 	}
 
 	for _, conditon := range item.Status.Conditions {
-		if conditon.Type == "Progressing" {
+		if conditon.Type == "Available" {
 			updateTime = conditon.LastUpdateTime.Time
 		}
 	}
@@ -70,6 +68,8 @@ func (ctl *DeploymentCtl) generateObject(item v1beta2.Deployment) *Deployment {
 		App: app, UpdateTime: updateTime, Status: status, AnnotationStr: string(annotation)}
 }
 
+
+
 func (ctl *DeploymentCtl) listAndWatch() {
 	defer func() {
 		close(ctl.aliveChan)
@@ -86,7 +86,7 @@ func (ctl *DeploymentCtl) listAndWatch() {
 
 	db = db.CreateTable(&Deployment{})
 
-	k8sClient := client.NewK8sClient()
+	k8sClient := ctl.K8sClient
 	deoloyList, err := k8sClient.AppsV1beta2().Deployments("").List(metaV1.ListOptions{})
 	if err != nil {
 		glog.Error(err)
@@ -96,6 +96,7 @@ func (ctl *DeploymentCtl) listAndWatch() {
 	for _, item := range deoloyList.Items {
 		obj := ctl.generateObject(item)
 		db.Create(obj)
+
 	}
 
 	watcher, err := k8sClient.AppsV1beta2().Deployments("").Watch(metaV1.ListOptions{})
@@ -105,13 +106,14 @@ func (ctl *DeploymentCtl) listAndWatch() {
 	}
 
 	for {
+		glog.Error("here")
 		select {
 		case <-ctl.stopChan:
 			return
 		case event := <-watcher.ResultChan():
 			var deploy Deployment
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart deployment controller")
 			}
 			object := event.Object.(*v1beta2.Deployment)
 			if event.Type == watch.Deleted {
@@ -123,7 +125,10 @@ func (ctl *DeploymentCtl) listAndWatch() {
 			db.Save(obj)
 		}
 	}
+
 }
+
+
 
 func (ctl *DeploymentCtl) CountWithConditions(conditions string) int {
 	var object Deployment
