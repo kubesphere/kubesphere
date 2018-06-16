@@ -32,6 +32,7 @@ var dbClient *gorm.DB
 const database = "kubesphere"
 
 func NewDBClient() *gorm.DB {
+
 	if dbClient != nil {
 		return dbClient
 	}
