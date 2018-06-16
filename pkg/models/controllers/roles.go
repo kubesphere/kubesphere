@@ -17,40 +17,38 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
-	"strings"
-	"time"
-
-	"github.com/golang/glog"
-	"k8s.io/api/rbac/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-
 	"kubesphere.io/kubesphere/pkg/client"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/api/rbac/v1"
+	"time"
+	"strings"
+	"encoding/json"
 )
 
-func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
+func(ctl *RoleCtl) generateObject(item v1.Role) *Role{
 	name := item.Name
-	if strings.HasPrefix(name, "system:") {
+	if strings.HasPrefix(name, "system:"){
 		return nil
 	}
 	namespace := item.Namespace
 	createTime := item.CreationTimestamp.Time
-	if createTime.IsZero() {
+	if createTime.IsZero(){
 		createTime = time.Now()
 	}
 
 	annotation, _ := json.Marshal(item.Annotations)
 
-	object := &Role{Namespace: namespace, Name: name, CreateTime: createTime, AnnotationStr: string(annotation)}
+	object := &Role{Namespace: namespace, Name: name, CreateTime:createTime, AnnotationStr:string(annotation)}
 
 	return object
 }
 
-func (ctl *RoleCtl) listAndWatch() {
-	defer func() {
+func(ctl *RoleCtl) listAndWatch()  {
+	defer func(){
 		close(ctl.aliveChan)
-		if err := recover(); err != nil {
+		if err := recover(); err != nil{
 			glog.Error(err)
 			return
 		}
@@ -58,7 +56,7 @@ func (ctl *RoleCtl) listAndWatch() {
 
 	db := ctl.DB
 
-	if db.HasTable(&Role{}) {
+	if db.HasTable(&Role{}){
 		db.DropTable(&Role{})
 
 	}
@@ -74,7 +72,7 @@ func (ctl *RoleCtl) listAndWatch() {
 
 	for _, item := range roleList.Items {
 		obj := ctl.generateObject(item)
-		if obj != nil {
+		if obj != nil{
 			db.Create(obj)
 		}
 
@@ -86,23 +84,24 @@ func (ctl *RoleCtl) listAndWatch() {
 		return
 	}
 
-	for {
-		select {
-		case <-ctl.stopChan:
+
+	for{
+		select{
+		case <- ctl.stopChan:
 			return
-		case event := <-roleWatcher.ResultChan():
+		case event := <- roleWatcher.ResultChan():
 			var role Role
-			object := event.Object.(*v1.Role)
-			if event.Object == nil {
-				break
+			if event.Object == nil{
+				panic("watch timeout, restart role controller")
 			}
+			object := event.Object.(*v1.Role)
 			if event.Type == watch.Deleted {
 				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&role)
 				db.Delete(role)
 				break
 			}
 			obj := ctl.generateObject(*object)
-			if obj != nil {
+			if obj != nil{
 				db.Save(obj)
 			}
 			break
@@ -110,13 +109,15 @@ func (ctl *RoleCtl) listAndWatch() {
 	}
 }
 
-func (ctl *RoleCtl) CountWithConditions(conditions string) int {
+
+func(ctl *RoleCtl) CountWithConditions(conditions string) int {
 	var object Role
 
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+
+func(ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
 	var list []Role
 	var object Role
 	var total int
@@ -125,7 +126,7 @@ func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, 
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
+	for index, item := range list{
 		annotation := make(map[string]string)
 		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
 		list[index].Annotation = annotation
@@ -134,7 +135,7 @@ func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, 
 	return total, list, nil
 }
 
-func (ctl *RoleCtl) Count(namespace string) int {
+func(ctl *RoleCtl) Count(namespace string) int {
 	var count int
 	db := ctl.DB
 	db.Model(&Role{}).Where("namespace = ?", namespace).Count(&count)

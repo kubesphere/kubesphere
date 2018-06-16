@@ -19,19 +19,17 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/golang/glog"
+	"io/ioutil"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/options"
+	"net/http"
+	"strings"
+	"time"
 )
 
 const (
@@ -41,6 +39,7 @@ const (
 	view             = "view"
 	kubectlNamespace = "kubesphere"
 	kubectlConfigKey = "config"
+	openpitrix_runtime = "openpitrix_runtime"
 )
 
 var adminRules = []rbac.PolicyRule{rbac.PolicyRule{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
@@ -132,13 +131,26 @@ func (ctl *NamespaceCtl) createOpRuntime(namespace, user string) ([]byte, error)
 	return makeHttpRequest("POST", url, string(body))
 }
 
-func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
-	defer func() {
-		if err := recover(); err != nil {
-			glog.Error(err)
-		}
-	}()
+func (ctl *NamespaceCtl) createDefaultRoleBinding(ns, user string) error {
+	rolebinding, _ := ctl.K8sClient.RbacV1().RoleBindings(ns).Get(admin, metaV1.GetOptions{})
 
+	if rolebinding.Name != admin {
+
+		roleBinding := &rbac.RoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns},
+			Subjects: []rbac.Subject{{Name: user, Kind: rbac.UserKind}}, RoleRef: rbac.RoleRef{Kind: "Role", Name: admin}}
+
+		_, err := ctl.K8sClient.RbacV1().RoleBindings(ns).Create(roleBinding)
+
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns}, Rules: adminRules}
 	normalRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: normal, Namespace: ns}, Rules: normalRules}
 	viewRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: view, Namespace: ns}, Rules: viewRules}
@@ -178,11 +190,18 @@ func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 	user := item.Annotations["creator"]
 	ns := item.Name
-	if len(user) > 0 && len(item.Annotations["openpitrix_runtime"]) == 0 {
+	if len(user) > 0 && len(item.Annotations[openpitrix_runtime]) == 0 {
 		err := ctl.createDefaultRole(ns)
 		if err != nil {
 			return
 		}
+
+		err = ctl.createDefaultRoleBinding(ns, user)
+		if err != nil{
+			return
+		}
+
+
 		resp, err := ctl.createOpRuntime(ns, user)
 		if err != nil {
 			return
@@ -194,7 +213,7 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 			return
 		}
 
-		item.Annotations["openpitrix_runtime"] = runtime.RuntimeId
+		item.Annotations[openpitrix_runtime] = runtime.RuntimeId
 		ctl.K8sClient.CoreV1().Namespaces().Update(&item)
 	}
 }
@@ -259,7 +278,7 @@ func (ctl *NamespaceCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var ns Namespace
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart namespace controller")
 			}
 			object := event.Object.(*v1.Namespace)
 			if event.Type == watch.Deleted {

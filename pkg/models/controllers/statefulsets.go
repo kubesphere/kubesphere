@@ -106,7 +106,7 @@ func (ctl *StatefulsetCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var tmp Statefulset
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart statefulset controller")
 			}
 			object := event.Object.(*v1beta2.StatefulSet)
 			if event.Type == watch.Deleted {

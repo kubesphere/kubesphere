@@ -17,27 +17,26 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"strings"
-	"time"
-
-	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/watch"
-
 	"kubesphere.io/kubesphere/pkg/client"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/api/core/v1"
+	"strings"
+	"fmt"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"time"
+	"encoding/json"
 )
 
 const (
 	headlessSelector = "Headless(Selector)"
 	headlessExternal = "Headless(ExternalName)"
-	virtualIp        = "Virtual IP"
+	virtualIp = "Virtual IP"
 )
 
-func (ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
+
+func(ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
 	ingress := item.Status.LoadBalancer.Ingress
 	result := sets.NewString()
 	for i := range ingress {
@@ -52,7 +51,7 @@ func (ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
 	return r
 }
 
-func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
+func(ctl *ServiceCtl) getExternalIp(item v1.Service)string{
 	switch item.Spec.Type {
 	case "ClusterIP", "NodePort":
 		if len(item.Spec.ExternalIPs) > 0 {
@@ -79,7 +78,7 @@ func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
 	return "-"
 }
 
-func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
+func(ctl *ServiceCtl) generateObject(item v1.Service) *Service{
 
 	name := item.Name
 	namespace := item.Namespace
@@ -89,47 +88,47 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 	vip := item.Spec.ClusterIP
 	ports := ""
 
-	if createTime.IsZero() {
+	if createTime.IsZero(){
 		createTime = time.Now()
 	}
 
-	if item.Spec.ClusterIP == "None" {
+	if item.Spec.ClusterIP == "None"{
 		serviceType = headlessSelector
 		vip = "-"
 	}
 
-	if len(item.Spec.ExternalName) > 0 {
+	if len(item.Spec.ExternalName) > 0{
 		serviceType = headlessExternal
 		vip = "-"
 	}
 
-	if len(item.Spec.ExternalIPs) > 0 {
+	if len(item.Spec.ExternalIPs) >0{
 		externalIp = strings.Join(item.Spec.ExternalIPs, ",")
 	}
 
-	for _, portItem := range item.Spec.Ports {
+	for _, portItem := range item.Spec.Ports{
 		port := portItem.Port
 		targetPort := portItem.TargetPort.String()
 		protocol := portItem.Protocol
 		ports += fmt.Sprintf("%d:%s/%s,", port, targetPort, protocol)
 	}
-	if len(ports) == 0 {
+	if len(ports) == 0{
 		ports = "-"
 	} else {
-		ports = ports[0 : len(ports)-1]
+		ports = ports[0:len(ports)-1]
 	}
 
 	annotation, _ := json.Marshal(item.Annotations)
 	object := &Service{Namespace: namespace, Name: name, ServiceType: serviceType, ExternalIp: externalIp,
-		VirtualIp: vip, CreateTime: createTime, Ports: ports, AnnotationStr: string(annotation)}
+		VirtualIp: vip, CreateTime: createTime, Ports: ports, AnnotationStr:string(annotation)}
 
 	return object
 }
 
-func (ctl *ServiceCtl) listAndWatch() {
-	defer func() {
+func(ctl *ServiceCtl) listAndWatch()  {
+	defer func(){
 		defer close(ctl.aliveChan)
-		if err := recover(); err != nil {
+		if err := recover(); err != nil{
 			glog.Error(err)
 			return
 		}
@@ -137,7 +136,7 @@ func (ctl *ServiceCtl) listAndWatch() {
 
 	db := ctl.DB
 
-	if db.HasTable(&Service{}) {
+	if db.HasTable(&Service{}){
 		db.DropTable(&Service{})
 	}
 
@@ -161,16 +160,18 @@ func (ctl *ServiceCtl) listAndWatch() {
 		return
 	}
 
-	for {
-		select {
-		case <-ctl.stopChan:
+	for{
+		select{
+		case <- ctl.stopChan:
 			return
-		case event := <-watcher.ResultChan():
+		case event := <- watcher.ResultChan():
 			var svc Service
-			object := event.Object.(*v1.Service)
-			if event.Object == nil {
-				break
+
+			if event.Object == nil{
+				panic("watch timeout, restart service controller")
 			}
+			object := event.Object.(*v1.Service)
+
 			if event.Type == watch.Deleted {
 				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&svc)
 				db.Delete(svc)
@@ -182,13 +183,14 @@ func (ctl *ServiceCtl) listAndWatch() {
 	}
 }
 
-func (ctl *ServiceCtl) CountWithConditions(conditions string) int {
+
+func(ctl *ServiceCtl) CountWithConditions(conditions string) int {
 	var object Service
 
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func(ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
 	var list []Service
 	var object Service
 	var total int
@@ -197,7 +199,7 @@ func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (in
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
+	for index, item := range list{
 		annotation := make(map[string]string)
 		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
 		list[index].Annotation = annotation
@@ -206,10 +208,10 @@ func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (in
 	return total, list, nil
 }
 
-func (ctl *ServiceCtl) Count(namespace string) int {
+func(ctl *ServiceCtl) Count(namespace string) int {
 	var count int
 	db := ctl.DB
-	if len(namespace) == 0 {
+	if len(namespace) == 0{
 		db.Model(&Service{}).Count(&count)
 	} else {
 		db.Model(&Service{}).Where("namespace = ?", namespace).Count(&count)
