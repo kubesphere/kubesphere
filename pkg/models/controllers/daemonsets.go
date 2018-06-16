@@ -22,7 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/apps/v1beta2"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
 	"kubesphere.io/kubesphere/pkg/client"
@@ -87,7 +87,7 @@ func (ctl *DaemonsetCtl) listAndWatch() {
 	db = db.CreateTable(&Daemonset{})
 
 	k8sClient := client.NewK8sClient()
-	deoloyList, err := k8sClient.AppsV1beta2().DaemonSets("").List(meta_v1.ListOptions{})
+	deoloyList, err := k8sClient.AppsV1beta2().DaemonSets("").List(metaV1.ListOptions{})
 	if err != nil {
 		glog.Error(err)
 		return
@@ -98,7 +98,7 @@ func (ctl *DaemonsetCtl) listAndWatch() {
 		db.Create(obj)
 	}
 
-	watcher, err := k8sClient.AppsV1beta2().DaemonSets("").Watch(meta_v1.ListOptions{})
+	watcher, err := k8sClient.AppsV1beta2().DaemonSets("").Watch(metaV1.ListOptions{})
 	if err != nil {
 		glog.Error(err)
 		return
@@ -111,7 +111,7 @@ func (ctl *DaemonsetCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var ss Daemonset
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart daemonset controller")
 			}
 			object := event.Object.(*v1beta2.DaemonSet)
 			if event.Type == watch.Deleted {
