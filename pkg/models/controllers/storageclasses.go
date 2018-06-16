@@ -90,7 +90,7 @@ func (ctl *StorageClassCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var sc StorageClass
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart storageClass controller")
 			}
 			object := event.Object.(*v1beta1.StorageClass)
 			if event.Type == watch.Deleted {
