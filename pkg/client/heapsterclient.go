@@ -20,27 +20,48 @@ import (
 	"net/http"
 
 	"io/ioutil"
-	"os"
+	"time"
 
+	"github.com/antonholmquist/jason"
 	"github.com/golang/glog"
 )
 
 const (
 	DefaultHeapsterScheme  = "http"
-	DefaultHeapsterService = "heapster" //"heapster"
-	DefaultHeapsterPort    = "80"       // use the first exposed port on the service
+	DefaultHeapsterService = "192.168.0.34" //"heapster"
+	DefaultHeapsterPort    = "31082"        // use the first exposed port on the service
+	HeapsterApiPath        = "/api/v1/model"
+	HeapsterEndpointUrl    = DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + HeapsterApiPath
 )
 
-var (
-	prefix = "/api/v1/model"
-)
+var httpClient = &http.Client{Timeout: 30 * time.Second}
+
+// Get heapster response in python-like dictionary
+func GetHeapsterMetricsJson(url string) *jason.Object {
+
+	response, err := httpClient.Get(HeapsterEndpointUrl + url)
+
+	var data *jason.Object
+	if err != nil {
+		glog.Error(url, err)
+	} else {
+		defer response.Body.Close()
+
+		data, err = jason.NewObjectFromReader(response.Body)
+
+		if err != nil {
+			glog.Error(url, err)
+		}
+	}
+
+	return data
+}
 
 func GetHeapsterMetrics(url string) string {
-	//glog.Info("Querying data from " + DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
-	response, err := http.Get(DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + prefix + url)
+	response, err := httpClient.Get(HeapsterEndpointUrl + url)
 	if err != nil {
 		glog.Error(err)
-		os.Exit(1)
+
 	} else {
 		defer response.Body.Close()
 
@@ -48,7 +69,6 @@ func GetHeapsterMetrics(url string) string {
 
 		if err != nil {
 			glog.Error(err)
-			os.Exit(1)
 		}
 
 		return string(contents)
@@ -57,10 +77,9 @@ func GetHeapsterMetrics(url string) string {
 }
 func GetCAdvisorMetrics(nodeAddr string) string {
 
-	response, err := http.Get("http://" + nodeAddr + ":10255/stats/summary")
+	response, err := httpClient.Get("http://" + nodeAddr + ":10255/stats/summary")
 	if err != nil {
 		glog.Error(err)
-		os.Exit(1)
 	} else {
 		defer response.Body.Close()
 
@@ -68,7 +87,6 @@ func GetCAdvisorMetrics(nodeAddr string) string {
 
 		if err != nil {
 			glog.Error(err)
-			os.Exit(1)
 		}
 
 		return string(contents)

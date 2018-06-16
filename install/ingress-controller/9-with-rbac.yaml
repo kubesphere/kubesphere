@@ -2,6 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: kubesphere-router
+  namespace: kubesphere-router-system
 spec:
   replicas: 1
   selector:
