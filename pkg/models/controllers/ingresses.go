@@ -98,7 +98,7 @@ func (ctl *IngressCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var ing Ingress
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart ingress controller")
 			}
 			object := event.Object.(*v1beta1.Ingress)
 			if event.Type == watch.Deleted {

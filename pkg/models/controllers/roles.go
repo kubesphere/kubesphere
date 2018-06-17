@@ -92,10 +92,10 @@ func (ctl *RoleCtl) listAndWatch() {
 			return
 		case event := <-roleWatcher.ResultChan():
 			var role Role
-			object := event.Object.(*v1.Role)
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart role controller")
 			}
+			object := event.Object.(*v1.Role)
 			if event.Type == watch.Deleted {
 				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&role)
 				db.Delete(role)

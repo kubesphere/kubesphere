@@ -167,10 +167,12 @@ func (ctl *ServiceCtl) listAndWatch() {
 			return
 		case event := <-watcher.ResultChan():
 			var svc Service
-			object := event.Object.(*v1.Service)
+
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart service controller")
 			}
+			object := event.Object.(*v1.Service)
+
 			if event.Type == watch.Deleted {
 				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&svc)
 				db.Delete(svc)

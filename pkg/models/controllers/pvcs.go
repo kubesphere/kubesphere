@@ -111,7 +111,7 @@ func (ctl *PvcCtl) listAndWatch() {
 		case event := <-watcher.ResultChan():
 			var pvc Pvc
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart pvc controller")
 			}
 			object := event.Object.(*v1.PersistentVolumeClaim)
 			if event.Type == watch.Deleted {
