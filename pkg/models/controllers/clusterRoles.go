@@ -91,7 +91,7 @@ func (ctl *ClusterRoleCtl) listAndWatch() {
 		case event := <-clusterRoleWatcher.ResultChan():
 			var role ClusterRole
 			if event.Object == nil {
-				break
+				panic("watch timeout, restart clusterRole controller")
 			}
 			object := event.Object.(*v1.ClusterRole)
 			if event.Type == watch.Deleted {
