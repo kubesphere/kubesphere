@@ -17,16 +17,17 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/api/apps/v1beta2"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/api/apps/v1"
+	"k8s.io/client-go/informers"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *DeploymentCtl) generateObject(item v1beta2.Deployment) *Deployment {
+func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
 	var app string
 	var status string
 	var updateTime time.Time
@@ -53,19 +54,17 @@ func (ctl *DeploymentCtl) generateObject(item v1beta2.Deployment) *Deployment {
 	}
 
 	if item.Annotations["state"] == "stop" {
-		status = stopping
+		status = Stopped
 	} else {
 		if availablePodNum >= desirePodNum {
-			status = running
+			status = Running
 		} else {
-			status = updating
+			status = Updating
 		}
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-
 	return &Deployment{Namespace: namespace, Name: name, Available: availablePodNum, Desire: desirePodNum,
-		App: app, UpdateTime: updateTime, Status: status, AnnotationStr: string(annotation)}
+		App: app, UpdateTime: updateTime, Status: status, Annotation: Annotation{item.Annotations}}
 }
 
 func (ctl *DeploymentCtl) listAndWatch() {
@@ -85,45 +84,44 @@ func (ctl *DeploymentCtl) listAndWatch() {
 	db = db.CreateTable(&Deployment{})
 
 	k8sClient := ctl.K8sClient
-	deoloyList, err := k8sClient.AppsV1beta2().Deployments("").List(metaV1.ListOptions{})
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Apps().V1().Deployments().Informer()
+	lister := kubeInformerFactory.Apps().V1().Deployments().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range deoloyList.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
 
 	}
 
-	watcher, err := k8sClient.AppsV1beta2().Deployments("").Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		glog.Error("here")
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
+			object := obj.(*v1.Deployment)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.Deployment)
+			mysqlObject := ctl.generateObject(*object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
 			var deploy Deployment
-			if event.Object == nil {
-				panic("watch timeout, restart deployment controller")
-			}
-			object := event.Object.(*v1beta2.Deployment)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&deploy)
-				db.Delete(deploy)
-				break
-			}
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+			object := obj.(*v1.Deployment)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&deploy)
+			db.Delete(deploy)
 
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *DeploymentCtl) CountWithConditions(conditions string) int {
@@ -141,12 +139,6 @@ func (ctl *DeploymentCtl) ListWithConditions(conditions string, paging *Paging) 
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 

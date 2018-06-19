@@ -17,19 +17,18 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/api/storage/v1beta1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/api/storage/v1"
 
-	"kubesphere.io/kubesphere/pkg/client"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *StorageClassCtl) generateObject(item v1beta1.StorageClass) *StorageClass {
+func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
@@ -42,15 +41,14 @@ func (ctl *StorageClassCtl) generateObject(item v1beta1.StorageClass) *StorageCl
 		createTime = time.Now()
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-	object := &StorageClass{Name: name, CreateTime: createTime, IsDefault: isDefault, AnnotationStr: string(annotation)}
+	object := &StorageClass{Name: name, CreateTime: createTime, IsDefault: isDefault, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
 
 func (ctl *StorageClassCtl) listAndWatch() {
 	defer func() {
-		defer close(ctl.aliveChan)
+		close(ctl.aliveChan)
 		if err := recover(); err != nil {
 			glog.Error(err)
 			return
@@ -65,43 +63,46 @@ func (ctl *StorageClassCtl) listAndWatch() {
 
 	db = db.CreateTable(&StorageClass{})
 
-	k8sClient := client.NewK8sClient()
-	list, err := k8sClient.StorageV1beta1().StorageClasses().List(meta_v1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Storage().V1().StorageClasses().Informer()
+	lister := kubeInformerFactory.Storage().V1().StorageClasses().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range list.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
+
 	}
 
-	watcher, err := k8sClient.StorageV1beta1().StorageClasses().Watch(meta_v1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var sc StorageClass
-			if event.Object == nil {
-				panic("watch timeout, restart storageClass controller")
-			}
-			object := event.Object.(*v1beta1.StorageClass)
-			if event.Type == watch.Deleted {
-				db.Where("name=?", object.Name).Find(&sc)
-				db.Delete(sc)
-				break
-			}
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+			object := obj.(*v1.StorageClass)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.StorageClass)
+			mysqlObject := ctl.generateObject(*object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item StorageClass
+			object := obj.(*v1.StorageClass)
+			db.Where("name=?", object.Name).Find(&item)
+			db.Delete(item)
+
+		},
+	})
+
+	informer.Run(ctl.stopChan)
+
 }
 
 func (ctl *StorageClassCtl) CountWithConditions(conditions string) int {
@@ -121,10 +122,6 @@ func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging
 
 	for index, storageClass := range list {
 		name := storageClass.Name
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(storageClass.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
 		pvcCtl := PvcCtl{CommonAttribute{K8sClient: ctl.K8sClient, DB: ctl.DB}}
 
 		list[index].Count = pvcCtl.CountWithConditions(fmt.Sprintf("storage_class=\"%s\"", name))

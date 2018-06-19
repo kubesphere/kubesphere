@@ -24,10 +24,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const creator = "creator"
@@ -60,17 +59,16 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 	}
 
 	accessModeStr = strings.Join(accessModeList, ",")
-	annotation, _ := json.Marshal(item.Annotations)
 
 	object := &Pvc{Namespace: namespace, Name: name, Status: status, Capacity: capacity,
-		AccessMode: accessModeStr, StorageClassName: storageClass, CreateTime: createTime, AnnotationStr: string(annotation)}
+		AccessMode: accessModeStr, StorageClassName: storageClass, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
 
 func (ctl *PvcCtl) listAndWatch() {
 	defer func() {
-		defer close(ctl.aliveChan)
+		close(ctl.aliveChan)
 		if err := recover(); err != nil {
 			glog.Error(err)
 			return
@@ -86,43 +84,44 @@ func (ctl *PvcCtl) listAndWatch() {
 
 	db = db.CreateTable(&Pvc{})
 
-	k8sClient := client.NewK8sClient()
-	pvcList, err := k8sClient.CoreV1().PersistentVolumeClaims("").List(metaV1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Core().V1().PersistentVolumeClaims().Informer()
+	lister := kubeInformerFactory.Core().V1().PersistentVolumeClaims().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range pvcList.Items {
-		obj := ctl.generateObject(&item)
+	for _, item := range list {
+		obj := ctl.generateObject(item)
 		db.Create(obj)
+
 	}
 
-	watcher, err := k8sClient.CoreV1().PersistentVolumeClaims("").Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var pvc Pvc
-			if event.Object == nil {
-				panic("watch timeout, restart pvc controller")
-			}
-			object := event.Object.(*v1.PersistentVolumeClaim)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&pvc)
-				db.Delete(pvc)
-				break
-			}
-			obj := ctl.generateObject(object)
-			db.Save(obj)
-		}
-	}
+			object := obj.(*v1.PersistentVolumeClaim)
+			mysqlObject := ctl.generateObject(object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.PersistentVolumeClaim)
+			mysqlObject := ctl.generateObject(object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Pvc
+			object := obj.(*v1.PersistentVolumeClaim)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			db.Delete(item)
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *PvcCtl) CountWithConditions(conditions string) int {
@@ -140,11 +139,17 @@ func (ctl *PvcCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
+	for index := range list {
+		inUsePods := list[index].Annotation.Values[inUse]
+		var pods []string
+
+		json.Unmarshal([]byte(inUsePods), &pods)
+
+		if len(pods) > 0 {
+			list[index].InUse = true
+		} else {
+			list[index].InUse = false
+		}
 	}
 
 	return total, list, nil
