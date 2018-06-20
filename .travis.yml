@@ -24,3 +24,9 @@ before_script:
 
 script:
   - make fmt-check && make build
+
+deploy:
+  provider: script
+  script: bash install/scripts/docker_push
+  on:
+    branch: master
