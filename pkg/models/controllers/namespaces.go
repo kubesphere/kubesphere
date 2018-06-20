@@ -208,6 +208,7 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 
 		resp, err := ctl.createOpRuntime(ns, user)
 		if err != nil {
+			glog.Error(resp)
 			return
 		}
 
@@ -268,6 +269,7 @@ func (ctl *NamespaceCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
+		ctl.createRoleAndRuntime(*item)
 
 	}
 
@@ -277,17 +279,20 @@ func (ctl *NamespaceCtl) listAndWatch() {
 			object := obj.(*v1.Namespace)
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
+			ctl.createRoleAndRuntime(*object)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.Namespace)
 			mysqlObject := ctl.generateObject(*object)
 			db.Save(mysqlObject)
+			ctl.createRoleAndRuntime(*object)
 		},
 		DeleteFunc: func(obj interface{}) {
 			var item Namespace
 			object := obj.(*v1.Namespace)
 			db.Where("name=?", object.Name).Find(&item)
 			db.Delete(item)
+			ctl.deleteOpRuntime(*object)
 
 		},
 	})

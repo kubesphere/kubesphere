@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -26,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
-
-	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 const inUse = "in_use_pods"
@@ -44,22 +43,24 @@ func (ctl *PodCtl) addAnnotationToPvc(item v1.Pod) {
 				Pvc.Annotations = make(map[string]string)
 			}
 			annotation := Pvc.Annotations
+
 			if len(annotation[inUse]) == 0 {
 				pods := []string{item.Name}
 				str, _ := json.Marshal(pods)
 				annotation[inUse] = string(str)
 			} else {
 				var pods []string
-				json.Unmarshal([]byte(annotation[inUse]), pods)
+				json.Unmarshal([]byte(annotation[inUse]), &pods)
 				for _, pod := range pods {
 					if pod == item.Name {
 						return
 					}
-					pods = append(pods, item.Name)
-					str, _ := json.Marshal(pods)
-					annotation[inUse] = string(str)
 				}
+				pods = append(pods, item.Name)
+				str, _ := json.Marshal(pods)
+				annotation[inUse] = string(str)
 			}
+			Pvc.Annotations = annotation
 			ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Update(Pvc)
 		}
 	}
@@ -89,13 +90,85 @@ func (ctl *PodCtl) delAnnotationFromPvc(item v1.Pod) {
 	}
 }
 
+func getStatusAndRestartCount(pod v1.Pod) (string, int) {
+	status := string(pod.Status.Phase)
+	restarts := 0
+	if pod.Status.Reason != "" {
+		status = pod.Status.Reason
+	}
+
+	initializing := false
+	for i := range pod.Status.InitContainerStatuses {
+		container := pod.Status.InitContainerStatuses[i]
+		restarts += int(container.RestartCount)
+		switch {
+		case container.State.Terminated != nil && container.State.Terminated.ExitCode == 0:
+			continue
+		case container.State.Terminated != nil:
+			// initialization is failed
+			if len(container.State.Terminated.Reason) == 0 {
+				if container.State.Terminated.Signal != 0 {
+					status = fmt.Sprintf("Init:Signal:%d", container.State.Terminated.Signal)
+				} else {
+					status = fmt.Sprintf("Init:ExitCode:%d", container.State.Terminated.ExitCode)
+				}
+			} else {
+				status = "Init:" + container.State.Terminated.Reason
+			}
+			initializing = true
+		case container.State.Waiting != nil && len(container.State.Waiting.Reason) > 0 && container.State.Waiting.Reason != "PodInitializing":
+			status = "Init:" + container.State.Waiting.Reason
+			initializing = true
+		default:
+			status = fmt.Sprintf("Init:%d/%d", i, len(pod.Spec.InitContainers))
+			initializing = true
+		}
+		break
+	}
+	if !initializing {
+		restarts = 0
+		hasRunning := false
+		for i := len(pod.Status.ContainerStatuses) - 1; i >= 0; i-- {
+			container := pod.Status.ContainerStatuses[i]
+
+			restarts += int(container.RestartCount)
+			if container.State.Waiting != nil && container.State.Waiting.Reason != "" {
+				status = container.State.Waiting.Reason
+			} else if container.State.Terminated != nil && container.State.Terminated.Reason != "" {
+				status = container.State.Terminated.Reason
+			} else if container.State.Terminated != nil && container.State.Terminated.Reason == "" {
+				if container.State.Terminated.Signal != 0 {
+					status = fmt.Sprintf("Signal:%d", container.State.Terminated.Signal)
+				} else {
+					status = fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode)
+				}
+			} else if container.Ready && container.State.Running != nil {
+				hasRunning = true
+			}
+		}
+
+		// change pod status back to "Running" if there is at least one container still reporting as "Running" status
+		if status == "Completed" && hasRunning {
+			status = "Running"
+		}
+	}
+
+	if pod.DeletionTimestamp != nil && pod.Status.Reason == "NodeLost" {
+		status = "Unknown"
+	} else if pod.DeletionTimestamp != nil {
+		status = "Terminating"
+	}
+
+	return status, restarts
+}
+
 func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	name := item.Name
 	namespace := item.Namespace
 	podIp := item.Status.PodIP
 	nodeName := item.Spec.NodeName
 	nodeIp := item.Status.HostIP
-	status := string(item.Status.Phase)
+	status, restartCount := getStatusAndRestartCount(item)
 	createTime := item.CreationTimestamp.Time
 	containerStatus := item.Status.ContainerStatuses
 	containerSpecs := item.Spec.Containers
@@ -118,7 +191,7 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	}
 
 	object := &Pod{Namespace: namespace, Name: name, Node: nodeName, PodIp: podIp, Status: status, NodeIp: nodeIp,
-		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers}
+		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers, RestartCount: restartCount}
 
 	return object
 }
@@ -160,7 +233,7 @@ func (ctl *PodCtl) listAndWatch() {
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.Pod)
 			mysqlObject := ctl.generateObject(*object)
-
+			ctl.addAnnotationToPvc(*object)
 			db.Save(mysqlObject)
 
 		},
@@ -190,22 +263,6 @@ func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	order := "createTime desc"
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
-
-	ch := make(chan metrics.PodMetrics)
-
-	for index, _ := range list {
-		go metrics.GetSinglePodMetrics(list[index].Namespace, list[index].Name, ch)
-	}
-
-	var resultMetrics = make(map[string]metrics.PodMetrics)
-	for range list {
-		podMetric := <-ch
-		resultMetrics[podMetric.PodName] = podMetric
-	}
-
-	for index, _ := range list {
-		list[index].Metrics = resultMetrics[list[index].Name]
-	}
 
 	return total, list, nil
 }
