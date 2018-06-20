@@ -23,7 +23,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 func Register(ws *restful.WebService, subPath string) {
@@ -38,31 +38,41 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.POST(subPath+"/{nodename}/drainage").To(handleDrainNode).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET(subPath+"/{nodename}/drainage").To(handleDrainStatus).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+}
+
+func MakeRequest(node string, ch chan<- metrics.NodeMetrics) {
+	resultNode := metrics.FormatNodeMetrics(node)
+
+	ch <- resultNode
 }
 
 func handleNodes(request *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
-	var resultNode models.ResultNode
 
-	nodes := models.GetNodes()
+	nodes := metrics.GetNodes()
 
-	var total_count int
-	for i, node := range nodes {
-		resultNode = models.FormatNodeMetrics(node)
-		result.Items = append(result.Items, resultNode)
-		total_count = i
+	ch := make(chan metrics.NodeMetrics)
+	for _, node := range nodes {
+		go MakeRequest(node, ch)
 	}
-	total_count = total_count + 1
 
-	result.TotalCount = total_count
+	for _, _ = range nodes {
+		result.Items = append(result.Items, <-ch)
+	}
+
+	result.TotalCount = len(result.Items)
 	response.WriteAsJson(result)
 }
 
 func handleSingleNode(request *restful.Request, response *restful.Response) {
 	nodeName := request.PathParameter("nodename")
-	var resultNode models.ResultNode
+	var resultNode metrics.NodeMetrics
 
-	resultNode = models.FormatNodeMetrics(nodeName)
+	resultNode = metrics.FormatNodeMetrics(nodeName)
 
 	response.WriteAsJson(resultNode)
 }
@@ -71,7 +81,7 @@ func handleDrainNode(request *restful.Request, response *restful.Response) {
 
 	nodeName := request.PathParameter("nodename")
 
-	result, err := models.DrainNode(nodeName)
+	result, err := metrics.DrainNode(nodeName)
 
 	if err != nil {
 
@@ -83,4 +93,21 @@ func handleDrainNode(request *restful.Request, response *restful.Response) {
 
 	}
 
+}
+
+func handleDrainStatus(request *restful.Request, response *restful.Response) {
+
+	nodeName := request.PathParameter("nodename")
+
+	result, err := metrics.DrainStatus(nodeName)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
 }

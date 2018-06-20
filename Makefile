@@ -2,7 +2,7 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
-TARG.Name:=kubesphere
+TRAG.Name:=kubesphere-apiserver
 TRAG.Gopkg:=kubesphere.io/kubesphere
 TRAG.Version:=$(TRAG.Gopkg)/pkg/version
 
@@ -90,7 +90,8 @@ build: fmt
 	mkdir -p ./tmp/bin && cp -r ./install/ ./tmp/
 	$(call get_build_flags)
 	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
-	@docker build -t $(TARG.Name) -f ./Dockerfile.dev ./tmp
+	mv ./tmp/bin/cmd ./tmp/bin/$(TRAG.Name)
+	@docker build -t $(TRAG.Name) -f ./Dockerfile.dev ./tmp
 	@docker image prune -f 1>/dev/null 2>&1
 	@echo "build done"
 

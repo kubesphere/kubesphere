@@ -42,5 +42,6 @@ func listResource(req *restful.Request, resp *restful.Response) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
+
 	resp.WriteEntity(res)
 }
