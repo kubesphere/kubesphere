@@ -1,17 +1,21 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: kubesphere-router
+  name: ks-router
   namespace: kubesphere-router-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kubesphere-router
+      app: kubesphere
+      component: ks-router
+      tier: backend
   template:
     metadata:
       labels:
-        app: kubesphere-router
+        app: kubesphere
+        component: ks-router
+        tier: backend
       annotations:
         prometheus.io/port: '10254'
         prometheus.io/scrape: 'true'
