@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -89,13 +90,85 @@ func (ctl *PodCtl) delAnnotationFromPvc(item v1.Pod) {
 	}
 }
 
+func getStatusAndRestartCount(pod v1.Pod) (string, int) {
+	status := string(pod.Status.Phase)
+	restarts := 0
+	if pod.Status.Reason != "" {
+		status = pod.Status.Reason
+	}
+
+	initializing := false
+	for i := range pod.Status.InitContainerStatuses {
+		container := pod.Status.InitContainerStatuses[i]
+		restarts += int(container.RestartCount)
+		switch {
+		case container.State.Terminated != nil && container.State.Terminated.ExitCode == 0:
+			continue
+		case container.State.Terminated != nil:
+			// initialization is failed
+			if len(container.State.Terminated.Reason) == 0 {
+				if container.State.Terminated.Signal != 0 {
+					status = fmt.Sprintf("Init:Signal:%d", container.State.Terminated.Signal)
+				} else {
+					status = fmt.Sprintf("Init:ExitCode:%d", container.State.Terminated.ExitCode)
+				}
+			} else {
+				status = "Init:" + container.State.Terminated.Reason
+			}
+			initializing = true
+		case container.State.Waiting != nil && len(container.State.Waiting.Reason) > 0 && container.State.Waiting.Reason != "PodInitializing":
+			status = "Init:" + container.State.Waiting.Reason
+			initializing = true
+		default:
+			status = fmt.Sprintf("Init:%d/%d", i, len(pod.Spec.InitContainers))
+			initializing = true
+		}
+		break
+	}
+	if !initializing {
+		restarts = 0
+		hasRunning := false
+		for i := len(pod.Status.ContainerStatuses) - 1; i >= 0; i-- {
+			container := pod.Status.ContainerStatuses[i]
+
+			restarts += int(container.RestartCount)
+			if container.State.Waiting != nil && container.State.Waiting.Reason != "" {
+				status = container.State.Waiting.Reason
+			} else if container.State.Terminated != nil && container.State.Terminated.Reason != "" {
+				status = container.State.Terminated.Reason
+			} else if container.State.Terminated != nil && container.State.Terminated.Reason == "" {
+				if container.State.Terminated.Signal != 0 {
+					status = fmt.Sprintf("Signal:%d", container.State.Terminated.Signal)
+				} else {
+					status = fmt.Sprintf("ExitCode:%d", container.State.Terminated.ExitCode)
+				}
+			} else if container.Ready && container.State.Running != nil {
+				hasRunning = true
+			}
+		}
+
+		// change pod status back to "Running" if there is at least one container still reporting as "Running" status
+		if status == "Completed" && hasRunning {
+			status = "Running"
+		}
+	}
+
+	if pod.DeletionTimestamp != nil && pod.Status.Reason == "NodeLost" {
+		status = "Unknown"
+	} else if pod.DeletionTimestamp != nil {
+		status = "Terminating"
+	}
+
+	return status, restarts
+}
+
 func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	name := item.Name
 	namespace := item.Namespace
 	podIp := item.Status.PodIP
 	nodeName := item.Spec.NodeName
 	nodeIp := item.Status.HostIP
-	status := string(item.Status.Phase)
+	status, restartCount := getStatusAndRestartCount(item)
 	createTime := item.CreationTimestamp.Time
 	containerStatus := item.Status.ContainerStatuses
 	containerSpecs := item.Spec.Containers
@@ -118,7 +191,7 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	}
 
 	object := &Pod{Namespace: namespace, Name: name, Node: nodeName, PodIp: podIp, Status: status, NodeIp: nodeIp,
-		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers}
+		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers, RestartCount: restartCount}
 
 	return object
 }
