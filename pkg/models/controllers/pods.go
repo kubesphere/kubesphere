@@ -27,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
-
-	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 const inUse = "in_use_pods"
@@ -45,22 +43,24 @@ func (ctl *PodCtl) addAnnotationToPvc(item v1.Pod) {
 				Pvc.Annotations = make(map[string]string)
 			}
 			annotation := Pvc.Annotations
+
 			if len(annotation[inUse]) == 0 {
 				pods := []string{item.Name}
 				str, _ := json.Marshal(pods)
 				annotation[inUse] = string(str)
 			} else {
 				var pods []string
-				json.Unmarshal([]byte(annotation[inUse]), pods)
+				json.Unmarshal([]byte(annotation[inUse]), &pods)
 				for _, pod := range pods {
 					if pod == item.Name {
 						return
 					}
-					pods = append(pods, item.Name)
-					str, _ := json.Marshal(pods)
-					annotation[inUse] = string(str)
 				}
+				pods = append(pods, item.Name)
+				str, _ := json.Marshal(pods)
+				annotation[inUse] = string(str)
 			}
+			Pvc.Annotations = annotation
 			ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Update(Pvc)
 		}
 	}
@@ -233,7 +233,7 @@ func (ctl *PodCtl) listAndWatch() {
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.Pod)
 			mysqlObject := ctl.generateObject(*object)
-
+			ctl.addAnnotationToPvc(*object)
 			db.Save(mysqlObject)
 
 		},
@@ -263,22 +263,6 @@ func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	order := "createTime desc"
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
-
-	ch := make(chan metrics.PodMetrics)
-
-	for index, _ := range list {
-		go metrics.GetSinglePodMetrics(list[index].Namespace, list[index].Name, ch)
-	}
-
-	var resultMetrics = make(map[string]metrics.PodMetrics)
-	for range list {
-		podMetric := <-ch
-		resultMetrics[podMetric.PodName] = podMetric
-	}
-
-	for index, _ := range list {
-		list[index].Metrics = resultMetrics[list[index].Name]
-	}
 
 	return total, list, nil
 }
