@@ -25,7 +25,6 @@ spec:
             - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
             - --configmap=$(POD_NAMESPACE)/nginx-configuration
             - --annotations-prefix=nginx.ingress.kubernetes.io
-            - --watch-namespace=$(POD_NAMESPACE)
           env:
             - name: POD_NAME
               valueFrom:
