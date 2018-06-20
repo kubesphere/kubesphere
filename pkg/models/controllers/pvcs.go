@@ -47,6 +47,9 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 	}
 
 	storageClass := "-"
+	if len(item.Annotations["volume.beta.kubernetes.io/storage-class"]) > 0 {
+		storageClass = item.Annotations["volume.beta.kubernetes.io/storage-class"]
+	}
 	if item.Spec.StorageClassName != nil {
 		storageClass = *item.Spec.StorageClassName
 	}

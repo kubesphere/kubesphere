@@ -94,7 +94,9 @@ func GetPodMetricsInNamespace(namespace string) constants.PageableResponse {
 	options := v1.ListOptions{}
 	podList, _ := k8sClient.CoreV1().Pods(namespace).List(options)
 
-	podMetrics.Items = append(podMetrics.Items, GetPodsMetrics(podList))
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
 	podMetrics.TotalCount = len(podMetrics.Items)
 
 	return podMetrics
@@ -107,7 +109,9 @@ func GetPodMetricsInNode(nodeName string) constants.PageableResponse {
 		FieldSelector: "spec.nodeName=" + nodeName,
 	}
 	podList, _ := k8sClient.CoreV1().Pods("").List(options)
-	podMetrics.Items = append(podMetrics.Items, GetPodsMetrics(podList))
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
 	podMetrics.TotalCount = len(podMetrics.Items)
 
 	return podMetrics
@@ -120,7 +124,9 @@ func GetPodMetricsInNamespaceOfNode(namespace string, nodeName string) constants
 		FieldSelector: "spec.nodeName=" + nodeName + ",metadata.namespace=" + namespace,
 	}
 	podList, _ := k8sClient.CoreV1().Pods("").List(options)
-	podMetrics.Items = append(podMetrics.Items, GetPodsMetrics(podList))
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
 	podMetrics.TotalCount = len(podMetrics.Items)
 
 	return podMetrics
@@ -131,7 +137,9 @@ func GetAllPodMetrics() constants.PageableResponse {
 	k8sClient := client.NewK8sClient()
 	options := v1.ListOptions{}
 	podList, _ := k8sClient.CoreV1().Pods("").List(options)
-	podMetrics.Items = append(podMetrics.Items, GetPodsMetrics(podList))
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
 	podMetrics.TotalCount = len(podMetrics.Items)
 
 	return podMetrics
