@@ -112,7 +112,6 @@ func (server *kubeSphereServer) run() {
 }
 
 func Run() {
-
 	server := newKubeSphereServer(options.ServerOptions)
 
 	server.run()
