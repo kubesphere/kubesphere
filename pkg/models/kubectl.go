@@ -129,9 +129,26 @@ func DelKubectlPod(user string) error {
 	if err != nil {
 		return err
 	}
-	replicas := int32(0)
-	deploy.Spec.Replicas = &replicas
-	k8sClient.AppsV1beta2().Deployments(namespace).Update(deploy)
+
 	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &meta_v1.DeleteOptions{})
-	return err
+	if err != nil {
+		return err
+	}
+
+	label := labels.SelectorFromSet(labels.Set(deploy.Spec.Selector.MatchLabels)).String()
+	rsList, err := k8sClient.AppsV1beta2().ReplicaSets(namespace).List(meta_v1.ListOptions{LabelSelector: label})
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	for _, rs := range rsList.Items {
+		err = k8sClient.AppsV1beta2().ReplicaSets(namespace).Delete(rs.Name, &meta_v1.DeleteOptions{})
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+	}
+
+	return nil
 }
