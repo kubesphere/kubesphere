@@ -27,8 +27,11 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/options"
@@ -229,15 +232,14 @@ func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
 		createTime = time.Now()
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-	object := &Namespace{Name: name, CreateTime: createTime, Status: status, AnnotationStr: string(annotation)}
+	object := &Namespace{Name: name, CreateTime: createTime, Status: status, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
 
 func (ctl *NamespaceCtl) listAndWatch() {
 	defer func() {
-		defer close(ctl.aliveChan)
+		close(ctl.aliveChan)
 		if err := recover(); err != nil {
 			glog.Error(err)
 			return
@@ -252,50 +254,45 @@ func (ctl *NamespaceCtl) listAndWatch() {
 
 	db = db.CreateTable(&Namespace{})
 
-	k8sClient := client.NewK8sClient()
-	list, err := k8sClient.CoreV1().Namespaces().List(metaV1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Core().V1().Namespaces().Informer()
+	lister := kubeInformerFactory.Core().V1().Namespaces().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range list.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
 
-		ctl.createRoleAndRuntime(item)
 	}
 
-	watcher, err := k8sClient.CoreV1().Namespaces().Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var ns Namespace
-			if event.Object == nil {
-				panic("watch timeout, restart namespace controller")
-			}
-			object := event.Object.(*v1.Namespace)
-			if event.Type == watch.Deleted {
-				db.Where("name=?", object.Name).Find(&ns)
-				db.Delete(ns)
+			object := obj.(*v1.Namespace)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.Namespace)
+			mysqlObject := ctl.generateObject(*object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Namespace
+			object := obj.(*v1.Namespace)
+			db.Where("name=?", object.Name).Find(&item)
+			db.Delete(item)
 
-				ctl.deleteOpRuntime(*object)
-				break
-			}
+		},
+	})
 
-			ctl.createRoleAndRuntime(*object)
-
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *NamespaceCtl) CountWithConditions(conditions string) int {
@@ -313,11 +310,12 @@ func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
+	for index := range list {
+		usage, err := ctl.GetNamespaceQuota(list[index].Name)
+		if err == nil {
+			list[index].Usaeg = usage
+		}
+
 	}
 	return total, list, nil
 }
@@ -327,4 +325,29 @@ func (ctl *NamespaceCtl) Count(namespace string) int {
 	db := ctl.DB
 	db.Model(&Namespace{}).Count(&count)
 	return count
+}
+
+func getUsage(namespace, resource string) int {
+	ctl := rec.controllers[resource]
+	return ctl.Count(namespace)
+}
+
+func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, error) {
+
+	usage := make(v1.ResourceList)
+
+	resourceList := []string{Daemonsets, Deployments, Ingresses, Roles, Services, Statefulsets, PersistentVolumeClaim, Pods}
+	for _, resourceName := range resourceList {
+		used := getUsage(namespace, resourceName)
+		var quantity resource.Quantity
+		quantity.Set(int64(used))
+		usage[v1.ResourceName(resourceName)] = quantity
+	}
+
+	podCtl := rec.controllers[Pods]
+	var quantity resource.Quantity
+	used := podCtl.CountWithConditions(fmt.Sprintf("status=\"%s\" And namespace=\"%s\"", "Running", namespace))
+	quantity.Set(int64(used))
+	usage["runningPods"] = quantity
+	return usage, nil
 }

@@ -17,16 +17,14 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/extensions/v1beta1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
@@ -49,15 +47,14 @@ func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
 		ip = strings.Join(ipList, ",")
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-	object := &Ingress{Namespace: namespace, Name: name, TlsTermination: tls, Ip: ip, CreateTime: createTime, AnnotationStr: string(annotation)}
+	object := &Ingress{Namespace: namespace, Name: name, TlsTermination: tls, Ip: ip, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
 
 func (ctl *IngressCtl) listAndWatch() {
 	defer func() {
-		defer close(ctl.aliveChan)
+		close(ctl.aliveChan)
 		if err := recover(); err != nil {
 			glog.Error(err)
 			return
@@ -73,43 +70,45 @@ func (ctl *IngressCtl) listAndWatch() {
 
 	db = db.CreateTable(&Ingress{})
 
-	k8sClient := client.NewK8sClient()
-	list, err := k8sClient.ExtensionsV1beta1().Ingresses("").List(metaV1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Extensions().V1beta1().Ingresses().Informer()
+	lister := kubeInformerFactory.Extensions().V1beta1().Ingresses().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range list.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
+
 	}
 
-	watcher, err := k8sClient.ExtensionsV1beta1().Ingresses("").Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var ing Ingress
-			if event.Object == nil {
-				panic("watch timeout, restart ingress controller")
-			}
-			object := event.Object.(*v1beta1.Ingress)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&ing)
-				db.Delete(ing)
-				break
-			}
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+			object := obj.(*v1beta1.Ingress)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1beta1.Ingress)
+			mysqlObject := ctl.generateObject(*object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Ingress
+			object := obj.(*v1beta1.Ingress)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			db.Delete(item)
+
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *IngressCtl) CountWithConditions(conditions string) int {
@@ -127,12 +126,6 @@ func (ctl *IngressCtl) ListWithConditions(conditions string, paging *Paging) (in
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 

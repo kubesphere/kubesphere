@@ -17,18 +17,16 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/watch"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -119,16 +117,15 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 		ports = ports[0 : len(ports)-1]
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
 	object := &Service{Namespace: namespace, Name: name, ServiceType: serviceType, ExternalIp: externalIp,
-		VirtualIp: vip, CreateTime: createTime, Ports: ports, AnnotationStr: string(annotation)}
+		VirtualIp: vip, CreateTime: createTime, Ports: ports, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
 
 func (ctl *ServiceCtl) listAndWatch() {
 	defer func() {
-		defer close(ctl.aliveChan)
+		close(ctl.aliveChan)
 		if err := recover(); err != nil {
 			glog.Error(err)
 			return
@@ -143,45 +140,45 @@ func (ctl *ServiceCtl) listAndWatch() {
 
 	db = db.CreateTable(&Service{})
 
-	k8sClient := client.NewK8sClient()
-	svcList, err := k8sClient.CoreV1().Services("").List(metaV1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Core().V1().Services().Informer()
+	lister := kubeInformerFactory.Core().V1().Services().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range svcList.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
+
 	}
 
-	watcher, err := k8sClient.CoreV1().Services("").Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var svc Service
+			object := obj.(*v1.Service)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.Service)
+			mysqlObject := ctl.generateObject(*object)
+			db.Save(mysqlObject)
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Service
+			object := obj.(*v1.Service)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			db.Delete(item)
 
-			if event.Object == nil {
-				panic("watch timeout, restart service controller")
-			}
-			object := event.Object.(*v1.Service)
+		},
+	})
 
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&svc)
-				db.Delete(svc)
-				break
-			}
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *ServiceCtl) CountWithConditions(conditions string) int {
@@ -199,12 +196,6 @@ func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (in
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 

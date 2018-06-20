@@ -11,6 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// the code is mainly from:
+// 	   https://github.com/kubernetes/dashboard/blob/master/src/app/backend/handler/terminal.go
+// thanks to the related developer
 
 package models
 

@@ -134,24 +134,31 @@ func generateConditionAndPaging(conditions map[string]string, paging map[string]
 }
 
 type workLoadStatus struct {
-	NameSpace string         `json:"namespace"`
-	Count     map[string]int `json:"data"`
-	Items     map[string]interface{}
+	NameSpace string                 `json:"namespace"`
+	Count     map[string]int         `json:"data"`
+	Items     map[string]interface{} `json:"items,omitempty"`
 }
 
 func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 
 	res := workLoadStatus{Count: make(map[string]int), NameSpace: namespace, Items: make(map[string]interface{})}
+	var status *ResourceList
+	var err error
 	for _, resource := range []string{controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets} {
-		status, err := ListResource(resource, "status=updating", "")
+		if len(namespace) > 0 {
+			status, err = ListResource(resource, fmt.Sprintf("status=%s,namespace=%s", controllers.Updating, namespace), "")
+		} else {
+			status, err = ListResource(resource, fmt.Sprintf("status=%s", controllers.Updating), "")
+		}
+
 		if err != nil {
 			return nil, err
 		}
 
 		count := status.Total
-		items := status.Items
+		//items := status.Items
 		res.Count[resource] = count
-		res.Items[resource] = items
+		//res.Items[resource] = items
 	}
 
 	return &res, nil

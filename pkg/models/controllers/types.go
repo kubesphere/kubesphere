@@ -19,15 +19,20 @@ package controllers
 import (
 	"time"
 
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+
 	"github.com/jinzhu/gorm"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
-	stopping                   = "stopped"
-	running                    = "running"
-	updating                   = "updating"
+	resyncCircle               = 180
+	Stopped                    = "stopped"
+	Running                    = "running"
+	Updating                   = "updating"
 	tablePods                  = "pods"
 	tableDeployments           = "deployments"
 	tableDaemonsets            = "daemonsets"
@@ -53,41 +58,37 @@ const (
 	StorageClasses        = "storage-classes"
 )
 
-var ResourceTable = map[string]string{Deployments: tableDeployments, Statefulsets: tableStatefulsets, Daemonsets: tableDaemonsets,
-	Pods: tablePods, Namespaces: tableNamespaces, Ingresses: tableIngresses, PersistentVolumeClaim: tablePersistentVolumeClaim, Roles: tableRoles,
-	Services: tableServices, StorageClasses: tableStorageClasses, ClusterRoles: tableClusterRoles}
+type Annotation struct {
+	Values map[string]string `gorm:"type:TEXT"`
+}
 
-type Annotation map[string]string
+func (annotation *Annotation) Scan(val interface{}) error {
+	switch val := val.(type) {
+	case string:
+		return json.Unmarshal([]byte(val), annotation)
+	case []byte:
+		return json.Unmarshal(val, annotation)
+	default:
+		return errors.New("not support")
+	}
+	return nil
+}
 
-//
-//func (annotation *Annotation)Scan(val interface{}) error{
-//	switch val := val.(type){
-//	case string:
-//		return json.Unmarshal([]byte(val), annotation)
-//	case []byte:
-//		return json.Unmarshal(val, annotation)
-//	default:
-//		return errors.New("not support")
-//	}
-//	return nil
-//}
-//
-//func (annotation *Annotation)Value() (driver.Value, error){
-//	bytes, err := json.Marshal(annotation)
-//	return string(bytes), err
-//}
+func (annotation Annotation) Value() (driver.Value, error) {
+	bytes, err := json.Marshal(annotation)
+	return string(bytes), err
+}
 
 type Deployment struct {
 	Name      string `gorm:"primary_key" json:"name"`
 	Namespace string `gorm:"primary_key" json:"namespace"`
 	App       string `json:"app,omitempty"`
 
-	Available     int32      `json:"available"`
-	Desire        int32      `json:"desire"`
-	Status        string     `json:"status"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	UpdateTime    time.Time  `gorm:"column:updateTime" json:"updateTime,omitempty"`
+	Available  int32      `json:"available"`
+	Desire     int32      `json:"desire"`
+	Status     string     `json:"status"`
+	Annotation Annotation `json:"annotations"`
+	UpdateTime time.Time  `gorm:"column:updateTime" json:"updateTime,omitempty"`
 }
 
 func (Deployment) TableName() string {
@@ -99,12 +100,11 @@ type Statefulset struct {
 	Namespace string `gorm:"primary_key" json:"namespace,omitempty"`
 	App       string `json:"app,omitempty"`
 
-	Available     int32      `json:"available"`
-	Desire        int32      `json:"desire"`
-	Status        string     `json:"status"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Available  int32      `json:"available"`
+	Desire     int32      `json:"desire"`
+	Status     string     `json:"status"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 func (Statefulset) TableName() string {
@@ -116,13 +116,12 @@ type Daemonset struct {
 	Namespace string `gorm:"primary_key" json:"namespace,omitempty"`
 	App       string `json:"app,omitempty"`
 
-	Available     int32      `json:"available"`
-	Desire        int32      `json:"desire"`
-	Status        string     `json:"status"`
-	NodeSelector  string     `json:"nodeSelector, omitempty"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Available    int32      `json:"available"`
+	Desire       int32      `json:"desire"`
+	Status       string     `json:"status"`
+	NodeSelector string     `json:"nodeSelector, omitempty"`
+	Annotation   Annotation `json:"annotations"`
+	CreateTime   time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 func (Daemonset) TableName() string {
@@ -137,10 +136,9 @@ type Service struct {
 	VirtualIp  string `json:"virtualIp,omitempty"`
 	ExternalIp string `json:"externalIp,omitempty"`
 
-	Ports         string     `json:"ports,omitempty"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Ports      string     `json:"ports,omitempty"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 func (Service) TableName() string {
@@ -153,10 +151,10 @@ type Pvc struct {
 	Status           string     `json:"status,omitempty"`
 	Capacity         string     `json:"capacity,omitempty"`
 	AccessMode       string     `json:"accessMode,omitempty"`
-	AnnotationStr    string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation       Annotation `gorm:"-" json:"annotation"`
+	Annotation       Annotation `json:"annotations"`
 	CreateTime       time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 	StorageClassName string     `gorm:"column:storage_class" json:"storage_class,omitempty"`
+	InUse            bool       `gorm:"-" json:"inUse"`
 }
 
 func (Pvc) TableName() string {
@@ -168,8 +166,7 @@ type Ingress struct {
 	Namespace      string     `gorm:"primary_key" json:"namespace"`
 	Ip             string     `json:"ip,omitempty"`
 	TlsTermination string     `json:"tlsTermination,omitempty"`
-	AnnotationStr  string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation     Annotation `gorm:"-" json:"annotation"`
+	Annotation     Annotation `json:"annotations"`
 	CreateTime     time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
@@ -178,24 +175,41 @@ func (Ingress) TableName() string {
 }
 
 type Pod struct {
-	Name          string      `gorm:"primary_key" json:"name"`
-	Namespace     string      `gorm:"primary_key" json:"namespace"`
-	Status        string      `json:"status,omitempty"`
-	Node          string      `json:"node,omitempty"`
-	NodeIp        string      `json:"nodeIp,omitempty"`
-	PodIp         string      `json:"podIp,omitempty"`
-	ContainerStr  string      `gorm:"type:text" json:",omitempty"`
-	Containers    []Container `json:"containers,omitempty"`
-	AnnotationStr string      `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation  `gorm:"-" json:"annotation"`
-	CreateTime    time.Time   `gorm:"column:createTime" json:"createTime,omitempty"`
+	Name       string     `gorm:"primary_key" json:"name"`
+	Namespace  string     `gorm:"primary_key" json:"namespace"`
+	Status     string     `json:"status,omitempty"`
+	Node       string     `json:"node,omitempty"`
+	NodeIp     string     `json:"nodeIp,omitempty"`
+	PodIp      string     `json:"podIp,omitempty"`
+	Containers Containers `gorm:"type:text" json:"containers,omitempty"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 type Container struct {
-	Name  string             `json:"name"`
-	Ready bool               `json:"ready,omitempty"`
-	Image string             `json:"image"`
-	Ports []v1.ContainerPort `json:"ports"`
+	Name      string                  `json:"name"`
+	Ready     bool                    `json:"ready,omitempty"`
+	Image     string                  `json:"image"`
+	Resources v1.ResourceRequirements `json:"resources"`
+	Ports     []v1.ContainerPort      `json:"ports"`
+}
+type Containers []Container
+
+func (containers *Containers) Scan(val interface{}) error {
+	switch val := val.(type) {
+	case string:
+		return json.Unmarshal([]byte(val), containers)
+	case []byte:
+		return json.Unmarshal(val, containers)
+	default:
+		return errors.New("not support")
+	}
+	return nil
+}
+
+func (containers Containers) Value() (driver.Value, error) {
+	bytes, err := json.Marshal(containers)
+	return string(bytes), err
 }
 
 func (Pod) TableName() string {
@@ -203,11 +217,10 @@ func (Pod) TableName() string {
 }
 
 type Role struct {
-	Name          string     `gorm:"primary_key" json:"name"`
-	Namespace     string     `gorm:"primary_key" json:"namespace"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Name       string     `gorm:"primary_key" json:"name"`
+	Namespace  string     `gorm:"primary_key" json:"namespace"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 func (Role) TableName() string {
@@ -215,10 +228,9 @@ func (Role) TableName() string {
 }
 
 type ClusterRole struct {
-	Name          string     `gorm:"primary_key" json:"name"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Name       string     `gorm:"primary_key" json:"name"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 func (ClusterRole) TableName() string {
@@ -230,10 +242,10 @@ type Namespace struct {
 	Creator string `json:"creator,omitempty"`
 	Status  string `json:"status"`
 
-	Descrition    string     `json:"description,omitempty"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	Descrition string          `json:"description,omitempty"`
+	Annotation Annotation      `json:"annotations"`
+	CreateTime time.Time       `gorm:"column:createTime" json:"createTime,omitempty"`
+	Usaeg      v1.ResourceList `gorm:"-" json:"usage,omitempty"`
 }
 
 func (Namespace) TableName() string {
@@ -241,13 +253,12 @@ func (Namespace) TableName() string {
 }
 
 type StorageClass struct {
-	Name          string     `gorm:"primary_key" json:"name"`
-	Creator       string     `json:"creator,omitempty"`
-	AnnotationStr string     `gorm:"type:text" json:"annotationStr,omitempty"`
-	Annotation    Annotation `gorm:"-" json:"annotation"`
-	CreateTime    time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
-	IsDefault     bool       `json:"default"`
-	Count         int        `json:"count"`
+	Name       string     `gorm:"primary_key" json:"name"`
+	Creator    string     `json:"creator,omitempty"`
+	Annotation Annotation `json:"annotations"`
+	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	IsDefault  bool       `json:"default"`
+	Count      int        `json:"count"`
 }
 
 func (StorageClass) TableName() string {
@@ -262,7 +273,8 @@ type Controller interface {
 	listAndWatch()
 	chanStop() chan struct{}
 	chanAlive() chan struct{}
-	Count(conditions string) int
+	Count(namespace string) int
+	CountWithConditions(condition string) int
 	ListWithConditions(condition string, paging *Paging) (int, interface{}, error)
 }
 
@@ -325,37 +337,4 @@ type RoleCtl struct {
 
 type ClusterRoleCtl struct {
 	CommonAttribute
-}
-
-func listWithConditions(db *gorm.DB, total *int, object, list interface{}, conditions string, paging *Paging, order string) {
-	if len(conditions) == 0 {
-		db.Model(object).Count(total)
-	} else {
-		db.Model(object).Where(conditions).Count(total)
-	}
-
-	if paging != nil {
-		if len(conditions) > 0 {
-			db.Where(conditions).Order(order).Limit(paging.Limit).Offset(paging.Offset).Find(list)
-		} else {
-			db.Order(order).Limit(paging.Limit).Offset(paging.Offset).Find(list)
-		}
-
-	} else {
-		if len(conditions) > 0 {
-			db.Where(conditions).Order(order).Find(list)
-		} else {
-			db.Order(order).Find(list)
-		}
-	}
-}
-
-func countWithConditions(db *gorm.DB, conditions string, object interface{}) int {
-	var count int
-	if len(conditions) == 0 {
-		db.Model(object).Count(&count)
-	} else {
-		db.Model(object).Where(conditions).Count(&count)
-	}
-	return count
 }

@@ -17,17 +17,17 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *ClusterRoleCtl) generateObjec(item v1.ClusterRole) *ClusterRole {
+func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
 	name := item.Name
 	if strings.HasPrefix(name, "system:") {
 		return nil
@@ -38,9 +38,7 @@ func (ctl *ClusterRoleCtl) generateObjec(item v1.ClusterRole) *ClusterRole {
 		createTime = time.Now()
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-
-	object := &ClusterRole{Name: name, CreateTime: createTime, AnnotationStr: string(annotation)}
+	object := &ClusterRole{Name: name, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
@@ -64,47 +62,48 @@ func (ctl *ClusterRoleCtl) listAndWatch() {
 	db = db.CreateTable(&ClusterRole{})
 
 	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Rbac().V1().ClusterRoles().Informer()
+	lister := kubeInformerFactory.Rbac().V1().ClusterRoles().Lister()
 
-	clusterRoleList, err := k8sClient.RbacV1().ClusterRoles().List(metaV1.ListOptions{})
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range clusterRoleList.Items {
-		obj := ctl.generateObjec(item)
-		if obj != nil {
-			db.Create(obj)
-		}
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
+		db.Create(obj)
+
 	}
 
-	clusterRoleWatcher, err := k8sClient.RbacV1().ClusterRoles().Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-clusterRoleWatcher.ResultChan():
-			var role ClusterRole
-			if event.Object == nil {
-				panic("watch timeout, restart clusterRole controller")
+			object := obj.(*v1.ClusterRole)
+			mysqlObject := ctl.generateObject(*object)
+			if mysqlObject != nil {
+				db.Create(mysqlObject)
 			}
-			object := event.Object.(*v1.ClusterRole)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, "\"\"").Find(&role)
-				db.Delete(role)
-				break
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.ClusterRole)
+			mysqlObject := ctl.generateObject(*object)
+			if mysqlObject != nil {
+				db.Save(mysqlObject)
 			}
-			obj := ctl.generateObjec(*object)
-			if obj != nil {
-				db.Save(obj)
-			}
-		}
-	}
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item ClusterRole
+			object := obj.(*v1.ClusterRole)
+			db.Where("name=?", object.Name).Find(&item)
+			db.Delete(item)
+
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *ClusterRoleCtl) CountWithConditions(conditions string) int {
@@ -123,12 +122,6 @@ func (ctl *ClusterRoleCtl) ListWithConditions(conditions string, paging *Paging)
 
 	listWithConditions(db, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 
