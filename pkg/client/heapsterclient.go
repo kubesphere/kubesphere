@@ -29,7 +29,7 @@ import (
 const (
 	DefaultHeapsterScheme  = "http"
 	DefaultHeapsterService = "heapster.kube-system.svc.cluster.local" //"heapster"
-	DefaultHeapsterPort    = "80"        // use the first exposed port on the service
+	DefaultHeapsterPort    = "80"                                     // use the first exposed port on the service
 	HeapsterApiPath        = "/api/v1/model"
 	HeapsterEndpointUrl    = DefaultHeapsterScheme + "://" + DefaultHeapsterService + ":" + DefaultHeapsterPort + HeapsterApiPath
 )
