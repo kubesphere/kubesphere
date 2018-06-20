@@ -34,7 +34,7 @@ func GetAllRouters() ([]coreV1.Service, error) {
 	k8sClient := client.NewK8sClient()
 
 	opts := metaV1.ListOptions{
-		LabelSelector: "app=kubesphere,component=kubesphere-router-gateway",
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend",
 	}
 
 	services, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).List(opts)
@@ -56,7 +56,7 @@ func GetRouter(namespace string) (*coreV1.Service, error) {
 	serviceName := constants.IngressControllerPrefix + namespace
 
 	opts := metaV1.ListOptions{
-		LabelSelector: "app=kubesphere,component=kubesphere-router-gateway",
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend",
 		FieldSelector: "metadata.name=" + serviceName,
 	}
 
