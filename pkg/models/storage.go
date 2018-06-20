@@ -47,11 +47,12 @@ func GetPvcListBySc(storageclass string) (res []v12.PersistentVolumeClaim, err e
 	// Select persistent volume claims which
 	// storage class name is equal to the specific storage class.
 	for _, claim := range claimList.Items {
-		if claim.Spec.StorageClassName != nil &&
-			*claim.Spec.StorageClassName == storageclass {
+		if claim.Spec.StorageClassName != nil {
+			if *claim.Spec.StorageClassName == storageclass {
+				res = append(res, claim)
+			}
+		} else if claim.GetAnnotations()[v12.BetaStorageClassAnnotation] == storageclass {
 			res = append(res, claim)
-		} else {
-			continue
 		}
 	}
 	return res, nil

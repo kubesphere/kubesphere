@@ -18,14 +18,74 @@ package controllers
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
+
+const inUse = "in_use_pods"
+
+func (ctl *PodCtl) addAnnotationToPvc(item v1.Pod) {
+	volumes := item.Spec.Volumes
+	for _, volume := range volumes {
+		pvc := volume.PersistentVolumeClaim
+		if pvc != nil {
+			name := pvc.ClaimName
+
+			Pvc, _ := ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Get(name, metaV1.GetOptions{})
+			if Pvc.Annotations == nil {
+				Pvc.Annotations = make(map[string]string)
+			}
+			annotation := Pvc.Annotations
+			if len(annotation[inUse]) == 0 {
+				pods := []string{item.Name}
+				str, _ := json.Marshal(pods)
+				annotation[inUse] = string(str)
+			} else {
+				var pods []string
+				json.Unmarshal([]byte(annotation[inUse]), pods)
+				for _, pod := range pods {
+					if pod == item.Name {
+						return
+					}
+					pods = append(pods, item.Name)
+					str, _ := json.Marshal(pods)
+					annotation[inUse] = string(str)
+				}
+			}
+			ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Update(Pvc)
+		}
+	}
+}
+
+func (ctl *PodCtl) delAnnotationFromPvc(item v1.Pod) {
+	volumes := item.Spec.Volumes
+	for _, volume := range volumes {
+		pvc := volume.PersistentVolumeClaim
+		if pvc != nil {
+			name := pvc.ClaimName
+			Pvc, _ := ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Get(name, metaV1.GetOptions{})
+			annotation := Pvc.Annotations
+			var pods []string
+			json.Unmarshal([]byte(annotation[inUse]), pods)
+
+			for index, pod := range pods {
+				if pod == item.Name {
+					pods = append(pods[:index], pods[index+1:]...)
+				}
+			}
+
+			str, _ := json.Marshal(pods)
+			annotation[inUse] = string(str)
+			ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Update(Pvc)
+		}
+	}
+}
 
 func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	name := item.Name
@@ -37,13 +97,15 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	createTime := item.CreationTimestamp.Time
 	containerStatus := item.Status.ContainerStatuses
 	containerSpecs := item.Spec.Containers
-	var containers []Container
+
+	var containers Containers
 
 	for _, containerSpec := range containerSpecs {
 		var container Container
 		container.Name = containerSpec.Name
 		container.Image = containerSpec.Image
 		container.Ports = containerSpec.Ports
+		container.Resources = containerSpec.Resources
 		for _, status := range containerStatus {
 			if container.Name == status.Name {
 				container.Ready = status.Ready
@@ -53,25 +115,13 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 		containers = append(containers, container)
 	}
 
-	containerStr, _ := json.Marshal(containers)
-
-	annotation, _ := json.Marshal(item.Annotations)
-
 	object := &Pod{Namespace: namespace, Name: name, Node: nodeName, PodIp: podIp, Status: status, NodeIp: nodeIp,
-		CreateTime: createTime, ContainerStr: string(containerStr), AnnotationStr: string(annotation)}
+		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers}
 
 	return object
 }
 
 func (ctl *PodCtl) listAndWatch() {
-	defer func() {
-		defer close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
-
 	db := ctl.DB
 
 	if db.HasTable(&Pod{}) {
@@ -81,43 +131,47 @@ func (ctl *PodCtl) listAndWatch() {
 
 	db = db.CreateTable(&Pod{})
 
-	k8sClient := client.NewK8sClient()
-	list, err := k8sClient.CoreV1().Pods("").List(meta_v1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Core().V1().Pods().Informer()
+	lister := kubeInformerFactory.Core().V1().Pods().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
-		return
+		panic(err)
 	}
 
-	for _, item := range list.Items {
-		obj := ctl.generateObject(item)
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
 		db.Create(obj)
 	}
 
-	watcher, err := k8sClient.CoreV1().Pods("").Watch(meta_v1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			object := obj.(*v1.Pod)
+			mysqlObject := ctl.generateObject(*object)
+			db.Create(mysqlObject)
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-watcher.ResultChan():
-			var po Pod
-			if event.Object == nil {
-				panic("watch timeout, restart pod controller")
-			}
-			object := event.Object.(*v1.Pod)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&po)
-				db.Delete(po)
-				break
-			}
-			obj := ctl.generateObject(*object)
-			db.Save(obj)
-		}
-	}
+			ctl.addAnnotationToPvc(*object)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.Pod)
+			mysqlObject := ctl.generateObject(*object)
+
+			db.Save(mysqlObject)
+
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Pod
+			object := obj.(*v1.Pod)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			ctl.delAnnotationFromPvc(*object)
+			db.Delete(item)
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *PodCtl) CountWithConditions(conditions string) int {
@@ -135,17 +189,6 @@ func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		var containers []Container
-		json.Unmarshal([]byte(item.ContainerStr), &containers)
-		list[index].Containers = containers
-		list[index].ContainerStr = ""
-
-		annotation := make(Annotation)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 

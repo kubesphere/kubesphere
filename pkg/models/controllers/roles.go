@@ -17,16 +17,14 @@ limitations under the License.
 package controllers
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
@@ -40,9 +38,7 @@ func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
 		createTime = time.Now()
 	}
 
-	annotation, _ := json.Marshal(item.Annotations)
-
-	object := &Role{Namespace: namespace, Name: name, CreateTime: createTime, AnnotationStr: string(annotation)}
+	object := &Role{Namespace: namespace, Name: name, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
 
 	return object
 }
@@ -65,49 +61,49 @@ func (ctl *RoleCtl) listAndWatch() {
 
 	db = db.CreateTable(&Role{})
 
-	k8sClient := client.NewK8sClient()
-	roleList, err := k8sClient.RbacV1().Roles("").List(metaV1.ListOptions{})
+	k8sClient := ctl.K8sClient
+	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
+	informer := kubeInformerFactory.Rbac().V1().Roles().Informer()
+	lister := kubeInformerFactory.Rbac().V1().Roles().Lister()
+
+	list, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	for _, item := range roleList.Items {
-		obj := ctl.generateObject(item)
-		if obj != nil {
-			db.Create(obj)
-		}
+	for _, item := range list {
+		obj := ctl.generateObject(*item)
+		db.Create(obj)
 
 	}
 
-	roleWatcher, err := k8sClient.RbacV1().Roles("").Watch(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
 
-	for {
-		select {
-		case <-ctl.stopChan:
-			return
-		case event := <-roleWatcher.ResultChan():
-			var role Role
-			if event.Object == nil {
-				panic("watch timeout, restart role controller")
+			object := obj.(*v1.Role)
+			mysqlObject := ctl.generateObject(*object)
+			if mysqlObject != nil {
+				db.Create(mysqlObject)
 			}
-			object := event.Object.(*v1.Role)
-			if event.Type == watch.Deleted {
-				db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&role)
-				db.Delete(role)
-				break
+		},
+		UpdateFunc: func(old, new interface{}) {
+			object := new.(*v1.Role)
+			mysqlObject := ctl.generateObject(*object)
+			if mysqlObject != nil {
+				db.Save(mysqlObject)
 			}
-			obj := ctl.generateObject(*object)
-			if obj != nil {
-				db.Save(obj)
-			}
-			break
-		}
-	}
+		},
+		DeleteFunc: func(obj interface{}) {
+			var item Role
+			object := obj.(*v1.Role)
+			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			db.Delete(item)
+
+		},
+	})
+
+	informer.Run(ctl.stopChan)
 }
 
 func (ctl *RoleCtl) CountWithConditions(conditions string) int {
@@ -125,12 +121,6 @@ func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, 
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index, item := range list {
-		annotation := make(map[string]string)
-		json.Unmarshal([]byte(item.AnnotationStr), &annotation)
-		list[index].Annotation = annotation
-		list[index].AnnotationStr = ""
-	}
 	return total, list, nil
 }
 

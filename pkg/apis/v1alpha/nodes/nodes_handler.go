@@ -38,6 +38,10 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.POST(subPath+"/{nodename}/drainage").To(handleDrainNode).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET(subPath+"/{nodename}/drainage").To(handleDrainStatus).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 }
 
 func handleNodes(request *restful.Request, response *restful.Response) {
@@ -83,4 +87,21 @@ func handleDrainNode(request *restful.Request, response *restful.Response) {
 
 	}
 
+}
+
+func handleDrainStatus(request *restful.Request, response *restful.Response) {
+
+	nodeName := request.PathParameter("nodename")
+
+	result, err := models.DrainStatus(nodeName)
+
+	if err != nil {
+
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+
+	} else {
+
+		response.WriteAsJson(result)
+
+	}
 }

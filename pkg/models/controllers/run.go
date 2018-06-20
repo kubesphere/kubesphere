@@ -28,15 +28,15 @@ import (
 
 type resourceControllers struct {
 	controllers map[string]Controller
-	db          *gorm.DB
 	k8sClient   *kubernetes.Clientset
 }
 
 var stopChan chan struct{}
+var rec resourceControllers
 
 func (rec *resourceControllers) runContoller(name string) {
 	var ctl Controller
-	attr := CommonAttribute{DB: rec.db, K8sClient: rec.k8sClient, stopChan: stopChan, aliveChan: make(chan struct{})}
+	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan, aliveChan: make(chan struct{})}
 	switch name {
 	case Deployments:
 		ctl = &DeploymentCtl{attr}
@@ -69,20 +69,38 @@ func (rec *resourceControllers) runContoller(name string) {
 
 }
 
+func dbHealthCheck(db *gorm.DB) {
+	for {
+		count := 0
+		var err error
+		for k := 0; k < 5; k++ {
+			err = db.DB().Ping()
+			if err != nil {
+				count++
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		if count > 3 {
+			panic(err)
+		}
+	}
+
+}
+
 func Run() {
-	db := client.NewDBClient()
 
 	stopChan := make(chan struct{})
-	defer db.Commit()
-	defer db.Close()
 	defer close(stopChan)
 
-	rec := resourceControllers{k8sClient: client.NewK8sClient(), db: db, controllers: make(map[string]Controller)}
+	rec = resourceControllers{k8sClient: client.NewK8sClient(), controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
 		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses} {
 		rec.runContoller(item)
 	}
+
+	go dbHealthCheck(client.NewDBClient())
 
 	for {
 		for ctlName, controller := range rec.controllers {

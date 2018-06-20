@@ -43,7 +43,7 @@ type Components struct {
 	SelfLink     string      `json:"selfLink"`
 	Label        interface{} `json:"label"`
 	HealthStatus string      `json:"healthStatus"`
-	CreateTime   time.Time   `json:"updateTime"`
+	CreateTime   time.Time   `json:"createTime"`
 }
 
 /***
@@ -173,7 +173,6 @@ func GetComponentsByNamespace(ns string) ([]Components, error) {
 	if ns != KUBESYSTEM {
 		option.LabelSelector = ""
 	}
-
 	servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
 
 	if err != nil {
