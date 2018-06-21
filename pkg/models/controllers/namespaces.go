@@ -79,9 +79,8 @@ func makeHttpRequest(method, url, data string) ([]byte, error) {
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
-	glog.Error(string(body))
 	defer resp.Body.Close()
-	return body, nil
+	return body, err
 }
 
 func (ctl *NamespaceCtl) getKubeConfig(user string) (string, error) {
@@ -203,23 +202,28 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 
 		err = ctl.createDefaultRoleBinding(ns, user)
 		if err != nil {
+			glog.Error(err)
 			return
 		}
 
 		resp, err := ctl.createOpRuntime(ns, user)
 		if err != nil {
-			glog.Error(resp)
+			glog.Error(err)
 			return
 		}
 
 		var runtime runTime
 		err = json.Unmarshal(resp, &runtime)
 		if err != nil {
+			glog.Error(err)
 			return
 		}
 
 		item.Annotations[openpitrix_runtime] = runtime.RuntimeId
-		ctl.K8sClient.CoreV1().Namespaces().Update(&item)
+		_, err = ctl.K8sClient.CoreV1().Namespaces().Update(&item)
+		if err != nil {
+			glog.Error(err)
+		}
 	}
 }
 
