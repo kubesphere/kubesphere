@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 const inUse = "in_use_pods"
@@ -263,6 +265,22 @@ func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	order := "createTime desc"
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
+
+	ch := make(chan metrics.PodMetrics)
+
+	for index, _ := range list {
+		go metrics.GetSinglePodMetrics(list[index].Namespace, list[index].Name, ch)
+	}
+
+	var resultMetrics = make(map[string]metrics.PodMetrics)
+	for range list {
+		podMetric := <-ch
+		resultMetrics[podMetric.PodName] = podMetric
+	}
+
+	for index, _ := range list {
+		list[index].Metrics = resultMetrics[list[index].Name]
+	}
 
 	return total, list, nil
 }
