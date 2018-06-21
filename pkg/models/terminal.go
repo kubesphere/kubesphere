@@ -271,7 +271,7 @@ func WaitForTerminal(k8sClient kubernetes.Interface, cfg *rest.Config, request *
 		close(terminalSessions[sessionId].bound)
 
 		var err error
-		validShells := []string{"bash", "sh"}
+		validShells := []string{"sh", "bash"}
 
 		if isValidShell(validShells, shell) {
 			cmd := []string{shell}

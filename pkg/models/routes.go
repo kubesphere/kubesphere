@@ -34,7 +34,7 @@ func GetAllRouters() ([]coreV1.Service, error) {
 	k8sClient := client.NewK8sClient()
 
 	opts := metaV1.ListOptions{
-		LabelSelector: "app=kubesphere,component=kubesphere-router-gateway",
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend",
 	}
 
 	services, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).List(opts)
@@ -56,7 +56,7 @@ func GetRouter(namespace string) (*coreV1.Service, error) {
 	serviceName := constants.IngressControllerPrefix + namespace
 
 	opts := metaV1.ListOptions{
-		LabelSelector: "app=kubesphere,component=kubesphere-router-gateway",
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend,project=" + namespace,
 		FieldSelector: "metadata.name=" + serviceName,
 	}
 
@@ -129,6 +129,9 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			service.Spec.Type = routerType
 			service.Name = constants.IngressControllerPrefix + namespace
 
+			// Add project selector
+			service.Spec.Selector["project"] = namespace
+
 			service, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Create(service)
 			if err != nil {
 				glog.Error(err)
@@ -140,6 +143,10 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 		case *extensionsV1beta1.Deployment:
 			deployment := obj.(*extensionsV1beta1.Deployment)
 			deployment.Name = constants.IngressControllerPrefix + namespace
+
+			// Add project label
+			deployment.Labels["project"] = namespace
+
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
 			glog.Info(deployment.Spec.Template.Spec.Containers[0].Args)
 			deployment, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Create(deployment)
@@ -171,7 +178,7 @@ func DeleteRouter(namespace string) (*coreV1.Service, error) {
 	deleteOptions := metaV1.DeleteOptions{}
 
 	listOptions := metaV1.ListOptions{
-		LabelSelector: "app=kubesphere,component=kubesphere-router-gateway",
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend,project=" + namespace,
 		FieldSelector: "metadata.name=" + serviceName}
 
 	serviceList, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).List(listOptions)

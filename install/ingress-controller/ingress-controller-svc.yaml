@@ -5,10 +5,13 @@ metadata:
   namespace: kubesphere-router-system
   labels:
     app: kubesphere
-    component: kubesphere-router
+    component: ks-router
+    tier: backend
 spec:
   selector:
-    app: 
+    app: kubesphere
+    component: ks-router
+    tier: backend
   type: LoadBalancer
   ports:
   - name: http

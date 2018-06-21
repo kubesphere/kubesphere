@@ -33,6 +33,7 @@ import (
 const (
 	resyncCircle               = 180
 	Stopped                    = "stopped"
+	PvcPending                 = "Pending"
 	Running                    = "running"
 	Updating                   = "updating"
 	tablePods                  = "pods"
