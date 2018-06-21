@@ -140,15 +140,18 @@ type workLoadStatus struct {
 }
 
 func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
-
 	res := workLoadStatus{Count: make(map[string]int), NameSpace: namespace, Items: make(map[string]interface{})}
 	var status *ResourceList
 	var err error
-	for _, resource := range []string{controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets} {
+	for _, resource := range []string{controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets, controllers.PersistentVolumeClaim} {
+		resourceStatus := controllers.Updating
+		if resource == controllers.PersistentVolumeClaim {
+			resourceStatus = controllers.PvcPending
+		}
 		if len(namespace) > 0 {
-			status, err = ListResource(resource, fmt.Sprintf("status=%s,namespace=%s", controllers.Updating, namespace), "")
+			status, err = ListResource(resource, fmt.Sprintf("status=%s,namespace=%s", resourceStatus, namespace), "")
 		} else {
-			status, err = ListResource(resource, fmt.Sprintf("status=%s", controllers.Updating), "")
+			status, err = ListResource(resource, fmt.Sprintf("status=%s", resourceStatus), "")
 		}
 
 		if err != nil {

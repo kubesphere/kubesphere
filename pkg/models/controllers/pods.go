@@ -31,7 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
-const inUse = "in_use_pods"
+const inUse = "kubesphere.io/in_use_pods"
 
 func (ctl *PodCtl) addAnnotationToPvc(item v1.Pod) {
 	volumes := item.Spec.Volumes
