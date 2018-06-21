@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const inUse = "in_use_pods"
+const inUse = "kubesphere.io/in_use_pods"
 
 func (ctl *PodCtl) addAnnotationToPvc(item v1.Pod) {
 	volumes := item.Spec.Volumes
