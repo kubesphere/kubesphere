@@ -251,17 +251,27 @@ func DrainNode(nodename string) (msg constants.MessageResponse, err error) {
 
 	data := []byte(" {\"spec\":{\"unschedulable\":true}}")
 	nodestatus, err := k8sclient.CoreV1().Nodes().Patch(nodename, types.StrategicMergePatchType, data)
-	glog.Info(nodestatus)
-
 	if err != nil {
 		glog.Fatal(err)
 		return msg, err
 	}
-	msg.Message = "success"
-	return msg, nil
+	glog.Info(nodestatus)
+	donech := make(chan bool)
+	errch := make(chan error)
+	go drainEviction(nodename, donech, errch)
+	for {
+		select {
+		case err := <-errch:
+			return msg, err
+		case <-donech:
+			msg.Message = "success"
+			return msg, nil
+		}
+	}
+
 }
 
-func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
+func drainEviction(nodename string, donech chan bool, errch chan error) {
 
 	k8sclient := kubeclient.NewK8sClient()
 	var options metav1.ListOptions
@@ -269,10 +279,8 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 	options.FieldSelector = "spec.nodeName=" + nodename
 	podList, err := k8sclient.CoreV1().Pods("").List(options)
 	if err != nil {
-
 		glog.Fatal(err)
-		return msg, err
-
+		errch <- err
 	}
 	options.FieldSelector = ""
 	daemonsetList, err := k8sclient.AppsV1beta2().DaemonSets("").List(options)
@@ -280,7 +288,7 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 	if err != nil {
 
 		glog.Fatal(err)
-		return msg, err
+		errch <- err
 
 	}
 	// remove mirror pod static pod
@@ -295,16 +303,11 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 				} else {
 					pods = append(pods, pod)
 				}
-
 			}
-
 		}
 	}
 	if len(pods) == 0 {
-
-		msg.Message = fmt.Sprintf("success")
-		return msg, nil
-
+		donech <- true
 	} else {
 
 		//create eviction
@@ -315,14 +318,10 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 		evicerr := evictPods(pods, 0, getPodFn)
 
 		if evicerr == nil {
-
-			msg.Message = fmt.Sprintf("success")
-			return msg, nil
-
+			donech <- true
 		} else {
-
-			glog.Info(evicerr)
-			return msg, evicerr
+			glog.Fatal(evicerr)
+			errch <- err
 		}
 
 	}
