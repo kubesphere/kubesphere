@@ -107,7 +107,7 @@ func (s *ServerRunOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.mysqlPasswd, "mysql-password", "123456",
 		"Password of mysql")
 
-	fs.StringVar(&s.mysqlUser, "mysql-user", "mysql",
+	fs.StringVar(&s.mysqlUser, "mysql-user", "root",
 		"User of mysql.")
 
 	fs.StringVar(&s.opAddress, "openpitrix-address", "http://openpitrix-api-gateway.openpitrix-system.svc",
