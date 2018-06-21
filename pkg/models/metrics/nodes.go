@@ -291,13 +291,9 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 			if !containDaemonset(pod, *daemonsetList) {
 				//static or mirror pod
 				if isStaticPod(&pod) || isMirrorPod(&pod) {
-
 					continue
-
 				} else {
-
 					pods = append(pods, pod)
-
 				}
 
 			}
@@ -316,7 +312,7 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 			k8sclient := kubeclient.NewK8sClient()
 			return k8sclient.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 		}
-		evicerr := evictPods(pods, 900, getPodFn)
+		evicerr := evictPods(pods, 0, getPodFn)
 
 		if evicerr == nil {
 
@@ -326,8 +322,7 @@ func DrainStatus(nodename string) (msg constants.MessageResponse, err error) {
 		} else {
 
 			glog.Info(evicerr)
-			msg.Message = evicerr.Error()
-			return msg, nil
+			return msg, evicerr
 		}
 
 	}
@@ -398,17 +393,26 @@ func evictPods(pods []v1.Pod, GracePeriodSeconds int, getPodFn func(namespace, n
 	for _, pod := range pods {
 		go func(pod v1.Pod, doneCh chan bool, errCh chan error) {
 			var err error
+			var count int
 			for {
 				err = evictPod(pod, GracePeriodSeconds)
 				if err == nil {
-					break
+					count++
+					if count > 2 {
+						break
+					} else {
+						continue
+					}
 				} else if apierrors.IsNotFound(err) {
+					count = 0
 					doneCh <- true
 					glog.Info(fmt.Sprintf("pod %s evict", pod.Name))
 					return
 				} else if apierrors.IsTooManyRequests(err) {
+					count = 0
 					time.Sleep(5 * time.Second)
 				} else {
+					count = 0
 					errCh <- fmt.Errorf("error when evicting pod %q: %v", pod.Name, err)
 					return
 				}
@@ -425,7 +429,7 @@ func evictPods(pods []v1.Pod, GracePeriodSeconds int, getPodFn func(namespace, n
 		}(pod, doneCh, errCh)
 	}
 
-	Timeout := GracePeriods * power(10, 9)
+	Timeout := 300 * power(10, 9)
 	doneCount := 0
 	// 0 timeout means infinite, we use MaxInt64 to represent it.
 	var globalTimeout time.Duration
@@ -444,7 +448,7 @@ func evictPods(pods []v1.Pod, GracePeriodSeconds int, getPodFn func(namespace, n
 				return nil
 			}
 		case <-time.After(globalTimeout):
-			return fmt.Errorf("Drain did not complete within %v, please check node status in a few minutes", globalTimeout)
+			return fmt.Errorf("Drain did not complete within %v", globalTimeout)
 		}
 	}
 }
