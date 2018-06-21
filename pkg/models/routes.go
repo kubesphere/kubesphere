@@ -130,6 +130,7 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			service.Name = constants.IngressControllerPrefix + namespace
 
 			// Add project selector
+			service.Labels["project"] = namespace
 			service.Spec.Selector["project"] = namespace
 
 			service, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Create(service)
@@ -145,7 +146,8 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			deployment.Name = constants.IngressControllerPrefix + namespace
 
 			// Add project label
-			deployment.Labels["project"] = namespace
+			deployment.Spec.Selector.MatchLabels["project"] = namespace
+			deployment.Spec.Template.Labels["project"] = namespace
 
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
 			glog.Info(deployment.Spec.Template.Spec.Containers[0].Args)
