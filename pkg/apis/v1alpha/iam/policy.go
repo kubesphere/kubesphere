@@ -25,8 +25,10 @@ import (
 	"k8s.io/api/rbac/v1"
 )
 
-const rulesConfigPath = "/etc/kubesphere/rules.json"
-const clusterRulesConfigPath = "/etc/kubesphere/clusterrules.json"
+const (
+	rulesConfigPath        = "/etc/kubesphere/rules/rules.json"
+	clusterRulesConfigPath = "/etc/kubesphere/rules/clusterrules.json"
+)
 
 type roleList struct {
 	ClusterRoles []v1.ClusterRole `json:"clusterRoles" protobuf:"bytes,2,rep,name=clusterRoles"`
@@ -572,6 +574,15 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"statefulsets"},
+					},
+				},
+			},
+			{Name: "scale",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"patch"},
 						APIGroups: []string{"apps"},
 						Resources: []string{"statefulsets"},
 					},

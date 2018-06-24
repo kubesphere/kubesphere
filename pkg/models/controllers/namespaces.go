@@ -40,16 +40,16 @@ import (
 const (
 	provider           = "kubernetes"
 	admin              = "admin"
-	normal             = "normal"
-	view               = "view"
+	editor             = "editor"
+	viewer             = "viewer"
 	kubectlNamespace   = "kubesphere"
 	kubectlConfigKey   = "config"
 	openpitrix_runtime = "openpitrix_runtime"
 )
 
-var adminRules = []rbac.PolicyRule{rbac.PolicyRule{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
-var normalRules = []rbac.PolicyRule{rbac.PolicyRule{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
-var viewRules = []rbac.PolicyRule{rbac.PolicyRule{Verbs: []string{"list", "get"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
+var adminRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
+var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
+var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
 
 type runTime struct {
 	RuntimeId         string `json:"runtime_id"`
@@ -114,10 +114,10 @@ func (ctl *NamespaceCtl) deleteOpRuntime(item v1.Namespace) {
 	makeHttpRequest("DELETE", url, string(body))
 }
 
-func (ctl *NamespaceCtl) createOpRuntime(namespace, user string) ([]byte, error) {
+func (ctl *NamespaceCtl) createOpRuntime(namespace string) ([]byte, error) {
 	zone := namespace
 	name := namespace
-	kubeConfig, err := ctl.getKubeConfig(user)
+	kubeConfig, err := ctl.getKubeConfig("admin")
 	if err != nil {
 		glog.Error(err)
 		return nil, err
@@ -156,8 +156,8 @@ func (ctl *NamespaceCtl) createDefaultRoleBinding(ns, user string) error {
 
 func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns}, Rules: adminRules}
-	normalRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: normal, Namespace: ns}, Rules: normalRules}
-	viewRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: view, Namespace: ns}, Rules: viewRules}
+	editorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: editor, Namespace: ns}, Rules: editorRules}
+	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: ns}, Rules: viewerRules}
 
 	role, _ := ctl.K8sClient.RbacV1().Roles(ns).Get(admin, metaV1.GetOptions{})
 
@@ -169,20 +169,20 @@ func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 		}
 	}
 
-	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(normal, metaV1.GetOptions{})
+	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(editor, metaV1.GetOptions{})
 
-	if role.Name != normal {
-		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(normalRole)
+	if role.Name != editor {
+		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(editorRole)
 		if err != nil {
 			glog.Error(err)
 			return err
 		}
 	}
 
-	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(view, metaV1.GetOptions{})
+	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(viewer, metaV1.GetOptions{})
 
-	if role.Name != view {
-		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(viewRole)
+	if role.Name != viewer {
+		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(viewerRole)
 		if err != nil {
 			glog.Error(err)
 			return err
@@ -206,7 +206,7 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 			return
 		}
 
-		resp, err := ctl.createOpRuntime(ns, user)
+		resp, err := ctl.createOpRuntime(ns)
 		if err != nil {
 			glog.Error(err)
 			return
