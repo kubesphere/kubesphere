@@ -86,7 +86,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"kubsphere.io"},
 						Resources: []string{"components"},
 					},
@@ -101,7 +101,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"namespaces"},
 					},
@@ -137,7 +137,7 @@ var (
 			{Name: "members",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "create", "delete"},
+						Verbs:     []string{"get", "watch", "list", "create", "delete"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"rolebindings"},
 					},
@@ -146,7 +146,7 @@ var (
 			{Name: "member_roles",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "create", "delete", "patch", "update"},
+						Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"roles"},
 					},
@@ -161,7 +161,7 @@ var (
 			{Name: "members",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "create", "delete"},
+						Verbs:     []string{"get", "watch", "list", "create", "delete"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"rolebindings"},
 					},
@@ -170,7 +170,7 @@ var (
 			{Name: "member_roles",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list", "create", "delete", "patch", "update"},
+						Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"roles"},
 					},
@@ -202,12 +202,12 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"kubesphere.io"},
 						Resources: []string{"users"},
 					},
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"clusterrolebindings"},
 					},
@@ -259,7 +259,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"rbac.authorization.k8s.io"},
 						Resources: []string{"clusterroles"},
 					},
@@ -302,7 +302,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"nodes"},
 					},
@@ -335,7 +335,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
@@ -349,7 +349,7 @@ var (
 			{Name: "create",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
@@ -367,7 +367,7 @@ var (
 			{Name: "delete",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"persistentvolumes"},
 					},
@@ -382,7 +382,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"storage.k8s.io"},
 						Resources: []string{"storageclasses"},
 					},
@@ -424,7 +424,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{
 							"secrets",
@@ -479,7 +479,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"openpitrix.io"},
 						Resources: []string{"appcatalog"},
 					},
@@ -521,7 +521,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"openpitrix.io"},
 						Resources: []string{"apps"},
 					},
@@ -536,7 +536,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"apps"},
 						Resources: []string{"statefulsets"},
 					},
@@ -546,7 +546,7 @@ var (
 						Resources: []string{"namespaces"},
 					},
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"pods", "pods/log", "pods/status"},
 					},
@@ -597,7 +597,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"daemonsets"},
 					},
@@ -607,7 +607,7 @@ var (
 						Resources: []string{"namespaces"},
 					},
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"pods", "pods/log", "pods/status"},
 					},
@@ -649,7 +649,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"services"},
 					},
@@ -697,7 +697,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"extensions"},
 						Resources: []string{"ingresses"},
 					},
@@ -744,7 +744,7 @@ var (
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"apps", "extensions"},
 						Resources: []string{"deployments", "deployments/scale"},
 					},
@@ -754,7 +754,7 @@ var (
 						Resources: []string{"namespaces"},
 					},
 					{
-						Verbs:     []string{"get", "list"},
+						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{""},
 						Resources: []string{"pods", "pods/log", "pods/status"},
 					},
