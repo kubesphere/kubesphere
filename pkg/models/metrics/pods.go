@@ -39,20 +39,6 @@ type PodMemoryMetrics struct {
 const Inf = "inf"
 
 /*
-Get all namespaces in default cluster
-*/
-func GetNameSpaces() []string {
-	namespacesList := client.GetHeapsterMetrics("/namespaces")
-	var namespaces []string
-	dec := json.NewDecoder(strings.NewReader(namespacesList))
-	err := dec.Decode(&namespaces)
-	if err != nil {
-		glog.Error(err)
-	}
-	return namespaces
-}
-
-/*
 Get all pods under specified namespace in default cluster
 */
 func GetPods(namespace string) []string {
@@ -73,14 +59,14 @@ func GetSinglePodMetrics(namespace string, podName string, ch chan PodMetrics) {
 }
 
 func GetPodsMetrics(podList *coreV1.PodList) []PodMetrics {
-	var items []PodMetrics
+	items := make([]PodMetrics, 0)
 
 	ch := make(chan PodMetrics)
 	for _, pod := range podList.Items {
 		go GetSinglePodMetrics(pod.Namespace, pod.Name, ch)
 	}
 
-	for _, _ = range podList.Items {
+	for range podList.Items {
 		items = append(items, <-ch)
 	}
 
@@ -100,6 +86,96 @@ func GetPodMetricsInNamespace(namespace string) constants.PageableResponse {
 	podMetrics.TotalCount = len(podMetrics.Items)
 
 	return podMetrics
+}
+
+func GetPodMetricsInDeployment(namespace string, deployment string) constants.PageableResponse {
+
+	var podMetrics constants.PageableResponse
+
+	k8sClient := client.NewK8sClient()
+
+	deploy, err := k8sClient.ExtensionsV1beta1().Deployments(namespace).Get(deployment, v1.GetOptions{})
+	if err != nil {
+		glog.Error(err)
+	}
+
+	labels := make([]string, 0)
+	for k, v := range deploy.Spec.Selector.MatchLabels {
+		labels = append(labels, k+"="+v)
+	}
+
+	options := v1.ListOptions{
+		LabelSelector: strings.Join(labels, ","),
+	}
+
+	podList, err := k8sClient.CoreV1().Pods(namespace).List(options)
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
+	podMetrics.TotalCount = len(podMetrics.Items)
+
+	return podMetrics
+
+}
+
+func GetPodMetricsInStatefulSet(namespace string, statefulSet string) constants.PageableResponse {
+
+	var podMetrics constants.PageableResponse
+
+	k8sClient := client.NewK8sClient()
+
+	deploy, err := k8sClient.AppsV1().StatefulSets(namespace).Get(statefulSet, v1.GetOptions{})
+	if err != nil {
+		glog.Error(err)
+	}
+
+	labels := make([]string, 0)
+	for k, v := range deploy.Spec.Selector.MatchLabels {
+		labels = append(labels, k+"="+v)
+	}
+
+	options := v1.ListOptions{
+		LabelSelector: strings.Join(labels, ","),
+	}
+
+	podList, err := k8sClient.CoreV1().Pods(namespace).List(options)
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
+	podMetrics.TotalCount = len(podMetrics.Items)
+
+	return podMetrics
+
+}
+
+func GetPodMetricsInDaemonset(namespace string, daemonset string) constants.PageableResponse {
+
+	var podMetrics constants.PageableResponse
+
+	k8sClient := client.NewK8sClient()
+
+	deploy, err := k8sClient.ExtensionsV1beta1().DaemonSets(namespace).Get(daemonset, v1.GetOptions{})
+	if err != nil {
+		glog.Error(err)
+	}
+
+	labels := make([]string, 0)
+	for k, v := range deploy.Spec.Selector.MatchLabels {
+		labels = append(labels, k+"="+v)
+	}
+
+	options := v1.ListOptions{
+		LabelSelector: strings.Join(labels, ","),
+	}
+
+	podList, err := k8sClient.CoreV1().Pods(namespace).List(options)
+	for _, podMetric := range GetPodsMetrics(podList) {
+		podMetrics.Items = append(podMetrics.Items, podMetric)
+	}
+	podMetrics.TotalCount = len(podMetrics.Items)
+
+	return podMetrics
+
 }
 
 func GetPodMetricsInNode(nodeName string) constants.PageableResponse {
@@ -191,7 +267,9 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 		resultPod.MemoryRequest = Inf
 	} else {
 		data, _ := memoryRequestMetrics[0].GetNumber("value")
-		resultPod.MemoryRequest = data.String()
+		memoryReq, _ := data.Float64()
+		memoryReq = memoryReq / 1024 / 1024
+		resultPod.MemoryRequest = fmt.Sprintf("%.1f", memoryReq)
 	}
 
 	memoryLimit := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")
@@ -200,7 +278,9 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 		resultPod.MemoryLimit = Inf
 	} else {
 		data, _ := memoryLimitMetrics[0].GetNumber("value")
-		resultPod.MemoryLimit = data.String()
+		memoryLim, _ := data.Float64()
+		memoryLim = memoryLim / 1024 / 1024
+		resultPod.MemoryLimit = fmt.Sprintf("%.1f", memoryLim)
 	}
 
 	cpuUsageRate := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/usage_rate")

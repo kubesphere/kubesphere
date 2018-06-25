@@ -36,26 +36,31 @@ func Register(ws *restful.WebService) {
 		Filter(route.RouteLogging).
 		Produces(restful.MIME_JSON))
 
-	ws.Route(ws.GET("/{namespace}/router").To(GetRouter).
+	ws.Route(ws.GET("/users/{user}/routers").To(GetAllRoutersOfUser).
+		Doc("Get routers for user").
+		Filter(route.RouteLogging).
+		Produces(restful.MIME_JSON))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/router").To(GetRouter).
 		Doc("Get router of a specified project").
 		Param(ws.PathParameter("namespace", "name of the project").DataType("string")).
 		Filter(route.RouteLogging).
 		Produces(restful.MIME_JSON))
 
-	ws.Route(ws.DELETE("/{namespace}/router").To(DeleteRouter).
+	ws.Route(ws.DELETE("/namespaces/{namespace}/router").To(DeleteRouter).
 		Doc("Get router of a specified project").
 		Param(ws.PathParameter("namespace", "name of the project").DataType("string")).
 		Filter(route.RouteLogging).
 		Produces(restful.MIME_JSON))
 
-	ws.Route(ws.POST("/{namespace}/router").To(CreateRouter).
+	ws.Route(ws.POST("/namespaces/{namespace}/router").To(CreateRouter).
 		Doc("Create a router for a specified project").
 		Param(ws.PathParameter("namespace", "name of the project").DataType("string")).
 		Filter(route.RouteLogging).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON))
 
-	ws.Route(ws.PUT("/{namespace}/router").To(UpdateRouter).
+	ws.Route(ws.PUT("/namespaces/{namespace}/router").To(UpdateRouter).
 		Doc("Update a router for a specified project").
 		Param(ws.PathParameter("namespace", "name of the project").DataType("string")).
 		Filter(route.RouteLogging).
@@ -72,6 +77,20 @@ type Router struct {
 func GetAllRouters(request *restful.Request, response *restful.Response) {
 
 	routers, err := models.GetAllRouters()
+
+	if err != nil {
+		glog.Error(err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+	} else {
+		response.WriteAsJson(routers)
+	}
+}
+
+// Get all namespace ingress controller services for user
+func GetAllRoutersOfUser(request *restful.Request, response *restful.Response) {
+	username := request.PathParameter("user")
+
+	routers, err := models.GetAllRoutersOfUser(username)
 
 	if err != nil {
 		glog.Error(err)

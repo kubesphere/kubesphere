@@ -33,6 +33,25 @@ func Register(ws *restful.WebService) {
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").To(handlePodUnderNameSpace).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/namespaces/{namespace}/deployments/{deployment}/pods").
+		To(handleGetDeploymentPodsMetrics).
+		Filter(route.RouteLogging).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/daemonsets/{daemonset}/pods").
+		To(handleGetDaemonsetPodsMetrics).
+		Filter(route.RouteLogging).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/statefulsets/{statefulset}/pods").
+		To(handleGetStatefulsetPodsMetrics).
+		Filter(route.RouteLogging).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON))
+
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").To(handlePodsUnderNameSpace).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
@@ -44,30 +63,59 @@ func Register(ws *restful.WebService) {
 		Produces(restful.MIME_JSON)
 }
 
-func handleAllPods(request *restful.Request, response *restful.Response) {
+// Get all pods metrics in cluster
+func handleAllPods(_ *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
 	result = metrics.GetAllPodMetrics()
 	response.WriteAsJson(result)
 }
 
+// Get pods metrics in namespace
 func handlePodsUnderNameSpace(request *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
 	result = metrics.GetPodMetricsInNamespace(request.PathParameter("namespace"))
 	response.WriteAsJson(result)
 }
 
+// Get pods metrics in a deployment
+func handleGetDeploymentPodsMetrics(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	deployment := request.PathParameter("deployment")
+	result := metrics.GetPodMetricsInDeployment(namespace, deployment)
+	response.WriteAsJson(result)
+}
+
+// Get pods metrics in daemonset deployment
+func handleGetDaemonsetPodsMetrics(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	daemonset := request.PathParameter("daemonset")
+	result := metrics.GetPodMetricsInDaemonset(namespace, daemonset)
+	response.WriteAsJson(result)
+}
+
+// Get pods metrics in statefulset deployment
+func handleGetStatefulsetPodsMetrics(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	statefulset := request.PathParameter("statefulset")
+	result := metrics.GetPodMetricsInStatefulSet(namespace, statefulset)
+	response.WriteAsJson(result)
+}
+
+// Get all pods metrics located in node
 func handlePodsUnderNode(request *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
 	result = metrics.GetPodMetricsInNode(request.PathParameter("node"))
 	response.WriteAsJson(result)
 }
 
+// Get a specific pod metrics
 func handlePodUnderNameSpace(request *restful.Request, response *restful.Response) {
 	var resultPod metrics.PodMetrics
 	resultPod = metrics.FormatPodMetrics(request.PathParameter("namespace"), request.PathParameter("pod"))
 	response.WriteAsJson(resultPod)
 }
 
+// Get pod metrics in a namespace located in deployment
 func handlePodsUnderNodeAndNameSpace(request *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
 	nodeName := request.PathParameter("node")
