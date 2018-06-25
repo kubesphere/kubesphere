@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"strconv"
+
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -74,7 +76,7 @@ func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
 		}
 		return "<pending>"
 	}
-	return "-"
+	return ""
 }
 
 func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
@@ -86,6 +88,7 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 	serviceType := virtualIp
 	vip := item.Spec.ClusterIP
 	ports := ""
+	var nodePorts []string
 
 	if createTime.IsZero() {
 		createTime = time.Now()
@@ -93,12 +96,10 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 
 	if item.Spec.ClusterIP == "None" {
 		serviceType = headlessSelector
-		vip = "-"
 	}
 
 	if len(item.Spec.ExternalName) > 0 {
 		serviceType = headlessExternal
-		vip = "-"
 	}
 
 	if len(item.Spec.ExternalIPs) > 0 {
@@ -110,15 +111,29 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 		targetPort := portItem.TargetPort.String()
 		protocol := portItem.Protocol
 		ports += fmt.Sprintf("%d:%s/%s,", port, targetPort, protocol)
+
+		if portItem.NodePort != 0 {
+			nodePorts = append(nodePorts, strconv.FormatInt(int64(portItem.NodePort), 10))
+		}
 	}
+
 	if len(ports) == 0 {
 		ports = "-"
 	} else {
 		ports = ports[0 : len(ports)-1]
 	}
 
-	object := &Service{Namespace: namespace, Name: name, ServiceType: serviceType, ExternalIp: externalIp,
-		VirtualIp: vip, CreateTime: createTime, Ports: ports, Annotation: Annotation{item.Annotations}}
+	object := &Service{
+		Namespace:   namespace,
+		Name:        name,
+		ServiceType: serviceType,
+		ExternalIp:  externalIp,
+		VirtualIp:   vip,
+		CreateTime:  createTime,
+		Ports:       ports,
+		NodePorts:   strings.Join(nodePorts, ","),
+		Annotation:  Annotation{item.Annotations},
+	}
 
 	return object
 }
@@ -154,7 +169,6 @@ func (ctl *ServiceCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{

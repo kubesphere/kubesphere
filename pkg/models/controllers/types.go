@@ -140,6 +140,7 @@ type Service struct {
 	ExternalIp string `json:"externalIp,omitempty"`
 
 	Ports      string     `json:"ports,omitempty"`
+	NodePorts  string     `json:"nodePorts,omitempty"`
 	Annotation Annotation `json:"annotations"`
 	CreateTime time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }

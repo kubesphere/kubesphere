@@ -25,6 +25,10 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
+	"k8s.io/api/rbac/v1"
+
+	"reflect"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
@@ -45,6 +49,64 @@ func GetAllRouters() ([]coreV1.Service, error) {
 	}
 
 	return services.Items, nil
+}
+
+func inArray(val interface{}, array interface{}) (exists bool) {
+	exists = false
+
+	switch reflect.TypeOf(array).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(array)
+
+		for i := 0; i < s.Len(); i++ {
+			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
+				exists = true
+				return
+			}
+		}
+	}
+	return exists
+}
+
+func GetAllRoutersOfUser(username string) ([]coreV1.Service, error) {
+
+	routers := make([]coreV1.Service, 0)
+	clusterRoles, err := GetClusterRoles(username)
+
+	// return by cluster role
+	if err != nil {
+		glog.Error(err)
+		return routers, err
+	} else {
+		for _, clusterRole := range clusterRoles {
+			for _, rulePolicy := range clusterRole.Rules {
+				if (inArray(v1.VerbAll, rulePolicy.Verbs) || inArray("view", rulePolicy.Verbs)) &&
+					(inArray(v1.ResourceAll, rulePolicy.Resources) || inArray("namespaces", rulePolicy.Resources)) {
+					return GetAllRouters()
+				}
+			}
+		}
+	}
+
+	// return by role
+	roles, err := GetRoles(username)
+	if err != nil {
+		glog.Error(err)
+		return routers, err
+	} else {
+		for _, projectRole := range roles {
+			router, err := GetRouter(projectRole.Namespace)
+			if err != nil {
+				glog.Error(err)
+				return routers, err
+			} else if router != nil {
+				routers = append(routers, *router)
+			}
+		}
+	}
+
+	return routers, nil
+
 }
 
 // Get router from a namespace
@@ -131,6 +193,7 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 
 			// Add project selector
 			service.Labels["project"] = namespace
+
 			service.Spec.Selector["project"] = namespace
 
 			service, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Create(service)
