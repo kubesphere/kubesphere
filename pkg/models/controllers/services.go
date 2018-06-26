@@ -18,8 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"strconv"
-
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -96,7 +94,7 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 		ports += fmt.Sprintf("%d:%s/%s,", port, targetPort, protocol)
 
 		if portItem.NodePort != 0 {
-			nodePorts = append(nodePorts, strconv.FormatInt(int64(portItem.NodePort), 10))
+			nodePorts = append(nodePorts, fmt.Sprintf("%d:%d/%s", port, portItem.NodePort, protocol))
 		}
 	}
 
