@@ -33,6 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/users"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/workloadstatus"
+	_ "kubesphere.io/kubesphere/pkg/filter/container"
 )
 
 func init() {
