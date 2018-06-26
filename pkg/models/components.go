@@ -23,12 +23,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
 )
-
-const KUBESYSTEM = "kube-system"
-const OPENPITRIX = "openpitrix-system"
-const ISTIO = "istio-system"
-const KUBESPHERE = "kubesphere-system"
 
 type ComponentsCount struct {
 	KubernetesCount int `json:"kubernetesCount"`
@@ -63,10 +59,10 @@ func GetComponents() (map[string]interface{}, error) {
 		LabelSelector: label,
 	}
 
-	namespaces := []string{KUBESYSTEM, OPENPITRIX, ISTIO, KUBESPHERE}
+	namespaces := []string{constants.KUBESYSTEM, constants.OPENPITRIX, constants.ISTIO, constants.KUBESPHERE}
 	for _, ns := range namespaces {
 
-		if ns != KUBESYSTEM {
+		if ns != constants.KUBESYSTEM {
 			option.LabelSelector = ""
 		}
 		servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
@@ -84,11 +80,11 @@ func GetComponents() (map[string]interface{}, error) {
 
 				switch ns {
 
-				case KUBESYSTEM:
+				case constants.KUBESYSTEM:
 					count.KubernetesCount++
-				case OPENPITRIX:
+				case constants.OPENPITRIX:
 					count.OpenpitrixCount++
-				case KUBESPHERE:
+				case constants.KUBESPHERE:
 					count.KubesphereCount++
 
 				default:
