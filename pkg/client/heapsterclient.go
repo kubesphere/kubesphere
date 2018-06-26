@@ -54,6 +54,12 @@ func GetHeapsterMetricsJson(url string) *jason.Object {
 		}
 	}
 
+	// return empty json in case of error response from es-node
+	if data == nil {
+		emptyJSON := `{}`
+		data, _ = jason.NewObjectFromBytes([]byte(emptyJSON))
+	}
+
 	return data
 }
 

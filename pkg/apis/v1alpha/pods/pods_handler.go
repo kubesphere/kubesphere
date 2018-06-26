@@ -73,7 +73,8 @@ func handleAllPods(_ *restful.Request, response *restful.Response) {
 // Get pods metrics in namespace
 func handlePodsUnderNameSpace(request *restful.Request, response *restful.Response) {
 	var result constants.PageableResponse
-	result = metrics.GetPodMetricsInNamespace(request.PathParameter("namespace"))
+	labelSelector := request.QueryParameter("labelSelector")
+	result = metrics.GetPodMetricsInNamespace(request.PathParameter("namespace"), labelSelector)
 	response.WriteAsJson(result)
 }
 

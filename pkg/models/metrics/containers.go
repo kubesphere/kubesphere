@@ -117,7 +117,10 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 
 	cpuUsageRate := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/cpu/usage_rate")
 	cpuUsageRateMetrics, err := cpuUsageRate.GetObjectArray("metrics")
-	if err == nil && len(cpuUsageRateMetrics) != 0 {
+	if err != nil {
+		glog.Error(err)
+		containerCPUMetrics = make([]ContainerCpuMetrics, 0)
+	} else {
 		for _, metric := range cpuUsageRateMetrics {
 			timestamp, _ := metric.GetString("timestamp")
 			cpuMetrics.TimeStamp = timestamp
@@ -132,7 +135,10 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 
 	memoryUsage := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + podName + "/containers/" + containerName + "/metrics/memory/usage")
 	memoryUsageMetrics, err := memoryUsage.GetObjectArray("metrics")
-	if err == nil && len(memoryUsageMetrics) != 0 {
+	if err != nil {
+		glog.Error(err)
+		containerMemMetrics = make([]ContainerMemoryMetrics, 0)
+	} else {
 		for _, metric := range memoryUsageMetrics {
 			timestamp, _ := metric.GetString("timestamp")
 			memMetrics.TimeStamp = timestamp

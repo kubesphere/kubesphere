@@ -26,8 +26,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 const (
@@ -179,17 +177,16 @@ func (Ingress) TableName() string {
 }
 
 type Pod struct {
-	Name         string             `gorm:"primary_key" json:"name"`
-	Namespace    string             `gorm:"primary_key" json:"namespace"`
-	Status       string             `json:"status,omitempty"`
-	Node         string             `json:"node,omitempty"`
-	NodeIp       string             `json:"nodeIp,omitempty"`
-	PodIp        string             `json:"podIp,omitempty"`
-	Containers   Containers         `gorm:"type:text" json:"containers,omitempty"`
-	Annotation   Annotation         `json:"annotations"`
-	RestartCount int                `json:"restartCount"`
-	Metrics      metrics.PodMetrics `json:"metrics,omitempty"`
-	CreateTime   time.Time          `gorm:"column:createTime" json:"createTime,omitempty"`
+	Name         string     `gorm:"primary_key" json:"name"`
+	Namespace    string     `gorm:"primary_key" json:"namespace"`
+	Status       string     `json:"status,omitempty"`
+	Node         string     `json:"node,omitempty"`
+	NodeIp       string     `json:"nodeIp,omitempty"`
+	PodIp        string     `json:"podIp,omitempty"`
+	Containers   Containers `gorm:"type:text" json:"containers,omitempty"`
+	Annotation   Annotation `json:"annotations"`
+	RestartCount int        `json:"restartCount"`
+	CreateTime   time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }
 
 type Container struct {
