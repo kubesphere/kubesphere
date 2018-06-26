@@ -30,8 +30,7 @@ import (
 func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
 	name := item.Name
 	namespace := item.Namespace
-	ip := "-"
-	tls := "-"
+	var ip, tls string
 	createTime := item.CreationTimestamp.Time
 	if createTime.IsZero() {
 		createTime = time.Now()

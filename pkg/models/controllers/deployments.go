@@ -40,8 +40,6 @@ func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
 
 	if len(release) > 0 && len(chart) > 0 {
 		app = release + "/" + chart
-	} else {
-		app = "-"
 	}
 
 	for _, conditon := range item.Status.Conditions {

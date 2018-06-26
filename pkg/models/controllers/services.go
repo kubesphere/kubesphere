@@ -1,12 +1,9 @@
 /*
 Copyright 2018 The KubeSphere Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,12 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
-)
-
-const (
-	headlessSelector = "Headless(Selector)"
-	headlessExternal = "Headless(ExternalName)"
-	virtualIp        = "Virtual IP"
 )
 
 func (ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
@@ -85,21 +76,13 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 	namespace := item.Namespace
 	createTime := item.CreationTimestamp.Time
 	externalIp := ctl.getExternalIp(item)
-	serviceType := virtualIp
+	serviceType := item.Spec.Type
 	vip := item.Spec.ClusterIP
 	ports := ""
 	var nodePorts []string
 
 	if createTime.IsZero() {
 		createTime = time.Now()
-	}
-
-	if item.Spec.ClusterIP == "None" {
-		serviceType = headlessSelector
-	}
-
-	if len(item.Spec.ExternalName) > 0 {
-		serviceType = headlessExternal
 	}
 
 	if len(item.Spec.ExternalIPs) > 0 {
@@ -126,7 +109,7 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 	object := &Service{
 		Namespace:   namespace,
 		Name:        name,
-		ServiceType: serviceType,
+		ServiceType: string(serviceType),
 		ExternalIp:  externalIp,
 		VirtualIp:   vip,
 		CreateTime:  createTime,

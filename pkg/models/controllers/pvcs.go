@@ -29,14 +29,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const creator = "creator"
-
 func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 	name := item.Name
 	namespace := item.Namespace
 	status := fmt.Sprintf("%s", item.Status.Phase)
 	createTime := item.CreationTimestamp.Time
-	capacity := "-"
+	var capacity, storageClass, accessModeStr string
 
 	if createTime.IsZero() {
 		createTime = time.Now()
@@ -46,15 +44,12 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 		capacity = storage.String()
 	}
 
-	storageClass := "-"
 	if len(item.Annotations["volume.beta.kubernetes.io/storage-class"]) > 0 {
 		storageClass = item.Annotations["volume.beta.kubernetes.io/storage-class"]
 	}
 	if item.Spec.StorageClassName != nil {
 		storageClass = *item.Spec.StorageClassName
 	}
-
-	accessModeStr := "-"
 
 	var accessModeList []string
 	for _, accessMode := range item.Status.AccessModes {

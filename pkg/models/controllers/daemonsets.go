@@ -43,8 +43,6 @@ func (ctl *DaemonsetCtl) generateObject(item v1.DaemonSet) *Daemonset {
 
 	if len(release) > 0 && len(chart) > 0 {
 		app = release + "/" + chart
-	} else {
-		app = "-"
 	}
 
 	if createTime.IsZero() {

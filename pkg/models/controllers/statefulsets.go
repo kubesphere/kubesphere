@@ -44,8 +44,6 @@ func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
 
 	if len(release) > 0 && len(chart) > 0 {
 		app = release + "/" + chart
-	} else {
-		app = "-"
 	}
 
 	if item.Annotations["state"] == "stop" {
