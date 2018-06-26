@@ -130,19 +130,26 @@ func GetComponents() (map[string]interface{}, error) {
 
 				if len(podsList.Items) > 0 {
 
+					var count int = 1
+
 					for _, pod := range podsList.Items {
 
 						if pod.Status.Phase == "Running" {
-
-							components.HealthStatus = "health"
-
+							count++
 						} else {
-
 							components.HealthStatus = "unhealth"
-
+							break
 						}
 
 					}
+
+					if count == len(podsList.Items) {
+						components.HealthStatus = "health"
+					}
+
+				} else {
+
+					components.HealthStatus = "unhealth"
 
 				}
 
@@ -155,94 +162,6 @@ func GetComponents() (map[string]interface{}, error) {
 	}
 	result["count"] = count
 	result["item"] = componentsList
-	return result, nil
-
-}
-
-func GetComponentsByNamespace(ns string) ([]Components, error) {
-
-	result := make([]Components, 0)
-	k8sClient := client.NewK8sClient()
-	var components Components
-
-	label := "kubernetes.io/cluster-service=true"
-	option := meta_v1.ListOptions{
-
-		LabelSelector: label,
-	}
-	if ns != KUBESYSTEM {
-		option.LabelSelector = ""
-	}
-	servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
-
-	if err != nil {
-
-		glog.Error(err)
-
-		return result, err
-	}
-
-	if len(servicelists.Items) > 0 {
-
-		for _, service := range servicelists.Items {
-
-			components.Name = service.Name
-			components.Namespace = service.Namespace
-			components.CreateTime = service.CreationTimestamp.Time
-			components.SelfLink = service.SelfLink
-			components.Label = service.Spec.Selector
-			label := service.Spec.Selector
-			combination := ""
-			for key, val := range label {
-
-				labelstr := key + "=" + val
-
-				if combination == "" {
-
-					combination = labelstr
-
-				} else {
-
-					combination = combination + "," + labelstr
-
-				}
-
-			}
-			option := meta_v1.ListOptions{
-				LabelSelector: combination,
-			}
-			podsList, err := k8sClient.CoreV1().Pods(ns).List(option)
-
-			if err != nil {
-
-				glog.Error(err)
-				return result, err
-			}
-
-			if len(podsList.Items) > 0 {
-
-				for _, pod := range podsList.Items {
-
-					if pod.Status.Phase == "Running" {
-
-						components.HealthStatus = "health"
-
-					} else {
-
-						components.HealthStatus = "unhealth"
-
-					}
-
-				}
-
-			}
-
-			result = append(result, components)
-
-		}
-
-	}
-
 	return result, nil
 
 }
