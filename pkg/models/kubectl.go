@@ -31,7 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
-const namespace = constants.KubeSphereControlNameSpace
+const namespace = constants.KubeSphereControlNamespace
 
 type kubectlPodInfo struct {
 	Namespace string `json:"namespace"`

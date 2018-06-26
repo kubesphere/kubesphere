@@ -28,8 +28,18 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter/route"
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 )
+
+type roleList struct {
+	ClusterRoles []v1.ClusterRole `json:"clusterRoles" protobuf:"bytes,2,rep,name=clusterRoles"`
+	Roles        []v1.Role        `json:"roles" protobuf:"bytes,2,rep,name=roles"`
+}
+
+type userRuleList struct {
+	ClusterRules []iam.Rule            `json:"clusterRules"`
+	Rules        map[string][]iam.Rule `json:"rules"`
+}
 
 func Register(ws *restful.WebService) {
 	//roles
@@ -53,14 +63,14 @@ func userRolesHandler(req *restful.Request, resp *restful.Response) {
 
 	username := req.PathParameter("username")
 
-	roles, err := models.GetRoles(username)
+	roles, err := iam.GetRoles(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	clusterRoles, err := models.GetClusterRoles(username)
+	clusterRoles, err := iam.GetClusterRoles(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -79,7 +89,7 @@ func roleUsersHandler(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("name")
 	namespace := req.PathParameter("namespace")
 
-	roleBindings, err := models.GetRoleBindings(namespace, name)
+	roleBindings, err := iam.GetRoleBindings(namespace, name)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -105,7 +115,7 @@ func roleUsersHandler(req *restful.Request, resp *restful.Response) {
 func clusterRoleUsersHandler(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("name")
 
-	roleBindings, err := models.GetClusterRoleBindings(name)
+	roleBindings, err := iam.GetClusterRoleBindings(name)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -138,14 +148,14 @@ func usersRulesHandler(req *restful.Request, resp *restful.Response) {
 
 			userRuleList := userRuleList{}
 
-			clusterRules, err := getUserClusterRules(username)
+			clusterRules, err := iam.GetUserClusterRules(username)
 
 			if err != nil {
 				resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 				return
 			}
 
-			rules, err := getUserRules(username)
+			rules, err := iam.GetUserRules(username)
 
 			if err != nil {
 				resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -168,14 +178,14 @@ func userRulesHandler(req *restful.Request, resp *restful.Response) {
 
 	userRuleList := userRuleList{}
 
-	clusterRules, err := getUserClusterRules(username)
+	clusterRules, err := iam.GetUserClusterRules(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	rules, err := getUserRules(username)
+	rules, err := iam.GetUserRules(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -193,13 +203,13 @@ func clusterRoleRulesHandler(req *restful.Request, resp *restful.Response) {
 
 	name := req.PathParameter("name")
 
-	var rules []rule
+	var rules []iam.Rule
 
 	if name == "" {
-		rules = clusterRoleRuleGroup
+		rules = iam.ClusterRoleRuleGroup
 	} else {
 		var err error
-		rules, err = getClusterRoleRules(name)
+		rules, err = iam.GetClusterRoleRules(name)
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 			return
@@ -214,13 +224,13 @@ func roleRulesHandler(req *restful.Request, resp *restful.Response) {
 	name := req.PathParameter("name")
 	namespace := req.PathParameter("namespace")
 
-	var rules []rule
+	var rules []iam.Rule
 
 	if namespace == "" && name == "" {
-		rules = roleRuleGroup
+		rules = iam.RoleRuleGroup
 	} else {
 		var err error
-		rules, err = getRoleRules(namespace, name)
+		rules, err = iam.GetRoleRules(namespace, name)
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 			return

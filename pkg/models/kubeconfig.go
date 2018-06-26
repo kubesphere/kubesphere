@@ -246,7 +246,7 @@ func CreateKubeConfig(user string) error {
 
 	data := map[string]string{"config": string(config)}
 	var configmap = v1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: user}, Data: data}
-	_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNameSpace).Create(&configmap)
+	_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(&configmap)
 	if err != nil {
 		glog.Errorln(err)
 		return err
@@ -257,7 +257,7 @@ func CreateKubeConfig(user string) error {
 
 func GetKubeConfig(user string) (string, error) {
 	k8sClient := client.NewK8sClient()
-	configmap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNameSpace).Get(user, metav1.GetOptions{})
+	configmap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
 		return "", err
@@ -267,7 +267,7 @@ func GetKubeConfig(user string) (string, error) {
 
 func DelKubeConfig(user string) error {
 	k8sClient := client.NewK8sClient()
-	err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNameSpace).Delete(user, &metav1.DeleteOptions{})
+	err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(user, &metav1.DeleteOptions{})
 	if err != nil {
 		glog.Errorln(err)
 		return err
