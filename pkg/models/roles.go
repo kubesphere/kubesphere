@@ -187,9 +187,10 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-					rule, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+					role, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
 					if err == nil {
-						roles = append(roles, *rule)
+						role.Annotations["rbac.authorization.k8s.io/clusterrolebinding"] = roleBinding.Name
+						roles = append(roles, *role)
 						break
 					} else if apierrors.IsNotFound(err) {
 						glog.Infoln(err.Error())

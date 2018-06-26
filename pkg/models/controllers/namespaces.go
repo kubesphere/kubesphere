@@ -48,8 +48,8 @@ const (
 )
 
 var adminRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
-var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
-var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get"}, APIGroups: []string{"", "apps", "extensions"}, Resources: []string{"*"}}}
+var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch"}, Resources: []string{"*"}}}
+var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get", "watch"}, APIGroups: []string{"", "apps", "extensions", "batch"}, Resources: []string{"*"}}}
 
 type runTime struct {
 	RuntimeId         string `json:"runtime_id"`
@@ -200,13 +200,13 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 			return
 		}
 
-		err = ctl.createDefaultRoleBinding(ns, user)
+		resp, err := ctl.createOpRuntime(ns)
 		if err != nil {
 			glog.Error(err)
 			return
 		}
 
-		resp, err := ctl.createOpRuntime(ns)
+		err = ctl.createDefaultRoleBinding(ns, user)
 		if err != nil {
 			glog.Error(err)
 			return
