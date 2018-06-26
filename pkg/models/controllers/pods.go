@@ -75,6 +75,9 @@ func (ctl *PodCtl) delAnnotationFromPvc(item v1.Pod) {
 		if pvc != nil {
 			name := pvc.ClaimName
 			Pvc, _ := ctl.K8sClient.CoreV1().PersistentVolumeClaims(item.Namespace).Get(name, metaV1.GetOptions{})
+			if Pvc.Annotations == nil {
+				Pvc.Annotations = make(map[string]string)
+			}
 			annotation := Pvc.Annotations
 			var pods []string
 			json.Unmarshal([]byte(annotation[inUse]), pods)
