@@ -90,6 +90,7 @@ func GetNodes() []string {
 	err := dec.Decode(&nodes)
 	if err != nil {
 		glog.Error(err)
+		return make([]string, 0)
 	}
 	return nodes
 }
@@ -116,7 +117,10 @@ func FormatNodeMetrics(nodeName string) NodeMetrics {
 
 	cpuUsageRate := client.GetHeapsterMetricsJson("/nodes/" + nodeName + "/metrics/cpu/usage_rate")
 	cpuUsageRateMetrics, err := cpuUsageRate.GetObjectArray("metrics")
-	if len(cpuUsageRateMetrics) != 0 {
+	if err != nil {
+		glog.Error(err)
+		nodeCPUMetrics = make([]NodeCpuMetrics, 0)
+	} else {
 		for _, metric := range cpuUsageRateMetrics {
 			timestamp, _ := metric.GetString("timestamp")
 			usedCpu, _ := metric.GetFloat64("value")
@@ -141,7 +145,10 @@ func FormatNodeMetrics(nodeName string) NodeMetrics {
 
 	memUsage := client.GetHeapsterMetricsJson("/nodes/" + nodeName + "/metrics/memory/working_set")
 	memUsageMetrics, err := memUsage.GetObjectArray("metrics")
-	if err == nil && len(memUsageMetrics) != 0 {
+	if err != nil {
+		glog.Error(err)
+		nodeMemMetrics = make([]NodeMemoryMetrics, 0)
+	} else {
 		for _, metric := range memUsageMetrics {
 			timestamp, _ := metric.GetString("timestamp")
 			usedMemoryBytes, err = metric.GetFloat64("value")

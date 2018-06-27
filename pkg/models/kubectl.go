@@ -31,7 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
-const namespace = constants.NameSpace
+const namespace = constants.KubeSphereControlNameSpace
 
 type kubectlPodInfo struct {
 	Namespace string `json:"namespace"`
@@ -130,6 +130,14 @@ func DelKubectlPod(user string) error {
 		return err
 	}
 
+	var replicas int32
+	replicas = 0
+	deploy.Spec.Replicas = &replicas
+	_, err = k8sClient.AppsV1beta2().Deployments(namespace).Update(deploy)
+	if err != nil {
+		return err
+	}
+
 	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
@@ -143,6 +151,15 @@ func DelKubectlPod(user string) error {
 	}
 
 	for _, rs := range rsList.Items {
+		var replicas int32
+		replicas = 0
+		rs.Spec.Replicas = &replicas
+		_, err = k8sClient.AppsV1beta2().ReplicaSets(namespace).Update(&rs)
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+
 		err = k8sClient.AppsV1beta2().ReplicaSets(namespace).Delete(rs.Name, &meta_v1.DeleteOptions{})
 		if err != nil {
 			glog.Error(err)

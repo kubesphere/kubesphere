@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
@@ -42,7 +43,7 @@ const (
 	admin              = "admin"
 	editor             = "editor"
 	viewer             = "viewer"
-	kubectlNamespace   = "kubesphere"
+	kubectlNamespace   = constants.KubeSphereControlNameSpace
 	kubectlConfigKey   = "config"
 	openpitrix_runtime = "openpitrix_runtime"
 )

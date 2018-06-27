@@ -26,12 +26,12 @@ type PageableResponse struct {
 }
 
 const (
-	APIVERSION = "v1alpha1"
-	KIND       = "kubesphere"
-	NameSpace  = "kubesphere"
+	APIVERSION                 = "v1alpha1"
+	KIND                       = "kubesphere"
+	KubeSphereControlNameSpace = "kubesphere-controls-system"
 
 	DataHome                   = "/etc/kubesphere"
 	IngressControllerFolder    = DataHome + "/ingress-controller"
-	IngressControllerNamespace = "kubesphere-router-system"
+	IngressControllerNamespace = KubeSphereControlNameSpace
 	IngressControllerPrefix    = "kubesphere-router-"
 )

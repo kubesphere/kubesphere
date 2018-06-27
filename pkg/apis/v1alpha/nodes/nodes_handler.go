@@ -60,6 +60,10 @@ func handleNodes(request *restful.Request, response *restful.Response) {
 		result.Items = append(result.Items, <-ch)
 	}
 
+	if result.Items == nil {
+		result.Items = make([]interface{}, 0)
+	}
+
 	result.TotalCount = len(result.Items)
 	response.WriteAsJson(result)
 }

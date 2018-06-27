@@ -73,11 +73,18 @@ func GetPodsMetrics(podList *coreV1.PodList) []PodMetrics {
 	return items
 }
 
-func GetPodMetricsInNamespace(namespace string) constants.PageableResponse {
+func GetPodMetricsInNamespace(namespace string, labelSelector string) constants.PageableResponse {
 
 	var podMetrics constants.PageableResponse
 	k8sClient := client.NewK8sClient()
-	options := v1.ListOptions{}
+	var options v1.ListOptions
+	if len(labelSelector) > 0 {
+		options = v1.ListOptions{
+			LabelSelector: labelSelector,
+		}
+	} else {
+		options = v1.ListOptions{}
+	}
 	podList, _ := k8sClient.CoreV1().Pods(namespace).List(options)
 
 	for _, podMetric := range GetPodsMetrics(podList) {
@@ -275,6 +282,7 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 	memoryLimit := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")
 	memoryLimitMetrics, err := memoryLimit.GetObjectArray("metrics")
 	if err != nil || len(memoryLimitMetrics) == 0 {
+		glog.Error(err)
 		resultPod.MemoryLimit = Inf
 	} else {
 		data, _ := memoryLimitMetrics[0].GetNumber("value")
@@ -284,33 +292,44 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 	}
 
 	cpuUsageRate := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/usage_rate")
-	cpuUsageRateMetrics, _ := cpuUsageRate.GetObjectArray("metrics")
-	for _, cpuUsageRateMetric := range cpuUsageRateMetrics {
-		timestamp, _ := cpuUsageRateMetric.GetString("timestamp")
-		cpuUsageRate, _ := cpuUsageRateMetric.GetFloat64("value")
-		cpuMetrics.TimeStamp = timestamp
-		cpuMetrics.UsedCpu = fmt.Sprintf("%.1f", cpuUsageRate)
+	cpuUsageRateMetrics, err := cpuUsageRate.GetObjectArray("metrics")
 
-		podCPUMetrics = append(podCPUMetrics, cpuMetrics)
+	if err != nil {
+		glog.Error(err)
+		resultPod.CPU = make([]PodCpuMetrics, 0)
+	} else {
+		for _, cpuUsageRateMetric := range cpuUsageRateMetrics {
+			timestamp, _ := cpuUsageRateMetric.GetString("timestamp")
+			cpuUsageRate, _ := cpuUsageRateMetric.GetFloat64("value")
+			cpuMetrics.TimeStamp = timestamp
+			cpuMetrics.UsedCpu = fmt.Sprintf("%.1f", cpuUsageRate)
+
+			podCPUMetrics = append(podCPUMetrics, cpuMetrics)
+		}
+
+		resultPod.CPU = podCPUMetrics
+
 	}
-
-	resultPod.CPU = podCPUMetrics
 
 	memUsage := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/usage")
 	memoryUsageMetrics, err := memUsage.GetObjectArray("metrics")
-	for _, memoryUsageMetric := range memoryUsageMetrics {
-		timestamp, _ := memoryUsageMetric.GetString("timestamp")
-		memoryMetrics.TimeStamp = timestamp
-		usedMemoryBytes, err := memoryUsageMetric.GetFloat64("value")
-		if err == nil {
-			memoryMetrics.UsedMemory = fmt.Sprintf("%.1f", usedMemoryBytes/1024/1024)
-		} else {
-			memoryMetrics.UsedMemory = Inf
+	if err != nil {
+		glog.Error(err)
+		resultPod.Memory = make([]PodMemoryMetrics, 0)
+	} else {
+		for _, memoryUsageMetric := range memoryUsageMetrics {
+			timestamp, _ := memoryUsageMetric.GetString("timestamp")
+			memoryMetrics.TimeStamp = timestamp
+			usedMemoryBytes, err := memoryUsageMetric.GetFloat64("value")
+			if err == nil {
+				memoryMetrics.UsedMemory = fmt.Sprintf("%.1f", usedMemoryBytes/1024/1024)
+			} else {
+				memoryMetrics.UsedMemory = Inf
+			}
+			podMemMetrics = append(podMemMetrics, memoryMetrics)
 		}
-		podMemMetrics = append(podMemMetrics, memoryMetrics)
+		resultPod.Memory = podMemMetrics
 	}
-
-	resultPod.Memory = podMemMetrics
 
 	return resultPod
 }
