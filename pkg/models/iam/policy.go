@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
 )
 
@@ -30,59 +29,47 @@ const (
 	clusterRulesConfigPath = "/etc/kubesphere/rules/clusterrules.json"
 )
 
-type roleList struct {
-	ClusterRoles []v1.ClusterRole `json:"clusterRoles" protobuf:"bytes,2,rep,name=clusterRoles"`
-	Roles        []v1.Role        `json:"roles" protobuf:"bytes,2,rep,name=roles"`
-}
-
-type action struct {
+type Action struct {
 	Name  string          `json:"name"`
 	Rules []v1.PolicyRule `json:"rules"`
 }
 
-type rule struct {
+type Rule struct {
 	Name    string   `json:"name"`
-	Actions []action `json:"actions"`
-}
-
-type userRuleList struct {
-	ClusterRules []rule            `json:"clusterRules"`
-	Rules        map[string][]rule `json:"rules"`
+	Actions []Action `json:"actions"`
 }
 
 func init() {
 	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
 	if err == nil {
-		config := &[]rule{}
+		config := &[]Rule{}
 		json.Unmarshal(rulesConfig, config)
 		if len(*config) > 0 {
-			roleRuleGroup = *config
-			glog.Info("rules config load success")
+			RoleRuleGroup = *config
 		}
 	}
 
 	clusterRulesConfig, err := ioutil.ReadFile(clusterRulesConfigPath)
 
 	if err == nil {
-		config := &[]rule{}
+		config := &[]Rule{}
 		json.Unmarshal(clusterRulesConfig, config)
 		if len(*config) > 0 {
-			clusterRoleRuleGroup = *config
-			glog.Info("cluster rules config load success")
+			ClusterRoleRuleGroup = *config
 		}
 	}
 }
 
 var (
-	clusterRoleRuleGroup = []rule{projects, users, roles, images,
+	ClusterRoleRuleGroup = []Rule{projects, users, roles, images,
 		volumes, storageclasses, nodes, appCatalog, apps, components, deployments, statefulsets, daemonsets, pods, services, routes}
 
-	roleRuleGroup = []rule{project, deployments, statefulsets, daemonsets, pods,
+	RoleRuleGroup = []Rule{project, deployments, statefulsets, daemonsets, pods,
 		services, routes, volumes}
 
-	components = rule{
+	components = Rule{
 		Name: "components",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -95,9 +82,9 @@ var (
 		},
 	}
 
-	projects = rule{
+	projects = Rule{
 		Name: "projects",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -155,9 +142,9 @@ var (
 		},
 	}
 
-	project = rule{
+	project = Rule{
 		Name: "projects",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "members",
 				Rules: []v1.PolicyRule{
 					{
@@ -196,9 +183,9 @@ var (
 			},
 		},
 	}
-	users = rule{
+	users = Rule{
 		Name: "users",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -253,9 +240,9 @@ var (
 		},
 	}
 
-	roles = rule{
+	roles = Rule{
 		Name: "roles",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -296,9 +283,9 @@ var (
 		},
 	}
 
-	nodes = rule{
+	nodes = Rule{
 		Name: "nodes",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -329,9 +316,9 @@ var (
 		},
 	}
 
-	volumes = rule{
+	volumes = Rule{
 		Name: "volumes",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -376,9 +363,9 @@ var (
 		},
 	}
 
-	storageclasses = rule{
+	storageclasses = Rule{
 		Name: "storageclasses",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -418,9 +405,9 @@ var (
 		},
 	}
 
-	images = rule{
+	images = Rule{
 		Name: "images",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -473,9 +460,9 @@ var (
 		},
 	}
 
-	appCatalog = rule{
+	appCatalog = Rule{
 		Name: "app_catalog",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -515,9 +502,9 @@ var (
 		},
 	}
 
-	apps = rule{
+	apps = Rule{
 		Name: "apps",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -530,9 +517,9 @@ var (
 		},
 	}
 
-	statefulsets = rule{
+	statefulsets = Rule{
 		Name: "statefulsets",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -591,9 +578,9 @@ var (
 		},
 	}
 
-	daemonsets = rule{
+	daemonsets = Rule{
 		Name: "daemonsets",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -643,9 +630,9 @@ var (
 		},
 	}
 
-	services = rule{
+	services = Rule{
 		Name: "services",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -691,20 +678,15 @@ var (
 		},
 	}
 
-	routes = rule{
+	routes = Rule{
 		Name: "routes",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "watch", "list"},
 						APIGroups: []string{"extensions"},
 						Resources: []string{"ingresses"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
 					},
 				},
 			},
@@ -738,9 +720,9 @@ var (
 		},
 	}
 
-	deployments = rule{
+	deployments = Rule{
 		Name: "deployments",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -801,9 +783,9 @@ var (
 		},
 	}
 
-	pods = rule{
+	pods = Rule{
 		Name: "pods",
-		Actions: []action{
+		Actions: []Action{
 			{Name: "terminal",
 				Rules: []v1.PolicyRule{
 					{

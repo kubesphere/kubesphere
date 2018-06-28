@@ -26,8 +26,13 @@ type PageableResponse struct {
 }
 
 const (
-	APIVERSION                 = "v1alpha1"
-	KIND                       = "kubesphere"
+	APIVERSION = "v1alpha1"
+	KIND       = "kubesphere"
+	NameSpace  = "kubesphere"
+	KUBESYSTEM = "kube-system"
+	OPENPITRIX = "openpitrix-system"
+	ISTIO      = "istio-system"
+	KUBESPHERE = "kubesphere-system"
 	KubeSphereControlNameSpace = "kubesphere-controls-system"
 
 	DataHome                   = "/etc/kubesphere"
