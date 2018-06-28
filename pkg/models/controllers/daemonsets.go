@@ -32,7 +32,7 @@ func (ctl *DaemonsetCtl) generateObject(item v1.DaemonSet) *Daemonset {
 	var status string
 	name := item.Name
 	namespace := item.Namespace
-	availablePodNum := item.Status.CurrentNumberScheduled
+	availablePodNum := item.Status.NumberAvailable
 	desirePodNum := item.Status.DesiredNumberScheduled
 	createTime := item.CreationTimestamp.Time
 	release := item.ObjectMeta.Labels["release"]
