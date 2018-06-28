@@ -173,10 +173,11 @@ func FormatNodeMetrics(nodeName string) NodeMetrics {
 	return resultNode
 }
 
+// Count non-terminated pods only
 func GetPodCountOnNode(nodeName string) int {
 	k8sClient := client.NewK8sClient()
 	options := metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + nodeName,
+		FieldSelector: "spec.nodeName=" + nodeName + ",status.phase!=Failed,status.phase!=Succeeded",
 	}
 
 	podList, err := k8sClient.CoreV1().Pods("").List(options)
