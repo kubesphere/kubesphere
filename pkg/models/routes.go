@@ -76,7 +76,7 @@ func GetAllRoutersOfUser(username string) ([]coreV1.Service, error) {
 	allNamespace, namespaces, err := iam.GetUserNamespaces(username, v1.PolicyRule{
 		Verbs:     []string{"get", "list"},
 		APIGroups: []string{"extensions"},
-		Resources: []string{"ingresses"},
+		Resources: []string{"services"},
 	})
 
 	// return by cluster role

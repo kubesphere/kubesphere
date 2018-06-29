@@ -228,6 +228,14 @@ func GetAllPodMetrics() constants.PageableResponse {
 	return podMetrics
 }
 
+func FormatResourceLimit(limit float64) string {
+	if limit <= 0 {
+		return Inf
+	} else {
+		return fmt.Sprintf("%.1f", limit)
+	}
+}
+
 func FormatPodMetrics(namespace string, pod string) PodMetrics {
 
 	var resultPod PodMetrics
@@ -260,8 +268,8 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 	if len(cpuLimitMetrics) == 0 {
 		resultPod.CPULimit = Inf
 	} else {
-		data, _ := cpuLimitMetrics[0].GetNumber("value")
-		resultPod.CPULimit = data.String()
+		data, _ := cpuLimitMetrics[0].GetFloat64("value")
+		resultPod.CPULimit = FormatResourceLimit(data)
 	}
 
 	memoryRequest := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/request")
@@ -276,7 +284,7 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 		data, _ := memoryRequestMetrics[0].GetNumber("value")
 		memoryReq, _ := data.Float64()
 		memoryReq = memoryReq / 1024 / 1024
-		resultPod.MemoryRequest = fmt.Sprintf("%.1f", memoryReq)
+		resultPod.MemoryRequest = FormatResourceLimit(memoryReq)
 	}
 
 	memoryLimit := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/memory/limit")
@@ -288,7 +296,7 @@ func FormatPodMetrics(namespace string, pod string) PodMetrics {
 		data, _ := memoryLimitMetrics[0].GetNumber("value")
 		memoryLim, _ := data.Float64()
 		memoryLim = memoryLim / 1024 / 1024
-		resultPod.MemoryLimit = fmt.Sprintf("%.1f", memoryLim)
+		resultPod.MemoryLimit = FormatResourceLimit(memoryLim)
 	}
 
 	cpuUsageRate := client.GetHeapsterMetricsJson("/namespaces/" + namespace + "/pods/" + pod + "/metrics/cpu/usage_rate")
