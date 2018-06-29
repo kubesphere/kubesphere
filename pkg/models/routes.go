@@ -31,6 +31,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
 func GetAllRouters() ([]coreV1.Service, error) {
@@ -71,37 +72,30 @@ func inArray(val interface{}, array interface{}) (exists bool) {
 func GetAllRoutersOfUser(username string) ([]coreV1.Service, error) {
 
 	routers := make([]coreV1.Service, 0)
-	clusterRoles, err := GetClusterRoles(username)
+
+	allNamespace, namespaces, err := iam.GetUserNamespaces(username, v1.PolicyRule{
+		Verbs:     []string{"get", "list"},
+		APIGroups: []string{"extensions"},
+		Resources: []string{"ingresses"},
+	})
 
 	// return by cluster role
 	if err != nil {
 		glog.Error(err)
 		return routers, err
-	} else {
-		for _, clusterRole := range clusterRoles {
-			for _, rulePolicy := range clusterRole.Rules {
-				if (inArray(v1.VerbAll, rulePolicy.Verbs) || inArray("view", rulePolicy.Verbs)) &&
-					(inArray(v1.ResourceAll, rulePolicy.Resources) || inArray("namespaces", rulePolicy.Resources)) {
-					return GetAllRouters()
-				}
-			}
-		}
 	}
 
-	// return by role
-	roles, err := GetRoles(username)
-	if err != nil {
-		glog.Error(err)
-		return routers, err
-	} else {
-		for _, projectRole := range roles {
-			router, err := GetRouter(projectRole.Namespace)
-			if err != nil {
-				glog.Error(err)
-				return routers, err
-			} else if router != nil {
-				routers = append(routers, *router)
-			}
+	if allNamespace {
+		return GetAllRouters()
+	}
+
+	for _, namespace := range namespaces {
+		router, err := GetRouter(namespace)
+		if err != nil {
+			glog.Error(err)
+			return routers, err
+		} else if router != nil {
+			routers = append(routers, *router)
 		}
 	}
 

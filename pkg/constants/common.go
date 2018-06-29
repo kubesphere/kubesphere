@@ -26,12 +26,16 @@ type PageableResponse struct {
 }
 
 const (
-	APIVERSION                 = "v1alpha1"
-	KIND                       = "kubesphere"
-	KubeSphereControlNameSpace = "kubesphere-controls-system"
+	APIVersion = "v1alpha1"
 
-	DataHome                   = "/etc/kubesphere"
-	IngressControllerFolder    = DataHome + "/ingress-controller"
-	IngressControllerNamespace = KubeSphereControlNameSpace
-	IngressControllerPrefix    = "kubesphere-router-"
+	KubeSystemNamespace        = "kube-system"
+	OpenPitrixNamespace        = "openpitrix-system"
+	IstioNamespace             = "istio-system"
+	KubeSphereNamespace        = "kubesphere-system"
+	KubeSphereControlNamespace = "kubesphere-controls-system"
+	IngressControllerNamespace = KubeSphereControlNamespace
+
+	DataHome                = "/etc/kubesphere"
+	IngressControllerFolder = DataHome + "/ingress-controller"
+	IngressControllerPrefix = "kubesphere-router-"
 )

@@ -66,11 +66,11 @@ func preCheck() error {
 		return err
 	}
 	for _, ns := range nsList.Items {
-		if ns.Name == constants.KubeSphereControlNameSpace {
+		if ns.Name == constants.KubeSphereControlNamespace {
 			return nil
 		}
 	}
-	namespace := v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: constants.KubeSphereControlNameSpace}}
+	namespace := v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: constants.KubeSphereControlNamespace}}
 	_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
 	return err
 }
