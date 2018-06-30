@@ -34,6 +34,8 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/options"
@@ -247,8 +249,8 @@ func CreateKubeConfig(user string) error {
 	data := map[string]string{"config": string(config)}
 	var configmap = v1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: user}, Data: data}
 	_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(&configmap)
-	if err != nil {
-		glog.Errorln(err)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		glog.Errorf("create user %s's kubeConfig failed, reason:", user, err)
 		return err
 	}
 	return nil
@@ -259,7 +261,7 @@ func GetKubeConfig(user string) (string, error) {
 	k8sClient := client.NewK8sClient()
 	configmap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorln(err)
+		glog.Errorf("cannot get user %s's kubeConfig, reason:", user, err)
 		return "", err
 	}
 	return configmap.Data[kubectlConfigKey], nil
@@ -267,9 +269,15 @@ func GetKubeConfig(user string) (string, error) {
 
 func DelKubeConfig(user string) error {
 	k8sClient := client.NewK8sClient()
-	err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(user, &metav1.DeleteOptions{})
+	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
+	deletePolicy := metav1.DeletePropagationBackground
+	err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(user, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		glog.Errorln(err)
+		glog.Errorf("delete user %s's kubeConfig failed, reason:", user, err)
 		return err
 	}
 	return nil
