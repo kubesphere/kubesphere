@@ -27,7 +27,7 @@ import (
 
 	"k8s.io/api/rbac/v1"
 
-	"reflect"
+	"errors"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -52,30 +52,13 @@ func GetAllRouters() ([]coreV1.Service, error) {
 	return services.Items, nil
 }
 
-func inArray(val interface{}, array interface{}) (exists bool) {
-	exists = false
-
-	switch reflect.TypeOf(array).Kind() {
-	case reflect.Slice:
-		s := reflect.ValueOf(array)
-
-		for i := 0; i < s.Len(); i++ {
-			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
-				exists = true
-				return
-			}
-		}
-	}
-	return exists
-}
-
 func GetAllRoutersOfUser(username string) ([]coreV1.Service, error) {
 
 	routers := make([]coreV1.Service, 0)
 
 	allNamespace, namespaces, err := iam.GetUserNamespaces(username, v1.PolicyRule{
 		Verbs:     []string{"get", "list"},
-		APIGroups: []string{"extensions"},
+		APIGroups: []string{""},
 		Resources: []string{"services"},
 	})
 
@@ -206,8 +189,18 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			deployment.Spec.Selector.MatchLabels["project"] = namespace
 			deployment.Spec.Template.Labels["project"] = namespace
 
+			// Isolate namespace
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
-			glog.Info(deployment.Spec.Template.Spec.Containers[0].Args)
+
+			// Choose self as master
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
+
+			if routerType == coreV1.ServiceTypeLoadBalancer {
+				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--push-service="+constants.IngressControllerNamespace+"/"+constants.IngressControllerPrefix+namespace)
+			} else {
+				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
+			}
+
 			deployment, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Create(deployment)
 			if err != nil {
 				glog.Error(err)
@@ -221,7 +214,7 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 }
 
 // DeleteRouter is used to delete ingress controller related resources in namespace
-// It will not delete ClusterRole resource cause it maybe used other controllers
+// It will not delete ClusterRole resource cause it maybe used by other controllers
 func DeleteRouter(namespace string) (*coreV1.Service, error) {
 	k8sClient := client.NewK8sClient()
 
@@ -258,7 +251,7 @@ func DeleteRouter(namespace string) (*coreV1.Service, error) {
 	deploymentName := constants.IngressControllerPrefix + namespace
 
 	listOptions = metaV1.ListOptions{
-		FieldSelector: "metadata.name=" + deploymentName,
+		LabelSelector: "app=kubesphere,component=ks-router,tier=backend,project=" + namespace,
 	}
 	deployments, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).List(listOptions)
 	if err != nil {
@@ -289,16 +282,37 @@ func UpdateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 		return router, nil
 	}
 
-	router.Spec.Type = routerType
-	router.SetAnnotations(annotations)
+	if router == nil {
+		glog.Error("Trying to update a non-existed router")
+		return nil, errors.New("router not created yet")
+	}
 
-	router, err = k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Update(router)
+	// from LoadBalancer to NodePort, or vice-versa
+	if router.Spec.Type != routerType {
+		router, err = DeleteRouter(namespace)
 
-	if err != nil {
-		glog.Error(err)
+		if err != nil {
+			glog.Error(err)
+		}
+
+		router, err = CreateRouter(namespace, routerType, annotations)
+
+		if err != nil {
+			glog.Error(err)
+		}
+
 		return router, err
+
+	} else {
+		router.SetAnnotations(annotations)
+
+		router, err = k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Update(router)
+
+		if err != nil {
+			glog.Error(err)
+			return router, err
+		}
 	}
 
 	return router, nil
-
 }

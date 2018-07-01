@@ -83,6 +83,18 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 		createTime = time.Now()
 	}
 
+	if len(item.Spec.ClusterIP) == 0 {
+		if len(item.Spec.Selector) == 0 {
+			serviceType = "Headless(Selector)"
+		}
+
+		if item.Spec.Type == v1.ServiceTypeExternalName {
+			serviceType = "Headless(ExternalName)"
+		}
+	} else {
+		serviceType = "Virtual IP"
+	}
+
 	if len(item.Spec.ExternalIPs) > 0 {
 		externalIp = strings.Join(item.Spec.ExternalIPs, ",")
 	}

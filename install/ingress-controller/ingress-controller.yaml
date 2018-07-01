@@ -28,6 +28,9 @@ spec:
             - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
             - --configmap=$(POD_NAMESPACE)/nginx-configuration
             - --annotations-prefix=nginx.ingress.kubernetes.io
+            - --force-namespace-isolation
+            - --update-status
+            - --update-status-on-shutdown
           env:
             - name: POD_NAME
               valueFrom:
