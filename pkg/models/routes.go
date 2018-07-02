@@ -196,7 +196,7 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
 
 			if routerType == coreV1.ServiceTypeLoadBalancer {
-				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--push-service="+constants.IngressControllerNamespace+"/"+constants.IngressControllerPrefix+namespace)
+				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+constants.IngressControllerNamespace+"/"+constants.IngressControllerPrefix+namespace)
 			} else {
 				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
 			}

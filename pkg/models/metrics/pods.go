@@ -104,6 +104,9 @@ func GetPodMetricsInDeployment(namespace string, deployment string) constants.Pa
 	deploy, err := k8sClient.ExtensionsV1beta1().Deployments(namespace).Get(deployment, v1.GetOptions{})
 	if err != nil {
 		glog.Error(err)
+		podMetrics.Items = make([]interface{}, 0)
+		podMetrics.TotalCount = len(podMetrics.Items)
+		return podMetrics
 	}
 
 	labels := make([]string, 0)
@@ -134,6 +137,9 @@ func GetPodMetricsInStatefulSet(namespace string, statefulSet string) constants.
 	deploy, err := k8sClient.AppsV1().StatefulSets(namespace).Get(statefulSet, v1.GetOptions{})
 	if err != nil {
 		glog.Error(err)
+		podMetrics.Items = make([]interface{}, 0)
+		podMetrics.TotalCount = len(podMetrics.Items)
+		return podMetrics
 	}
 
 	labels := make([]string, 0)
@@ -164,6 +170,9 @@ func GetPodMetricsInDaemonset(namespace string, daemonset string) constants.Page
 	deploy, err := k8sClient.ExtensionsV1beta1().DaemonSets(namespace).Get(daemonset, v1.GetOptions{})
 	if err != nil {
 		glog.Error(err)
+		podMetrics.Items = make([]interface{}, 0)
+		podMetrics.TotalCount = len(podMetrics.Items)
+		return podMetrics
 	}
 
 	labels := make([]string, 0)
