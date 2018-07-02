@@ -120,6 +120,7 @@ func (ctl *NamespaceCtl) deleteOpRuntime(item v1.Namespace) {
 		glog.Error("runtime release failed:", item.Name, runtimeId, err)
 		return
 	}
+
 	glog.Info("runtime release succeeded:", item.Name, runtimeId)
 
 	// todo: if delete failed, what's to be done?
@@ -243,10 +244,7 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 			}
 
 		}
-	} else {
-		glog.Infoln("runtime has been init:", ns, runtime)
 	}
-
 }
 
 func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
