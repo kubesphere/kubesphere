@@ -101,6 +101,7 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	memoryRequstMetrics, err := memoryRequst.GetObjectArray("metrics")
 	if err == nil && len(memoryRequstMetrics) != 0 {
 		requestMemory, _ := memoryRequstMetrics[0].GetFloat64("value")
+		requestMemory = requestMemory / 1024 / 1024
 		resultContainer.MemoryRequest = FormatResourceLimit(requestMemory)
 	} else {
 		resultContainer.MemoryRequest = Inf
@@ -110,6 +111,7 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	memoryLimitMetrics, err := memoryLimit.GetObjectArray("metrics")
 	if err == nil && len(memoryLimitMetrics) != 0 {
 		limitMemory, _ := memoryLimitMetrics[0].GetFloat64("value")
+		limitMemory = limitMemory / 1024 / 1024
 		resultContainer.MemoryLimit = FormatResourceLimit(limitMemory)
 	} else {
 		resultContainer.MemoryLimit = Inf
