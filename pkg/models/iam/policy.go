@@ -215,7 +215,61 @@ var (
 				},
 			},
 		},
-	}, images,
+	}, {
+
+		Name: "images",
+		Actions: []Action{
+			{Name: "view",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"get", "watch", "list"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+				},
+			},
+			{Name: "create",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+				},
+			},
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{
+							"secrets",
+						},
+					},
+				},
+			},
+		},
+	},
 		{
 			Name: "volumes",
 			Actions: []Action{
@@ -687,7 +741,12 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 				},
 			},
@@ -701,21 +760,26 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 				},
 			},
 			{Name: "edit",
 				Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"update", "patch"},
+						Verbs:     []string{"update", "patch", "get"},
 						APIGroups: []string{""},
 						Resources: []string{"namespaces"},
 					},
 					{
-						Verbs:     []string{"get"},
+						Verbs:     []string{"list"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"events"},
 					},
 				},
 			},
@@ -729,7 +793,12 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 				},
 			},
@@ -747,7 +816,12 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 					{
 						Verbs:     []string{"get", "watch", "list"},
@@ -808,7 +882,12 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 					{
 						Verbs:     []string{"get", "watch", "list"},
@@ -867,7 +946,12 @@ var (
 					{
 						Verbs:     []string{"get"},
 						APIGroups: []string{""},
-						Resources: []string{"namespaces", "events"},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
 					},
 					{
 						Verbs:     []string{"get", "watch", "list"},
@@ -931,7 +1015,12 @@ var (
 						{
 							Verbs:     []string{"get"},
 							APIGroups: []string{""},
-							Resources: []string{"namespaces", "events"},
+							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 					},
 				},
@@ -977,7 +1066,12 @@ var (
 						{
 							Verbs:     []string{"get"},
 							APIGroups: []string{""},
-							Resources: []string{"namespaces", "events"},
+							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 					},
 				},
@@ -1022,7 +1116,12 @@ var (
 						{
 							Verbs:     []string{"get"},
 							APIGroups: []string{""},
-							Resources: []string{"namespaces", "events"},
+							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 					},
 				},
@@ -1055,59 +1154,4 @@ var (
 				},
 			},
 		}}
-
-	images = Rule{
-		Name: "images",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
-						},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
-						},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
-						},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
-						},
-					},
-				},
-			},
-		},
-	}
 )
