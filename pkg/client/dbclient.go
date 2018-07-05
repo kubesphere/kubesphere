@@ -46,7 +46,7 @@ func NewDBClient() *gorm.DB {
 	passwd := options.ServerOptions.GetMysqlPassword()
 	addr := options.ServerOptions.GetMysqlAddr()
 	if dbClient == nil {
-		conn := fmt.Sprintf("%s:%s@tcp(%s)/mysql?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr)
+		conn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, database)
 		db, err := gorm.Open("mysql", conn)
 
 		if err != nil {
@@ -54,19 +54,10 @@ func NewDBClient() *gorm.DB {
 			panic(err)
 		}
 
-		db.Exec(fmt.Sprintf("create database  if not exists %s;", database))
-		db.Close()
+		db.SetLogger(log.New(logs.GlogWriter{}, " ", 0))
+		dbClient = db
+		return dbClient
 	}
 
-	conn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, database)
-	db, err := gorm.Open("mysql", conn)
-
-	if err != nil {
-		glog.Error(err)
-		panic(err)
-	}
-
-	db.SetLogger(log.New(logs.GlogWriter{}, " ", 0))
-	dbClient = db
 	return dbClient
 }
