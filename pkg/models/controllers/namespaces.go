@@ -33,19 +33,23 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/util/slice"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
 const (
-	provider           = "kubernetes"
-	admin              = "admin"
-	editor             = "editor"
-	viewer             = "viewer"
-	kubectlNamespace   = constants.KubeSphereControlNameSpace
-	kubectlConfigKey   = "config"
-	openpitrix_runtime = "openpitrix_runtime"
+	provider                     = "kubernetes"
+	admin                        = "admin"
+	editor                       = "editor"
+	viewer                       = "viewer"
+	kubectlNamespace             = constants.KubeSphereControlNamespace
+	kubectlConfigKey             = "config"
+	openPitrixRuntimeAnnotateKey = "openpitrix_runtime"
+	creatorAnnotateKey           = "creator"
 )
 
 var adminRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
@@ -96,7 +100,13 @@ func (ctl *NamespaceCtl) getKubeConfig(user string) (string, error) {
 
 func (ctl *NamespaceCtl) deleteOpRuntime(item v1.Namespace) {
 
-	runtimeId := item.Annotations["openpitrix_runtime"]
+	var runtimeId string
+	if item.Annotations == nil {
+		runtimeId = ""
+	} else {
+		runtimeId = item.Annotations[openPitrixRuntimeAnnotateKey]
+	}
+
 	if len(runtimeId) == 0 {
 		return
 	}
@@ -107,9 +117,11 @@ func (ctl *NamespaceCtl) deleteOpRuntime(item v1.Namespace) {
 
 	body, err := json.Marshal(deleteRuntime)
 	if err != nil {
-		glog.Error(err)
+		glog.Error("runtime release failed:", item.Name, runtimeId, err)
 		return
 	}
+
+	glog.Info("runtime release succeeded:", item.Name, runtimeId)
 
 	// todo: if delete failed, what's to be done?
 	makeHttpRequest("DELETE", url, string(body))
@@ -137,19 +149,15 @@ func (ctl *NamespaceCtl) createOpRuntime(namespace string) ([]byte, error) {
 }
 
 func (ctl *NamespaceCtl) createDefaultRoleBinding(ns, user string) error {
-	rolebinding, _ := ctl.K8sClient.RbacV1().RoleBindings(ns).Get(admin, metaV1.GetOptions{})
 
-	if rolebinding.Name != admin {
+	roleBinding := &rbac.RoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns},
+		Subjects: []rbac.Subject{{Name: user, Kind: rbac.UserKind}}, RoleRef: rbac.RoleRef{Kind: "Role", Name: admin}}
 
-		roleBinding := &rbac.RoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns},
-			Subjects: []rbac.Subject{{Name: user, Kind: rbac.UserKind}}, RoleRef: rbac.RoleRef{Kind: "Role", Name: admin}}
+	_, err := ctl.K8sClient.RbacV1().RoleBindings(ns).Create(roleBinding)
 
-		_, err := ctl.K8sClient.RbacV1().RoleBindings(ns).Create(roleBinding)
-
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
+	if err != nil && !errors.IsAlreadyExists(err) {
+		glog.Error(err)
+		return err
 	}
 
 	return nil
@@ -160,70 +168,81 @@ func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 	editorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: editor, Namespace: ns}, Rules: editorRules}
 	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: ns}, Rules: viewerRules}
 
-	role, _ := ctl.K8sClient.RbacV1().Roles(ns).Get(admin, metaV1.GetOptions{})
+	_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(adminRole)
 
-	if role.Name != admin {
-		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(adminRole)
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return err
 	}
 
-	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(editor, metaV1.GetOptions{})
+	_, err = ctl.K8sClient.RbacV1().Roles(ns).Create(editorRole)
 
-	if role.Name != editor {
-		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(editorRole)
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return err
 	}
 
-	role, _ = ctl.K8sClient.RbacV1().Roles(ns).Get(viewer, metaV1.GetOptions{})
+	_, err = ctl.K8sClient.RbacV1().Roles(ns).Create(viewerRole)
 
-	if role.Name != viewer {
-		_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(viewerRole)
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return err
 	}
+
 	return nil
 }
 
 func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
-	user := item.Annotations["creator"]
+	var creator string
+	var runtime string
 	ns := item.Name
-	if len(user) > 0 && len(item.Annotations[openpitrix_runtime]) == 0 {
-		err := ctl.createDefaultRole(ns)
-		if err != nil {
-			return
+
+	if item.Annotations == nil {
+		creator = ""
+		runtime = ""
+	} else {
+		runtime = item.Annotations[openPitrixRuntimeAnnotateKey]
+		creator = item.Annotations[creatorAnnotateKey]
+	}
+
+	componentsNamespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.IstioNamespace, constants.KubeSphereNamespace}
+
+	if len(runtime) == 0 && !slice.ContainsString(componentsNamespaces, ns, nil) {
+		glog.Infoln("create runtime:", ns)
+		var runtimeCreateError error
+		resp, runtimeCreateError := ctl.createOpRuntime(ns)
+
+		if runtimeCreateError == nil {
+			var runtime runTime
+			runtimeCreateError = json.Unmarshal(resp, &runtime)
+			if runtimeCreateError == nil {
+
+				if item.Annotations == nil {
+					item.Annotations = make(map[string]string, 0)
+				}
+
+				item.Annotations[openPitrixRuntimeAnnotateKey] = runtime.RuntimeId
+				_, runtimeCreateError = ctl.K8sClient.CoreV1().Namespaces().Update(&item)
+
+			}
 		}
 
-		resp, err := ctl.createOpRuntime(ns)
-		if err != nil {
-			glog.Error(err)
-			return
+		if runtimeCreateError != nil {
+			glog.Error("runtime create error:", runtimeCreateError)
 		}
 
-		err = ctl.createDefaultRoleBinding(ns, user)
-		if err != nil {
-			glog.Error(err)
-			return
-		}
+		if len(creator) > 0 {
+			roleCreateError := ctl.createDefaultRole(ns)
+			glog.Infoln("create default role:", ns)
+			if roleCreateError == nil {
 
-		var runtime runTime
-		err = json.Unmarshal(resp, &runtime)
-		if err != nil {
-			glog.Error(err)
-			return
-		}
+				roleBindingError := ctl.createDefaultRoleBinding(ns, creator)
+				glog.Infoln("create default role binding:", ns)
+				if roleBindingError != nil {
+					glog.Error("default role binding create error:", roleBindingError)
+				}
 
-		item.Annotations[openpitrix_runtime] = runtime.RuntimeId
-		_, err = ctl.K8sClient.CoreV1().Namespaces().Update(&item)
-		if err != nil {
-			glog.Error(err)
+			} else {
+				glog.Error("default role create error:", roleCreateError)
+			}
+
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package models
+package iam
 
 import (
 	"github.com/golang/glog"
@@ -6,10 +6,65 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"k8s.io/kubernetes/pkg/util/slice"
+
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const ClusterRoleKind = "ClusterRole"
+
+func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespace bool, namespaces []string, err error) {
+
+	clusterRoles, err := GetClusterRoles(username)
+
+	if err != nil {
+		return false, nil, err
+	}
+
+	clusterRules := make([]v1.PolicyRule, 0)
+	for _, role := range clusterRoles {
+		clusterRules = append(clusterRules, role.Rules...)
+	}
+
+	if requiredRule.Size() == 0 {
+		if ruleValidate(clusterRules, v1.PolicyRule{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+		}) {
+			return true, nil, nil
+		}
+	} else if ruleValidate(clusterRules, requiredRule) {
+		return true, nil, nil
+	}
+
+	roles, err := GetRoles(username)
+
+	if err != nil {
+		return false, nil, err
+	}
+
+	rulesMapping := make(map[string][]v1.PolicyRule, 0)
+
+	for _, role := range roles {
+		rules := rulesMapping[role.Namespace]
+		if rules == nil {
+			rules = make([]v1.PolicyRule, 0)
+		}
+		rules = append(rules, role.Rules...)
+		rulesMapping[role.Namespace] = rules
+	}
+
+	namespaces = make([]string, 0)
+
+	for namespace, rules := range rulesMapping {
+		if requiredRule.Size() == 0 || ruleValidate(rules, requiredRule) {
+			namespaces = append(namespaces, namespace)
+		}
+	}
+
+	return false, namespaces, nil
+}
 
 func DeleteRoleBindings(username string) error {
 	k8s := client.NewK8sClient()
@@ -207,4 +262,62 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 	}
 
 	return roles, nil
+}
+
+func ruleValidate(rules []v1.PolicyRule, rule v1.PolicyRule) bool {
+
+	for _, apiGroup := range rule.APIGroups {
+		if len(rule.NonResourceURLs) == 0 {
+			for _, resource := range rule.Resources {
+
+				//if len(Rule.ResourceNames) == 0 {
+
+				for _, verb := range rule.Verbs {
+					if !verbValidate(rules, apiGroup, "", resource, "", verb) {
+						return false
+					}
+				}
+
+				//} else {
+				//	for _, resourceName := range Rule.ResourceNames {
+				//		for _, verb := range Rule.Verbs {
+				//			if !verbValidate(rules, apiGroup, "", resource, resourceName, verb) {
+				//				return false
+				//			}
+				//		}
+				//	}
+				//}
+			}
+		} else {
+			for _, nonResourceURL := range rule.NonResourceURLs {
+				for _, verb := range rule.Verbs {
+					if !verbValidate(rules, apiGroup, nonResourceURL, "", "", verb) {
+						return false
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+func verbValidate(rules []v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, resourceName string, verb string) bool {
+	for _, rule := range rules {
+		if slice.ContainsString(rule.APIGroups, apiGroup, nil) || slice.ContainsString(rule.APIGroups, v1.APIGroupAll, nil) {
+			if slice.ContainsString(rule.Verbs, verb, nil) || slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
+				if nonResourceURL == "" {
+					if slice.ContainsString(rule.Resources, resource, nil) || slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
+						if resourceName == "" {
+							return true
+						} else if slice.ContainsString(rule.ResourceNames, resourceName, nil) || slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
+							return true
+						}
+					}
+				} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL, nil) || slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll, nil) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

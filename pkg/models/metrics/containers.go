@@ -83,7 +83,7 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	cpuRequestMetrics, err := cpuRequest.GetObjectArray("metrics")
 	if err == nil && len(cpuRequestMetrics) != 0 {
 		requestCpu, _ := cpuRequestMetrics[0].GetFloat64("value")
-		resultContainer.CpuRequest = fmt.Sprintf("%.1f", requestCpu)
+		resultContainer.CpuRequest = FormatResourceLimit(requestCpu)
 	} else {
 		resultContainer.CpuRequest = Inf
 	}
@@ -92,7 +92,7 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	cpuLimitMetrics, err := cpuLimit.GetObjectArray("metrics")
 	if err == nil && len(cpuLimitMetrics) != 0 {
 		limitCpu, _ := cpuLimitMetrics[0].GetFloat64("value")
-		resultContainer.CpuLimit = fmt.Sprintf("%.1f", limitCpu)
+		resultContainer.CpuLimit = FormatResourceLimit(limitCpu)
 	} else {
 		resultContainer.CpuLimit = Inf
 	}
@@ -101,7 +101,8 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	memoryRequstMetrics, err := memoryRequst.GetObjectArray("metrics")
 	if err == nil && len(memoryRequstMetrics) != 0 {
 		requestMemory, _ := memoryRequstMetrics[0].GetFloat64("value")
-		resultContainer.MemoryRequest = fmt.Sprintf("%.1f", requestMemory)
+		requestMemory = requestMemory / 1024 / 1024
+		resultContainer.MemoryRequest = FormatResourceLimit(requestMemory)
 	} else {
 		resultContainer.MemoryRequest = Inf
 	}
@@ -110,7 +111,8 @@ func FormatContainerMetrics(namespace, podName, containerName string) ContainerM
 	memoryLimitMetrics, err := memoryLimit.GetObjectArray("metrics")
 	if err == nil && len(memoryLimitMetrics) != 0 {
 		limitMemory, _ := memoryLimitMetrics[0].GetFloat64("value")
-		resultContainer.MemoryLimit = fmt.Sprintf("%.1f", limitMemory)
+		limitMemory = limitMemory / 1024 / 1024
+		resultContainer.MemoryLimit = FormatResourceLimit(limitMemory)
 	} else {
 		resultContainer.MemoryLimit = Inf
 	}

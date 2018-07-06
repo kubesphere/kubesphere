@@ -23,15 +23,20 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
-const namespace = constants.KubeSphereControlNameSpace
+const (
+	namespace = constants.KubeSphereControlNamespace
+	retry     = 5
+)
 
 type kubectlPodInfo struct {
 	Namespace string `json:"namespace"`
@@ -41,7 +46,7 @@ type kubectlPodInfo struct {
 
 func GetKubectlPod(user string) (kubectlPodInfo, error) {
 	k8sClient := client.NewK8sClient()
-	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, meta_v1.GetOptions{})
+	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
 		return kubectlPodInfo{}, err
@@ -49,7 +54,7 @@ func GetKubectlPod(user string) (kubectlPodInfo, error) {
 
 	selectors := deploy.Spec.Selector.MatchLabels
 	labelSelector := labels.Set(selectors).AsSelector().String()
-	podList, err := k8sClient.CoreV1().Pods(namespace).List(meta_v1.ListOptions{LabelSelector: labelSelector})
+	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorln(err)
 		return kubectlPodInfo{}, err
@@ -89,17 +94,17 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 func CreateKubectlPod(user string) error {
 
 	replica := int32(1)
-	selector := meta_v1.LabelSelector{MatchLabels: map[string]string{"user": user}}
+	selector := metav1.LabelSelector{MatchLabels: map[string]string{"user": user}}
 	config := v1.ConfigMapVolumeSource{Items: []v1.KeyToPath{{Key: "config", Path: "config"}}, LocalObjectReference: v1.LocalObjectReference{Name: user}}
 	deployment := v1beta2.Deployment{
-		ObjectMeta: meta_v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: user,
 		},
 		Spec: v1beta2.DeploymentSpec{
 			Replicas: &replica,
 			Selector: &selector,
 			Template: v1.PodTemplateSpec{
-				ObjectMeta: meta_v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"user": user,
 					},
@@ -120,51 +125,31 @@ func CreateKubectlPod(user string) error {
 	k8sClient := client.NewK8sClient()
 	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Create(&deployment)
 
+	if errors.IsAlreadyExists(err) {
+		return nil
+	}
+
 	return err
 }
 
 func DelKubectlPod(user string) error {
 	k8sClient := client.NewK8sClient()
-	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, meta_v1.GetOptions{})
+	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
+
 	if err != nil {
+		err := fmt.Errorf("delete user %s failed, reason:%v", user, err)
 		return err
 	}
 
-	var replicas int32
-	replicas = 0
-	deploy.Spec.Replicas = &replicas
-	_, err = k8sClient.AppsV1beta2().Deployments(namespace).Update(deploy)
+	deletePolicy := metav1.DeletePropagationBackground
+
+	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
+		err := fmt.Errorf("delete user %s failed, reason:%v", user, err)
 		return err
-	}
-
-	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &meta_v1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	label := labels.SelectorFromSet(labels.Set(deploy.Spec.Selector.MatchLabels)).String()
-	rsList, err := k8sClient.AppsV1beta2().ReplicaSets(namespace).List(meta_v1.ListOptions{LabelSelector: label})
-	if err != nil {
-		glog.Error(err)
-		return err
-	}
-
-	for _, rs := range rsList.Items {
-		var replicas int32
-		replicas = 0
-		rs.Spec.Replicas = &replicas
-		_, err = k8sClient.AppsV1beta2().ReplicaSets(namespace).Update(&rs)
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
-
-		err = k8sClient.AppsV1beta2().ReplicaSets(namespace).Delete(rs.Name, &meta_v1.DeleteOptions{})
-		if err != nil {
-			glog.Error(err)
-			return err
-		}
 	}
 
 	return nil

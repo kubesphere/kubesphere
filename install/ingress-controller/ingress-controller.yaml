@@ -22,12 +22,15 @@ spec:
       serviceAccountName: kubesphere-router-serviceaccount
       containers:
         - name: nginx-ingress-controller
-          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.14.0
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.16.2
           args:
             - /nginx-ingress-controller
             - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
             - --configmap=$(POD_NAMESPACE)/nginx-configuration
             - --annotations-prefix=nginx.ingress.kubernetes.io
+            - --force-namespace-isolation
+            - --update-status
+            - --update-status-on-shutdown
           env:
             - name: POD_NAME
               valueFrom:

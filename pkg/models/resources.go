@@ -50,20 +50,44 @@ func getController(resource string) (controllers.Controller, error) {
 
 }
 
-func getConditions(str string) (map[string]string, error) {
-	dict := make(map[string]string)
+func getConditions(str string) (map[string]string, map[string]string, error) {
+	match := make(map[string]string)
+	fuzzy := make(map[string]string)
 	if len(str) == 0 {
-		return dict, nil
+		return nil, nil, nil
 	}
 	list := strings.Split(str, ",")
 	for _, item := range list {
-		kvs := strings.Split(item, "=")
-		if len(kvs) < 2 {
-			return nil, errors.New("invalid condition input")
+		if strings.Count(item, "=") >= 2 {
+			return nil, nil, errors.New("invalid condition input, invalid character \"=\"")
 		}
-		dict[kvs[0]] = kvs[1]
+
+		if strings.Count(item, "~") >= 2 {
+			return nil, nil, errors.New("invalid condition input, invalid character \"~\"")
+		}
+
+		if strings.Count(item, "=") == 1 {
+			kvs := strings.Split(item, "=")
+			if len(kvs) < 2 || len(kvs[1]) == 0 {
+				return nil, nil, errors.New("invalid condition input")
+			}
+			match[kvs[0]] = kvs[1]
+			continue
+		}
+
+		if strings.Count(item, "~") == 1 {
+			kvs := strings.Split(item, "~")
+			if len(kvs) < 2 || len(kvs[1]) == 0 {
+				return nil, nil, errors.New("invalid condition input")
+			}
+			fuzzy[kvs[0]] = kvs[1]
+			continue
+		}
+
+		return nil, nil, errors.New("invalid condition input")
+
 	}
-	return dict, nil
+	return match, fuzzy, nil
 }
 
 func getPaging(str string) (map[string]int, error) {
@@ -89,7 +113,7 @@ func getPaging(str string) (map[string]int, error) {
 }
 
 func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, error) {
-	conditions, err := getConditions(conditonSrt)
+	match, fuzzy, err := getConditions(conditonSrt)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +123,7 @@ func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, e
 		return nil, err
 	}
 
-	conditionStr, paging := generateConditionAndPaging(conditions, pagingMap)
+	conditionStr, paging := generateConditionAndPaging(match, fuzzy, pagingMap)
 
 	ctl, err := getController(resourceName)
 	if err != nil {
@@ -114,14 +138,22 @@ func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, e
 	return &ResourceList{Total: total, Items: items, Page: pagingMap["page"], Limit: pagingMap["limit"]}, nil
 }
 
-func generateConditionAndPaging(conditions map[string]string, paging map[string]int) (string, *controllers.Paging) {
+func generateConditionAndPaging(match map[string]string, fuzzy map[string]string, paging map[string]int) (string, *controllers.Paging) {
 	conditionStr := ""
 
-	for k, v := range conditions {
+	for k, v := range match {
 		if len(conditionStr) == 0 {
 			conditionStr = fmt.Sprintf("%s = \"%s\" ", k, v)
 		} else {
 			conditionStr = fmt.Sprintf("%s AND %s = \"%s\" ", conditionStr, k, v)
+		}
+	}
+
+	for k, v := range fuzzy {
+		if len(conditionStr) == 0 {
+			conditionStr = fmt.Sprintf("%s like '%%%s%%' ", k, v)
+		} else {
+			conditionStr = fmt.Sprintf("%s AND %s like '%%%s%%' ", conditionStr, k, v)
 		}
 	}
 

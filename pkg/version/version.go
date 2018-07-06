@@ -35,7 +35,7 @@ var (
 func PrintAndExitIfRequested() {
 
 	if *versionFlag {
-		fmt.Printf("Kubesphere %s\n", constants.APIVERSION)
+		fmt.Printf("Kubesphere %s\n", constants.APIVersion)
 		os.Exit(0)
 	}
 }
