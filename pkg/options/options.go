@@ -104,7 +104,7 @@ func (s *ServerRunOptions) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.mysqlAddress, "mysql-addr", "127.0.0.1:3306",
 		"Address of mysql, exp:127.0.0.1:3306.")
 
-	fs.StringVar(&s.mysqlPasswd, "mysql-password", "123456",
+	fs.StringVar(&s.mysqlPasswd, "mysql-password", "password",
 		"Password of mysql")
 
 	fs.StringVar(&s.mysqlUser, "mysql-user", "root",
