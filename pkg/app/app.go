@@ -28,6 +28,9 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/emicklei/go-restful-openapi"
+	"github.com/go-openapi/spec"
+
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -74,6 +77,28 @@ func preCheck() error {
 	_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
 	return err
 }
+
+func registerSwagger() {
+	config := restfulspec.Config{
+		WebServices: restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:     "/swagger-ui/api.json",
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
+	http.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir("/usr/lib/kubesphere/swagger-ui"))))
+}
+
+func enrichSwaggerObject(swo *spec.Swagger) {
+	swo.Info = &spec.Info{
+		InfoProps: spec.InfoProps{
+			Title:       "KubeSphere",
+			Description: "The extend apis of kubesphere",
+			Version:     "v1.0-alpha",
+		},
+	}
+	swo.Tags = []spec.Tag{spec.Tag{TagProps: spec.TagProps{
+		Name: "extend apis"}}}
+}
+
 func (server *kubeSphereServer) run() {
 	err := preCheck()
 	if err != nil {
@@ -82,6 +107,8 @@ func (server *kubeSphereServer) run() {
 	}
 
 	go controllers.Run()
+
+	registerSwagger()
 
 	if len(server.certFile) > 0 && len(server.keyFile) > 0 {
 		servingCert, err := tls.LoadX509KeyPair(server.certFile, server.keyFile)

@@ -22,6 +22,8 @@ import (
 	"github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"github.com/emicklei/go-restful-openapi"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
@@ -29,10 +31,17 @@ import (
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.POST(subPath).To(createUser).Consumes("*/*").Produces(restful.MIME_JSON))
-	ws.Route(ws.DELETE(subPath).To(delUser).Produces(restful.MIME_JSON))
-	ws.Route(ws.GET(subPath + "/kubectl").To(getKubectl).Produces(restful.MIME_JSON))
-	ws.Route(ws.GET(subPath + "/kubeconfig").To(getKubeconfig).Produces(restful.MIME_JSON))
+	tags := []string{"users"}
+
+	ws.Route(ws.POST(subPath).Doc("create user").Param(ws.PathParameter("user",
+		"the username to be created").DataType("string")).Metadata(restfulspec.KeyOpenAPITags, tags).
+		To(createUser).Consumes("*/*").Produces(restful.MIME_JSON))
+	ws.Route(ws.DELETE(subPath).Doc("delete user").Param(ws.PathParameter("user",
+		"the username to be deleted").DataType("string")).Metadata(restfulspec.KeyOpenAPITags, tags).To(delUser).Produces(restful.MIME_JSON))
+	ws.Route(ws.GET(subPath+"/kubectl").Doc("get user's kubectl pod").Param(ws.PathParameter("user",
+		"username").DataType("string")).Metadata(restfulspec.KeyOpenAPITags, tags).To(getKubectl).Produces(restful.MIME_JSON))
+	ws.Route(ws.GET(subPath+"/kubeconfig").Doc("get users' kubeconfig").Param(ws.PathParameter("user",
+		"username").DataType("string")).Metadata(restfulspec.KeyOpenAPITags, tags).To(getKubeconfig).Produces(restful.MIME_JSON))
 
 }
 

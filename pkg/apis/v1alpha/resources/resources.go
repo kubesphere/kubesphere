@@ -21,13 +21,21 @@ import (
 
 	"github.com/emicklei/go-restful"
 
+	"github.com/emicklei/go-restful-openapi"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath + "/{resource}").To(listResource).Produces(restful.MIME_JSON))
+	tags := []string{"resources"}
+
+	ws.Route(ws.GET(subPath+"/{resource}").To(listResource).Produces(restful.MIME_JSON).Metadata(restfulspec.KeyOpenAPITags, tags).Doc("Get resource" +
+		" list").Param(ws.PathParameter("resource", "resource name").DataType(
+		"string")).Param(ws.QueryParameter("conditions", "search "+
+		"conditions").DataType("string")).Param(ws.QueryParameter("paging",
+		"support paging function").DataType("string")).Writes(models.ResourceList{}))
 
 }
 
