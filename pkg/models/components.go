@@ -30,7 +30,6 @@ type ComponentsCount struct {
 	KubernetesCount int `json:"kubernetesCount"`
 	OpenpitrixCount int `json:"openpitrixCount"`
 	KubesphereCount int `json:"kubesphereCount"`
-	IstioCount      int `json:"istioCount"`
 }
 
 type Components struct {
@@ -53,17 +52,21 @@ func GetComponents() (map[string]interface{}, error) {
 	k8sClient := client.NewK8sClient()
 	var count ComponentsCount
 	var components Components
-	label := "kubernetes.io/cluster-service=true"
-	option := meta_v1.ListOptions{
 
-		LabelSelector: label,
-	}
-
-	namespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.IstioNamespace, constants.KubeSphereNamespace}
+	label := ""
+	namespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.KubeSphereNamespace}
 	for _, ns := range namespaces {
 
-		if ns != constants.KubeSystemNamespace {
-			option.LabelSelector = ""
+		if ns == constants.KubeSystemNamespace {
+			label = "kubernetes.io/cluster-service=true"
+		} else if ns == constants.OpenPitrixNamespace {
+			label = "app=openpitrix"
+		} else {
+			label = "app=kubesphere"
+		}
+		option := meta_v1.ListOptions{
+
+			LabelSelector: label,
 		}
 		servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
 
@@ -84,11 +87,8 @@ func GetComponents() (map[string]interface{}, error) {
 					count.KubernetesCount++
 				case constants.OpenPitrixNamespace:
 					count.OpenpitrixCount++
-				case constants.KubeSphereNamespace:
-					count.KubesphereCount++
-
 				default:
-					count.IstioCount++
+					count.KubesphereCount++
 				}
 
 				components.Name = service.Name
