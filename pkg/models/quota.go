@@ -45,7 +45,7 @@ var resourceMap = map[string]string{daemonsetsKey: controllers.Daemonsets, deplo
 	statefulsetsKey: controllers.Statefulsets, persistentvolumeclaimsKey: controllers.PersistentVolumeClaim, podsKey: controllers.Pods,
 	namespaceKey: controllers.Namespaces, storageClassesKey: controllers.StorageClasses, clusterRolesKey: controllers.ClusterRoles}
 
-type resourceQuota struct {
+type ResourceQuota struct {
 	NameSpace string                 `json:"namespace"`
 	Data      v1.ResourceQuotaStatus `json:"data"`
 }
@@ -58,7 +58,7 @@ func getUsage(namespace, resource string) int {
 	return ctl.Count(namespace)
 }
 
-func GetClusterQuota() (*resourceQuota, error) {
+func GetClusterQuota() (*ResourceQuota, error) {
 
 	quota := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
 	for k, v := range resourceMap {
@@ -68,11 +68,11 @@ func GetClusterQuota() (*resourceQuota, error) {
 		quota.Used[v1.ResourceName(k)] = quantity
 	}
 
-	return &resourceQuota{NameSpace: "\"\"", Data: quota}, nil
+	return &ResourceQuota{NameSpace: "\"\"", Data: quota}, nil
 
 }
 
-func GetNamespaceQuota(namespace string) (*resourceQuota, error) {
+func GetNamespaceQuota(namespace string) (*ResourceQuota, error) {
 	quota, err := getNamespaceResourceQuota(namespace)
 	if err != nil {
 		glog.Error(err)
@@ -95,7 +95,7 @@ func GetNamespaceQuota(namespace string) (*resourceQuota, error) {
 		}
 	}
 
-	return &resourceQuota{NameSpace: namespace, Data: *quota}, nil
+	return &ResourceQuota{NameSpace: namespace, Data: *quota}, nil
 }
 
 func updateNamespaceQuota(tmpResourceList, resourceList v1.ResourceList) {

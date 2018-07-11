@@ -21,14 +21,23 @@ import (
 
 	"github.com/emicklei/go-restful"
 
+	"github.com/emicklei/go-restful-openapi"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath).To(getClusterQuota).Produces(restful.MIME_JSON))
-	ws.Route(ws.GET(subPath + "/namespaces/{namespace}").To(getNamespaceQuota).Produces(restful.MIME_JSON))
+	tags := []string{"quota"}
+
+	ws.Route(ws.GET(subPath).To(getClusterQuota).Produces(restful.MIME_JSON).Doc("get whole "+
+		"cluster's resource usage").Writes(models.ResourceQuota{}).Metadata(restfulspec.KeyOpenAPITags, tags))
+
+	ws.Route(ws.GET(subPath+"/namespaces/{namespace}").Doc("get specified namespace's resource "+
+		"quota and usage").Param(ws.PathParameter("namespace",
+		"namespace's name").DataType("string")).Writes(models.ResourceQuota{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).To(getNamespaceQuota).Produces(restful.MIME_JSON))
 
 }
 
