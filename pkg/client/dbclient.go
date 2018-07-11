@@ -16,9 +16,9 @@ package client
 import (
 	"fmt"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 
 	"log"
 
@@ -47,6 +47,7 @@ func NewDBClient() *gorm.DB {
 	addr := options.ServerOptions.GetMysqlAddr()
 	if dbClient == nil {
 		conn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, database)
+		glog.Info(conn)
 		db, err := gorm.Open("mysql", conn)
 
 		if err != nil {
