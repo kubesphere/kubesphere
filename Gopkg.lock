@@ -202,10 +202,7 @@
 
 [[projects]]
   name = "github.com/jinzhu/gorm"
-  packages = [
-    ".",
-    "dialects/mysql"
-  ]
+  packages = ["."]
   revision = "6ed508ec6a4ecb3531899a69cbc746ccf65a4166"
   version = "v1.9.1"
 
@@ -594,6 +591,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aee0cc75f6ebd8678991b74319dba7fc523e5652286a5b790a53595c1ae09802"
+  inputs-digest = "afd0a3a0e96a5054e6b99afd53b78888125726fc89c62f121984cd73a6ca4fb3"
   solver-name = "gps-cdcl"
   solver-version = 1
