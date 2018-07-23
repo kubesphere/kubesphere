@@ -28,6 +28,7 @@ import (
 	"k8s.io/api/rbac/v1"
 
 	"errors"
+	"strings"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -125,6 +126,9 @@ func LoadYamls() ([]string, error) {
 	}
 
 	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".yaml") {
+			continue
+		}
 		content, err := ioutil.ReadFile(constants.IngressControllerFolder + "/" + file.Name())
 
 		if err != nil {
