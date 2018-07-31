@@ -61,30 +61,21 @@ func (ctl *DaemonsetCtl) generateObject(item v1.DaemonSet) *Daemonset {
 	return object
 }
 
-func (ctl *DaemonsetCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *DaemonsetCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *DaemonsetCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Daemonset{}) {
 		db.DropTable(&Daemonset{})
-
 	}
 
 	db = db.CreateTable(&Daemonset{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Apps().V1().DaemonSets().Informer()
-	lister := kubeInformerFactory.Apps().V1().DaemonSets().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -93,9 +84,27 @@ func (ctl *DaemonsetCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *DaemonsetCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *DaemonsetCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+	ctl.lister = informerFactory.Apps().V1().DaemonSets().Lister()
+
+	informer := informerFactory.Apps().V1().DaemonSets().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -117,7 +126,7 @@ func (ctl *DaemonsetCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *DaemonsetCtl) CountWithConditions(conditions string) int {
@@ -138,13 +147,13 @@ func (ctl *DaemonsetCtl) ListWithConditions(conditions string, paging *Paging) (
 	return total, list, nil
 }
 
-func (ctl *DaemonsetCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Daemonset{}).Count(&count)
-	} else {
-		db.Model(&Daemonset{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
-}
+//func (ctl *DaemonsetCtl) Count(namespace string) int {
+//	var count int
+//	db := ctl.DB
+//	if len(namespace) == 0 {
+//		db.Model(&Daemonset{}).Count(&count)
+//	} else {
+//		db.Model(&Daemonset{}).Where("namespace = ?", namespace).Count(&count)
+//	}
+//	return count
+//}

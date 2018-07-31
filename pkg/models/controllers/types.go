@@ -26,10 +26,16 @@ import (
 	"github.com/jinzhu/gorm"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	appV1 "k8s.io/client-go/listers/apps/v1"
+	coreV1 "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/listers/extensions/v1beta1"
+	rbacV1 "k8s.io/client-go/listers/rbac/v1"
+	storageV1 "k8s.io/client-go/listers/storage/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	resyncCircle               = 180
+	resyncCircle               = 600
 	Stopped                    = "stopped"
 	PvcPending                 = "Pending"
 	Running                    = "running"
@@ -57,6 +63,7 @@ const (
 	ClusterRoles          = "cluster-roles"
 	Services              = "services"
 	StorageClasses        = "storage-classes"
+	Applications          = "applications"
 )
 
 type Annotation struct {
@@ -163,10 +170,18 @@ func (Pvc) TableName() string {
 	return tablePersistentVolumeClaim
 }
 
+type ingressRule struct {
+	Host    string `json:"host"`
+	Path    string `json:"path"`
+	Service string `json:"service"`
+	Port    int32  `json:"port"`
+}
+
 type Ingress struct {
 	Name           string     `gorm:"primary_key" json:"name"`
 	Namespace      string     `gorm:"primary_key" json:"namespace"`
 	Ip             string     `json:"ip,omitempty"`
+	Rules          string     `json:"rules, omitempty"`
 	TlsTermination string     `json:"tlsTermination,omitempty"`
 	Annotation     Annotation `json:"annotations"`
 	CreateTime     time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
@@ -273,16 +288,19 @@ type Paging struct {
 }
 
 type Controller interface {
-	listAndWatch()
 	chanStop() chan struct{}
 	chanAlive() chan struct{}
-	Count(namespace string) int
 	CountWithConditions(condition string) int
+	total() int
+	initListerAndInformer()
+	sync(stopChan chan struct{})
+	Name() string
 	ListWithConditions(condition string, paging *Paging) (int, interface{}, error)
 }
 
 type CommonAttribute struct {
 	K8sClient *kubernetes.Clientset
+	Name      string
 	DB        *gorm.DB
 	stopChan  chan struct{}
 	aliveChan chan struct{}
@@ -300,44 +318,66 @@ func (ca *CommonAttribute) chanAlive() chan struct{} {
 
 type DeploymentCtl struct {
 	CommonAttribute
+	lister   appV1.DeploymentLister
+	informer cache.SharedIndexInformer
 }
 
 type StatefulsetCtl struct {
 	CommonAttribute
+	lister   appV1.StatefulSetLister
+	informer cache.SharedIndexInformer
 }
 
 type DaemonsetCtl struct {
 	CommonAttribute
+	lister   appV1.DaemonSetLister
+	informer cache.SharedIndexInformer
 }
 
 type ServiceCtl struct {
 	CommonAttribute
+	lister   coreV1.ServiceLister
+	informer cache.SharedIndexInformer
 }
 
 type PvcCtl struct {
 	CommonAttribute
+	lister   coreV1.PersistentVolumeClaimLister
+	informer cache.SharedIndexInformer
 }
 
 type PodCtl struct {
 	CommonAttribute
+	lister   coreV1.PodLister
+	informer cache.SharedIndexInformer
 }
 
 type IngressCtl struct {
+	lister   v1beta1.IngressLister
+	informer cache.SharedIndexInformer
 	CommonAttribute
 }
 
 type NamespaceCtl struct {
 	CommonAttribute
+	lister   coreV1.NamespaceLister
+	informer cache.SharedIndexInformer
 }
 
 type StorageClassCtl struct {
+	lister   storageV1.StorageClassLister
+	informer cache.SharedIndexInformer
 	CommonAttribute
 }
 
 type RoleCtl struct {
+	lister   rbacV1.RoleLister
+	informer cache.SharedIndexInformer
 	CommonAttribute
 }
 
 type ClusterRoleCtl struct {
+	lister   rbacV1.ClusterRoleLister
+	informer cache.SharedIndexInformer
 	CommonAttribute
 }

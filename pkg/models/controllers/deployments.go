@@ -21,9 +21,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
-
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -65,15 +64,11 @@ func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
 		App: app, UpdateTime: updateTime, Status: status, Annotation: Annotation{item.Annotations}}
 }
 
-func (ctl *DeploymentCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *DeploymentCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *DeploymentCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 	if db.HasTable(&Deployment{}) {
 		db.DropTable(&Deployment{})
@@ -81,12 +76,8 @@ func (ctl *DeploymentCtl) listAndWatch() {
 
 	db = db.CreateTable(&Deployment{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Apps().V1().Deployments().Informer()
-	lister := kubeInformerFactory.Apps().V1().Deployments().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -95,9 +86,29 @@ func (ctl *DeploymentCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *DeploymentCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", ctl.Name(), err)
+		return 0
+	}
+
+	return len(list)
+}
+
+func (ctl *DeploymentCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Apps().V1().Deployments().Lister()
+
+	informer := informerFactory.Apps().V1().Deployments().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -118,8 +129,7 @@ func (ctl *DeploymentCtl) listAndWatch() {
 
 		},
 	})
-
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *DeploymentCtl) CountWithConditions(conditions string) int {
@@ -138,15 +148,4 @@ func (ctl *DeploymentCtl) ListWithConditions(conditions string, paging *Paging) 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
-}
-
-func (ctl *DeploymentCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Deployment{}).Count(&count)
-	} else {
-		db.Model(&Deployment{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
 }

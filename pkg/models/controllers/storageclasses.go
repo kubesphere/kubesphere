@@ -46,15 +46,11 @@ func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 	return object
 }
 
-func (ctl *StorageClassCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *StorageClassCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *StorageClassCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&StorageClass{}) {
@@ -63,12 +59,8 @@ func (ctl *StorageClassCtl) listAndWatch() {
 
 	db = db.CreateTable(&StorageClass{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Storage().V1().StorageClasses().Informer()
-	lister := kubeInformerFactory.Storage().V1().StorageClasses().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -77,12 +69,30 @@ func (ctl *StorageClassCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *StorageClassCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *StorageClassCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Storage().V1().StorageClasses().Lister()
+
+	informer := informerFactory.Storage().V1().StorageClasses().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-
 			object := obj.(*v1.StorageClass)
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
@@ -101,8 +111,7 @@ func (ctl *StorageClassCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
-
+	ctl.informer = informer
 }
 
 func (ctl *StorageClassCtl) CountWithConditions(conditions string) int {
@@ -122,17 +131,10 @@ func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging
 
 	for index, storageClass := range list {
 		name := storageClass.Name
-		pvcCtl := PvcCtl{CommonAttribute{K8sClient: ctl.K8sClient, DB: ctl.DB}}
+		pvcCtl := ResourceControllers.Controllers[PersistentVolumeClaim]
 
 		list[index].Count = pvcCtl.CountWithConditions(fmt.Sprintf("storage_class=\"%s\"", name))
 	}
 
 	return total, list, nil
-}
-
-func (ctl *StorageClassCtl) Count(name string) int {
-	var count int
-	db := ctl.DB
-	db.Model(&StorageClass{}).Count(&count)
-	return count
 }

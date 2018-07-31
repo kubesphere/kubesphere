@@ -29,7 +29,7 @@ import (
 
 func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
 	name := item.Name
-	if strings.HasPrefix(name, "system:") {
+	if strings.HasPrefix(name, systemPrefix) {
 		return nil
 	}
 	namespace := item.Namespace
@@ -43,30 +43,21 @@ func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
 	return object
 }
 
-func (ctl *RoleCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *RoleCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *RoleCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Role{}) {
 		db.DropTable(&Role{})
-
 	}
 
 	db = db.CreateTable(&Role{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Rbac().V1().Roles().Informer()
-	lister := kubeInformerFactory.Rbac().V1().Roles().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -74,10 +65,39 @@ func (ctl *RoleCtl) listAndWatch() {
 
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
-		db.Create(obj)
-
+		if obj != nil {
+			db.Create(obj)
+		}
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *RoleCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+
+	count := 0
+	for _, item := range list {
+		if !strings.HasPrefix(item.Name, systemPrefix) {
+			count++
+		}
+	}
+
+	return count
+}
+
+func (ctl *RoleCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Rbac().V1().Roles().Lister()
+
+	informer := informerFactory.Rbac().V1().Roles().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -103,7 +123,7 @@ func (ctl *RoleCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *RoleCtl) CountWithConditions(conditions string) int {
@@ -124,9 +144,9 @@ func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, 
 	return total, list, nil
 }
 
-func (ctl *RoleCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	db.Model(&Role{}).Where("namespace = ?", namespace).Count(&count)
-	return count
-}
+//func (ctl *RoleCtl) Count(namespace string) int {
+//	var count int
+//	db := ctl.DB
+//	db.Model(&Role{}).Where("namespace = ?", namespace).Count(&count)
+//	return count
+//}

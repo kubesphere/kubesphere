@@ -19,9 +19,6 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -30,11 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util/slice"
+
+	"k8s.io/client-go/informers"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -67,25 +65,6 @@ type runTime struct {
 
 type DeleteRunTime struct {
 	RuntimeId []string `json:"runtime_id"`
-}
-
-func makeHttpRequest(method, url, data string) ([]byte, error) {
-	req, err := http.NewRequest(method, url, strings.NewReader(data))
-	if err != nil {
-		glog.Error(err)
-		return nil, err
-	}
-
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		glog.Error(err)
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	return body, err
 }
 
 func (ctl *NamespaceCtl) getKubeConfig(user string) (string, error) {
@@ -262,15 +241,11 @@ func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
 	return object
 }
 
-func (ctl *NamespaceCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *NamespaceCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *NamespaceCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Namespace{}) {
@@ -279,12 +254,8 @@ func (ctl *NamespaceCtl) listAndWatch() {
 
 	db = db.CreateTable(&Namespace{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Core().V1().Namespaces().Informer()
-	lister := kubeInformerFactory.Core().V1().Namespaces().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -294,9 +265,28 @@ func (ctl *NamespaceCtl) listAndWatch() {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
 		ctl.createRoleAndRuntime(*item)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *NamespaceCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *NamespaceCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Core().V1().Namespaces().Lister()
+
+	informer := informerFactory.Core().V1().Namespaces().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -321,7 +311,7 @@ func (ctl *NamespaceCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *NamespaceCtl) CountWithConditions(conditions string) int {
@@ -339,26 +329,21 @@ func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
-	for index := range list {
-		usage, err := ctl.GetNamespaceQuota(list[index].Name)
-		if err == nil {
-			list[index].Usaeg = usage
+	if paging != nil {
+		for index := range list {
+			usage, err := ctl.GetNamespaceQuota(list[index].Name)
+			if err == nil {
+				list[index].Usaeg = usage
+			}
 		}
-
 	}
+
 	return total, list, nil
 }
 
-func (ctl *NamespaceCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	db.Model(&Namespace{}).Count(&count)
-	return count
-}
-
 func getUsage(namespace, resource string) int {
-	ctl := rec.controllers[resource]
-	return ctl.Count(namespace)
+	ctl := ResourceControllers.Controllers[resource]
+	return ctl.CountWithConditions(fmt.Sprintf("namespace = '%s' ", namespace))
 }
 
 func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, error) {
@@ -373,7 +358,7 @@ func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, e
 		usage[v1.ResourceName(resourceName)] = quantity
 	}
 
-	podCtl := rec.controllers[Pods]
+	podCtl := ResourceControllers.Controllers[Pods]
 	var quantity resource.Quantity
 	used := podCtl.CountWithConditions(fmt.Sprintf("status=\"%s\" And namespace=\"%s\"", "Running", namespace))
 	quantity.Set(int64(used))

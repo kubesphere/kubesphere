@@ -16,7 +16,17 @@ limitations under the License.
 
 package controllers
 
-import "github.com/jinzhu/gorm"
+import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/golang/glog"
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
+)
 
 func listWithConditions(db *gorm.DB, total *int, object, list interface{}, conditions string, paging *Paging, order string) {
 	if len(conditions) == 0 {
@@ -49,4 +59,84 @@ func countWithConditions(db *gorm.DB, conditions string, object interface{}) int
 		db.Model(object).Where(conditions).Count(&count)
 	}
 	return count
+}
+
+func makeHttpRequest(method, url, data string) ([]byte, error) {
+	var req *http.Request
+
+	var err error
+	if method == "GET" {
+		req, err = http.NewRequest(method, url, nil)
+	} else {
+		req, err = http.NewRequest(method, url, strings.NewReader(data))
+	}
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+
+	if err != nil {
+		err := fmt.Errorf("Request to %s failed, method: %s, reason: %s ", url, method, err)
+		glog.Error(err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest {
+		err = errors.New(string(body))
+	}
+	return body, err
+}
+
+func handleCrash(ctl Controller) {
+	close(ctl.chanAlive())
+	if err := recover(); err != nil {
+		glog.Errorf("panic occur in %s controller's listAndWatch function, reason: %s", ctl.Name(), err)
+		return
+	}
+}
+
+func hasSynced(ctl Controller) bool {
+	totalInDb := ctl.CountWithConditions("")
+	totalInK8s := ctl.total()
+
+	if totalInDb == totalInK8s {
+		return true
+	}
+
+	return false
+}
+
+func checkAndResync(ctl Controller, stopChan chan struct{}) {
+	defer close(stopChan)
+	for {
+		select {
+		case <-ctl.chanStop():
+			return
+		default:
+			time.Sleep(30 * time.Minute)
+
+			if !hasSynced(ctl) {
+				glog.Errorf("the data in db and kubernetes is inconsistent, resync %s controller", ctl.Name())
+				close(stopChan)
+				stopChan = make(chan struct{})
+				go ctl.sync(stopChan)
+			}
+		}
+	}
+}
+
+func listAndWatch(ctl Controller) {
+	defer handleCrash(ctl)
+
+	stopChan := make(chan struct{})
+
+	go ctl.sync(stopChan)
+
+	checkAndResync(ctl, stopChan)
 }
