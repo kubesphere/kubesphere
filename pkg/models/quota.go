@@ -22,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"fmt"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
 )
@@ -55,7 +57,12 @@ func getUsage(namespace, resource string) int {
 	if err != nil {
 		return 0
 	}
-	return ctl.Count(namespace)
+
+	if len(namespace) == 0 {
+		return ctl.CountWithConditions("")
+	}
+
+	return ctl.CountWithConditions(fmt.Sprintf("namespace = '%s' ", namespace))
 }
 
 func GetClusterQuota() (*ResourceQuota, error) {

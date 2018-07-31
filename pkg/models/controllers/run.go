@@ -27,45 +27,46 @@ import (
 )
 
 type resourceControllers struct {
-	controllers map[string]Controller
+	Controllers map[string]Controller
 	k8sClient   *kubernetes.Clientset
 }
 
 var stopChan chan struct{}
-var rec resourceControllers
+var ResourceControllers resourceControllers
 
 func (rec *resourceControllers) runContoller(name string) {
 	var ctl Controller
-	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan, aliveChan: make(chan struct{})}
+	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan,
+		aliveChan: make(chan struct{}), Name: name}
 	switch name {
 	case Deployments:
-		ctl = &DeploymentCtl{attr}
+		ctl = &DeploymentCtl{CommonAttribute: attr}
 	case Statefulsets:
-		ctl = &StatefulsetCtl{attr}
+		ctl = &StatefulsetCtl{CommonAttribute: attr}
 	case Daemonsets:
-		ctl = &DaemonsetCtl{attr}
+		ctl = &DaemonsetCtl{CommonAttribute: attr}
 	case Ingresses:
-		ctl = &IngressCtl{attr}
+		ctl = &IngressCtl{CommonAttribute: attr}
 	case PersistentVolumeClaim:
-		ctl = &PvcCtl{attr}
+		ctl = &PvcCtl{CommonAttribute: attr}
 	case Roles:
-		ctl = &RoleCtl{attr}
+		ctl = &RoleCtl{CommonAttribute: attr}
 	case ClusterRoles:
-		ctl = &ClusterRoleCtl{attr}
+		ctl = &ClusterRoleCtl{CommonAttribute: attr}
 	case Services:
-		ctl = &ServiceCtl{attr}
+		ctl = &ServiceCtl{CommonAttribute: attr}
 	case Pods:
-		ctl = &PodCtl{attr}
+		ctl = &PodCtl{CommonAttribute: attr}
 	case Namespaces:
-		ctl = &NamespaceCtl{attr}
+		ctl = &NamespaceCtl{CommonAttribute: attr}
 	case StorageClasses:
-		ctl = &StorageClassCtl{attr}
+		ctl = &StorageClassCtl{CommonAttribute: attr}
 	default:
 		return
 	}
 
-	rec.controllers[name] = ctl
-	go ctl.listAndWatch()
+	rec.Controllers[name] = ctl
+	go listAndWatch(ctl)
 
 }
 
@@ -93,22 +94,23 @@ func Run() {
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 
-	rec = resourceControllers{k8sClient: client.NewK8sClient(), controllers: make(map[string]Controller)}
+	k8sClient := client.NewK8sClient()
+	ResourceControllers = resourceControllers{k8sClient: k8sClient, Controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
 		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses} {
-		rec.runContoller(item)
+		ResourceControllers.runContoller(item)
 	}
 
 	go dbHealthCheck(client.NewDBClient())
 
 	for {
-		for ctlName, controller := range rec.controllers {
+		for ctlName, controller := range ResourceControllers.Controllers {
 			select {
 			case _, isClose := <-controller.chanAlive():
 				if !isClose {
 					glog.Errorf("controller %s have stopped, restart it", ctlName)
-					rec.runContoller(ctlName)
+					ResourceControllers.runContoller(ctlName)
 				}
 			default:
 				time.Sleep(5 * time.Second)

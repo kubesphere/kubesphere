@@ -35,21 +35,20 @@ import (
 
 const (
 	namespace = constants.KubeSphereControlNamespace
-	retry     = 5
 )
 
-type kubectlPodInfo struct {
+type KubectlPodInfo struct {
 	Namespace string `json:"namespace"`
 	Pod       string `json:"pod"`
 	Container string `json:"container"`
 }
 
-func GetKubectlPod(user string) (kubectlPodInfo, error) {
+func GetKubectlPod(user string) (KubectlPodInfo, error) {
 	k8sClient := client.NewK8sClient()
 	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
-		return kubectlPodInfo{}, err
+		return KubectlPodInfo{}, err
 	}
 
 	selectors := deploy.Spec.Selector.MatchLabels
@@ -57,16 +56,16 @@ func GetKubectlPod(user string) (kubectlPodInfo, error) {
 	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorln(err)
-		return kubectlPodInfo{}, err
+		return KubectlPodInfo{}, err
 	}
 
 	pod, err := selectCorrectPod(namespace, podList.Items)
 	if err != nil {
 		glog.Errorln(err)
-		return kubectlPodInfo{}, err
+		return KubectlPodInfo{}, err
 	}
 
-	info := kubectlPodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
+	info := KubectlPodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
 
 	return info, nil
 
@@ -91,7 +90,12 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 	return kubectPodList[random], nil
 }
 
-func CreateKubectlPod(user string) error {
+func CreateKubectlDeploy(user string) error {
+	k8sClient := client.NewK8sClient()
+	_, err := k8sClient.AppsV1().Deployments(namespace).Get(user, metav1.GetOptions{})
+	if err == nil {
+		return nil
+	}
 
 	replica := int32(1)
 	selector := metav1.LabelSelector{MatchLabels: map[string]string{"user": user}}
@@ -122,17 +126,12 @@ func CreateKubectlPod(user string) error {
 		},
 	}
 
-	k8sClient := client.NewK8sClient()
-	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Create(&deployment)
-
-	if errors.IsAlreadyExists(err) {
-		return nil
-	}
+	_, err = k8sClient.AppsV1beta2().Deployments(namespace).Create(&deployment)
 
 	return err
 }
 
-func DelKubectlPod(user string) error {
+func DelKubectlDeploy(user string) error {
 	k8sClient := client.NewK8sClient()
 	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if errors.IsNotFound(err) {

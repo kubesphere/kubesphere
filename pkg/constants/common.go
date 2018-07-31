@@ -34,8 +34,8 @@ const (
 	KubeSphereNamespace        = "kubesphere-system"
 	KubeSphereControlNamespace = "kubesphere-controls-system"
 	IngressControllerNamespace = KubeSphereControlNamespace
-
-	DataHome                = "/etc/kubesphere"
-	IngressControllerFolder = DataHome + "/ingress-controller"
-	IngressControllerPrefix = "kubesphere-router-"
+	AdminUserName              = "admin"
+	DataHome                   = "/etc/kubesphere"
+	IngressControllerFolder    = DataHome + "/ingress-controller"
+	IngressControllerPrefix    = "kubesphere-router-"
 )

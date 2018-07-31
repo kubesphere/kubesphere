@@ -62,27 +62,21 @@ func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
 	return statefulSetObject
 }
 
-func (ctl *StatefulsetCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *StatefulsetCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *StatefulsetCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
+
 	if db.HasTable(&Statefulset{}) {
 		db.DropTable(&Statefulset{})
 	}
 
 	db = db.CreateTable(&Statefulset{})
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Apps().V1().StatefulSets().Informer()
-	lister := kubeInformerFactory.Apps().V1().StatefulSets().Lister()
 
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -91,9 +85,28 @@ func (ctl *StatefulsetCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *StatefulsetCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *StatefulsetCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Apps().V1().StatefulSets().Lister()
+
+	informer := informerFactory.Apps().V1().StatefulSets().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -115,7 +128,7 @@ func (ctl *StatefulsetCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *StatefulsetCtl) CountWithConditions(conditions string) int {
@@ -134,15 +147,4 @@ func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging)
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
-}
-
-func (ctl *StatefulsetCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Statefulset{}).Count(&count)
-	} else {
-		db.Model(&Statefulset{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
 }

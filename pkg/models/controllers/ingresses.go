@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	"github.com/golang/glog"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,35 +48,41 @@ func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
 		ip = strings.Join(ipList, ",")
 	}
 
-	object := &Ingress{Namespace: namespace, Name: name, TlsTermination: tls, Ip: ip, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
+	var ingRules []ingressRule
+	for _, rule := range item.Spec.Rules {
+		host := rule.Host
+		for _, path := range rule.HTTP.Paths {
+			var ingRule ingressRule
+			ingRule.Host = host
+			ingRule.Service = path.Backend.ServiceName
+			ingRule.Port = path.Backend.ServicePort.IntVal
+			ingRule.Path = path.Path
+			ingRules = append(ingRules, ingRule)
+		}
+	}
+
+	ruleStr, _ := json.Marshal(ingRules)
+
+	object := &Ingress{Namespace: namespace, Name: name, TlsTermination: tls, Ip: ip, CreateTime: createTime, Annotation: Annotation{item.Annotations}, Rules: string(ruleStr)}
 
 	return object
 }
 
-func (ctl *IngressCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *IngressCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *IngressCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Ingress{}) {
 		db.DropTable(&Ingress{})
-
 	}
 
 	db = db.CreateTable(&Ingress{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Extensions().V1beta1().Ingresses().Informer()
-	lister := kubeInformerFactory.Extensions().V1beta1().Ingresses().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -83,9 +91,28 @@ func (ctl *IngressCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *IngressCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *IngressCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Extensions().V1beta1().Ingresses().Lister()
+
+	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -107,7 +134,7 @@ func (ctl *IngressCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *IngressCtl) CountWithConditions(conditions string) int {
@@ -128,13 +155,13 @@ func (ctl *IngressCtl) ListWithConditions(conditions string, paging *Paging) (in
 	return total, list, nil
 }
 
-func (ctl *IngressCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Ingress{}).Count(&count)
-	} else {
-		db.Model(&Ingress{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
-}
+//func (ctl *IngressCtl) Count(namespace string) int {
+//	var count int
+//	db := ctl.DB
+//	if len(namespace) == 0 {
+//		db.Model(&Ingress{}).Count(&count)
+//	} else {
+//		db.Model(&Ingress{}).Where("namespace = ?", namespace).Count(&count)
+//	}
+//	return count
+//}

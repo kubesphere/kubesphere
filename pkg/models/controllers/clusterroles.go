@@ -27,9 +27,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+const systemPrefix = "system:"
+
 func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
 	name := item.Name
-	if strings.HasPrefix(name, "system:") {
+	if strings.HasPrefix(name, systemPrefix) {
 		return nil
 	}
 
@@ -43,30 +45,22 @@ func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
 	return object
 }
 
-func (ctl *ClusterRoleCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *ClusterRoleCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *ClusterRoleCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&ClusterRole{}) {
 		db.DropTable(&ClusterRole{})
-
 	}
 
 	db = db.CreateTable(&ClusterRole{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Rbac().V1().ClusterRoles().Informer()
-	lister := kubeInformerFactory.Rbac().V1().ClusterRoles().Lister()
+	ctl.initListerAndInformer()
 
-	list, err := lister.List(labels.Everything())
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -74,10 +68,38 @@ func (ctl *ClusterRoleCtl) listAndWatch() {
 
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
-		db.Create(obj)
-
+		if obj != nil {
+			db.Create(obj)
+		}
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *ClusterRoleCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+
+	count := 0
+	for _, item := range list {
+		if !strings.HasPrefix(item.Name, systemPrefix) {
+			count++
+		}
+	}
+
+	return count
+}
+
+func (ctl *ClusterRoleCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+	ctl.lister = informerFactory.Rbac().V1().ClusterRoles().Lister()
+
+	informer := informerFactory.Rbac().V1().ClusterRoles().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -102,13 +124,15 @@ func (ctl *ClusterRoleCtl) listAndWatch() {
 
 		},
 	})
-
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *ClusterRoleCtl) CountWithConditions(conditions string) int {
 	var object ClusterRole
 
+	if strings.Contains(conditions, "namespace") {
+		conditions = ""
+	}
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
@@ -123,11 +147,4 @@ func (ctl *ClusterRoleCtl) ListWithConditions(conditions string, paging *Paging)
 	listWithConditions(db, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
-}
-
-func (ctl *ClusterRoleCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	db.Model(&ClusterRole{}).Count(&count)
-	return count
 }

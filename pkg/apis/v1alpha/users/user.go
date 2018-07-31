@@ -55,7 +55,7 @@ func createUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = models.CreateKubectlPod(user)
+	err = models.CreateKubectlDeploy(user)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -69,7 +69,7 @@ func delUser(req *restful.Request, resp *restful.Response) {
 
 	user := req.PathParameter("user")
 
-	err := models.DelKubectlPod(user)
+	err := models.DelKubectlDeploy(user)
 
 	if err != nil && !apierrors.IsNotFound(err) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
