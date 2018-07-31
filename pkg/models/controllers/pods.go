@@ -199,25 +199,24 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	return object
 }
 
-func (ctl *PodCtl) listAndWatch() {
+func (ctl *PodCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
+
+func (ctl *PodCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Pod{}) {
 		db.DropTable(&Pod{})
-
 	}
 
 	db = db.CreateTable(&Pod{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Core().V1().Pods().Informer()
-	lister := kubeInformerFactory.Core().V1().Pods().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
-		panic(err)
+		return
 	}
 
 	for _, item := range list {
@@ -225,6 +224,26 @@ func (ctl *PodCtl) listAndWatch() {
 		db.Create(obj)
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *PodCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *PodCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Core().V1().Pods().Lister()
+
+	informer := informerFactory.Core().V1().Pods().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			object := obj.(*v1.Pod)
@@ -249,7 +268,7 @@ func (ctl *PodCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *PodCtl) CountWithConditions(conditions string) int {
@@ -270,13 +289,13 @@ func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	return total, list, nil
 }
 
-func (ctl *PodCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Pod{}).Count(&count)
-	} else {
-		db.Model(&Pod{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
-}
+//func (ctl *PodCtl) Count(namespace string) int {
+//	var count int
+//	db := ctl.DB
+//	if len(namespace) == 0 {
+//		db.Model(&Pod{}).Count(&count)
+//	} else {
+//		db.Model(&Pod{}).Where("namespace = ?", namespace).Count(&count)
+//	}
+//	return count
+//}

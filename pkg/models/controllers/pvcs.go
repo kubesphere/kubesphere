@@ -64,30 +64,21 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 	return object
 }
 
-func (ctl *PvcCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *PvcCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
 
+func (ctl *PvcCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Pvc{}) {
 		db.DropTable(&Pvc{})
-
 	}
 
 	db = db.CreateTable(&Pvc{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Core().V1().PersistentVolumeClaims().Informer()
-	lister := kubeInformerFactory.Core().V1().PersistentVolumeClaims().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -96,9 +87,28 @@ func (ctl *PvcCtl) listAndWatch() {
 	for _, item := range list {
 		obj := ctl.generateObject(item)
 		db.Create(obj)
-
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *PvcCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *PvcCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+
+	ctl.lister = informerFactory.Core().V1().PersistentVolumeClaims().Lister()
+
+	informer := informerFactory.Core().V1().PersistentVolumeClaims().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -119,7 +129,7 @@ func (ctl *PvcCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *PvcCtl) CountWithConditions(conditions string) int {
@@ -153,13 +163,13 @@ func (ctl *PvcCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	return total, list, nil
 }
 
-func (ctl *PvcCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Pvc{}).Count(&count)
-	} else {
-		db.Model(&Pvc{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
-}
+//func (ctl *PvcCtl) Count(namespace string) int {
+//	var count int
+//	db := ctl.DB
+//	if len(namespace) == 0 {
+//		db.Model(&Pvc{}).Count(&count)
+//	} else {
+//		db.Model(&Pvc{}).Where("namespace = ?", namespace).Count(&count)
+//	}
+//	return count
+//}

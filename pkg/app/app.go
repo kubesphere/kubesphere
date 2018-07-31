@@ -23,7 +23,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"net"
 	"net/http"
@@ -31,9 +31,12 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
 	"kubesphere.io/kubesphere/pkg/options"
 )
@@ -64,17 +67,26 @@ func newKubeSphereServer(options *options.ServerRunOptions) *kubeSphereServer {
 
 func preCheck() error {
 	k8sClient := client.NewK8sClient()
-	nsList, err := k8sClient.CoreV1().Namespaces().List(meta_v1.ListOptions{})
-	if err != nil {
+	_, err := k8sClient.CoreV1().Namespaces().Get(constants.KubeSphereControlNamespace, metaV1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
-	for _, ns := range nsList.Items {
-		if ns.Name == constants.KubeSphereControlNamespace {
-			return nil
+
+	if errors.IsNotFound(err) {
+		namespace := v1.Namespace{ObjectMeta: metaV1.ObjectMeta{Name: constants.KubeSphereControlNamespace}}
+		_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
+		if err != nil {
+			return err
 		}
 	}
-	namespace := v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: constants.KubeSphereControlNamespace}}
-	_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
+
+	_, err = k8sClient.AppsV1().Deployments(constants.KubeSphereControlNamespace).Get(constants.AdminUserName, metaV1.GetOptions{})
+
+	if errors.IsNotFound(err) {
+		models.CreateKubeConfig(constants.AdminUserName)
+		models.CreateKubectlDeploy(constants.AdminUserName)
+		return nil
+	}
 	return err
 }
 

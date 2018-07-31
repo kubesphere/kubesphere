@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
+func loadBalancerStatusStringer(item v1.Service) string {
 	ingress := item.Status.LoadBalancer.Ingress
 	result := sets.NewString()
 	for i := range ingress {
@@ -41,7 +41,7 @@ func (ctl *ServiceCtl) loadBalancerStatusStringer(item v1.Service) string {
 	return r
 }
 
-func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
+func getExternalIp(item v1.Service) string {
 	switch item.Spec.Type {
 	case "ClusterIP", "NodePort":
 		if len(item.Spec.ExternalIPs) > 0 {
@@ -51,7 +51,7 @@ func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
 		return item.Spec.ExternalName
 
 	case "LoadBalancer":
-		lbIps := ctl.loadBalancerStatusStringer(item)
+		lbIps := loadBalancerStatusStringer(item)
 		if len(item.Spec.ExternalIPs) > 0 {
 			results := []string{}
 			if len(lbIps) > 0 {
@@ -68,12 +68,11 @@ func (ctl *ServiceCtl) getExternalIp(item v1.Service) string {
 	return ""
 }
 
-func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
-
+func generateSvcObject(item v1.Service) *Service {
 	name := item.Name
 	namespace := item.Namespace
 	createTime := item.CreationTimestamp.Time
-	externalIp := ctl.getExternalIp(item)
+	externalIp := getExternalIp(item)
 	serviceType := item.Spec.Type
 	vip := item.Spec.ClusterIP
 	ports := ""
@@ -129,17 +128,18 @@ func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
 	}
 
 	return object
+
 }
 
-func (ctl *ServiceCtl) listAndWatch() {
-	defer func() {
-		close(ctl.aliveChan)
-		if err := recover(); err != nil {
-			glog.Error(err)
-			return
-		}
-	}()
+func (ctl *ServiceCtl) generateObject(item v1.Service) *Service {
+	return generateSvcObject(item)
+}
 
+func (ctl *ServiceCtl) Name() string {
+	return ctl.CommonAttribute.Name
+}
+
+func (ctl *ServiceCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
 	if db.HasTable(&Service{}) {
@@ -148,12 +148,8 @@ func (ctl *ServiceCtl) listAndWatch() {
 
 	db = db.CreateTable(&Service{})
 
-	k8sClient := ctl.K8sClient
-	kubeInformerFactory := informers.NewSharedInformerFactory(k8sClient, time.Second*resyncCircle)
-	informer := kubeInformerFactory.Core().V1().Services().Informer()
-	lister := kubeInformerFactory.Core().V1().Services().Lister()
-
-	list, err := lister.List(labels.Everything())
+	ctl.initListerAndInformer()
+	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Error(err)
 		return
@@ -164,6 +160,25 @@ func (ctl *ServiceCtl) listAndWatch() {
 		db.Create(obj)
 	}
 
+	ctl.informer.Run(stopChan)
+}
+
+func (ctl *ServiceCtl) total() int {
+	list, err := ctl.lister.List(labels.Everything())
+	if err != nil {
+		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		return 0
+	}
+	return len(list)
+}
+
+func (ctl *ServiceCtl) initListerAndInformer() {
+	db := ctl.DB
+
+	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+	ctl.lister = informerFactory.Core().V1().Services().Lister()
+
+	informer := informerFactory.Core().V1().Services().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
@@ -185,7 +200,7 @@ func (ctl *ServiceCtl) listAndWatch() {
 		},
 	})
 
-	informer.Run(ctl.stopChan)
+	ctl.informer = informer
 }
 
 func (ctl *ServiceCtl) CountWithConditions(conditions string) int {
@@ -204,15 +219,4 @@ func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (in
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
-}
-
-func (ctl *ServiceCtl) Count(namespace string) int {
-	var count int
-	db := ctl.DB
-	if len(namespace) == 0 {
-		db.Model(&Service{}).Count(&count)
-	} else {
-		db.Model(&Service{}).Where("namespace = ?", namespace).Count(&count)
-	}
-	return count
 }

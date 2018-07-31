@@ -6,8 +6,15 @@ import (
 	"strconv"
 	"strings"
 
-	"kubesphere.io/kubesphere/pkg/client"
+	"github.com/golang/glog"
+
 	"kubesphere.io/kubesphere/pkg/models/controllers"
+	"kubesphere.io/kubesphere/pkg/options"
+)
+
+const (
+	limit = "limit"
+	page  = "page"
 )
 
 type ResourceList struct {
@@ -18,35 +25,16 @@ type ResourceList struct {
 }
 
 func getController(resource string) (controllers.Controller, error) {
-	var ctl controllers.Controller
-	attr := controllers.CommonAttribute{DB: client.NewDBClient()}
 	switch resource {
-	case controllers.Deployments:
-		ctl = &controllers.DeploymentCtl{attr}
-	case controllers.Statefulsets:
-		ctl = &controllers.StatefulsetCtl{attr}
-	case controllers.Daemonsets:
-		ctl = &controllers.DaemonsetCtl{attr}
-	case controllers.Ingresses:
-		ctl = &controllers.IngressCtl{attr}
-	case controllers.PersistentVolumeClaim:
-		ctl = &controllers.PvcCtl{attr}
-	case controllers.Roles:
-		ctl = &controllers.RoleCtl{attr}
-	case controllers.ClusterRoles:
-		ctl = &controllers.ClusterRoleCtl{attr}
-	case controllers.Services:
-		ctl = &controllers.ServiceCtl{attr}
-	case controllers.Pods:
-		ctl = &controllers.PodCtl{attr}
-	case controllers.Namespaces:
-		ctl = &controllers.NamespaceCtl{attr}
-	case controllers.StorageClasses:
-		ctl = &controllers.StorageClassCtl{attr}
+	case controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets, controllers.Ingresses,
+		controllers.PersistentVolumeClaim, controllers.Roles, controllers.ClusterRoles, controllers.Services,
+		controllers.Pods, controllers.Namespaces, controllers.StorageClasses:
+
+		return controllers.ResourceControllers.Controllers[resource], nil
 	default:
-		return nil, errors.New("invalid resource type")
+		return nil, fmt.Errorf("invalid resource Name '%s'", resource)
 	}
-	return ctl, nil
+	return nil, nil
 
 }
 
@@ -90,26 +78,44 @@ func getConditions(str string) (map[string]string, map[string]string, error) {
 	return match, fuzzy, nil
 }
 
-func getPaging(str string) (map[string]int, error) {
-	paging := make(map[string]int)
-	if len(str) == 0 {
-		return paging, nil
+func getPaging(resourceName, pagingStr string) (*controllers.Paging, map[string]int, error) {
+	defaultPaging := &controllers.Paging{Limit: 10, Offset: 0}
+	defautlPagingMap := map[string]int{"page": 1, "limit": 10}
+	if resourceName == controllers.Namespaces {
+		defaultPaging = nil
+		defautlPagingMap = map[string]int{"page": 0, "limit": 0}
 	}
-	list := strings.Split(str, ",")
+	pagingMap := make(map[string]int)
+
+	if len(pagingStr) == 0 {
+		return defaultPaging, defautlPagingMap, nil
+	}
+
+	list := strings.Split(pagingStr, ",")
 	for _, item := range list {
 		kvs := strings.Split(item, "=")
 		if len(kvs) < 2 {
-			return nil, errors.New("invalid Paging input")
+			return nil, nil, errors.New("invalid Paging input")
 		}
 
 		value, err := strconv.Atoi(kvs[1])
 		if err != nil {
-			return nil, err
+			return nil, nil, errors.New("invalid Paging input")
 		}
 
-		paging[kvs[0]] = value
+		pagingMap[kvs[0]] = value
 	}
-	return paging, nil
+
+	if pagingMap[limit] <= 0 || pagingMap[page] <= 0 {
+		return nil, nil, errors.New("invalid Paging input")
+	}
+
+	if pagingMap[limit] > 0 && pagingMap[page] > 0 {
+		offset := (pagingMap[page] - 1) * pagingMap[limit]
+		return &controllers.Paging{Limit: pagingMap[limit], Offset: offset}, pagingMap, nil
+	}
+
+	return defaultPaging, defautlPagingMap, nil
 }
 
 func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, error) {
@@ -118,12 +124,12 @@ func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, e
 		return nil, err
 	}
 
-	pagingMap, err := getPaging(pagingStr)
+	paging, pagingMap, err := getPaging(resourceName, pagingStr)
 	if err != nil {
 		return nil, err
 	}
 
-	conditionStr, paging := generateConditionAndPaging(match, fuzzy, pagingMap)
+	conditionStr := generateConditionStr(match, fuzzy)
 
 	ctl, err := getController(resourceName)
 	if err != nil {
@@ -135,10 +141,10 @@ func ListResource(resourceName, conditonSrt, pagingStr string) (*ResourceList, e
 		return nil, err
 	}
 
-	return &ResourceList{Total: total, Items: items, Page: pagingMap["page"], Limit: pagingMap["limit"]}, nil
+	return &ResourceList{Total: total, Items: items, Page: pagingMap[page], Limit: pagingMap[limit]}, nil
 }
 
-func generateConditionAndPaging(match map[string]string, fuzzy map[string]string, paging map[string]int) (string, *controllers.Paging) {
+func generateConditionStr(match map[string]string, fuzzy map[string]string) string {
 	conditionStr := ""
 
 	for k, v := range match {
@@ -157,12 +163,7 @@ func generateConditionAndPaging(match map[string]string, fuzzy map[string]string
 		}
 	}
 
-	if paging["limit"] > 0 && paging["page"] >= 0 {
-		offset := (paging["page"] - 1) * paging["limit"]
-		return conditionStr, &controllers.Paging{Limit: paging["limit"], Offset: offset}
-	}
-
-	return conditionStr, nil
+	return conditionStr
 }
 
 type workLoadStatus struct {
@@ -176,14 +177,14 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 	var status *ResourceList
 	var err error
 	for _, resource := range []string{controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets, controllers.PersistentVolumeClaim} {
-		resourceStatus := controllers.Updating
+		notReadyStatus := controllers.Updating
 		if resource == controllers.PersistentVolumeClaim {
-			resourceStatus = controllers.PvcPending
+			notReadyStatus = controllers.PvcPending
 		}
 		if len(namespace) > 0 {
-			status, err = ListResource(resource, fmt.Sprintf("status=%s,namespace=%s", resourceStatus, namespace), "")
+			status, err = ListResource(resource, fmt.Sprintf("status=%s,namespace=%s", notReadyStatus, namespace), "")
 		} else {
-			status, err = ListResource(resource, fmt.Sprintf("status=%s", resourceStatus), "")
+			status, err = ListResource(resource, fmt.Sprintf("status=%s", notReadyStatus), "")
 		}
 
 		if err != nil {
@@ -191,9 +192,7 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 		}
 
 		count := status.Total
-		//items := status.Items
 		res.Count[resource] = count
-		//res.Items[resource] = items
 	}
 
 	return &res, nil
@@ -202,4 +201,32 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 func GetClusterResourceStatus() (*workLoadStatus, error) {
 
 	return GetNamespacesResourceStatus("")
+}
+
+func GetApplication(clusterId string) (interface{}, error) {
+	ctl := &controllers.ApplicationCtl{OpenpitrixAddr: options.ServerOptions.GetOpAddress()}
+	return ctl.GetApp(clusterId)
+}
+
+func ListApplication(runtimeId, conditions, pagingStr string) (*ResourceList, error) {
+	paging, pagingMap, err := getPaging(controllers.Applications, pagingStr)
+	if err != nil {
+		return nil, err
+	}
+
+	match, fuzzy, err := getConditions(conditions)
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+
+	ctl := &controllers.ApplicationCtl{OpenpitrixAddr: options.ServerOptions.GetOpAddress()}
+	total, items, err := ctl.ListApplication(runtimeId, match, fuzzy, paging)
+
+	if err != nil {
+		glog.Errorf("get application list failed, reason: %s", err)
+		return nil, err
+	}
+
+	return &ResourceList{Total: total, Items: items, Page: pagingMap[page], Limit: pagingMap[limit]}, nil
 }
