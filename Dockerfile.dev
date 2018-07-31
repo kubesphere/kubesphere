@@ -6,5 +6,5 @@ RUN apk add --update ca-certificates \
 
 COPY ./bin/* /usr/local/bin/
 COPY ./install/ingress-controller /etc/kubesphere/ingress-controller
-
+COPY ./install/swagger-ui        /usr/lib/kubesphere/swagger-ui
 CMD ["sh"]

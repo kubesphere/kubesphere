@@ -21,14 +21,19 @@ import (
 
 	"github.com/emicklei/go-restful"
 
+	"github.com/emicklei/go-restful-openapi"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
 func Register(ws *restful.WebService, subPath string) {
 
-	ws.Route(ws.GET(subPath).To(getClusterStatus).Produces(restful.MIME_JSON))
-	ws.Route(ws.GET(subPath + "/namespaces/{namespace}").To(getNamespaceStatus).Produces(restful.MIME_JSON))
+	tags := []string{"workloadStatus"}
+
+	ws.Route(ws.GET(subPath).Doc("get abnormal workloads' count of whole cluster").Metadata(restfulspec.KeyOpenAPITags, tags).To(getClusterStatus).Produces(restful.MIME_JSON))
+	ws.Route(ws.GET(subPath+"/namespaces/{namespace}").Doc("get abnormal workloads' count of specified namespace").Param(ws.PathParameter("namespace",
+		"the name of namespace").DataType("string")).Metadata(restfulspec.KeyOpenAPITags, tags).To(getNamespaceStatus).Produces(restful.MIME_JSON))
 
 }
 
