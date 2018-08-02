@@ -181,7 +181,7 @@ type Ingress struct {
 	Name           string     `gorm:"primary_key" json:"name"`
 	Namespace      string     `gorm:"primary_key" json:"namespace"`
 	Ip             string     `json:"ip,omitempty"`
-	Rules          string     `json:"rules, omitempty"`
+	Rules          string     `gorm:"type:text" json:"rules, omitempty"`
 	TlsTermination string     `json:"tlsTermination,omitempty"`
 	Annotation     Annotation `json:"annotations"`
 	CreateTime     time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
