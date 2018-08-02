@@ -44,22 +44,22 @@ type ApplicationCtl struct {
 }
 
 type Application struct {
-	Name       string     `json:"name"`
-	RepoName   string     `json:"repoName"`
-	Runtime    string     `json:"namespace"`
-	RuntimeId  string     `json:"runtime_id"`
-	Version    string     `json:"version"`
-	VersionId  string     `json:"version_id"`
-	Status     string     `json:"status"`
-	UpdateTime time.Time  `json:"updateTime"`
-	CreateTime time.Time  `json:"createTime"`
-	App        string     `json:"app"`
-	AppId      string     `json:"app_id"`
-	Creator    string     `json:"creator,omitempty"`
-	WorkLoads  *workLoads `json:"workloads,omitempty"`
-	Services   *[]Service `json:"services,omitempty"`
-	Ingresses  *[]ing     `json:"ingresses,omitempty"`
-	ClusterID  string     `json:"cluster_id"`
+	Name        string     `json:"name"`
+	RepoName    string     `json:"repoName"`
+	Runtime     string     `json:"namespace"`
+	RuntimeId   string     `json:"runtime_id"`
+	Version     string     `json:"version"`
+	VersionId   string     `json:"version_id"`
+	Status      string     `json:"status"`
+	UpdateTime  time.Time  `json:"updateTime"`
+	CreateTime  time.Time  `json:"createTime"`
+	App         string     `json:"app"`
+	AppId       string     `json:"app_id"`
+	Description string     `json:"description,omitempty"`
+	WorkLoads   *workLoads `json:"workloads,omitempty"`
+	Services    *[]Service `json:"services,omitempty"`
+	Ingresses   *[]ing     `json:"ingresses,omitempty"`
+	ClusterID   string     `json:"cluster_id"`
 }
 
 type ing struct {
@@ -79,7 +79,7 @@ type cluster struct {
 	VersionID       string        `json:"version_id"`
 	Status          string        `json:"status"`
 	UpdateTime      time.Time     `json:"status_time"`
-	CreateTime      time.Time     `json:"createTime"`
+	CreateTime      time.Time     `json:"create_time"`
 	RunTimeId       string        `json:"runtime_id"`
 	Description     string        `json:"description"`
 	ClusterRoleSets []clusterRole `json:"cluster_role_set"`
@@ -129,9 +129,9 @@ type workLoads struct {
 	Daemonsets   []Daemonset   `json:"daemonsets,omitempty"`
 }
 
-type description struct {
-	Creator string `json:"creator"`
-}
+//type description struct {
+//	Creator string `json:"creator"`
+//}
 
 type appList struct {
 	Total int   `json:"total_count"`
@@ -265,14 +265,15 @@ func (ctl *ApplicationCtl) GetWorkLoads(namespace string, clusterRoles []cluster
 	return &works
 }
 
-func (ctl *ApplicationCtl) getCreator(desc string) string {
-	var dc description
-	err := json.Unmarshal([]byte(desc), &dc)
-	if err != nil {
-		return unknown
-	}
-	return dc.Creator
-}
+//
+//func (ctl *ApplicationCtl) getCreator(desc string) string {
+//	var dc description
+//	err := json.Unmarshal([]byte(desc), &dc)
+//	if err != nil {
+//		return unknown
+//	}
+//	return dc.Creator
+//}
 
 func (ctl *ApplicationCtl) getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	k8sClient := client.NewK8sClient()
@@ -486,7 +487,7 @@ func (ctl *ApplicationCtl) GetApp(clusterId string) (*Application, error) {
 	appInfo, repoId, appId, _ := ctl.GetAppInfo(item.AppID)
 	app.App = appInfo
 	app.AppId = appId
-	app.Creator = ctl.getCreator(item.Description)
+	app.Description = item.Description
 
 	app.RepoName, _ = ctl.GetRepo(repoId)
 	app.WorkLoads = ctl.GetWorkLoads(app.Runtime, item.ClusterRoleSets)
