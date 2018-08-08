@@ -12,7 +12,6 @@ branch, but release branches should not change.
 
 - [Prerequisites](#prerequisites)
   - [Setting up Go](#setting-up-go)
-  - [Setting up Swagger](#setting-up-swagger)
 - [To start developing KubeSphere](#to-start-developing-kubesphere)
 - [DevOps](#devops)
 
@@ -37,20 +36,6 @@ $ export GOPATH=~/go
 $ export PATH=$PATH:$GOPATH/bin
 ```
 
-### Setting up Swagger
-
-KubeSphere is using [OpenAPI/Swagger](https://swagger.io) to develop API, so follow
-[the instructions](https://github.com/go-swagger/go-swagger/tree/master/docs) to
-install Swagger. If you are not familar with Swagger, please read the
-[tutorial](http://apihandyman.io/writing-openapi-swagger-specification-tutorial-part-1-introduction/#writing-openapi-fka-swagger-specification-tutorial). If you install Swagger using docker distribution,
-please run
-
-```shell
-$ docker pull quay.io/goswagger/swagger
-$ alias swagger="docker run --rm -it -e GOPATH=$GOPATH:/go -v $HOME:$HOME -w $(pwd) quay.io/goswagger/swagger"
-$ swagger version
-```
-
 ## To start developing KubeSphere
 
 There are two options to get KubeSphere source code and build the project:
@@ -70,7 +55,3 @@ $ git clone https://github.com/kubesphere/kubesphere
 $ cd kubesphere
 $ make
 ```
-
-## DevOps
-
-Please check [How to set up DevOps environment](devops.md)
