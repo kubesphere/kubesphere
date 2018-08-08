@@ -4,7 +4,6 @@ This doc explains the process and best practices for submitting a PR to the [Kub
 
 - [Before You Submit a PR](#before-you-submit-a-pr)
   * [Run Local Verifications](#run-local-verifications)
-  * [Sign the CLA](#sign-the-cla)
 - [The PR Submit Process](#the-pr-submit-process)
   * [Write Release Notes if Needed](#write-release-notes-if-needed)
   * [The Testing and Merge Workflow](#the-testing-and-merge-workflow)
@@ -38,22 +37,10 @@ This guide is for contributors who already have a PR to submit. If you're lookin
 You can run these local verifications before you submit your PR to predict the
 pass or fail of continuous integration.
 
-* Run and pass `make verify` (can take 30-40 minutes)
-* Run and pass `make test`
-* Run and pass `make test-integration`
-
-## Sign the CLA
-
-You must sign the CLA before your first contribution. [Read more about the CLA.](https://github.com/kubesphere/kubesphere/docs/CLA.md)
-
-If you haven't signed the Contributor License Agreement (CLA) before making a PR,
-the `@o8x-ci-robot` will leave a comment with instructions on how to sign the CLA.
-
 # The PR Submit Process
 
 Merging a PR requires the following steps to be completed before the PR will be merged automatically. For details about each step, see the [The Testing and Merge Workflow](#the-testing-and-merge-workflow) section below.
 
-- Sign the CLA (prerequisite)
 - Make the PR
 - Release notes - do one of the following:
   - Add notes in the release notes block, or
@@ -152,15 +139,15 @@ If you want to solicit reviews before the implementation of your pull request is
 The GitHub robots will add and remove the `do-not-merge/hold` label as you use the comment commands and the `do-not-merge/work-in-progress` label as you edit your title. While either label is present, your pull request will not be considered for merging.
 
 
-## Comment Commands Reference
+## Comment Commands Reference//TODO
 
 [The commands doc]() contains a reference for all comment commands. //TODO
 
-## Automation
+## Automation//TODO
 
 The KubeSphere developer community uses a variety of automation to manage pull requests.  This automation is described in detail [in the automation doc](automation.md). //TODO
 
-## How the Tests Work
+## How the Tests Work//TODO
 
 The  tests will post the status results to the PR. If an e2e test fails,
 `@o8x-ci-robot` will comment on the PR with the test history and the
@@ -212,7 +199,7 @@ Let's talk about best practices so your PR gets reviewed quickly.
 
 ## 0. Familiarize yourself with project conventions
 
-* [Development guide](development.md)
+* [Development guide](code-of-conduct.md)
 
 ## 1. Is the feature wanted? Make a Design Doc or Sketch PR
 
@@ -220,7 +207,7 @@ Are you sure Feature-X is something the KubeSphere team wants or will accept? Is
 
 It's better to get confirmation beforehand. There are two ways to do this:
 
-- Make a proposal doc (in docs/proposals; for example [the QoS proposal](), or reach out to the affected special interest group (SIG). Here's a [list of SIGs](https://github.com/KubeSphere/KubeSphere/docs/sig-list.md)
+- Make a proposal doc (in docs/proposals; for example [the QoS proposal]()
 - Coordinate your effort with [SIG Docs]() ahead of time. //TODO
 - Make a sketch PR (e.g., just the API or Go interface). Write or code up just enough to express the idea and the design and why you made those choices
 
