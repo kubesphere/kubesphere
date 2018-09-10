@@ -31,10 +31,9 @@ type resourceControllers struct {
 	k8sClient   *kubernetes.Clientset
 }
 
-var stopChan chan struct{}
 var ResourceControllers resourceControllers
 
-func (rec *resourceControllers) runContoller(name string) {
+func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}) {
 	var ctl Controller
 	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan,
 		aliveChan: make(chan struct{}), Name: name}
@@ -61,6 +60,16 @@ func (rec *resourceControllers) runContoller(name string) {
 		ctl = &NamespaceCtl{CommonAttribute: attr}
 	case StorageClasses:
 		ctl = &StorageClassCtl{CommonAttribute: attr}
+	case Jobs:
+		ctl = &JobCtl{CommonAttribute: attr}
+	case Cronjobs:
+		ctl = &CronJobCtl{CommonAttribute: attr}
+	case Nodes:
+		ctl = &NodeCtl{CommonAttribute: attr}
+	case Replicasets:
+		ctl = &ReplicaSetCtl{CommonAttribute: attr}
+	case ControllerRevisions:
+		ctl = &ControllerRevisionCtl{CommonAttribute: attr}
 	default:
 		return
 	}
@@ -71,6 +80,8 @@ func (rec *resourceControllers) runContoller(name string) {
 }
 
 func dbHealthCheck(db *gorm.DB) {
+	defer db.Close()
+
 	for {
 		count := 0
 		var err error
@@ -79,7 +90,7 @@ func dbHealthCheck(db *gorm.DB) {
 			if err != nil {
 				count++
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 
 		if count > 3 {
@@ -98,8 +109,8 @@ func Run() {
 	ResourceControllers = resourceControllers{k8sClient: k8sClient, Controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
-		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses} {
-		ResourceControllers.runContoller(item)
+		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets, ControllerRevisions} {
+		ResourceControllers.runContoller(item, stopChan)
 	}
 
 	go dbHealthCheck(client.NewDBClient())
@@ -110,7 +121,7 @@ func Run() {
 			case _, isClose := <-controller.chanAlive():
 				if !isClose {
 					glog.Errorf("controller %s have stopped, restart it", ctlName)
-					ResourceControllers.runContoller(ctlName)
+					ResourceControllers.runContoller(ctlName, stopChan)
 				}
 			default:
 				time.Sleep(5 * time.Second)

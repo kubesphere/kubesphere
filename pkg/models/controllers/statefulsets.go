@@ -30,6 +30,11 @@ import (
 func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
 	var app string
 	var status string
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
 	name := item.Name
 	namespace := item.Namespace
 	availablePodNum := item.Status.ReadyReplicas
@@ -56,8 +61,18 @@ func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
 		}
 	}
 
-	statefulSetObject := &Statefulset{Namespace: namespace, Name: name, Available: availablePodNum, Desire: desirePodNum,
-		App: app, CreateTime: createTime, Status: status, Annotation: Annotation{item.Annotations}}
+	statefulSetObject := &Statefulset{
+		Namespace:   namespace,
+		Name:        name,
+		DisplayName: displayName,
+		Available:   availablePodNum,
+		Desire:      desirePodNum,
+		App:         app,
+		CreateTime:  createTime,
+		Status:      status,
+		Annotation:  MapString{item.Annotations},
+		Labels:      MapString{item.Spec.Selector.MatchLabels},
+	}
 
 	return statefulSetObject
 }
@@ -137,14 +152,21 @@ func (ctl *StatefulsetCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Statefulset
 	var object Statefulset
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
+}
+
+func (ctl *StatefulsetCtl) Lister() interface{} {
+
+	return ctl.lister
 }

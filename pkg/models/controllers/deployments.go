@@ -27,9 +27,13 @@ import (
 )
 
 func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
-	var app string
-	var status string
+	var app, status, displayName string
 	var updateTime time.Time
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	namespace := item.Namespace
 	availablePodNum := item.Status.AvailableReplicas
@@ -41,9 +45,13 @@ func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
 		app = release + "/" + chart
 	}
 
-	for _, conditon := range item.Status.Conditions {
-		if conditon.Type == "Available" {
-			updateTime = conditon.LastUpdateTime.Time
+	for _, condition := range item.Status.Conditions {
+		if updateTime.IsZero() {
+			updateTime = condition.LastUpdateTime.Time
+		} else {
+			if updateTime.Before(condition.LastUpdateTime.Time) {
+				updateTime = condition.LastUpdateTime.Time
+			}
 		}
 	}
 	if updateTime.IsZero() {
@@ -60,8 +68,18 @@ func (ctl *DeploymentCtl) generateObject(item v1.Deployment) *Deployment {
 		}
 	}
 
-	return &Deployment{Namespace: namespace, Name: name, Available: availablePodNum, Desire: desirePodNum,
-		App: app, UpdateTime: updateTime, Status: status, Annotation: Annotation{item.Annotations}}
+	return &Deployment{
+		Namespace:   namespace,
+		Name:        name,
+		Available:   availablePodNum,
+		Desire:      desirePodNum,
+		App:         app,
+		UpdateTime:  updateTime,
+		Status:      status,
+		Annotation:  MapString{item.Annotations},
+		Labels:      MapString{item.Spec.Selector.MatchLabels},
+		DisplayName: displayName,
+	}
 }
 
 func (ctl *DeploymentCtl) Name() string {
@@ -138,14 +156,21 @@ func (ctl *DeploymentCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *DeploymentCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *DeploymentCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Deployment
 	var object Deployment
 	var total int
 
-	order := "updateTime desc"
+	if len(order) == 0 {
+		order = "updateTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
+}
+
+func (ctl *DeploymentCtl) Lister() interface{} {
+
+	return ctl.lister
 }

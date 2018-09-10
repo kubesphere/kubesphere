@@ -30,6 +30,11 @@ import (
 const systemPrefix = "system:"
 
 func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
+	var displayName string
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	if strings.HasPrefix(name, systemPrefix) {
 		return nil
@@ -40,7 +45,7 @@ func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
 		createTime = time.Now()
 	}
 
-	object := &ClusterRole{Name: name, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
+	object := &ClusterRole{Name: name, CreateTime: createTime, Annotation: MapString{item.Annotations}, DisplayName: displayName}
 
 	return object
 }
@@ -136,15 +141,23 @@ func (ctl *ClusterRoleCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *ClusterRoleCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *ClusterRoleCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var object ClusterRole
 	var list []ClusterRole
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
+
 	db := ctl.DB
 
 	listWithConditions(db, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
+}
+
+func (ctl *ClusterRoleCtl) Lister() interface{} {
+
+	return ctl.lister
 }
