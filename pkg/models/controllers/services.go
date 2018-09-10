@@ -69,12 +69,25 @@ func getExternalIp(item v1.Service) string {
 }
 
 func generateSvcObject(item v1.Service) *Service {
+	var app string
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
 	name := item.Name
 	namespace := item.Namespace
 	createTime := item.CreationTimestamp.Time
 	externalIp := getExternalIp(item)
 	serviceType := item.Spec.Type
 	vip := item.Spec.ClusterIP
+
+	release := item.ObjectMeta.Labels["release"]
+	chart := item.ObjectMeta.Labels["chart"]
+
+	if len(release) > 0 && len(chart) > 0 {
+		app = release + "/" + chart
+	}
 	ports := ""
 	var nodePorts []string
 
@@ -118,13 +131,16 @@ func generateSvcObject(item v1.Service) *Service {
 	object := &Service{
 		Namespace:   namespace,
 		Name:        name,
+		DisplayName: displayName,
 		ServiceType: string(serviceType),
 		ExternalIp:  externalIp,
 		VirtualIp:   vip,
 		CreateTime:  createTime,
 		Ports:       ports,
 		NodePorts:   strings.Join(nodePorts, ","),
-		Annotation:  Annotation{item.Annotations},
+		Annotation:  MapString{item.Annotations},
+		Labels:      MapString{item.Labels},
+		App:         app,
 	}
 
 	return object
@@ -209,14 +225,21 @@ func (ctl *ServiceCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *ServiceCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Service
 	var object Service
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
+}
+
+func (ctl *ServiceCtl) Lister() interface{} {
+
+	return ctl.lister
 }

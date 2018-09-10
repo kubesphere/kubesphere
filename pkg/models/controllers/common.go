@@ -133,7 +133,7 @@ func checkAndResync(ctl Controller, stopChan chan struct{}) {
 
 func listAndWatch(ctl Controller) {
 	defer handleCrash(ctl)
-
+	defer ctl.CloseDB()
 	stopChan := make(chan struct{})
 
 	go ctl.sync(stopChan)
