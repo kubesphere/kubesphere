@@ -20,24 +20,26 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-	"log"
 	"github.com/pkg/errors"
 )
 
 const (
-	DefaultPrometheusScheme  = "http"
-	DefaultPrometheusService = "prometheus-k8s.monitoring.svc.cluster.local" //"heapster"
-	DefaultPrometheusPort    = "9090"                                     // use the first exposed port on the service
+	DefaultScheme            = "http"
+	DefaultPrometheusService = "prometheus-k8s.monitoring.svc.cluster.local"
+	DefaultKSAccountService  =  "ks-account.kubesphere-system.svc.cluster.local"
+	DefaultPrometheusPort    = "9090"
 	PrometheusApiPath        = "/api/v1/"
-	PrometheusEndpointUrl    = DefaultPrometheusScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
+	KSAccountApiPath         = "/apis/account.kubesphere.io/v1alpha1/enterprises/"
+	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
+	KSAccountEndpointUrl    = DefaultScheme + "://" + DefaultKSAccountService  + KSAccountApiPath
 )
 
 var client = &http.Client{}
 
 func SendRequest(postfix string, params string) string {
-	url := PrometheusEndpointUrl + postfix + params
-	//fmt.Println("URL:>", url)
-	response, err := client.Get(url)
+	epurl := PrometheusEndpointUrl + postfix + params
+	//glog.Info("monitoring epurl:>", epurl)
+	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
 	} else {
@@ -52,18 +54,37 @@ func SendRequest(postfix string, params string) string {
 	}
 	return ""
 }
+// ks-account.kubesphere-system.svc/apis/account.kubesphere.io/v1alpha1/enterprises/{name}
+func GetTenantNamespaceInfo(tenantName string) string {
+	epurl := KSAccountEndpointUrl + tenantName
+	//glog.Info("monitoring url:>", epurl)
+	response, err := client.Get(epurl)
+	if err != nil {
+		glog.Error(err)
+	} else {
+		defer response.Body.Close()
+		contents, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			glog.Error(err)
+		}
+		return string(contents)
+	}
+	return ""
+}
 
 
-func MakeRequestParams(request *restful.Request, recordingRule string) (string, error) {
+func MakeRequestParams(request *restful.Request, recordingRule string) string {
 	paramsMap, bol, err := ParseRequestHeader(request)
 	if err != nil {
-		return "", err
+		glog.Error(err)
+		return ""
 	}
 
 	var res = ""
 	if bol {
+		// range query
 		postfix := "query_range?"
-		paramsMap.Set("query", recordingRule) // "'" + recordingRule + "'"
+		paramsMap.Set("query", recordingRule)
 		params := paramsMap.Encode()
 		res = SendRequest(postfix, params)
 	} else {
@@ -73,19 +94,19 @@ func MakeRequestParams(request *restful.Request, recordingRule string) (string, 
 		params := paramsMap.Encode()
 		res = SendRequest(postfix, params)
 	}
-	return res, nil
+	return res
 }
 
 func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
-	instantTime := request.HeaderParameter("time")
-	start := request.HeaderParameter("start")
-	end := request.HeaderParameter("end")
-	step := request.HeaderParameter("step")
-	timeout := request.HeaderParameter("timeout")
+	instantTime := request.QueryParameter("time")
+	start := request.QueryParameter("start")
+	end := request.QueryParameter("end")
+	step := request.QueryParameter("step")
+	timeout := request.QueryParameter("timeout")
 	if timeout == "" {
 		timeout = "30s"
 	}
-	// query请求还是 query_range 请求
+	// Whether query or query_range request
 	u := url.Values{}
 	if start != "" && end != "" && step != "" {
 		u.Set("start", start)
@@ -104,6 +125,6 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 		return u, false, nil
 	}
 
-	log.Fatal("Parse request failed");
+	glog.Error("Parse request failed", u);
 	return u, false, errors.Errorf("Parse request failed")
 }
