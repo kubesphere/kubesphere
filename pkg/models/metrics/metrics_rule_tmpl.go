@@ -28,7 +28,6 @@ var recordingRuleTmplMap = MetricMap{
 	// namespace  后面都可以跟 {namespace=~""}
 	"namespace_cpu_utilisation":    "namespace:container_cpu_usage_seconds_total:sum_rate", // {namespace =~"kube-system|openpitrix-system|kubesphere-system"}
 	"namespace_memory_utilisation": "namespace:container_memory_usage_bytes:sum",           //{namespace =~"kube-system|openpitrix-system|kubesphere-system"}
-	// TODO
 	"namespace_memory_utilisation_wo_cache": "namespace:container_memory_usage_bytes_wo_cache:sum", // {namespace =~"kube-system|openpitrix-system|kubesphere-system"}
 }
 
