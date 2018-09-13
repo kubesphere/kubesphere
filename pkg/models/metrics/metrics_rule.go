@@ -1,3 +1,16 @@
+/*
+Copyright 2018 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package metrics
 
 import (
@@ -9,7 +22,7 @@ func MakeContainerPromQL(request *restful.Request) string {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
 	poName := strings.Trim(request.PathParameter("pod_name"), " ")
 	containerName := strings.Trim(request.PathParameter("container_name"), " ")
-	metricType := strings.Trim(request.HeaderParameter("metrics_name"), " ")
+	metricType := strings.Trim(request.QueryParameter("metrics_name"), " ")
 	// metricType container_cpu_utilisation  container_memory_utilisation container_memory_utilisation_wo_cache
 	var promql = ""
 	if containerName == "" {
@@ -18,7 +31,7 @@ func MakeContainerPromQL(request *restful.Request) string {
 		promql = promqlTempMap[metricType]
 		promql = strings.Replace(promql, "$1", nsName, -1)
 		promql = strings.Replace(promql, "$2", poName, -1)
-		container_re2 := strings.Trim(request.HeaderParameter("container_re2"), " ")
+		container_re2 := strings.Trim(request.QueryParameter("container_re2"), " ")
 		if container_re2 == "" {
 			container_re2 = ".*"
 		}
@@ -38,7 +51,7 @@ func MakePodPromQL(request *restful.Request) string {
 	nodeID := strings.Trim(request.PathParameter("node_id"), " ")
 	podName := strings.Trim(request.PathParameter("pod_name"), " ")
 
-	metricType := strings.Trim(request.HeaderParameter("metrics_name"), " ")
+	metricType := strings.Trim(request.QueryParameter("metrics_name"), " ")
 	var promql = ""
 	if nsName != "" {
 		// 通过namespace 获得 pod
@@ -52,7 +65,7 @@ func MakePodPromQL(request *restful.Request) string {
 			// all pods
 			metricType += "_all"
 			promql = promqlTempMap[metricType]
-			pod_re2 := strings.Trim(request.HeaderParameter("pod_re2"), " ")
+			pod_re2 := strings.Trim(request.QueryParameter("pod_re2"), " ")
 			if pod_re2 == "" {
 				pod_re2 = ".*"
 			}
@@ -69,7 +82,7 @@ func MakePodPromQL(request *restful.Request) string {
 			promql = strings.Replace(promql, "$2", podName, -1)
 		}else {
 			//获取所有的pod，可以使用 re2
-			pod_re2 := strings.Trim(request.HeaderParameter("pod_re2"), " ")
+			pod_re2 := strings.Trim(request.QueryParameter("pod_re2"), " ")
 			if pod_re2 == "" {
 				pod_re2 = ".*"
 			}
@@ -83,13 +96,13 @@ func MakePodPromQL(request *restful.Request) string {
 
 func MakeNameSpacePromQL(request *restful.Request) string {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	metricType := request.HeaderParameter("metrics_name")
+	metricType := request.QueryParameter("metrics_name")
 	var recordingRule = recordingRuleTmplMap[metricType]
 	if nsName != "" {
 		//specific namespace
 		recordingRule = recordingRule + "{" + "namespace" + "=" + "\"" + nsName + "\"" + "}"
 	}else {
-		ns_re2 := strings.Trim(request.HeaderParameter("namespaces_re2"), " ")
+		ns_re2 := strings.Trim(request.QueryParameter("namespaces_re2"), " ")
 		if ns_re2 != "" {
 			recordingRule = recordingRule + "{" + "namespace" + "=~" + "\"" + ns_re2 + "\"" + "}"
 		}
@@ -98,7 +111,7 @@ func MakeNameSpacePromQL(request *restful.Request) string {
 }
 
 func MakeRecordingRule(request *restful.Request) string {
-	metricsName := request.HeaderParameter("metrics_name")
+	metricsName := request.QueryParameter("metrics_name")
 	node_id := request.PathParameter("node_id")
 	var recordingRule = ""
 
@@ -113,7 +126,7 @@ func MakeRecordingRule(request *restful.Request) string {
 			recordingRule = recordingRule + "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
 		}else {
 			// all nodes or specific nodes filted with re2 syntax
-			nodes_re2 := strings.Trim(request.HeaderParameter("nodes_re2"), " ")
+			nodes_re2 := strings.Trim(request.QueryParameter("nodes_re2"), " ")
 			recordingRule = recordingRuleTmplMap[metricsName]
 			if nodes_re2 != "" {
 				recordingRule = recordingRule + "{" + "node" + "=~" + "\"" + nodes_re2 + "\"" + "}"

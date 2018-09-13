@@ -77,11 +77,11 @@ func MakeRequestParams(request *restful.Request, recordingRule string) (string, 
 }
 
 func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
-	instantTime := request.HeaderParameter("time")
-	start := request.HeaderParameter("start")
-	end := request.HeaderParameter("end")
-	step := request.HeaderParameter("step")
-	timeout := request.HeaderParameter("timeout")
+	instantTime := request.QueryParameter("time")
+	start := request.QueryParameter("start")
+	end := request.QueryParameter("end")
+	step := request.QueryParameter("step")
+	timeout := request.QueryParameter("timeout")
 	if timeout == "" {
 		timeout = "30s"
 	}

@@ -1,3 +1,15 @@
+/*
+Copyright 2018 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package monitoring
 
 import (
@@ -25,7 +37,6 @@ func validJson (resbody string) {
 
 func (u MonitorResource) monitorPod(request *restful.Request, response *restful.Response) {
 	promql := metrics.MakePodPromQL(request)
-	fmt.Println(promql)
 	res, err := client.MakeRequestParams(request, promql)
 	//podName := strings.Trim(request.PathParameter("pod_name"), " ")
 	//validJson(res)
@@ -41,7 +52,6 @@ func (u MonitorResource) monitorPod(request *restful.Request, response *restful.
 // domain/v1/monitoring/namespace/ns_name/container?pod=po_name&container=[regex]&metric_type=[cpu_usage memory_used]%time=t0&start=t1&end=t2&start=t3&step=5s&timeout=duration
 func (u MonitorResource) monitorContainer(request *restful.Request, response *restful.Response) {
 	promql := metrics.MakeContainerPromQL(request)
-	fmt.Println(promql)
 	res, err := client.MakeRequestParams(request, promql)
 	if err == nil {
 		response.WriteEntity(res)
@@ -54,7 +64,6 @@ func (u MonitorResource) monitorContainer(request *restful.Request, response *re
 //api convention: domain/v1/monitoring/namespace/ns_name?metric_type=[cpu_usage memory_used]%time=t0&start=t1&end=t2&start=t3&step=5s&timeout=duration
 func (u MonitorResource) monitorNameSpace(request *restful.Request, response *restful.Response) {
 	recordingRule := metrics.MakeNameSpacePromQL(request)
-	fmt.Println(recordingRule)
 	res, err := client.MakeRequestParams(request, recordingRule)
 	if err == nil {
 		response.WriteEntity(res)
@@ -66,7 +75,6 @@ func (u MonitorResource) monitorNameSpace(request *restful.Request, response *re
 // metric_type=[cpu_usage memory_mount memory_used memory_available]&node=node_name%time=t0&start=t1&end=t2&start=t3&step=5s&timeout=duration
 func (u MonitorResource) monitorNodeorCluster(request *restful.Request, response *restful.Response) {
 	recordingRule := metrics.MakeRecordingRule(request)
-	fmt.Println(recordingRule)
 	res, err := client.MakeRequestParams(request, recordingRule)
 	if err == nil {
 		response.WriteEntity(res)
@@ -89,7 +97,7 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath + "/cluster").To(u.monitorNodeorCluster).
 		Filter(route.RouteLogging).
 		Doc("monitor cluster level metrics").
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("cluster_cpu_utilization")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("cluster_cpu_utilization")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -98,8 +106,8 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath + "/nodes").To(u.monitorNodeorCluster).
 		Filter(route.RouteLogging).
 		Doc("monitor nodes level metrics").
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("node_cpu_utilization")).
-		Param(ws.HeaderParameter("nodes_re2", "node re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("node_cpu_utilization")).
+		Param(ws.QueryParameter("nodes_re2", "node re2 expression filter").DataType("string").Required(false).DefaultValue("")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -109,7 +117,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor specific node level metrics").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("node_cpu_utilization")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("node_cpu_utilization")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -118,8 +126,8 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath + "/namespaces").To(u.monitorNameSpace).
 		Filter(route.RouteLogging).
 		Doc("monitor namespaces level metrics").
-		Param(ws.HeaderParameter("namespaces_re2", "namespaces re2 expression filter").DataType("string").Required(false).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("namespace_memory_utilization")).
+		Param(ws.QueryParameter("namespaces_re2", "namespaces re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("namespace_memory_utilization")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -129,7 +137,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor specific namespace level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("namespace_memory_utilization")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("namespace_memory_utilization")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -139,8 +147,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor pods level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
-		Param(ws.HeaderParameter("pod_re2", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("pod_re2", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -151,7 +159,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor specific pod level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -161,19 +169,19 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor pods level metrics by nodeid").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
-		Param(ws.HeaderParameter("pod_re2", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("openpitrix.*")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("pod_re2", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("openpitrix.*")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET(subPath + "nodes/{node_id}/pods/{pod_name}").To(u.monitorPod).
+	ws.Route(ws.GET(subPath + "/nodes/{node_id}/pods/{pod_name}").To(u.monitorPod).
 		Filter(route.RouteLogging).
 		Doc("monitor specific pod level metrics by nodeid").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -185,8 +193,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor containers level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
-		Param(ws.HeaderParameter("container_re2", "container re2 expression filter").DataType("string").Required(false).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("container_re2", "container re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
@@ -198,7 +206,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.PathParameter("container_name", "specific container").DataType("string").Required(true).DefaultValue("")).
-		Param(ws.HeaderParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilization_wo_cache")).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilization_wo_cache")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
 		Returns(200, "OK", MonitorResult{})).
