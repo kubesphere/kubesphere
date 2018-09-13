@@ -17,15 +17,15 @@ limitations under the License.
 package client
 
 import (
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/pkg/transport"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/pkg/transport"
 
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"github.com/golang/glog"
+	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
 
 	"kubesphere.io/kubesphere/pkg/options"
 )
