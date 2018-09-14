@@ -113,25 +113,36 @@ func MakeNameSpacePromQL(request *restful.Request) string {
 func MakeRecordingRule(request *restful.Request) string {
 	metricsName := request.QueryParameter("metrics_name")
 	node_id := request.PathParameter("node_id")
-	var recordingRule = ""
+	var rule = recordingRuleTmplMap[metricsName]
 
 	if strings.Contains(request.SelectedRoutePath(), "monitoring/cluster") {
 		// cluster
-		recordingRule = recordingRuleTmplMap[metricsName]
+		return rule
 	}else {
 		// node
-		if node_id != "" {
-			// specific node
-			recordingRule = recordingRuleTmplMap[metricsName]
-			recordingRule = recordingRule + "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
+		nodes_re2 := strings.Trim(request.QueryParameter("nodes_re2"), " ")
+		if nodes_re2 == "" {
+			nodes_re2 = ".*"
+		}
+		if strings.Contains(metricsName, "disk") {
+			// disk metrics
+			node_filter := ""
+			if node_id != "" {
+				node_filter = "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
+			}else {
+				node_filter = "{" + "node" + "=~" + "\"" + nodes_re2 + "\"" + "}"
+			}
+			rule = strings.Replace(rule, "$1", node_filter, -1)
 		}else {
-			// all nodes or specific nodes filted with re2 syntax
-			nodes_re2 := strings.Trim(request.QueryParameter("nodes_re2"), " ")
-			recordingRule = recordingRuleTmplMap[metricsName]
-			if nodes_re2 != "" {
-				recordingRule = recordingRule + "{" + "node" + "=~" + "\"" + nodes_re2 + "\"" + "}"
+			// cpu memory net metrics
+			if node_id != "" {
+				// specific node
+				rule = rule + "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
+			}else {
+				// all nodes or specific nodes filted with re2 syntax
+				rule = rule + "{" + "node" + "=~" + "\"" + nodes_re2 + "\"" + "}"
 			}
 		}
 	}
-	return recordingRule
+	return rule
 }

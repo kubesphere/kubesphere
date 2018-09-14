@@ -16,19 +16,29 @@ package metrics
 type MetricMap map[string]string
 
 var recordingRuleTmplMap = MetricMap{
-	//node:node_cpu_utilisation:avg1m{node=~"i-5xcldxos|i-6soe9zl1"}
-	// node 后面都可以跟 {node=~""}
+
+	//cluster
+	"cluster_cpu_utilisation":     ":node_cpu_utilisation:avg1m",
+	"cluster_memory_utilisation": ":node_memory_utilisation:",
+	"cluster_net_utilisation":    ":node_net_utilisation:sum_irate",   // Cluster network utilisation (bytes received + bytes transmitted per second)
+
+	//node
 	"node_cpu_utilisation":    "node:node_cpu_utilisation:avg1m",
 	"node_memory_utilisation": "node:node_memory_utilisation:",
 	"node_memory_available":   "node:node_memory_bytes_available:sum",
 	"node_memory_total":       "node:node_memory_bytes_total:sum",
-	// cluster 后面都 不 可以跟 {cluster=~""}
-	"cluster_cpu_utilisation":    ":node_cpu_utilisation:avg1m",
-	"cluster_memory_utilisation": ":node_memory_utilisation:",
-	// namespace  后面都可以跟 {namespace=~""}
-	"namespace_cpu_utilisation":    "namespace:container_cpu_usage_seconds_total:sum_rate", // {namespace =~"kube-system|openpitrix-system|kubesphere-system"}
-	"namespace_memory_utilisation": "namespace:container_memory_usage_bytes:sum",           //{namespace =~"kube-system|openpitrix-system|kubesphere-system"}
-	"namespace_memory_utilisation_wo_cache": "namespace:container_memory_usage_bytes_wo_cache:sum", // {namespace =~"kube-system|openpitrix-system|kubesphere-system"}
+	"node_net_utilisation":    "node:node_net_utilisation:sum_irate",
+	"node_net_bytes_transmitted":"node:node_net_bytes_transmitted:sum_irate",
+	"node_net_bytes_received":"node:node_net_bytes_received:sum_irate",
+
+	"node_disk_capacity":`sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_disk_available":`sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_disk_utilization":`sum by (node) (((node_filesystem_size{mountpoint="/", job="node-exporter"} - node_filesystem_avail{mountpoint="/", job="node-exporter"}) / node_filesystem_size{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+
+	//namespace
+	"namespace_cpu_utilisation":    "namespace:container_cpu_usage_seconds_total:sum_rate",
+	"namespace_memory_utilisation": "namespace:container_memory_usage_bytes:sum",
+	"namespace_memory_utilisation_wo_cache": "namespace:container_memory_usage_bytes_wo_cache:sum",
 }
 
 var promqlTempMap = MetricMap{
