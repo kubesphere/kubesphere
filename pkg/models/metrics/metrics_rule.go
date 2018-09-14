@@ -124,8 +124,8 @@ func MakeRecordingRule(request *restful.Request) string {
 		if nodes_re2 == "" {
 			nodes_re2 = ".*"
 		}
-		if strings.Contains(metricsName, "disk") {
-			// disk metrics
+		if strings.Contains(metricsName, "disk") && (!(strings.Contains(metricsName, "read") || strings.Contains(metricsName, "write"))){
+			// disk size promql
 			node_filter := ""
 			if node_id != "" {
 				node_filter = "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
@@ -134,7 +134,7 @@ func MakeRecordingRule(request *restful.Request) string {
 			}
 			rule = strings.Replace(rule, "$1", node_filter, -1)
 		}else {
-			// cpu memory net metrics
+			// cpu, memory, network, disk_iops rules
 			if node_id != "" {
 				// specific node
 				rule = rule + "{" + "node" + "=" + "\"" + node_id + "\"" + "}"
