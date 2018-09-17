@@ -240,7 +240,7 @@ func (ctl *ApplicationCtl) GetWorkLoads(namespace string, clusterRoles []cluster
 			if strings.HasSuffix(workLoadName, deploySurffix) {
 				name := strings.Split(workLoadName, deploySurffix)[0]
 				ctl := ResourceControllers.Controllers[Deployments]
-				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil)
+				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil, "")
 				works.Deployments = append(works.Deployments, items.([]Deployment)...)
 				continue
 			}
@@ -248,7 +248,7 @@ func (ctl *ApplicationCtl) GetWorkLoads(namespace string, clusterRoles []cluster
 			if strings.HasSuffix(workLoadName, daemonSurffix) {
 				name := strings.Split(workLoadName, daemonSurffix)[0]
 				ctl := ResourceControllers.Controllers[Daemonsets]
-				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil)
+				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil, "")
 				works.Daemonsets = append(works.Daemonsets, items.([]Daemonset)...)
 				continue
 			}
@@ -256,7 +256,7 @@ func (ctl *ApplicationCtl) GetWorkLoads(namespace string, clusterRoles []cluster
 			if strings.HasSuffix(workLoadName, stateSurffix) {
 				name := strings.Split(workLoadName, stateSurffix)[0]
 				ctl := ResourceControllers.Controllers[Statefulsets]
-				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil)
+				_, items, _ := ctl.ListWithConditions(fmt.Sprintf("namespace='%s' and name = '%s'", namespace, name), nil, "")
 				works.Statefulsets = append(works.Statefulsets, items.([]Statefulset)...)
 				continue
 			}
@@ -264,16 +264,6 @@ func (ctl *ApplicationCtl) GetWorkLoads(namespace string, clusterRoles []cluster
 	}
 	return &works
 }
-
-//
-//func (ctl *ApplicationCtl) getCreator(desc string) string {
-//	var dc description
-//	err := json.Unmarshal([]byte(desc), &dc)
-//	if err != nil {
-//		return unknown
-//	}
-//	return dc.Creator
-//}
 
 func (ctl *ApplicationCtl) getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	k8sClient := client.NewK8sClient()
@@ -349,7 +339,7 @@ func (ctl *ApplicationCtl) getIng(namespace string, services *[]Service) *[]ing 
 	ingCtl := ResourceControllers.Controllers[Ingresses]
 	var ings []ing
 	for _, svc := range *services {
-		_, items, err := ingCtl.ListWithConditions(fmt.Sprintf("namespace = '%s' and rules like '%%%s%%' ", namespace, svc.Name), nil)
+		_, items, err := ingCtl.ListWithConditions(fmt.Sprintf("namespace = '%s' and rules like '%%%s%%' ", namespace, svc.Name), nil, "")
 		if err != nil {
 			glog.Error(err)
 			return nil

@@ -30,9 +30,16 @@ import (
 )
 
 func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
+
+	var ip, tls, displayName string
+
 	name := item.Name
 	namespace := item.Namespace
-	var ip, tls string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	createTime := item.CreationTimestamp.Time
 	if createTime.IsZero() {
 		createTime = time.Now()
@@ -63,7 +70,17 @@ func (ctl *IngressCtl) generateObject(item v1beta1.Ingress) *Ingress {
 
 	ruleStr, _ := json.Marshal(ingRules)
 
-	object := &Ingress{Namespace: namespace, Name: name, TlsTermination: tls, Ip: ip, CreateTime: createTime, Annotation: Annotation{item.Annotations}, Rules: string(ruleStr)}
+	object := &Ingress{
+		Namespace:      namespace,
+		Name:           name,
+		DisplayName:    displayName,
+		TlsTermination: tls,
+		Ip:             ip,
+		CreateTime:     createTime,
+		Annotation:     MapString{item.Annotations},
+		Rules:          string(ruleStr),
+		Labels:         MapString{item.Labels},
+	}
 
 	return object
 }
@@ -143,25 +160,21 @@ func (ctl *IngressCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *IngressCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *IngressCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Ingress
 	var object Ingress
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
 }
 
-//func (ctl *IngressCtl) Count(namespace string) int {
-//	var count int
-//	db := ctl.DB
-//	if len(namespace) == 0 {
-//		db.Model(&Ingress{}).Count(&count)
-//	} else {
-//		db.Model(&Ingress{}).Where("namespace = ?", namespace).Count(&count)
-//	}
-//	return count
-//}
+func (ctl *IngressCtl) Lister() interface{} {
+
+	return ctl.lister
+}

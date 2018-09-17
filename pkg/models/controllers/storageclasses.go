@@ -30,6 +30,12 @@ import (
 
 func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
 	isDefault := false
@@ -41,7 +47,13 @@ func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 		createTime = time.Now()
 	}
 
-	object := &StorageClass{Name: name, CreateTime: createTime, IsDefault: isDefault, Annotation: Annotation{item.Annotations}}
+	object := &StorageClass{
+		Name:        name,
+		DisplayName: displayName,
+		CreateTime:  createTime,
+		IsDefault:   isDefault,
+		Annotation:  MapString{item.Annotations},
+	}
 
 	return object
 }
@@ -120,12 +132,14 @@ func (ctl *StorageClassCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []StorageClass
 	var object StorageClass
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
@@ -137,4 +151,9 @@ func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging
 	}
 
 	return total, list, nil
+}
+
+func (ctl *StorageClassCtl) Lister() interface{} {
+
+	return ctl.lister
 }
