@@ -227,6 +227,11 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 }
 
 func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
 
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
@@ -236,7 +241,13 @@ func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
 		createTime = time.Now()
 	}
 
-	object := &Namespace{Name: name, CreateTime: createTime, Status: status, Annotation: Annotation{item.Annotations}}
+	object := &Namespace{
+		Name:        name,
+		DisplayName: displayName,
+		CreateTime:  createTime,
+		Status:      status,
+		Annotation:  MapString{item.Annotations},
+	}
 
 	return object
 }
@@ -320,12 +331,14 @@ func (ctl *NamespaceCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Namespace
 	var object Namespace
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
@@ -333,7 +346,7 @@ func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (
 		for index := range list {
 			usage, err := ctl.GetNamespaceQuota(list[index].Name)
 			if err == nil {
-				list[index].Usaeg = usage
+				list[index].Usage = usage
 			}
 		}
 	}
@@ -350,7 +363,7 @@ func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, e
 
 	usage := make(v1.ResourceList)
 
-	resourceList := []string{Daemonsets, Deployments, Ingresses, Roles, Services, Statefulsets, PersistentVolumeClaim, Pods}
+	resourceList := []string{Daemonsets, Deployments, Ingresses, Roles, Services, Statefulsets, PersistentVolumeClaim, Pods, Jobs, Cronjobs}
 	for _, resourceName := range resourceList {
 		used := getUsage(namespace, resourceName)
 		var quantity resource.Quantity
@@ -364,4 +377,9 @@ func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, e
 	quantity.Set(int64(used))
 	usage["runningPods"] = quantity
 	return usage, nil
+}
+
+func (ctl *NamespaceCtl) Lister() interface{} {
+
+	return ctl.lister
 }

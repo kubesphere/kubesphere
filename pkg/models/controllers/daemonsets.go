@@ -28,8 +28,11 @@ import (
 )
 
 func (ctl *DaemonsetCtl) generateObject(item v1.DaemonSet) *Daemonset {
-	var app string
-	var status string
+	var app, status, displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
 	name := item.Name
 	namespace := item.Namespace
 	availablePodNum := item.Status.NumberAvailable
@@ -55,8 +58,19 @@ func (ctl *DaemonsetCtl) generateObject(item v1.DaemonSet) *Daemonset {
 		status = Updating
 	}
 
-	object := &Daemonset{Namespace: namespace, Name: name, Available: availablePodNum, Desire: desirePodNum,
-		App: app, CreateTime: createTime, Status: status, NodeSelector: string(nodeSelectorStr), Annotation: Annotation{item.Annotations}}
+	object := &Daemonset{
+		Namespace:    namespace,
+		Name:         name,
+		DisplayName:  displayName,
+		Available:    availablePodNum,
+		Desire:       desirePodNum,
+		App:          app,
+		CreateTime:   createTime,
+		Status:       status,
+		NodeSelector: string(nodeSelectorStr),
+		Annotation:   MapString{item.Annotations},
+		Labels:       MapString{item.Spec.Selector.MatchLabels},
+	}
 
 	return object
 }
@@ -135,25 +149,21 @@ func (ctl *DaemonsetCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *DaemonsetCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *DaemonsetCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Daemonset
 	var object Daemonset
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
 }
 
-//func (ctl *DaemonsetCtl) Count(namespace string) int {
-//	var count int
-//	db := ctl.DB
-//	if len(namespace) == 0 {
-//		db.Model(&Daemonset{}).Count(&count)
-//	} else {
-//		db.Model(&Daemonset{}).Where("namespace = ?", namespace).Count(&count)
-//	}
-//	return count
-//}
+func (ctl *DaemonsetCtl) Lister() interface{} {
+
+	return ctl.lister
+}
