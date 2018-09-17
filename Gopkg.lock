@@ -742,21 +742,18 @@
   version = "v7.0.0"
 
 [[projects]]
-<<<<<<< HEAD
   digest = "1:1de91645e73441071e6df50478003c60881687cf9849ba0585a61035a6d2a2af"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/apis/core",
     "pkg/util/slice",
   ]
-=======
-  digest = "1:b31434f3171d920dc91e1a9204fb57f5fc89f3df2bfb3d42b60a113b0e4557e9"
+  digest = "1:1de91645e73441071e6df50478003c60881687cf9849ba0585a61035a6d2a2af"
   name = "k8s.io/kubernetes"
-  packages = ["pkg/util/slice"]
->>>>>>> db08431... update dependency
-  pruneopts = "UT"
-  revision = "5ca598b4ba5abb89bb773071ce452e33fb66339d"
-  version = "v1.10.4"
+  packages = [
+    "pkg/apis/core",
+    "pkg/util/slice",
+  ]
 
 [solve-meta]
   analyzer-name = "dep"
