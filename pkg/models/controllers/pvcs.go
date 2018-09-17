@@ -30,6 +30,12 @@ import (
 )
 
 func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	namespace := item.Namespace
 	status := fmt.Sprintf("%s", item.Status.Phase)
@@ -58,8 +64,18 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 
 	accessModeStr = strings.Join(accessModeList, ",")
 
-	object := &Pvc{Namespace: namespace, Name: name, Status: status, Capacity: capacity,
-		AccessMode: accessModeStr, StorageClassName: storageClass, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
+	object := &Pvc{
+		Namespace:        namespace,
+		Name:             name,
+		DisplayName:      displayName,
+		Status:           status,
+		Capacity:         capacity,
+		AccessMode:       accessModeStr,
+		StorageClassName: storageClass,
+		CreateTime:       createTime,
+		Annotation:       MapString{item.Annotations},
+		Labels:           MapString{item.Labels},
+	}
 
 	return object
 }
@@ -138,12 +154,14 @@ func (ctl *PvcCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *PvcCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *PvcCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Pvc
 	var object Pvc
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
@@ -163,13 +181,7 @@ func (ctl *PvcCtl) ListWithConditions(conditions string, paging *Paging) (int, i
 	return total, list, nil
 }
 
-//func (ctl *PvcCtl) Count(namespace string) int {
-//	var count int
-//	db := ctl.DB
-//	if len(namespace) == 0 {
-//		db.Model(&Pvc{}).Count(&count)
-//	} else {
-//		db.Model(&Pvc{}).Where("namespace = ?", namespace).Count(&count)
-//	}
-//	return count
-//}
+func (ctl *PvcCtl) Lister() interface{} {
+
+	return ctl.lister
+}

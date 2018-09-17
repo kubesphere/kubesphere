@@ -40,12 +40,15 @@ const (
 	persistentvolumeclaimsKey = "persistentvolumeclaims"
 	storageClassesKey         = "count/storageClass"
 	namespaceKey              = "count/namespace"
+	jobsKey                   = "count/jobs.batch"
+	cronJobsKey               = "count/cronjobs.batch"
 )
 
 var resourceMap = map[string]string{daemonsetsKey: controllers.Daemonsets, deploymentsKey: controllers.Deployments,
 	ingressKey: controllers.Ingresses, rolesKey: controllers.Roles, servicesKey: controllers.Services,
 	statefulsetsKey: controllers.Statefulsets, persistentvolumeclaimsKey: controllers.PersistentVolumeClaim, podsKey: controllers.Pods,
-	namespaceKey: controllers.Namespaces, storageClassesKey: controllers.StorageClasses, clusterRolesKey: controllers.ClusterRoles}
+	namespaceKey: controllers.Namespaces, storageClassesKey: controllers.StorageClasses, clusterRolesKey: controllers.ClusterRoles,
+	jobsKey: controllers.Jobs, cronJobsKey: controllers.Cronjobs}
 
 type ResourceQuota struct {
 	NameSpace string                 `json:"namespace"`

@@ -19,76 +19,88 @@ package controllers
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"strings"
 
-	"k8s.io/api/apps/v1"
+	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
-	var app string
-	var status string
-	var displayName string
+const nodeRole = "role"
+
+func (ctl *NodeCtl) generateObject(item v1.Node) *Node {
+	var status, ip, role, displayName, msgStr string
+	var msg []string
 
 	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
 		displayName = item.Annotations[DisplayName]
 	}
+
 	name := item.Name
-	namespace := item.Namespace
-	availablePodNum := item.Status.ReadyReplicas
-	desirePodNum := *item.Spec.Replicas
-	createTime := item.CreationTimestamp.Time
-	release := item.ObjectMeta.Labels["release"]
-	chart := item.ObjectMeta.Labels["chart"]
+	createTime := item.ObjectMeta.CreationTimestamp.Time
+	annotation := item.Annotations
 
-	if createTime.IsZero() {
-		createTime = time.Now()
+	if _, exist := item.Labels[nodeRole]; exist {
+		role = item.Labels[nodeRole]
 	}
 
-	if len(release) > 0 && len(chart) > 0 {
-		app = release + "/" + chart
-	}
+	for _, condition := range item.Status.Conditions {
+		if condition.Type == "Ready" {
+			if condition.Status == "True" {
+				status = Running
+			} else {
+				status = Error
+			}
 
-	if item.Annotations["state"] == "stop" {
-		status = Stopped
-	} else {
-		if availablePodNum >= desirePodNum {
-			status = Running
 		} else {
-			status = Updating
+			if condition.Status == "True" {
+				msg = append(msg, condition.Reason)
+			}
 		}
 	}
 
-	statefulSetObject := &Statefulset{
-		Namespace:   namespace,
-		Name:        name,
-		DisplayName: displayName,
-		Available:   availablePodNum,
-		Desire:      desirePodNum,
-		App:         app,
-		CreateTime:  createTime,
-		Status:      status,
-		Annotation:  MapString{item.Annotations},
-		Labels:      MapString{item.Spec.Selector.MatchLabels},
+	if len(msg) > 0 {
+		msgStr = strings.Join(msg, ",")
+		if status == Running {
+			status = Warning
+		}
 	}
 
-	return statefulSetObject
+	for _, address := range item.Status.Addresses {
+		if address.Type == "InternalIP" {
+			ip = address.Address
+		}
+	}
+
+	object := &Node{
+		Name:        name,
+		DisplayName: displayName,
+		Ip:          ip,
+		Status:      status,
+		CreateTime:  createTime,
+		Annotation:  MapString{annotation},
+		Taints:      Taints{item.Spec.Taints},
+		Msg:         msgStr,
+		Role:        role,
+		Labels:      MapString{item.Labels}}
+
+	return object
 }
 
-func (ctl *StatefulsetCtl) Name() string {
+func (ctl *NodeCtl) Name() string {
 	return ctl.CommonAttribute.Name
 }
 
-func (ctl *StatefulsetCtl) sync(stopChan chan struct{}) {
+func (ctl *NodeCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
-	if db.HasTable(&Statefulset{}) {
-		db.DropTable(&Statefulset{})
+	if db.HasTable(&Node{}) {
+		db.DropTable(&Node{})
 	}
 
-	db = db.CreateTable(&Statefulset{})
+	db = db.CreateTable(&Node{})
 
 	ctl.initListerAndInformer()
 	list, err := ctl.lister.List(labels.Everything())
@@ -105,7 +117,7 @@ func (ctl *StatefulsetCtl) sync(stopChan chan struct{}) {
 	ctl.informer.Run(stopChan)
 }
 
-func (ctl *StatefulsetCtl) total() int {
+func (ctl *NodeCtl) total() int {
 	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
@@ -114,47 +126,46 @@ func (ctl *StatefulsetCtl) total() int {
 	return len(list)
 }
 
-func (ctl *StatefulsetCtl) initListerAndInformer() {
+func (ctl *NodeCtl) initListerAndInformer() {
 	db := ctl.DB
 
 	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
 
-	ctl.lister = informerFactory.Apps().V1().StatefulSets().Lister()
+	ctl.lister = informerFactory.Core().V1().Nodes().Lister()
 
-	informer := informerFactory.Apps().V1().StatefulSets().Informer()
+	informer := informerFactory.Core().V1().Nodes().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-
-			object := obj.(*v1.StatefulSet)
+			object := obj.(*v1.Node)
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
 		},
 		UpdateFunc: func(old, new interface{}) {
-			object := new.(*v1.StatefulSet)
+			object := new.(*v1.Node)
 			mysqlObject := ctl.generateObject(*object)
 			db.Save(mysqlObject)
+
 		},
 		DeleteFunc: func(obj interface{}) {
-			var item Statefulset
-			object := obj.(*v1.StatefulSet)
-			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
+			var item Node
+			object := obj.(*v1.Node)
+			db.Where("name=? ", object.Name, object.Namespace).Find(&item)
 			db.Delete(item)
-
 		},
 	})
 
 	ctl.informer = informer
 }
 
-func (ctl *StatefulsetCtl) CountWithConditions(conditions string) int {
-	var object Statefulset
+func (ctl *NodeCtl) CountWithConditions(conditions string) int {
+	var object Node
 
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
-	var list []Statefulset
-	var object Statefulset
+func (ctl *NodeCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
+	var list []Node
+	var object Node
 	var total int
 
 	if len(order) == 0 {
@@ -166,7 +177,7 @@ func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging,
 	return total, list, nil
 }
 
-func (ctl *StatefulsetCtl) Lister() interface{} {
+func (ctl *NodeCtl) Lister() interface{} {
 
 	return ctl.lister
 }

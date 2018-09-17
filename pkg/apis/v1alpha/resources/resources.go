@@ -23,6 +23,9 @@ import (
 
 	"github.com/emicklei/go-restful-openapi"
 
+	"fmt"
+	"strings"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
@@ -31,15 +34,33 @@ func Register(ws *restful.WebService, subPath string) {
 
 	tags := []string{"resources"}
 
-	ws.Route(ws.GET(subPath+"/{resource}").To(handleResource).Produces(restful.MIME_JSON).Metadata(restfulspec.KeyOpenAPITags, tags).Doc("Get resource" +
-		" list").Param(ws.PathParameter("resource", "resource name").DataType(
-		"string")).Param(ws.QueryParameter("conditions", "search "+
-		"conditions").DataType("string")).Param(ws.QueryParameter("paging",
+	ws.Route(ws.GET(subPath+"/{resource}").To(listResource).Produces(restful.MIME_JSON).Metadata(restfulspec.KeyOpenAPITags, tags).Doc("Get resource" +
+		" list").Param(ws.PathParameter("resource", "resource name").DataType("string")).Param(ws.QueryParameter("conditions",
+		"search conditions").DataType("string")).Param(ws.QueryParameter("reverse",
+		"support reverse ordering").DataType("bool").DefaultValue("false")).Param(ws.QueryParameter("order",
+		"the field for sorting").DataType("string")).Param(ws.QueryParameter("paging",
 		"support paging function").DataType("string")).Writes(models.ResourceList{}))
-
 }
 
-func handleResource(req *restful.Request, resp *restful.Response) {
+func isInvalid(str string) bool {
+	invalidList := []string{"exec", "insert", "select", "delete", "update", "count", "*", "%", "truncate", "drop"}
+	str = strings.Replace(str, "=", " ", -1)
+	str = strings.Replace(str, ",", " ", -1)
+	str = strings.Replace(str, "~", " ", -1)
+	items := strings.Split(str, " ")
+
+	for _, invalid := range invalidList {
+		for _, item := range items {
+			if item == invalid || strings.ToLower(item) == invalid {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func listResource(req *restful.Request, resp *restful.Response) {
 
 	resource := req.PathParameter("resource")
 	if resource == "applications" {
@@ -48,7 +69,23 @@ func handleResource(req *restful.Request, resp *restful.Response) {
 	}
 	conditions := req.QueryParameter("conditions")
 	paging := req.QueryParameter("paging")
-	res, err := models.ListResource(resource, conditions, paging)
+	orderField := req.QueryParameter("order")
+	reverse := req.QueryParameter("reverse")
+
+	if len(orderField) > 0 {
+		if reverse == "true" {
+			orderField = fmt.Sprintf("%s %s", orderField, "desc")
+		} else {
+			orderField = fmt.Sprintf("%s %s", orderField, "asc")
+		}
+	}
+
+	if isInvalid(conditions) || isInvalid(paging) || isInvalid(orderField) {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, constants.MessageResponse{Message: "invalid input"})
+		return
+	}
+
+	res, err := models.ListResource(resource, conditions, paging, orderField)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
@@ -58,7 +95,6 @@ func handleResource(req *restful.Request, resp *restful.Response) {
 }
 
 func handleApplication(req *restful.Request, resp *restful.Response) {
-	//searchWord := req.QueryParameter("search-word")
 	paging := req.QueryParameter("paging")
 	clusterId := req.QueryParameter("cluster_id")
 	runtimeId := req.QueryParameter("runtime_id")

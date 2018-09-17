@@ -193,8 +193,19 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 		containers = append(containers, container)
 	}
 
-	object := &Pod{Namespace: namespace, Name: name, Node: nodeName, PodIp: podIp, Status: status, NodeIp: nodeIp,
-		CreateTime: createTime, Annotation: Annotation{item.Annotations}, Containers: containers, RestartCount: restartCount}
+	object := &Pod{
+		Namespace:    namespace,
+		Name:         name,
+		Node:         nodeName,
+		PodIp:        podIp,
+		Status:       status,
+		NodeIp:       nodeIp,
+		CreateTime:   createTime,
+		Annotation:   MapString{item.Annotations},
+		Containers:   containers,
+		RestartCount: restartCount,
+		Labels:       MapString{item.Labels},
+	}
 
 	return object
 }
@@ -277,25 +288,21 @@ func (ctl *PodCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *PodCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Pod
 	var object Pod
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
 }
 
-//func (ctl *PodCtl) Count(namespace string) int {
-//	var count int
-//	db := ctl.DB
-//	if len(namespace) == 0 {
-//		db.Model(&Pod{}).Count(&count)
-//	} else {
-//		db.Model(&Pod{}).Where("namespace = ?", namespace).Count(&count)
-//	}
-//	return count
-//}
+func (ctl *PodCtl) Lister() interface{} {
+
+	return ctl.lister
+}
