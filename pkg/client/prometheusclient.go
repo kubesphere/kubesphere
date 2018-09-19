@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"github.com/golang/glog"
 	"github.com/emicklei/go-restful"
+	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -36,7 +37,7 @@ var client = &http.Client{}
 
 func SendRequest(postfix string, params string) string {
 	url := PrometheusEndpointUrl + postfix + params
-	//fmt.Println("URL:>", url)
+	fmt.Println("URL:>", url)
 	response, err := client.Get(url)
 	if err != nil {
 		glog.Error(err)
@@ -54,16 +55,18 @@ func SendRequest(postfix string, params string) string {
 }
 
 
-func MakeRequestParams(request *restful.Request, recordingRule string) (string, error) {
+func MakeRequestParams(request *restful.Request, recordingRule string) string {
 	paramsMap, bol, err := ParseRequestHeader(request)
 	if err != nil {
-		return "", err
+		glog.Error(err)
+		return ""
 	}
 
 	var res = ""
 	if bol {
+		// range query
 		postfix := "query_range?"
-		paramsMap.Set("query", recordingRule) // "'" + recordingRule + "'"
+		paramsMap.Set("query", recordingRule)
 		params := paramsMap.Encode()
 		res = SendRequest(postfix, params)
 	} else {
@@ -73,7 +76,7 @@ func MakeRequestParams(request *restful.Request, recordingRule string) (string, 
 		params := paramsMap.Encode()
 		res = SendRequest(postfix, params)
 	}
-	return res, nil
+	return res
 }
 
 func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
@@ -85,7 +88,7 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 	if timeout == "" {
 		timeout = "30s"
 	}
-	// query请求还是 query_range 请求
+	// Whether query or query_range request
 	u := url.Values{}
 	if start != "" && end != "" && step != "" {
 		u.Set("start", start)

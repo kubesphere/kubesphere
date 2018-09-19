@@ -15,13 +15,48 @@ package metrics
 
 type MetricMap map[string]string
 
-var recordingRuleTmplMap = MetricMap{
+var MetricsNames = []string{
+	"cluster_cpu_utilisation",
+	"cluster_memory_utilisation",
+	"cluster_net_utilisation",
+	"cluster_pod_count",
 
+	"node_cpu_utilisation",
+	"node_memory_utilisation",
+	"node_memory_available",
+	"node_memory_total",
+	"node_net_utilisation",
+	"node_net_bytes_transmitted",
+	"node_net_bytes_received",
+	"node_disk_read_iops",
+	"node_disk_write_iops",
+	"node_disk_read_throughput",
+	"node_disk_write_throughput",
+	"node_disk_capacity",
+	"node_disk_available",
+	"node_disk_utilization",
+
+	"namespace_cpu_utilisation",
+	"namespace_memory_utilisation",
+	"namespace_memory_utilisation_wo_cache",
+	"namespace_pod_count",
+
+	"pod_cpu_utilisation",
+	"pod_memory_utilisation",
+	"pod_memory_utilisation_wo_cache",
+
+	//"container_cpu_utilisation",
+	//"container_memory_utilisation_wo_cache",
+	//"container_memory_utilisation",
+}
+
+var RulePromQLTmplMap = MetricMap{
 	//cluster
-	"cluster_cpu_utilisation":     ":node_cpu_utilisation:avg1m",
+	"cluster_cpu_utilisation":    ":node_cpu_utilisation:avg1m",
 	"cluster_memory_utilisation": ":node_memory_utilisation:",
 	// Cluster network utilisation (bytes received + bytes transmitted per second)
-	"cluster_net_utilisation":    ":node_net_utilisation:sum_irate",
+	"cluster_net_utilisation": ":node_net_utilisation:sum_irate",
+	"cluster_pod_count":       `count(kube_pod_info{job="kube-state-metrics"})`,
 
 	//node
 	"node_cpu_utilisation":    "node:node_cpu_utilisation:avg1m",
@@ -29,54 +64,54 @@ var recordingRuleTmplMap = MetricMap{
 	"node_memory_available":   "node:node_memory_bytes_available:sum",
 	"node_memory_total":       "node:node_memory_bytes_total:sum",
 	// Node network utilisation (bytes received + bytes transmitted per second)
-	"node_net_utilisation":    "node:node_net_utilisation:sum_irate",
+	"node_net_utilisation": "node:node_net_utilisation:sum_irate",
 	// Node network bytes transmitted per second
-	"node_net_bytes_transmitted":"node:node_net_bytes_transmitted:sum_irate",
+	"node_net_bytes_transmitted": "node:node_net_bytes_transmitted:sum_irate",
 	// Node network bytes received per second
-	"node_net_bytes_received":"node:node_net_bytes_received:sum_irate",
+	"node_net_bytes_received": "node:node_net_bytes_received:sum_irate",
 
 	// node:data_volume_iops_reads:sum{node=~"i-5xcldxos|i-6soe9zl1"}
-	"node_disk_read_iops" : "node:data_volume_iops_reads:sum",
+	"node_disk_read_iops": "node:data_volume_iops_reads:sum",
 	// node:data_volume_iops_writes:sum{node=~"i-5xcldxos|i-6soe9zl1"}
-	"node_disk_write_iops" : "node:data_volume_iops_writes:sum",
+	"node_disk_write_iops": "node:data_volume_iops_writes:sum",
 	// node:data_volume_throughput_bytes_read:sum{node=~"i-5xcldxos|i-6soe9zl1"}
-	"node_disk_read_throughput":"node:data_volume_throughput_bytes_read:sum",
+	"node_disk_read_throughput": "node:data_volume_throughput_bytes_read:sum",
 	// node:data_volume_throughput_bytes_written:sum{node=~"i-5xcldxos|i-6soe9zl1"}
-	"node_disk_write_throughput":"node:data_volume_throughput_bytes_written:sum",
+	"node_disk_write_throughput": "node:data_volume_throughput_bytes_written:sum",
 
-	"node_disk_capacity":`sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
-	"node_disk_available":`sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
-	"node_disk_utilization":`sum by (node) (((node_filesystem_size{mountpoint="/", job="node-exporter"} - node_filesystem_avail{mountpoint="/", job="node-exporter"}) / node_filesystem_size{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_disk_capacity":    `sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_disk_available":   `sum by (node) ((node_filesystem_avail{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_disk_utilization": `sum by (node) (((node_filesystem_size{mountpoint="/", job="node-exporter"} - node_filesystem_avail{mountpoint="/", job="node-exporter"}) / node_filesystem_size{mountpoint="/", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
 
 	//namespace
-	"namespace_cpu_utilisation":    "namespace:container_cpu_usage_seconds_total:sum_rate",
-	"namespace_memory_utilisation": "namespace:container_memory_usage_bytes:sum",
-	"namespace_memory_utilisation_wo_cache": "namespace:container_memory_usage_bytes_wo_cache:sum",
-}
+	"namespace_cpu_utilisation":             `namespace:container_cpu_usage_seconds_total:sum_rate{namespace=~"$1"}`,
+	"namespace_memory_utilisation":          `namespace:container_memory_usage_bytes:sum{namespace=~"$1"}`,
+	"namespace_memory_utilisation_wo_cache": `namespace:container_memory_usage_bytes_wo_cache:sum{namespace=~"$1"}`,
+	// count(kube_pod_info) by (namespace)    namespace=~"monitoring|default|kube-system"
+	"namespace_pod_count": `count(kube_pod_info{job="kube-state-metrics", namespace=~"$1"}) by (namespace)`,
 
-var promqlTempMap = MetricMap{
 	// pod
-	"pod_cpu_utilisation": `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name="$2", image!=""}[5m])) by (namespace, pod_name)`,
+	"pod_cpu_utilisation":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name="$2", image!=""}[5m])) by (namespace, pod_name)`,
 	"pod_memory_utilisation":          `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name="$2", image!=""}) by (namespace, pod_name)`,
-	"pod_memory_utilisation_wo_cache": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name="$2", image!=""} - container_memory_cache{job="kubelet", namespace="monitoring", pod_name=~"$2",image!=""}) by (namespace, pod_name)`,
+	"pod_memory_utilisation_wo_cache": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name="$2", image!=""} - container_memory_cache{job="kubelet", namespace="$1", pod_name=~"$2",image!=""}) by (namespace, pod_name)`,
 
-	"pod_cpu_utilisation_all": `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name=~"$2", image!=""}[5m])) by (namespace, pod_name)`,
+	"pod_cpu_utilisation_all":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name=~"$2", image!=""}[5m])) by (namespace, pod_name)`,
 	"pod_memory_utilisation_all":          `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name=~"$2",  image!=""}) by (namespace, pod_name)`,
-	"pod_memory_utilisation_wo_cache_all": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name=~"$2", image!=""} - container_memory_cache{job="kubelet", namespace="monitoring", pod_name=~"$2", image!=""}) by (namespace, pod_name)`,
+	"pod_memory_utilisation_wo_cache_all": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name=~"$2", image!=""} - container_memory_cache{job="kubelet", namespace="$1", pod_name=~"$2", image!=""}) by (namespace, pod_name)`,
 
 	//"pod_cpu_utilisation_node":  `sum by (node, pod) (label_join(irate(container_cpu_usage_seconds_total{job="kubelet", image!=""}[5m]), "pod", " ", "pod_name") * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
-	"pod_cpu_utilisation_node":  `sum by (node, pod) (label_join(irate(container_cpu_usage_seconds_total{job="kubelet",pod_name=~"$2", image!=""}[5m]), "pod", " ", "pod_name") * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
-	"pod_memory_utilisation_node":  `sum by (node, pod) (label_join(container_memory_usage_bytes{job="kubelet",pod_name=~"$2", image!=""}, "pod", " ", "pod_name") * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
+	"pod_cpu_utilisation_node":             `sum by (node, pod) (label_join(irate(container_cpu_usage_seconds_total{job="kubelet",pod_name=~"$2", image!=""}[5m]), "pod", " ", "pod_name") * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
+	"pod_memory_utilisation_node":          `sum by (node, pod) (label_join(container_memory_usage_bytes{job="kubelet",pod_name=~"$2", image!=""}, "pod", " ", "pod_name") * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
 	"pod_memory_utilisation_wo_cache_node": `sum by (node, pod) ((label_join(container_memory_usage_bytes{job="kubelet",pod_name=~"$2",  image!=""}, "pod", " ", "pod_name") - label_join(container_memory_cache{job="kubelet",pod_name=~"$2", image!=""}, "pod", " ", "pod_name")) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:{node=~"$3"})`,
 
 	// container
-	"container_cpu_utilisation":            `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name="$3"}[5m])) by (namespace, pod_name, container_name)`,
+	"container_cpu_utilisation": `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name="$3"}[5m])) by (namespace, pod_name, container_name)`,
 	//"container_cpu_utilisation_wo_podname": `sum(irate(container_cpu_usage_seconds_total{namespace="$1", container_name=~"$3"}[5m])) by (namespace, pod_name, container_name)`,
-	"container_cpu_utilisation_all": `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name!="POD"}[5m])) by (namespace, pod_name, container_name)`,
+	"container_cpu_utilisation_all": `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name=~"$3", container_name!="POD"}[5m])) by (namespace, pod_name, container_name)`,
 	//"container_cpu_utilisation_all_wo_podname": `sum(irate(container_cpu_usage_seconds_total{namespace="$1", container_name!="POD"}[5m])) by (namespace, pod_name, container_name)`,
 
 	"container_memory_utilisation_wo_cache":     `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name="$3"} - ignoring(id, image, endpoint, instance, job, name, service) container_memory_cache{namespace="$1", pod_name="$2", container_name="$3"}`,
-	"container_memory_utilisation_wo_cache_all": `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name=~"$3"} - ignoring(id, image, endpoint, instance, job, name, service) container_memory_cache{namespace="$1", pod_name="$2", container_name=~"$3"}`,
-	"container_memory_utilisation":               `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name="$3"}`,
-	"container_memory_utilisation_all":           `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name=~"$3"}`,
+	"container_memory_utilisation_wo_cache_all": `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name=~"$3", container_name!="POD"} - ignoring(id, image, endpoint, instance, job, name, service) container_memory_cache{namespace="$1", pod_name="$2", container_name=~"$3", container_name!="POD"}`,
+	"container_memory_utilisation":              `container_memory_usage_bytes{namespace="$1", pod_name="$2",  container_name="$3"}`,
+	"container_memory_utilisation_all":          `container_memory_usage_bytes{namespace="$1", pod_name="$2",  container_name=~"$3", container_name!="POD"}`,
 }
