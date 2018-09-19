@@ -39,6 +39,7 @@ func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
 	isDefault := false
+	provisioner := item.Provisioner
 	if item.Annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true" {
 		isDefault = true
 	}
@@ -53,6 +54,7 @@ func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 		CreateTime:  createTime,
 		IsDefault:   isDefault,
 		Annotation:  MapString{item.Annotations},
+		Provisioner: provisioner,
 	}
 
 	return object
