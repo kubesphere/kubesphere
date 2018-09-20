@@ -23,9 +23,16 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+)
+
+const (
+	checkPeriod = 30 * time.Minute
+	sleepPeriod = 15 * time.Second
 )
 
 func listWithConditions(db *gorm.DB, total *int, object, list interface{}, conditions string, paging *Paging, order string) {
@@ -114,13 +121,20 @@ func hasSynced(ctl Controller) bool {
 
 func checkAndResync(ctl Controller, stopChan chan struct{}) {
 	defer close(stopChan)
+
+	lastTime := time.Now()
+
 	for {
 		select {
 		case <-ctl.chanStop():
 			return
 		default:
-			time.Sleep(30 * time.Minute)
+			if time.Now().Sub(lastTime) < checkPeriod {
+				time.Sleep(sleepPeriod)
+				break
+			}
 
+			lastTime = time.Now()
 			if !hasSynced(ctl) {
 				glog.Errorf("the data in db and kubernetes is inconsistent, resync %s controller", ctl.Name())
 				close(stopChan)
@@ -131,9 +145,10 @@ func checkAndResync(ctl Controller, stopChan chan struct{}) {
 	}
 }
 
-func listAndWatch(ctl Controller) {
+func listAndWatch(ctl Controller, wg *sync.WaitGroup) {
 	defer handleCrash(ctl)
 	defer ctl.CloseDB()
+	defer wg.Done()
 	stopChan := make(chan struct{})
 
 	go ctl.sync(stopChan)

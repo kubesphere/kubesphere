@@ -33,6 +33,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -118,7 +123,10 @@ func (server *kubeSphereServer) run() {
 		return
 	}
 
-	go controllers.Run()
+	var wg sync.WaitGroup
+	stopChan := make(chan struct{})
+	wg.Add(1)
+	go controllers.Run(stopChan, &wg)
 
 	registerSwagger()
 
@@ -147,7 +155,12 @@ func (server *kubeSphereServer) run() {
 		go func() { glog.Fatal(http.ListenAndServe(insecureAddr, nil)) }()
 	}
 
-	select {}
+	sigs := make(chan os.Signal)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs
+	close(stopChan)
+	wg.Wait()
 }
 
 func Run() {
