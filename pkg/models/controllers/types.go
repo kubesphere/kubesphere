@@ -279,6 +279,7 @@ type StorageClass struct {
 	CreateTime  time.Time `gorm:"column:createTime" json:"createTime,omitempty"`
 	IsDefault   bool      `json:"default"`
 	Count       int       `json:"count"`
+	Provisioner string    `json:"provisioner"`
 }
 
 type JobRevisions map[int]JobStatus
