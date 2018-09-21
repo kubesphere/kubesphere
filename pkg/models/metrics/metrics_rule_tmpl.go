@@ -52,6 +52,8 @@ var MetricsNames = []string{
 	"workload_pod_cpu_utilisation",
 	"workload_pod_memory_utilisation",
 	"workload_pod_memory_utilisation_wo_cache",
+	"workload_pod_net_bytes_transmitted",
+	"workload_pod_net_bytes_received",
 	//"container_cpu_utilisation",
 	//"container_memory_utilisation_wo_cache",
 	//"container_memory_utilisation",

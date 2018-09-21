@@ -491,8 +491,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor specific workload level metrics").
 		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
-		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilisation_wo_cache")).
-		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(true).DefaultValue("ReplicaSet")).
+		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(true).DefaultValue("daemonset")).
 		Param(ws.QueryParameter("workload_name", "workload name").DataType("string").Required(true).DefaultValue("")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(MonitorResult{}).
