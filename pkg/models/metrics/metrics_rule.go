@@ -14,10 +14,16 @@ limitations under the License.
 package metrics
 
 import (
-	"fmt"
 	"strings"
 	"github.com/emicklei/go-restful"
 )
+
+
+func MakeTenantPromQL(metricsName string, namespaceRe2 string) string {
+	promql := RulePromQLTmplMap[metricsName]
+	promql = strings.Replace(promql, "$1", namespaceRe2, -1)
+	return promql
+}
 
 func MakeWorkLoadRule(request *restful.Request) string {
 	// kube_pod_info{created_by_kind="DaemonSet",created_by_name="fluent-bit",endpoint="https-main",
@@ -154,7 +160,6 @@ func MakeNameSpacePromQL(request *restful.Request, metricsName string) string {
 		}
 	}
 	recordingRule = strings.Replace(recordingRule, "$1", ns_re2, -1)
-	fmt.Println(recordingRule)
 	return recordingRule
 }
 
@@ -193,7 +198,3 @@ func MakeNodeorClusterRule(request *restful.Request, metricsName string) string 
 	}
 	return rule
 }
-
-
-
-

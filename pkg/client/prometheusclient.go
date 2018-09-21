@@ -17,28 +17,29 @@ import (
 	"net/http"
 	"github.com/golang/glog"
 	"github.com/emicklei/go-restful"
-	"fmt"
 	"net/url"
 	"strconv"
 	"time"
-	"log"
 	"github.com/pkg/errors"
 )
 
 const (
-	DefaultPrometheusScheme  = "http"
-	DefaultPrometheusService = "prometheus-k8s.monitoring.svc.cluster.local" //"heapster"
-	DefaultPrometheusPort    = "9090"                                     // use the first exposed port on the service
+	DefaultScheme            = "http"
+	DefaultPrometheusService = "prometheus-k8s.monitoring.svc.cluster.local"
+	DefaultKSAccountService  =  "ks-account.kubesphere-system.svc.cluster.local"
+	DefaultPrometheusPort    = "9090"
 	PrometheusApiPath        = "/api/v1/"
-	PrometheusEndpointUrl    = DefaultPrometheusScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
+	KSAccountApiPath         = "/apis/account.kubesphere.io/v1alpha1/enterprises/"
+	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
+	KSAccountEndpointUrl    = DefaultScheme + "://" + DefaultKSAccountService  + KSAccountApiPath
 )
 
 var client = &http.Client{}
 
 func SendRequest(postfix string, params string) string {
-	url := PrometheusEndpointUrl + postfix + params
-	fmt.Println("URL:>", url)
-	response, err := client.Get(url)
+	epurl := PrometheusEndpointUrl + postfix + params
+	//glog.Info("monitoring epurl:>", epurl)
+	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
 	} else {
@@ -46,6 +47,23 @@ func SendRequest(postfix string, params string) string {
 
 		contents, err := ioutil.ReadAll(response.Body)
 
+		if err != nil {
+			glog.Error(err)
+		}
+		return string(contents)
+	}
+	return ""
+}
+// ks-account.kubesphere-system.svc/apis/account.kubesphere.io/v1alpha1/enterprises/{name}
+func GetTenantNamespaceInfo(tenantName string) string {
+	epurl := KSAccountEndpointUrl + tenantName
+	//glog.Info("monitoring url:>", epurl)
+	response, err := client.Get(epurl)
+	if err != nil {
+		glog.Error(err)
+	} else {
+		defer response.Body.Close()
+		contents, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			glog.Error(err)
 		}
@@ -107,6 +125,6 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 		return u, false, nil
 	}
 
-	log.Fatal("Parse request failed");
+	glog.Error("Parse request failed", u);
 	return u, false, errors.Errorf("Parse request failed")
 }

@@ -49,7 +49,6 @@ type CommonOneMetric struct {
 
 type CommonMetricData struct {
 	Result []PodResultItem `json:"result"`
-	//Result interface{}    `json:"result"`
 	ResultType string      `json:"resultType"`
 }
 
@@ -63,7 +62,6 @@ type Metric struct {
 	Name string `json:"__name__, omitempty"`
 	Node string `json:"node, omitempty"`
 	Namespace string `json:"namespace, omitempty"`
-	//Pod string `json:"pod, omitempty"`
 	PodName string `json:"pod_name, omitempty"`
 }
 
