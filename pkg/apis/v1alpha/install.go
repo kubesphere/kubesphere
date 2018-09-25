@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/deployments"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/jobs"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/monitoring"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/quota"
@@ -63,6 +64,7 @@ func init() {
 	daemonsets.Register(ws, "/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}")
 	statefulsets.Register(ws, "/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}")
 	resources.Register(ws, "/resources")
+	monitoring.Register(ws, "/monitoring")
 
 	// add webservice to default container
 	restful.Add(ws)
