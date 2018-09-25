@@ -13,16 +13,18 @@ limitations under the License.
 package monitoring
 
 import (
+	"encoding/json"
+	"regexp"
+	"strings"
+
+	"github.com/bitly/go-simplejson"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	"encoding/json"
+	"github.com/golang/glog"
+
+	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/filter/route"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
-	"kubesphere.io/kubesphere/pkg/client"
-	"strings"
-	"github.com/golang/glog"
-	"github.com/bitly/go-simplejson"
-	"regexp"
 )
 
 func monitorTenantSingleMertic(request *restful.Request, metricsName string, namespaceList []string) *simplejson.Json {
@@ -33,7 +35,7 @@ func monitorTenantSingleMertic(request *restful.Request, metricsName string, nam
 	return cleanedJson
 }
 
-func monitorWorkLoadSingleMertic(request *restful.Request, metricsName string) *simplejson.Json  {
+func monitorWorkLoadSingleMertic(request *restful.Request, metricsName string) *simplejson.Json {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
 	podNamesRe2 := getPodNameRegexInWorkLoad(request)
 	newpromql := metrics.MakePodPromQL(request, []string{metricsName, nsName, "", "", podNamesRe2})
@@ -196,8 +198,8 @@ func getNamespaceList(request *restful.Request) []string {
 			if isExist {
 				jsonByte, err := tmpJson.Encode()
 				if err != nil {
-					glog.Error("tenant json info parse failed",err)
-				}else {
+					glog.Error("tenant json info parse failed", err)
+				} else {
 					ns := string(jsonByte)
 					ns = strings.Trim(ns, "\"")
 					namespaceList = append(namespaceList, ns)
@@ -208,7 +210,7 @@ func getNamespaceList(request *restful.Request) []string {
 	return namespaceList
 }
 
-func filterNamespace (request *restful.Request, namespaceList []string) []string{
+func filterNamespace(request *restful.Request, namespaceList []string) []string {
 	var newNSlist []string
 	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
 	if nsFilter == "" {
@@ -232,7 +234,7 @@ func monitorAllMetrics(request *restful.Request) *simplejson.Json {
 	sourceType := path[strings.LastIndex(path, "/")+1 : len(path)-1]
 	if strings.Contains(path, "workload") {
 		sourceType = "workload"
-	}else if strings.Contains(path, "monitoring/tenants") {
+	} else if strings.Contains(path, "monitoring/tenants") {
 		sourceType = "tenant"
 	}
 	var ch = make(chan *simplejson.Json, 10)
@@ -254,7 +256,7 @@ func monitorAllMetrics(request *restful.Request) *simplejson.Json {
 				go collectPodMetrics(request, k, ch)
 			} else if sourceType == "workload" {
 				go collectWorkLoadMetrics(request, k, ch)
-			}else if sourceType == "tenant" {
+			} else if sourceType == "tenant" {
 				namespaceList := getNamespaceList(request)
 				namespaceList = filterNamespace(request, namespaceList)
 				go collectTenantMetrics(request, k, namespaceList, ch)
@@ -313,7 +315,7 @@ func Register(ws *restful.WebService, subPath string) {
 	tags := []string{"monitoring apis"}
 	u := MonitorResource{}
 
-	ws.Route(ws.GET(subPath + "/clusters").To(u.monitorNodeorCluster).
+	ws.Route(ws.GET(subPath+"/clusters").To(u.monitorNodeorCluster).
 		Filter(route.RouteLogging).
 		Doc("monitor cluster level metrics").
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("cluster_cpu_utilisation")).
@@ -321,7 +323,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET(subPath + "/nodes").To(u.monitorNodeorCluster).
+	ws.Route(ws.GET(subPath+"/nodes").To(u.monitorNodeorCluster).
 		Filter(route.RouteLogging).
 		Doc("monitor nodes level metrics").
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("node_cpu_utilisation")).
@@ -330,7 +332,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET(subPath + "/nodes/{node_id}").To(u.monitorNodeorCluster).
+	ws.Route(ws.GET(subPath+"/nodes/{node_id}").To(u.monitorNodeorCluster).
 		Filter(route.RouteLogging).
 		Doc("monitor specific node level metrics").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("")).
@@ -339,7 +341,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET(subPath + "/namespaces").To(u.monitorNameSpace).
+	ws.Route(ws.GET(subPath+"/namespaces").To(u.monitorNameSpace).
 		Filter(route.RouteLogging).
 		Doc("monitor namespaces level metrics").
 		Param(ws.QueryParameter("namespaces_filter", "namespaces re2 expression filter").DataType("string").Required(false).DefaultValue("")).
@@ -348,8 +350,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}").To(u.monitorNameSpace).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}").To(u.monitorNameSpace).
 		Filter(route.RouteLogging).
 		Doc("monitor specific namespace level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
@@ -358,8 +359,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods").To(u.monitorPod).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/pods").To(u.monitorPod).
 		Filter(route.RouteLogging).
 		Doc("monitor pods level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
@@ -369,8 +369,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}").To(u.monitorPod).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/pods/{pod_name}").To(u.monitorPod).
 		Filter(route.RouteLogging).
 		Doc("monitor specific pod level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
@@ -380,8 +379,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/nodes/{node_id}/pods").To(u.monitorPod).
+	ws.Route(ws.GET(subPath+"/nodes/{node_id}/pods").To(u.monitorPod).
 		Filter(route.RouteLogging).
 		Doc("monitor pods level metrics by nodeid").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
@@ -391,8 +389,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/nodes/{node_id}/pods/{pod_name}").To(u.monitorPod).
+	ws.Route(ws.GET(subPath+"/nodes/{node_id}/pods/{pod_name}").To(u.monitorPod).
 		Filter(route.RouteLogging).
 		Doc("monitor specific pod level metrics by nodeid").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
@@ -402,8 +399,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}/containers").To(u.monitorContainer).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/pods/{pod_name}/containers").To(u.monitorContainer).
 		Filter(route.RouteLogging).
 		Doc("monitor containers level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
@@ -414,8 +410,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}/containers/{container_name}").To(u.monitorContainer).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/pods/{pod_name}/containers/{container_name}").To(u.monitorContainer).
 		Filter(route.RouteLogging).
 		Doc("monitor specific container level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
@@ -426,7 +421,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/workloads/{workload_kind}").To(u.monitorWorkLoad).
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/workloads/{workload_kind}").To(u.monitorWorkLoad).
 		Filter(route.RouteLogging).
 		Doc("monitor specific workload level metrics").
 		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
@@ -437,8 +432,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-
-	ws.Route(ws.GET(subPath + "/tenants/{tenant_name}").To(u.monitorTenant).
+	ws.Route(ws.GET(subPath+"/tenants/{tenant_name}").To(u.monitorTenant).
 		Filter(route.RouteLogging).
 		Doc("monitor specific workload level metrics").
 		Param(ws.PathParameter("tenant_name", "tenant name").DataType("string").Required(true)).
@@ -449,4 +443,3 @@ func Register(ws *restful.WebService, subPath string) {
 		Produces(restful.MIME_JSON)
 
 }
-
