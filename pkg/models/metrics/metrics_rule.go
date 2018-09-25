@@ -15,9 +15,9 @@ package metrics
 
 import (
 	"strings"
+
 	"github.com/emicklei/go-restful"
 )
-
 
 func MakeTenantPromQL(metricsName string, namespaceRe2 string) string {
 	promql := RulePromQLTmplMap[metricsName]
@@ -34,15 +34,17 @@ func MakeWorkLoadRule(request *restful.Request) string {
 	kind := strings.Trim(request.PathParameter("workload_kind"), " ")
 	name := strings.Trim(request.QueryParameter("workload_name"), " ")
 	namespace := strings.Trim(request.PathParameter("ns_name"), " ")
-	if namespace == "" { namespace = ".*" }
+	if namespace == "" {
+		namespace = ".*"
+	}
 
 	// kind alertnatives values: Deployment StatefulSet ReplicaSet Job DaemonSet
 	kind = strings.ToLower(kind)
-	if kind == "deployment"{
+	if kind == "deployment" {
 		kind = "ReplicaSet"
 		if name != "" {
 			name = "~\"" + name + ".*\""
-		}else {
+		} else {
 			name = "~\".*\""
 		}
 		rule = strings.Replace(rule, "$1", kind, -1)
@@ -50,21 +52,21 @@ func MakeWorkLoadRule(request *restful.Request) string {
 		rule = strings.Replace(rule, "$3", namespace, -1)
 		return rule
 
-	}else if kind == "replicaset" {
+	} else if kind == "replicaset" {
 		kind = "ReplicaSet"
-	}else if kind == "statefulset" {
+	} else if kind == "statefulset" {
 		kind = "StatefulSet"
-	}else if kind == "daemonset" {
+	} else if kind == "daemonset" {
 		kind = "DaemonSet"
-	}else if kind == "job" {
+	} else if kind == "job" {
 		kind = "Job"
-	}else {
+	} else {
 		kind = ".*"
 	}
 
 	if name == "" {
 		name = "~\".*\""
-	}else  {
+	} else {
 		name = "\"" + name + "\""
 	}
 

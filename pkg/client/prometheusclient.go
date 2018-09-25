@@ -15,23 +15,24 @@ package client
 import (
 	"io/ioutil"
 	"net/http"
-	"github.com/golang/glog"
-	"github.com/emicklei/go-restful"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
 
 const (
 	DefaultScheme            = "http"
 	DefaultPrometheusService = "prometheus-k8s.monitoring.svc.cluster.local"
-	DefaultKSAccountService  =  "ks-account.kubesphere-system.svc.cluster.local"
+	DefaultKSAccountService  = "ks-account.kubesphere-system.svc.cluster.local"
 	DefaultPrometheusPort    = "9090"
 	PrometheusApiPath        = "/api/v1/"
 	KSAccountApiPath         = "/apis/account.kubesphere.io/v1alpha1/enterprises/"
 	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
-	KSAccountEndpointUrl    = DefaultScheme + "://" + DefaultKSAccountService  + KSAccountApiPath
+	KSAccountEndpointUrl     = DefaultScheme + "://" + DefaultKSAccountService + KSAccountApiPath
 )
 
 var client = &http.Client{}
@@ -54,6 +55,7 @@ func SendRequest(postfix string, params string) string {
 	}
 	return ""
 }
+
 // ks-account.kubesphere-system.svc/apis/account.kubesphere.io/v1alpha1/enterprises/{name}
 func GetTenantNamespaceInfo(tenantName string) string {
 	epurl := KSAccountEndpointUrl + tenantName
@@ -72,8 +74,7 @@ func GetTenantNamespaceInfo(tenantName string) string {
 	return ""
 }
 
-
-func MakeRequestParams(request *restful.Request, recordingRule string) string {
+func SendPrometheusRequest(request *restful.Request, recordingRule string) string {
 	paramsMap, bol, err := ParseRequestHeader(request)
 	if err != nil {
 		glog.Error(err)
@@ -81,19 +82,17 @@ func MakeRequestParams(request *restful.Request, recordingRule string) string {
 	}
 
 	var res = ""
+	var postfix = ""
 	if bol {
 		// range query
-		postfix := "query_range?"
-		paramsMap.Set("query", recordingRule)
-		params := paramsMap.Encode()
-		res = SendRequest(postfix, params)
+		postfix = "query_range?"
 	} else {
 		// query
-		postfix := "query?"
-		paramsMap.Set("query", recordingRule)
-		params := paramsMap.Encode()
-		res = SendRequest(postfix, params)
+		postfix = "query?"
 	}
+	paramsMap.Set("query", recordingRule)
+	params := paramsMap.Encode()
+	res = SendRequest(postfix, params)
 	return res
 }
 
@@ -125,6 +124,6 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 		return u, false, nil
 	}
 
-	glog.Error("Parse request failed", u);
+	glog.Error("Parse request failed", u)
 	return u, false, errors.Errorf("Parse request failed")
 }

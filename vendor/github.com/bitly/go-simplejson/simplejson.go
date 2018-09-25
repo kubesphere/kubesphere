@@ -225,7 +225,7 @@ func (j *Json) StringArray() ([]string, error) {
 		}
 		s, ok := a.(string)
 		if !ok {
-			return nil, errors.New("type assertion to []string failed")
+			return nil, err
 		}
 		retArr = append(retArr, s)
 	}
