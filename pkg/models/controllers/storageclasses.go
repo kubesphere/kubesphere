@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"strconv"
-	"strings"
+	utilversion "k8s.io/kubernetes/pkg/util/version"
 
 	"github.com/golang/glog"
 	coreV1 "k8s.io/api/core/v1"
@@ -95,21 +94,14 @@ func (ctl *StorageClassCtl) total() int {
 }
 
 func (ctl *StorageClassCtl) createCephSecretAfterNewSc(item v1.StorageClass) {
-	// Kubernetes version must <= 1.10
-	openInfo, err := ctl.K8sClient.OpenAPISchema()
+	// Kubernetes version must < 1.11.0
+	verInfo, err := ctl.K8sClient.ServerVersion()
 	if err != nil {
-		glog.Error("consult openAPI error: ", err)
+		glog.Error("consult k8s server error: ", err)
 		return
 	}
-	if openInfo == nil {
-		glog.Error("cannot find openAPI info")
-		return
-	}
-	ver := strings.Split(openInfo.GetInfo().GetVersion(), ".")
-	midVer, _ := strconv.Atoi(ver[1])
-	if !(ver[0] == "v1" && midVer < 11) {
-		glog.Infof("disable Ceph secret controller due to Kubernetes version %s mismatch",
-			openInfo.GetInfo().GetVersion())
+	if !utilversion.MustParseSemantic(verInfo.String()).LessThan(utilversion.MustParseSemantic("v1.11.0")) {
+		glog.Infof("disable Ceph secret controller due to k8s version %s >= v1.11.0", verInfo.String())
 		return
 	}
 

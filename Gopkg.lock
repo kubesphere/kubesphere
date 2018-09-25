@@ -742,11 +742,12 @@
   version = "v7.0.0"
 
 [[projects]]
-  digest = "1:1de91645e73441071e6df50478003c60881687cf9849ba0585a61035a6d2a2af"
+  digest = "1:2bdbea32607f4effd9e91dadd90baab1ecf224839b613bcaa8f50db5a5f133f5"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/apis/core",
     "pkg/util/slice",
+    "pkg/util/version",
   ]
   pruneopts = "UT"
   revision = "5ca598b4ba5abb89bb773071ce452e33fb66339d"
@@ -800,6 +801,7 @@
     "k8s.io/client-go/tools/remotecommand",
     "k8s.io/kubernetes/pkg/apis/core",
     "k8s.io/kubernetes/pkg/util/slice",
+    "k8s.io/kubernetes/pkg/util/version",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
