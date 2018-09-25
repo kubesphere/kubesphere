@@ -25,29 +25,21 @@ import (
 	"regexp"
 )
 
-func monitorTenantSingleMertic(request *restful.Request, metricsName string, namespaceList []string) string {
+func monitorTenantSingleMertic(request *restful.Request, metricsName string, namespaceList []string) *simplejson.Json {
 	namespaceRe2 := "^(" + strings.Join(namespaceList, "|") + ")$"
 	newpromql := metrics.MakeTenantPromQL(metricsName, namespaceRe2)
 	podMetrics := client.MakeRequestParams(request, newpromql)
 	cleanedJson := reformatJson(podMetrics, metricsName)
-	jsonByte, err := cleanedJson.Encode()
-	if err != nil {
-		glog.Errorln(err)
-	}
-	return string(jsonByte)
+	return cleanedJson
 }
 
-func monitorWorkLoadSingleMertic(request *restful.Request, metricsName string) string {
+func monitorWorkLoadSingleMertic(request *restful.Request, metricsName string) *simplejson.Json  {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
 	podNamesRe2 := getPodNameRegexInWorkLoad(request)
 	newpromql := metrics.MakePodPromQL(request, []string{metricsName, nsName, "", "", podNamesRe2})
 	podMetrics := client.MakeRequestParams(request, newpromql)
 	cleanedJson := reformatJson(podMetrics, metricsName)
-	jsonByte, err := cleanedJson.Encode()
-	if err != nil {
-		glog.Errorln(err)
-	}
-	return string(jsonByte)
+	return cleanedJson
 }
 
 func getPodNameRegexInWorkLoad(request *restful.Request) string {
@@ -70,7 +62,7 @@ func getPodNameRegexInWorkLoad(request *restful.Request) string {
 
 func (u MonitorResource) monitorPod(request *restful.Request, response *restful.Response) {
 	podName := strings.Trim(request.PathParameter("pod_name"), " ")
-	res := ""
+	var res *simplejson.Json
 	if podName != "" {
 		// single pod single metric
 		metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
@@ -79,10 +71,10 @@ func (u MonitorResource) monitorPod(request *restful.Request, response *restful.
 		// multiple pod multiple metric
 		res = monitorAllMetrics(request)
 	}
-	response.WriteEntity(res)
+	response.WriteAsJson(res)
 }
 
-func monitorPodSingleMertic(request *restful.Request, metricsName string) string {
+func monitorPodSingleMertic(request *restful.Request, metricsName string) *simplejson.Json {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
 	nodeID := strings.Trim(request.PathParameter("node_id"), " ")
 	podName := strings.Trim(request.PathParameter("pod_name"), " ")
@@ -92,13 +84,9 @@ func monitorPodSingleMertic(request *restful.Request, metricsName string) string
 	if promql != "" {
 		res := client.MakeRequestParams(request, promql)
 		cleanedJson := reformatJson(res, metricsName)
-		jsonByte, err := cleanedJson.Encode()
-		if err != nil {
-			glog.Errorln(err)
-		}
-		return string(jsonByte)
+		return cleanedJson
 	}
-	return ""
+	return nil
 }
 
 func (u MonitorResource) monitorContainer(request *restful.Request, response *restful.Response) {
@@ -106,27 +94,23 @@ func (u MonitorResource) monitorContainer(request *restful.Request, response *re
 	promql := metrics.MakeContainerPromQL(request)
 	res := client.MakeRequestParams(request, promql)
 	cleanedJson := reformatJson(res, metricsName)
-	jsonByte, err := cleanedJson.Encode()
-	if err != nil {
-		glog.Errorln(err)
-	}
-	response.WriteEntity(string(jsonByte))
+	response.WriteAsJson(cleanedJson)
 }
 
 func (u MonitorResource) monitorTenant(request *restful.Request, response *restful.Response) {
 	// get namespaces by tenant_name
 	res := monitorAllMetrics(request)
-	response.WriteEntity(res)
+	response.WriteAsJson(res)
 }
 
 func (u MonitorResource) monitorWorkLoad(request *restful.Request, response *restful.Response) {
 	res := monitorAllMetrics(request)
-	response.WriteEntity(res)
+	response.WriteAsJson(res)
 }
 
 func (u MonitorResource) monitorNameSpace(request *restful.Request, response *restful.Response) {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	res := ""
+	var res *simplejson.Json
 	if nsName != "" {
 		// single
 		metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
@@ -135,18 +119,14 @@ func (u MonitorResource) monitorNameSpace(request *restful.Request, response *re
 		// multiple
 		res = monitorAllMetrics(request)
 	}
-	response.WriteEntity(res)
+	response.WriteAsJson(res)
 }
 
-func monitorNameSpaceSingleMertic(request *restful.Request, metricsName string) string {
+func monitorNameSpaceSingleMertic(request *restful.Request, metricsName string) *simplejson.Json {
 	recordingRule := metrics.MakeNameSpacePromQL(request, metricsName)
 	res := client.MakeRequestParams(request, recordingRule)
 	cleanedJson := reformatJson(res, metricsName)
-	jsonByte, err := cleanedJson.Encode()
-	if err != nil {
-		glog.Errorln(err)
-	}
-	return string(jsonByte)
+	return cleanedJson
 }
 
 func reformatJson(mertic string, metricsName string) *simplejson.Json {
@@ -154,10 +134,7 @@ func reformatJson(mertic string, metricsName string) *simplejson.Json {
 	if err != nil {
 		glog.Errorln(err)
 	}
-	array, e := js.Get("data").Get("result").Array()
-	if e != nil {
-		glog.Errorln(err)
-	}
+	array, _ := js.Get("data").Get("result").Array()
 	metricsLength := len(array)
 	for i := 0; i < metricsLength; i++ {
 		jstemp := js.Get("data").Get("result").GetIndex(i).Get("metric")
@@ -173,53 +150,30 @@ func reformatJson(mertic string, metricsName string) *simplejson.Json {
 
 func collectNodeorClusterMetrics(request *restful.Request, metricsName string, ch chan<- *simplejson.Json) {
 	mertic := monitorNodeorClusterSingleMertic(request, metricsName)
-	js, err := simplejson.NewJson([]byte(mertic))
-	if err != nil {
-		glog.Errorln(err)
-	}
-	ch <- js
+	ch <- mertic
 }
 
 func collectNameSpaceMetrics(request *restful.Request, metricsName string, ch chan<- *simplejson.Json) {
 	mertic := monitorNameSpaceSingleMertic(request, metricsName)
-	js, err := simplejson.NewJson([]byte(mertic))
-	if err != nil {
-		glog.Errorln(err)
-	}
-	ch <- js
+	ch <- mertic
 }
 
 func collectTenantMetrics(request *restful.Request, metricsName string, namespaceList []string, ch chan<- *simplejson.Json) {
 	mertic := monitorTenantSingleMertic(request, metricsName, namespaceList)
-	js, err := simplejson.NewJson([]byte(mertic))
-	if err != nil {
-		glog.Errorln(err)
-	}
-	ch <- js
+	ch <- mertic
 }
 
 func collectWorkLoadMetrics(request *restful.Request, metricsName string, ch chan<- *simplejson.Json) {
 	metricsName = strings.TrimLeft(metricsName, "workload_")
 	mertic := monitorWorkLoadSingleMertic(request, metricsName)
-	js, err := simplejson.NewJson([]byte(mertic))
-	if err != nil {
-		glog.Errorln(err)
-	}
-	ch <- js
+	ch <- mertic
 }
 
 func collectPodMetrics(request *restful.Request, metricsName string, ch chan<- *simplejson.Json) {
 	mertic := monitorPodSingleMertic(request, metricsName)
-	if mertic != "" {
-		js, err := simplejson.NewJson([]byte(mertic))
-		if err != nil {
-			glog.Errorln(err)
-		}
-		ch <- js
-	}else {
-		ch <- nil
-	}
+	ch <- mertic
 }
+
 func getNamespaceList(request *restful.Request) []string {
 	tenantName := strings.Trim(request.QueryParameter("tenant_name"), " ")
 	tenantNSInfo := client.GetTenantNamespaceInfo(tenantName)
@@ -268,7 +222,8 @@ func filterNamespace (request *restful.Request, namespaceList []string) []string
 	}
 	return newNSlist
 }
-func monitorAllMetrics(request *restful.Request) string {
+
+func monitorAllMetrics(request *restful.Request) *simplejson.Json {
 	metricsName := strings.Trim(request.QueryParameter("metrics_filter"), " ")
 	if metricsName == "" {
 		metricsName = ".*"
@@ -328,16 +283,12 @@ func monitorAllMetrics(request *restful.Request) string {
 	js := simplejson.New()
 	js.Set("metrics_level", sourceType)
 	js.Set("results", metricsArray)
-	jsByte, err := js.Encode()
-	if err != nil {
-		glog.Errorln("json byte array encode error", js)
-	}
-	return string(jsByte)
+	return js
 }
 
 func (u MonitorResource) monitorNodeorCluster(request *restful.Request, response *restful.Response) {
 	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
-	res := ""
+	var res *simplejson.Json
 	if metricsName != "" {
 		// single
 		res = monitorNodeorClusterSingleMertic(request, metricsName)
@@ -345,22 +296,14 @@ func (u MonitorResource) monitorNodeorCluster(request *restful.Request, response
 		// multiple
 		res = monitorAllMetrics(request)
 	}
-	response.WriteEntity(res)
+	response.WriteAsJson(res)
 }
 
-func monitorNodeorClusterSingleMertic(request *restful.Request, metricsName string) string {
+func monitorNodeorClusterSingleMertic(request *restful.Request, metricsName string) *simplejson.Json {
 	recordingRule := metrics.MakeNodeorClusterRule(request, metricsName)
 	res := client.MakeRequestParams(request, recordingRule)
 	cleanedJson := reformatJson(res, metricsName)
-	jsonStr, err := cleanedJson.Encode()
-	if err != nil {
-		glog.Errorln(err)
-	}
-	return string(jsonStr)
-}
-
-// MonitorResult is just a simple type
-type MonitorResult struct {
+	return cleanedJson
 }
 
 type MonitorResource struct {
@@ -374,9 +317,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("monitor cluster level metrics").
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("cluster_cpu_utilisation")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET(subPath + "/nodes").To(u.monitorNodeorCluster).
@@ -384,9 +326,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor nodes level metrics").
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("node_cpu_utilisation")).
 		Param(ws.QueryParameter("nodes_filter", "node re2 expression filter").DataType("string").Required(false).DefaultValue("")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET(subPath + "/nodes/{node_id}").To(u.monitorNodeorCluster).
@@ -394,9 +335,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor specific node level metrics").
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("node_cpu_utilisation")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET(subPath + "/namespaces").To(u.monitorNameSpace).
@@ -404,20 +344,20 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor namespaces level metrics").
 		Param(ws.QueryParameter("namespaces_filter", "namespaces re2 expression filter").DataType("string").Required(false).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("namespace_memory_utilisation")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}").To(u.monitorNameSpace).
 		Filter(route.RouteLogging).
 		Doc("monitor specific namespace level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("namespace_memory_utilisation")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods").To(u.monitorPod).
 		Filter(route.RouteLogging).
@@ -425,10 +365,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.QueryParameter("pods_filter", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("pod_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}").To(u.monitorPod).
 		Filter(route.RouteLogging).
@@ -436,10 +376,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/nodes/{node_id}/pods").To(u.monitorPod).
 		Filter(route.RouteLogging).
@@ -447,10 +387,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
 		Param(ws.QueryParameter("pods_filter", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("openpitrix.*")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("pod_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/nodes/{node_id}/pods/{pod_name}").To(u.monitorPod).
 		Filter(route.RouteLogging).
@@ -458,10 +398,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true).DefaultValue("i-k89a62il")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}/containers").To(u.monitorContainer).
 		Filter(route.RouteLogging).
@@ -470,10 +410,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("containers_filter", "container re2 expression filter").DataType("string").Required(false).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/pods/{pod_name}/containers/{container_name}").To(u.monitorContainer).
 		Filter(route.RouteLogging).
@@ -482,9 +422,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.PathParameter("container_name", "specific container").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET(subPath + "/namespaces/{ns_name}/workloads/{workload_kind}").To(u.monitorWorkLoad).
@@ -494,10 +433,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
 		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(true).DefaultValue("daemonset")).
 		Param(ws.QueryParameter("workload_name", "workload name").DataType("string").Required(true).DefaultValue("")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 
 	ws.Route(ws.GET(subPath + "/tenants/{tenant_name}").To(u.monitorTenant).
 		Filter(route.RouteLogging).
@@ -505,9 +444,9 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("tenant_name", "tenant name").DataType("string").Required(true)).
 		Param(ws.QueryParameter("namespaces_filter", "namespaces filter").DataType("string").Required(false).DefaultValue("k.*")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false).DefaultValue("tenant_memory_utilisation_wo_cache")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(MonitorResult{}).
-		Returns(200, "OK", MonitorResult{})).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+
 }
 
