@@ -23,6 +23,10 @@ import (
 	"github.com/jinzhu/gorm"
 	"k8s.io/client-go/kubernetes"
 
+	"os"
+	"sync"
+	"syscall"
+
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
@@ -33,7 +37,7 @@ type resourceControllers struct {
 
 var ResourceControllers resourceControllers
 
-func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}) {
+func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}, wg *sync.WaitGroup) {
 	var ctl Controller
 	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan,
 		aliveChan: make(chan struct{}), Name: name}
@@ -75,7 +79,8 @@ func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}
 	}
 
 	rec.Controllers[name] = ctl
-	go listAndWatch(ctl)
+	wg.Add(1)
+	go listAndWatch(ctl, wg)
 
 }
 
@@ -94,23 +99,21 @@ func dbHealthCheck(db *gorm.DB) {
 		}
 
 		if count > 3 {
-			panic(err)
+			syscall.Kill(os.Getpid(), syscall.SIGTERM)
 		}
 	}
 
 }
 
-func Run() {
-
-	stopChan := make(chan struct{})
-	defer close(stopChan)
+func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	k8sClient := client.NewK8sClient()
 	ResourceControllers = resourceControllers{k8sClient: k8sClient, Controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
 		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets, ControllerRevisions} {
-		ResourceControllers.runContoller(item, stopChan)
+		ResourceControllers.runContoller(item, stopChan, wg)
 	}
 
 	go dbHealthCheck(client.NewDBClient())
@@ -118,10 +121,12 @@ func Run() {
 	for {
 		for ctlName, controller := range ResourceControllers.Controllers {
 			select {
+			case <-stopChan:
+				return
 			case _, isClose := <-controller.chanAlive():
 				if !isClose {
 					glog.Errorf("controller %s have stopped, restart it", ctlName)
-					ResourceControllers.runContoller(ctlName, stopChan)
+					ResourceControllers.runContoller(ctlName, stopChan, wg)
 				}
 			default:
 				time.Sleep(5 * time.Second)
