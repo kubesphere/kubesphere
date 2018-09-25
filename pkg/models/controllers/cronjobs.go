@@ -20,75 +20,62 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
-	"k8s.io/api/apps/v1"
+	"k8s.io/api/batch/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 )
 
-func (ctl *StatefulsetCtl) generateObject(item v1.StatefulSet) *Statefulset {
-	var app string
-	var status string
-	var displayName string
+func (ctl *CronJobCtl) generateObject(item v1beta1.CronJob) *CronJob {
+	var status, displayName string
+	var lastScheduleTime *time.Time
 
 	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
 		displayName = item.Annotations[DisplayName]
 	}
+
 	name := item.Name
 	namespace := item.Namespace
-	availablePodNum := item.Status.ReadyReplicas
-	desirePodNum := *item.Spec.Replicas
-	createTime := item.CreationTimestamp.Time
-	release := item.ObjectMeta.Labels["release"]
-	chart := item.ObjectMeta.Labels["chart"]
 
-	if createTime.IsZero() {
-		createTime = time.Now()
+	status = Running
+	if *item.Spec.Suspend {
+		status = Pause
 	}
 
-	if len(release) > 0 && len(chart) > 0 {
-		app = release + "/" + chart
+	schedule := item.Spec.Schedule
+	if item.Status.LastScheduleTime != nil {
+		lastScheduleTime = &item.Status.LastScheduleTime.Time
 	}
 
-	if item.Annotations["state"] == "stop" {
-		status = Stopped
-	} else {
-		if availablePodNum >= desirePodNum {
-			status = Running
-		} else {
-			status = Updating
-		}
+	active := len(item.Status.Active)
+
+	object := &CronJob{
+		Namespace:        namespace,
+		Name:             name,
+		DisplayName:      displayName,
+		LastScheduleTime: lastScheduleTime,
+		Active:           active,
+		Schedule:         schedule,
+		Status:           status,
+		Annotation:       MapString{item.Annotations},
+		Labels:           MapString{item.ObjectMeta.Labels},
 	}
 
-	statefulSetObject := &Statefulset{
-		Namespace:   namespace,
-		Name:        name,
-		DisplayName: displayName,
-		Available:   availablePodNum,
-		Desire:      desirePodNum,
-		App:         app,
-		CreateTime:  createTime,
-		Status:      status,
-		Annotation:  MapString{item.Annotations},
-		Labels:      MapString{item.Spec.Selector.MatchLabels},
-	}
-
-	return statefulSetObject
+	return object
 }
 
-func (ctl *StatefulsetCtl) Name() string {
+func (ctl *CronJobCtl) Name() string {
 	return ctl.CommonAttribute.Name
 }
 
-func (ctl *StatefulsetCtl) sync(stopChan chan struct{}) {
+func (ctl *CronJobCtl) sync(stopChan chan struct{}) {
 	db := ctl.DB
 
-	if db.HasTable(&Statefulset{}) {
-		db.DropTable(&Statefulset{})
+	if db.HasTable(&CronJob{}) {
+		db.DropTable(&CronJob{})
 	}
 
-	db = db.CreateTable(&Statefulset{})
+	db = db.CreateTable(&CronJob{})
 
 	ctl.initListerAndInformer()
 	list, err := ctl.lister.List(labels.Everything())
@@ -105,7 +92,7 @@ func (ctl *StatefulsetCtl) sync(stopChan chan struct{}) {
 	ctl.informer.Run(stopChan)
 }
 
-func (ctl *StatefulsetCtl) total() int {
+func (ctl *CronJobCtl) total() int {
 	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
 		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
@@ -114,29 +101,28 @@ func (ctl *StatefulsetCtl) total() int {
 	return len(list)
 }
 
-func (ctl *StatefulsetCtl) initListerAndInformer() {
+func (ctl *CronJobCtl) initListerAndInformer() {
 	db := ctl.DB
 
 	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
+	ctl.lister = informerFactory.Batch().V1beta1().CronJobs().Lister()
 
-	ctl.lister = informerFactory.Apps().V1().StatefulSets().Lister()
-
-	informer := informerFactory.Apps().V1().StatefulSets().Informer()
+	informer := informerFactory.Batch().V1beta1().CronJobs().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 
-			object := obj.(*v1.StatefulSet)
+			object := obj.(*v1beta1.CronJob)
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
 		},
 		UpdateFunc: func(old, new interface{}) {
-			object := new.(*v1.StatefulSet)
+			object := new.(*v1beta1.CronJob)
 			mysqlObject := ctl.generateObject(*object)
 			db.Save(mysqlObject)
 		},
 		DeleteFunc: func(obj interface{}) {
-			var item Statefulset
-			object := obj.(*v1.StatefulSet)
+			var item CronJob
+			object := obj.(*v1beta1.CronJob)
 			db.Where("name=? And namespace=?", object.Name, object.Namespace).Find(&item)
 			db.Delete(item)
 
@@ -146,19 +132,19 @@ func (ctl *StatefulsetCtl) initListerAndInformer() {
 	ctl.informer = informer
 }
 
-func (ctl *StatefulsetCtl) CountWithConditions(conditions string) int {
-	var object Statefulset
+func (ctl *CronJobCtl) CountWithConditions(conditions string) int {
+	var object CronJob
 
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
-	var list []Statefulset
-	var object Statefulset
+func (ctl *CronJobCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
+	var list []CronJob
+	var object CronJob
 	var total int
 
 	if len(order) == 0 {
-		order = "createTime desc"
+		order = "lastScheduleTime desc"
 	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
@@ -166,7 +152,7 @@ func (ctl *StatefulsetCtl) ListWithConditions(conditions string, paging *Paging,
 	return total, list, nil
 }
 
-func (ctl *StatefulsetCtl) Lister() interface{} {
+func (ctl *CronJobCtl) Lister() interface{} {
 
 	return ctl.lister
 }

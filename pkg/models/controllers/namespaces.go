@@ -34,6 +34,11 @@ import (
 
 	"k8s.io/client-go/informers"
 
+	"k8s.io/kubernetes/pkg/apis/core"
+
+	"strconv"
+	"strings"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/options"
@@ -226,7 +231,82 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 	}
 }
 
+func (ctl *NamespaceCtl) createCephSecretAfterNewNs(item v1.Namespace) {
+	// Kubernetes version must <= 1.10
+	openInfo, err := ctl.K8sClient.OpenAPISchema()
+	if err != nil {
+		glog.Error("consult openAPI error: ", err)
+		return
+	}
+	if openInfo == nil {
+		glog.Error("cannot find openAPI info")
+		return
+	}
+	ver := strings.Split(openInfo.GetInfo().GetVersion(), ".")
+	midVer, _ := strconv.Atoi(ver[1])
+	if !(ver[0] == "v1" && midVer < 11) {
+		glog.Infof("disable Ceph secret controller due to Kubernetes version %s mismatch",
+			openInfo.GetInfo().GetVersion())
+		return
+	}
+
+	// Create Ceph secret in the new namespace
+	newNsName := item.Name
+	scList, _ := ctl.K8sClient.StorageV1().StorageClasses().List(metaV1.ListOptions{})
+	if scList == nil {
+		return
+	}
+	for _, sc := range scList.Items {
+		if sc.Provisioner == rbdPluginName {
+			glog.Infof("would create Ceph user secret in storage class %s at namespace %s", sc.GetName(), newNsName)
+			if secretName, ok := sc.Parameters[rbdUserSecretNameKey]; ok {
+				secret, err := ctl.K8sClient.CoreV1().Secrets(core.NamespaceSystem).Get(secretName, metaV1.GetOptions{})
+				if err != nil {
+					if errors.IsNotFound(err) {
+						glog.Errorf("cannot find secret in namespace %s, error: %s", core.NamespaceSystem, err.Error())
+						continue
+					}
+					glog.Errorf("failed to find secret in namespace %s, error: %s", core.NamespaceSystem, err.Error())
+					continue
+				}
+				glog.Infof("succeed to find secret %s in namespace %s", secret.GetName(), secret.GetNamespace())
+
+				newSecret := &v1.Secret{
+					TypeMeta: metaV1.TypeMeta{
+						Kind:       secret.Kind,
+						APIVersion: secret.APIVersion,
+					},
+					ObjectMeta: metaV1.ObjectMeta{
+						Name:                       secret.GetName(),
+						Namespace:                  newNsName,
+						Labels:                     secret.GetLabels(),
+						Annotations:                secret.GetAnnotations(),
+						DeletionGracePeriodSeconds: secret.GetDeletionGracePeriodSeconds(),
+						ClusterName:                secret.GetClusterName(),
+					},
+					Data:       secret.Data,
+					StringData: secret.StringData,
+					Type:       secret.Type,
+				}
+				glog.Infof("creating secret %s in namespace %s...", newSecret.GetName(), newSecret.GetNamespace())
+				_, err = ctl.K8sClient.CoreV1().Secrets(newSecret.GetNamespace()).Create(newSecret)
+				if err != nil {
+					glog.Errorf("failed to create secret in namespace %s, error: %v", newSecret.GetNamespace(), err)
+					continue
+				}
+			} else {
+				glog.Errorf("failed to find user secret name in storage class %s", sc.GetName())
+			}
+		}
+	}
+}
+
 func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
 
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
@@ -236,7 +316,13 @@ func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
 		createTime = time.Now()
 	}
 
-	object := &Namespace{Name: name, CreateTime: createTime, Status: status, Annotation: Annotation{item.Annotations}}
+	object := &Namespace{
+		Name:        name,
+		DisplayName: displayName,
+		CreateTime:  createTime,
+		Status:      status,
+		Annotation:  MapString{item.Annotations},
+	}
 
 	return object
 }
@@ -294,6 +380,7 @@ func (ctl *NamespaceCtl) initListerAndInformer() {
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
 			ctl.createRoleAndRuntime(*object)
+			ctl.createCephSecretAfterNewNs(*object)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.Namespace)
@@ -320,12 +407,14 @@ func (ctl *NamespaceCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Namespace
 	var object Namespace
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
@@ -333,7 +422,7 @@ func (ctl *NamespaceCtl) ListWithConditions(conditions string, paging *Paging) (
 		for index := range list {
 			usage, err := ctl.GetNamespaceQuota(list[index].Name)
 			if err == nil {
-				list[index].Usaeg = usage
+				list[index].Usage = usage
 			}
 		}
 	}
@@ -350,7 +439,7 @@ func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, e
 
 	usage := make(v1.ResourceList)
 
-	resourceList := []string{Daemonsets, Deployments, Ingresses, Roles, Services, Statefulsets, PersistentVolumeClaim, Pods}
+	resourceList := []string{Daemonsets, Deployments, Ingresses, Roles, Services, Statefulsets, PersistentVolumeClaim, Pods, Jobs, Cronjobs}
 	for _, resourceName := range resourceList {
 		used := getUsage(namespace, resourceName)
 		var quantity resource.Quantity
@@ -364,4 +453,9 @@ func (ctl *NamespaceCtl) GetNamespaceQuota(namespace string) (v1.ResourceList, e
 	quantity.Set(int64(used))
 	usage["runningPods"] = quantity
 	return usage, nil
+}
+
+func (ctl *NamespaceCtl) Lister() interface{} {
+
+	return ctl.lister
 }

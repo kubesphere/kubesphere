@@ -21,14 +21,18 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/daemonsets"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/deployments"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/monitoring"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/jobs"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/quota"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/resources"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/statefulsets"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/users"
@@ -55,6 +59,10 @@ func init() {
 	terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
 	workloadstatus.Register(ws, "/status")
 	quota.Register(ws, "/quota")
+	jobs.Register(ws, "/namespaces/{namespace}/jobs/{job}")
+	deployments.Register(ws, "/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}")
+	daemonsets.Register(ws, "/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}")
+	statefulsets.Register(ws, "/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}")
 	resources.Register(ws, "/resources")
 	monitoring.Register(ws, "/monitoring")
 

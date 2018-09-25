@@ -28,6 +28,12 @@ import (
 )
 
 func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	if strings.HasPrefix(name, systemPrefix) {
 		return nil
@@ -38,7 +44,13 @@ func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
 		createTime = time.Now()
 	}
 
-	object := &Role{Namespace: namespace, Name: name, CreateTime: createTime, Annotation: Annotation{item.Annotations}}
+	object := &Role{
+		Namespace:   namespace,
+		Name:        name,
+		DisplayName: displayName,
+		CreateTime:  createTime,
+		Annotation:  MapString{item.Annotations},
+	}
 
 	return object
 }
@@ -132,21 +144,21 @@ func (ctl *RoleCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *RoleCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []Role
 	var object Role
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
 	return total, list, nil
 }
 
-//func (ctl *RoleCtl) Count(namespace string) int {
-//	var count int
-//	db := ctl.DB
-//	db.Model(&Role{}).Where("namespace = ?", namespace).Count(&count)
-//	return count
-//}
+func (ctl *RoleCtl) Lister() interface{} {
+
+	return ctl.lister
+}

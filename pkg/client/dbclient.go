@@ -15,12 +15,11 @@ package client
 
 import (
 	"fmt"
+	"log"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-
-	"log"
 
 	"kubesphere.io/kubesphere/pkg/logs"
 	"kubesphere.io/kubesphere/pkg/options"
@@ -31,6 +30,24 @@ var dbClient *gorm.DB
 const database = "kubesphere"
 
 func NewDBClient() *gorm.DB {
+	user := options.ServerOptions.GetMysqlUser()
+	passwd := options.ServerOptions.GetMysqlPassword()
+	addr := options.ServerOptions.GetMysqlAddr()
+	conn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, database)
+
+	db, err := gorm.Open("mysql", conn)
+
+	if err != nil {
+		glog.Error(err)
+		panic(err)
+	}
+
+	db.SetLogger(log.New(logs.GlogWriter{}, " ", 0))
+
+	return db
+}
+
+func NewSharedDBClient() *gorm.DB {
 
 	if dbClient != nil {
 		err := dbClient.DB().Ping()
@@ -42,23 +59,5 @@ func NewDBClient() *gorm.DB {
 		}
 	}
 
-	user := options.ServerOptions.GetMysqlUser()
-	passwd := options.ServerOptions.GetMysqlPassword()
-	addr := options.ServerOptions.GetMysqlAddr()
-	if dbClient == nil {
-		conn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, database)
-		glog.Info(conn)
-		db, err := gorm.Open("mysql", conn)
-
-		if err != nil {
-			glog.Error(err)
-			panic(err)
-		}
-
-		db.SetLogger(log.New(logs.GlogWriter{}, " ", 0))
-		dbClient = db
-		return dbClient
-	}
-
-	return dbClient
+	return NewDBClient()
 }

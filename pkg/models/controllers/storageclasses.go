@@ -20,19 +20,37 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
-	"k8s.io/api/storage/v1"
+	"strconv"
+	"strings"
 
+	"github.com/golang/glog"
+	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/apis/core"
+)
+
+const (
+	rbdPluginName        = "kubernetes.io/rbd"
+	rbdUserSecretNameKey = "userSecretName"
 )
 
 func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 
+	var displayName string
+
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+		displayName = item.Annotations[DisplayName]
+	}
+
 	name := item.Name
 	createTime := item.CreationTimestamp.Time
 	isDefault := false
+	provisioner := item.Provisioner
 	if item.Annotations["storageclass.beta.kubernetes.io/is-default-class"] == "true" {
 		isDefault = true
 	}
@@ -41,7 +59,14 @@ func (ctl *StorageClassCtl) generateObject(item v1.StorageClass) *StorageClass {
 		createTime = time.Now()
 	}
 
-	object := &StorageClass{Name: name, CreateTime: createTime, IsDefault: isDefault, Annotation: Annotation{item.Annotations}}
+	object := &StorageClass{
+		Name:        name,
+		DisplayName: displayName,
+		CreateTime:  createTime,
+		IsDefault:   isDefault,
+		Annotation:  MapString{item.Annotations},
+		Provisioner: provisioner,
+	}
 
 	return object
 }
@@ -83,6 +108,102 @@ func (ctl *StorageClassCtl) total() int {
 	return len(list)
 }
 
+func (ctl *StorageClassCtl) createCephSecretAfterNewSc(item v1.StorageClass) {
+	// Kubernetes version must <= 1.10
+	openInfo, err := ctl.K8sClient.OpenAPISchema()
+	if err != nil {
+		glog.Error("consult openAPI error: ", err)
+		return
+	}
+	if openInfo == nil {
+		glog.Error("cannot find openAPI info")
+		return
+	}
+	ver := strings.Split(openInfo.GetInfo().GetVersion(), ".")
+	midVer, _ := strconv.Atoi(ver[1])
+	if !(ver[0] == "v1" && midVer < 11) {
+		glog.Infof("disable Ceph secret controller due to Kubernetes version %s mismatch",
+			openInfo.GetInfo().GetVersion())
+		return
+	}
+
+	// Find Ceph secret in the new storage class
+	if item.Provisioner != rbdPluginName {
+		return
+	}
+	var secret *coreV1.Secret
+	if secretName, ok := item.Parameters[rbdUserSecretNameKey]; ok {
+		secret, err = ctl.K8sClient.CoreV1().Secrets(core.NamespaceSystem).Get(secretName, metaV1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				glog.Errorf("cannot find secret %s in namespace %s", secretName, core.NamespaceSystem)
+				return
+			}
+			glog.Error("failed to find secret, error: ", err)
+			return
+		}
+		glog.Infof("succeed to find secret %s in namespace %s", secret.GetName(), secret.GetNamespace())
+	} else {
+		glog.Errorf("failed to find user secret name in storage class %s", item.GetName())
+		return
+	}
+
+	// Create or update Ceph secret in each namespace
+	nsList, err := ctl.K8sClient.CoreV1().Namespaces().List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Error("failed to list namespace, error: ", err)
+		return
+	}
+	for _, ns := range nsList.Items {
+		if ns.GetName() == core.NamespaceSystem {
+			glog.Infof("skip creating Ceph secret in namespace %s", core.NamespaceSystem)
+			continue
+		}
+		newSecret := &coreV1.Secret{
+			TypeMeta: metaV1.TypeMeta{
+				Kind:       secret.Kind,
+				APIVersion: secret.APIVersion,
+			},
+			ObjectMeta: metaV1.ObjectMeta{
+				Name:                       secret.GetName(),
+				Namespace:                  ns.GetName(),
+				Labels:                     secret.GetLabels(),
+				Annotations:                secret.GetAnnotations(),
+				DeletionGracePeriodSeconds: secret.GetDeletionGracePeriodSeconds(),
+				ClusterName:                secret.GetClusterName(),
+			},
+			Data:       secret.Data,
+			StringData: secret.StringData,
+			Type:       secret.Type,
+		}
+
+		_, err := ctl.K8sClient.CoreV1().Secrets(newSecret.GetNamespace()).Get(newSecret.GetName(), metaV1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				// Create secret
+				_, err := ctl.K8sClient.CoreV1().Secrets(newSecret.GetNamespace()).Create(newSecret)
+				if err != nil {
+					glog.Errorf("failed to create secret in namespace %s, error: %v", newSecret.GetNamespace(), err)
+				} else {
+					glog.Infof("succeed to create secret %s in namespace %s", newSecret.GetName(),
+						newSecret.GetNamespace())
+				}
+			} else {
+				glog.Errorf("failed to find secret in namespace %s, error: %v", newSecret.GetNamespace(), err)
+			}
+		} else {
+			// Update secret
+			_, err = ctl.K8sClient.CoreV1().Secrets(newSecret.GetNamespace()).Update(newSecret)
+			if err != nil {
+				glog.Errorf("failed to update secret in namespace %s, error: %v", newSecret.GetNamespace(), err)
+				continue
+			} else {
+				glog.Infof("succeed to update secret %s in namespace %s", newSecret.GetName(), newSecret.GetNamespace())
+			}
+		}
+	}
+}
+
 func (ctl *StorageClassCtl) initListerAndInformer() {
 	db := ctl.DB
 
@@ -96,6 +217,7 @@ func (ctl *StorageClassCtl) initListerAndInformer() {
 			object := obj.(*v1.StorageClass)
 			mysqlObject := ctl.generateObject(*object)
 			db.Create(mysqlObject)
+			ctl.createCephSecretAfterNewSc(*object)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.StorageClass)
@@ -120,12 +242,14 @@ func (ctl *StorageClassCtl) CountWithConditions(conditions string) int {
 	return countWithConditions(ctl.DB, conditions, &object)
 }
 
-func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging) (int, interface{}, error) {
+func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging, order string) (int, interface{}, error) {
 	var list []StorageClass
 	var object StorageClass
 	var total int
 
-	order := "createTime desc"
+	if len(order) == 0 {
+		order = "createTime desc"
+	}
 
 	listWithConditions(ctl.DB, &total, &object, &list, conditions, paging, order)
 
@@ -137,4 +261,9 @@ func (ctl *StorageClassCtl) ListWithConditions(conditions string, paging *Paging
 	}
 
 	return total, list, nil
+}
+
+func (ctl *StorageClassCtl) Lister() interface{} {
+
+	return ctl.lister
 }
