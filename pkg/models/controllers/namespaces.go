@@ -36,8 +36,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/apis/core"
 
-	"strconv"
-	"strings"
+	utilversion "k8s.io/kubernetes/pkg/util/version"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -232,21 +231,14 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
 }
 
 func (ctl *NamespaceCtl) createCephSecretAfterNewNs(item v1.Namespace) {
-	// Kubernetes version must <= 1.10
-	openInfo, err := ctl.K8sClient.OpenAPISchema()
+	// Kubernetes version must < 1.11.0
+	verInfo, err := ctl.K8sClient.ServerVersion()
 	if err != nil {
-		glog.Error("consult openAPI error: ", err)
+		glog.Error("consult k8s server error: ", err)
 		return
 	}
-	if openInfo == nil {
-		glog.Error("cannot find openAPI info")
-		return
-	}
-	ver := strings.Split(openInfo.GetInfo().GetVersion(), ".")
-	midVer, _ := strconv.Atoi(ver[1])
-	if !(ver[0] == "v1" && midVer < 11) {
-		glog.Infof("disable Ceph secret controller due to Kubernetes version %s mismatch",
-			openInfo.GetInfo().GetVersion())
+	if !utilversion.MustParseSemantic(verInfo.String()).LessThan(utilversion.MustParseSemantic("v1.11.0")) {
+		glog.Infof("disable Ceph secret controller due to k8s version %s >= v1.11.0", verInfo.String())
 		return
 	}
 
