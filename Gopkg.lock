@@ -42,7 +42,15 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:4fe4dc4ce7ebb5a4b0544c5b411196d23e221800d279a207d76f02812f756c3d"
+  digest = "1:b520b55fc1146c5b0eea03b07233f7a3d4a9be985c037c91ea6b82ecb81bd521"
+  name = "github.com/bitly/go-simplejson"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "aabad6e819789e569bd6aabf444c935aa9ba1e44"
+  version = "v0.5.0"
+
+[[projects]]
+  digest = "1:c79be88c8108e1267d103b8d618172838f99fd4f8b79e68c63d45b843740f507"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -78,7 +86,7 @@
   revision = "749f6afb4572201e3c37325d0ffedb6f32be8950"
 
 [[projects]]
-  digest = "1:ec821dda59d7dd340498d74f798aa218b2c782bba54a690e866dc4f520d900d5"
+  digest = "1:2cf8e4f6eb200819e39ef5bda5753e3fdaab30bdcbb027a6589a00332c27a9b6"
   name = "github.com/docker/docker"
   packages = [
     "api",
@@ -742,7 +750,7 @@
   version = "v7.0.0"
 
 [[projects]]
-  digest = "1:2bdbea32607f4effd9e91dadd90baab1ecf224839b613bcaa8f50db5a5f133f5"
+  digest = "1:fb1c2bd35e897cb34394fa33ecd5e94812b9c24b68a2d0982689f4ed2b9dc121"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/apis/core",
@@ -758,6 +766,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/antonholmquist/jason",
+    "github.com/bitly/go-simplejson",
     "github.com/coreos/etcd/clientv3",
     "github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes",
     "github.com/coreos/etcd/pkg/transport",
