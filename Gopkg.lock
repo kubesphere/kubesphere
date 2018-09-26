@@ -50,7 +50,7 @@
   version = "v0.5.0"
 
 [[projects]]
-  digest = "1:4fe4dc4ce7ebb5a4b0544c5b411196d23e221800d279a207d76f02812f756c3d"
+  digest = "1:c79be88c8108e1267d103b8d618172838f99fd4f8b79e68c63d45b843740f507"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -86,7 +86,7 @@
   revision = "749f6afb4572201e3c37325d0ffedb6f32be8950"
 
 [[projects]]
-  digest = "1:ec821dda59d7dd340498d74f798aa218b2c782bba54a690e866dc4f520d900d5"
+  digest = "1:2cf8e4f6eb200819e39ef5bda5753e3fdaab30bdcbb027a6589a00332c27a9b6"
   name = "github.com/docker/docker"
   packages = [
     "api",
@@ -750,7 +750,7 @@
   version = "v7.0.0"
 
 [[projects]]
-  digest = "1:2bdbea32607f4effd9e91dadd90baab1ecf224839b613bcaa8f50db5a5f133f5"
+  digest = "1:21d7709551938005b74c7aee700105df398407641370a1003929336724f85fde"
   name = "k8s.io/kubernetes"
   packages = [
     "pkg/apis/core",

@@ -38,9 +38,11 @@ func MakeWorkLoadRule(request *restful.Request) string {
 		namespace = ".*"
 	}
 
-	// kind alertnatives values: Deployment StatefulSet ReplicaSet Job DaemonSet
+	// kind alertnatives values: Deployment StatefulSet ReplicaSet DaemonSet
 	kind = strings.ToLower(kind)
-	if kind == "deployment" {
+
+	switch kind {
+	case "deployment":
 		kind = "ReplicaSet"
 		if name != "" {
 			name = "~\"" + name + ".*\""
@@ -51,17 +53,12 @@ func MakeWorkLoadRule(request *restful.Request) string {
 		rule = strings.Replace(rule, "$2", name, -1)
 		rule = strings.Replace(rule, "$3", namespace, -1)
 		return rule
-
-	} else if kind == "replicaset" {
+	case "replicaset":
 		kind = "ReplicaSet"
-	} else if kind == "statefulset" {
+	case "statefulset":
 		kind = "StatefulSet"
-	} else if kind == "daemonset" {
+	case "daemonset":
 		kind = "DaemonSet"
-	} else if kind == "job" {
-		kind = "Job"
-	} else {
-		kind = ".*"
 	}
 
 	if name == "" {

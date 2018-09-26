@@ -16,8 +16,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
-	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -119,7 +117,7 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 		u.Set("timeout", timeout)
 		return u, false, nil
 	} else {
-		u.Set("time", strconv.FormatInt(int64(time.Now().Unix()), 10))
+		//u.Set("time", strconv.FormatInt(int64(time.Now().Unix()), 10))
 		u.Set("timeout", timeout)
 		return u, false, nil
 	}
