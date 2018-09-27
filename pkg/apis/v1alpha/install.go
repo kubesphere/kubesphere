@@ -23,6 +23,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/daemonsets"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/deployments"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/hpa"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/jobs"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
@@ -58,6 +59,7 @@ func init() {
 	terminal.Register(ws, "/namespaces/{namespace}/pod/{pod}/shell/{container}")
 	workloadstatus.Register(ws, "/status")
 	quota.Register(ws, "/quota")
+	hpa.Register(ws, "/namespaces/{namespace}/horizontalpodautoscalers/{horizontalpodautoscaler}")
 	jobs.Register(ws, "/namespaces/{namespace}/jobs/{job}")
 	deployments.Register(ws, "/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}")
 	daemonsets.Register(ws, "/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}")
