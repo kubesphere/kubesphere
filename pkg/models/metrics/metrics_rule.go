@@ -67,6 +67,12 @@ func MakeWorkloadRule(request *restful.Request) string {
 	return rule
 }
 
+func MakeWorkspacePromQL(metricsName string, namespaceRe2 string) string {
+	promql := RulePromQLTmplMap[metricsName]
+	promql = strings.Replace(promql, "$1", namespaceRe2, -1)
+	return promql
+}
+
 func MakeContainerPromQL(request *restful.Request) string {
 	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
 	poName := strings.Trim(request.PathParameter("pod_name"), " ")
@@ -169,9 +175,8 @@ func MakeNodeorClusterRule(request *restful.Request, metricsName string) string 
 		if nodesFilter == "" {
 			nodesFilter = ".*"
 		}
-		if strings.Contains(metricsName, "disk") && (!(strings.Contains(metricsName, "read") || strings.Contains(metricsName, "write"))) {
+		if strings.Contains(metricsName, "disk_size") {
 			// disk size promql
-			nodesFilter := ""
 			if nodeID != "" {
 				nodesFilter = "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
 			} else {
