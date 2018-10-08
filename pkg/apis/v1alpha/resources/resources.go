@@ -34,12 +34,16 @@ func Register(ws *restful.WebService, subPath string) {
 
 	tags := []string{"resources"}
 
-	ws.Route(ws.GET(subPath+"/{resource}").To(listResource).Produces(restful.MIME_JSON).Metadata(restfulspec.KeyOpenAPITags, tags).Doc("Get resource" +
-		" list").Param(ws.PathParameter("resource", "resource name").DataType("string")).Param(ws.QueryParameter("conditions",
-		"search conditions").DataType("string")).Param(ws.QueryParameter("reverse",
-		"support reverse ordering").DataType("bool").DefaultValue("false")).Param(ws.QueryParameter("order",
-		"the field for sorting").DataType("string")).Param(ws.QueryParameter("paging",
-		"support paging function").DataType("string")).Writes(models.ResourceList{}))
+	ws.Route(ws.GET(subPath+"/{resource}").To(listResource).
+		Produces(restful.MIME_JSON).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get resource list").
+		Param(ws.PathParameter("resource", "resource name").DataType("string")).
+		Param(ws.QueryParameter("conditions", "search conditions").DataType("string")).
+		Param(ws.QueryParameter("reverse", "support reverse ordering").DataType("bool").DefaultValue("false")).
+		Param(ws.QueryParameter("order", "the field for sorting").DataType("string")).
+		Param(ws.QueryParameter("paging", "support paging function").DataType("string")).
+		Writes(models.ResourceList{}))
 }
 
 func isInvalid(str string) bool {
