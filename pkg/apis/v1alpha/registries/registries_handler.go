@@ -55,6 +55,23 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET(subPath + "/{name}/namespaces/{namespace}/searchwords/{searchWord}").
+		Param(ws.PathParameter("namespace", "registry secret's namespace")).
+		Param(ws.PathParameter("name", "registry secret's name")).
+		Param(ws.PathParameter("searchWord", "keyword use to search image")).
+		To(handlerImageSearch).
+		Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET(subPath + "/{name}/namespaces/{namespace}/tags").
+		Param(ws.QueryParameter("image", "imageName")).
+		Param(ws.PathParameter("namespace", "registry secret's namespace")).
+		Param(ws.PathParameter("name", "registry secret's name")).
+		To(handlerGetImageTags).
+		Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
 }
 
 func handlerRegistryValidation(request *restful.Request, response *restful.Response) {
@@ -74,6 +91,30 @@ func handlerRegistryValidation(request *restful.Request, response *restful.Respo
 		response.WriteAsJson(result)
 
 	}
+
+}
+
+func handlerImageSearch(request *restful.Request, response *restful.Response) {
+
+	registry := request.PathParameter("name")
+	searchWord := request.PathParameter("searchWord")
+	namespace := request.PathParameter("namespace")
+
+	res := models.ImageSearch(namespace, registry, searchWord)
+
+	response.WriteEntity(res)
+
+}
+
+func handlerGetImageTags(request *restful.Request, response *restful.Response) {
+
+	registry := request.PathParameter("name")
+	image := request.QueryParameter("image")
+	namespace := request.PathParameter("namespace")
+
+	res := models.GetImageTags(namespace, registry, image)
+
+	response.WriteEntity(res)
 
 }
 
