@@ -52,7 +52,7 @@ func getController(resource string) (controllers.Controller, error) {
 	case controllers.Deployments, controllers.Statefulsets, controllers.Daemonsets, controllers.Ingresses,
 		controllers.PersistentVolumeClaim, controllers.Roles, controllers.ClusterRoles, controllers.Services,
 		controllers.Pods, controllers.Namespaces, controllers.StorageClasses, controllers.Jobs, controllers.Cronjobs,
-		controllers.Nodes:
+		controllers.Nodes, controllers.Secrets, controllers.ConfigMaps:
 
 		return controllers.ResourceControllers.Controllers[resource], nil
 	default:

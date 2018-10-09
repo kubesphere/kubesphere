@@ -67,6 +67,8 @@ const (
 	Nodes                 = "nodes"
 	Replicasets           = "replicasets"
 	ControllerRevisions   = "controllerrevisions"
+	ConfigMaps            = "configmaps"
+	Secrets               = "secrets"
 )
 
 type MapString struct {
@@ -334,6 +336,26 @@ type Node struct {
 	Role        string    `json:"role"`
 	CreateTime  time.Time `gorm:"column:createTime" json:"createTime,omitempty"`
 }
+
+type ConfigMap struct {
+	Name        string    `gorm:"primary_key" json:"name"`
+	Namespace   string    `gorm:"primary_key" json:"namespace"`
+	DisplayName string    `json:"displayName,omitempty" gorm:"column:displayName"`
+	CreateTime  time.Time `gorm:"column:createTime" json:"createTime,omitempty"`
+	Annotation  MapString `json:"annotations"`
+	Entries     string    `gorm:"type:text" json:"entries"`
+}
+
+type Secret struct {
+	Name        string    `gorm:"primary_key" json:"name"`
+	Namespace   string    `gorm:"primary_key" json:"namespace"`
+	DisplayName string    `json:"displayName,omitempty" gorm:"column:displayName"`
+	CreateTime  time.Time `gorm:"column:createTime" json:"createTime,omitempty"`
+	Annotation  MapString `json:"annotations"`
+	Entries     int       `json:"entries"`
+	Type        string    `json:"type"`
+}
+
 type Paging struct {
 	Limit, Offset, Page int
 }
@@ -466,6 +488,18 @@ type ReplicaSetCtl struct {
 
 type ControllerRevisionCtl struct {
 	lister   appV1.ControllerRevisionLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+
+type ConfigMapCtl struct {
+	lister   coreV1.ConfigMapLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+
+type SecretCtl struct {
+	lister   coreV1.SecretLister
 	informer cache.SharedIndexInformer
 	CommonAttribute
 }

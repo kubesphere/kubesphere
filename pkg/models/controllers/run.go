@@ -74,6 +74,10 @@ func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}
 		ctl = &ReplicaSetCtl{CommonAttribute: attr}
 	case ControllerRevisions:
 		ctl = &ControllerRevisionCtl{CommonAttribute: attr}
+	case ConfigMaps:
+		ctl = &ConfigMapCtl{CommonAttribute: attr}
+	case Secrets:
+		ctl = &SecretCtl{CommonAttribute: attr}
 	default:
 		return
 	}
@@ -112,7 +116,8 @@ func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
 	ResourceControllers = resourceControllers{k8sClient: k8sClient, Controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
-		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets, ControllerRevisions} {
+		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets,
+		ControllerRevisions, ConfigMaps, Secrets} {
 		ResourceControllers.runContoller(item, stopChan, wg)
 	}
 
@@ -129,7 +134,7 @@ func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
 					ResourceControllers.runContoller(ctlName, stopChan, wg)
 				}
 			default:
-				time.Sleep(5 * time.Second)
+				time.Sleep(3 * time.Second)
 			}
 		}
 	}
