@@ -16,6 +16,8 @@ limitations under the License.
 
 package constants
 
+import "os"
+
 type MessageResponse struct {
 	Message string `json:"message"`
 }
@@ -38,4 +40,15 @@ const (
 	DataHome                   = "/etc/kubesphere"
 	IngressControllerFolder    = DataHome + "/ingress-controller"
 	IngressControllerPrefix    = "kubesphere-router-"
+	OpenPitrixProxyTokenEnv    = "OPENPITRIX_PROXY_TOKEN"
 )
+
+var (
+	OpenPitrixProxyToken = ""
+)
+
+func init() {
+	if env := os.Getenv(OpenPitrixProxyTokenEnv); env != "" {
+		OpenPitrixProxyToken = env
+	}
+}
