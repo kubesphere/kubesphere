@@ -29,20 +29,72 @@ import (
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"crypto/tls"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	kubeclient "kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-const TYPE = "kubernetes.io/dockerconfigjson"
-
-const SECRET = "Secret"
-
-const APIVERSION = "v1"
+const (
+	TYPE               = "kubernetes.io/dockerconfigjson"
+	SECRET             = "Secret"
+	APIVERSION         = "v1"
+	TYPEHARBOR         = "harbor"
+	TYPEDOCKERHUB      = "dockerhub"
+	TYPEDOCKERREGISTRY = "docker-registry"
+)
 
 type AuthInfo struct {
 	Username   string `json:"username"`
 	Password   string `json:"password"`
 	ServerHost string `json:"serverhost"`
+}
+
+type DockerConfigEntry struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Auth     string `json:"auth"`
+}
+
+type RegistryInfo struct {
+	user, password, registryType, url string
+}
+
+type dockerConfig map[string]map[string]DockerConfigEntry
+
+type harborRepo struct {
+	RepoName string `json:"repository_name"`
+}
+
+type harborRepos struct {
+	Repos []harborRepo `json:"repository"`
+}
+
+type registryRepos struct {
+	Repositories []string
+}
+
+type registryTags struct {
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
+}
+
+type dockerhubRepo struct {
+	RepoName string `json:"repo_name"`
+}
+type dockerhubRepos struct {
+	Repositories []dockerhubRepo `json:"results"`
+}
+
+type dockerhubTag struct {
+	TagName string `json:"name"`
+}
+
+type dockerhubTags struct {
+	Tags []dockerhubTag `json:"results"`
 }
 
 func NewAuthInfo(para Registries) *AuthInfo {
@@ -439,4 +491,238 @@ func GetReisgtries(name string) (Registries, error) {
 
 	return reg, nil
 
+}
+
+// by image secret to get registry'info, like username, password, registry url ...
+func getRegistryInfo(namespace, registryName string) *RegistryInfo {
+
+	var registry RegistryInfo
+	k8sClient := kubeclient.NewK8sClient()
+	secret, err := k8sClient.CoreV1().Secrets(namespace).Get(registryName, meta_v1.GetOptions{})
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	registry.registryType = secret.Annotations["type"]
+
+	data := secret.Data[v1.DockerConfigJsonKey]
+
+	authsMap := make(dockerConfig)
+	err = json.Unmarshal(data, &authsMap)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	for url, config := range authsMap["auths"] {
+		registry.url = url
+		registry.user = config.Username
+		registry.password = config.Password
+		break
+	}
+
+	return &registry
+}
+
+func ImageSearch(namespace, registryName, searchWord string) []string {
+	registry := getRegistryInfo(namespace, registryName)
+	if registry == nil {
+		return nil
+	}
+
+	switch registry.registryType {
+	case TYPEDOCKERHUB:
+		return searchDockerHub(registry.url, searchWord)
+	case TYPEDOCKERREGISTRY:
+		return searchDockerRegistry(registry.url, searchWord)
+	case TYPEHARBOR:
+		return searchHarbor(registry.url, registry.user, registry.password, searchWord)
+	}
+
+	return nil
+}
+
+func GetImageTags(namespace, registryName, imageName string) []string {
+	registry := getRegistryInfo(namespace, registryName)
+	if registry == nil {
+		return nil
+	}
+
+	switch registry.registryType {
+	case TYPEDOCKERHUB:
+		return getTagInDockerHub(registry.url, imageName)
+	case TYPEDOCKERREGISTRY:
+		return getTagInDockerRegistry(registry.url, imageName)
+	case TYPEHARBOR:
+		return getTagInHarbor(registry.url, registry.user, registry.password, imageName)
+	}
+
+	return nil
+}
+
+func httpGet(url, username, password string, insecure bool) ([]byte, error) {
+	var httpClient *http.Client
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if insecure {
+		httpClient = &http.Client{}
+	} else {
+		req.SetBasicAuth(username, password)
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		httpClient = &http.Client{Timeout: 20 * time.Second, Transport: tr}
+	}
+
+	resp, err := httpClient.Do(req)
+
+	if err != nil {
+		err := fmt.Errorf("Request to %s failed reason: %s ", url, err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusBadRequest || err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+func searchHarbor(url, username, password, searchWord string) []string {
+	url = strings.TrimSuffix(url, "/") + fmt.Sprintf("/api/search?q=%s", searchWord)
+
+	body, err := httpGet(url, username, password, false)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var repos harborRepos
+	repoList := make([]string, 0, 100)
+	err = json.Unmarshal(body, &repos)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	for _, repo := range repos.Repos {
+		repoList = append(repoList, repo.RepoName)
+	}
+
+	return repoList
+}
+
+func searchDockerRegistry(url, searchword string) []string {
+	url = strings.TrimSuffix(url, "/") + "/v2/_catalog"
+	body, err := httpGet(url, "", "", true)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var repos registryRepos
+	err = json.Unmarshal(body, &repos)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	repoList := make([]string, 0, 100)
+	for _, repo := range repos.Repositories {
+		if strings.HasPrefix(repo, searchword) {
+			repoList = append(repoList, repo)
+		}
+	}
+
+	return repoList
+}
+
+func searchDockerHub(url, searchWord string) []string {
+	url = fmt.Sprintf("https://hub.docker.com/v2/search/repositories/?page=1&query=%s&page_size=50", searchWord)
+	body, err := httpGet(url, "", "", true)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var repos dockerhubRepos
+	err = json.Unmarshal(body, &repos)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	repoList := make([]string, 0, 50)
+	for _, repo := range repos.Repositories {
+		repoList = append(repoList, repo.RepoName)
+	}
+
+	return repoList
+}
+
+func getTagInHarbor(url, username, password, imageName string) []string {
+	url = strings.TrimSuffix(url, "/") + fmt.Sprintf("/api/repositories/%s/tags", imageName)
+	body, err := httpGet(url, username, password, false)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var tagList []string
+	err = json.Unmarshal(body, &tagList)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	return tagList
+}
+
+func getTagInDockerRegistry(url, imageName string) []string {
+	url = strings.TrimSuffix(url, "/") + fmt.Sprintf("/v2/%s/tags/list", imageName)
+	body, err := httpGet(url, "", "", true)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var tags registryTags
+	err = json.Unmarshal(body, &tags)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	return tags.Tags
+}
+
+func getTagInDockerHub(url, imageName string) []string {
+	if !strings.Contains(imageName, "/") {
+		imageName = fmt.Sprintf("library/%s", imageName)
+	}
+	url = fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/tags/?page=1&page_size=200", imageName)
+
+	body, err := httpGet(url, "", "", true)
+	if err != nil || len(body) == 0 {
+		glog.Error(err)
+		return nil
+	}
+
+	var tags dockerhubTags
+	err = json.Unmarshal(body, &tags)
+	if err != nil {
+		glog.Error(err)
+		return nil
+	}
+
+	tagList := make([]string, 0, 200)
+	for _, tag := range tags.Tags {
+		tagList = append(tagList, tag.TagName)
+	}
+
+	return tagList
 }
