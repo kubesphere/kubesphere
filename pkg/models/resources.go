@@ -220,6 +220,8 @@ func ListResource(resourceName, conditonSrt, pagingStr, order string) (*Resource
 }
 
 func generateConditionStr(conditions *searchConditions) string {
+	shouldUseAnd := false
+	shouldUseBrackets := false
 	conditionStr := ""
 
 	if conditions == nil {
@@ -242,11 +244,21 @@ func generateConditionStr(conditions *searchConditions) string {
 		}
 	}
 
+	if len(conditionStr) > 0 {
+		shouldUseAnd = true
+	}
+
 	for k, v := range conditions.matchOr {
 		if len(conditionStr) == 0 {
 			conditionStr = fmt.Sprintf("%s = \"%s\" ", k, v)
 		} else {
-			conditionStr = fmt.Sprintf("%s OR %s = \"%s\" ", conditionStr, k, v)
+			if shouldUseAnd {
+				conditionStr = fmt.Sprintf("%s And (%s = \"%s\" ", conditionStr, k, v)
+				shouldUseBrackets = true
+				shouldUseAnd = false
+			} else {
+				conditionStr = fmt.Sprintf("%s OR %s = \"%s\" ", conditionStr, k, v)
+			}
 		}
 	}
 
@@ -254,8 +266,18 @@ func generateConditionStr(conditions *searchConditions) string {
 		if len(conditionStr) == 0 {
 			conditionStr = fmt.Sprintf("%s like '%%%s%%' ", k, v)
 		} else {
-			conditionStr = fmt.Sprintf("%s OR %s like '%%%s%%' ", conditionStr, k, v)
+			if shouldUseAnd {
+				conditionStr = fmt.Sprintf("%s And (%s like '%%%s%%' ", conditionStr, k, v)
+				shouldUseAnd = false
+				shouldUseBrackets = true
+			} else {
+				conditionStr = fmt.Sprintf("%s OR %s like '%%%s%%' ", conditionStr, k, v)
+			}
 		}
+	}
+
+	if shouldUseBrackets {
+		conditionStr = fmt.Sprintf("%s )", conditionStr)
 	}
 
 	return conditionStr
