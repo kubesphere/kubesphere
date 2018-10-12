@@ -46,6 +46,19 @@ func (u MonitorResource) monitorContainer(request *restful.Request, response *re
 }
 
 func (u MonitorResource) monitorWorkload(request *restful.Request, response *restful.Response) {
+	wlKind := request.PathParameter("workload_kind")
+	if strings.Trim(wlKind, " ") == "" {
+		// count all workloads figure
+		//metricName := "workload_count"
+		res := metrics.MonitorWorkloadCount(request)
+		response.WriteAsJson(res)
+	} else {
+		res := metrics.MonitorAllMetrics(request)
+		response.WriteAsJson(res)
+	}
+}
+
+func (u MonitorResource) monitorWorkspacePodLevelMetrics(request *restful.Request, response *restful.Response) {
 	res := metrics.MonitorAllMetrics(request)
 	response.WriteAsJson(res)
 }
@@ -196,10 +209,18 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor specific workload level metrics").
 		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
-		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(true).DefaultValue("daemonset")).
+		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(false).DefaultValue("daemonset")).
 		Param(ws.QueryParameter("workload_name", "workload name").DataType("string").Required(true).DefaultValue("")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/workloads").To(u.monitorWorkload).
+		Filter(route.RouteLogging).
+		Doc("monitor all workload level metrics").
+		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
+		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 }
