@@ -28,6 +28,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 const (
@@ -77,6 +79,8 @@ func makeHttpRequest(method, url, data string) ([]byte, error) {
 	} else {
 		req, err = http.NewRequest(method, url, strings.NewReader(data))
 	}
+
+	req.Header.Add("Authorization", constants.OpenPitrixProxyToken)
 
 	if err != nil {
 		glog.Error(err)
