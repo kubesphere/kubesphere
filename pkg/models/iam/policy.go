@@ -29,16 +29,6 @@ const (
 	clusterRulesConfigPath = "/etc/kubesphere/rules/clusterrules.json"
 )
 
-type Action struct {
-	Name  string          `json:"name"`
-	Rules []v1.PolicyRule `json:"rules"`
-}
-
-type Rule struct {
-	Name    string   `json:"name"`
-	Actions []Action `json:"actions"`
-}
-
 func init() {
 	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
 	if err == nil {
@@ -61,6 +51,101 @@ func init() {
 }
 
 var (
+	WorkspaceRoleRuleMapping = []Rule{
+		{
+			Name: "workspaces",
+			Actions: []Action{
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces"},
+						},
+					},
+				},
+			},
+		},
+
+		{Name: "members",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/members"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "devops",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/devops"},
+						},
+					},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/devops"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "projects",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/namespaces"},
+						},
+					},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/namespaces"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "registries",
+			Actions: []Action{
+				{Name: "view"},
+				{Name: "create"},
+				{Name: "edit"},
+				{Name: "delete"},
+			},
+		},
+	}
+
 	ClusterRoleRuleGroup = []Rule{{
 		Name: "projects",
 		Actions: []Action{

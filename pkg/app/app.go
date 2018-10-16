@@ -43,6 +43,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
+	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/options"
 )
 
@@ -91,6 +92,16 @@ func preCheck() error {
 		models.CreateKubeConfig(constants.AdminUserName)
 		models.CreateKubectlDeploy(constants.AdminUserName)
 		return nil
+	}
+
+	db := client.NewSharedDBClient()
+	defer db.Close()
+	if !db.HasTable(&workspaces.WorkspaceNSBinding{}) {
+		db.CreateTable(&workspaces.WorkspaceNSBinding{})
+	}
+
+	if !db.HasTable(&workspaces.WorkspaceDPBinding{}) {
+		db.CreateTable(&workspaces.WorkspaceDPBinding{})
 	}
 	return err
 }

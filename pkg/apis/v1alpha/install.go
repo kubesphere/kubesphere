@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/users"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/workloadstatus"
+	"kubesphere.io/kubesphere/pkg/apis/v1alpha/workspaces"
 	_ "kubesphere.io/kubesphere/pkg/filter/container"
 )
 
@@ -67,7 +68,7 @@ func init() {
 	statefulsets.Register(ws, "/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}")
 	resources.Register(ws, "/resources")
 	monitoring.Register(ws, "/monitoring")
-
+	workspaces.Register(ws, "/workspaces")
 	// add webservice to default container
 	restful.Add(ws)
 
