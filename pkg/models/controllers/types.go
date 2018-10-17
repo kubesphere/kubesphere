@@ -284,15 +284,16 @@ type StorageClass struct {
 	Provisioner string    `json:"provisioner"`
 }
 
-type JobRevisions map[int]JobStatus
+type JobRevisions map[int]JobRevision
 
-type JobStatus struct {
+type JobRevision struct {
 	Status         string    `json:"status"`
 	Reasons        []string  `json:"reasons"`
 	Messages       []string  `json:"messages"`
 	Succeed        int32     `json:"succeed"`
 	DesirePodNum   int32     `json:"desire"`
 	Failed         int32     `json:"failed"`
+	Uid            string    `json:"uid"`
 	StartTime      time.Time `json:"start-time"`
 	CompletionTime time.Time `json:"completion-time"`
 }
