@@ -36,7 +36,7 @@ func (ctl *ClusterRoleCtl) generateObject(item v1.ClusterRole) *ClusterRole {
 	}
 
 	name := item.Name
-	if strings.HasPrefix(name, systemPrefix) {
+	if strings.HasPrefix(name, systemPrefix) || item.Annotations == nil || len(item.Annotations[creator]) == 0 {
 		return nil
 	}
 
