@@ -38,8 +38,12 @@ func (ctl *PvcCtl) generateObject(item *v1.PersistentVolumeClaim) *Pvc {
 
 	name := item.Name
 	namespace := item.Namespace
-	status := fmt.Sprintf("%s", item.Status.Phase)
 	createTime := item.CreationTimestamp.Time
+	status := fmt.Sprintf("%s", item.Status.Phase)
+	if item.DeletionTimestamp != nil {
+		status = "Terminating"
+	}
+
 	var capacity, storageClass, accessModeStr string
 
 	if createTime.IsZero() {
