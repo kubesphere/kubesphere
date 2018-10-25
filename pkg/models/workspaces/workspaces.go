@@ -7,19 +7,21 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/jinzhu/gorm"
-	core "k8s.io/api/core/v1"
-	k8sErr "k8s.io/apimachinery/pkg/api/errors"
-
 	"log"
 	"strings"
+
+	"github.com/jinzhu/gorm"
+	core "k8s.io/api/core/v1"
+
+	"errors"
+	"regexp"
 
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	v13 "k8s.io/client-go/listers/rbac/v1"
+	clientV1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/pkg/util/slice"
 
 	"kubesphere.io/kubesphere/pkg/client"
@@ -30,12 +32,6 @@ import (
 )
 
 var WorkSpaceRoles = []string{"admin", "operator", "viewer"}
-
-func UnBindNamespace(workspace string, namespace string) error {
-	db := client.NewSharedDBClient()
-	defer db.Close()
-	return db.Delete(&WorkspaceNSBinding{Workspace: workspace, Namespace: namespace}).Error
-}
 
 func UnBindDevopsProject(workspace string, devops string) error {
 	db := client.NewSharedDBClient()
@@ -100,29 +96,62 @@ func CreateDevopsProject(username string, devops DevopsProject) (*DevopsProject,
 	return &project, nil
 }
 
-func Namespaces(workspace string) ([]*core.Namespace, error) {
-	db := client.NewSharedDBClient()
-	defer db.Close()
+func ListNamespaceByUser(workspaceName string, username string) ([]*core.Namespace, error) {
 
-	var workspaceNSBindings []WorkspaceNSBinding
+	namespaces, err := Namespaces(workspaceName)
 
-	if err := db.Where("workspace = ?", workspace).Find(&workspaceNSBindings).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	namespaces := make([]*core.Namespace, 0)
+	clusterRoles, err := iam.GetClusterRoles(username)
 
-	for _, workspaceNSBinding := range workspaceNSBindings {
-		namespace, err := client.NewK8sClient().CoreV1().Namespaces().Get(workspaceNSBinding.Namespace, meta_v1.GetOptions{})
-		if err != nil {
-			if k8sErr.IsNotFound(err) {
-				db.Delete(&WorkspaceNSBinding{Workspace: workspace, Namespace: workspaceNSBinding.Namespace})
-			} else {
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]v1.PolicyRule, 0)
+
+	for _, clusterRole := range clusterRoles {
+		rules = append(rules, clusterRole.Rules...)
+	}
+
+	namespacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, ResourceNames: []string{workspaceName}, Verbs: []string{"get"}, Resources: []string{"workspaces/namespaces"}}
+
+	if iam.RulesMatchesRequired(rules, namespacesManager) {
+		return namespaces, nil
+	} else {
+		for i := 0; i < len(namespaces); i++ {
+			roles, err := iam.GetRoles(namespaces[i].Name, username)
+			if err != nil {
 				return nil, err
 			}
-		} else {
-			namespaces = append(namespaces, namespace)
+			rules := make([]v1.PolicyRule, 0)
+			for _, role := range roles {
+				rules = append(rules, role.Rules...)
+			}
+			if !iam.RulesMatchesRequired(rules, v1.PolicyRule{APIGroups: []string{""}, ResourceNames: []string{namespaces[i].Name}, Verbs: []string{"get"}, Resources: []string{"namespaces"}}) {
+				namespaces = append(namespaces[:i], namespaces[i+1:]...)
+				i--
+			}
 		}
+	}
+
+	return namespaces, nil
+}
+
+func Namespaces(workspaceName string) ([]*core.Namespace, error) {
+
+	lister := controllers.ResourceControllers.Controllers[controllers.Namespaces].Lister().(clientV1.NamespaceLister)
+
+	namespaces, err := lister.List(labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspaceName}))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if namespaces == nil {
+		return make([]*core.Namespace, 0), nil
 	}
 
 	return namespaces, nil
@@ -134,10 +163,18 @@ func BindingDevopsProject(workspace string, devops string) error {
 	return db.Create(&WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
-func DeleteNamespace(namespace string) error {
-	deletePolicy := meta_v1.DeletePropagationBackground
-	err := client.NewK8sClient().CoreV1().Namespaces().Delete(namespace, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
-	return err
+func DeleteNamespace(workspace string, namespaceName string) error {
+	namespace, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if namespace.Labels != nil && namespace.Labels["kubesphere.io/workspace"] == workspace {
+		deletePolicy := meta_v1.DeletePropagationBackground
+		return client.NewK8sClient().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	} else {
+		return errors.New("resource not found")
+	}
+
 }
 
 func Delete(workspace *Workspace) error {
@@ -174,7 +211,7 @@ func Delete(workspace *Workspace) error {
 
 func release(workspace *Workspace) error {
 	for _, namespace := range workspace.Namespaces {
-		err := DeleteNamespace(namespace)
+		err := DeleteNamespace(workspace.Name, namespace)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -335,7 +372,44 @@ func Detail(name string) (*Workspace, error) {
 	return workspace, nil
 }
 
-func List(names []string) ([]*Workspace, error) {
+// List all workspaces for the current user
+func ListByUser(username string) ([]*Workspace, error) {
+
+	clusterRoles, err := iam.GetClusterRoles(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]v1.PolicyRule, 0)
+
+	for _, clusterRole := range clusterRoles {
+		rules = append(rules, clusterRole.Rules...)
+	}
+
+	workspacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, Verbs: []string{"list", "get"}, Resources: []string{"workspaces"}}
+
+	if iam.RulesMatchesRequired(rules, workspacesManager) {
+		return fetch(nil)
+	} else {
+		workspaceNames := make([]string, 0)
+
+		for _, clusterRole := range clusterRoles {
+			if regexp.MustCompile("^system:\\w+:(admin|operator|viewer)$").MatchString(clusterRole.Name) {
+				arr := strings.Split(clusterRole.Name, ":")
+				workspaceNames = append(workspaceNames, arr[1])
+			}
+		}
+
+		if len(workspaceNames) == 0 {
+			return make([]*Workspace, 0), nil
+		}
+
+		return fetch(workspaceNames)
+	}
+}
+
+func fetch(names []string) ([]*Workspace, error) {
 
 	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups", constants.AccountAPIServer)
 
@@ -379,6 +453,7 @@ func List(names []string) ([]*Workspace, error) {
 		}
 		workspaces = append(workspaces, workspace)
 	}
+
 	return workspaces, nil
 }
 
@@ -434,16 +509,16 @@ func DevopsProjects(workspace string) ([]DevopsProject, error) {
 
 }
 func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
-	var workspaceNSBindings []WorkspaceNSBinding
+	namespaces, err := Namespaces(group.Name)
 
-	if err := db.Where("workspace = ?", group.Name).Find(&workspaceNSBindings).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	namespaces := make([]string, 0)
+	namespacesNames := make([]string, 0)
 
-	for _, workspaceNSBinding := range workspaceNSBindings {
-		namespaces = append(namespaces, workspaceNSBinding.Namespace)
+	for _, namespace := range namespaces {
+		namespacesNames = append(namespacesNames, namespace.Name)
 	}
 
 	var workspaceDOPBindings []WorkspaceDPBinding
@@ -459,19 +534,13 @@ func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 	}
 
 	workspace := Workspace{Group: group}
-	workspace.Namespaces = namespaces
+	workspace.Namespaces = namespacesNames
 	workspace.DevopsProjects = devOpsProjects
 	return &workspace, nil
 }
 
 func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
 	return client.NewK8sClient().CoreV1().Namespaces().Create(namespace)
-}
-
-func BindingNamespace(workspace string, namespace string) error {
-	db := client.NewSharedDBClient()
-	defer db.Close()
-	return db.Create(&WorkspaceNSBinding{Workspace: workspace, Namespace: namespace}).Error
 }
 
 func Invite(workspaceName string, users []UserInvite) error {
@@ -523,37 +592,21 @@ func RemoveMembers(workspaceName string, users []string) error {
 		return err
 	}
 
+	for i := 0; i < len(workspace.Members); i++ {
+		if slice.ContainsString(users, workspace.Members[i], nil) {
+			workspace.Members = append(workspace.Members[:i], workspace.Members[i+1:]...)
+			i--
+		}
+	}
+
+	workspace, err = Edit(workspace)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
-
-//func checkUserExist(username string) (bool, error) {
-//	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/users?check=%s", constants.AccountAPIServer, username))
-//
-//	if err != nil {
-//		return false, err
-//	}
-//
-//	data, err := ioutil.ReadAll(result.Body)
-//
-//	if err != nil {
-//		return false, err
-//	}
-//
-//	if result.StatusCode > 200 {
-//		return false, ksErr.Wrap(data)
-//	}
-//
-//	var r map[string]bool
-//
-//	err = json.Unmarshal(data, &r)
-//
-//	if err != nil {
-//		return false, err
-//	}
-//
-//	return r["exist"], nil
-//
-//}
 
 func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	roles := make([]*v1.ClusterRole, 0)
@@ -614,11 +667,138 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 	admin.Name = fmt.Sprintf("system:%s:admin", workspace.Name)
 	admin.Kind = iam.ClusterRoleKind
 	admin.Rules = []v1.PolicyRule{
+		// apis/kubesphere.io/v1alpha1/workspaces/sample
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/devops
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/roles
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/members
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/members/admin
+
 		{
 			Verbs:         []string{"*"},
+			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
+			ResourceNames: []string{workspace.Name},
+			Resources:     []string{"workspaces", "workspaces/*"},
+		},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
+
+		{
+			Verbs:         []string{"create"},
 			APIGroups:     []string{"kubesphere.io"},
 			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces", "workspaces/namespaces", "workspaces/members", "workspaces/devops", "workspaces/registries"},
+			Resources:     []string{"workspaces/namespaces"},
+		},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/members
+
+		{
+			Verbs:         []string{"create"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{workspace.Name},
+			Resources:     []string{"workspaces/members"},
+		},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/devops
+		{
+			Verbs:         []string{"create"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{workspace.Name},
+			Resources:     []string{"workspaces/devops"},
+		},
+		// TODO have risks
+		// get apis/apps/v1/namespaces/proj1/deployments/?labelSelector
+		// post api/v1/namespaces/project-0vya57/limitranges
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{"", "apps", "extensions", "batch"},
+			Resources: []string{"limitranges", "deployments", "configmaps", "secrets", "jobs", "cronjobs", "persistentvolumes", "statefulsets", "daemonsets", "ingresses", "services", "pods/*", "pods", "events", "deployments/scale"},
+		},
+		// get apis/kubesphere.io/v1alpha1/quota/namespaces/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"quota/*"},
+		},
+		// get api/v1/namespaces/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{""},
+			Resources: []string{"namespaces", "serviceaccounts", "configmaps"},
+		},
+		// get api/v1/namespaces/proj1/serviceaccounts
+		// get api/v1/namespaces/proj1/configmaps
+		// get api/v1/namespaces/proj1/secrets
+
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{""},
+			Resources: []string{"serviceaccounts", "configmaps", "secrets"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/status/namespaces/proj1
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{"namespaces"},
+			Resources:     []string{"status/*"},
+		},
+		// apis/kubesphere.io/v1alpha1/namespaces/proj1/router
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"router"},
+		},
+		// get apis/kubesphere.io/v1alpha1/registries/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"registries"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/monitoring/namespaces/proj1
+
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{"namespaces"},
+			Resources:     []string{"monitoring/*"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
+		// get apis/kubesphere.io/v1alpha1/resources/deployments
+		// get apis/kubesphere.io/v1alpha1/resources/statefulsets
+		// get apis/kubesphere.io/v1alpha1/resources/daemonsets
+		// get apis/kubesphere.io/v1alpha1/resources/jobs
+		// get apis/kubesphere.io/v1alpha1/resources/cronjobs
+		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
+		// get apis/kubesphere.io/v1alpha1/resources/services
+		// get apis/kubesphere.io/v1alpha1/resources/ingresses
+		// get apis/kubesphere.io/v1alpha1/resources/secrets
+		// get apis/kubesphere.io/v1alpha1/resources/configmaps
+		// get apis/kubesphere.io/v1alpha1/resources/roles
+
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"resources"},
+		},
+
+		// apis/account.kubesphere.io/v1alpha1/users
+		// apis/account.kubesphere.io/v1alpha1/namespaces/proj1/users
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{"account.kubesphere.io"},
+			Resources: []string{"users"},
+		},
+
+		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample?metrics_filter=
+		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample/pods?step=30m
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{"workspaces"},
+			Resources:     []string{"monitoring/" + workspace.Name},
 		},
 	}
 
@@ -634,35 +814,159 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 			Resources:     []string{"workspaces"},
 			ResourceNames: []string{workspace.Name},
 		}, {
-			Verbs:         []string{"list", "create"},
+			Verbs:         []string{"create", "get"},
 			APIGroups:     []string{"kubesphere.io"},
 			Resources:     []string{"workspaces/namespaces", "workspaces/devops"},
 			ResourceNames: []string{workspace.Name},
-		}, {
-			Verbs:         []string{"list"},
-			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces/members", "workspaces/registries"},
-			ResourceNames: []string{workspace.Name},
+		},
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"registries"},
 		},
 	}
+
 	operator.Labels = map[string]string{"creator": "system"}
 
 	viewer := new(v1.ClusterRole)
 	viewer.Name = fmt.Sprintf("system:%s:viewer", workspace.Name)
 	viewer.Kind = iam.ClusterRoleKind
 	viewer.Rules = []v1.PolicyRule{
+		// apis/kubesphere.io/v1alpha1/workspaces/sample
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/devops
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/roles
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/members
+		// apis/kubesphere.io/v1alpha1/workspaces/sample/members/admin
+
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
+			ResourceNames: []string{workspace.Name},
+			Resources:     []string{"workspaces", "workspaces/*"},
+		},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
+
+		//{
+		//	Verbs:         []string{"create"},
+		//	APIGroups:     []string{"kubesphere.io"},
+		//	ResourceNames: []string{workspace.Name},
+		//	Resources:     []string{"workspaces/namespaces"},
+		//},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/members
+
+		//{
+		//	Verbs:         []string{"create"},
+		//	APIGroups:     []string{"kubesphere.io"},
+		//	ResourceNames: []string{workspace.Name},
+		//	Resources:     []string{"workspaces/members"},
+		//},
+
+		// post apis/kubesphere.io/v1alpha1/workspaces/sample/devops
+		//{
+		//	Verbs:         []string{"create"},
+		//	APIGroups:     []string{"kubesphere.io"},
+		//	ResourceNames: []string{workspace.Name},
+		//	Resources:     []string{"workspaces/devops"},
+		//},
+		// TODO have risks
+		// get apis/apps/v1/namespaces/proj1/deployments/?labelSelector
+		// post api/v1/namespaces/project-0vya57/limitranges
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"", "apps", "extensions", "batch"},
+			Resources: []string{"limitranges", "deployments", "configmaps", "secrets", "jobs", "cronjobs", "persistentvolumes", "statefulsets", "daemonsets", "ingresses", "services", "pods/*", "pods", "events", "deployments/scale"},
+		},
+		// get apis/kubesphere.io/v1alpha1/quota/namespaces/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"quota/*"},
+		},
+		// get api/v1/namespaces/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{""},
+			Resources: []string{"namespaces", "serviceaccounts", "configmaps"},
+		},
+		// get api/v1/namespaces/proj1/serviceaccounts
+		// get api/v1/namespaces/proj1/configmaps
+		// get api/v1/namespaces/proj1/secrets
+
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{""},
+			Resources: []string{"serviceaccounts", "configmaps", "secrets"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/status/namespaces/proj1
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces"},
-			ResourceNames: []string{workspace.Name},
-		}, {
-			Verbs:         []string{"list"},
+			ResourceNames: []string{"namespaces"},
+			Resources:     []string{"status/*"},
+		},
+		// apis/kubesphere.io/v1alpha1/namespaces/proj1/router
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"router"},
+		},
+		// get apis/kubesphere.io/v1alpha1/registries/proj1
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"registries"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/monitoring/namespaces/proj1
+
+		{
+			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces/namespaces", "workspaces/members", "workspaces/devops", "workspaces/registries"},
-			ResourceNames: []string{workspace.Name},
+			ResourceNames: []string{"namespaces"},
+			Resources:     []string{"monitoring/*"},
+		},
+
+		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
+		// get apis/kubesphere.io/v1alpha1/resources/deployments
+		// get apis/kubesphere.io/v1alpha1/resources/statefulsets
+		// get apis/kubesphere.io/v1alpha1/resources/daemonsets
+		// get apis/kubesphere.io/v1alpha1/resources/jobs
+		// get apis/kubesphere.io/v1alpha1/resources/cronjobs
+		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
+		// get apis/kubesphere.io/v1alpha1/resources/services
+		// get apis/kubesphere.io/v1alpha1/resources/ingresses
+		// get apis/kubesphere.io/v1alpha1/resources/secrets
+		// get apis/kubesphere.io/v1alpha1/resources/configmaps
+		// get apis/kubesphere.io/v1alpha1/resources/roles
+
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"resources"},
+		},
+
+		// apis/account.kubesphere.io/v1alpha1/users
+		// apis/account.kubesphere.io/v1alpha1/namespaces/proj1/users
+		{
+			Verbs:     []string{"list"},
+			APIGroups: []string{"account.kubesphere.io"},
+			Resources: []string{"users"},
+		},
+
+		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample?metrics_filter=
+		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample/pods?step=30m
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{"workspaces"},
+			Resources:     []string{"monitoring/" + workspace.Name},
 		},
 	}
+
 	viewer.Labels = map[string]string{"creator": "system"}
 
 	_, err := k8sClient.RbacV1().ClusterRoles().Create(admin)
@@ -677,6 +981,7 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 	adminRoleBinding.Name = admin.Name
 	adminRoleBinding.RoleRef = v1.RoleRef{Kind: "ClusterRole", Name: admin.Name}
 	adminRoleBinding.Subjects = []v1.Subject{{Kind: v1.UserKind, Name: workspace.Creator}}
+
 	_, err = k8sClient.RbacV1().ClusterRoleBindings().Create(adminRoleBinding)
 	if err != nil {
 		if !apierrors.IsAlreadyExists(err) {
@@ -761,17 +1066,15 @@ func unbindWorkspaceRole(workspace string, users []string) error {
 
 func unbindNamespacesRole(namespaces []string, users []string) error {
 
-	lister := controllers.ResourceControllers.Controllers[controllers.Namespaces].Lister().(v13.RoleBindingLister)
-
 	k8sClient := client.NewK8sClient()
 	for _, namespace := range namespaces {
 
-		roleBindings, err := lister.RoleBindings(namespace).List(labels.Everything())
+		roleBindings, err := k8sClient.RbacV1().RoleBindings(namespace).List(meta_v1.ListOptions{})
 
 		if err != nil {
 			return err
 		}
-		for _, roleBinding := range roleBindings {
+		for _, roleBinding := range roleBindings.Items {
 
 			modify := false
 			for i := 0; i < len(roleBinding.Subjects); i++ {
@@ -781,7 +1084,7 @@ func unbindNamespacesRole(namespaces []string, users []string) error {
 				}
 			}
 			if modify {
-				_, err := k8sClient.RbacV1().RoleBindings(namespace).Update(roleBinding)
+				_, err := k8sClient.RbacV1().RoleBindings(namespace).Update(&roleBinding)
 				if err != nil {
 					return err
 				}
@@ -856,4 +1159,151 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 	}
 
 	return nil
+}
+
+func GetDevOpsProjects(name string) ([]string, error) {
+
+	db := client.NewSharedDBClient()
+	defer db.Close()
+
+	var workspaceDOPBindings []WorkspaceDPBinding
+
+	if err := db.Where("workspace = ?", name).Find(&workspaceDOPBindings).Error; err != nil {
+		return nil, err
+	}
+
+	devOpsProjects := make([]string, 0)
+
+	for _, workspaceDOPBinding := range workspaceDOPBindings {
+		devOpsProjects = append(devOpsProjects, workspaceDOPBinding.DevOpsProject)
+	}
+	return devOpsProjects, nil
+}
+
+func GetOrgMembers(workspace string) ([]string, error) {
+	ws, err := Detail(workspace)
+	if err != nil {
+		return nil, err
+	}
+	return ws.Members, nil
+}
+
+func GetOrgRoles(name string) ([]string, error) {
+	return []string{"admin", "operator", "user"}, nil
+}
+
+func WorkspaceNamespaces(workspaceName string) ([]string, error) {
+	ns, err := Namespaces(workspaceName)
+
+	namespaces := make([]string, 0)
+
+	if err != nil {
+		return namespaces, err
+	}
+
+	for i := 0; i < len(ns); i++ {
+		namespaces = append(namespaces, ns[i].Name)
+	}
+
+	return namespaces, nil
+}
+
+func CountAll() (int, error) {
+	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/count", constants.AccountAPIServer))
+
+	if err != nil {
+		return 0, err
+	}
+
+	data, err := ioutil.ReadAll(result.Body)
+	if err != nil {
+		return 0, err
+	}
+	if result.StatusCode > 200 {
+		return 0, ksErr.Wrap(data)
+	}
+	var count map[string]interface{}
+
+	err = json.Unmarshal(data, &count)
+
+	if err != nil {
+		return 0, err
+	}
+	val, ok := count["total"]
+
+	if !ok {
+		return 0, errors.New("not found")
+	}
+
+	switch val.(type) {
+	case int:
+		return val.(int), nil
+	case float32:
+		return int(val.(float32)), nil
+	case float64:
+		return int(val.(float64)), nil
+	}
+
+	return 0, errors.New("not found")
+}
+
+func GetAllOrgNums() (int, error) {
+	count, err := CountAll()
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func GetAllProjectNums() (int, error) {
+	return controllers.ResourceControllers.Controllers[controllers.Namespaces].CountWithConditions(""), nil
+}
+
+func GetAllDevOpsProjectsNums() (int, error) {
+	db := client.NewSharedDBClient()
+	defer db.Close()
+
+	var count int
+	if err := db.Find(&WorkspaceDPBinding{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func GetAllAccountNums() (int, error) {
+	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/users", constants.AccountAPIServer))
+
+	if err != nil {
+		return 0, err
+	}
+
+	data, err := ioutil.ReadAll(result.Body)
+	if err != nil {
+		return 0, err
+	}
+	if result.StatusCode > 200 {
+		return 0, ksErr.Wrap(data)
+	}
+	var count map[string]interface{}
+
+	err = json.Unmarshal(data, &count)
+
+	if err != nil {
+		return 0, err
+	}
+	val, ok := count["total"]
+
+	if !ok {
+		return 0, errors.New("not found")
+	}
+
+	switch val.(type) {
+	case int:
+		return val.(int), nil
+	case float32:
+		return int(val.(float32)), nil
+	case float64:
+		return int(val.(float64)), nil
+	}
+	return 0, errors.New("not found")
 }

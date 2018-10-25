@@ -63,7 +63,7 @@ func userRolesHandler(req *restful.Request, resp *restful.Response) {
 
 	username := req.PathParameter("username")
 
-	roles, err := iam.GetRoles(username)
+	roles, err := iam.GetRoles("", username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -206,7 +206,7 @@ func clusterRoleRulesHandler(req *restful.Request, resp *restful.Response) {
 	var rules []iam.Rule
 
 	if name == "" {
-		rules = iam.ClusterRoleRuleGroup
+		rules = iam.ClusterRoleRuleMapping
 	} else {
 		var err error
 		rules, err = iam.GetClusterRoleRules(name)
@@ -227,7 +227,7 @@ func roleRulesHandler(req *restful.Request, resp *restful.Response) {
 	var rules []iam.Rule
 
 	if namespace == "" && name == "" {
-		rules = iam.RoleRuleGroup
+		rules = iam.RoleRuleMapping
 	} else {
 		var err error
 		rules, err = iam.GetRoleRules(namespace, name)

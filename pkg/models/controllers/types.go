@@ -49,6 +49,7 @@ const (
 	Warning      = "warning"
 	Error        = "error"
 	DisplayName  = "displayName"
+	creator      = "creator"
 
 	Pods                  = "pods"
 	Deployments           = "deployments"
@@ -58,7 +59,9 @@ const (
 	Ingresses             = "ingresses"
 	PersistentVolumeClaim = "persistent-volume-claims"
 	Roles                 = "roles"
+	RoleBindings          = "role-bindings"
 	ClusterRoles          = "cluster-roles"
+	ClusterRoleBindings   = "cluster-role-bindings"
 	Services              = "services"
 	StorageClasses        = "storage-classes"
 	Applications          = "applications"
@@ -284,15 +287,16 @@ type StorageClass struct {
 	Provisioner string    `json:"provisioner"`
 }
 
-type JobRevisions map[int]JobStatus
+type JobRevisions map[int]JobRevision
 
-type JobStatus struct {
+type JobRevision struct {
 	Status         string    `json:"status"`
 	Reasons        []string  `json:"reasons"`
 	Messages       []string  `json:"messages"`
 	Succeed        int32     `json:"succeed"`
 	DesirePodNum   int32     `json:"desire"`
 	Failed         int32     `json:"failed"`
+	Uid            string    `json:"uid"`
 	StartTime      time.Time `json:"start-time"`
 	CompletionTime time.Time `json:"completion-time"`
 }
@@ -458,6 +462,17 @@ type RoleCtl struct {
 
 type ClusterRoleCtl struct {
 	lister   rbacV1.ClusterRoleLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+
+type ClusterRoleBindingCtl struct {
+	lister   rbacV1.ClusterRoleBindingLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+type RoleBindingCtl struct {
+	lister   rbacV1.RoleBindingLister
 	informer cache.SharedIndexInformer
 	CommonAttribute
 }

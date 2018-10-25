@@ -37,7 +37,7 @@ type resourceControllers struct {
 
 var ResourceControllers resourceControllers
 
-func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}, wg *sync.WaitGroup) {
+func (rec *resourceControllers) runController(name string, stopChan chan struct{}, wg *sync.WaitGroup) {
 	var ctl Controller
 	attr := CommonAttribute{DB: client.NewDBClient(), K8sClient: rec.k8sClient, stopChan: stopChan,
 		aliveChan: make(chan struct{}), Name: name}
@@ -78,6 +78,10 @@ func (rec *resourceControllers) runContoller(name string, stopChan chan struct{}
 		ctl = &ConfigMapCtl{CommonAttribute: attr}
 	case Secrets:
 		ctl = &SecretCtl{CommonAttribute: attr}
+	case ClusterRoleBindings:
+		ctl = &ClusterRoleBindingCtl{CommonAttribute: attr}
+	case RoleBindings:
+		ctl = &RoleBindingCtl{CommonAttribute: attr}
 	default:
 		return
 	}
@@ -116,9 +120,9 @@ func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
 	ResourceControllers = resourceControllers{k8sClient: k8sClient, Controllers: make(map[string]Controller)}
 
 	for _, item := range []string{Deployments, Statefulsets, Daemonsets, PersistentVolumeClaim, Pods, Services,
-		Ingresses, Roles, ClusterRoles, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets,
+		Ingresses, Roles, RoleBindings, ClusterRoles, ClusterRoleBindings, Namespaces, StorageClasses, Jobs, Cronjobs, Nodes, Replicasets,
 		ControllerRevisions, ConfigMaps, Secrets} {
-		ResourceControllers.runContoller(item, stopChan, wg)
+		ResourceControllers.runController(item, stopChan, wg)
 	}
 
 	go dbHealthCheck(client.NewDBClient())
@@ -131,7 +135,7 @@ func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
 			case _, isClose := <-controller.chanAlive():
 				if !isClose {
 					glog.Errorf("controller %s have stopped, restart it", ctlName)
-					ResourceControllers.runContoller(ctlName, stopChan, wg)
+					ResourceControllers.runController(ctlName, stopChan, wg)
 				}
 			default:
 				time.Sleep(3 * time.Second)

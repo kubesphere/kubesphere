@@ -30,12 +30,12 @@ import (
 func (ctl *RoleCtl) generateObject(item v1.Role) *Role {
 	var displayName string
 
-	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
+	if item.Annotations != nil && len(item.Annotations[DisplayName]) == 0 {
 		displayName = item.Annotations[DisplayName]
 	}
 
 	name := item.Name
-	if strings.HasPrefix(name, systemPrefix) {
+	if strings.HasPrefix(name, systemPrefix) || item.Annotations == nil || len(item.Annotations[creator]) == 0 {
 		return nil
 	}
 	namespace := item.Namespace

@@ -17,6 +17,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"strconv"
+	"time"
+
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -28,6 +31,8 @@ const (
 	DefaultPrometheusPort    = "9090"
 	PrometheusApiPath        = "/api/v1/"
 	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
+	DefaultQueryStep         = "10m"
+	DefaultQueryTimeout      = "30s"
 )
 
 var client = &http.Client{}
@@ -79,14 +84,18 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 	end := request.QueryParameter("end")
 	step := request.QueryParameter("step")
 	timeout := request.QueryParameter("timeout")
+
 	if timeout == "" {
-		timeout = "30s"
+		timeout = DefaultQueryTimeout
+	}
+	if step == "" {
+		step = DefaultQueryStep
 	}
 	// Whether query or query_range request
 	u := url.Values{}
-	if start != "" && end != "" && step != "" {
-		u.Set("start", start)
-		u.Set("end", end)
+	if start != "" && end != "" {
+		u.Set("start", convertTimeGranularity(start))
+		u.Set("end", convertTimeGranularity(end))
 		u.Set("step", step)
 		u.Set("timeout", timeout)
 		return u, true, nil
@@ -101,6 +110,18 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 		return u, false, nil
 	}
 
-	glog.Error("Parse request failed", u)
-	return u, false, errors.Errorf("Parse request failed")
+	glog.Errorln("Parse request %s failed", u)
+	return u, false, errors.Errorf("Parse request time range %s failed", u)
+}
+
+func convertTimeGranularity(ts string) string {
+	timeFloat, err := strconv.ParseFloat(ts, 64)
+	if err != nil {
+		glog.Errorf("convert second timestamp %s to minute timestamp failed", ts)
+		return strconv.FormatInt(int64(time.Now().Unix()), 10)
+	}
+	timeInt := int64(timeFloat)
+	// convert second timestamp to minute timestamp
+	secondTime := time.Unix(timeInt, 0).Truncate(time.Minute).Unix()
+	return strconv.FormatInt(secondTime, 10)
 }

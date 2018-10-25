@@ -31,11 +31,12 @@ const (
 
 func init() {
 	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
+
 	if err == nil {
 		config := &[]Rule{}
 		json.Unmarshal(rulesConfig, config)
 		if len(*config) > 0 {
-			RoleRuleGroup = *config
+			RoleRuleMapping = *config
 		}
 	}
 
@@ -45,7 +46,7 @@ func init() {
 		config := &[]Rule{}
 		json.Unmarshal(clusterRulesConfig, config)
 		if len(*config) > 0 {
-			ClusterRoleRuleGroup = *config
+			ClusterRoleRuleMapping = *config
 		}
 	}
 }
@@ -55,6 +56,7 @@ var (
 		{
 			Name: "workspaces",
 			Actions: []Action{
+
 				{Name: "edit",
 					Rules: []v1.PolicyRule{
 						{
@@ -110,6 +112,24 @@ var (
 						},
 					},
 				},
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/devops"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete", "deletecollection"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/devops"},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -133,6 +153,24 @@ var (
 						},
 					},
 				},
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/namespaces"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete", "deletecollection"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/namespaces"},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -144,240 +182,144 @@ var (
 				{Name: "delete"},
 			},
 		},
+		{
+			Name: "organizations",
+			Actions: []Action{
+				{Name: "view"},
+				{Name: "create"},
+				{Name: "edit"},
+				{Name: "delete"},
+			},
+		},
+		{
+			Name: "roles",
+			Actions: []Action{
+				{Name: "view"},
+				{Name: "create"},
+				{Name: "edit"},
+				{Name: "delete"},
+			},
+		},
 	}
 
-	ClusterRoleRuleGroup = []Rule{{
-		Name: "projects",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "members",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list", "create", "delete"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"rolebindings"},
-					},
-				},
-			},
-			{Name: "member_roles",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles"},
-					},
-				},
-			},
-		},
-	}, {
-		Name: "users",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"kubesphere.io"},
-						Resources: []string{"users"},
-					},
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterrolebindings"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{"kubesphere.io"},
-						Resources: []string{"users"},
-					},
-					{
-						Verbs:     []string{"create", "delete", "deletecollection"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterrolebindings"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"kubesphere.io"},
-						Resources: []string{"users"},
-					},
-					{
-						Verbs:     []string{"create", "delete", "deletecollection"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterrolebindings"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"kubesphere.io"},
-						Resources: []string{"users"},
-					},
-				},
-			},
-		},
-	}, {
-		Name: "roles",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterroles"},
-					},
-				},
-			},
-
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterroles"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterroles"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"clusterroles"},
-					},
-				},
-			},
-		},
-	}, {
-
-		Name: "images",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
-						},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
+	ClusterRoleRuleMapping = []Rule{
+		{Name: "workspaces",
+			Actions: []Action{
+				{
+					Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get", "watch", "list"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces"},
 						},
 					},
 				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
+				{
+					Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces"},
 						},
 					},
 				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{""},
-						Resources: []string{
-							"secrets",
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces", "workspaces/namespaces", "workspaces/roles", "workspaces/devops", "workspaces/members"},
+						},
+						{
+							Verbs:         []string{"get"},
+							APIGroups:     []string{"kubesphere.io"},
+							ResourceNames: []string{"workspaces"},
+							Resources:     []string{"monitoring/*"},
 						},
 					},
 				},
 			},
 		},
-	},
+		//{
+		//	Name: "projects",
+		//	Actions: []Action{
+		//		{Name: "view",
+		//			Rules: []v1.PolicyRule{
+		//				{
+		//					Verbs:     []string{"get", "watch", "list"},
+		//					APIGroups: []string{""},
+		//					Resources: []string{"namespaces"},
+		//				},
+		//			},
+		//		},
+		//		{Name: "create",
+		//			Rules: []v1.PolicyRule{
+		//				{
+		//					Verbs:     []string{"create"},
+		//					APIGroups: []string{""},
+		//					Resources: []string{"namespaces"},
+		//				},
+		//			},
+		//		},
+		//		{Name: "edit",
+		//			Rules: []v1.PolicyRule{
+		//				{
+		//					Verbs:     []string{"update", "patch"},
+		//					APIGroups: []string{""},
+		//					Resources: []string{"namespaces"},
+		//				},
+		//			},
+		//		},
+		//		{Name: "delete",
+		//			Rules: []v1.PolicyRule{
+		//				{
+		//					Verbs:     []string{"delete", "deletecollection"},
+		//					APIGroups: []string{""},
+		//					Resources: []string{"namespaces"},
+		//				},
+		//			},
+		//		},
+		//		{Name: "members",
+		//			Rules: []v1.PolicyRule{
+		//				{
+		//					Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
+		//					APIGroups: []string{"rbac.authorization.k8s.io"},
+		//					Resources: []string{"rolebindings", "roles"},
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
 		{
-			Name: "volumes",
+			Name: "accounts",
 			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"get", "watch", "list"},
-							APIGroups: []string{""},
-							Resources: []string{"persistentvolumes"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"accounts"},
 						},
 						{
-							Verbs:     []string{"list"},
-							APIGroups: []string{""},
-							Resources: []string{"namespaces"},
+							Verbs:     []string{"get", "watch", "list"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterrolebindings"},
 						},
 					},
 				},
 				{Name: "create",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"get", "watch", "list"},
-							APIGroups: []string{""},
-							Resources: []string{"persistentvolumes"},
+							Verbs:     []string{"create"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"accounts"},
+						},
+						{
+							Verbs:     []string{"create", "delete", "deletecollection"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterrolebindings"},
 						},
 					},
 				},
@@ -385,17 +327,63 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"update", "patch"},
-							APIGroups: []string{""},
-							Resources: []string{"persistentvolumes"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"accounts"},
+						},
+						{
+							Verbs:     []string{"create", "delete", "deletecollection"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterrolebindings"},
 						},
 					},
 				},
 				{Name: "delete",
 					Rules: []v1.PolicyRule{
 						{
+							Verbs:     []string{"delete", "deletecollection"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"accounts"},
+						},
+					},
+				},
+			},
+		}, {
+			Name: "roles",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
 							Verbs:     []string{"get", "watch", "list"},
-							APIGroups: []string{""},
-							Resources: []string{"persistentvolumes"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterroles"},
+						},
+					},
+				},
+
+				{Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterroles"},
+						},
+					},
+				},
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterroles"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete", "deletecollection"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"clusterroles"},
 						},
 					},
 				},
@@ -447,7 +435,7 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"get", "watch", "list"},
-							APIGroups: []string{""},
+							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"nodes"},
 						},
 					},
@@ -461,25 +449,31 @@ var (
 						},
 					},
 				},
-				{Name: "drain",
+				{Name: "cordon",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{"kubesphere.io"},
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{""},
 							Resources: []string{"nodes"},
 						},
+					}},
+				{Name: "taint", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"nodes"},
 					},
-				},
+				}},
 			},
 		}, {
-			Name: "app_catalog",
+			Name: "repos",
 			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"get", "watch", "list"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"appcatalog"},
+							Resources: []string{"repos"},
 						},
 					},
 				},
@@ -488,7 +482,7 @@ var (
 						{
 							Verbs:     []string{"create"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"appcatalog"},
+							Resources: []string{"repos"},
 						},
 					},
 				},
@@ -497,7 +491,7 @@ var (
 						{
 							Verbs:     []string{"update", "patch"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"appcatalog"},
+							Resources: []string{"repos"},
 						},
 					},
 				},
@@ -506,7 +500,7 @@ var (
 						{
 							Verbs:     []string{"delete", "deletecollection"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"appcatalog"},
+							Resources: []string{"repos"},
 						},
 					},
 				},
@@ -519,7 +513,7 @@ var (
 						{
 							Verbs:     []string{"get", "watch", "list"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"apps"},
+							Resources: []string{"apps", "repos"},
 						},
 					},
 				},
@@ -537,7 +531,96 @@ var (
 					},
 				},
 			},
-		}, {
+		}}
+
+	RoleRuleMapping = []Rule{{
+		Name: "projects",
+		Actions: []Action{
+			//  limit range +  router
+			{Name: "edit",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch", "get"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
+					},
+				},
+			},
+			{Name: "delete",
+				Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"get"},
+						APIGroups: []string{""},
+						Resources: []string{"namespaces"},
+					},
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{""},
+						Resources: []string{"events"},
+					},
+				},
+			},
+		},
+	},
+		{
+			Name: "members",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get", "watch", "list", "create", "delete"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"rolebindings"},
+						},
+						{
+							Verbs:     []string{"get"},
+							APIGroups: []string{""},
+							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "roles",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
+							APIGroups: []string{"rbac.authorization.k8s.io"},
+							Resources: []string{"roles"},
+						},
+						{
+							Verbs:     []string{"get"},
+							APIGroups: []string{""},
+							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
+						},
+					},
+				},
+			},
+		},
+		{
 			Name: "deployments",
 			Actions: []Action{
 				{Name: "view",
@@ -548,9 +631,14 @@ var (
 							Resources: []string{"deployments", "deployments/scale"},
 						},
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
 							APIGroups: []string{""},
 							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 						{
 							Verbs:     []string{"get", "watch", "list"},
@@ -609,9 +697,14 @@ var (
 							Resources: []string{"statefulsets"},
 						},
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
 							APIGroups: []string{""},
 							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 						{
 							Verbs:     []string{"get", "watch", "list"},
@@ -668,9 +761,14 @@ var (
 							Resources: []string{"daemonsets"},
 						},
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
 							APIGroups: []string{""},
 							Resources: []string{"namespaces"},
+						},
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{""},
+							Resources: []string{"events"},
 						},
 						{
 							Verbs:     []string{"get", "watch", "list"},
@@ -720,373 +818,7 @@ var (
 					},
 				},
 			},
-		}, {
-			Name: "services",
-			Actions: []Action{
-				{Name: "view",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"list"},
-							APIGroups: []string{""},
-							Resources: []string{"services"},
-						},
-						{
-							Verbs:     []string{"list"},
-							APIGroups: []string{""},
-							Resources: []string{"namespaces"},
-						},
-					},
-				},
-				{Name: "create",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"create"},
-							APIGroups: []string{""},
-							Resources: []string{"services"},
-						},
-					},
-				},
-
-				{Name: "edit",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"update", "patch"},
-							APIGroups: []string{""},
-							Resources: []string{"services"},
-						},
-					},
-				},
-				{Name: "delete",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"delete", "deletecollection"},
-							APIGroups: []string{""},
-							Resources: []string{"services"},
-						},
-					},
-				},
-			},
-		}, {
-			Name: "routes",
-			Actions: []Action{
-				{Name: "view",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"get", "watch", "list"},
-							APIGroups: []string{"extensions"},
-							Resources: []string{"ingresses"},
-						},
-						{
-							Verbs:     []string{"list"},
-							APIGroups: []string{""},
-							Resources: []string{"namespaces"},
-						},
-					},
-				},
-				{Name: "create",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"create"},
-							APIGroups: []string{"extensions"},
-							Resources: []string{"ingresses"},
-						},
-					},
-				},
-				{Name: "edit",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"update", "patch"},
-							APIGroups: []string{"extensions"},
-							Resources: []string{"ingresses"},
-						},
-					},
-				},
-				{Name: "delete",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"delete", "deletecollection"},
-							APIGroups: []string{"extensions"},
-							Resources: []string{"ingresses"},
-						},
-					},
-				},
-			},
-		}}
-
-	RoleRuleGroup = []Rule{{
-		Name: "projects",
-		Actions: []Action{
-			{Name: "members",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list", "create", "delete"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"rolebindings"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-				},
-			},
-			{Name: "member_roles",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
-						APIGroups: []string{"rbac.authorization.k8s.io"},
-						Resources: []string{"roles"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch", "get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-				},
-			},
 		},
-	}, {
-		Name: "deployments",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments", "deployments/scale"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{"pods", "pods/log", "pods/status"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments"},
-					},
-				},
-			},
-
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments", "deployments/rollback"},
-					},
-				},
-			},
-
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments"},
-					},
-				},
-			},
-			{Name: "scale",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create", "update", "patch", "delete"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"deployments/scale"},
-					},
-				},
-			},
-		},
-	}, {
-		Name: "statefulsets",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"apps"},
-						Resources: []string{"statefulsets"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{"pods", "pods/log", "pods/status"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{"apps"},
-						Resources: []string{"statefulsets"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"apps"},
-						Resources: []string{"statefulsets"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"apps"},
-						Resources: []string{"statefulsets"},
-					},
-				},
-			},
-			{Name: "scale",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"patch"},
-						APIGroups: []string{"apps"},
-						Resources: []string{"statefulsets"},
-					},
-				},
-			},
-		},
-	}, {
-		Name: "daemonsets",
-		Actions: []Action{
-			{Name: "view",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"daemonsets"},
-					},
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"namespaces"},
-					},
-					{
-						Verbs:     []string{"list"},
-						APIGroups: []string{""},
-						Resources: []string{"events"},
-					},
-					{
-						Verbs:     []string{"get", "watch", "list"},
-						APIGroups: []string{""},
-						Resources: []string{"pods", "pods/log", "pods/status"},
-					},
-				},
-			},
-			{Name: "create",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"create"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"daemonsets"},
-					},
-				},
-			},
-			{Name: "edit",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"update", "patch"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"daemonsets"},
-					},
-				},
-			},
-			{Name: "delete",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"delete", "deletecollection"},
-						APIGroups: []string{"apps", "extensions"},
-						Resources: []string{"daemonsets"},
-					},
-				},
-			},
-		},
-	}, {
-		Name: "pods",
-		Actions: []Action{
-			{Name: "terminal",
-				Rules: []v1.PolicyRule{
-					{
-						Verbs:     []string{"*"},
-						APIGroups: []string{"kubesphere.io"},
-						Resources: []string{"terminal"},
-					},
-				},
-			},
-		},
-	},
 		{
 			Name: "services",
 			Actions: []Action{
@@ -1238,5 +970,151 @@ var (
 					},
 				},
 			},
-		}}
+		}, {
+			Name: "applications",
+			Actions: []Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"list"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"applications"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "jobs",
+			Actions: []Action{
+				{Name: "view", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"view", "list"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"jobs"},
+					},
+				}},
+				{Name: "create", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"jobs"},
+					},
+				}},
+				{Name: "edit", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"jobs"},
+					},
+				}},
+				{Name: "delete", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"jobs"},
+					},
+				}},
+			},
+		},
+		{
+			Name: "cronjobs",
+			Actions: []Action{
+				{Name: "view", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"view", "list"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"cronjobs"},
+					},
+				}},
+				{Name: "create", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"cronjobs"},
+					},
+				}},
+				{Name: "edit", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"cronjobs"},
+					},
+				}},
+				{Name: "delete", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{"batch"},
+						Resources: []string{"cronjobs"},
+					},
+				}},
+			},
+		},
+		{
+			Name: "secrets",
+			Actions: []Action{
+				{Name: "view", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"view", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"secrets"},
+					},
+				}},
+				{Name: "create", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{"secrets"},
+					},
+				}},
+				{Name: "edit", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"secrets"},
+					},
+				}},
+				{Name: "delete", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{"secrets"},
+					},
+				}},
+			},
+		},
+		{
+			Name: "configmaps",
+			Actions: []Action{
+				{Name: "view", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"view", "list"},
+						APIGroups: []string{""},
+						Resources: []string{"configmaps"},
+					},
+				}},
+				{Name: "create", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{""},
+						Resources: []string{"configmaps"},
+					},
+				}},
+				{Name: "edit", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"update", "patch"},
+						APIGroups: []string{""},
+						Resources: []string{"configmaps"},
+					},
+				}},
+				{Name: "delete", Rules: []v1.PolicyRule{
+					{
+						Verbs:     []string{"delete", "deletecollection"},
+						APIGroups: []string{""},
+						Resources: []string{"configmaps"},
+					},
+				}},
+			},
+		},
+	}
 )

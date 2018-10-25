@@ -16,18 +16,22 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 )
 
+const UserNameHeader = "X-Token-Username"
+
 func Register(ws *restful.WebService, subPath string) {
-	ws.Route(ws.GET(subPath).To(WorkspaceListHandler))
+
+	ws.Route(ws.GET(subPath).To(UserWorkspaceListHandler))
 	ws.Route(ws.POST(subPath).To(WorkspaceCreateHandler))
 	ws.Route(ws.DELETE(subPath + "/{name}").To(DeleteWorkspaceHandler))
 	ws.Route(ws.GET(subPath + "/{name}").To(WorkspaceDetailHandler))
 	ws.Route(ws.PUT(subPath + "/{name}").To(WorkspaceEditHandler))
-	ws.Route(ws.GET(subPath + "/{name}/namespaces").To(NamespaceHandler))
+	ws.Route(ws.GET(subPath + "/{workspace}/namespaces").To(UserNamespaceListHandler))
 	ws.Route(ws.POST(subPath + "/{name}/namespaces").To(NamespaceCreateHandler))
 	ws.Route(ws.DELETE(subPath + "/{name}/namespaces/{namespace}").To(NamespaceDeleteHandler))
 	ws.Route(ws.GET(subPath + "/{name}/devops").To(DevOpsProjectHandler))
 	ws.Route(ws.POST(subPath + "/{name}/devops").To(DevOpsProjectCreateHandler))
 	ws.Route(ws.DELETE(subPath + "/{name}/devops/{id}").To(DevOpsProjectDeleteHandler))
+
 	ws.Route(ws.GET(subPath + "/{name}/members").To(MembersHandler))
 	ws.Route(ws.GET(subPath + "/{name}/members/{member}").To(MemberHandler))
 	ws.Route(ws.GET(subPath + "/{name}/roles").To(RolesHandler))
@@ -107,6 +111,7 @@ func MemberHandler(req *restful.Request, resp *restful.Response) {
 	}
 
 	namespaces, err := workspaces.Namespaces(workspace)
+
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
@@ -169,14 +174,9 @@ func MembersRemoveHandler(req *restful.Request, resp *restful.Response) {
 func NamespaceDeleteHandler(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	workspace := req.PathParameter("name")
-	force := req.QueryParameter("force")
-	err := workspaces.UnBindNamespace(workspace, namespace)
+	//force := req.QueryParameter("force")
 
-	if err != nil && force != "true" {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-		return
-	}
-	err = workspaces.DeleteNamespace(namespace)
+	err := workspaces.DeleteNamespace(workspace, namespace)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -190,7 +190,7 @@ func DevOpsProjectDeleteHandler(req *restful.Request, resp *restful.Response) {
 	devops := req.PathParameter("id")
 	workspace := req.PathParameter("name")
 	force := req.QueryParameter("force")
-	username := req.HeaderParameter("X-Token-Username")
+	username := req.HeaderParameter(UserNameHeader)
 
 	err := workspaces.UnBindDevopsProject(workspace, devops)
 
@@ -212,7 +212,7 @@ func DevOpsProjectDeleteHandler(req *restful.Request, resp *restful.Response) {
 func DevOpsProjectCreateHandler(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("name")
-	username := req.HeaderParameter("X-Token-Username")
+	username := req.HeaderParameter(UserNameHeader)
 
 	var devops workspaces.DevopsProject
 
@@ -248,7 +248,7 @@ func DevOpsProjectCreateHandler(req *restful.Request, resp *restful.Response) {
 
 func NamespaceCreateHandler(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("name")
-	username := req.HeaderParameter("X-Token-Username")
+	username := req.HeaderParameter(UserNameHeader)
 
 	namespace := &v1.Namespace{}
 
@@ -266,17 +266,15 @@ func NamespaceCreateHandler(req *restful.Request, resp *restful.Response) {
 	namespace.Annotations["creator"] = username
 	namespace.Annotations["workspace"] = workspace
 
+	if namespace.Labels == nil {
+		namespace.Labels = make(map[string]string, 0)
+	}
+
+	namespace.Labels["kubesphere.io/workspace"] = workspace
+
 	namespace, err = workspaces.CreateNamespace(namespace)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, constants.MessageResponse{Message: err.Error()})
-		return
-	}
-
-	err = workspaces.BindingNamespace(workspace, namespace.Name)
-
-	if err != nil {
-		workspaces.DeleteNamespace(namespace.Name)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, constants.MessageResponse{Message: err.Error()})
 		return
 	}
@@ -298,22 +296,9 @@ func DevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(devOpsProjects)
 }
 
-func NamespaceHandler(req *restful.Request, resp *restful.Response) {
-
-	workspace := req.PathParameter("name")
-
-	namespaces, err := workspaces.Namespaces(workspace)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-		return
-	}
-
-	resp.WriteEntity(namespaces)
-}
 func WorkspaceCreateHandler(req *restful.Request, resp *restful.Response) {
 	var workspace workspaces.Workspace
-	username := req.HeaderParameter("X-Token-Username")
+	username := req.HeaderParameter(UserNameHeader)
 	err := req.ReadEntity(&workspace)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, constants.MessageResponse{Message: err.Error()})
@@ -327,7 +312,11 @@ func WorkspaceCreateHandler(req *restful.Request, resp *restful.Response) {
 	workspace.Path = workspace.Name
 	workspace.Members = nil
 
-	workspace.Creator = username
+	if workspace.Admin != "" {
+		workspace.Creator = workspace.Admin
+	} else {
+		workspace.Creator = username
+	}
 
 	created, err := workspaces.Create(&workspace)
 
@@ -411,15 +400,12 @@ func WorkspaceDetailHandler(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(workspace)
 }
 
-func WorkspaceListHandler(req *restful.Request, resp *restful.Response) {
+// List all workspaces for the current user
+func UserWorkspaceListHandler(req *restful.Request, resp *restful.Response) {
 
-	var names []string
+	username := req.HeaderParameter(UserNameHeader)
 
-	if query := req.QueryParameter("name"); query != "" {
-		names = strings.Split(query, ",")
-	}
-
-	list, err := workspaces.List(names)
+	list, err := workspaces.ListByUser(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -427,4 +413,19 @@ func WorkspaceListHandler(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteEntity(list)
+}
+
+func UserNamespaceListHandler(req *restful.Request, resp *restful.Response) {
+
+	username := req.HeaderParameter(UserNameHeader)
+	workspaceName := req.PathParameter("workspace")
+
+	namespaces, err := workspaces.ListNamespaceByUser(workspaceName, username)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		return
+	}
+
+	resp.WriteEntity(namespaces)
 }
