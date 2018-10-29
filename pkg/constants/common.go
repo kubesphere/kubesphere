@@ -40,14 +40,29 @@ const (
 	DataHome                   = "/etc/kubesphere"
 	IngressControllerFolder    = DataHome + "/ingress-controller"
 	IngressControllerPrefix    = "kubesphere-router-"
+	DevopsAPIServerEnv         = "DEVOPS_API_SERVER"
+	AccountAPIServerEnv        = "ACCOUNT_API_SERVER"
+	DevopsProxyTokenEnv        = "DEVOPS_PROXY_TOKEN"
 	OpenPitrixProxyTokenEnv    = "OPENPITRIX_PROXY_TOKEN"
 )
 
 var (
+	DevopsAPIServer      = "ks-devops-apiserver.kubesphere-system.svc"
+	AccountAPIServer     = "ks-account.kubesphere-system.svc"
+	DevopsProxyToken     = ""
 	OpenPitrixProxyToken = ""
 )
 
 func init() {
+	if env := os.Getenv(DevopsAPIServerEnv); env != "" {
+		DevopsAPIServer = env
+	}
+	if env := os.Getenv(AccountAPIServerEnv); env != "" {
+		AccountAPIServer = env
+	}
+	if env := os.Getenv(DevopsProxyTokenEnv); env != "" {
+		DevopsProxyToken = env
+	}
 	if env := os.Getenv(OpenPitrixProxyTokenEnv); env != "" {
 		OpenPitrixProxyToken = env
 	}
