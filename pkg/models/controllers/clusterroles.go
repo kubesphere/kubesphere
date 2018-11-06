@@ -74,7 +74,9 @@ func (ctl *ClusterRoleCtl) sync(stopChan chan struct{}) {
 	for _, item := range list {
 		obj := ctl.generateObject(*item)
 		if obj != nil {
-			db.Create(obj)
+			if err := db.Create(obj).Error; err != nil {
+				glog.Error("cluster roles sync error", err)
+			}
 		}
 	}
 
@@ -111,14 +113,18 @@ func (ctl *ClusterRoleCtl) initListerAndInformer() {
 			object := obj.(*v1.ClusterRole)
 			mysqlObject := ctl.generateObject(*object)
 			if mysqlObject != nil {
-				db.Create(mysqlObject)
+				if err := db.Create(mysqlObject).Error; err != nil {
+					glog.Error("cluster roles sync error", err)
+				}
 			}
 		},
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.ClusterRole)
 			mysqlObject := ctl.generateObject(*object)
 			if mysqlObject != nil {
-				db.Save(mysqlObject)
+				if err := db.Save(mysqlObject).Error; err != nil {
+					glog.Error("cluster roles update error", err)
+				}
 			}
 		},
 		DeleteFunc: func(obj interface{}) {

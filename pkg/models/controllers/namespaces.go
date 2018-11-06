@@ -147,9 +147,9 @@ func (ctl *NamespaceCtl) createDefaultRoleBinding(ns, user string) error {
 }
 
 func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
-	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns}, Rules: adminRules}
-	editorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: editor, Namespace: ns}, Rules: editorRules}
-	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: ns}, Rules: viewerRules}
+	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: adminRules}
+	editorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: editor, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: editorRules}
+	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: viewerRules}
 
 	_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(adminRole)
 

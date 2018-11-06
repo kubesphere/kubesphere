@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -12,10 +11,12 @@ import (
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/util/slice"
+	"k8s.io/apimachinery/pkg/labels"
+	v12 "k8s.io/client-go/listers/rbac/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/controllers"
 	ksErr "kubesphere.io/kubesphere/pkg/util/errors"
 )
 
@@ -133,7 +134,7 @@ func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []R
 		rule := Rule{Name: WorkspaceRoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
 		for j := 0; j < len(WorkspaceRoleRuleMapping[i].Actions); j++ {
-			if actionValidate(role.Rules, WorkspaceRoleRuleMapping[i].Actions[j]) {
+			if rulesMatchesAction(role.Rules, WorkspaceRoleRuleMapping[i].Actions[j]) {
 				rule.Actions = append(rule.Actions, WorkspaceRoleRuleMapping[i].Actions[j])
 			}
 		}
@@ -161,18 +162,22 @@ func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespac
 	}
 
 	if requiredRule.Size() == 0 {
-		if ruleValidate(clusterRules, v1.PolicyRule{
-			Verbs:     []string{"get", "list"},
-			APIGroups: []string{""},
-			Resources: []string{"namespaces"},
+		if RulesMatchesRequired(clusterRules, v1.PolicyRule{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"kubesphere.io"},
+			Resources: []string{"workspaces/namespaces"},
 		}) {
 			return true, nil, nil
 		}
-	} else if ruleValidate(clusterRules, requiredRule) {
-		return true, nil, nil
+	} else {
+
+		if RulesMatchesRequired(clusterRules, requiredRule) {
+			return true, nil, nil
+		}
+
 	}
 
-	roles, err := GetRoles(username)
+	roles, err := GetRoles("", username)
 
 	if err != nil {
 		return false, nil, err
@@ -192,7 +197,7 @@ func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespac
 	namespaces = make([]string, 0)
 
 	for namespace, rules := range rulesMapping {
-		if requiredRule.Size() == 0 || ruleValidate(rules, requiredRule) {
+		if requiredRule.Size() == 0 || RulesMatchesRequired(rules, requiredRule) {
 			namespaces = append(namespaces, namespace)
 		}
 	}
@@ -309,22 +314,24 @@ func GetClusterRole(name string) (*v1.ClusterRole, error) {
 	return role, nil
 }
 
-func GetRoles(username string) ([]v1.Role, error) {
-	k8s := client.NewK8sClient()
+func GetRoles(namespace string, username string) ([]v1.Role, error) {
+	roleBindingLister := controllers.ResourceControllers.Controllers[controllers.RoleBindings].Lister().(v12.RoleBindingLister)
+	roleLister := controllers.ResourceControllers.Controllers[controllers.Roles].Lister().(v12.RoleLister)
+	clusterRoleLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoles].Lister().(v12.ClusterRoleLister)
 
-	roleBindings, err := k8s.RbacV1().RoleBindings("").List(meta_v1.ListOptions{})
+	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 	roles := make([]v1.Role, 0)
 
-	for _, roleBinding := range roleBindings.Items {
+	for _, roleBinding := range roleBindings {
 
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-					clusterRole, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+					clusterRole, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
 					if err == nil {
 						var role = v1.Role{TypeMeta: (*clusterRole).TypeMeta, ObjectMeta: (*clusterRole).ObjectMeta, Rules: (*clusterRole).Rules}
 						role.Namespace = roleBinding.Namespace
@@ -339,7 +346,7 @@ func GetRoles(username string) ([]v1.Role, error) {
 
 				} else {
 					if subject.Kind == v1.UserKind && subject.Name == username {
-						rule, err := k8s.RbacV1().Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+						rule, err := roleLister.Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name)
 						if err == nil {
 							roles = append(roles, *rule)
 							break
@@ -361,10 +368,12 @@ func GetRoles(username string) ([]v1.Role, error) {
 	return roles, nil
 }
 
+// Get cluster roles by username
 func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
-	k8s := client.NewK8sClient()
-
-	clusterRoleBindings, err := k8s.RbacV1().ClusterRoleBindings().List(meta_v1.ListOptions{})
+	//TODO fix NPE
+	clusterRoleBindingLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoleBindings].Lister().(v12.ClusterRoleBindingLister)
+	clusterRoleLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoles].Lister().(v12.ClusterRoleLister)
+	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -372,27 +381,24 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 
 	roles := make([]v1.ClusterRole, 0)
 
-	for _, roleBinding := range clusterRoleBindings.Items {
+	for _, roleBinding := range clusterRoleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-					role, err := k8s.RbacV1().ClusterRoles().Get(roleBinding.RoleRef.Name, meta_v1.GetOptions{})
+					role, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
 					if err == nil {
 						if role.Annotations == nil {
 							role.Annotations = make(map[string]string, 0)
 						}
-
 						role.Annotations["rbac.authorization.k8s.io/clusterrolebinding"] = roleBinding.Name
-
 						if roleBinding.Annotations != nil &&
 							roleBinding.Annotations["rbac.authorization.k8s.io/clusterrole"] == roleBinding.RoleRef.Name {
 							role.Annotations["rbac.authorization.k8s.io/clusterrole"] = "true"
 						}
-
 						roles = append(roles, *role)
 						break
 					} else if apierrors.IsNotFound(err) {
-						log.Println(err)
+						glog.Warning(err)
 						break
 					} else {
 						return nil, err
@@ -405,80 +411,80 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 	return roles, nil
 }
 
-func ruleValidate(rules []v1.PolicyRule, rule v1.PolicyRule) bool {
+//func RuleValidate(rules []v1.PolicyRule, rule v1.PolicyRule) bool {
+//
+//	for _, apiGroup := range rule.APIGroups {
+//		if len(rule.NonResourceURLs) == 0 {
+//			for _, resource := range rule.Resources {
+//
+//				//if len(Rule.ResourceNames) == 0 {
+//
+//				for _, verb := range rule.Verbs {
+//					if !verbValidate(rules, apiGroup, "", resource, "", verb) {
+//						return false
+//					}
+//				}
+//
+//				//} else {
+//				//	for _, resourceName := range Rule.ResourceNames {
+//				//		for _, verb := range Rule.Verbs {
+//				//			if !verbValidate(rules, apiGroup, "", resource, resourceName, verb) {
+//				//				return false
+//				//			}
+//				//		}
+//				//	}
+//				//}
+//			}
+//		} else {
+//			for _, nonResourceURL := range rule.NonResourceURLs {
+//				for _, verb := range rule.Verbs {
+//					if !verbValidate(rules, apiGroup, nonResourceURL, "", "", verb) {
+//						return false
+//					}
+//				}
+//			}
+//		}
+//	}
+//	return true
+//}
 
-	for _, apiGroup := range rule.APIGroups {
-		if len(rule.NonResourceURLs) == 0 {
-			for _, resource := range rule.Resources {
-
-				//if len(Rule.ResourceNames) == 0 {
-
-				for _, verb := range rule.Verbs {
-					if !verbValidate(rules, apiGroup, "", resource, "", verb) {
-						return false
-					}
-				}
-
-				//} else {
-				//	for _, resourceName := range Rule.ResourceNames {
-				//		for _, verb := range Rule.Verbs {
-				//			if !verbValidate(rules, apiGroup, "", resource, resourceName, verb) {
-				//				return false
-				//			}
-				//		}
-				//	}
-				//}
-			}
-		} else {
-			for _, nonResourceURL := range rule.NonResourceURLs {
-				for _, verb := range rule.Verbs {
-					if !verbValidate(rules, apiGroup, nonResourceURL, "", "", verb) {
-						return false
-					}
-				}
-			}
-		}
-	}
-	return true
-}
-
-func verbValidate(rules []v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, resourceName string, verb string) bool {
-	for _, rule := range rules {
-
-		if nonResourceURL == "" {
-			if slice.ContainsString(rule.APIGroups, apiGroup, nil) ||
-				slice.ContainsString(rule.APIGroups, v1.APIGroupAll, nil) {
-				if slice.ContainsString(rule.Verbs, verb, nil) ||
-					slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
-					if slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
-						return true
-					} else if slice.ContainsString(rule.Resources, resource, nil) {
-						if len(rule.ResourceNames) > 0 {
-							if slice.ContainsString(rule.ResourceNames, resourceName, nil) {
-								return true
-							}
-						} else if resourceName == "" {
-							return true
-						}
-					}
-				}
-			}
-
-		} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL, nil) ||
-			slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll, nil) {
-			if slice.ContainsString(rule.Verbs, verb, nil) ||
-				slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
-				return true
-			}
-		}
-	}
-	return false
-}
+//func verbValidate(rules []v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, resourceName string, verb string) bool {
+//	for _, rule := range rules {
+//
+//		if nonResourceURL == "" {
+//			if slice.ContainsString(rule.APIGroups, apiGroup, nil) ||
+//				slice.ContainsString(rule.APIGroups, v1.APIGroupAll, nil) {
+//				if slice.ContainsString(rule.Verbs, verb, nil) ||
+//					slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
+//					if slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
+//						return true
+//					} else if slice.ContainsString(rule.Resources, resource, nil) {
+//						if len(rule.ResourceNames) > 0 {
+//							if slice.ContainsString(rule.ResourceNames, resourceName, nil) {
+//								return true
+//							}
+//						} else if resourceName == "" {
+//							return true
+//						}
+//					}
+//				}
+//			}
+//
+//		} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL, nil) ||
+//			slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll, nil) {
+//			if slice.ContainsString(rule.Verbs, verb, nil) ||
+//				slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
+//				return true
+//			}
+//		}
+//	}
+//	return false
+//}
 
 func GetUserRules(username string) (map[string][]Rule, error) {
 
 	items := make(map[string][]Rule, 0)
-	userRoles, err := GetRoles(username)
+	userRoles, err := GetRoles("", username)
 
 	if err != nil {
 		return nil, err
@@ -508,12 +514,12 @@ func GetUserRules(username string) (map[string][]Rule, error) {
 func convertToRules(policyRules []v1.PolicyRule) []Rule {
 	rules := make([]Rule, 0)
 
-	for i := 0; i < (len(RoleRuleGroup)); i++ {
-		rule := Rule{Name: RoleRuleGroup[i].Name}
+	for i := 0; i < (len(RoleRuleMapping)); i++ {
+		rule := Rule{Name: RoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(RoleRuleGroup[i].Actions)); j++ {
-			if actionValidate(policyRules, RoleRuleGroup[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, RoleRuleGroup[i].Actions[j])
+		for j := 0; j < (len(RoleRuleMapping[i].Actions)); j++ {
+			if rulesMatchesAction(policyRules, RoleRuleMapping[i].Actions[j]) {
+				rule.Actions = append(rule.Actions, RoleRuleMapping[i].Actions[j])
 			}
 		}
 
@@ -541,12 +547,12 @@ func GetUserClusterRules(username string) ([]Rule, error) {
 		clusterRules = append(clusterRules, role.Rules...)
 	}
 
-	for i := 0; i < (len(ClusterRoleRuleGroup)); i++ {
-		rule := Rule{Name: ClusterRoleRuleGroup[i].Name}
+	for i := 0; i < (len(ClusterRoleRuleMapping)); i++ {
+		rule := Rule{Name: ClusterRoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(ClusterRoleRuleGroup[i].Actions)); j++ {
-			if actionValidate(clusterRules, ClusterRoleRuleGroup[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, ClusterRoleRuleGroup[i].Actions[j])
+		for j := 0; j < (len(ClusterRoleRuleMapping[i].Actions)); j++ {
+			if rulesMatchesAction(clusterRules, ClusterRoleRuleMapping[i].Actions[j]) {
+				rule.Actions = append(rule.Actions, ClusterRoleRuleMapping[i].Actions[j])
 			}
 		}
 		if len(rule.Actions) > 0 {
@@ -567,12 +573,12 @@ func GetClusterRoleRules(name string) ([]Rule, error) {
 
 	rules := make([]Rule, 0)
 
-	for i := 0; i < len(ClusterRoleRuleGroup); i++ {
-		rule := Rule{Name: ClusterRoleRuleGroup[i].Name}
+	for i := 0; i < len(ClusterRoleRuleMapping); i++ {
+		rule := Rule{Name: ClusterRoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(ClusterRoleRuleGroup[i].Actions)); j++ {
-			if actionValidate(clusterRole.Rules, ClusterRoleRuleGroup[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, ClusterRoleRuleGroup[i].Actions[j])
+		for j := 0; j < (len(ClusterRoleRuleMapping[i].Actions)); j++ {
+			if rulesMatchesAction(clusterRole.Rules, ClusterRoleRuleMapping[i].Actions[j]) {
+				rule.Actions = append(rule.Actions, ClusterRoleRuleMapping[i].Actions[j])
 			}
 		}
 		if len(rule.Actions) > 0 {
@@ -590,12 +596,12 @@ func GetRoleRules(namespace string, name string) ([]Rule, error) {
 	}
 
 	rules := make([]Rule, 0)
-	for i := 0; i < len(RoleRuleGroup); i++ {
-		rule := Rule{Name: RoleRuleGroup[i].Name}
+	for i := 0; i < len(RoleRuleMapping); i++ {
+		rule := Rule{Name: RoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
-		for j := 0; j < len(RoleRuleGroup[i].Actions); j++ {
-			if actionValidate(role.Rules, RoleRuleGroup[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, RoleRuleGroup[i].Actions[j])
+		for j := 0; j < len(RoleRuleMapping[i].Actions); j++ {
+			if rulesMatchesAction(role.Rules, RoleRuleMapping[i].Actions[j]) {
+				rule.Actions = append(rule.Actions, RoleRuleMapping[i].Actions[j])
 			}
 		}
 		if len(rule.Actions) > 0 {
@@ -605,11 +611,157 @@ func GetRoleRules(namespace string, name string) ([]Rule, error) {
 	return rules, nil
 }
 
-func actionValidate(rules []v1.PolicyRule, action Action) bool {
+func rulesMatchesAction(rules []v1.PolicyRule, action Action) bool {
+
 	for _, rule := range action.Rules {
-		if !ruleValidate(rules, rule) {
+		if !RulesMatchesRequired(rules, rule) {
 			return false
 		}
 	}
 	return true
+}
+
+func RulesMatchesRequired(rules []v1.PolicyRule, required v1.PolicyRule) bool {
+	for _, rule := range rules {
+		if ruleMatchesRequired(rule, required) {
+			return true
+		}
+	}
+	return false
+}
+
+func ruleMatchesRequired(rule v1.PolicyRule, required v1.PolicyRule) bool {
+
+	if len(required.NonResourceURLs) == 0 {
+		for _, apiGroup := range required.APIGroups {
+			for _, resource := range required.Resources {
+				resources := strings.Split(resource, "/")
+				resource = resources[0]
+				var subsource string
+				if len(resources) > 1 {
+					subsource = resources[1]
+				}
+
+				if len(required.ResourceNames) == 0 {
+					for _, verb := range required.Verbs {
+						if !ruleMatchesRequest(rule, apiGroup, "", resource, subsource, "", verb) {
+							return false
+						}
+					}
+				} else {
+					for _, resourceName := range required.ResourceNames {
+						for _, verb := range required.Verbs {
+							if !ruleMatchesRequest(rule, apiGroup, "", resource, subsource, resourceName, verb) {
+								return false
+							}
+						}
+					}
+				}
+			}
+		}
+	} else {
+		for _, apiGroup := range required.APIGroups {
+			for _, nonResourceURL := range required.NonResourceURLs {
+				for _, verb := range required.Verbs {
+					if !ruleMatchesRequest(rule, apiGroup, nonResourceURL, "", "", "", verb) {
+						return false
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
+func ruleMatchesResources(rule v1.PolicyRule, apiGroup string, resource string, subresource string, resourceName string) bool {
+
+	if resource == "" {
+		return false
+	}
+
+	if !hasString(rule.APIGroups, apiGroup) && !hasString(rule.APIGroups, v1.ResourceAll) {
+		return false
+	}
+
+	if len(rule.ResourceNames) > 0 && !hasString(rule.ResourceNames, resourceName) {
+		return false
+	}
+
+	combinedResource := resource
+
+	if subresource != "" {
+		combinedResource = combinedResource + "/" + subresource
+	}
+
+	for _, res := range rule.Resources {
+
+		// match "*"
+		if res == v1.ResourceAll || res == combinedResource {
+			return true
+		}
+
+		// match "*/subresource"
+		if len(subresource) > 0 && strings.HasPrefix(res, "*/") && subresource == strings.TrimLeft(res, "*/") {
+			return true
+		}
+		// match "resource/*"
+		if strings.HasSuffix(res, "/*") && resource == strings.TrimRight(res, "/*") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ruleMatchesRequest(rule v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, subresource string, resourceName string, verb string) bool {
+
+	if !hasString(rule.Verbs, verb) && !hasString(rule.Verbs, v1.VerbAll) {
+		return false
+	}
+
+	if nonResourceURL == "" {
+		return ruleMatchesResources(rule, apiGroup, resource, subresource, resourceName)
+	} else {
+		return ruleMatchesNonResource(rule, nonResourceURL)
+	}
+}
+
+func ruleMatchesNonResource(rule v1.PolicyRule, nonResourceURL string) bool {
+
+	if nonResourceURL == "" {
+		return false
+	}
+
+	for _, spec := range rule.NonResourceURLs {
+		if pathMatches(nonResourceURL, spec) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func pathMatches(path, spec string) bool {
+	// Allow wildcard match
+	if spec == "*" {
+		return true
+	}
+	// Allow exact match
+	if spec == path {
+		return true
+	}
+	// Allow a trailing * subpath match
+	if strings.HasSuffix(spec, "*") && strings.HasPrefix(path, strings.TrimRight(spec, "*")) {
+		return true
+	}
+	return false
+}
+
+func hasString(slice []string, value string) bool {
+	for _, s := range slice {
+		if s == value {
+			return true
+		}
+	}
+	return false
 }

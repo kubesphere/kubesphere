@@ -26,11 +26,19 @@ import (
 
 	"time"
 
+	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"sync"
+
+	"k8s.io/apimachinery/pkg/labels"
+	v12 "k8s.io/client-go/listers/core/v1"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/controllers"
+	"kubesphere.io/kubesphere/pkg/models/workspaces"
 )
 
 func getPodNameRegexInWorkload(request *restful.Request) string {
@@ -186,6 +194,15 @@ func MonitorAllMetrics(request *restful.Request) FormatedLevelMetric {
 				go collectPodMetrics(request, metricName, ch)
 			} else if sourceType == MetricLevelWorkload {
 				go collectWorkloadMetrics(request, metricName, ch)
+			} else if sourceType == MetricLevelWorkspace {
+				name := request.PathParameter("workspace_name")
+				namespaces, err := workspaces.WorkspaceNamespaces(name)
+
+				if err != nil {
+					glog.Errorln(err)
+				}
+				namespaces = filterNamespace(request, namespaces)
+				go collectWorkspaceMetrics(request, metricName, namespaces, ch)
 			}
 		}
 	}
@@ -210,6 +227,106 @@ func MonitorAllMetrics(request *restful.Request) FormatedLevelMetric {
 	return FormatedLevelMetric{
 		MetricsLevel: sourceType,
 		Results:      metricsArray,
+	}
+}
+
+func MonitorWorkspaceUserInfo(req *restful.Request) FormatedLevelMetric {
+
+	var metricsArray []FormatedMetric
+	timestamp := time.Now().Unix()
+
+	wg := sync.WaitGroup{}
+	var orgResultItem FormatedMetric
+	var dvpResultItem FormatedMetric
+	var projResultItem FormatedMetric
+	var actResultItem FormatedMetric
+
+	wg.Add(4)
+
+	go func() {
+		orgNums, errOrg := workspaces.GetAllOrgNums()
+		orgResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllOrganizationCount, WorkspaceResourceKindOrganization, orgNums, errOrg)
+		wg.Done()
+	}()
+	go func() {
+		devOpsProjectNums, errDevops := workspaces.GetAllDevOpsProjectsNums()
+		dvpResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllDevopsCount, WorkspaceResourceKindDevops, devOpsProjectNums, errDevops)
+		wg.Done()
+	}()
+	go func() {
+		projNums, errProj := workspaces.GetAllProjectNums()
+		projResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllProjectCount, WorkspaceResourceKindNamespace, projNums, errProj)
+		wg.Done()
+	}()
+	go func() {
+		actNums, errAct := workspaces.GetAllAccountNums()
+		actResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllAccountCount, WorkspaceResourceKindAccount, actNums, errAct)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	metricsArray = append(metricsArray, orgResultItem, dvpResultItem, projResultItem, actResultItem)
+
+	return FormatedLevelMetric{
+		MetricsLevel: MetricLevelWorkspace,
+		Results:      metricsArray,
+	}
+}
+
+//func getWorkspaceMetricItem(timestamp int64, namespaceNums int64, resourceName string, err error) FormatedMetric {
+//	var fMetric FormatedMetric
+//	fMetric.Data.ResultType = ResultTypeVector
+//	fMetric.MetricName = MetricNameWorkspaceInfoCount
+//	fMetric.Status = MetricStatusSuccess
+//	if err != nil {
+//		fMetric.Status = MetricStatusError
+//	}
+//	resultItem := make(map[string]interface{})
+//	tmp := make(map[string]string)
+//	tmp[ResultItemMetricResource] = resourceName
+//	resultItem[ResultItemMetric] = tmp
+//	resultItem[ResultItemValue] = []interface{}{timestamp, strconv.FormatInt(namespaceNums, 10)}
+//	return fMetric
+//}
+
+func MonitorWorkspaceResourceLevelMetrics(request *restful.Request) FormatedLevelMetric {
+	wsName := request.PathParameter("workspace_name")
+	namspaces, errNs := workspaces.WorkspaceNamespaces(wsName)
+
+	devOpsProjects, errDevOps := workspaces.GetDevOpsProjects(wsName)
+	members, errMemb := workspaces.GetOrgMembers(wsName)
+	roles, errRole := workspaces.GetOrgRoles(wsName)
+
+	var fMetricsArray []FormatedMetric
+	timestamp := int64(time.Now().Unix())
+	namespaces, noneExistentNs := getExistingNamespace(namspaces)
+	if len(noneExistentNs) != 0 {
+		nsStr := strings.Join(noneExistentNs, "|")
+		errStr := "the namespaces " + nsStr + " do not exist"
+		if errNs == nil {
+			errNs = errors.New(errStr)
+		} else {
+			errNs = errors.New(errNs.Error() + "\t" + errStr)
+		}
+	}
+
+	// add namespaces(project) metric
+	nsMetrics := getSpecificMetricItem(timestamp, MetricNameWorkspaceNamespaceCount, WorkspaceResourceKindNamespace, len(namespaces), errNs)
+	// add devops metric
+	devopsMetrics := getSpecificMetricItem(timestamp, MetricNameWorkspaceDevopsCount, WorkspaceResourceKindDevops, len(devOpsProjects), errDevOps)
+	// add member metric
+	memberMetrics := getSpecificMetricItem(timestamp, MetricNameWorkspaceMemberCount, WorkspaceResourceKindMember, len(members), errMemb)
+	// add role metric
+	roleMetrics := getSpecificMetricItem(timestamp, MetricNameWorkspaceRoleCount, WorkspaceResourceKindRole, len(roles), errRole)
+	// add workloads count metric
+	wlMetrics := getWorkspaceWorkloadCountMetrics(namespaces)
+	// add pods count metric
+	podsCountMetrics := getWorkspacePodsCountMetrics(request, namespaces)
+	fMetricsArray = append(fMetricsArray, nsMetrics, devopsMetrics, memberMetrics, roleMetrics, wlMetrics, *podsCountMetrics)
+
+	return FormatedLevelMetric{
+		MetricsLevel: MetricLevelWorkspace,
+		Results:      fMetricsArray,
 	}
 }
 
@@ -289,13 +406,13 @@ func MonitorNodeorClusterSingleMetric(request *restful.Request, metricsName stri
 	var fMetric FormatedMetric
 	timestamp := int64(time.Now().Unix())
 
-	if metricsName == MetricNameClusterHealthyNodeCount {
+	if metricsName == "cluster_node_online" {
 		onlineNodes, _ := getNodeHealthyConditionMetric()
 		fMetric = getSpecificMetricItem(timestamp, MetricNameClusterHealthyNodeCount, "node_count", len(onlineNodes), nil)
-	} else if metricsName == MetricNameClusterUnhealthyNodeCount {
+	} else if metricsName == "cluster_node_offline" {
 		_, offlineNodes := getNodeHealthyConditionMetric()
 		fMetric = getSpecificMetricItem(timestamp, MetricNameClusterUnhealthyNodeCount, "node_count", len(offlineNodes), nil)
-	} else if metricsName == MetricNameClusterNodeCount {
+	} else if metricsName == "cluster_node_total" {
 		onlineNodes, offlineNodes := getNodeHealthyConditionMetric()
 		fMetric = getSpecificMetricItem(timestamp, MetricNameClusterNodeCount, "node_count", len(onlineNodes)+len(offlineNodes), nil)
 	} else {
@@ -355,14 +472,14 @@ func getExistingNamespace(namespaces []string) ([]string, []string) {
 }
 
 func getAllNamespace() (map[string]int, error) {
-	k8sClient := client.NewK8sClient()
-	nsList, err := k8sClient.CoreV1().Namespaces().List(metaV1.ListOptions{})
+	lister := controllers.ResourceControllers.Controllers[controllers.Namespaces].Lister().(v12.NamespaceLister)
+	nsList, err := lister.List(labels.Everything())
 	if err != nil {
 		glog.Errorln(err)
 		return nil, err
 	}
 	namespaceMap := make(map[string]int)
-	for _, item := range nsList.Items {
+	for _, item := range nsList {
 		namespaceMap[item.Name] = 0
 	}
 	return namespaceMap, nil

@@ -4,8 +4,9 @@ import "time"
 
 type Workspace struct {
 	Group          `json:",inline"`
-	Namespaces     []string `json:"namespaces,omitempty"`
-	DevopsProjects []string `json:"devops_projects,omitempty"`
+	Admin          string   `json:"admin,omitempty"`
+	Namespaces     []string `json:"namespaces"`
+	DevopsProjects []string `json:"devops_projects"`
 }
 
 type UserInvite struct {

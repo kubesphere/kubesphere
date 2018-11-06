@@ -59,7 +59,9 @@ const (
 	Ingresses             = "ingresses"
 	PersistentVolumeClaim = "persistent-volume-claims"
 	Roles                 = "roles"
+	RoleBindings          = "role-bindings"
 	ClusterRoles          = "cluster-roles"
+	ClusterRoleBindings   = "cluster-role-bindings"
 	Services              = "services"
 	StorageClasses        = "storage-classes"
 	Applications          = "applications"
@@ -460,6 +462,17 @@ type RoleCtl struct {
 
 type ClusterRoleCtl struct {
 	lister   rbacV1.ClusterRoleLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+
+type ClusterRoleBindingCtl struct {
+	lister   rbacV1.ClusterRoleBindingLister
+	informer cache.SharedIndexInformer
+	CommonAttribute
+}
+type RoleBindingCtl struct {
+	lister   rbacV1.RoleBindingLister
 	informer cache.SharedIndexInformer
 	CommonAttribute
 }

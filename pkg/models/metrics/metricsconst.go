@@ -148,7 +148,7 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_memory_bytes_available": "sum(node:node_memory_bytes_available:sum)",
 	"cluster_memory_bytes_total":     "sum(node:node_memory_bytes_total:sum)",
 	"cluster_memory_bytes_usage":     "sum(node:node_memory_bytes_total:sum) - sum(node:node_memory_bytes_available:sum)",
-	"cluster_net_utilisation":        "sum(node:node_net_utilisation:sum_irate)",
+	"cluster_net_utilisation":        ":node_net_utilisation:sum_irate",
 	"cluster_net_bytes_transmitted":  "sum(node:node_net_bytes_transmitted:sum_irate)",
 	"cluster_net_bytes_received":     "sum(node:node_net_bytes_received:sum_irate)",
 	"cluster_disk_read_iops":         "sum(node:data_volume_iops_reads:sum)",
