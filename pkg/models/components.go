@@ -19,150 +19,123 @@ package models
 import (
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"github.com/golang/glog"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-type ComponentsCount struct {
-	KubernetesCount int `json:"kubernetesCount"`
-	OpenpitrixCount int `json:"openpitrixCount"`
-	KubesphereCount int `json:"kubesphereCount"`
+// Namespaces need to watch
+var SYSTEM_NAMESPACES = [...]string{"kubesphere-system", "openpitrix-system", "kube-system"}
+
+type Component struct {
+	Name            string      `json:"name"`
+	Namespace       string      `json:"namespace"`
+	SelfLink        string      `json:"selfLink"`
+	Label           interface{} `json:"label"`
+	StartedAt       time.Time   `json:"startedAt"`
+	TotalBackends   int         `json:"totalBackends"`
+	HealthyBackends int         `json:"healthyBackends"`
 }
 
-type Components struct {
-	Name         string      `json:"name"`
-	Namespace    string      `json:"namespace"`
-	SelfLink     string      `json:"selfLink"`
-	Label        interface{} `json:"label"`
-	HealthStatus string      `json:"healthStatus"`
-	CreateTime   time.Time   `json:"createTime"`
-}
-
-/***
-* get all components from k8s and kubesphere system
-*
- */
-func GetComponents() (map[string]interface{}, error) {
-
-	result := make(map[string]interface{})
-	componentsList := make([]Components, 0)
+func GetComponentStatus(namespace string, componentName string) (interface{}, error) {
 	k8sClient := client.NewK8sClient()
-	var count ComponentsCount
-	var components Components
 
-	label := ""
-	namespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.KubeSphereNamespace}
-	for _, ns := range namespaces {
+	if service, err := k8sClient.CoreV1().Services(namespace).Get(componentName, meta_v1.GetOptions{}); err != nil {
+		glog.Error(err)
+		return nil, err
+	} else {
+		set := labels.Set(service.Spec.Selector)
 
-		if ns == constants.KubeSystemNamespace {
-			label = "kubernetes.io/cluster-service=true"
-		} else if ns == constants.OpenPitrixNamespace {
-			label = "app=openpitrix"
-		} else {
-			label = "app=kubesphere"
+		component := Component{
+			Name:            service.Name,
+			Namespace:       service.Namespace,
+			SelfLink:        service.SelfLink,
+			Label:           service.Spec.Selector,
+			StartedAt:       service.CreationTimestamp.Time,
+			HealthyBackends: 0,
+			TotalBackends:   0,
 		}
-		option := meta_v1.ListOptions{
 
-			LabelSelector: label,
-		}
-		servicelists, err := k8sClient.CoreV1().Services(ns).List(option)
-
-		if err != nil {
-
+		if pods, err := k8sClient.CoreV1().Pods(namespace).List(meta_v1.ListOptions{LabelSelector: set.AsSelector().String()}); err != nil {
 			glog.Error(err)
-
-			return result, err
+			return nil, err
+		} else {
+			for _, v := range pods.Items {
+				component.TotalBackends++
+				component.HealthyBackends++
+				for _, c := range v.Status.ContainerStatuses {
+					if !c.Ready {
+						component.HealthyBackends--
+						break
+					}
+				}
+			}
 		}
 
-		if len(servicelists.Items) > 0 {
+		return component, nil
+	}
 
-			for _, service := range servicelists.Items {
+}
 
-				switch ns {
+func GetAllComponentsStatus() (map[string]interface{}, error) {
 
-				case constants.KubeSystemNamespace:
-					count.KubernetesCount++
-				case constants.OpenPitrixNamespace:
-					count.OpenpitrixCount++
-				default:
-					count.KubesphereCount++
-				}
+	status := make(map[string]interface{})
+	var err error
 
-				components.Name = service.Name
-				components.Namespace = service.Namespace
-				components.CreateTime = service.CreationTimestamp.Time
-				components.Label = service.Spec.Selector
-				components.SelfLink = service.SelfLink
-				label := service.Spec.Selector
-				combination := ""
-				for key, val := range label {
+	k8sClient := client.NewK8sClient()
 
-					labelstr := key + "=" + val
+	for _, ns := range SYSTEM_NAMESPACES {
 
-					if combination == "" {
+		nsStatus := make(map[string]interface{})
 
-						combination = labelstr
+		services, err := k8sClient.CoreV1().Services(ns).List(meta_v1.ListOptions{})
+		if err != nil {
+			glog.Error(err)
+			continue
+		}
 
-					} else {
+		for _, service := range services.Items {
 
-						combination = combination + "," + labelstr
+			set := labels.Set(service.Spec.Selector)
 
-					}
-
-				}
-				option := meta_v1.ListOptions{
-					LabelSelector: combination,
-				}
-				podsList, err := k8sClient.CoreV1().Pods(ns).List(option)
-
-				if err != nil {
-
-					glog.Error(err)
-					return result, err
-				}
-
-				if len(podsList.Items) > 0 {
-					var health bool
-					for _, pod := range podsList.Items {
-
-						for _, status := range pod.Status.ContainerStatuses {
-
-							if status.Ready == false {
-								health = status.Ready
-								break
-							} else {
-								health = status.Ready
-							}
-
-						}
-
-						if health == false {
-							components.HealthStatus = "unhealth"
-							break
-						}
-
-					}
-
-					if health == true {
-						components.HealthStatus = "health"
-					}
-
-				} else {
-					components.HealthStatus = "unhealth"
-				}
-
-				componentsList = append(componentsList, components)
-
+			if len(set) == 0 {
+				continue
 			}
 
+			component := Component{
+				Name:            service.Name,
+				Namespace:       service.Namespace,
+				SelfLink:        service.SelfLink,
+				Label:           service.Spec.Selector,
+				StartedAt:       service.CreationTimestamp.Time,
+				HealthyBackends: 0,
+				TotalBackends:   0,
+			}
+
+			if pods, err := k8sClient.CoreV1().Pods(ns).List(meta_v1.ListOptions{LabelSelector: set.AsSelector().String()}); err != nil {
+				glog.Error(err)
+				continue
+			} else {
+				for _, v := range pods.Items {
+					component.TotalBackends++
+					component.HealthyBackends++
+					for _, c := range v.Status.ContainerStatuses {
+						if !c.Ready {
+							component.HealthyBackends--
+							break
+						}
+					}
+				}
+			}
+
+			nsStatus[service.Name] = component
 		}
 
+		status[ns] = nsStatus
 	}
-	result["count"] = count
-	result["item"] = componentsList
-	return result, nil
 
+	return status, err
 }

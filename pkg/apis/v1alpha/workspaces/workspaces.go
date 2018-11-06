@@ -11,8 +11,13 @@ import (
 
 	"k8s.io/kubernetes/pkg/util/slice"
 
+	"strconv"
+
+	"regexp"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 )
 
@@ -26,9 +31,13 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath + "/{name}").To(WorkspaceDetailHandler))
 	ws.Route(ws.PUT(subPath + "/{name}").To(WorkspaceEditHandler))
 	ws.Route(ws.GET(subPath + "/{workspace}/namespaces").To(UserNamespaceListHandler))
+	ws.Route(ws.GET(subPath + "/{workspace}/members/{username}/namespaces").To(UserNamespaceListHandler))
 	ws.Route(ws.POST(subPath + "/{name}/namespaces").To(NamespaceCreateHandler))
 	ws.Route(ws.DELETE(subPath + "/{name}/namespaces/{namespace}").To(NamespaceDeleteHandler))
+	ws.Route(ws.GET(subPath + "/{name}/namespaces/{namespace}").To(NamespaceCheckHandler))
+	ws.Route(ws.GET("/namespaces/{namespace}").To(NamespaceCheckHandler))
 	ws.Route(ws.GET(subPath + "/{name}/devops").To(DevOpsProjectHandler))
+	ws.Route(ws.GET(subPath + "/{name}/members/{username}/devops").To(DevOpsProjectHandler))
 	ws.Route(ws.POST(subPath + "/{name}/devops").To(DevOpsProjectCreateHandler))
 	ws.Route(ws.DELETE(subPath + "/{name}/devops/{id}").To(DevOpsProjectDeleteHandler))
 
@@ -171,10 +180,22 @@ func MembersRemoveHandler(req *restful.Request, resp *restful.Response) {
 	resp.WriteHeaderAndEntity(http.StatusOK, constants.MessageResponse{Message: "success"})
 }
 
+func NamespaceCheckHandler(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+
+	exist, err := workspaces.NamespaceExistCheck(namespace)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		return
+	}
+
+	resp.WriteEntity(map[string]bool{"exist": exist})
+}
+
 func NamespaceDeleteHandler(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	workspace := req.PathParameter("name")
-	//force := req.QueryParameter("force")
 
 	err := workspaces.DeleteNamespace(workspace, namespace)
 
@@ -223,26 +244,14 @@ func DevOpsProjectCreateHandler(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	project, err := workspaces.CreateDevopsProject(username, devops)
+	project, err := workspaces.CreateDevopsProject(username, workspace, devops)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	if project.ProjectId == nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: "project create failed"})
-	} else {
-		err = workspaces.BindingDevopsProject(workspace, *project.ProjectId)
-
-		if err != nil {
-			workspaces.DeleteDevopsProject(username, *project.ProjectId)
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-			return
-		}
-
-		resp.WriteEntity(project)
-	}
+	resp.WriteEntity(project)
 
 }
 
@@ -285,15 +294,53 @@ func NamespaceCreateHandler(req *restful.Request, resp *restful.Response) {
 func DevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("name")
+	username := req.PathParameter("username")
+	keyword := req.QueryParameter("keyword")
 
-	devOpsProjects, err := workspaces.DevopsProjects(workspace)
+	if username == "" {
+		username = req.HeaderParameter(UserNameHeader)
+	}
+
+	limit := 65535
+	offset := 0
+	orderBy := "createTime"
+	reverse := true
+
+	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(req.QueryParameter("paging")); len(groups) == 3 {
+		limit, _ = strconv.Atoi(groups[1])
+		page, _ := strconv.Atoi(groups[2])
+		if page < 0 {
+			page = 1
+		}
+		offset = (page - 1) * limit
+	}
+
+	if groups := regexp.MustCompile(`^(createTime|name)$`).FindStringSubmatch(req.QueryParameter("order")); len(groups) == 2 {
+		orderBy = groups[1]
+		reverse = false
+	}
+
+	if q := req.QueryParameter("reverse"); q != "" {
+		b, err := strconv.ParseBool(q)
+		if err == nil {
+			reverse = b
+		}
+	}
+
+	total, devOpsProjects, err := workspaces.ListDevopsProjectsByUser(username, workspace, keyword, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	resp.WriteEntity(devOpsProjects)
+	result := constants.PageableResponse{}
+	result.TotalCount = total
+	result.Items = make([]interface{}, 0)
+	for _, n := range devOpsProjects {
+		result.Items = append(result.Items, n)
+	}
+	resp.WriteEntity(result)
 }
 
 func WorkspaceCreateHandler(req *restful.Request, resp *restful.Response) {
@@ -402,10 +449,10 @@ func WorkspaceDetailHandler(req *restful.Request, resp *restful.Response) {
 
 // List all workspaces for the current user
 func UserWorkspaceListHandler(req *restful.Request, resp *restful.Response) {
-
+	keyword := req.QueryParameter("keyword")
 	username := req.HeaderParameter(UserNameHeader)
 
-	list, err := workspaces.ListByUser(username)
+	list, err := workspaces.ListWorkspaceByUser(username, keyword)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -416,16 +463,62 @@ func UserWorkspaceListHandler(req *restful.Request, resp *restful.Response) {
 }
 
 func UserNamespaceListHandler(req *restful.Request, resp *restful.Response) {
+	withMetrics, err := strconv.ParseBool(req.QueryParameter("metrics"))
 
-	username := req.HeaderParameter(UserNameHeader)
+	if err != nil {
+		withMetrics = false
+	}
+
+	username := req.PathParameter("username")
+	keyword := req.QueryParameter("keyword")
+	if username == "" {
+		username = req.HeaderParameter(UserNameHeader)
+	}
+	limit := 65535
+	offset := 0
+	orderBy := "createTime"
+	reverse := true
+
+	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(req.QueryParameter("paging")); len(groups) == 3 {
+		limit, _ = strconv.Atoi(groups[1])
+		page, _ := strconv.Atoi(groups[2])
+		if page < 0 {
+			page = 1
+		}
+		offset = (page - 1) * limit
+	}
+
+	if groups := regexp.MustCompile(`^(createTime|name)$`).FindStringSubmatch(req.QueryParameter("order")); len(groups) == 2 {
+		orderBy = groups[1]
+		reverse = false
+	}
+
+	if q := req.QueryParameter("reverse"); q != "" {
+		b, err := strconv.ParseBool(q)
+		if err == nil {
+			reverse = b
+		}
+	}
+
 	workspaceName := req.PathParameter("workspace")
 
-	namespaces, err := workspaces.ListNamespaceByUser(workspaceName, username)
+	total, namespaces, err := workspaces.ListNamespaceByUser(workspaceName, username, keyword, orderBy, reverse, limit, offset)
+
+	if withMetrics {
+		namespaces = metrics.GetNamespacesWithMetrics(namespaces)
+	}
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	resp.WriteEntity(namespaces)
+	result := constants.PageableResponse{}
+	result.TotalCount = total
+	result.Items = make([]interface{}, 0)
+	for _, n := range namespaces {
+		result.Items = append(result.Items, n)
+	}
+
+	resp.WriteEntity(result)
 }

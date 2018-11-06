@@ -46,17 +46,19 @@ import (
 const (
 	provider                     = "kubernetes"
 	admin                        = "admin"
-	editor                       = "editor"
+	editor                       = "operator"
 	viewer                       = "viewer"
 	kubectlNamespace             = constants.KubeSphereControlNamespace
 	kubectlConfigKey             = "config"
 	openPitrixRuntimeAnnotateKey = "openpitrix_runtime"
 	creatorAnnotateKey           = "creator"
+	initTimeAnnotateKey          = "kubesphere.io/init-time"
+	workspaceLabelKey            = "kubesphere.io/workspace"
 )
 
 var adminRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
-var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch"}, Resources: []string{"*"}}}
-var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get", "watch"}, APIGroups: []string{"", "apps", "extensions", "batch"}, Resources: []string{"*"}}}
+var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "kubesphere.io", "account.kubesphere.io"}, Resources: []string{"*"}}}
+var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get", "watch"}, APIGroups: []string{"", "apps", "extensions", "batch", "kubesphere.io", "account.kubesphere.io"}, Resources: []string{"*"}}}
 
 type runTime struct {
 	RuntimeId         string `json:"runtime_id"`
@@ -131,15 +133,84 @@ func (ctl *NamespaceCtl) createOpRuntime(namespace string) ([]byte, error) {
 	return makeHttpRequest("POST", url, string(body))
 }
 
-func (ctl *NamespaceCtl) createDefaultRoleBinding(ns, user string) error {
+func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error {
 
-	roleBinding := &rbac.RoleBinding{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns},
-		Subjects: []rbac.Subject{{Name: user, Kind: rbac.UserKind}}, RoleRef: rbac.RoleRef{Kind: "Role", Name: admin}}
+	workspace := ""
+	creator := ""
+	if namespace.Annotations != nil {
+		creator = namespace.Annotations[creatorAnnotateKey]
+	}
+	if namespace.Labels != nil {
+		workspace = namespace.Labels[workspaceLabelKey]
+	}
 
-	_, err := ctl.K8sClient.RbacV1().RoleBindings(ns).Create(roleBinding)
+	adminBinding, err := ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Get(admin, metaV1.GetOptions{})
 
-	if err != nil && !errors.IsAlreadyExists(err) {
-		glog.Error(err)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			adminBinding = new(rbac.RoleBinding)
+			adminBinding.Name = admin
+			adminBinding.Namespace = namespace.Name
+			adminBinding.RoleRef = rbac.RoleRef{Kind: "Role", Name: admin}
+		} else {
+			return err
+		}
+	}
+
+	adminBinding.Subjects = make([]rbac.Subject, 0)
+
+	if creator != "" {
+		adminBinding.Subjects = append(adminBinding.Subjects, rbac.Subject{Name: creator, Kind: rbac.UserKind})
+	}
+
+	if workspace != "" {
+		workspaceAdmin, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:admin", workspace), metaV1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		adminBinding.Subjects = append(adminBinding.Subjects, workspaceAdmin.Subjects...)
+	}
+
+	if adminBinding.ResourceVersion == "" {
+		_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Create(adminBinding)
+	} else {
+		_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Update(adminBinding)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	viewerBinding, err := ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Get(viewer, metaV1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			viewerBinding = new(rbac.RoleBinding)
+			viewerBinding.Name = viewer
+			viewerBinding.Namespace = namespace.Name
+			viewerBinding.RoleRef = rbac.RoleRef{Kind: "Role", Name: viewer}
+		} else {
+			return err
+		}
+	}
+
+	viewerBinding.Subjects = make([]rbac.Subject, 0)
+
+	if workspace != "" {
+		workspaceViewer, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:viewer", workspace), metaV1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		viewerBinding.Subjects = append(viewerBinding.Subjects, workspaceViewer.Subjects...)
+	}
+
+	if viewerBinding.ResourceVersion == "" {
+		_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Create(viewerBinding)
+	} else {
+		_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Update(viewerBinding)
+	}
+
+	if err != nil {
 		return err
 	}
 
@@ -172,60 +243,44 @@ func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
 	return nil
 }
 
-func (ctl *NamespaceCtl) createRoleAndRuntime(item v1.Namespace) {
-	var creator string
-	var runtime string
-	ns := item.Name
-
-	if item.Annotations == nil {
-		creator = ""
-		runtime = ""
-	} else {
-		runtime = item.Annotations[openPitrixRuntimeAnnotateKey]
-		creator = item.Annotations[creatorAnnotateKey]
+func (ctl *NamespaceCtl) createRoleAndRuntime(namespace *v1.Namespace) {
+	runtime := ""
+	initTime := ""
+	if namespace.Annotations != nil {
+		runtime = namespace.Annotations[openPitrixRuntimeAnnotateKey]
+		initTime = namespace.Annotations[initTimeAnnotateKey]
 	}
 
 	componentsNamespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.IstioNamespace, constants.KubeSphereNamespace}
 
-	if len(runtime) == 0 && !slice.ContainsString(componentsNamespaces, ns, nil) {
-		glog.Infoln("create runtime:", ns)
-		var runtimeCreateError error
-		resp, runtimeCreateError := ctl.createOpRuntime(ns)
-
-		if runtimeCreateError == nil {
-			var runtime runTime
-			runtimeCreateError = json.Unmarshal(resp, &runtime)
-			if runtimeCreateError == nil {
-
-				if item.Annotations == nil {
-					item.Annotations = make(map[string]string, 0)
-				}
-
-				item.Annotations[openPitrixRuntimeAnnotateKey] = runtime.RuntimeId
-				_, runtimeCreateError = ctl.K8sClient.CoreV1().Namespaces().Update(&item)
-
-			}
-		}
+	if runtime == "" && !slice.ContainsString(componentsNamespaces, namespace.Name, nil) {
+		glog.Infoln("create runtime:", namespace.Name)
+		_, runtimeCreateError := ctl.createOpRuntime(namespace.Name)
 
 		if runtimeCreateError != nil {
 			glog.Error("runtime create error:", runtimeCreateError)
 		}
+	}
 
-		if len(creator) > 0 {
-			roleCreateError := ctl.createDefaultRole(ns)
-			glog.Infoln("create default role:", ns)
-			if roleCreateError == nil {
-
-				roleBindingError := ctl.createDefaultRoleBinding(ns, creator)
-				glog.Infoln("create default role binding:", ns)
-				if roleBindingError != nil {
-					glog.Error("default role binding create error:", roleBindingError)
-				}
-
-			} else {
-				glog.Error("default role create error:", roleCreateError)
+	if initTime == "" {
+		err := ctl.createDefaultRole(namespace.Name)
+		glog.Infoln("create default role:", namespace.Name)
+		if err == nil {
+			err = ctl.createDefaultRoleBinding(namespace)
+			glog.Infoln("create default role binding:", namespace.Name)
+			if err != nil {
+				glog.Error("default role binding create error:", err)
 			}
+		} else {
+			glog.Error("default role create error:", err)
+		}
 
+		if err == nil {
+			pathJson := fmt.Sprintf(`{"metadata":{"annotations":{"%s":"%s"}}}`, initTimeAnnotateKey, time.Now().UTC().Format("2006-01-02T15:04:05Z"))
+			_, err = ctl.K8sClient.CoreV1().Namespaces().Patch(namespace.Name, "application/strategic-merge-patch+json", []byte(pathJson))
+			if err != nil {
+				glog.Error("annotations patch error init failed:", namespace.Name, err)
+			}
 		}
 	}
 }
@@ -293,7 +348,7 @@ func (ctl *NamespaceCtl) createCephSecretAfterNewNs(item v1.Namespace) {
 	}
 }
 
-func (ctl *NamespaceCtl) generateObject(item v1.Namespace) *Namespace {
+func (ctl *NamespaceCtl) generateObject(item *v1.Namespace) *Namespace {
 	var displayName string
 
 	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
@@ -333,17 +388,17 @@ func (ctl *NamespaceCtl) sync(stopChan chan struct{}) {
 	db = db.CreateTable(&Namespace{})
 
 	ctl.initListerAndInformer()
-	list, err := ctl.lister.List(labels.Everything())
-	if err != nil {
-		glog.Error(err)
-		return
-	}
+	//list, err := ctl.lister.List(labels.Everything())
+	//if err != nil {
+	//	glog.Error(err)
+	//	return
+	//}
 
-	for _, item := range list {
-		obj := ctl.generateObject(*item)
-		db.Create(obj)
-		ctl.createRoleAndRuntime(*item)
-	}
+	//for _, item := range list {
+	//	obj := ctl.generateObject(item)
+	//	db.Create(obj)
+	//  ctl.createRoleAndRuntime(item)
+	//}
 
 	ctl.informer.Run(stopChan)
 }
@@ -369,16 +424,16 @@ func (ctl *NamespaceCtl) initListerAndInformer() {
 		AddFunc: func(obj interface{}) {
 
 			object := obj.(*v1.Namespace)
-			mysqlObject := ctl.generateObject(*object)
+			mysqlObject := ctl.generateObject(object)
 			db.Create(mysqlObject)
-			ctl.createRoleAndRuntime(*object)
+			ctl.createRoleAndRuntime(object)
 			ctl.createCephSecretAfterNewNs(*object)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			object := new.(*v1.Namespace)
-			mysqlObject := ctl.generateObject(*object)
+			mysqlObject := ctl.generateObject(object)
 			db.Save(mysqlObject)
-			ctl.createRoleAndRuntime(*object)
+			ctl.createRoleAndRuntime(object)
 		},
 		DeleteFunc: func(obj interface{}) {
 			var item Namespace
@@ -386,7 +441,6 @@ func (ctl *NamespaceCtl) initListerAndInformer() {
 			db.Where("name=?", object.Name).Find(&item)
 			db.Delete(item)
 			ctl.deleteOpRuntime(*object)
-
 		},
 	})
 
