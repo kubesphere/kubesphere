@@ -30,22 +30,33 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath).To(handleGetComponents).Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET(subPath+"/{namespace}/{componentName}").To(handleGetComponentStatus).
+		Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 }
 
-//get all components
+// get a specific component status
+func handleGetComponentStatus(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	componentName := request.PathParameter("componentName")
 
+	if component, err := models.GetComponentStatus(namespace, componentName); err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+	} else {
+		response.WriteAsJson(component)
+	}
+}
+
+// get all components
 func handleGetComponents(request *restful.Request, response *restful.Response) {
 
-	result, err := models.GetComponents()
+	result, err := models.GetAllComponentsStatus()
 
 	if err != nil {
-
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-
 	} else {
-
 		response.WriteAsJson(result)
-
 	}
 
 }
