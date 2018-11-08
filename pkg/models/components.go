@@ -64,10 +64,12 @@ func GetComponentStatus(namespace string, componentName string) (interface{}, er
 			return nil, err
 		} else {
 			for _, v := range pods.Items {
+				component.TotalBackends++
+				component.HealthyBackends++
 				for _, c := range v.Status.ContainerStatuses {
-					component.TotalBackends++
-					if c.Ready {
-						component.HealthyBackends++
+					if !c.Ready {
+						component.HealthyBackends--
+						break
 					}
 				}
 			}
@@ -118,10 +120,12 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 				continue
 			} else {
 				for _, v := range pods.Items {
+					component.TotalBackends++
+					component.HealthyBackends++
 					for _, c := range v.Status.ContainerStatuses {
-						component.TotalBackends++
-						if c.Ready {
-							component.HealthyBackends++
+						if !c.Ready {
+							component.HealthyBackends--
+							break
 						}
 					}
 				}
