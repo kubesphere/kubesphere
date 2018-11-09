@@ -15,142 +15,119 @@ package metrics
 
 import (
 	"strings"
-
-	"github.com/emicklei/go-restful"
 )
 
-func MakeWorkloadRule(request *restful.Request) string {
-	// kube_pod_info{created_by_kind="DaemonSet",created_by_name="fluent-bit",endpoint="https-main",
-	// host_ip="192.168.0.14",instance="10.244.114.187:8443",job="kube-state-metrics",
-	// namespace="kube-system",node="i-k89a62il",pod="fluent-bit-l5vxr",
-	// pod_ip="10.244.114.175",service="kube-state-metrics"}
-	rule := `kube_pod_info{created_by_kind="$1",created_by_name=$2,namespace="$3"}`
-	kind := strings.Trim(request.PathParameter("workload_kind"), " ")
-	name := strings.Trim(request.QueryParameter("workload_name"), " ")
-	namespace := strings.Trim(request.PathParameter("ns_name"), " ")
+func MakeWorkloadRule(wkKind, wkName, namespace string) string {
+	var rule = PodInfoRule
 	if namespace == "" {
 		namespace = ".*"
 	}
+	// alertnatives values: Deployment StatefulSet ReplicaSet DaemonSet
+	wkKind = strings.ToLower(wkKind)
 
-	// kind alertnatives values: Deployment StatefulSet ReplicaSet DaemonSet
-	kind = strings.ToLower(kind)
-
-	switch kind {
+	switch wkKind {
 	case "deployment":
-		kind = "ReplicaSet"
-		if name != "" {
-			name = "~\"" + name + ".*\""
+		wkKind = ReplicaSet
+		if wkName != "" {
+			wkName = "~\"" + wkName + ".*\""
 		} else {
-			name = "~\".*\""
+			wkName = "~\".*\""
 		}
-		rule = strings.Replace(rule, "$1", kind, -1)
-		rule = strings.Replace(rule, "$2", name, -1)
+		rule = strings.Replace(rule, "$1", wkKind, -1)
+		rule = strings.Replace(rule, "$2", wkName, -1)
 		rule = strings.Replace(rule, "$3", namespace, -1)
 		return rule
 	case "replicaset":
-		kind = "ReplicaSet"
+		wkKind = ReplicaSet
 	case "statefulset":
-		kind = "StatefulSet"
+		wkKind = StatefulSet
 	case "daemonset":
-		kind = "DaemonSet"
+		wkKind = DaemonSet
 	}
 
-	if name == "" {
-		name = "~\".*\""
+	if wkName == "" {
+		wkName = "~\".*\""
 	} else {
-		name = "\"" + name + "\""
+		wkName = "\"" + wkName + "\""
 	}
 
-	rule = strings.Replace(rule, "$1", kind, -1)
-	rule = strings.Replace(rule, "$2", name, -1)
+	rule = strings.Replace(rule, "$1", wkKind, -1)
+	rule = strings.Replace(rule, "$2", wkName, -1)
 	rule = strings.Replace(rule, "$3", namespace, -1)
 	return rule
 }
 
-func MakeWorkspacePromQL(metricsName string, namespaceRe2 string) string {
+func MakeWorkspacePromQL(metricsName string, nsFilter string) string {
 	promql := RulePromQLTmplMap[metricsName]
-	promql = strings.Replace(promql, "$1", namespaceRe2, -1)
+	promql = strings.Replace(promql, "$1", nsFilter, -1)
 	return promql
 }
 
-func MakeContainerPromQL(request *restful.Request) string {
-	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	poName := strings.Trim(request.PathParameter("pod_name"), " ")
-	containerName := strings.Trim(request.PathParameter("container_name"), " ")
-	// metricType container_cpu_utilisation  container_memory_utilisation container_memory_utilisation_wo_cache
-	metricType := strings.Trim(request.QueryParameter("metrics_name"), " ")
+func MakeContainerPromQL(nsName, podName, containerName, metricName, containerFilter string) string {
 	var promql = ""
 	if containerName == "" {
 		// all containers maybe use filter
-		metricType += "_all"
-		promql = RulePromQLTmplMap[metricType]
+		metricName += "_all"
+		promql = RulePromQLTmplMap[metricName]
 		promql = strings.Replace(promql, "$1", nsName, -1)
-		promql = strings.Replace(promql, "$2", poName, -1)
-		containerFilter := strings.Trim(request.QueryParameter("containers_filter"), " ")
+		promql = strings.Replace(promql, "$2", podName, -1)
+
 		if containerFilter == "" {
 			containerFilter = ".*"
 		}
+
 		promql = strings.Replace(promql, "$3", containerFilter, -1)
 		return promql
 	}
-	promql = RulePromQLTmplMap[metricType]
+	promql = RulePromQLTmplMap[metricName]
 
 	promql = strings.Replace(promql, "$1", nsName, -1)
-	promql = strings.Replace(promql, "$2", poName, -1)
+	promql = strings.Replace(promql, "$2", podName, -1)
 	promql = strings.Replace(promql, "$3", containerName, -1)
 	return promql
 }
 
-func MakePodPromQL(request *restful.Request, params []string) string {
-	metricType := params[0]
-	nsName := params[1]
-	nodeID := params[2]
-	podName := params[3]
-	podFilter := params[4]
+func MakePodPromQL(metricName, nsName, nodeID, podName, podFilter string) string {
+
+	if podFilter == "" {
+		podFilter = ".*"
+	}
+
 	var promql = ""
 	if nsName != "" {
 		// get pod metrics by namespace
 		if podName != "" {
 			// specific pod
-			promql = RulePromQLTmplMap[metricType]
+			promql = RulePromQLTmplMap[metricName]
 			promql = strings.Replace(promql, "$1", nsName, -1)
 			promql = strings.Replace(promql, "$2", podName, -1)
 
 		} else {
 			// all pods
-			metricType += "_all"
-			promql = RulePromQLTmplMap[metricType]
-			if podFilter == "" {
-				podFilter = ".*"
-			}
+			metricName += "_all"
+			promql = RulePromQLTmplMap[metricName]
+
 			promql = strings.Replace(promql, "$1", nsName, -1)
 			promql = strings.Replace(promql, "$2", podFilter, -1)
 		}
 	} else if nodeID != "" {
 		// get pod metrics by nodeid
-		metricType += "_node"
-		promql = RulePromQLTmplMap[metricType]
+		metricName += "_node"
+		promql = RulePromQLTmplMap[metricName]
 		promql = strings.Replace(promql, "$3", nodeID, -1)
 		if podName != "" {
 			// specific pod
 			promql = strings.Replace(promql, "$2", podName, -1)
 		} else {
-			// choose pod use re2 expression
-			podFilter := strings.Trim(request.QueryParameter("pods_filter"), " ")
-			if podFilter == "" {
-				podFilter = ".*"
-			}
 			promql = strings.Replace(promql, "$2", podFilter, -1)
 		}
 	}
 	return promql
 }
 
-func MakeNamespacePromQL(request *restful.Request, metricsName string) string {
-	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	metricType := metricsName
-	var recordingRule = RulePromQLTmplMap[metricType]
-	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
+func MakeNamespacePromQL(nsName string, nsFilter string, metricsName string) string {
+	var recordingRule = RulePromQLTmplMap[metricsName]
+
 	if nsName != "" {
 		nsFilter = nsName
 	} else {
@@ -162,37 +139,37 @@ func MakeNamespacePromQL(request *restful.Request, metricsName string) string {
 	return recordingRule
 }
 
-func MakeNodeorClusterRule(request *restful.Request, metricsName string) string {
-	nodeID := request.PathParameter("node_id")
+// cluster rule
+func MakeClusterRule(metricsName string) string {
+	var rule = RulePromQLTmplMap[metricsName]
+	return rule
+}
+
+// node rule
+func MakeNodeRule(nodeID string, nodesFilter string, metricsName string) string {
 	var rule = RulePromQLTmplMap[metricsName]
 
-	if strings.Contains(request.SelectedRoutePath(), "monitoring/cluster") {
-		// cluster
-		return rule
-	} else {
-		// node
-		nodesFilter := strings.Trim(request.QueryParameter("nodes_filter"), " ")
-		if nodesFilter == "" {
-			nodesFilter = ".*"
-		}
-		if strings.Contains(metricsName, "disk_size") || strings.Contains(metricsName, "pod") || strings.Contains(metricsName, "usage") {
-			// disk size promql
-			if nodeID != "" {
-				nodesFilter = "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
-			} else {
-				nodesFilter = "{" + "node" + "=~" + "\"" + nodesFilter + "\"" + "}"
-			}
-			rule = strings.Replace(rule, "$1", nodesFilter, -1)
+	if nodesFilter == "" {
+		nodesFilter = ".*"
+	}
+	if strings.Contains(metricsName, "disk_size") || strings.Contains(metricsName, "pod") || strings.Contains(metricsName, "usage") || strings.Contains(metricsName, "inode") {
+		// disk size promql
+		if nodeID != "" {
+			nodesFilter = "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
 		} else {
-			// cpu, memory, network, disk_iops rules
-			if nodeID != "" {
-				// specific node
-				rule = rule + "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
-			} else {
-				// all nodes or specific nodes filted with re2 syntax
-				rule = rule + "{" + "node" + "=~" + "\"" + nodesFilter + "\"" + "}"
-			}
+			nodesFilter = "{" + "node" + "=~" + "\"" + nodesFilter + "\"" + "}"
+		}
+		rule = strings.Replace(rule, "$1", nodesFilter, -1)
+	} else {
+		// cpu, memory, network, disk_iops rules
+		if nodeID != "" {
+			// specific node
+			rule = rule + "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
+		} else {
+			// all nodes or specific nodes filted with re2 syntax
+			rule = rule + "{" + "node" + "=~" + "\"" + nodesFilter + "\"" + "}"
 		}
 	}
+
 	return rule
 }
