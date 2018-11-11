@@ -16,13 +16,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -33,13 +32,38 @@ const (
 	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
 	DefaultQueryStep         = "10m"
 	DefaultQueryTimeout      = "30s"
+	RangeQueryType           = "query_range?"
+	DefaultQueryType         = "query?"
 )
+
+type MonitoringRequestParams struct {
+	Params           url.Values
+	QueryType        string
+	SortMetricName   string
+	SortType         string
+	PageNum          string
+	LimitNum         string
+	Tp               string
+	MetricsFilter    string
+	NodesFilter      string
+	WsFilter         string
+	NsFilter         string
+	PodsFilter       string
+	ContainersFilter string
+	MetricsName      string
+	WorkloadName     string
+	NodeId           string
+	WsName           string
+	NsName           string
+	PodName          string
+	ContainerName    string
+	WorkloadKind     string
+}
 
 var client = &http.Client{}
 
-func SendRequest(postfix string, params string) string {
-	epurl := PrometheusEndpointUrl + postfix + params
-	//glog.Info("monitoring epurl:>", epurl)
+func SendMonitoringRequest(queryType string, params string) string {
+	epurl := PrometheusEndpointUrl + queryType + params
 	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
@@ -56,34 +80,57 @@ func SendRequest(postfix string, params string) string {
 	return ""
 }
 
-func SendPrometheusRequest(request *restful.Request, recordingRule string) string {
-	paramsMap, bol, err := ParseRequestHeader(request)
-	if err != nil {
-		glog.Error(err)
-		return ""
-	}
+func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestParams {
+	instantTime := strings.Trim(request.QueryParameter("time"), " ")
+	start := strings.Trim(request.QueryParameter("start"), " ")
+	end := strings.Trim(request.QueryParameter("end"), " ")
+	step := strings.Trim(request.QueryParameter("step"), " ")
+	timeout := strings.Trim(request.QueryParameter("timeout"), " ")
 
-	var res = ""
-	var postfix = ""
-	if bol {
-		// range query
-		postfix = "query_range?"
-	} else {
-		// query
-		postfix = "query?"
-	}
-	paramsMap.Set("query", recordingRule)
-	params := paramsMap.Encode()
-	res = SendRequest(postfix, params)
-	return res
-}
+	sortMetricName := strings.Trim(request.QueryParameter("sort_metric"), " ")
+	sortType := strings.Trim(request.QueryParameter("sort_type"), " ")
+	pageNum := strings.Trim(request.QueryParameter("page"), " ")
+	limitNum := strings.Trim(request.QueryParameter("limit"), " ")
+	tp := strings.Trim(request.QueryParameter("type"), " ")
 
-func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
-	instantTime := request.QueryParameter("time")
-	start := request.QueryParameter("start")
-	end := request.QueryParameter("end")
-	step := request.QueryParameter("step")
-	timeout := request.QueryParameter("timeout")
+	metricsFilter := strings.Trim(request.QueryParameter("metrics_filter"), " ")
+	nodesFilter := strings.Trim(request.QueryParameter("nodes_filter"), " ")
+	wsFilter := strings.Trim(request.QueryParameter("workspaces_filter"), " ")
+	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
+	podsFilter := strings.Trim(request.QueryParameter("pods_filter"), " ")
+	containersFilter := strings.Trim(request.QueryParameter("containers_filter"), " ")
+
+	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
+	workloadName := strings.Trim(request.QueryParameter("workload_name"), " ")
+
+	nodeId := strings.Trim(request.PathParameter("node_id"), " ")
+	wsName := strings.Trim(request.PathParameter("workspace_name"), " ")
+	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
+	podName := strings.Trim(request.PathParameter("pod_name"), " ")
+	containerName := strings.Trim(request.PathParameter("container_name"), " ")
+	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
+
+	var requestParams = MonitoringRequestParams{
+		SortMetricName:   sortMetricName,
+		SortType:         sortType,
+		PageNum:          pageNum,
+		LimitNum:         limitNum,
+		Tp:               tp,
+		MetricsFilter:    metricsFilter,
+		NodesFilter:      nodesFilter,
+		WsFilter:         wsFilter,
+		NsFilter:         nsFilter,
+		PodsFilter:       podsFilter,
+		ContainersFilter: containersFilter,
+		MetricsName:      metricsName,
+		WorkloadName:     workloadName,
+		NodeId:           nodeId,
+		WsName:           wsName,
+		NsName:           nsName,
+		PodName:          podName,
+		ContainerName:    containerName,
+		WorkloadKind:     workloadKind,
+	}
 
 	if timeout == "" {
 		timeout = DefaultQueryTimeout
@@ -93,25 +140,35 @@ func ParseRequestHeader(request *restful.Request) (url.Values, bool, error) {
 	}
 	// Whether query or query_range request
 	u := url.Values{}
+
 	if start != "" && end != "" {
 		u.Set("start", convertTimeGranularity(start))
 		u.Set("end", convertTimeGranularity(end))
 		u.Set("step", step)
 		u.Set("timeout", timeout)
-		return u, true, nil
+		requestParams.QueryType = RangeQueryType
+		requestParams.Params = u
+		return &requestParams
 	}
 	if instantTime != "" {
 		u.Set("time", instantTime)
 		u.Set("timeout", timeout)
-		return u, false, nil
+		requestParams.QueryType = DefaultQueryType
+		requestParams.Params = u
+		return &requestParams
 	} else {
 		//u.Set("time", strconv.FormatInt(int64(time.Now().Unix()), 10))
 		u.Set("timeout", timeout)
-		return u, false, nil
+		requestParams.QueryType = DefaultQueryType
+		requestParams.Params = u
+		return &requestParams
 	}
 
 	glog.Errorln("Parse request %s failed", u)
-	return u, false, errors.Errorf("Parse request time range %s failed", u)
+	requestParams.QueryType = DefaultQueryType
+	requestParams.Params = u
+
+	return &requestParams
 }
 
 func convertTimeGranularity(ts string) string {
