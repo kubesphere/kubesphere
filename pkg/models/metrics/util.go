@@ -230,8 +230,8 @@ func ReformatJson(metric string, metricsName string, needDelParams ...string) *F
 		result := formatMetric.Data.Result
 		for _, res := range result {
 			metric, exist := res[ResultItemMetric]
-			metricMap := metric.(map[string]interface{})
-			if exist {
+			metricMap, sure := metric.(map[string]interface{})
+			if exist && sure {
 				delete(metricMap, "__name__")
 			}
 			if len(needDelParams) > 0 {

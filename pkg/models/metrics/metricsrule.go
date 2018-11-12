@@ -29,7 +29,7 @@ func MakeWorkloadRule(wkKind, wkName, namespace string) string {
 	case "deployment":
 		wkKind = ReplicaSet
 		if wkName != "" {
-			wkName = "~\"" + wkName + ".*\""
+			wkName = "~\"^" + wkName + `-(\\w)+$"`
 		} else {
 			wkName = "~\".*\""
 		}
