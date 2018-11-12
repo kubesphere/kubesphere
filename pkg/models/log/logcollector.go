@@ -17,54 +17,30 @@ limitations under the License.
 package log
 
 import (
-	"context"
+	//"fmt"
 	//"encoding/json"
 	//"regexp"
 	//"strings"
 
 	"github.com/emicklei/go-restful"
-	//"github.com/golang/glog"
+	"github.com/golang/glog"
 
 	//"time"
 
 	//"k8s.io/api/core/v1"
 	//metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	//"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/client"
 	//"kubesphere.io/kubesphere/pkg/models"
 	"github.com/olivere/elastic"
 )
 
 func LogQuery(request *restful.Request) *elastic.SearchResult {
-	// Starting with elastic.v5, you must pass a context to execute each service
-	ctx := context.Background()
+	log_query := request.QueryParameter("log_query")
+	start := request.QueryParameter("start")
+	end := request.QueryParameter("end")
 
-	// Obtain a client and connect to the default Elasticsearch installation
-	// on 127.0.0.1:9200. Of course you can configure your client to connect
-	// to other hosts and configure it in various other ways.
-	client, err := elastic.NewClient(
-		elastic.SetURL("http://ks-logging-elasticsearch-data.logging.svc:9200"),
-	)
-	if err != nil {
-		// Handle error
-		panic(err)
-	}
+	glog.Infof("LogQuery with %s %s %s", log_query, start, end)
 
-	matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", "kubesphere-system")
-	matchQuery := elastic.NewMatchQuery("log", "认证 校验")
-	rangeQuery := elastic.NewRangeQuery("time").From("2018-11-09T00:00:00.000").To("2018-11-09T12:00:00.000")
-	boolQuery := elastic.NewBoolQuery().Must(matchPhraseQuery).Must(matchQuery).Must(rangeQuery)
-	searchResult, err := client.Search().
-		Index("logstash-*").   // search in index "logstash-*"
-		Query(boolQuery).
-		Sort("time", true). // sort by "time" field, ascending
-		From(0).Size(10).   // take documents 0-9
-		Pretty(true).       // pretty print request and response JSON
-		Do(ctx)             // execute
-	if err != nil {
-		// Handle error
-		panic(err)
-	}
-
-	return searchResult
+	return client.Query(log_query, start, end)
 }

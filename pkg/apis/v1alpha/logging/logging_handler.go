@@ -23,7 +23,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/log"
 )
 
-func (u LoggingResource) loggingNodeorCluster(request *restful.Request, response *restful.Response) {
+func (u LoggingResource) loggingQuery(request *restful.Request, response *restful.Response) {
 	res := log.LogQuery(request)
 	response.WriteAsJson(res)
 }
@@ -35,9 +35,12 @@ func Register(ws *restful.WebService, subPath string) {
 	tags := []string{"logging apis"}
 	u := LoggingResource{}
 
-	ws.Route(ws.GET(subPath+"/clusters").To(u.loggingNodeorCluster).
+	ws.Route(ws.GET(subPath+"/clusters").To(u.loggingQuery).
 		Filter(route.RouteLogging).
 		Doc("cluster level log query").
+		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start", "range start time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end", "range end time").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
