@@ -1,9 +1,12 @@
 /*
 Copyright 2018 The KubeSphere Authors.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -66,38 +69,31 @@ func (u Monitor) monitorWorkload(request *restful.Request, response *restful.Res
 	}
 }
 
-// merge multiple metric: all-devops, all-roles, all-projects...this api is designed for admin
-func (u Monitor) monitorAllWorkspacesStatistics(request *restful.Request, response *restful.Response) {
-	res := metrics.MonitorAllWorkspacesStatistics()
-	response.WriteAsJson(res)
-}
-
-// merge multiple metric: devops, roles, projects...
-func (u Monitor) monitorOneWorkspaceStatistics(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
-	wsName := requestParams.WsName
-	res := metrics.MonitorOneWorkspaceStatistics(wsName)
-	response.WriteAsJson(res)
-}
-
 func (u Monitor) monitorAllWorkspaces(request *restful.Request, response *restful.Response) {
 
 	requestParams := client.ParseMonitoringRequestParams(request)
 
-	rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
-	// sorting
-	sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelWorkspace)
-	// paging
-	pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+	if requestParams.Tp == "_statistics" {
+		// merge multiple metric: all-devops, all-roles, all-projects...this api is designed for admin
+		res := metrics.MonitorAllWorkspacesStatistics()
 
-	response.WriteAsJson(pagedMetrics)
+		response.WriteAsJson(res)
+	} else {
+		rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
+		// sorting
+		sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelWorkspace)
+		// paging
+		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+
+		response.WriteAsJson(pagedMetrics)
+	}
 }
 
 func (u Monitor) monitorOneWorkspace(request *restful.Request, response *restful.Response) {
 	requestParams := client.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
-	if tp != "" {
+	if tp == "rank" {
 		// multiple
 		rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkspace)
 		// sorting
@@ -107,6 +103,12 @@ func (u Monitor) monitorOneWorkspace(request *restful.Request, response *restful
 
 		response.WriteAsJson(pagedMetrics)
 
+	} else if tp == "_statistics" {
+		wsName := requestParams.WsName
+
+		// merge multiple metric: devops, roles, projects...
+		res := metrics.MonitorOneWorkspaceStatistics(wsName)
+		response.WriteAsJson(res)
 	} else {
 		res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkspace)
 		response.WriteAsJson(res)
@@ -350,17 +352,8 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	// merge multiple metric: devops, roles, projects...
-	ws.Route(ws.GET(subPath+"/cluster_workspaces/{workspace_name}/_statistics").To(u.monitorOneWorkspaceStatistics).
-		Filter(route.RouteLogging).
-		Doc("monitor specific workspace level metrics").
-		Param(ws.PathParameter("workspace_name", "workspace name").DataType("string").Required(true)).
-		Metadata(restfulspec.KeyOpenAPITags, tags)).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
-
 	// list all namespace in this workspace by selected metrics
-	ws.Route(ws.GET(subPath+"/cluster_workspaces/{workspace_name}").To(u.monitorOneWorkspace).
+	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}").To(u.monitorOneWorkspace).
 		Filter(route.RouteLogging).
 		Doc("monitor workspaces level metrics").
 		Param(ws.PathParameter("workspace_name", "workspace name").DataType("string").Required(true)).
@@ -370,21 +363,12 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
-		Param(ws.QueryParameter("type", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	// metrics from system users or projects, merge multiple metric: all-devops, all-roles, all-projects...
-	ws.Route(ws.GET(subPath+"/cluster_workspaces/_statistics").To(u.monitorAllWorkspacesStatistics).
-		Filter(route.RouteLogging).
-		Doc("monitor specific workspace level metrics").
-		Metadata(restfulspec.KeyOpenAPITags, tags)).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
-
-	// metrics from prometheus
-	ws.Route(ws.GET(subPath+"/cluster_workspaces").To(u.monitorAllWorkspaces).
+	ws.Route(ws.GET(subPath+"/workspaces").To(u.monitorAllWorkspaces).
 		Filter(route.RouteLogging).
 		Doc("monitor workspaces level metrics").
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("workspace_memory_utilisation")).
@@ -393,6 +377,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
