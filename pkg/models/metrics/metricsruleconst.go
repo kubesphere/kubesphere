@@ -132,6 +132,10 @@ var ClusterMetricsNames = []string{
 
 	"cluster_namespace_count",
 	"workspace_all_project_count",
+
+	"cluster_load1",
+	"cluster_load5",
+	"cluster_load15",
 }
 var NodeMetricsNames = []string{
 	"node_cpu_utilisation",
@@ -163,6 +167,10 @@ var NodeMetricsNames = []string{
 	"node_pod_running_count",
 	"node_pod_succeeded_count",
 	"node_pod_abnormal_count",
+
+	"node_load1",
+	"node_load5",
+	"node_load15",
 }
 var WorkspaceMetricsNames = []string{
 	"workspace_cpu_usage",
@@ -250,6 +258,8 @@ var NamespaceMetricsNames = []string{
 	"namespace_replicaset_count",
 	"namespace_service_count",
 	"namespace_secret_count",
+
+	"namespace_ingresses_extensions_count",
 }
 
 var PodMetricsNames = []string{
@@ -308,7 +318,7 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_node_offline": `sum(kube_node_status_condition{condition="Ready",status=~"unknown|false"})`,
 	"cluster_node_total":   `sum(kube_node_status_condition{condition="Ready"})`,
 
-	"cluster_ingresses_extensions_count": `sum(kube_resourcequota{resourcequota!="quota", type="used", resource="count/ingresses.extensions"}) by (resource, type)`,
+	"cluster_ingresses_extensions_count": `sum(kube_ingress_labels)`,
 
 	"cluster_configmap_count_used":            `sum(kube_resourcequota{resourcequota!="quota", type="used", resource="count/configmaps"}) by (resource, type)`,
 	"cluster_jobs_batch_count_used":           `sum(kube_resourcequota{resourcequota!="quota", type="used", resource="count/jobs.batch"}) by (resource, type)`,
@@ -342,6 +352,10 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_service_count":     `sum(kube_service_info)`,
 	"cluster_secret_count":      `sum(kube_secret_info)`,
 	"cluster_pv_count":          `sum(kube_persistentvolume_labels)`,
+
+	"cluster_load1":  `sum(node_load1{job="node-exporter"})`,
+	"cluster_load5":  `sum(node_load5{job="node-exporter"})`,
+	"cluster_load15": `sum(node_load15{job="node-exporter"})`,
 
 	//node
 	"node_cpu_utilisation":        "node:node_cpu_utilisation:avg1m",
@@ -384,6 +398,10 @@ var RulePromQLTmplMap = MetricMap{
 	// without log node: unless on(node) kube_node_labels{label_role="log"}
 	"node_cpu_usage":          `node:node_cpu_utilisation:avg1m$1 * node:node_num_cpu:sum$1`,
 	"node_memory_bytes_usage": "node:node_memory_bytes_total:sum$1 - node:node_memory_bytes_available:sum$1",
+
+	"node_load1":  `sum by (node) (node_load1{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_load5":  `sum by (node) (node_load5{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
+	"node_load15": `sum by (node) (node_load15{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1)`,
 
 	//namespace
 	"namespace_cpu_usage":             `namespace:container_cpu_usage_seconds_total:sum_rate{namespace=~"$1"}`,
@@ -448,6 +466,8 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_service_count":     `sum(kube_service_info{namespace=~"$1"}) by (namespace)`,
 	"namespace_secret_count":      `sum(kube_secret_info{namespace=~"$1"}) by (namespace)`,
 
+	"namespace_ingresses_extensions_count": `sum(kube_ingress_labels{namespace=~"$1"})`,
+
 	// pod
 	"pod_cpu_usage":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name="$2", image!=""}[5m])) by (namespace, pod_name)`,
 	"pod_memory_usage":          `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name="$2", image!=""}) by (namespace, pod_name)`,
@@ -506,7 +526,7 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_cpu_request_used":                `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace=~"$1", resource="requests.cpu"}) by (resource, type)`,
 	"workspace_service_loadbalancer_used":       `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace=~"$1", resource="services.loadbalancers"}) by (resource, type)`,
 
-	"workspace_ingresses_extensions_count": `sum(kube_resourcequota{type="used", namespace=~"$1", resource="count/ingresses.extensions"}) by (resource, type)`,
+	"workspace_ingresses_extensions_count": `sum(kube_ingress_labels{namespace=~"$1"})`,
 
 	"workspace_cronjob_count":     `sum(kube_cronjob_labels{namespace=~"$1"})`,
 	"workspace_pvc_count":         `sum(kube_persistentvolumeclaim_info{namespace=~"$1"})`,

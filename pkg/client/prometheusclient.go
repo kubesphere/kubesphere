@@ -37,7 +37,7 @@ const (
 	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"
 )
 
-var PrometheusAPIServer = "prometheus-k8s.monitoring.svc"
+var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
 var PrometheusEndpointUrl string
 
 func init() {
