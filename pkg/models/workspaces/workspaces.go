@@ -1235,7 +1235,7 @@ func CountAll() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	val, ok := count["total"]
+	val, ok := count["total_count"]
 
 	if !ok {
 		return 0, errors.New("not found")
@@ -1297,7 +1297,7 @@ func GetAllAccountNums() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	val, ok := count["total"]
+	val, ok := count["total_count"]
 
 	if !ok {
 		return 0, errors.New("not found")
