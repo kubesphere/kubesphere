@@ -895,7 +895,7 @@ func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *
 			for _, nsStatusItem := range nsStatus.(map[string]interface{}) {
 				component := nsStatusItem.(models.Component)
 				namspaceComponentTotalMap[ns] += 1
-				if component.HealthyBackends == component.TotalBackends {
+				if component.HealthyBackends != 0 && component.HealthyBackends == component.TotalBackends {
 					namspaceComponentHealthyMap[ns] += 1
 				}
 			}

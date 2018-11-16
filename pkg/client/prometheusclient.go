@@ -20,21 +20,32 @@ import (
 	"strings"
 	"time"
 
+	"os"
+
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 )
 
 const (
-	DefaultScheme            = "http"
-	DefaultPrometheusService = "prometheus-k8s.monitoring.svc"
-	DefaultPrometheusPort    = "9090"
-	PrometheusApiPath        = "/api/v1/"
-	PrometheusEndpointUrl    = DefaultScheme + "://" + DefaultPrometheusService + ":" + DefaultPrometheusPort + PrometheusApiPath
-	DefaultQueryStep         = "10m"
-	DefaultQueryTimeout      = "30s"
-	RangeQueryType           = "query_range?"
-	DefaultQueryType         = "query?"
+	DefaultScheme          = "http"
+	DefaultPrometheusPort  = "9090"
+	PrometheusApiPath      = "/api/v1/"
+	DefaultQueryStep       = "10m"
+	DefaultQueryTimeout    = "30s"
+	RangeQueryType         = "query_range?"
+	DefaultQueryType       = "query?"
+	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"
 )
+
+var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
+var PrometheusEndpointUrl string
+
+func init() {
+	if env := os.Getenv(PrometheusAPIServerEnv); env != "" {
+		PrometheusAPIServer = env
+	}
+	PrometheusEndpointUrl = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
+}
 
 type MonitoringRequestParams struct {
 	Params           url.Values
