@@ -19,10 +19,16 @@ package controllers
 import (
 	"time"
 
+	"fmt"
+	"regexp"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	rbac "k8s.io/api/rbac/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 func (ctl *ClusterRoleBindingCtl) Name() string {
@@ -43,10 +49,63 @@ func (ctl *ClusterRoleBindingCtl) total() int {
 	return len(list)
 }
 
+func (ctl *ClusterRoleBindingCtl) handleWorkspaceRoleChange(clusterRole *rbac.ClusterRoleBinding) {
+	if groups := regexp.MustCompile("^system:(\\w+):(admin|operator|viewer)$").FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
+		workspace := groups[1]
+		go ctl.restNamespaceRoleBinding(workspace)
+	}
+}
+
+func (ctl *ClusterRoleBindingCtl) restNamespaceRoleBinding(workspace string) {
+	selector := labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspace})
+	namespaces, err := ctl.K8sClient.CoreV1().Namespaces().List(meta_v1.ListOptions{LabelSelector: selector.String()})
+
+	if err != nil {
+		glog.Warning("workspace roles sync failed", workspace, err)
+		return
+	}
+
+	for _, namespace := range namespaces.Items {
+		pathJson := fmt.Sprintf(`{"metadata":{"annotations":{"%s":"%s"}}}`, initTimeAnnotateKey, "")
+		_, err := ctl.K8sClient.CoreV1().Namespaces().Patch(namespace.Name, "application/strategic-merge-patch+json", []byte(pathJson))
+		if err != nil {
+			glog.Warning("workspace roles sync failed", workspace, err)
+			return
+		}
+	}
+}
+
 func (ctl *ClusterRoleBindingCtl) initListerAndInformer() {
 	informerFactory := informers.NewSharedInformerFactory(ctl.K8sClient, time.Second*resyncCircle)
 	ctl.lister = informerFactory.Rbac().V1().ClusterRoleBindings().Lister()
 	ctl.informer = informerFactory.Rbac().V1().ClusterRoleBindings().Informer()
+	ctl.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+		},
+		UpdateFunc: func(old, new interface{}) {
+			oldValue := old.(*rbac.ClusterRoleBinding)
+			newValue := new.(*rbac.ClusterRoleBinding)
+			if !subjectsCompile(oldValue.Subjects, newValue.Subjects) {
+				ctl.handleWorkspaceRoleChange(newValue)
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+
+		},
+	})
+}
+
+func subjectsCompile(s1 []rbac.Subject, s2 []rbac.Subject) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for i, v := range s1 {
+		if v.Name != s2[i].Name || v.Kind != s2[i].Kind {
+			return false
+		}
+	}
+	return true
 }
 
 func (ctl *ClusterRoleBindingCtl) CountWithConditions(conditions string) int {

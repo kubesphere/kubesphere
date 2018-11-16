@@ -26,6 +26,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"sort"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
@@ -54,6 +56,7 @@ func DeleteDevopsProject(username string, devops string) error {
 	if err != nil {
 		return err
 	}
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 	if err != nil {
 		return err
@@ -64,7 +67,7 @@ func DeleteDevopsProject(username string, devops string) error {
 	return nil
 }
 
-func CreateDevopsProject(username string, devops DevopsProject) (*DevopsProject, error) {
+func CreateDevopsProject(username string, workspace string, devops DevopsProject) (*DevopsProject, error) {
 
 	data, err := json.Marshal(devops)
 
@@ -81,6 +84,7 @@ func CreateDevopsProject(username string, devops DevopsProject) (*DevopsProject,
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err = ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -99,21 +103,121 @@ func CreateDevopsProject(username string, devops DevopsProject) (*DevopsProject,
 		return nil, err
 	}
 
+	err = BindingDevopsProject(workspace, *project.ProjectId)
+
+	if err != nil {
+		DeleteDevopsProject(username, *project.ProjectId)
+		return nil, err
+	}
+
+	go createDefaultDevopsRoleBinding(workspace, project)
+
 	return &project, nil
 }
 
-func ListNamespaceByUser(workspaceName string, username string) ([]*core.Namespace, error) {
+func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) {
+	admins := iam.GetWorkspaceUsers(workspace, "admin")
+
+	for _, admin := range admins {
+		createDevopsRoleBinding(workspace, *project.ProjectId, admin, "maintainer")
+	}
+
+	viewers := iam.GetWorkspaceUsers(workspace, "viewer")
+
+	for _, viewer := range viewers {
+		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, "reporter")
+	}
+}
+
+func deleteDevopsRoleBinding(workspace string, projectId string, user string) {
+	projects := make([]string, 0)
+
+	if projectId != "" {
+		projects = append(projects, projectId)
+	} else {
+		p, err := GetDevOpsProjects(workspace)
+		if err != nil {
+			glog.Warning("delete  devops role binding failed", workspace, projectId, user)
+			return
+		}
+		projects = append(projects, p...)
+	}
+
+	for _, project := range projects {
+		request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s/api/v1alpha/projects/%s/members/%s", constants.DevopsAPIServer, project, user), nil)
+		request.Header.Add("X-Token-Username", "admin")
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil || resp.StatusCode > 200 {
+			glog.Warning("delete  devops role binding failed", workspace, project, user)
+		}
+	}
+}
+
+func createDevopsRoleBinding(workspace string, projectId string, user string, role string) {
+
+	projects := make([]string, 0)
+
+	if projectId != "" {
+		projects = append(projects, projectId)
+	} else {
+		p, err := GetDevOpsProjects(workspace)
+		if err != nil {
+			glog.Warning("create  devops role binding failed", workspace, projectId, user, role)
+			return
+		}
+		projects = append(projects, p...)
+	}
+
+	for _, project := range projects {
+		data := []byte(fmt.Sprintf(`{"username":"%s","role":"%s"}`, user, role))
+		request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s/api/v1alpha/projects/%s/members", constants.DevopsAPIServer, project), bytes.NewReader(data))
+		request.Header.Add("Content-Type", "application/json")
+		request.Header.Add("X-Token-Username", "admin")
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil || resp.StatusCode > 200 {
+			glog.Warning(fmt.Sprintf("create  devops role binding failed %s,%s,%s,%s", workspace, project, user, role))
+		}
+	}
+}
+
+func ListNamespaceByUser(workspaceName string, username string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []*core.Namespace, error) {
 
 	namespaces, err := Namespaces(workspaceName)
 
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
+
+	if keyword != "" {
+		for i := 0; i < len(namespaces); i++ {
+			if !strings.Contains(namespaces[i].Name, keyword) {
+				namespaces = append(namespaces[:i], namespaces[i+1:]...)
+				i--
+			}
+		}
+	}
+
+	sort.Slice(namespaces, func(i, j int) bool {
+		switch orderBy {
+		case "name":
+			if reverse {
+				return namespaces[i].Name < namespaces[j].Name
+			} else {
+				return namespaces[i].Name > namespaces[j].Name
+			}
+		default:
+			if reverse {
+				return namespaces[i].CreationTimestamp.Time.After(namespaces[j].CreationTimestamp.Time)
+			} else {
+				return namespaces[i].CreationTimestamp.Time.Before(namespaces[j].CreationTimestamp.Time)
+			}
+		}
+	})
 
 	clusterRoles, err := iam.GetClusterRoles(username)
 
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	rules := make([]v1.PolicyRule, 0)
@@ -124,13 +228,11 @@ func ListNamespaceByUser(workspaceName string, username string) ([]*core.Namespa
 
 	namespacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, ResourceNames: []string{workspaceName}, Verbs: []string{"get"}, Resources: []string{"workspaces/namespaces"}}
 
-	if iam.RulesMatchesRequired(rules, namespacesManager) {
-		return namespaces, nil
-	} else {
+	if !iam.RulesMatchesRequired(rules, namespacesManager) {
 		for i := 0; i < len(namespaces); i++ {
 			roles, err := iam.GetRoles(namespaces[i].Name, username)
 			if err != nil {
-				return nil, err
+				return 0, nil, err
 			}
 			rules := make([]v1.PolicyRule, 0)
 			for _, role := range roles {
@@ -143,7 +245,13 @@ func ListNamespaceByUser(workspaceName string, username string) ([]*core.Namespa
 		}
 	}
 
-	return namespaces, nil
+	if len(namespaces) < offset {
+		return len(namespaces), namespaces, nil
+	} else if len(namespaces) < limit+offset {
+		return len(namespaces), namespaces[offset:], nil
+	} else {
+		return len(namespaces), namespaces[offset : limit+offset], nil
+	}
 }
 
 func Namespaces(workspaceName string) ([]*core.Namespace, error) {
@@ -202,6 +310,7 @@ func Delete(workspace *Workspace) error {
 		return err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -225,7 +334,7 @@ func release(workspace *Workspace) error {
 
 	for _, devops := range workspace.DevopsProjects {
 		err := DeleteDevopsProject(workspace.Creator, devops)
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "not found") {
 			return err
 		}
 	}
@@ -270,7 +379,7 @@ func Create(workspace *Workspace) (*Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	defer result.Body.Close()
 	data, err = ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -319,6 +428,7 @@ func Edit(workspace *Workspace) (*Workspace, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err = ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -348,6 +458,7 @@ func Detail(name string) (*Workspace, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -379,7 +490,7 @@ func Detail(name string) (*Workspace, error) {
 }
 
 // List all workspaces for the current user
-func ListByUser(username string) ([]*Workspace, error) {
+func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) {
 
 	clusterRoles, err := iam.GetClusterRoles(username)
 
@@ -395,24 +506,31 @@ func ListByUser(username string) ([]*Workspace, error) {
 
 	workspacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, Verbs: []string{"list", "get"}, Resources: []string{"workspaces"}}
 
+	var workspaces []*Workspace
 	if iam.RulesMatchesRequired(rules, workspacesManager) {
-		return fetch(nil)
+		workspaces, err = fetch(nil)
 	} else {
 		workspaceNames := make([]string, 0)
-
 		for _, clusterRole := range clusterRoles {
-			if regexp.MustCompile("^system:\\w+:(admin|operator|viewer)$").MatchString(clusterRole.Name) {
-				arr := strings.Split(clusterRole.Name, ":")
-				workspaceNames = append(workspaceNames, arr[1])
+			if groups := regexp.MustCompile(`^system:(\w+):(admin|operator|viewer)$`).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
+				if !slice.ContainsString(workspaceNames, groups[1], nil) {
+					workspaceNames = append(workspaceNames, groups[1])
+				}
 			}
 		}
-
-		if len(workspaceNames) == 0 {
-			return make([]*Workspace, 0), nil
-		}
-
-		return fetch(workspaceNames)
+		workspaces, err = fetch(workspaceNames)
 	}
+
+	if keyword != "" {
+		for i := 0; i < len(workspaces); i++ {
+			if !strings.Contains(workspaces[i].Name, keyword) {
+				workspaces = append(workspaces[:i], workspaces[i+1:]...)
+				i--
+			}
+		}
+	}
+
+	return workspaces, err
 }
 
 func fetch(names []string) ([]*Workspace, error) {
@@ -420,7 +538,11 @@ func fetch(names []string) ([]*Workspace, error) {
 	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups", constants.AccountAPIServer)
 
 	if names != nil {
-		url = url + "?path=" + strings.Join(names, ",")
+		if len(names) == 0 {
+			return make([]*Workspace, 0), nil
+		} else {
+			url = url + "?path=" + strings.Join(names, ",")
+		}
 	}
 
 	result, err := http.Get(url)
@@ -429,6 +551,7 @@ func fetch(names []string) ([]*Workspace, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -463,7 +586,7 @@ func fetch(names []string) ([]*Workspace, error) {
 	return workspaces, nil
 }
 
-func DevopsProjects(workspace string) ([]DevopsProject, error) {
+func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []DevopsProject, error) {
 
 	db := client.NewSharedDBClient()
 	defer db.Close()
@@ -471,48 +594,89 @@ func DevopsProjects(workspace string) ([]DevopsProject, error) {
 	var workspaceDOPBindings []WorkspaceDPBinding
 
 	if err := db.Where("workspace = ?", workspace).Find(&workspaceDOPBindings).Error; err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	devOpsProjects := make([]DevopsProject, 0)
 
-	for _, workspaceDOPBinding := range workspaceDOPBindings {
-		request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects/%s", constants.DevopsAPIServer, workspaceDOPBinding.DevOpsProject), nil)
-		request.Header.Add("X-Token-Username", "admin")
+	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects", constants.DevopsAPIServer), nil)
+	request.Header.Add("X-Token-Username", username)
 
-		result, err := http.DefaultClient.Do(request)
-		if err != nil {
-			return nil, err
-		}
-		data, err := ioutil.ReadAll(result.Body)
+	result, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer result.Body.Close()
+	data, err := ioutil.ReadAll(result.Body)
 
-		if err != nil {
-			return nil, err
-		}
-
-		if result.StatusCode == 403 || result.StatusCode == 404 {
-			if err := db.Delete(&workspaceDOPBinding).Error; err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		if result.StatusCode > 200 {
-			return nil, ksErr.Wrap(data)
-		}
-
-		var project DevopsProject
-
-		err = json.Unmarshal(data, &project)
-
-		if err != nil {
-			return nil, err
-		}
-		devOpsProjects = append(devOpsProjects, project)
+	if err != nil {
+		return 0, nil, err
 	}
 
-	return devOpsProjects, nil
+	//if result.StatusCode == 403 || result.StatusCode == 404 {
+	//	if err := db.Delete(&workspaceDOPBinding).Error; err != nil {
+	//		return nil, err
+	//	}
+	//	continue
+	//}
 
+	if result.StatusCode > 200 {
+		return 0, nil, ksErr.Wrap(data)
+	}
+
+	err = json.Unmarshal(data, &devOpsProjects)
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if keyword != "" {
+		for i := 0; i < len(devOpsProjects); i++ {
+			if !strings.Contains(devOpsProjects[i].Name, keyword) {
+				devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
+				i--
+			}
+		}
+	}
+
+	sort.Slice(devOpsProjects, func(i, j int) bool {
+		switch orderBy {
+		case "name":
+			if reverse {
+				return devOpsProjects[i].Name < devOpsProjects[j].Name
+			} else {
+				return devOpsProjects[i].Name > devOpsProjects[j].Name
+			}
+		default:
+			if reverse {
+				return devOpsProjects[i].CreateTime.After(*devOpsProjects[j].CreateTime)
+			} else {
+				return devOpsProjects[i].CreateTime.Before(*devOpsProjects[j].CreateTime)
+			}
+		}
+	})
+
+	for i := 0; i < len(devOpsProjects); i++ {
+		inWorkspace := false
+
+		for _, binding := range workspaceDOPBindings {
+			if binding.DevOpsProject == *devOpsProjects[i].ProjectId {
+				inWorkspace = true
+			}
+		}
+		if !inWorkspace {
+			devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
+			i--
+		}
+	}
+
+	if len(devOpsProjects) < offset {
+		return len(devOpsProjects), devOpsProjects, nil
+	} else if len(devOpsProjects) < limit+offset {
+		return len(devOpsProjects), devOpsProjects[offset:], nil
+	} else {
+		return len(devOpsProjects), devOpsProjects[offset : limit+offset], nil
+	}
 }
 func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 	namespaces, err := Namespaces(group.Name)
@@ -584,6 +748,19 @@ func Invite(workspaceName string, users []UserInvite) error {
 	return nil
 }
 
+func NamespaceExistCheck(namespaceName string) (bool, error) {
+	_, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
 func RemoveMembers(workspaceName string, users []string) error {
 
 	workspace, err := Detail(workspaceName)
@@ -644,6 +821,7 @@ func GetWorkspaceMembers(workspace string) ([]iam.User, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -673,133 +851,33 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 	admin.Name = fmt.Sprintf("system:%s:admin", workspace.Name)
 	admin.Kind = iam.ClusterRoleKind
 	admin.Rules = []v1.PolicyRule{
-		// apis/kubesphere.io/v1alpha1/workspaces/sample
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/devops
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/roles
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/members
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/members/admin
-
 		{
 			Verbs:         []string{"*"},
 			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
 			ResourceNames: []string{workspace.Name},
 			Resources:     []string{"workspaces", "workspaces/*"},
 		},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
-
-		{
-			Verbs:         []string{"create"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces/namespaces"},
-		},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/members
-
-		{
-			Verbs:         []string{"create"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces/members"},
-		},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/devops
-		{
-			Verbs:         []string{"create"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces/devops"},
-		},
-		// TODO have risks
-		// get apis/apps/v1/namespaces/proj1/deployments/?labelSelector
-		// post api/v1/namespaces/project-0vya57/limitranges
 		{
 			Verbs:     []string{"*"},
-			APIGroups: []string{"", "apps", "extensions", "batch"},
-			Resources: []string{"limitranges", "deployments", "configmaps", "secrets", "jobs", "cronjobs", "persistentvolumes", "statefulsets", "daemonsets", "ingresses", "services", "pods/*", "pods", "events", "deployments/scale"},
+			APIGroups: []string{"devops.kubesphere.io", "jenkins.kubesphere.io"},
+			Resources: []string{"*"},
 		},
-		// get apis/kubesphere.io/v1alpha1/quota/namespaces/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"quota/*"},
-		},
-		// get api/v1/namespaces/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{""},
-			Resources: []string{"namespaces", "serviceaccounts", "configmaps"},
-		},
-		// get api/v1/namespaces/proj1/serviceaccounts
-		// get api/v1/namespaces/proj1/configmaps
-		// get api/v1/namespaces/proj1/secrets
-
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{""},
-			Resources: []string{"serviceaccounts", "configmaps", "secrets"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/status/namespaces/proj1
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
 			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"status/*"},
+			Resources:     []string{"status/*", "monitoring/*", "quota/*"},
 		},
-		// apis/kubesphere.io/v1alpha1/namespaces/proj1/router
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"router"},
-		},
-		// get apis/kubesphere.io/v1alpha1/registries/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"registries"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/monitoring/namespaces/proj1
-
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"monitoring/*"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
-		// get apis/kubesphere.io/v1alpha1/resources/deployments
-		// get apis/kubesphere.io/v1alpha1/resources/statefulsets
-		// get apis/kubesphere.io/v1alpha1/resources/daemonsets
-		// get apis/kubesphere.io/v1alpha1/resources/jobs
-		// get apis/kubesphere.io/v1alpha1/resources/cronjobs
-		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
-		// get apis/kubesphere.io/v1alpha1/resources/services
-		// get apis/kubesphere.io/v1alpha1/resources/ingresses
-		// get apis/kubesphere.io/v1alpha1/resources/secrets
-		// get apis/kubesphere.io/v1alpha1/resources/configmaps
-		// get apis/kubesphere.io/v1alpha1/resources/roles
-
 		{
 			Verbs:     []string{"get"},
 			APIGroups: []string{"kubesphere.io"},
 			Resources: []string{"resources"},
 		},
-
-		// apis/account.kubesphere.io/v1alpha1/users
-		// apis/account.kubesphere.io/v1alpha1/namespaces/proj1/users
 		{
 			Verbs:     []string{"list"},
 			APIGroups: []string{"account.kubesphere.io"},
 			Resources: []string{"users"},
 		},
-
-		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample?metrics_filter=
-		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample/pods?step=30m
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
@@ -820,15 +898,42 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 			Resources:     []string{"workspaces"},
 			ResourceNames: []string{workspace.Name},
 		}, {
-			Verbs:         []string{"create", "get"},
+			Verbs:         []string{"create"},
 			APIGroups:     []string{"kubesphere.io"},
 			Resources:     []string{"workspaces/namespaces", "workspaces/devops"},
 			ResourceNames: []string{workspace.Name},
 		},
 		{
+			Verbs:         []string{"delete"},
+			APIGroups:     []string{"kubesphere.io"},
+			Resources:     []string{"workspaces/namespaces", "workspaces/devops"},
+			ResourceNames: []string{workspace.Name},
+		},
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{"namespaces"},
+			Resources:     []string{"quota/*", "status/*", "monitoring/*"},
+		},
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{"devops.kubesphere.io"},
+			Resources: []string{"*"},
+		}, {
+			Verbs:     []string{"*"},
+			APIGroups: []string{"jenkins.kubesphere.io"},
+			Resources: []string{"*"},
+		},
+		{
 			Verbs:     []string{"get"},
 			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"registries"},
+			Resources: []string{"resources"},
+		},
+		{
+			Verbs:         []string{"get"},
+			APIGroups:     []string{"kubesphere.io"},
+			ResourceNames: []string{workspace.Name},
+			Resources:     []string{"workspaces/members"},
 		},
 	}
 
@@ -838,138 +943,37 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 	viewer.Name = fmt.Sprintf("system:%s:viewer", workspace.Name)
 	viewer.Kind = iam.ClusterRoleKind
 	viewer.Rules = []v1.PolicyRule{
-		// apis/kubesphere.io/v1alpha1/workspaces/sample
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/devops
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/roles
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/members
-		// apis/kubesphere.io/v1alpha1/workspaces/sample/members/admin
-
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
 			ResourceNames: []string{workspace.Name},
 			Resources:     []string{"workspaces", "workspaces/*"},
 		},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/namespaces
-
-		//{
-		//	Verbs:         []string{"create"},
-		//	APIGroups:     []string{"kubesphere.io"},
-		//	ResourceNames: []string{workspace.Name},
-		//	Resources:     []string{"workspaces/namespaces"},
-		//},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/members
-
-		//{
-		//	Verbs:         []string{"create"},
-		//	APIGroups:     []string{"kubesphere.io"},
-		//	ResourceNames: []string{workspace.Name},
-		//	Resources:     []string{"workspaces/members"},
-		//},
-
-		// post apis/kubesphere.io/v1alpha1/workspaces/sample/devops
-		//{
-		//	Verbs:         []string{"create"},
-		//	APIGroups:     []string{"kubesphere.io"},
-		//	ResourceNames: []string{workspace.Name},
-		//	Resources:     []string{"workspaces/devops"},
-		//},
-		// TODO have risks
-		// get apis/apps/v1/namespaces/proj1/deployments/?labelSelector
-		// post api/v1/namespaces/project-0vya57/limitranges
-		{
-			Verbs:     []string{"get", "list"},
-			APIGroups: []string{"", "apps", "extensions", "batch"},
-			Resources: []string{"limitranges", "deployments", "configmaps", "secrets", "jobs", "cronjobs", "persistentvolumes", "statefulsets", "daemonsets", "ingresses", "services", "pods/*", "pods", "events", "deployments/scale"},
-		},
-		// get apis/kubesphere.io/v1alpha1/quota/namespaces/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"quota/*"},
-		},
-		// get api/v1/namespaces/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{""},
-			Resources: []string{"namespaces", "serviceaccounts", "configmaps"},
-		},
-		// get api/v1/namespaces/proj1/serviceaccounts
-		// get api/v1/namespaces/proj1/configmaps
-		// get api/v1/namespaces/proj1/secrets
-
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{""},
-			Resources: []string{"serviceaccounts", "configmaps", "secrets"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/status/namespaces/proj1
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
 			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"status/*"},
+			Resources:     []string{"quota/*", "status/*", "monitoring/*"},
 		},
-		// apis/kubesphere.io/v1alpha1/namespaces/proj1/router
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"router"},
-		},
-		// get apis/kubesphere.io/v1alpha1/registries/proj1
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"registries"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/monitoring/namespaces/proj1
-
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"monitoring/*"},
-		},
-
-		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
-		// get apis/kubesphere.io/v1alpha1/resources/deployments
-		// get apis/kubesphere.io/v1alpha1/resources/statefulsets
-		// get apis/kubesphere.io/v1alpha1/resources/daemonsets
-		// get apis/kubesphere.io/v1alpha1/resources/jobs
-		// get apis/kubesphere.io/v1alpha1/resources/cronjobs
-		// get apis/kubesphere.io/v1alpha1/resources/persistent-volume-claims
-		// get apis/kubesphere.io/v1alpha1/resources/services
-		// get apis/kubesphere.io/v1alpha1/resources/ingresses
-		// get apis/kubesphere.io/v1alpha1/resources/secrets
-		// get apis/kubesphere.io/v1alpha1/resources/configmaps
-		// get apis/kubesphere.io/v1alpha1/resources/roles
-
 		{
 			Verbs:     []string{"get"},
 			APIGroups: []string{"kubesphere.io"},
 			Resources: []string{"resources"},
 		},
-
-		// apis/account.kubesphere.io/v1alpha1/users
-		// apis/account.kubesphere.io/v1alpha1/namespaces/proj1/users
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{"account.kubesphere.io"},
-			Resources: []string{"users"},
-		},
-
-		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample?metrics_filter=
-		// apis/kubesphere.io/v1alpha1/monitoring/workspaces/sample/pods?step=30m
 		{
 			Verbs:         []string{"get"},
 			APIGroups:     []string{"kubesphere.io"},
 			ResourceNames: []string{"workspaces"},
 			Resources:     []string{"monitoring/" + workspace.Name},
+		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"devops.kubesphere.io"},
+			Resources: []string{"*"},
+		}, {
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"jenkins.kubesphere.io"},
+			Resources: []string{"*"},
 		},
 	}
 
@@ -1141,8 +1145,8 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 				} else {
 					modify = true
 					roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-					if err != nil {
-						return err
+					if roleName == "admin" || roleName == "viewer" {
+						go deleteDevopsRoleBinding(workspace.Name, "", username)
 					}
 					break
 				}
@@ -1152,6 +1156,11 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 		if roleName == role {
 			modify = true
 			roleBinding.Subjects = append(roleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
+			if roleName == "admin" {
+				go createDevopsRoleBinding(workspace.Name, "", username, "maintainer")
+			} else if roleName == "viewer" {
+				go createDevopsRoleBinding(workspace.Name, "", username, "reporter")
+			}
 		}
 
 		if !modify {
@@ -1167,14 +1176,14 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 	return nil
 }
 
-func GetDevOpsProjects(name string) ([]string, error) {
+func GetDevOpsProjects(workspaceName string) ([]string, error) {
 
 	db := client.NewSharedDBClient()
 	defer db.Close()
 
 	var workspaceDOPBindings []WorkspaceDPBinding
 
-	if err := db.Where("workspace = ?", name).Find(&workspaceDOPBindings).Error; err != nil {
+	if err := db.Where("workspace = ?", workspaceName).Find(&workspaceDOPBindings).Error; err != nil {
 		return nil, err
 	}
 
@@ -1221,6 +1230,7 @@ func CountAll() (int, error) {
 		return 0, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 	if err != nil {
 		return 0, err
@@ -1270,7 +1280,7 @@ func GetAllDevOpsProjectsNums() (int, error) {
 	defer db.Close()
 
 	var count int
-	if err := db.Find(&WorkspaceDPBinding{}).Count(&count).Error; err != nil {
+	if err := db.Model(&WorkspaceDPBinding{}).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -1283,6 +1293,7 @@ func GetAllAccountNums() (int, error) {
 		return 0, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 	if err != nil {
 		return 0, err

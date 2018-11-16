@@ -20,11 +20,9 @@ type SimpleRule struct {
 }
 
 type User struct {
-	Username string `json:"username"`
-	//UID      string   `json:"uid"`
-	Groups   []string `json:"groups"`
-	Password string   `json:"password,omitempty"`
-	//Extra    map[string]interface{} `json:"extra"`
+	Username       string                  `json:"username"`
+	Groups         []string                `json:"groups"`
+	Password       string                  `json:"password,omitempty"`
 	AvatarUrl      string                  `json:"avatar_url"`
 	Description    string                  `json:"description"`
 	Email          string                  `json:"email"`
