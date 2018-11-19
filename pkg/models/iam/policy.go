@@ -60,9 +60,22 @@ var (
 				{Name: "edit",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"update", "patch"},
+							Verbs:     []string{"*"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces"},
+						}, {
+							Verbs:     []string{"*"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/*"},
+						},
+						{
+							Verbs:     []string{"*"},
+							APIGroups: []string{"jenkins.kubesphere.io"},
+							Resources: []string{"*"},
+						}, {
+							Verbs:     []string{"*"},
+							APIGroups: []string{"devops.kubesphere.io"},
+							Resources: []string{"*"},
 						},
 					},
 				},
@@ -83,7 +96,34 @@ var (
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/members"},
+						},
+					},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/members"},
+						},
+					},
+				},
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"patch", "update"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/members"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces/members"},
 						},
@@ -97,7 +137,7 @@ var (
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces/devops"},
 						},
@@ -124,7 +164,7 @@ var (
 				{Name: "delete",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"delete", "deletecollection"},
+							Verbs:     []string{"delete"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces/devops"},
 						},
@@ -138,7 +178,7 @@ var (
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces/namespaces"},
 						},
@@ -165,7 +205,7 @@ var (
 				{Name: "delete",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"delete", "deletecollection"},
+							Verbs:     []string{"delete"},
 							APIGroups: []string{"kubesphere.io"},
 							Resources: []string{"workspaces/namespaces"},
 						},
@@ -174,30 +214,56 @@ var (
 			},
 		},
 		{
-			Name: "registries",
-			Actions: []Action{
-				{Name: "view"},
-				{Name: "create"},
-				{Name: "edit"},
-				{Name: "delete"},
-			},
-		},
-		{
 			Name: "organizations",
 			Actions: []Action{
-				{Name: "view"},
-				{Name: "create"},
-				{Name: "edit"},
-				{Name: "delete"},
-			},
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get"},
+							APIGroups: []string{"account.kubesphere.io"},
+							Resources: []string{"workspaces/organizations"},
+						},
+					},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"create"},
+							APIGroups: []string{"account.kubesphere.io"},
+							Resources: []string{"workspaces/organizations"},
+						},
+					},
+				},
+				{Name: "edit",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"update", "patch"},
+							APIGroups: []string{"account.kubesphere.io"},
+							Resources: []string{"workspaces/organizations"},
+						},
+					},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"delete"},
+							APIGroups: []string{"account.kubesphere.io"},
+							Resources: []string{"workspaces/organizations"},
+						},
+					},
+				}},
 		},
 		{
 			Name: "roles",
 			Actions: []Action{
-				{Name: "view"},
-				{Name: "create"},
-				{Name: "edit"},
-				{Name: "delete"},
+				{Name: "view",
+					Rules: []v1.PolicyRule{
+						{
+							Verbs:     []string{"get"},
+							APIGroups: []string{"kubesphere.io"},
+							Resources: []string{"workspaces/roles"},
+						},
+					}},
 			},
 		},
 	}
@@ -242,56 +308,6 @@ var (
 				},
 			},
 		},
-		//{
-		//	Name: "projects",
-		//	Actions: []Action{
-		//		{Name: "view",
-		//			Rules: []v1.PolicyRule{
-		//				{
-		//					Verbs:     []string{"get", "watch", "list"},
-		//					APIGroups: []string{""},
-		//					Resources: []string{"namespaces"},
-		//				},
-		//			},
-		//		},
-		//		{Name: "create",
-		//			Rules: []v1.PolicyRule{
-		//				{
-		//					Verbs:     []string{"create"},
-		//					APIGroups: []string{""},
-		//					Resources: []string{"namespaces"},
-		//				},
-		//			},
-		//		},
-		//		{Name: "edit",
-		//			Rules: []v1.PolicyRule{
-		//				{
-		//					Verbs:     []string{"update", "patch"},
-		//					APIGroups: []string{""},
-		//					Resources: []string{"namespaces"},
-		//				},
-		//			},
-		//		},
-		//		{Name: "delete",
-		//			Rules: []v1.PolicyRule{
-		//				{
-		//					Verbs:     []string{"delete", "deletecollection"},
-		//					APIGroups: []string{""},
-		//					Resources: []string{"namespaces"},
-		//				},
-		//			},
-		//		},
-		//		{Name: "members",
-		//			Rules: []v1.PolicyRule{
-		//				{
-		//					Verbs:     []string{"get", "watch", "list", "create", "delete", "patch", "update"},
-		//					APIGroups: []string{"rbac.authorization.k8s.io"},
-		//					Resources: []string{"rolebindings", "roles"},
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
 		{
 			Name: "accounts",
 			Actions: []Action{

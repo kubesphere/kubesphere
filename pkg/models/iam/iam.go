@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	v12 "k8s.io/client-go/listers/rbac/v1"
 
+	"k8s.io/kubernetes/pkg/util/slice"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
@@ -67,6 +69,7 @@ func GetUsers(names []string) ([]User, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -94,6 +97,7 @@ func GetUser(name string) (*User, error) {
 		return nil, err
 	}
 
+	defer result.Body.Close()
 	data, err := ioutil.ReadAll(result.Body)
 
 	if err != nil {
@@ -228,7 +232,8 @@ func DeleteRoleBindings(username string) error {
 		length2 := len(roleBinding.Subjects)
 
 		if length2 == 0 {
-			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{})
+			deletePolicy := meta_v1.DeletePropagationForeground
+			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 		} else if length2 < length1 {
 			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Update(&roleBinding)
 		}
@@ -248,7 +253,8 @@ func DeleteRoleBindings(username string) error {
 
 		length2 := len(roleBinding.Subjects)
 		if length2 == 0 {
-			k8s.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, &meta_v1.DeleteOptions{})
+			deletePolicy := meta_v1.DeletePropagationForeground
+			k8s.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 		} else if length2 < length1 {
 			k8s.RbacV1().ClusterRoleBindings().Update(&roleBinding)
 		}
@@ -264,6 +270,21 @@ func GetRole(namespace string, name string) (*v1.Role, error) {
 		return nil, err
 	}
 	return role, nil
+}
+func GetWorkspaceUsers(workspace string, role string) []string {
+	users := make([]string, 0)
+	clusterRoleBindingLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoleBindings].Lister().(v12.ClusterRoleBindingLister)
+	clusterRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, role))
+	if err != nil {
+		return users
+	}
+
+	for _, s := range clusterRoleBinding.Subjects {
+		if s.Kind == v1.UserKind && !slice.ContainsString(users, s.Name, nil) {
+			users = append(users, s.Name)
+		}
+	}
+	return users
 }
 
 func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
@@ -370,7 +391,6 @@ func GetRoles(namespace string, username string) ([]v1.Role, error) {
 
 // Get cluster roles by username
 func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
-	//TODO fix NPE
 	clusterRoleBindingLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoleBindings].Lister().(v12.ClusterRoleBindingLister)
 	clusterRoleLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoles].Lister().(v12.ClusterRoleLister)
 	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
@@ -382,7 +402,7 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 	roles := make([]v1.ClusterRole, 0)
 
 	for _, roleBinding := range clusterRoleBindings {
-		for _, subject := range roleBinding.Subjects {
+		for i, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
 					role, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
@@ -398,7 +418,8 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 						roles = append(roles, *role)
 						break
 					} else if apierrors.IsNotFound(err) {
-						glog.Warning(err)
+						roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
+						client.NewK8sClient().RbacV1().ClusterRoleBindings().Update(roleBinding)
 						break
 					} else {
 						return nil, err
@@ -410,76 +431,6 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 
 	return roles, nil
 }
-
-//func RuleValidate(rules []v1.PolicyRule, rule v1.PolicyRule) bool {
-//
-//	for _, apiGroup := range rule.APIGroups {
-//		if len(rule.NonResourceURLs) == 0 {
-//			for _, resource := range rule.Resources {
-//
-//				//if len(Rule.ResourceNames) == 0 {
-//
-//				for _, verb := range rule.Verbs {
-//					if !verbValidate(rules, apiGroup, "", resource, "", verb) {
-//						return false
-//					}
-//				}
-//
-//				//} else {
-//				//	for _, resourceName := range Rule.ResourceNames {
-//				//		for _, verb := range Rule.Verbs {
-//				//			if !verbValidate(rules, apiGroup, "", resource, resourceName, verb) {
-//				//				return false
-//				//			}
-//				//		}
-//				//	}
-//				//}
-//			}
-//		} else {
-//			for _, nonResourceURL := range rule.NonResourceURLs {
-//				for _, verb := range rule.Verbs {
-//					if !verbValidate(rules, apiGroup, nonResourceURL, "", "", verb) {
-//						return false
-//					}
-//				}
-//			}
-//		}
-//	}
-//	return true
-//}
-
-//func verbValidate(rules []v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, resourceName string, verb string) bool {
-//	for _, rule := range rules {
-//
-//		if nonResourceURL == "" {
-//			if slice.ContainsString(rule.APIGroups, apiGroup, nil) ||
-//				slice.ContainsString(rule.APIGroups, v1.APIGroupAll, nil) {
-//				if slice.ContainsString(rule.Verbs, verb, nil) ||
-//					slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
-//					if slice.ContainsString(rule.Resources, v1.ResourceAll, nil) {
-//						return true
-//					} else if slice.ContainsString(rule.Resources, resource, nil) {
-//						if len(rule.ResourceNames) > 0 {
-//							if slice.ContainsString(rule.ResourceNames, resourceName, nil) {
-//								return true
-//							}
-//						} else if resourceName == "" {
-//							return true
-//						}
-//					}
-//				}
-//			}
-//
-//		} else if slice.ContainsString(rule.NonResourceURLs, nonResourceURL, nil) ||
-//			slice.ContainsString(rule.NonResourceURLs, v1.NonResourceAll, nil) {
-//			if slice.ContainsString(rule.Verbs, verb, nil) ||
-//				slice.ContainsString(rule.Verbs, v1.VerbAll, nil) {
-//				return true
-//			}
-//		}
-//	}
-//	return false
-//}
 
 func GetUserRules(username string) (map[string][]Rule, error) {
 

@@ -50,17 +50,9 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 
 // sorted metric by ascending or descending order
 func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelMetric, resourceType string) (*FormatedLevelMetric, int) {
-	var maxLength = 0
-	for _, metricItem := range fmtLevelMetric.Results {
-		if metricItem.Data.ResultType == ResultTypeVector && metricItem.Status == MetricStatusSuccess {
-			if maxLength < len(metricItem.Data.Result) {
-				maxLength = len(metricItem.Data.Result)
-			}
-		}
-	}
 
 	if sortMetricName == "" {
-		return fmtLevelMetric, maxLength
+		return fmtLevelMetric, -1
 	}
 
 	// default sort type is descending order
@@ -72,6 +64,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 
 	// indexMap store sorted index for each node/namespace/pod
 	var indexMap = make(map[string]int)
+	i := 0
 	for _, metricItem := range fmtLevelMetric.Results {
 		if metricItem.Data.ResultType == ResultTypeVector && metricItem.Status == MetricStatusSuccess {
 			if metricItem.MetricName == sortMetricName {
@@ -95,7 +88,6 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 					}})
 				}
 
-				i := 0
 				for _, r := range metricItem.Data.Result {
 					// for some reasons, 'metric' may not contain `resourceType` field
 					// example: {"metric":{},"value":[1541142931.731,"3"]}
@@ -118,34 +110,40 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 		}
 	}
 
+	for resource, _ := range currentResourceMap {
+		if _, exist := indexMap[resource]; !exist {
+			indexMap[resource] = i
+			i = i + 1
+		}
+	}
+
 	// sort other metric
 	for i := 0; i < len(fmtLevelMetric.Results); i++ {
 		re := fmtLevelMetric.Results[i]
-		if re.MetricName != sortMetricName && re.Data.ResultType == ResultTypeVector && re.Status == MetricStatusSuccess {
+		if re.Data.ResultType == ResultTypeVector && re.Status == MetricStatusSuccess {
 			sortedMetric := make([]map[string]interface{}, len(indexMap))
-			noneSortedMetric := make([]map[string]interface{}, 0)
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
-				k, ok := r[ResultItemMetric].(map[string]interface{})[resourceType]
-				if ok {
+				k, exist := r[ResultItemMetric].(map[string]interface{})[resourceType]
+				if exist {
 					index, exist := indexMap[k.(string)]
 					if exist {
 						sortedMetric[index] = r
-					} else {
-						noneSortedMetric = append(noneSortedMetric, r)
 					}
 				}
 			}
 
-			sortedMetric = append(sortedMetric, noneSortedMetric...)
 			fmtLevelMetric.Results[i].Data.Result = sortedMetric
 		}
 	}
 
-	return fmtLevelMetric, maxLength
+	return fmtLevelMetric, len(indexMap)
 }
 
 func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, maxLength int) interface{} {
+	if maxLength <= 0 {
+		return fmtLevelMetric
+	}
 	// matrix type can not be sorted
 	for _, metricItem := range fmtLevelMetric.Results {
 		if metricItem.Data.ResultType != ResultTypeVector {
@@ -230,8 +228,8 @@ func ReformatJson(metric string, metricsName string, needDelParams ...string) *F
 		result := formatMetric.Data.Result
 		for _, res := range result {
 			metric, exist := res[ResultItemMetric]
-			metricMap := metric.(map[string]interface{})
-			if exist {
+			metricMap, sure := metric.(map[string]interface{})
+			if exist && sure {
 				delete(metricMap, "__name__")
 			}
 			if len(needDelParams) > 0 {

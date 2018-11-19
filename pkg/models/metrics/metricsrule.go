@@ -29,7 +29,7 @@ func MakeWorkloadRule(wkKind, wkName, namespace string) string {
 	case "deployment":
 		wkKind = ReplicaSet
 		if wkName != "" {
-			wkName = "~\"" + wkName + ".*\""
+			wkName = "~\"^" + wkName + `-(\\w)+$"`
 		} else {
 			wkName = "~\".*\""
 		}
@@ -152,7 +152,7 @@ func MakeNodeRule(nodeID string, nodesFilter string, metricsName string) string 
 	if nodesFilter == "" {
 		nodesFilter = ".*"
 	}
-	if strings.Contains(metricsName, "disk_size") || strings.Contains(metricsName, "pod") || strings.Contains(metricsName, "usage") || strings.Contains(metricsName, "inode") {
+	if strings.Contains(metricsName, "disk_size") || strings.Contains(metricsName, "pod") || strings.Contains(metricsName, "usage") || strings.Contains(metricsName, "inode") || strings.Contains(metricsName, "load") {
 		// disk size promql
 		if nodeID != "" {
 			nodesFilter = "{" + "node" + "=" + "\"" + nodeID + "\"" + "}"
