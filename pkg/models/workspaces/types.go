@@ -26,9 +26,8 @@ type Group struct {
 	Description string   `json:"description"`
 }
 
-type WorkspaceNSBinding struct {
-	Workspace string `gorm:"primary_key"`
-	Namespace string `gorm:"primary_key"`
+func (g Group) GetCreateTime() (time.Time, error) {
+	return time.Parse("2006-01-02T15:04:05Z", g.CreateTime)
 }
 
 type WorkspaceDPBinding struct {

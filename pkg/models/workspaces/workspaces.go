@@ -119,7 +119,7 @@ func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) {
 	admins := iam.GetWorkspaceUsers(workspace, "admin")
 
 	for _, admin := range admins {
-		createDevopsRoleBinding(workspace, *project.ProjectId, admin, "maintainer")
+		createDevopsRoleBinding(workspace, *project.ProjectId, admin, "owner")
 	}
 
 	viewers := iam.GetWorkspaceUsers(workspace, "viewer")
@@ -402,7 +402,11 @@ func Create(workspace *Workspace) (*Workspace, error) {
 	created.Namespaces = make([]string, 0)
 	created.DevopsProjects = make([]string, 0)
 
-	go WorkspaceRoleInit(workspace)
+	err = WorkspaceRoleInit(workspace)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &created, nil
 }
@@ -512,7 +516,7 @@ func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) 
 	} else {
 		workspaceNames := make([]string, 0)
 		for _, clusterRole := range clusterRoles {
-			if groups := regexp.MustCompile(`^system:(\w+):(admin|operator|viewer)$`).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
+			if groups := regexp.MustCompile(`^system:(\S+):(admin|operator|viewer)$`).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
 				if !slice.ContainsString(workspaceNames, groups[1], nil) {
 					workspaceNames = append(workspaceNames, groups[1])
 				}
@@ -710,7 +714,14 @@ func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 }
 
 func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
-	return client.NewK8sClient().CoreV1().Namespaces().Create(namespace)
+
+	ns, err := client.NewK8sClient().CoreV1().Namespaces().Create(namespace)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ns, nil
 }
 
 func Invite(workspaceName string, users []UserInvite) error {
@@ -1157,7 +1168,7 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 			modify = true
 			roleBinding.Subjects = append(roleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
 			if roleName == "admin" {
-				go createDevopsRoleBinding(workspace.Name, "", username, "maintainer")
+				go createDevopsRoleBinding(workspace.Name, "", username, "owner")
 			} else if roleName == "viewer" {
 				go createDevopsRoleBinding(workspace.Name, "", username, "reporter")
 			}

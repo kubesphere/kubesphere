@@ -50,7 +50,7 @@ func (ctl *ClusterRoleBindingCtl) total() int {
 }
 
 func (ctl *ClusterRoleBindingCtl) handleWorkspaceRoleChange(clusterRole *rbac.ClusterRoleBinding) {
-	if groups := regexp.MustCompile("^system:(\\w+):(admin|operator|viewer)$").FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
+	if groups := regexp.MustCompile(`^system:(\S+):(admin|operator|viewer)$`).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
 		workspace := groups[1]
 		go ctl.restNamespaceRoleBinding(workspace)
 	}
