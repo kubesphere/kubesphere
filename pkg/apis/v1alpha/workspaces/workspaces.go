@@ -15,6 +15,8 @@ import (
 
 	"regexp"
 
+	"sort"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
@@ -452,14 +454,26 @@ func UserWorkspaceListHandler(req *restful.Request, resp *restful.Response) {
 	keyword := req.QueryParameter("keyword")
 	username := req.HeaderParameter(UserNameHeader)
 
-	list, err := workspaces.ListWorkspaceByUser(username, keyword)
+	ws, err := workspaces.ListWorkspaceByUser(username, keyword)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
 
-	resp.WriteEntity(list)
+	sort.Slice(ws, func(i, j int) bool {
+		t1, err := ws[i].GetCreateTime()
+		if err != nil {
+			return false
+		}
+		t2, err := ws[j].GetCreateTime()
+		if err != nil {
+			return true
+		}
+		return t1.After(t2)
+	})
+
+	resp.WriteEntity(ws)
 }
 
 func UserNamespaceListHandler(req *restful.Request, resp *restful.Response) {
