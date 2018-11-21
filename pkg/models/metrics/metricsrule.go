@@ -57,8 +57,18 @@ func MakeWorkloadRule(wkKind, wkName, namespace string) string {
 	return rule
 }
 
-func MakeWorkspacePromQL(metricsName string, nsFilter string) string {
-	promql := RulePromQLTmplMap[metricsName]
+func MakeAllWorkspacesPromQL(metricsName, nsFilter string) string {
+
+	var promql = RulePromQLTmplMap[metricsName]
+	nsFilter = "!~\"" + nsFilter + "\""
+	promql = strings.Replace(promql, "$1", nsFilter, -1)
+	return promql
+}
+
+func MakeSpecificWorkspacePromQL(metricsName, nsFilter string) string {
+
+	var promql = RulePromQLTmplMap[metricsName]
+	nsFilter = "=~\"" + nsFilter + "\""
 	promql = strings.Replace(promql, "$1", nsFilter, -1)
 	return promql
 }

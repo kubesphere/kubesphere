@@ -277,12 +277,28 @@ func AssembleNamespaceMetricRequestInfo(monitoringRequest *client.MonitoringRequ
 	return queryType, params
 }
 
-func AssembleWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
+func AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
+
 	nsFilter := "^(" + strings.Join(namespaceList, "|") + ")$"
 
 	queryType := monitoringRequest.QueryType
 
-	rule := MakeWorkspacePromQL(metricName, nsFilter)
+	rule := MakeSpecificWorkspacePromQL(metricName, nsFilter)
+	paramValues := monitoringRequest.Params
+	params := makeRequestParamString(rule, paramValues)
+	return queryType, params
+}
+
+func AssembleAllWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
+	var nsFilter = "^()$"
+
+	if namespaceList != nil {
+		nsFilter = "^(" + strings.Join(namespaceList, "|") + ")$"
+	}
+
+	queryType := monitoringRequest.QueryType
+
+	rule := MakeAllWorkspacesPromQL(metricName, nsFilter)
 	paramValues := monitoringRequest.Params
 	params := makeRequestParamString(rule, paramValues)
 	return queryType, params
@@ -330,6 +346,9 @@ func MonitorAllWorkspaces(monitoringRequest *client.MonitoringRequestParams) *Fo
 	}
 	var filterMetricsName []string
 	for _, metricName := range WorkspaceMetricsNames {
+		if metricName == MetricNameWorkspaceAllProjectCount {
+			continue
+		}
 		bol, err := regexp.MatchString(metricsFilter, metricName)
 		if err == nil && bol {
 			filterMetricsName = append(filterMetricsName, metricName)
@@ -400,7 +419,7 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 		wg.Add(1)
 		go func(metricName string) {
 
-			queryType, params := AssembleWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
+			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
 			ch <- GetMetric(queryType, params, metricName)
 
 			wg.Done()
@@ -448,11 +467,6 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 						queryType, params := AssembleClusterMetricRequestInfo(monitoringRequest, metricName)
 						clusterMetrics := GetMetric(queryType, params, metricName)
 
-						// for this special case, get namespace history which in a workspace by determining namespace label
-						if metricName == MetricNameWorkspaceAllProjectCount {
-							clusterMetrics = MonitorWorkspaceNamespaceHistory(clusterMetrics)
-						}
-
 						ch <- clusterMetrics
 
 						wg.Done()
@@ -476,35 +490,84 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 		}
 	case MetricLevelWorkspace:
 		{
-			namespaceArray, err := workspaces.WorkspaceNamespaces(monitoringRequest.WsName)
-			if err != nil {
-				glog.Errorln(err.Error())
-			}
-			namespaceArray = filterNamespace(monitoringRequest.NsFilter, namespaceArray)
+			// a specific workspace's metrics
+			if monitoringRequest.WsName != "" {
+				namespaceArray, err := workspaces.WorkspaceNamespaces(monitoringRequest.WsName)
+				if err != nil {
+					glog.Errorln(err.Error())
+				}
+				namespaceArray = filterNamespace(monitoringRequest.NsFilter, namespaceArray)
 
-			if monitoringRequest.Tp == "rank" {
-				for _, metricName := range NamespaceMetricsNames {
-					bol, err := regexp.MatchString(metricsFilter, metricName)
-					ns := "^(" + strings.Join(namespaceArray, "|") + ")$"
-					monitoringRequest.NsFilter = ns
-					if err == nil && bol {
-						wg.Add(1)
-						go func(metricName string) {
-							queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
-							ch <- GetMetric(queryType, params, metricName)
-							wg.Done()
-						}(metricName)
+				if monitoringRequest.Tp == "rank" {
+					for _, metricName := range NamespaceMetricsNames {
+						if metricName == MetricNameWorkspaceAllProjectCount {
+							continue
+						}
+
+						bol, err := regexp.MatchString(metricsFilter, metricName)
+						ns := "^(" + strings.Join(namespaceArray, "|") + ")$"
+						monitoringRequest.NsFilter = ns
+						if err == nil && bol {
+							wg.Add(1)
+							go func(metricName string) {
+								queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
+								ch <- GetMetric(queryType, params, metricName)
+								wg.Done()
+							}(metricName)
+						}
+					}
+
+				} else {
+					for _, metricName := range WorkspaceMetricsNames {
+
+						if metricName == MetricNameWorkspaceAllProjectCount {
+							continue
+						}
+
+						bol, err := regexp.MatchString(metricsFilter, metricName)
+						if err == nil && bol {
+							wg.Add(1)
+							go func(metricName string) {
+								queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
+								ch <- GetMetric(queryType, params, metricName)
+								wg.Done()
+							}(metricName)
+						}
+					}
+				}
+			} else {
+				// sum all workspaces
+				_, namespaceWorkspaceMap, err := workspaces.GetAllOrgAndProjList()
+
+				if err != nil {
+					glog.Errorln(err.Error())
+				}
+
+				nsList := make([]string, 0)
+				for ns := range namespaceWorkspaceMap {
+					if namespaceWorkspaceMap[ns] == "" {
+						nsList = append(nsList, ns)
 					}
 				}
 
-			} else {
 				for _, metricName := range WorkspaceMetricsNames {
 					bol, err := regexp.MatchString(metricsFilter, metricName)
 					if err == nil && bol {
+
 						wg.Add(1)
+
 						go func(metricName string) {
-							queryType, params := AssembleWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
-							ch <- GetMetric(queryType, params, metricName)
+							queryType, params := AssembleAllWorkspaceMetricRequestInfo(monitoringRequest, nil, metricName)
+
+							if metricName == MetricNameWorkspaceAllProjectCount {
+								res := GetMetric(queryType, params, metricName)
+								res = MonitorWorkspaceNamespaceHistory(res)
+								ch <- res
+
+							} else {
+								ch <- GetMetric(queryType, params, metricName)
+							}
+
 							wg.Done()
 						}(metricName)
 					}

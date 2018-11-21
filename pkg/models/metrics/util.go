@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"unicode"
 
+	"runtime/debug"
+
 	"github.com/golang/glog"
 )
 
@@ -50,6 +52,12 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 
 // sorted metric by ascending or descending order
 func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelMetric, resourceType string) (*FormatedLevelMetric, int) {
+	defer func() {
+		if err := recover(); err != nil {
+			glog.Errorln(err)
+			debug.PrintStack()
+		}
+	}()
 
 	if sortMetricName == "" {
 		return fmtLevelMetric, -1
@@ -75,6 +83,12 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 						value2 := (*q)[ResultItemValue].([]interface{})
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
+						if v1 == v2 {
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[resourceType]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[resourceType]
+							return resourceName1.(string) < resourceName2.(string)
+						}
+
 						return v1 < v2
 					}})
 				} else {
@@ -84,6 +98,13 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 						value2 := (*q)[ResultItemValue].([]interface{})
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
+
+						if v1 == v2 {
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[resourceType]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[resourceType]
+							return resourceName1.(string) > resourceName2.(string)
+						}
+
 						return v1 > v2
 					}})
 				}
@@ -110,7 +131,13 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 		}
 	}
 
-	for resource, _ := range currentResourceMap {
+	var keys []string
+	for k := range currentResourceMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, resource := range keys {
 		if _, exist := indexMap[resource]; !exist {
 			indexMap[resource] = i
 			i = i + 1
