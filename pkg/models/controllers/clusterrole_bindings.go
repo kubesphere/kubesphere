@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	rbac "k8s.io/api/rbac/v1"
@@ -29,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 func (ctl *ClusterRoleBindingCtl) Name() string {
@@ -43,14 +47,14 @@ func (ctl *ClusterRoleBindingCtl) sync(stopChan chan struct{}) {
 func (ctl *ClusterRoleBindingCtl) total() int {
 	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
-		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		glog.Errorf("count %s failed, reason:%s", ctl.Name(), err)
 		return 0
 	}
 	return len(list)
 }
 
 func (ctl *ClusterRoleBindingCtl) handleWorkspaceRoleChange(clusterRole *rbac.ClusterRoleBinding) {
-	if groups := regexp.MustCompile(`^system:(\S+):(admin|operator|viewer)$`).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
+	if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
 		workspace := groups[1]
 		go ctl.restNamespaceRoleBinding(workspace)
 	}

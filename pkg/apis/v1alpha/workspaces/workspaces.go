@@ -55,7 +55,7 @@ func RoleHandler(req *restful.Request, resp *restful.Response) {
 	workspaceName := req.PathParameter("name")
 	roleName := req.PathParameter("role")
 
-	if !slice.ContainsString(workspaces.WorkSpaceRoles, roleName, nil) {
+	if !slice.ContainsString(constants.WorkSpaceRoles, roleName, nil) {
 		resp.WriteHeaderAndEntity(http.StatusNotFound, constants.MessageResponse{Message: fmt.Sprintf("role %s not found", roleName)})
 		return
 	}
