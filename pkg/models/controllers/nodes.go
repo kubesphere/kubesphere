@@ -28,11 +28,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const nodeRole = "role"
+const NodeRoleLabel = "node-role.kubernetes.io/"
 
 func (ctl *NodeCtl) generateObject(item v1.Node) *Node {
-	var status, ip, role, displayName, msgStr string
-	var msg []string
+	var status, ip, displayName, msgStr string
+	var msg, role []string
 
 	if item.Annotations != nil && len(item.Annotations[DisplayName]) > 0 {
 		displayName = item.Annotations[DisplayName]
@@ -42,8 +42,13 @@ func (ctl *NodeCtl) generateObject(item v1.Node) *Node {
 	createTime := item.ObjectMeta.CreationTimestamp.Time
 	annotation := item.Annotations
 
-	if _, exist := item.Labels[nodeRole]; exist {
-		role = item.Labels[nodeRole]
+	// in case of multiple roles
+	for label, _ := range item.Labels {
+		if strings.HasPrefix(label, NodeRoleLabel) {
+			if parts := strings.Split(label, "/"); len(parts) == 2 {
+				role = append(role, parts[1])
+			}
+		}
 	}
 
 	for _, condition := range item.Status.Conditions {
@@ -83,7 +88,7 @@ func (ctl *NodeCtl) generateObject(item v1.Node) *Node {
 		Annotation:  MapString{annotation},
 		Taints:      Taints{item.Spec.Taints},
 		Msg:         msgStr,
-		Role:        role,
+		Role:        strings.Join(role, ","),
 		Labels:      MapString{item.Labels}}
 
 	return object
@@ -120,7 +125,7 @@ func (ctl *NodeCtl) sync(stopChan chan struct{}) {
 func (ctl *NodeCtl) total() int {
 	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
-		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		glog.Errorf("count %s failed, reason:%s", err, ctl.Name())
 		return 0
 	}
 	return len(list)
