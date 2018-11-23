@@ -73,12 +73,14 @@ func (u Monitor) monitorAllWorkspaces(request *restful.Request, response *restfu
 
 	requestParams := client.ParseMonitoringRequestParams(request)
 
-	if requestParams.Tp == "_statistics" {
+	tp := requestParams.Tp
+	if tp == "_statistics" {
 		// merge multiple metric: all-devops, all-roles, all-projects...this api is designed for admin
 		res := metrics.MonitorAllWorkspacesStatistics()
 
 		response.WriteAsJson(res)
-	} else {
+
+	} else if tp == "rank" {
 		rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
 		// sorting
 		sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelWorkspace)
@@ -86,6 +88,9 @@ func (u Monitor) monitorAllWorkspaces(request *restful.Request, response *restfu
 		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
 
 		response.WriteAsJson(pagedMetrics)
+	} else {
+		res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkspace)
+		response.WriteAsJson(res)
 	}
 }
 
@@ -144,10 +149,6 @@ func (u Monitor) monitorCluster(request *restful.Request, response *restful.Resp
 		// single
 		queryType, params := metrics.AssembleClusterMetricRequestInfo(requestParams, metricName)
 		res := metrics.GetMetric(queryType, params, metricName)
-
-		if metricName == metrics.MetricNameWorkspaceAllProjectCount {
-			res = metrics.MonitorWorkspaceNamespaceHistory(res)
-		}
 
 		response.WriteAsJson(res)
 	} else {

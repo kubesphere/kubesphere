@@ -22,7 +22,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"net"
@@ -37,6 +36,8 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"k8s.io/api/core/v1"
 
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
 	"kubesphere.io/kubesphere/pkg/client"
@@ -74,36 +75,42 @@ func newKubeSphereServer(options *options.ServerRunOptions) *kubeSphereServer {
 func preCheck() error {
 	k8sClient := client.NewK8sClient()
 	_, err := k8sClient.CoreV1().Namespaces().Get(constants.KubeSphereControlNamespace, metaV1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	if errors.IsNotFound(err) {
-		namespace := v1.Namespace{ObjectMeta: metaV1.ObjectMeta{Name: constants.KubeSphereControlNamespace}}
-		_, err = k8sClient.CoreV1().Namespaces().Create(&namespace)
-		if err != nil {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			_, err = k8sClient.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metaV1.ObjectMeta{Name: constants.KubeSphereControlNamespace}})
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
 
 	_, err = k8sClient.AppsV1().Deployments(constants.KubeSphereControlNamespace).Get(constants.AdminUserName, metaV1.GetOptions{})
 
-	if errors.IsNotFound(err) {
-		models.CreateKubeConfig(constants.AdminUserName)
-		models.CreateKubectlDeploy(constants.AdminUserName)
-		return nil
+	if err != nil {
+		if errors.IsNotFound(err) {
+			if err = models.CreateKubeConfig(constants.AdminUserName); err != nil {
+				return err
+			}
+			if err = models.CreateKubectlDeploy(constants.AdminUserName); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	db := client.NewSharedDBClient()
 	defer db.Close()
-	if !db.HasTable(&workspaces.WorkspaceNSBinding{}) {
-		db.CreateTable(&workspaces.WorkspaceNSBinding{})
-	}
 
 	if !db.HasTable(&workspaces.WorkspaceDPBinding{}) {
-		db.CreateTable(&workspaces.WorkspaceDPBinding{})
+		if err := db.CreateTable(&workspaces.WorkspaceDPBinding{}).Error; err != nil {
+			return err
+		}
 	}
-	return err
+
+	return nil
 }
 
 func registerSwagger() {
