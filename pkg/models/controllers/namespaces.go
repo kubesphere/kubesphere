@@ -46,7 +46,7 @@ import (
 const (
 	provider                     = "kubernetes"
 	admin                        = "admin"
-	editor                       = "operator"
+	operator                     = "operator"
 	viewer                       = "viewer"
 	kubectlNamespace             = constants.KubeSphereControlNamespace
 	kubectlConfigKey             = "config"
@@ -133,13 +133,10 @@ func (ctl *NamespaceCtl) createOpRuntime(namespace string) ([]byte, error) {
 	return makeHttpRequest("POST", url, string(body))
 }
 
-func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error {
+func (ctl *NamespaceCtl) updateSystemRoleBindings(namespace *v1.Namespace) error {
 
 	workspace := ""
-	creator := ""
-	if namespace.Annotations != nil {
-		creator = namespace.Annotations[creatorAnnotateKey]
-	}
+
 	if namespace.Labels != nil {
 		workspace = namespace.Labels[workspaceLabelKey]
 	}
@@ -159,12 +156,8 @@ func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error
 
 	adminBinding.Subjects = make([]rbac.Subject, 0)
 
-	if creator != "" {
-		adminBinding.Subjects = append(adminBinding.Subjects, rbac.Subject{Name: creator, Kind: rbac.UserKind})
-	}
-
 	if workspace != "" {
-		workspaceAdmin, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:admin", workspace), metaV1.GetOptions{})
+		workspaceAdmin, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, constants.WorkspaceAdmin), metaV1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -197,7 +190,7 @@ func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error
 	viewerBinding.Subjects = make([]rbac.Subject, 0)
 
 	if workspace != "" {
-		workspaceViewer, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:viewer", workspace), metaV1.GetOptions{})
+		workspaceViewer, err := ctl.K8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, constants.WorkspaceViewer), metaV1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -217,24 +210,64 @@ func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error
 	return nil
 }
 
-func (ctl *NamespaceCtl) createDefaultRole(ns string) error {
-	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: adminRules}
-	editorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: editor, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: editorRules}
-	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: ns, Annotations: map[string]string{"creator": "system"}}, Rules: viewerRules}
+func (ctl *NamespaceCtl) createDefaultRoleBinding(namespace *v1.Namespace) error {
+	creator := ""
+	if namespace.Annotations != nil {
+		creator = namespace.Annotations[creatorAnnotateKey]
+	}
+	// create once
+	if creator != "" {
+		creatorBindingName := fmt.Sprintf("%s-admin", creator)
+		creatorBinding, err := ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Get(creatorBindingName, metaV1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				creatorBinding = new(rbac.RoleBinding)
+				creatorBinding.Name = creatorBindingName
+				creatorBinding.Namespace = namespace.Name
+				creatorBinding.RoleRef = rbac.RoleRef{Kind: "Role", Name: admin}
+			} else {
+				return err
+			}
+		}
 
-	_, err := ctl.K8sClient.RbacV1().Roles(ns).Create(adminRole)
+		creatorBinding.Subjects = []rbac.Subject{{Kind: rbac.UserKind, Name: creator}}
+
+		if creatorBinding.ResourceVersion == "" {
+			_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Create(creatorBinding)
+		} else {
+			_, err = ctl.K8sClient.RbacV1().RoleBindings(namespace.Name).Update(creatorBinding)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ctl *NamespaceCtl) CreateDefaultRoleAndRoleBinding(namespace *v1.Namespace) error {
+	adminRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: admin, Namespace: namespace.Name, Annotations: map[string]string{creatorAnnotateKey: "system"}}, Rules: adminRules}
+	operatorRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: operator, Namespace: namespace.Name, Annotations: map[string]string{creatorAnnotateKey: "system"}}, Rules: editorRules}
+	viewerRole := &rbac.Role{ObjectMeta: metaV1.ObjectMeta{Name: viewer, Namespace: namespace.Name, Annotations: map[string]string{creatorAnnotateKey: "system"}}, Rules: viewerRules}
+
+	_, err := ctl.K8sClient.RbacV1().Roles(namespace.Name).Create(adminRole)
+
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return err
+	} else if err == nil {
+		if err := ctl.createDefaultRoleBinding(namespace); err != nil {
+			glog.Warning("default role binding create failed", namespace.Name)
+		}
+	}
+
+	_, err = ctl.K8sClient.RbacV1().Roles(namespace.Name).Create(operatorRole)
 
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
 
-	_, err = ctl.K8sClient.RbacV1().Roles(ns).Create(editorRole)
-
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
-
-	_, err = ctl.K8sClient.RbacV1().Roles(ns).Create(viewerRole)
+	_, err = ctl.K8sClient.RbacV1().Roles(namespace.Name).Create(viewerRole)
 
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return err
@@ -254,27 +287,22 @@ func (ctl *NamespaceCtl) createRoleAndRuntime(namespace *v1.Namespace) {
 	componentsNamespaces := []string{constants.KubeSystemNamespace, constants.OpenPitrixNamespace, constants.IstioNamespace, constants.KubeSphereNamespace}
 
 	if runtime == "" && !slice.ContainsString(componentsNamespaces, namespace.Name, nil) {
-		glog.Infoln("create runtime:", namespace.Name)
 		_, runtimeCreateError := ctl.createOpRuntime(namespace.Name)
-
 		if runtimeCreateError != nil {
 			glog.Error("runtime create error:", runtimeCreateError)
 		}
 	}
 
 	if initTime == "" {
-		err := ctl.createDefaultRole(namespace.Name)
-		glog.Infoln("create default role:", namespace.Name)
+		err := ctl.CreateDefaultRoleAndRoleBinding(namespace)
 		if err == nil {
-			err = ctl.createDefaultRoleBinding(namespace)
-			glog.Infoln("create default role binding:", namespace.Name)
+			err = ctl.updateSystemRoleBindings(namespace)
 			if err != nil {
-				glog.Error("default role binding create error:", err)
+				glog.Error("role binding update error:", err)
 			}
 		} else {
 			glog.Error("default role create error:", err)
 		}
-
 		if err == nil {
 			pathJson := fmt.Sprintf(`{"metadata":{"annotations":{"%s":"%s"}}}`, initTimeAnnotateKey, time.Now().UTC().Format("2006-01-02T15:04:05Z"))
 			_, err = ctl.K8sClient.CoreV1().Namespaces().Patch(namespace.Name, "application/strategic-merge-patch+json", []byte(pathJson))
