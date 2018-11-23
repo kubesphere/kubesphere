@@ -59,10 +59,22 @@ func (u Monitor) monitorContainer(request *restful.Request, response *restful.Re
 func (u Monitor) monitorWorkload(request *restful.Request, response *restful.Response) {
 	requestParams := client.ParseMonitoringRequestParams(request)
 	wlKind := requestParams.WorkloadKind
+	tp := requestParams.Tp
 	if wlKind == "" {
 		// count all workloads figure
-		res := metrics.MonitorWorkloadCount(requestParams.NsName)
-		response.WriteAsJson(res)
+		if tp == "rank" {
+			rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
+			// sorting
+			sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelWorkload)
+			// paging
+			pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+
+			response.WriteAsJson(pagedMetrics)
+
+		} else {
+			res := metrics.MonitorWorkloadCount(requestParams.NsName)
+			response.WriteAsJson(res)
+		}
 	} else {
 		res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
 		response.WriteAsJson(res)
@@ -349,6 +361,12 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor all workload level metrics").
 		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads_filter", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("sort_metric", "sort metric").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)

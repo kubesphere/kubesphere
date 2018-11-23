@@ -63,6 +63,7 @@ type MonitoringRequestParams struct {
 	ContainersFilter string
 	MetricsName      string
 	WorkloadName     string
+	WlFilter         string
 	NodeId           string
 	WsName           string
 	NsName           string
@@ -108,6 +109,7 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	nodesFilter := strings.Trim(request.QueryParameter("nodes_filter"), " ")
 	wsFilter := strings.Trim(request.QueryParameter("workspaces_filter"), " ")
 	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
+	wlFilter := strings.Trim(request.QueryParameter("workloads_filter"), " ")
 	podsFilter := strings.Trim(request.QueryParameter("pods_filter"), " ")
 	containersFilter := strings.Trim(request.QueryParameter("containers_filter"), " ")
 
@@ -135,6 +137,7 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 		ContainersFilter: containersFilter,
 		MetricsName:      metricsName,
 		WorkloadName:     workloadName,
+		WlFilter:         wlFilter,
 		NodeId:           nodeId,
 		WsName:           wsName,
 		NsName:           nsName,
