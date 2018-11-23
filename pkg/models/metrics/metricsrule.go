@@ -17,7 +17,18 @@ import (
 	"strings"
 )
 
-func MakeWorkloadRule(wkKind, wkName, namespace string) string {
+func MakeWorkloadPromQL(metricName, nsName, wlFilter string) string {
+	if wlFilter == "" {
+		wlFilter = ".*"
+	}
+
+	var promql = RulePromQLTmplMap[metricName]
+	promql = strings.Replace(promql, "$2", nsName, -1)
+	promql = strings.Replace(promql, "$3", wlFilter, -1)
+	return promql
+}
+
+func MakeSpecificWorkloadRule(wkKind, wkName, namespace string) string {
 	var rule = PodInfoRule
 	if namespace == "" {
 		namespace = ".*"

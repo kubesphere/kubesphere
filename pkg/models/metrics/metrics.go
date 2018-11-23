@@ -120,6 +120,51 @@ type OneComponentStatus struct {
 	Error string `json:"error,omitempty"`
 }
 
+func renameWorkload(formatedMetric *FormatedMetric, relationMap map[string]string) {
+	if formatedMetric.Status == MetricStatusSuccess {
+		for i := 0; i < len(formatedMetric.Data.Result); i++ {
+			metricDesc := formatedMetric.Data.Result[i][ResultItemMetric]
+			metricDescMap, ensure := metricDesc.(map[string]interface{})
+			if ensure {
+				if wl, exist := metricDescMap[MetricLevelWorkload]; exist {
+					if deployName, exist := relationMap[wl.(string)]; exist {
+						metricDescMap[MetricLevelWorkload] = deployName
+					}
+				}
+			}
+		}
+	}
+}
+
+func getReplicaAndDeployRelation(nsName string) map[string]string {
+	rule := strings.Replace(WorkloadReplicaSetOwnerRule, "$1", nsName, -1)
+
+	params := makeRequestParamString(rule, make(url.Values))
+
+	res := client.SendMonitoringRequest(client.DefaultQueryType, params)
+	formatedMetric := ReformatJson(res, "")
+	var relationMap = make(map[string]string)
+	if formatedMetric.Status == MetricStatusSuccess {
+		for i := 0; i < len(formatedMetric.Data.Result); i++ {
+			metricDesc := formatedMetric.Data.Result[i][ResultItemMetric]
+			metricDescMap, ensure := metricDesc.(map[string]interface{})
+			if ensure {
+				if ownerKind, exist := metricDescMap["owner_kind"]; exist && ownerKind == ReplicaSet {
+					if ownerName, exist := metricDescMap["owner_name"]; exist {
+						replicaName, sure := ownerName.(string)
+						if sure {
+							deployName := replicaName[:strings.LastIndex(replicaName, "-")]
+							relationMap[replicaName] = deployName
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return relationMap
+}
+
 func getPodNameRegexInWorkload(res string) string {
 
 	data := []byte(res)
@@ -192,12 +237,12 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 	}
 }
 
-func AssembleWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
+func AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
 
 	nsName := monitoringRequest.NsName
 	wkName := monitoringRequest.WorkloadName
 
-	rule := MakeWorkloadRule(monitoringRequest.WorkloadKind, wkName, nsName)
+	rule := MakeSpecificWorkloadRule(monitoringRequest.WorkloadKind, wkName, nsName)
 	paramValues := monitoringRequest.Params
 	params := makeRequestParamString(rule, paramValues)
 
@@ -209,6 +254,16 @@ func AssembleWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringReque
 	rule = MakePodPromQL(metricName, nsName, "", "", podNamesFilter)
 	params = makeRequestParamString(rule, paramValues)
 
+	return queryType, params
+}
+
+func AssembleAllWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
+	queryType := monitoringRequest.QueryType
+
+	paramValues := monitoringRequest.Params
+
+	rule := MakeWorkloadPromQL(metricName, monitoringRequest.NsName, monitoringRequest.WlFilter)
+	params := makeRequestParamString(rule, paramValues)
 	return queryType, params
 }
 
@@ -590,18 +645,39 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 		}
 	case MetricLevelWorkload:
 		{
-			for _, metricName := range WorkloadMetricsNames {
-				bol, err := regexp.MatchString(metricsFilter, metricName)
-				if err == nil && bol {
-					wg.Add(1)
-					go func(metricName string) {
-						metricName = strings.TrimLeft(metricName, "workload_")
-						queryType, params := AssembleWorkloadMetricRequestInfo(monitoringRequest, metricName)
-						fmtMetrics := GetMetric(queryType, params, metricName)
-						unifyMetricHistoryTimeRange(fmtMetrics)
-						ch <- fmtMetrics
-						wg.Done()
-					}(metricName)
+			if monitoringRequest.Tp == "rank" {
+				// get relationship between replicaset and deployment
+				relationMap := getReplicaAndDeployRelation(monitoringRequest.NsName)
+				for _, metricName := range WorkloadMetricsNames {
+					bol, err := regexp.MatchString(metricsFilter, metricName)
+					if err == nil && bol {
+						wg.Add(1)
+						go func(metricName string) {
+							queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
+							fmtMetrics := GetMetric(queryType, params, metricName)
+
+							// rename replica workload name
+							renameWorkload(fmtMetrics, relationMap)
+
+							ch <- fmtMetrics
+							wg.Done()
+						}(metricName)
+					}
+				}
+			} else {
+				for _, metricName := range WorkloadMetricsNames {
+					bol, err := regexp.MatchString(metricsFilter, metricName)
+					if err == nil && bol {
+						wg.Add(1)
+						go func(metricName string) {
+							metricName = strings.TrimLeft(metricName, "workload_")
+							queryType, params := AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest, metricName)
+							fmtMetrics := GetMetric(queryType, params, metricName)
+							unifyMetricHistoryTimeRange(fmtMetrics)
+							ch <- fmtMetrics
+							wg.Done()
+						}(metricName)
+					}
 				}
 			}
 		}
