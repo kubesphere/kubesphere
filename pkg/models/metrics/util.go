@@ -113,9 +113,13 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 					// for some reasons, 'metric' may not contain `resourceType` field
 					// example: {"metric":{},"value":[1541142931.731,"3"]}
 					k, exist := r[ResultItemMetric].(map[string]interface{})[resourceType]
+					key := k.(string)
 					if exist {
-						indexMap[k.(string)] = i
-						i = i + 1
+						if _, exist := indexMap[key]; !exist {
+							indexMap[key] = i
+							i = i + 1
+						}
+
 					}
 				}
 			}
