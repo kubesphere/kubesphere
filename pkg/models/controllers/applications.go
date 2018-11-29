@@ -427,6 +427,7 @@ func (ctl *ApplicationCtl) ListApplication(runtimeId string, match, fuzzy map[st
 		appInfo, _, appId, _ := ctl.GetAppInfo(item.AppID)
 		app.App = appInfo
 		app.AppId = appId
+		app.Description = item.Description
 
 		apps = append(apps, app)
 	}
