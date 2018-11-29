@@ -120,6 +120,49 @@ type OneComponentStatus struct {
 	Error string `json:"error,omitempty"`
 }
 
+func getCreatedOnlyReplicas(namespace string) map[string]int {
+	deployments, err := client.NewK8sClient().ExtensionsV1beta1().Deployments(namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Errorln(err)
+	}
+
+	replicas, err := client.NewK8sClient().ExtensionsV1beta1().ReplicaSets(namespace).List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Errorln(err)
+	}
+
+	var replicaNames = make(map[string]int)
+	for _, item := range replicas.Items {
+		name := item.Name[:strings.LastIndex(item.Name, "-")]
+		replicaNames[name] = 0
+	}
+
+	for _, item := range deployments.Items {
+		delete(replicaNames, item.Name)
+	}
+	return replicaNames
+}
+
+func renameWorkload(formatedMetric *FormatedMetric, replicaset map[string]int) {
+	for i := 0; i < len(formatedMetric.Data.Result); i++ {
+		metricDesc := formatedMetric.Data.Result[i][ResultItemMetric]
+		if metricDesc != nil {
+			metricDescMap, ensure := metricDesc.(map[string]interface{})
+			if ensure {
+				if kind, exist := metricDescMap["owner_kind"]; exist && kind == Deployment {
+					if wl, exist := metricDescMap["workload"]; exist {
+						wlName := wl.(string)
+						wlName = wlName[strings.Index(wlName, ":")+1:]
+						if _, exist := replicaset[wlName]; exist {
+							metricDescMap["only_from_replicaset"] = true
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func getPodNameRegexInWorkload(res string) string {
 
 	data := []byte(res)
@@ -606,14 +649,17 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 	case MetricLevelWorkload:
 		{
 			if monitoringRequest.Tp == "rank" {
-
+				// replicas which is created by replicaset directly, not from deployment
+				replicaNames := getCreatedOnlyReplicas(monitoringRequest.NsName)
 				for _, metricName := range WorkloadMetricsNames {
 					bol, err := regexp.MatchString(metricsFilter, metricName)
 					if err == nil && bol {
 						wg.Add(1)
 						go func(metricName string) {
 							queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
-							ch <- GetMetric(queryType, params, metricName)
+							fmtMetrics := GetMetric(queryType, params, metricName)
+							renameWorkload(fmtMetrics, replicaNames)
+							ch <- fmtMetrics
 							wg.Done()
 						}(metricName)
 					}
