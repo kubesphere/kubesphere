@@ -175,6 +175,14 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 	createTime := item.CreationTimestamp.Time
 	containerStatus := item.Status.ContainerStatuses
 	containerSpecs := item.Spec.Containers
+	var ownerKind, ownerName string
+
+	// For ReplicaSet,ReplicaController,DaemonSet,StatefulSet,Job,CronJob, k8s will automatically
+	// set ownerReference for pods, in case of setting ownerReference manually.
+	if item.OwnerReferences != nil && len(item.OwnerReferences) > 0 {
+		ownerKind = item.OwnerReferences[0].Kind
+		ownerName = item.OwnerReferences[0].Name
+	}
 
 	var containers Containers
 
@@ -204,6 +212,8 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 		Annotation:   MapString{item.Annotations},
 		Containers:   containers,
 		RestartCount: restartCount,
+		OwnerKind:    ownerKind,
+		OwnerName:    ownerName,
 		Labels:       MapString{item.Labels},
 	}
 
