@@ -48,6 +48,8 @@ const (
 	WorkspaceAdmin             = "workspace-admin"
 	WorkspaceRegular           = "workspace-regular"
 	WorkspaceViewer            = "workspace-viewer"
+	DevopsOwner                = "owner"
+	DevopsReporter             = "reporter"
 )
 
 var (
