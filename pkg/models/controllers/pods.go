@@ -166,15 +166,7 @@ func getStatusAndRestartCount(pod v1.Pod) (string, int) {
 }
 
 func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
-	name := item.Name
-	namespace := item.Namespace
-	podIp := item.Status.PodIP
-	nodeName := item.Spec.NodeName
-	nodeIp := item.Status.HostIP
-	status, restartCount := getStatusAndRestartCount(item)
-	createTime := item.CreationTimestamp.Time
-	containerStatus := item.Status.ContainerStatuses
-	containerSpecs := item.Spec.Containers
+
 	var ownerKind, ownerName string
 
 	// For ReplicaSet,ReplicaController,DaemonSet,StatefulSet,Job,CronJob, k8s will automatically
@@ -184,37 +176,18 @@ func (ctl *PodCtl) generateObject(item v1.Pod) *Pod {
 		ownerName = item.OwnerReferences[0].Name
 	}
 
-	var containers Containers
-
-	for _, containerSpec := range containerSpecs {
-		var container Container
-		container.Name = containerSpec.Name
-		container.Image = containerSpec.Image
-		container.Ports = containerSpec.Ports
-		container.Resources = containerSpec.Resources
-		for _, status := range containerStatus {
-			if container.Name == status.Name {
-				container.Ready = status.Ready
-			}
-		}
-
-		containers = append(containers, container)
-	}
-
 	object := &Pod{
-		Namespace:    namespace,
-		Name:         name,
-		Node:         nodeName,
-		PodIp:        podIp,
-		Status:       status,
-		NodeIp:       nodeIp,
-		CreateTime:   createTime,
-		Annotation:   MapString{item.Annotations},
-		Containers:   containers,
-		RestartCount: restartCount,
-		OwnerKind:    ownerKind,
-		OwnerName:    ownerName,
-		Labels:       MapString{item.Labels},
+		Namespace:  item.Namespace,
+		Name:       item.Name,
+		Node:       item.Spec.NodeName,
+		Status:     item.Status,
+		CreateTime: item.CreationTimestamp.Time,
+		OwnerKind:  ownerKind,
+		OwnerName:  ownerName,
+		Spec:       item.Spec,
+		Metadata:   item.ObjectMeta,
+		Kind:       item.TypeMeta.Kind,
+		APIVersion: item.TypeMeta.APIVersion,
 	}
 
 	return object

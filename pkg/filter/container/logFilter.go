@@ -18,6 +18,7 @@ package container
 
 import (
 	"strings"
+	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -25,14 +26,16 @@ import (
 
 func logFilter() restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+		start := time.Now()
 		chain.ProcessFilter(req, resp)
-		glog.Infof("%s - \"%s %s %s\" %d %d",
+		glog.Infof("%s - \"%s %s %s\" %d %d in %dms",
 			strings.Split(req.Request.RemoteAddr, ":")[0],
 			req.Request.Method,
 			req.Request.URL.RequestURI(),
 			req.Request.Proto,
 			resp.StatusCode(),
 			resp.ContentLength(),
+			time.Since(start)/time.Millisecond,
 		)
 	}
 }
