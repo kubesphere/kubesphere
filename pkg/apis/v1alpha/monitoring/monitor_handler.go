@@ -51,18 +51,42 @@ func (u Monitor) monitorPod(request *restful.Request, response *restful.Response
 
 func (u Monitor) monitorContainer(request *restful.Request, response *restful.Response) {
 	requestParams := client.ParseMonitoringRequestParams(request)
-	res := metrics.MonitorContainer(requestParams)
+	metricName := requestParams.MetricsName
+	if requestParams.MetricsFilter != "" {
+		rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelContainer)
+		// sorting
+		sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelContainerName)
+		// paging
+		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
 
-	response.WriteAsJson(res)
+		response.WriteAsJson(pagedMetrics)
+
+	} else {
+		res := metrics.MonitorContainer(requestParams, metricName)
+		response.WriteAsJson(res)
+	}
+
 }
 
 func (u Monitor) monitorWorkload(request *restful.Request, response *restful.Response) {
 	requestParams := client.ParseMonitoringRequestParams(request)
 	wlKind := requestParams.WorkloadKind
+	tp := requestParams.Tp
 	if wlKind == "" {
 		// count all workloads figure
-		res := metrics.MonitorWorkloadCount(requestParams.NsName)
-		response.WriteAsJson(res)
+		if tp == "rank" {
+			rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
+			// sorting
+			sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics, metrics.MetricLevelWorkload)
+			// paging
+			pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+
+			response.WriteAsJson(pagedMetrics)
+
+		} else {
+			res := metrics.MonitorWorkloadCount(requestParams.NsName)
+			response.WriteAsJson(res)
+		}
 	} else {
 		res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
 		response.WriteAsJson(res)
@@ -311,13 +335,36 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET(subPath+"/nodes/{node_id}/pods/{pod_name}/containers").To(u.monitorContainer).
+		Filter(route.RouteLogging).
+		Doc("monitor specific pod level metrics by nodeid").
+		Param(ws.PathParameter("node_id", "specific node").DataType("string").Required(true)).
+		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true)).
+		Param(ws.QueryParameter("containers_filter", "container re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("pod_memory_utilisation_wo_cache")).
+		Param(ws.QueryParameter("sort_metric", "sort metric").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET(subPath+"/namespaces/{ns_name}/pods/{pod_name}/containers").To(u.monitorContainer).
 		Filter(route.RouteLogging).
 		Doc("monitor containers level metrics").
 		Param(ws.PathParameter("ns_name", "specific namespace").DataType("string").Required(true).DefaultValue("monitoring")).
 		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true).DefaultValue("")).
 		Param(ws.QueryParameter("containers_filter", "container re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
 		Param(ws.QueryParameter("metrics_name", "metrics name cpu memory...").DataType("string").Required(true).DefaultValue("container_memory_utilisation_wo_cache")).
+		Param(ws.QueryParameter("sort_metric", "sort metric").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
@@ -349,6 +396,12 @@ func Register(ws *restful.WebService, subPath string) {
 		Doc("monitor all workload level metrics").
 		Param(ws.PathParameter("ns_name", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
 		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads_filter", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("")).
+		Param(ws.QueryParameter("sort_metric", "sort metric").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("limit", "metrics name cpu memory...in re2 regex").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)

@@ -28,7 +28,7 @@ import (
 )
 
 // Namespaces need to watch
-var SYSTEM_NAMESPACES = [...]string{"kubesphere-system", "openpitrix-system", "kube-system"}
+var SYSTEM_NAMESPACES = [...]string{"kubesphere-system", "openpitrix-system", "kube-system", "kubesphere-monitoring-system"}
 
 type Component struct {
 	Name            string      `json:"name"`
@@ -134,7 +134,9 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 			nsStatus[service.Name] = component
 		}
 
-		status[ns] = nsStatus
+		if len(nsStatus) > 0 {
+			status[ns] = nsStatus
+		}
 	}
 
 	return status, err

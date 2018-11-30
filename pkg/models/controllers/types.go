@@ -219,6 +219,8 @@ type Pod struct {
 	Containers   Containers `gorm:"type:text" json:"containers,omitempty"`
 	Annotation   MapString  `json:"annotations"`
 	Labels       MapString  `json:"labels"`
+	OwnerKind    string     `gorm:"column:ownerKind" json:"ownerKind,omitempty"`
+	OwnerName    string     `gorm:"column:ownerName" json:"ownerName,omitempty"`
 	RestartCount int        `json:"restartCount"`
 	CreateTime   time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
 }

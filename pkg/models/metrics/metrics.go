@@ -192,12 +192,12 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 	}
 }
 
-func AssembleWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
+func AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string, bool) {
 
 	nsName := monitoringRequest.NsName
 	wkName := monitoringRequest.WorkloadName
 
-	rule := MakeWorkloadRule(monitoringRequest.WorkloadKind, wkName, nsName)
+	rule := MakeSpecificWorkloadRule(monitoringRequest.WorkloadKind, wkName, nsName)
 	paramValues := monitoringRequest.Params
 	params := makeRequestParamString(rule, paramValues)
 
@@ -209,6 +209,16 @@ func AssembleWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringReque
 	rule = MakePodPromQL(metricName, nsName, "", "", podNamesFilter)
 	params = makeRequestParamString(rule, paramValues)
 
+	return queryType, params, rule == ""
+}
+
+func AssembleAllWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
+	queryType := monitoringRequest.QueryType
+
+	paramValues := monitoringRequest.Params
+
+	rule := MakeWorkloadPromQL(metricName, monitoringRequest.NsName, monitoringRequest.WlFilter)
+	params := makeRequestParamString(rule, paramValues)
 	return queryType, params
 }
 
@@ -256,15 +266,20 @@ func AddNodeAddressMetric(nodeMetric *FormatedMetric, nodeAddress *map[string][]
 	}
 }
 
-func MonitorContainer(monitoringRequest *client.MonitoringRequestParams) *FormatedMetric {
+func MonitorContainer(monitoringRequest *client.MonitoringRequestParams, metricName string) *FormatedMetric {
+	queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
+	res := GetMetric(queryType, params, metricName)
+	return res
+}
+
+func AssembleContainerMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
 	queryType := monitoringRequest.QueryType
 
 	paramValues := monitoringRequest.Params
-	rule := MakeContainerPromQL(monitoringRequest.NsName, monitoringRequest.PodName, monitoringRequest.ContainerName, monitoringRequest.MetricsName, monitoringRequest.ContainersFilter)
+	rule := MakeContainerPromQL(monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ContainerName, metricName, monitoringRequest.ContainersFilter)
 	params := makeRequestParamString(rule, paramValues)
 
-	res := GetMetric(queryType, params, monitoringRequest.MetricsName)
-	return res
+	return queryType, params
 }
 
 func AssembleNamespaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
@@ -590,18 +605,35 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 		}
 	case MetricLevelWorkload:
 		{
-			for _, metricName := range WorkloadMetricsNames {
-				bol, err := regexp.MatchString(metricsFilter, metricName)
-				if err == nil && bol {
-					wg.Add(1)
-					go func(metricName string) {
-						metricName = strings.TrimLeft(metricName, "workload_")
-						queryType, params := AssembleWorkloadMetricRequestInfo(monitoringRequest, metricName)
-						fmtMetrics := GetMetric(queryType, params, metricName)
-						unifyMetricHistoryTimeRange(fmtMetrics)
-						ch <- fmtMetrics
-						wg.Done()
-					}(metricName)
+			if monitoringRequest.Tp == "rank" {
+
+				for _, metricName := range WorkloadMetricsNames {
+					bol, err := regexp.MatchString(metricsFilter, metricName)
+					if err == nil && bol {
+						wg.Add(1)
+						go func(metricName string) {
+							queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
+							ch <- GetMetric(queryType, params, metricName)
+							wg.Done()
+						}(metricName)
+					}
+				}
+			} else {
+				for _, metricName := range WorkloadMetricsNames {
+					bol, err := regexp.MatchString(metricsFilter, metricName)
+					if err == nil && bol {
+						wg.Add(1)
+						go func(metricName string) {
+							metricName = strings.TrimLeft(metricName, "workload_")
+							queryType, params, nullRule := AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest, metricName)
+							if !nullRule {
+								fmtMetrics := GetMetric(queryType, params, metricName)
+								unifyMetricHistoryTimeRange(fmtMetrics)
+								ch <- fmtMetrics
+							}
+							wg.Done()
+						}(metricName)
+					}
 				}
 			}
 		}
@@ -618,6 +650,20 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 						} else {
 							ch <- nil
 						}
+						wg.Done()
+					}(metricName)
+				}
+			}
+		}
+	case MetricLevelContainer:
+		{
+			for _, metricName := range ContainerMetricsNames {
+				bol, err := regexp.MatchString(metricsFilter, metricName)
+				if err == nil && bol {
+					wg.Add(1)
+					go func(metricName string) {
+						queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
+						ch <- GetMetric(queryType, params, metricName)
 						wg.Done()
 					}(metricName)
 				}

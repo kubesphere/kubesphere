@@ -44,6 +44,10 @@ const (
 	AccountAPIServerEnv        = "ACCOUNT_API_SERVER"
 	DevopsProxyTokenEnv        = "DEVOPS_PROXY_TOKEN"
 	OpenPitrixProxyTokenEnv    = "OPENPITRIX_PROXY_TOKEN"
+	WorkspaceLabelKey          = "kubesphere.io/workspace"
+	WorkspaceAdmin             = "workspace-admin"
+	WorkspaceRegular           = "workspace-regular"
+	WorkspaceViewer            = "workspace-viewer"
 )
 
 var (
@@ -51,6 +55,7 @@ var (
 	AccountAPIServer     = "ks-account.kubesphere-system.svc"
 	DevopsProxyToken     = ""
 	OpenPitrixProxyToken = ""
+	WorkSpaceRoles       = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
 )
 
 func init() {

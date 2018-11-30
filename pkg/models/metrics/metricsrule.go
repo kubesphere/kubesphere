@@ -17,7 +17,18 @@ import (
 	"strings"
 )
 
-func MakeWorkloadRule(wkKind, wkName, namespace string) string {
+func MakeWorkloadPromQL(metricName, nsName, wlFilter string) string {
+	if wlFilter == "" {
+		wlFilter = ".*"
+	}
+
+	var promql = RulePromQLTmplMap[metricName]
+	promql = strings.Replace(promql, "$2", nsName, -1)
+	promql = strings.Replace(promql, "$3", wlFilter, -1)
+	return promql
+}
+
+func MakeSpecificWorkloadRule(wkKind, wkName, namespace string) string {
 	var rule = PodInfoRule
 	if namespace == "" {
 		namespace = ".*"
@@ -73,27 +84,31 @@ func MakeSpecificWorkspacePromQL(metricsName, nsFilter string) string {
 	return promql
 }
 
-func MakeContainerPromQL(nsName, podName, containerName, metricName, containerFilter string) string {
-	var promql = ""
-	if containerName == "" {
-		// all containers maybe use filter
-		metricName += "_all"
+func MakeContainerPromQL(nsName, nodeId, podName, containerName, metricName, containerFilter string) string {
+	var promql string
+
+	if nsName != "" {
+		// get container metrics from namespace-pod
 		promql = RulePromQLTmplMap[metricName]
 		promql = strings.Replace(promql, "$1", nsName, -1)
-		promql = strings.Replace(promql, "$2", podName, -1)
+	} else {
+		// get container metrics from node-pod
+		promql = RulePromQLTmplMap[metricName+"_node"]
+		promql = strings.Replace(promql, "$1", nodeId, -1)
+	}
+
+	promql = strings.Replace(promql, "$2", podName, -1)
+
+	if containerName == "" {
 
 		if containerFilter == "" {
 			containerFilter = ".*"
 		}
-
 		promql = strings.Replace(promql, "$3", containerFilter, -1)
-		return promql
+	} else {
+		promql = strings.Replace(promql, "$3", containerName, -1)
 	}
-	promql = RulePromQLTmplMap[metricName]
 
-	promql = strings.Replace(promql, "$1", nsName, -1)
-	promql = strings.Replace(promql, "$2", podName, -1)
-	promql = strings.Replace(promql, "$3", containerName, -1)
 	return promql
 }
 
