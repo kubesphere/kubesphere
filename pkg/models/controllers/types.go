@@ -19,6 +19,9 @@ package controllers
 import (
 	"time"
 
+	"github.com/golang/glog"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -210,19 +213,65 @@ type Ingress struct {
 }
 
 type Pod struct {
-	Name         string     `gorm:"primary_key" json:"name"`
-	Namespace    string     `gorm:"primary_key" json:"namespace"`
-	Status       string     `json:"status,omitempty"`
-	Node         string     `json:"node,omitempty"`
-	NodeIp       string     `gorm:"column:nodeIp" json:"nodeIp,omitempty"`
-	PodIp        string     `gorm:"column:podIp" json:"podIp,omitempty"`
-	Containers   Containers `gorm:"type:text" json:"containers,omitempty"`
-	Annotation   MapString  `json:"annotations"`
-	Labels       MapString  `json:"labels"`
-	OwnerKind    string     `gorm:"column:ownerKind" json:"ownerKind,omitempty"`
-	OwnerName    string     `gorm:"column:ownerName" json:"ownerName,omitempty"`
-	RestartCount int        `json:"restartCount"`
-	CreateTime   time.Time  `gorm:"column:createTime" json:"createTime,omitempty"`
+	// search and sort field, not seen in response
+	Name       string    `gorm:"primary_key" json:"-"`
+	Namespace  string    `gorm:"primary_key" json:"-"`
+	Node       string    `json:"-"`
+	OwnerKind  string    `gorm:"column:ownerKind" json:"-"`
+	OwnerName  string    `gorm:"column:ownerName" json:"-"`
+	CreateTime time.Time `gorm:"column:createTime" json:"-"`
+
+	// Kubernetes Standard Pod Specification
+	Kind       string         `json:"kind,omitempty"`
+	APIVersion string         `gorm:"column:apiVersion" json:"apiVersion,omitempty"`
+	Spec       v1.PodSpec     `sql:"-" json:"spec,omitempty"`
+	Metadata   v12.ObjectMeta `sql:"-" json:"metadata,omitempty"`
+	Status     v1.PodStatus   `sql:"-" json:"status,omitempty"`
+
+	// shadow field, used only for database
+	MetadataString string `gorm:"column:metadata;type:text" json:"-"`
+	SpecString     string `gorm:"column:podSpec;type:text" json:"-"`
+	StatusString   string `gorm:"column:status;type:text" json:"-"`
+}
+
+func (pod *Pod) AfterFind(scope *gorm.Scope) (err error) {
+
+	if err = json.Unmarshal([]byte(pod.SpecString), &pod.Spec); err != nil {
+		glog.Errorln(err)
+	}
+
+	if err = json.Unmarshal([]byte(pod.MetadataString), &pod.Metadata); err != nil {
+		glog.Errorln(err)
+	}
+
+	if err = json.Unmarshal([]byte(pod.StatusString), &pod.Status); err != nil {
+		glog.Errorln(err)
+	}
+
+	return nil
+}
+
+func (pod *Pod) BeforeSave(scope *gorm.Scope) (err error) {
+
+	if bytes, err := json.Marshal(pod.Spec); err == nil {
+		pod.SpecString = string(bytes)
+	} else {
+		glog.Errorln(err)
+	}
+
+	if bytes, err := json.Marshal(pod.Metadata); err == nil {
+		pod.MetadataString = string(bytes)
+	} else {
+		glog.Errorln(err)
+	}
+
+	if bytes, err := json.Marshal(pod.Status); err == nil {
+		pod.StatusString = string(bytes)
+	} else {
+		glog.Errorln(err)
+	}
+
+	return nil
 }
 
 type Container struct {
