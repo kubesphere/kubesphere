@@ -110,16 +110,16 @@ func CreateDevopsProject(username string, workspace string, devops DevopsProject
 }
 
 func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) {
-	admins := iam.GetWorkspaceUsers(workspace, "admin")
+	admins := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
 
 	for _, admin := range admins {
-		createDevopsRoleBinding(workspace, *project.ProjectId, admin, "owner")
+		createDevopsRoleBinding(workspace, *project.ProjectId, admin, constants.DevopsOwner)
 	}
 
-	viewers := iam.GetWorkspaceUsers(workspace, "viewer")
+	viewers := iam.GetWorkspaceUsers(workspace, constants.WorkspaceViewer)
 
 	for _, viewer := range viewers {
-		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, "reporter")
+		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, constants.DevopsReporter)
 	}
 }
 
@@ -1156,7 +1156,7 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 				} else {
 					modify = true
 					roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-					if roleName == "admin" || roleName == "viewer" {
+					if roleName == constants.WorkspaceAdmin || roleName == constants.WorkspaceViewer {
 						go deleteDevopsRoleBinding(workspace.Name, "", username)
 					}
 					break
@@ -1167,10 +1167,10 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 		if roleName == role {
 			modify = true
 			roleBinding.Subjects = append(roleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
-			if roleName == "admin" {
-				go createDevopsRoleBinding(workspace.Name, "", username, "owner")
-			} else if roleName == "viewer" {
-				go createDevopsRoleBinding(workspace.Name, "", username, "reporter")
+			if roleName == constants.WorkspaceAdmin {
+				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsOwner)
+			} else if roleName == constants.WorkspaceViewer {
+				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsReporter)
 			}
 		}
 
