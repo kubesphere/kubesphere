@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -142,4 +144,13 @@ func Run(stopChan chan struct{}, wg *sync.WaitGroup) {
 			}
 		}
 	}
+}
+
+func GetLister(controller string) (interface{}, error) {
+	if ctl, ok := ResourceControllers.Controllers[controller]; ok {
+		if ctl.Lister() != nil {
+			return ctl.Lister(), nil
+		}
+	}
+	return nil, errors.New(fmt.Sprintf("lister of %s not alive", controller))
 }
