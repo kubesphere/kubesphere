@@ -26,9 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/golang/glog"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"kubesphere.io/kubesphere/pkg/client"
 )
 
 // Namespaces need to watch
@@ -45,15 +42,21 @@ type Component struct {
 }
 
 func GetComponentStatus(namespace string, componentName string) (interface{}, error) {
-	k8sClient := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.Services)
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
 
-	service, err := k8sClient.CoreV1().Services(namespace).Get(componentName, meta_v1.GetOptions{})
+	serviceLister := lister.(v12.ServiceLister)
+	service, err := serviceLister.Services(namespace).Get(componentName)
+
 	if err != nil {
 		glog.Error(err)
 		return nil, err
 	}
 
-	lister, err := controllers.GetLister(controllers.Pods)
+	lister, err = controllers.GetLister(controllers.Pods)
 	if err != nil {
 		glog.Errorln(err)
 		return nil, err
@@ -100,9 +103,15 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 	status := make(map[string]interface{})
 	var err error
 
-	k8sClient := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.Services)
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
 
-	lister, err := controllers.GetLister(controllers.Pods)
+	serviceLister := lister.(v12.ServiceLister)
+
+	lister, err = controllers.GetLister(controllers.Pods)
 
 	if err != nil {
 		glog.Errorln(err)
@@ -115,13 +124,13 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 
 		nsStatus := make(map[string]interface{})
 
-		services, err := k8sClient.CoreV1().Services(ns).List(meta_v1.ListOptions{})
+		services, err := serviceLister.Services(ns).List(labels.Everything())
 		if err != nil {
 			glog.Error(err)
 			continue
 		}
 
-		for _, service := range services.Items {
+		for _, service := range services {
 
 			set := labels.Set(service.Spec.Selector)
 
