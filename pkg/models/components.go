@@ -28,7 +28,7 @@ import (
 )
 
 // Namespaces need to watch
-var SYSTEM_NAMESPACES = [...]string{"kubesphere-system", "openpitrix-system", "kube-system", "kubesphere-monitoring-system"}
+var SYSTEM_NAMESPACES = [...]string{"kubesphere-system", "openpitrix-system", "kube-system"}
 
 type Component struct {
 	Name            string      `json:"name"`
