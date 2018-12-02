@@ -19,6 +19,10 @@ package models
 import (
 	"time"
 
+	v12 "k8s.io/client-go/listers/core/v1"
+
+	"kubesphere.io/kubesphere/pkg/models/controllers"
+
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/golang/glog"
@@ -43,12 +47,28 @@ type Component struct {
 func GetComponentStatus(namespace string, componentName string) (interface{}, error) {
 	k8sClient := client.NewK8sClient()
 
-	if service, err := k8sClient.CoreV1().Services(namespace).Get(componentName, meta_v1.GetOptions{}); err != nil {
+	service, err := k8sClient.CoreV1().Services(namespace).Get(componentName, meta_v1.GetOptions{})
+	if err != nil {
 		glog.Error(err)
 		return nil, err
-	} else {
-		set := labels.Set(service.Spec.Selector)
+	}
 
+	lister, err := controllers.GetLister(controllers.Pods)
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
+
+	podLister := lister.(v12.PodLister)
+
+	set := labels.Set(service.Spec.Selector)
+
+	pods, err := podLister.Pods(namespace).List(set.AsSelector())
+
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	} else {
 		component := Component{
 			Name:            service.Name,
 			Namespace:       service.Namespace,
@@ -59,18 +79,13 @@ func GetComponentStatus(namespace string, componentName string) (interface{}, er
 			TotalBackends:   0,
 		}
 
-		if pods, err := k8sClient.CoreV1().Pods(namespace).List(meta_v1.ListOptions{LabelSelector: set.AsSelector().String()}); err != nil {
-			glog.Error(err)
-			return nil, err
-		} else {
-			for _, v := range pods.Items {
-				component.TotalBackends++
-				component.HealthyBackends++
-				for _, c := range v.Status.ContainerStatuses {
-					if !c.Ready {
-						component.HealthyBackends--
-						break
-					}
+		for _, v := range pods {
+			component.TotalBackends++
+			component.HealthyBackends++
+			for _, c := range v.Status.ContainerStatuses {
+				if !c.Ready {
+					component.HealthyBackends--
+					break
 				}
 			}
 		}
@@ -86,6 +101,15 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 	var err error
 
 	k8sClient := client.NewK8sClient()
+
+	lister, err := controllers.GetLister(controllers.Pods)
+
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
+
+	podLister := lister.(v12.PodLister)
 
 	for _, ns := range SYSTEM_NAMESPACES {
 
@@ -115,18 +139,19 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 				TotalBackends:   0,
 			}
 
-			if pods, err := k8sClient.CoreV1().Pods(ns).List(meta_v1.ListOptions{LabelSelector: set.AsSelector().String()}); err != nil {
-				glog.Error(err)
+			pods, err := podLister.Pods(ns).List(set.AsSelector())
+			if err != nil {
+				glog.Errorln(err)
 				continue
-			} else {
-				for _, v := range pods.Items {
-					component.TotalBackends++
-					component.HealthyBackends++
-					for _, c := range v.Status.ContainerStatuses {
-						if !c.Ready {
-							component.HealthyBackends--
-							break
-						}
+			}
+
+			for _, pod := range pods {
+				component.TotalBackends++
+				component.HealthyBackends++
+				for _, c := range pod.Status.ContainerStatuses {
+					if !c.Ready {
+						component.HealthyBackends--
+						break
 					}
 				}
 			}
