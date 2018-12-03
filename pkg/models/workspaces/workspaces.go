@@ -1353,37 +1353,3 @@ func GetAllAccountNums() (int, error) {
 	}
 	return 0, errors.New("not found")
 }
-
-// get cluster organizations name which contains at least one namespace,
-func GetAllOrgAndProjList() (map[string][]string, map[string]string, error) {
-	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(meta_v1.ListOptions{})
-	if err != nil {
-		glog.Errorln(err)
-		return nil, nil, err
-	}
-
-	var workspaceNamespaceMap = make(map[string][]string)
-	var namespaceWorkspaceMap = make(map[string]string)
-
-	for _, item := range nsList.Items {
-		ws, exist := item.Labels[constants.WorkspaceLabelKey]
-		ns := item.Name
-		if exist {
-			if nsArray, exist := workspaceNamespaceMap[ws]; exist {
-				nsArray = append(nsArray, ns)
-				workspaceNamespaceMap[ws] = nsArray
-			} else {
-				var nsArray []string
-				nsArray = append(nsArray, ns)
-				workspaceNamespaceMap[ws] = nsArray
-			}
-
-			namespaceWorkspaceMap[ns] = ws
-		} else {
-			// this namespace do not belong to any workspaces
-			namespaceWorkspaceMap[ns] = ""
-		}
-	}
-
-	return workspaceNamespaceMap, namespaceWorkspaceMap, nil
-}

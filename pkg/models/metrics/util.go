@@ -17,7 +17,6 @@ limitations under the License.
 package metrics
 
 import (
-	"encoding/json"
 	"math"
 	"sort"
 	"strconv"
@@ -245,9 +244,10 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 // maybe this function is time consuming
 func ReformatJson(metric string, metricsName string, needDelParams ...string) *FormatedMetric {
 	var formatMetric FormatedMetric
-	err := json.Unmarshal([]byte(metric), &formatMetric)
+
+	err := jsonIter.Unmarshal([]byte(metric), &formatMetric)
 	if err != nil {
-		glog.Errorln("Unmarshal metric json failed", err)
+		glog.Errorln("Unmarshal metric json failed", err.Error(), metric)
 	}
 	if formatMetric.MetricName == "" {
 		if metricsName != "" {
