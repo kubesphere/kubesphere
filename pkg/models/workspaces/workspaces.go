@@ -28,6 +28,8 @@ import (
 
 	"sort"
 
+	v12 "k8s.io/client-go/listers/rbac/v1"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
@@ -109,18 +111,28 @@ func CreateDevopsProject(username string, workspace string, devops DevopsProject
 	return &project, nil
 }
 
-func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) {
-	admins := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
+func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) error {
+	admins, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
+
+	if err != nil {
+		return err
+	}
 
 	for _, admin := range admins {
 		createDevopsRoleBinding(workspace, *project.ProjectId, admin, constants.DevopsOwner)
 	}
 
-	viewers := iam.GetWorkspaceUsers(workspace, constants.WorkspaceViewer)
+	viewers, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceViewer)
+
+	if err != nil {
+		return err
+	}
 
 	for _, viewer := range viewers {
 		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, constants.DevopsReporter)
 	}
+
+	return nil
 }
 
 func deleteDevopsRoleBinding(workspace string, projectId string, user string) {
@@ -489,7 +501,6 @@ func Detail(name string) (*Workspace, error) {
 
 // List all workspaces for the current user
 func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) {
-
 	clusterRoles, err := iam.GetClusterRoles(username)
 
 	if err != nil {
@@ -527,7 +538,6 @@ func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) 
 			}
 		}
 	}
-
 	return workspaces, err
 }
 
@@ -760,6 +770,7 @@ func Invite(workspaceName string, users []UserInvite) error {
 }
 
 func NamespaceExistCheck(namespaceName string) (bool, error) {
+
 	_, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 
 	if err != nil {
@@ -805,10 +816,17 @@ func RemoveMembers(workspaceName string, users []string) error {
 func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	roles := make([]*v1.ClusterRole, 0)
 
-	k8sClient := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.ClusterRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
 
 	for _, name := range constants.WorkSpaceRoles {
-		role, err := k8sClient.RbacV1().ClusterRoles().Get(fmt.Sprintf("system:%s:%s", workspace.Name, name), meta_v1.GetOptions{})
+
+		clusterRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace.Name, name))
 
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -817,8 +835,8 @@ func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 			return nil, err
 		}
 
-		role.Name = name
-		roles = append(roles, role)
+		clusterRole.Name = name
+		roles = append(roles, clusterRole)
 	}
 
 	return roles, nil

@@ -27,9 +27,15 @@ const ClusterRoleKind = "ClusterRole"
 // Get user list based on workspace role
 func WorkspaceRoleUsers(workspace string, roleName string) ([]User, error) {
 
-	k8sClient := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
 
-	roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, roleName), meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
+
+	workspaceRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, roleName))
 
 	if err != nil {
 		return nil, err
@@ -37,7 +43,7 @@ func WorkspaceRoleUsers(workspace string, roleName string) ([]User, error) {
 
 	names := make([]string, 0)
 
-	for _, subject := range roleBinding.Subjects {
+	for _, subject := range workspaceRoleBinding.Subjects {
 		if subject.Kind == v1.UserKind {
 			names = append(names, subject.Name)
 		}
@@ -121,16 +127,23 @@ func GetUser(name string) (*User, error) {
 
 // Get rules
 func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []Rule, error) {
-	k8sClient := client.NewK8sClient()
 
-	role, err := k8sClient.RbacV1().ClusterRoles().Get(fmt.Sprintf("system:%s:%s", workspace, roleName), meta_v1.GetOptions{})
+	lister, err := controllers.GetLister(controllers.ClusterRoles)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	for i := 0; i < len(role.Rules); i++ {
-		role.Rules[i].ResourceNames = nil
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
+
+	workspaceRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace, roleName))
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for i := 0; i < len(workspaceRole.Rules); i++ {
+		workspaceRole.Rules[i].ResourceNames = nil
 	}
 
 	rules := make([]Rule, 0)
@@ -138,7 +151,7 @@ func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []R
 		rule := Rule{Name: WorkspaceRoleRuleMapping[i].Name}
 		rule.Actions = make([]Action, 0)
 		for j := 0; j < len(WorkspaceRoleRuleMapping[i].Actions); j++ {
-			if rulesMatchesAction(role.Rules, WorkspaceRoleRuleMapping[i].Actions[j]) {
+			if rulesMatchesAction(workspaceRole.Rules, WorkspaceRoleRuleMapping[i].Actions[j]) {
 				rule.Actions = append(rule.Actions, WorkspaceRoleRuleMapping[i].Actions[j])
 			}
 		}
@@ -147,9 +160,9 @@ func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []R
 		}
 	}
 
-	role.Name = roleName
+	workspaceRole.Name = roleName
 
-	return role, rules, nil
+	return workspaceRole, rules, nil
 }
 
 func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespace bool, namespaces []string, err error) {
@@ -210,15 +223,22 @@ func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespac
 }
 
 func DeleteRoleBindings(username string) error {
-	k8s := client.NewK8sClient()
 
-	roleBindings, err := k8s.RbacV1().RoleBindings("").List(meta_v1.ListOptions{})
+	lister, err := controllers.GetLister(controllers.RoleBindings)
 
 	if err != nil {
 		return err
 	}
 
-	for _, roleBinding := range roleBindings.Items {
+	roleBindingLister := lister.(v12.RoleBindingLister)
+
+	roleBindings, err := roleBindingLister.List(labels.Everything())
+
+	if err != nil {
+		return err
+	}
+
+	for _, roleBinding := range roleBindings {
 
 		length1 := len(roleBinding.Subjects)
 
@@ -233,30 +253,38 @@ func DeleteRoleBindings(username string) error {
 
 		if length2 == 0 {
 			deletePolicy := meta_v1.DeletePropagationForeground
-			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+			client.NewK8sClient().RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 		} else if length2 < length1 {
-			k8s.RbacV1().RoleBindings(roleBinding.Namespace).Update(&roleBinding)
+			client.NewK8sClient().RbacV1().RoleBindings(roleBinding.Namespace).Update(roleBinding)
 		}
 	}
 
-	clusterRoleBindingList, err := k8s.RbacV1().ClusterRoleBindings().List(meta_v1.ListOptions{})
+	lister, err = controllers.GetLister(controllers.ClusterRoleBindings)
 
-	for _, roleBinding := range clusterRoleBindingList.Items {
-		length1 := len(roleBinding.Subjects)
+	if err != nil {
+		return err
+	}
 
-		for index, subject := range roleBinding.Subjects {
+	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
+
+	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
+
+	for _, clusterRoleBinding := range clusterRoleBindings {
+		length1 := len(clusterRoleBinding.Subjects)
+
+		for index, subject := range clusterRoleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
-				roleBinding.Subjects = append(roleBinding.Subjects[:index], roleBinding.Subjects[index+1:]...)
+				clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects[:index], clusterRoleBinding.Subjects[index+1:]...)
 				index--
 			}
 		}
 
-		length2 := len(roleBinding.Subjects)
+		length2 := len(clusterRoleBinding.Subjects)
 		if length2 == 0 {
 			deletePolicy := meta_v1.DeletePropagationForeground
-			k8s.RbacV1().ClusterRoleBindings().Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+			client.NewK8sClient().RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 		} else if length2 < length1 {
-			k8s.RbacV1().ClusterRoleBindings().Update(&roleBinding)
+			client.NewK8sClient().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
 		}
 	}
 
@@ -264,27 +292,42 @@ func DeleteRoleBindings(username string) error {
 }
 
 func GetRole(namespace string, name string) (*v1.Role, error) {
-	k8s := client.NewK8sClient()
-	role, err := k8s.RbacV1().Roles(namespace).Get(name, meta_v1.GetOptions{})
+	lister, err := controllers.GetLister(controllers.Roles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roleLister := lister.(v12.RoleLister)
+	role, err := roleLister.Roles(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
 	return role, nil
 }
-func GetWorkspaceUsers(workspace string, role string) []string {
-	users := make([]string, 0)
-	clusterRoleBindingLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoleBindings].Lister().(v12.ClusterRoleBindingLister)
-	clusterRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, role))
+func GetWorkspaceUsers(workspace string, workspaceRole string) ([]string, error) {
+
+	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
+
 	if err != nil {
-		return users
+		return nil, err
 	}
+
+	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
+	clusterRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, workspaceRole))
+
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]string, 0)
 
 	for _, s := range clusterRoleBinding.Subjects {
 		if s.Kind == v1.UserKind && !slice.ContainsString(users, s.Name, nil) {
 			users = append(users, s.Name)
 		}
 	}
-	return users
+	return users, nil
 }
 
 func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
@@ -307,9 +350,15 @@ func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
 }
 
 func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
-	k8s := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.RoleBindings)
 
-	roleBindingList, err := k8s.RbacV1().RoleBindings(namespace).List(meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	roleBindingLister := lister.(v12.RoleBindingLister)
+
+	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -317,9 +366,9 @@ func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
 
 	items := make([]v1.RoleBinding, 0)
 
-	for _, roleBinding := range roleBindingList.Items {
+	for _, roleBinding := range roleBindings {
 		if roleBinding.RoleRef.Name == name {
-			items = append(items, roleBinding)
+			items = append(items, *roleBinding)
 		}
 	}
 
@@ -327,8 +376,16 @@ func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
 }
 
 func GetClusterRole(name string) (*v1.ClusterRole, error) {
-	k8s := client.NewK8sClient()
-	role, err := k8s.RbacV1().ClusterRoles().Get(name, meta_v1.GetOptions{})
+	lister, err := controllers.GetLister(controllers.ClusterRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
+
+	role, err := clusterRoleLister.Get(name)
+
 	if err != nil {
 		return nil, err
 	}
@@ -336,15 +393,36 @@ func GetClusterRole(name string) (*v1.ClusterRole, error) {
 }
 
 func GetRoles(namespace string, username string) ([]v1.Role, error) {
-	roleBindingLister := controllers.ResourceControllers.Controllers[controllers.RoleBindings].Lister().(v12.RoleBindingLister)
-	roleLister := controllers.ResourceControllers.Controllers[controllers.Roles].Lister().(v12.RoleLister)
-	clusterRoleLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoles].Lister().(v12.ClusterRoleLister)
+	lister, err := controllers.GetLister(controllers.RoleBindings)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roleBindingLister := lister.(v12.RoleBindingLister)
+
+	lister, err = controllers.GetLister(controllers.Roles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roleLister := lister.(v12.RoleLister)
+
+	lister, err = controllers.GetLister(controllers.ClusterRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
 
 	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
+
 	roles := make([]v1.Role, 0)
 
 	for _, roleBinding := range roleBindings {
@@ -391,8 +469,23 @@ func GetRoles(namespace string, username string) ([]v1.Role, error) {
 
 // Get cluster roles by username
 func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
-	clusterRoleBindingLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoleBindings].Lister().(v12.ClusterRoleBindingLister)
-	clusterRoleLister := controllers.ResourceControllers.Controllers[controllers.ClusterRoles].Lister().(v12.ClusterRoleLister)
+
+	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
+
+	lister, err = controllers.GetLister(controllers.ClusterRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
+
 	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
