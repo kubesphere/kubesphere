@@ -100,8 +100,9 @@ func RolesHandler(req *restful.Request, resp *restful.Response) {
 
 func MembersHandler(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("name")
+	keyword := req.QueryParameter("keyword")
 
-	users, err := workspaces.GetWorkspaceMembers(workspace)
+	users, err := workspaces.GetWorkspaceMembers(workspace, keyword)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -311,9 +312,6 @@ func DevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(req.QueryParameter("paging")); len(groups) == 3 {
 		limit, _ = strconv.Atoi(groups[1])
 		page, _ := strconv.Atoi(groups[2])
-		if page < 0 {
-			page = 1
-		}
 		offset = (page - 1) * limit
 	}
 

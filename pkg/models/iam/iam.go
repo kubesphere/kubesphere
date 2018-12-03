@@ -10,13 +10,11 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	v12 "k8s.io/client-go/listers/rbac/v1"
 
 	"k8s.io/kubernetes/pkg/util/slice"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
 	ksErr "kubesphere.io/kubesphere/pkg/util/errors"
@@ -222,75 +220,6 @@ func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespac
 	return false, namespaces, nil
 }
 
-func DeleteRoleBindings(username string) error {
-
-	lister, err := controllers.GetLister(controllers.RoleBindings)
-
-	if err != nil {
-		return err
-	}
-
-	roleBindingLister := lister.(v12.RoleBindingLister)
-
-	roleBindings, err := roleBindingLister.List(labels.Everything())
-
-	if err != nil {
-		return err
-	}
-
-	for _, roleBinding := range roleBindings {
-
-		length1 := len(roleBinding.Subjects)
-
-		for index, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && subject.Name == username {
-				roleBinding.Subjects = append(roleBinding.Subjects[:index], roleBinding.Subjects[index+1:]...)
-				index--
-			}
-		}
-
-		length2 := len(roleBinding.Subjects)
-
-		if length2 == 0 {
-			deletePolicy := meta_v1.DeletePropagationForeground
-			client.NewK8sClient().RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
-		} else if length2 < length1 {
-			client.NewK8sClient().RbacV1().RoleBindings(roleBinding.Namespace).Update(roleBinding)
-		}
-	}
-
-	lister, err = controllers.GetLister(controllers.ClusterRoleBindings)
-
-	if err != nil {
-		return err
-	}
-
-	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
-
-	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
-
-	for _, clusterRoleBinding := range clusterRoleBindings {
-		length1 := len(clusterRoleBinding.Subjects)
-
-		for index, subject := range clusterRoleBinding.Subjects {
-			if subject.Kind == v1.UserKind && subject.Name == username {
-				clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects[:index], clusterRoleBinding.Subjects[index+1:]...)
-				index--
-			}
-		}
-
-		length2 := len(clusterRoleBinding.Subjects)
-		if length2 == 0 {
-			deletePolicy := meta_v1.DeletePropagationForeground
-			client.NewK8sClient().RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
-		} else if length2 < length1 {
-			client.NewK8sClient().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
-		}
-	}
-
-	return nil
-}
-
 func GetRole(namespace string, name string) (*v1.Role, error) {
 	lister, err := controllers.GetLister(controllers.Roles)
 
@@ -331,8 +260,15 @@ func GetWorkspaceUsers(workspace string, workspaceRole string) ([]string, error)
 }
 
 func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
-	k8s := client.NewK8sClient()
-	roleBindingList, err := k8s.RbacV1().ClusterRoleBindings().List(meta_v1.ListOptions{})
+	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
+
+	clusterRoleBindingList, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -340,9 +276,9 @@ func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
 
 	items := make([]v1.ClusterRoleBinding, 0)
 
-	for _, roleBinding := range roleBindingList.Items {
+	for _, roleBinding := range clusterRoleBindingList {
 		if roleBinding.RoleRef.Name == name {
-			items = append(items, roleBinding)
+			items = append(items, *roleBinding)
 		}
 	}
 
@@ -495,7 +431,7 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 	roles := make([]v1.ClusterRole, 0)
 
 	for _, roleBinding := range clusterRoleBindings {
-		for i, subject := range roleBinding.Subjects {
+		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && subject.Name == username {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
 					role, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
@@ -511,8 +447,7 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 						roles = append(roles, *role)
 						break
 					} else if apierrors.IsNotFound(err) {
-						roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-						client.NewK8sClient().RbacV1().ClusterRoleBindings().Update(roleBinding)
+						glog.Warning(err)
 						break
 					} else {
 						return nil, err
