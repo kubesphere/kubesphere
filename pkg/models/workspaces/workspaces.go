@@ -28,6 +28,8 @@ import (
 
 	"sort"
 
+	v12 "k8s.io/client-go/listers/rbac/v1"
+
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
@@ -109,18 +111,28 @@ func CreateDevopsProject(username string, workspace string, devops DevopsProject
 	return &project, nil
 }
 
-func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) {
-	admins := iam.GetWorkspaceUsers(workspace, "admin")
+func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) error {
+	admins, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
+
+	if err != nil {
+		return err
+	}
 
 	for _, admin := range admins {
-		createDevopsRoleBinding(workspace, *project.ProjectId, admin, "owner")
+		createDevopsRoleBinding(workspace, *project.ProjectId, admin, constants.DevopsOwner)
 	}
 
-	viewers := iam.GetWorkspaceUsers(workspace, "viewer")
+	viewers, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceViewer)
+
+	if err != nil {
+		return err
+	}
 
 	for _, viewer := range viewers {
-		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, "reporter")
+		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, constants.DevopsReporter)
 	}
+
+	return nil
 }
 
 func deleteDevopsRoleBinding(workspace string, projectId string, user string) {
@@ -489,7 +501,6 @@ func Detail(name string) (*Workspace, error) {
 
 // List all workspaces for the current user
 func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) {
-
 	clusterRoles, err := iam.GetClusterRoles(username)
 
 	if err != nil {
@@ -527,7 +538,6 @@ func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) 
 			}
 		}
 	}
-
 	return workspaces, err
 }
 
@@ -760,6 +770,7 @@ func Invite(workspaceName string, users []UserInvite) error {
 }
 
 func NamespaceExistCheck(namespaceName string) (bool, error) {
+
 	_, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 
 	if err != nil {
@@ -805,10 +816,17 @@ func RemoveMembers(workspaceName string, users []string) error {
 func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	roles := make([]*v1.ClusterRole, 0)
 
-	k8sClient := client.NewK8sClient()
+	lister, err := controllers.GetLister(controllers.ClusterRoles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleLister := lister.(v12.ClusterRoleLister)
 
 	for _, name := range constants.WorkSpaceRoles {
-		role, err := k8sClient.RbacV1().ClusterRoles().Get(fmt.Sprintf("system:%s:%s", workspace.Name, name), meta_v1.GetOptions{})
+
+		clusterRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace.Name, name))
 
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -817,8 +835,8 @@ func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 			return nil, err
 		}
 
-		role.Name = name
-		roles = append(roles, role)
+		clusterRole.Name = name
+		roles = append(roles, clusterRole)
 	}
 
 	return roles, nil
@@ -1156,7 +1174,7 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 				} else {
 					modify = true
 					roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-					if roleName == "admin" || roleName == "viewer" {
+					if roleName == constants.WorkspaceAdmin || roleName == constants.WorkspaceViewer {
 						go deleteDevopsRoleBinding(workspace.Name, "", username)
 					}
 					break
@@ -1167,10 +1185,10 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 		if roleName == role {
 			modify = true
 			roleBinding.Subjects = append(roleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
-			if roleName == "admin" {
-				go createDevopsRoleBinding(workspace.Name, "", username, "owner")
-			} else if roleName == "viewer" {
-				go createDevopsRoleBinding(workspace.Name, "", username, "reporter")
+			if roleName == constants.WorkspaceAdmin {
+				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsOwner)
+			} else if roleName == constants.WorkspaceViewer {
+				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsReporter)
 			}
 		}
 
@@ -1334,38 +1352,4 @@ func GetAllAccountNums() (int, error) {
 		return int(val.(float64)), nil
 	}
 	return 0, errors.New("not found")
-}
-
-// get cluster organizations name which contains at least one namespace,
-func GetAllOrgAndProjList() (map[string][]string, map[string]string, error) {
-	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(meta_v1.ListOptions{})
-	if err != nil {
-		glog.Errorln(err)
-		return nil, nil, err
-	}
-
-	var workspaceNamespaceMap = make(map[string][]string)
-	var namespaceWorkspaceMap = make(map[string]string)
-
-	for _, item := range nsList.Items {
-		ws, exist := item.Labels[constants.WorkspaceLabelKey]
-		ns := item.Name
-		if exist {
-			if nsArray, exist := workspaceNamespaceMap[ws]; exist {
-				nsArray = append(nsArray, ns)
-				workspaceNamespaceMap[ws] = nsArray
-			} else {
-				var nsArray []string
-				nsArray = append(nsArray, ns)
-				workspaceNamespaceMap[ws] = nsArray
-			}
-
-			namespaceWorkspaceMap[ns] = ws
-		} else {
-			// this namespace do not belong to any workspaces
-			namespaceWorkspaceMap[ns] = ""
-		}
-	}
-
-	return workspaceNamespaceMap, namespaceWorkspaceMap, nil
 }

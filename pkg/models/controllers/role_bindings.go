@@ -19,9 +19,7 @@ package controllers
 import (
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 )
 
@@ -35,12 +33,7 @@ func (ctl *RoleBindingCtl) sync(stopChan chan struct{}) {
 }
 
 func (ctl *RoleBindingCtl) total() int {
-	list, err := ctl.lister.List(labels.Everything())
-	if err != nil {
-		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
-		return 0
-	}
-	return len(list)
+	return 0
 }
 
 func (ctl *RoleBindingCtl) initListerAndInformer() {

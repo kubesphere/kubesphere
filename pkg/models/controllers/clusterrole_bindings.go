@@ -45,12 +45,7 @@ func (ctl *ClusterRoleBindingCtl) sync(stopChan chan struct{}) {
 }
 
 func (ctl *ClusterRoleBindingCtl) total() int {
-	list, err := ctl.lister.List(labels.Everything())
-	if err != nil {
-		glog.Errorf("count %s failed, reason:%s", ctl.Name(), err)
-		return 0
-	}
-	return len(list)
+	return 0
 }
 
 func (ctl *ClusterRoleBindingCtl) handleWorkspaceRoleChange(clusterRole *rbac.ClusterRoleBinding) {
