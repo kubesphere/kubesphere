@@ -20,7 +20,8 @@ import (
 	//"fmt"
 	//"encoding/json"
 	//"regexp"
-	//"strings"
+	"strings"
+	"log"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -35,7 +36,51 @@ import (
 	"github.com/olivere/elastic"
 )
 
-func LogQuery(request *restful.Request) *elastic.SearchResult {
+func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.SearchResult {
+	//log.Printf("LogQuery level %v", level)
+	var workspaces []string
+	var projects []string
+	var workloads []string
+	var pods []string
+	var containers []string
+
+	switch level {
+	case constants.Cluster:
+		{}
+	case constants.Workspace:
+		{
+			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+		}
+	case constants.Project:
+		{
+			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			projects = strings.Split(request.PathParameter("project_name"), ",")
+		}
+	case constants.Workload:
+		{
+			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			projects = strings.Split(request.PathParameter("project_name"), ",")
+			workloads = strings.Split(request.PathParameter("workload_name"), ",")
+		}
+	case constants.Pod:
+		{
+			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			projects = strings.Split(request.PathParameter("project_name"), ",")
+			workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			pods = strings.Split(request.PathParameter("pod_name"), ",")
+		}
+	case constants.Container:
+		{
+			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			projects = strings.Split(request.PathParameter("project_name"), ",")
+			workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			pods = strings.Split(request.PathParameter("pod_name"), ",")
+			containers = strings.Split(request.PathParameter("container_name"), ",")
+		}
+	}
+
+	log.Printf("workspaces %v projects %v workloads %v pods %v containers %v", workspaces, projects, workloads, pods, containers)
+
 	log_query := request.QueryParameter("log_query")
 	start := request.QueryParameter("start")
 	end := request.QueryParameter("end")

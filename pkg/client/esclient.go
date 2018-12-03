@@ -26,7 +26,7 @@ func Query(log_query string, start string, end string) *elastic.SearchResult {
 	// on 127.0.0.1:9200. Of course you can configure your client to connect
 	// to other hosts and configure it in various other ways.
 	client, err := elastic.NewClient(
-		elastic.SetURL("http://ks-logging-elasticsearch-data.logging.svc:9200"),
+		elastic.SetURL("http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200"), elastic.SetSniff(false),
 	)
 	if err != nil {
 		// Handle error
