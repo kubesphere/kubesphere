@@ -37,39 +37,60 @@ import (
 )
 
 func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.SearchResult {
-	//log.Printf("LogQuery level %v", level)
 	var workspaces []string
 	var projects []string
 	var workloads []string
 	var pods []string
 	var containers []string
 
+	var workspaces_query []string
+	var projects_query []string
+	var workloads_query []string
+	var pods_query []string
+	var containers_query []string
+
 	switch level {
-	case constants.Cluster:
-		{}
-	case constants.Workspace:
+	case constants.QueryLevelCluster:
+		{
+			workspaces_query = strings.Split(request.QueryParameter("workspace_query"), ",")
+			projects_query = strings.Split(request.QueryParameter("project_query"), ",")
+			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+		}
+	case constants.QueryLevelWorkspace:
 		{
 			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			projects_query = strings.Split(request.QueryParameter("project_query"), ",")
+			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
-	case constants.Project:
+	case constants.QueryLevelProject:
 		{
 			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
 			projects = strings.Split(request.PathParameter("project_name"), ",")
+			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
-	case constants.Workload:
+	case constants.QueryLevelWorkload:
 		{
 			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
 			projects = strings.Split(request.PathParameter("project_name"), ",")
 			workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
-	case constants.Pod:
+	case constants.QueryLevelPod:
 		{
 			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
 			projects = strings.Split(request.PathParameter("project_name"), ",")
 			workloads = strings.Split(request.PathParameter("workload_name"), ",")
 			pods = strings.Split(request.PathParameter("pod_name"), ",")
+			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
-	case constants.Container:
+	case constants.QueryLevelContainer:
 		{
 			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
 			projects = strings.Split(request.PathParameter("project_name"), ",")
@@ -79,13 +100,19 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		}
 	}
 
-	log.Printf("workspaces %v projects %v workloads %v pods %v containers %v", workspaces, projects, workloads, pods, containers)
+	log.Printf("Level %v Spec workspaces %v projects %v workloads %v pods %v containers %v", level, workspaces, projects, workloads, pods, containers)
+	log.Printf("Query workspaces %v projects %v workloads %v pods %v containers %v", workspaces_query, projects_query, workloads_query, pods_query, containers_query)
 
 	log_query := request.QueryParameter("log_query")
-	start := request.QueryParameter("start")
-	end := request.QueryParameter("end")
+	start_time := request.QueryParameter("start_time")
+	end_time := request.QueryParameter("end_time")
+	from := request.QueryParameter("from")
+	size := request.QueryParameter("size")
 
-	glog.Infof("LogQuery with %s %s %s", log_query, start, end)
+	log.Printf("LogQuery with %s %s-%s %v-%v", log_query, start_time, end_time, from, size)
 
-	return client.Query(log_query, start, end)
+	glog.Infof("LogQuery with %s %s-%s %v-%v", log_query, start_time, end_time, from, size)
+
+	return nil
+	//return client.Query(log_query, start, end)
 }
