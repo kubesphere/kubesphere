@@ -19,6 +19,8 @@ package components
 import (
 	"net/http"
 
+	"github.com/golang/glog"
+
 	"github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -34,6 +36,24 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
+	ws.Route(ws.GET("/health").To(handleGetSystemHealthStatus).Filter(route.RouteLogging)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+}
+
+func handleGetSystemHealthStatus(request *restful.Request, response *restful.Response) {
+
+	if status, err := models.GetSystemHealthStatus(); err != nil {
+		err = response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		if err != nil {
+			glog.Errorln(err)
+		}
+	} else {
+		err = response.WriteAsJson(status)
+		if err != nil {
+			glog.Errorln(err)
+		}
+	}
 }
 
 // get a specific component status
@@ -42,9 +62,14 @@ func handleGetComponentStatus(request *restful.Request, response *restful.Respon
 	componentName := request.PathParameter("componentName")
 
 	if component, err := models.GetComponentStatus(namespace, componentName); err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		err = response.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
+		if err != nil {
+			glog.Errorln(err)
+		}
 	} else {
-		response.WriteAsJson(component)
+		if err = response.WriteAsJson(component); err != nil {
+			glog.Errorln(err)
+		}
 	}
 }
 
