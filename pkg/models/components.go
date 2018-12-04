@@ -19,6 +19,11 @@ package models
 import (
 	"time"
 
+	v13 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"kubesphere.io/kubesphere/pkg/client"
+
 	v12 "k8s.io/client-go/listers/core/v1"
 
 	"kubesphere.io/kubesphere/pkg/models/controllers"
@@ -95,6 +100,68 @@ func GetComponentStatus(namespace string, componentName string) (interface{}, er
 
 		return component, nil
 	}
+
+}
+
+func GetSystemHealthStatus() (map[string]interface{}, error) {
+
+	status := make(map[string]interface{})
+
+	k8sClient := client.NewK8sClient()
+
+	csList, err := k8sClient.Core().ComponentStatuses().List(v1.ListOptions{})
+	if err != nil {
+		glog.Errorln(err)
+		return nil, err
+	}
+
+	for _, cs := range csList.Items {
+		status[cs.Name] = cs.Conditions[0]
+	}
+
+	// get kubesphere-system components
+
+	systemComponentStatus, err := GetAllComponentsStatus()
+	if err != nil {
+		glog.Errorln(err)
+	}
+
+	for k, v := range systemComponentStatus {
+		status[k] = v
+	}
+	// get node status
+
+	lister, err := controllers.GetLister(controllers.Nodes)
+	if err != nil {
+		glog.Errorln(err)
+		return status, nil
+	}
+
+	nodeLister := lister.(v12.NodeLister)
+
+	nodes, err := nodeLister.List(labels.Everything())
+	if err != nil {
+		glog.Errorln(err)
+		return status, nil
+	}
+
+	nodeStatus := make(map[string]int)
+	totalNodes := 0
+	healthyNodes := 0
+	for _, nodes := range nodes {
+		totalNodes++
+		for _, condition := range nodes.Status.Conditions {
+			if condition.Type == v13.NodeReady && condition.Status == v13.ConditionTrue {
+				healthyNodes++
+			}
+		}
+	}
+	nodeStatus["totalNodes"] = totalNodes
+	nodeStatus["healthyNodes"] = healthyNodes
+
+	status["nodes"] = nodeStatus
+
+	return status, nil
 
 }
 
