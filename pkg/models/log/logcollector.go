@@ -37,82 +37,78 @@ import (
 )
 
 func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.SearchResult {
-	var workspaces []string
-	var projects []string
-	var workloads []string
-	var pods []string
-	var containers []string
+	var param client.QueryParameters
 
-	var workspaces_query []string
-	var projects_query []string
-	var workloads_query []string
-	var pods_query []string
-	var containers_query []string
+	param.Level = level
 
 	switch level {
 	case constants.QueryLevelCluster:
 		{
-			workspaces_query = strings.Split(request.QueryParameter("workspace_query"), ",")
-			projects_query = strings.Split(request.QueryParameter("project_query"), ",")
-			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
-			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
-			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+			param.Workspaces_query = strings.Split(request.QueryParameter("workspace_query"), ",")
+			param.Projects_query = strings.Split(request.QueryParameter("project_query"), ",")
+			param.Workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			param.Pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			param.Containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
 	case constants.QueryLevelWorkspace:
 		{
-			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			projects_query = strings.Split(request.QueryParameter("project_query"), ",")
-			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
-			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
-			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Projects_query = strings.Split(request.QueryParameter("project_query"), ",")
+			param.Workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			param.Pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			param.Containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
 	case constants.QueryLevelProject:
 		{
-			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			projects = strings.Split(request.PathParameter("project_name"), ",")
-			workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
-			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
-			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
+			param.Workloads_query = strings.Split(request.QueryParameter("workload_query"), ",")
+			param.Pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			param.Containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
 	case constants.QueryLevelWorkload:
 		{
-			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			projects = strings.Split(request.PathParameter("project_name"), ",")
-			workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
-			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
+			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pods_query = strings.Split(request.QueryParameter("pod_query"), ",")
+			param.Containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
 	case constants.QueryLevelPod:
 		{
-			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			projects = strings.Split(request.PathParameter("project_name"), ",")
-			workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			pods = strings.Split(request.PathParameter("pod_name"), ",")
-			containers_query = strings.Split(request.QueryParameter("container_query"), ",")
+			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
+			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pods = strings.Split(request.PathParameter("pod_name"), ",")
+			param.Containers_query = strings.Split(request.QueryParameter("container_query"), ",")
 		}
 	case constants.QueryLevelContainer:
 		{
-			workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			projects = strings.Split(request.PathParameter("project_name"), ",")
-			workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			pods = strings.Split(request.PathParameter("pod_name"), ",")
-			containers = strings.Split(request.PathParameter("container_name"), ",")
+			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
+			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pods = strings.Split(request.PathParameter("pod_name"), ",")
+			param.Containers = strings.Split(request.PathParameter("container_name"), ",")
 		}
 	}
 
-	log.Printf("Level %v Spec workspaces %v projects %v workloads %v pods %v containers %v", level, workspaces, projects, workloads, pods, containers)
-	log.Printf("Query workspaces %v projects %v workloads %v pods %v containers %v", workspaces_query, projects_query, workloads_query, pods_query, containers_query)
+	param.Log_query = request.QueryParameter("log_query")
+	param.Start_time = request.QueryParameter("start_time")
+	param.End_time = request.QueryParameter("end_time")
 
-	log_query := request.QueryParameter("log_query")
-	start_time := request.QueryParameter("start_time")
-	end_time := request.QueryParameter("end_time")
-	from := request.QueryParameter("from")
-	size := request.QueryParameter("size")
+	var err error
+	param.From, err = strconv.Atoi(request.QueryParameter("from"))
+	if err != nil {
+		param.From = 0
+	}
+	param.Size, err = strconv.Atoi(request.QueryParameter("size"))
+	if err != nil {
+		param.Size = 10
+	}
 
-	log.Printf("LogQuery with %s %s-%s %v-%v", log_query, start_time, end_time, from, size)
+	log.Printf("LogQuery with %v", param)
 
-	glog.Infof("LogQuery with %s %s-%s %v-%v", log_query, start_time, end_time, from, size)
+	glog.Infof("LogQuery with %v", param)
 
-	return nil
-	//return client.Query(log_query, start, end)
+	return client.Query(param)
 }

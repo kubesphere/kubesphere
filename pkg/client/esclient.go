@@ -18,36 +18,206 @@ import (
 	"github.com/olivere/elastic"
 )
 
-func Query(log_query string, start string, end string) *elastic.SearchResult {
+type QueryParameters struct {
+	Workspaces []string
+	Projects []string
+	Workloads []string
+	Pods []string
+	Containers []string
+
+	Workspaces_query []string
+	Projects_query []string
+	Workloads_query []string
+	Pods_query []string
+	Containers_query []string
+
+	Level constants.LogQueryLevel
+	Operation string
+	Log_query string
+	Start_time string
+	End_time string
+	From int
+	Size int
+}
+
+func Query(param QueryParameters) *elastic.SearchResult {
 	// Starting with elastic.v5, you must pass a context to execute each service
 	ctx := context.Background()
 
-	// Obtain a client and connect to the default Elasticsearch installation
-	// on 127.0.0.1:9200. Of course you can configure your client to connect
-	// to other hosts and configure it in various other ways.
+	// Obtain a client and connect to Elasticsearch
 	client, err := elastic.NewClient(
 		elastic.SetURL("http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200"), elastic.SetSniff(false),
 	)
 	if err != nil {
 		// Handle error
-		panic(err)
+		// panic(err)
+		return nil //Todo: Add error information
 	}
 
-	matchPhraseQuery1 := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", "kubesphere-system")
-	matchPhraseQuery2 := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", "logging")
-	matchQuery := elastic.NewMatchQuery("log", log_query)
-	rangeQuery := elastic.NewRangeQuery("time").From(start).To(end)
-	boolQuery := elastic.NewBoolQuery().Must(matchQuery).Must(rangeQuery).Should(matchPhraseQuery1).Should(matchPhraseQuery2).MinimumNumberShouldMatch(1)
+	var boolQuery *elastic.BoolQuery = elastic.NewBoolQuery()
+	var hasShould bool = false
+
+	//Todo: Get information from k8s
+	switch param.Level {
+	case constants.QueryLevelCluster:
+		{
+			for _, workspace_query := range param.Workspaces_query {
+				workspace_query = workspace_query
+			}
+			for _, project_query := range param.Projects_query {
+				if project_query != "" {
+					matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", project_query)
+					boolQuery = boolQuery.Must(matchQuery)
+				}
+			}
+			for _, workload_query := range param.Workloads_query {
+				workload_query = workload_query
+			}
+			for _, pod_query := range param.Pods_query {
+				if pod_query != "" {
+					matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+					boolQuery = boolQuery.Must(matchQuery)
+				}
+			}
+			for _, container_query := range param.Containers_query {
+				if container_query != "" {
+					matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+					boolQuery = boolQuery.Must(matchQuery)
+				}
+			}
+		}
+	case constants.QueryLevelWorkspace:
+		{
+			for _, workspace := range param.Workspaces {
+				workspace = workspace
+			}
+			for _, project_query := range param.Projects_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", project_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+			for _, workload_query := range param.Workloads_query {
+				workload_query = workload_query
+			}
+			for _, pod_query := range param.Pods_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+			for _, container_query := range param.Containers_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+		}
+	case constants.QueryLevelProject:
+		{
+			for _, workspace := range param.Workspaces {
+				workspace = workspace
+			}
+			for _, project := range param.Projects {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", project)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, workload_query := range param.Workloads_query {
+				workload_query = workload_query
+			}
+			for _, pod_query := range param.Pods_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+			for _, container_query := range param.Containers_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+		}
+	case constants.QueryLevelWorkload:
+		{
+			for _, workspace := range param.Workspaces {
+				workspace = workspace
+			}
+			for _, project := range param.Projects {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", project)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, workload := range param.Workloads {
+				workload = workload
+			}
+			for _, pod_query := range param.Pods_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+			for _, container_query := range param.Containers_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+		}
+	case constants.QueryLevelPod:
+		{
+			for _, workspace := range param.Workspaces {
+				workspace = workspace
+			}
+			for _, project := range param.Projects {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", project)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, workload := range param.Workloads {
+				workload = workload
+			}
+			for _, pod := range param.Pods {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", pod)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, container_query := range param.Containers_query {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+				boolQuery = boolQuery.Must(matchQuery)
+			}
+		}
+	case constants.QueryLevelContainer:
+		{
+			for _, workspace := range param.Workspaces {
+				workspace = workspace
+			}
+			for _, project := range param.Projects {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", project)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, workload := range param.Workloads {
+				workload = workload
+			}
+			for _, pod := range param.Pods {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", pod)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+			for _, container := range param.Containers {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
+				boolQuery = boolQuery.Should(matchPhraseQuery)
+				hasShould = true
+			}
+		}
+	}
+
+	if(hasShould) {
+		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
+	}
+
+	matchQuery := elastic.NewMatchQuery("log", param.Log_query)
+	rangeQuery := elastic.NewRangeQuery("time").From(param.Start_time).To(param.End_time)
+	boolQuery = boolQuery.Must(matchQuery).Must(rangeQuery)
 	searchResult, err := client.Search().
 		Index("logstash-*"). // search in index "logstash-*"
 		Query(boolQuery).
 		Sort("time", true). // sort by "time" field, ascending
-		From(0).Size(10).   // take documents 0-9
+		From(param.From).Size(param.Size).   // take documents
 		Pretty(true).       // pretty print request and response JSON
 		Do(ctx)             // execute
 	if err != nil {
 		// Handle error
-		panic(err)
+		// panic(err)
+		searchResult = nil //Todo: Add error information
 	}
 
 	return searchResult
