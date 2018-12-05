@@ -156,6 +156,9 @@ func deleteDevopsRoleBinding(workspace string, projectId string, user string) {
 		if err != nil || resp.StatusCode > 200 {
 			glog.Warning("delete  devops role binding failed", workspace, project, user)
 		}
+		if resp != nil {
+			resp.Body.Close()
+		}
 	}
 }
 
@@ -182,6 +185,9 @@ func createDevopsRoleBinding(workspace string, projectId string, user string, ro
 		resp, err := http.DefaultClient.Do(request)
 		if err != nil || resp.StatusCode > 200 {
 			glog.Warning(fmt.Sprintf("create  devops role binding failed %s,%s,%s,%s", workspace, project, user, role))
+		}
+		if resp != nil {
+			resp.Body.Close()
 		}
 	}
 }
@@ -679,7 +685,7 @@ func ListDevopsProjectsByUser(username string, workspace string, keyword string,
 	}
 
 	if len(devOpsProjects) < offset {
-		return len(devOpsProjects), devOpsProjects, nil
+		return len(devOpsProjects), make([]DevopsProject, 0), nil
 	} else if len(devOpsProjects) < limit+offset {
 		return len(devOpsProjects), devOpsProjects[offset:], nil
 	} else {
@@ -842,9 +848,15 @@ func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	return roles, nil
 }
 
-func GetWorkspaceMembers(workspace string) ([]iam.User, error) {
+func GetWorkspaceMembers(workspace string, keyword string) ([]iam.User, error) {
 
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/%s/users", constants.AccountAPIServer, workspace))
+	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/workspaces/%s/members", constants.AccountAPIServer, workspace)
+
+	if keyword != "" {
+		url = url + "?keyword=" + keyword
+	}
+
+	result, err := http.Get(url)
 
 	if err != nil {
 		return nil, err

@@ -26,7 +26,6 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
 func Register(ws *restful.WebService, subPath string) {
@@ -79,13 +78,6 @@ func delUser(req *restful.Request, resp *restful.Response) {
 	err = models.DelKubeConfig(user)
 
 	if err != nil && !apierrors.IsNotFound(err) {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-		return
-	}
-
-	err = iam.DeleteRoleBindings(user)
-
-	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
 		return
 	}
