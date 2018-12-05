@@ -86,13 +86,13 @@ func (ctl *ClusterRoleCtl) sync(stopChan chan struct{}) {
 func (ctl *ClusterRoleCtl) total() int {
 	list, err := ctl.lister.List(labels.Everything())
 	if err != nil {
-		glog.Errorf("count %s falied, reason:%s", err, ctl.Name())
+		glog.Errorf("count %s failed, reason:%s", err, ctl.Name())
 		return 0
 	}
 
 	count := 0
 	for _, item := range list {
-		if !strings.HasPrefix(item.Name, systemPrefix) {
+		if !strings.HasPrefix(item.Name, systemPrefix) && item.Annotations != nil && len(item.Annotations[creator]) > 0 {
 			count++
 		}
 	}
