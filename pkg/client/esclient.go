@@ -25,11 +25,11 @@ type QueryParameters struct {
 	Pods []string
 	Containers []string
 
-	Workspaces_query []string
-	Projects_query []string
-	Workloads_query []string
-	Pods_query []string
-	Containers_query []string
+	Workspaces_query string
+	Projects_query string
+	Workloads_query string
+	Pods_query string
+	Containers_query string
 
 	Level constants.LogQueryLevel
 	Operation string
@@ -61,29 +61,17 @@ func Query(param QueryParameters) *elastic.SearchResult {
 	switch param.Level {
 	case constants.QueryLevelCluster:
 		{
-			for _, workspace_query := range param.Workspaces_query {
-				workspace_query = workspace_query
+			if param.Projects_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.Projects_query)
+				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, project_query := range param.Projects_query {
-				if project_query != "" {
-					matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", project_query)
-					boolQuery = boolQuery.Must(matchQuery)
-				}
+			if param.Pods_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.Pods_query)
+				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, workload_query := range param.Workloads_query {
-				workload_query = workload_query
-			}
-			for _, pod_query := range param.Pods_query {
-				if pod_query != "" {
-					matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
-					boolQuery = boolQuery.Must(matchQuery)
-				}
-			}
-			for _, container_query := range param.Containers_query {
-				if container_query != "" {
-					matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
-					boolQuery = boolQuery.Must(matchQuery)
-				}
+			if param.Containers_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Containers_query)
+				boolQuery = boolQuery.Must(matchQuery)
 			}
 		}
 	case constants.QueryLevelWorkspace:
@@ -91,19 +79,16 @@ func Query(param QueryParameters) *elastic.SearchResult {
 			for _, workspace := range param.Workspaces {
 				workspace = workspace
 			}
-			for _, project_query := range param.Projects_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", project_query)
+			if param.Projects_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.Projects_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, workload_query := range param.Workloads_query {
-				workload_query = workload_query
-			}
-			for _, pod_query := range param.Pods_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+			if param.Pods_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.Pods_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, container_query := range param.Containers_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+			if param.Containers_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Containers_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
 		}
@@ -117,15 +102,12 @@ func Query(param QueryParameters) *elastic.SearchResult {
 				boolQuery = boolQuery.Should(matchPhraseQuery)
 				hasShould = true
 			}
-			for _, workload_query := range param.Workloads_query {
-				workload_query = workload_query
-			}
-			for _, pod_query := range param.Pods_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+			if param.Pods_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.Pods_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, container_query := range param.Containers_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+			if param.Containers_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Containers_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
 		}
@@ -142,12 +124,12 @@ func Query(param QueryParameters) *elastic.SearchResult {
 			for _, workload := range param.Workloads {
 				workload = workload
 			}
-			for _, pod_query := range param.Pods_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", pod_query)
+			if param.Pods_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.Pods_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
-			for _, container_query := range param.Containers_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+			if param.Containers_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Containers_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
 		}
@@ -169,8 +151,8 @@ func Query(param QueryParameters) *elastic.SearchResult {
 				boolQuery = boolQuery.Should(matchPhraseQuery)
 				hasShould = true
 			}
-			for _, container_query := range param.Containers_query {
-				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", container_query)
+			if param.Containers_query != "" {
+				matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Containers_query)
 				boolQuery = boolQuery.Must(matchQuery)
 			}
 		}
