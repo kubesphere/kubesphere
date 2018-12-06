@@ -126,15 +126,9 @@ func GetUser(name string) (*User, error) {
 // Get rules
 func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []Rule, error) {
 
-	lister, err := controllers.GetLister(controllers.ClusterRoles)
+	clusterRoleName := fmt.Sprintf("system:%s:%s", workspace, roleName)
 
-	if err != nil {
-		return nil, nil, err
-	}
-
-	clusterRoleLister := lister.(v12.ClusterRoleLister)
-
-	workspaceRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace, roleName))
+	workspaceRole, err := GetClusterRole(clusterRoleName)
 
 	if err != nil {
 		return nil, nil, err
@@ -232,7 +226,7 @@ func GetRole(namespace string, name string) (*v1.Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	return role, nil
+	return role.DeepCopy(), nil
 }
 func GetWorkspaceUsers(workspace string, workspaceRole string) ([]string, error) {
 
@@ -268,7 +262,7 @@ func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
 
 	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
 
-	clusterRoleBindingList, err := clusterRoleBindingLister.List(labels.Everything())
+	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -276,9 +270,9 @@ func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
 
 	items := make([]v1.ClusterRoleBinding, 0)
 
-	for _, roleBinding := range clusterRoleBindingList {
-		if roleBinding.RoleRef.Name == name {
-			items = append(items, *roleBinding)
+	for _, clusterRoleBinding := range clusterRoleBindings {
+		if clusterRoleBinding.RoleRef.Name == name {
+			items = append(items, *clusterRoleBinding)
 		}
 	}
 
@@ -325,7 +319,7 @@ func GetClusterRole(name string) (*v1.ClusterRole, error) {
 	if err != nil {
 		return nil, err
 	}
-	return role, nil
+	return role.DeepCopy(), nil
 }
 
 func GetRoles(namespace string, username string) ([]v1.Role, error) {
@@ -381,9 +375,9 @@ func GetRoles(namespace string, username string) ([]v1.Role, error) {
 
 				} else {
 					if subject.Kind == v1.UserKind && subject.Name == username {
-						rule, err := roleLister.Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name)
+						role, err := roleLister.Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name)
 						if err == nil {
-							roles = append(roles, *rule)
+							roles = append(roles, *role)
 							break
 						} else if apierrors.IsNotFound(err) {
 							glog.Infoln(err.Error())
@@ -436,6 +430,7 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 				if roleBinding.RoleRef.Kind == ClusterRoleKind {
 					role, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
 					if err == nil {
+						role = role.DeepCopy()
 						if role.Annotations == nil {
 							role.Annotations = make(map[string]string, 0)
 						}
