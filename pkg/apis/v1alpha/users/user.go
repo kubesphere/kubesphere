@@ -26,6 +26,7 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 )
 
 func Register(ws *restful.WebService, subPath string) {
@@ -54,13 +55,6 @@ func createUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = models.CreateKubectlDeploy(user)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
-		return
-	}
-
 	resp.WriteEntity(constants.MessageResponse{Message: "successfully created"})
 }
 
@@ -68,7 +62,7 @@ func delUser(req *restful.Request, resp *restful.Response) {
 
 	user := req.PathParameter("user")
 
-	err := models.DelKubectlDeploy(user)
+	err := kubectl.DelKubectlDeploy(user)
 
 	if err != nil && !apierrors.IsNotFound(err) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
@@ -89,7 +83,7 @@ func getKubectl(req *restful.Request, resp *restful.Response) {
 
 	user := req.PathParameter("user")
 
-	kubectlPod, err := models.GetKubectlPod(user)
+	kubectlPod, err := kubectl.GetKubectlPod(user)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, constants.MessageResponse{Message: err.Error()})
