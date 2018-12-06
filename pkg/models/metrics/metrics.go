@@ -54,6 +54,7 @@ const (
 type PagedFormatedLevelMetric struct {
 	CurrentPage int                 `json:"page"`
 	TotalPage   int                 `json:"total_page"`
+	TotalItem   int                 `json:"total_item"`
 	Message     string              `json:"msg"`
 	Metric      FormatedLevelMetric `json:"metrics"`
 }

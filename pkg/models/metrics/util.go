@@ -236,6 +236,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	return &PagedFormatedLevelMetric{
 		Message:     "paged",
 		TotalPage:   allPage,
+		TotalItem:   maxLength,
 		CurrentPage: page,
 		Metric:      *fmtLevelMetric,
 	}
