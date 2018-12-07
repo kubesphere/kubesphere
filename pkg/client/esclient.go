@@ -16,28 +16,30 @@ import (
 	"context"
 
 	"github.com/olivere/elastic"
+
+	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 type QueryParameters struct {
 	Workspaces []string
-	Projects []string
-	Workloads []string
-	Pods []string
+	Projects   []string
+	Workloads  []string
+	Pods       []string
 	Containers []string
 
 	Workspaces_query string
-	Projects_query string
-	Workloads_query string
-	Pods_query string
+	Projects_query   string
+	Workloads_query  string
+	Pods_query       string
 	Containers_query string
 
-	Level constants.LogQueryLevel
-	Operation string
-	Log_query string
+	Level      constants.LogQueryLevel
+	Operation  string
+	Log_query  string
 	Start_time string
-	End_time string
-	From int
-	Size int
+	End_time   string
+	From       int
+	Size       int
 }
 
 func Query(param QueryParameters) *elastic.SearchResult {
@@ -182,7 +184,7 @@ func Query(param QueryParameters) *elastic.SearchResult {
 		}
 	}
 
-	if(hasShould) {
+	if hasShould {
 		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
 	}
 
@@ -192,10 +194,10 @@ func Query(param QueryParameters) *elastic.SearchResult {
 	searchResult, err := client.Search().
 		Index("logstash-*"). // search in index "logstash-*"
 		Query(boolQuery).
-		Sort("time", true). // sort by "time" field, ascending
-		From(param.From).Size(param.Size).   // take documents
-		Pretty(true).       // pretty print request and response JSON
-		Do(ctx)             // execute
+		Sort("time", true).                // sort by "time" field, ascending
+		From(param.From).Size(param.Size). // take documents
+		Pretty(true).                      // pretty print request and response JSON
+		Do(ctx)                            // execute
 	if err != nil {
 		// Handle error
 		// panic(err)

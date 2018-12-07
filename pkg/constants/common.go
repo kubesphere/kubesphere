@@ -61,6 +61,35 @@ var (
 	WorkSpaceRoles       = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
 )
 
+type LogQueryLevel int
+
+const (
+	QueryLevelCluster LogQueryLevel = iota
+	QueryLevelWorkspace
+	QueryLevelProject
+	QueryLevelWorkload
+	QueryLevelPod
+	QueryLevelContainer
+)
+
+const (
+	LogQueryLevelCluster   = "Cluster"
+	LogQueryLevelWorkspace = "Workspace"
+	LogQueryLevelProject   = "Project"
+	LogQueryLevelWorkload  = "Workload"
+	LogQueryLevelPod       = "Pod"
+	LogQueryLevelContainer = "Container"
+)
+
+type FormatedLevelLog struct {
+	LogLevel string `json:"log_query_level"`
+}
+
+const (
+	LogQueryOperationQuery      = "Query"
+	LogQueryOperationStatistics = "Statistics"
+)
+
 func init() {
 	if env := os.Getenv(DevopsAPIServerEnv); env != "" {
 		DevopsAPIServer = env
