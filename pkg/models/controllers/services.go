@@ -96,7 +96,7 @@ func generateSvcObject(item v1.Service) *Service {
 	}
 
 	if len(item.Spec.ClusterIP) == 0 || item.Spec.ClusterIP == "None" {
-		if len(item.Spec.Selector) == 0 {
+		if len(item.Spec.Selector) != 0 {
 			serviceType = "Headless(Selector)"
 		}
 

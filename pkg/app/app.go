@@ -44,6 +44,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/options"
 )
@@ -93,7 +94,7 @@ func preCheck() error {
 			if err = models.CreateKubeConfig(constants.AdminUserName); err != nil {
 				return err
 			}
-			if err = models.CreateKubectlDeploy(constants.AdminUserName); err != nil {
+			if err = kubectl.CreateKubectlDeploy(constants.AdminUserName); err != nil {
 				return err
 			}
 		} else {

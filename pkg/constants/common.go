@@ -46,6 +46,7 @@ const (
 	OpenPitrixProxyTokenEnv    = "OPENPITRIX_PROXY_TOKEN"
 	WorkspaceLabelKey          = "kubesphere.io/workspace"
 	WorkspaceAdmin             = "workspace-admin"
+	ClusterAdmin               = "cluster-admin"
 	WorkspaceRegular           = "workspace-regular"
 	WorkspaceViewer            = "workspace-viewer"
 	DevopsOwner                = "owner"

@@ -31,7 +31,7 @@ const (
 	DefaultPrometheusPort  = "9090"
 	PrometheusApiPath      = "/api/v1/"
 	DefaultQueryStep       = "10m"
-	DefaultQueryTimeout    = "30s"
+	DefaultQueryTimeout    = "10s"
 	RangeQueryType         = "query_range?"
 	DefaultQueryType       = "query?"
 	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"

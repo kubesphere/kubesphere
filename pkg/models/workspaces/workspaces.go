@@ -280,7 +280,13 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 		return make([]*core.Namespace, 0), nil
 	}
 
-	return namespaces, nil
+	out := make([]*core.Namespace, len(namespaces))
+
+	for i, v := range namespaces {
+		out[i] = v.DeepCopy()
+	}
+
+	return out, nil
 }
 
 func BindingDevopsProject(workspace string, devops string) error {
@@ -840,6 +846,8 @@ func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 			}
 			return nil, err
 		}
+
+		clusterRole = clusterRole.DeepCopy()
 
 		clusterRole.Name = name
 		roles = append(roles, clusterRole)

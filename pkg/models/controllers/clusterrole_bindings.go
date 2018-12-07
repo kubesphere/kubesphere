@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 )
 
 func (ctl *ClusterRoleBindingCtl) Name() string {
@@ -80,18 +81,82 @@ func (ctl *ClusterRoleBindingCtl) initListerAndInformer() {
 	ctl.informer = informerFactory.Rbac().V1().ClusterRoleBindings().Informer()
 	ctl.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
+			clusterRoleBinding := obj.(*rbac.ClusterRoleBinding)
+			ctl.handleTerminalCreate(clusterRoleBinding)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			oldValue := old.(*rbac.ClusterRoleBinding)
 			newValue := new.(*rbac.ClusterRoleBinding)
 			if !subjectsCompile(oldValue.Subjects, newValue.Subjects) {
 				ctl.handleWorkspaceRoleChange(newValue)
+				ctl.handleTerminalUpdate(oldValue, newValue)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
-
+			clusterRoleBinding := obj.(*rbac.ClusterRoleBinding)
+			ctl.handleTerminalDelete(clusterRoleBinding)
 		},
 	})
+}
+
+func (ctl *ClusterRoleBindingCtl) handleTerminalCreate(clusterRoleBinding *rbac.ClusterRoleBinding) {
+	if clusterRoleBinding.RoleRef.Name == constants.ClusterAdmin {
+		for _, subject := range clusterRoleBinding.Subjects {
+			if subject.Kind == rbac.UserKind {
+				err := kubectl.CreateKubectlDeploy(subject.Name)
+				if err != nil {
+					glog.Error(fmt.Sprintf("create %s's terminal pod failed:%s", subject.Name, err))
+				}
+			}
+		}
+	}
+}
+func (ctl *ClusterRoleBindingCtl) handleTerminalUpdate(old *rbac.ClusterRoleBinding, new *rbac.ClusterRoleBinding) {
+	if new.RoleRef.Name == constants.ClusterAdmin {
+		for _, newSubject := range new.Subjects {
+			isAdded := true
+			for _, oldSubject := range old.Subjects {
+				if oldSubject == newSubject {
+					isAdded = false
+					break
+				}
+			}
+			if isAdded && newSubject.Kind == rbac.UserKind {
+				err := kubectl.CreateKubectlDeploy(newSubject.Name)
+				if err != nil {
+					glog.Error(fmt.Sprintf("create %s's terminal pod failed:%s", newSubject.Name, err))
+				}
+			}
+		}
+		for _, oldSubject := range old.Subjects {
+			isDeleted := true
+			for _, newSubject := range new.Subjects {
+				if newSubject == oldSubject {
+					isDeleted = false
+					break
+				}
+			}
+			if isDeleted && oldSubject.Kind == rbac.UserKind {
+				err := kubectl.DelKubectlDeploy(oldSubject.Name)
+				if err != nil {
+					glog.Error(fmt.Sprintf("delete %s's terminal pod failed:%s", oldSubject.Name, err))
+				}
+			}
+		}
+	}
+}
+
+func (ctl *ClusterRoleBindingCtl) handleTerminalDelete(clusterRoleBinding *rbac.ClusterRoleBinding) {
+	if clusterRoleBinding.RoleRef.Name == constants.ClusterAdmin {
+		for _, subject := range clusterRoleBinding.Subjects {
+			if subject.Kind == rbac.UserKind {
+				err := kubectl.DelKubectlDeploy(subject.Name)
+				if err != nil {
+					glog.Error(fmt.Sprintf("delete %s's terminal pod failed:%s", subject.Name, err))
+				}
+			}
+		}
+	}
 }
 
 func subjectsCompile(s1 []rbac.Subject, s2 []rbac.Subject) bool {
