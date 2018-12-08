@@ -22,7 +22,7 @@ spec:
       serviceAccountName: kubesphere-router-serviceaccount
       containers:
         - name: nginx-ingress-controller
-          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.16.2
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
           args:
             - /nginx-ingress-controller
             - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
@@ -65,5 +65,11 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
           securityContext:
-            runAsNonRoot: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+              # www-data -> 33
+              runAsUser: 33
 
