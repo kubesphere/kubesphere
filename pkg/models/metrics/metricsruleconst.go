@@ -330,7 +330,7 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_namespace_count": `count(kube_namespace_annotations)`,
 
 	// cluster_pod_count = cluster_pod_running_count + cluster_pod_succeeded_count + cluster_pod_abnormal_count
-	"cluster_pod_count":           `sum((kube_pod_status_scheduled{condition="true"} > 0)  * on (pod) group_left(node) kube_pod_info unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"cluster_pod_count":           `sum((kube_pod_status_scheduled{condition="true"} > 0)  * on (pod) group_left(node) (sum by (node, pod) (kube_pod_info)) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_quota":           `sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_utilisation":     `sum(kube_pod_info unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)) / sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_running_count":   `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Succeeded"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
