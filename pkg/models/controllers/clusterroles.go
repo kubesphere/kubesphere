@@ -128,11 +128,12 @@ func (ctl *ClusterRoleCtl) initListerAndInformer() {
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
-			var item ClusterRole
-			object := obj.(*v1.ClusterRole)
-			db.Where("name=?", object.Name).Find(&item)
-			db.Delete(item)
 
+			object := obj.(*v1.ClusterRole)
+
+			if err := db.Delete(ClusterRole{}, "name=?", object.Name).Error; err != nil {
+				glog.Error("cluster roles delete error", err)
+			}
 		},
 	})
 	ctl.informer = informer
