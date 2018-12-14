@@ -22,7 +22,6 @@ import (
 	//"regexp"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -43,54 +42,56 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 
 	param.Level = level
 
+	//TODO: Get Namespace info from user workspace namespace
+	//      Get Pod info from workload
 	switch level {
 	case constants.QueryLevelCluster:
 		{
-			param.Workspaces_query = request.QueryParameter("workspace_query")
-			param.Projects_query = request.QueryParameter("project_query")
-			param.Workloads_query = request.QueryParameter("workload_query")
-			param.Pods_query = request.QueryParameter("pod_query")
-			param.Containers_query = request.QueryParameter("container_query")
+			//param.Workspaces_query = request.QueryParameter("workspace_query")
+			param.Namespace_query = request.QueryParameter("namespace_query")
+			//param.Workloads_query = request.QueryParameter("workload_query")
+			param.Pod_query = request.QueryParameter("pod_query")
+			param.Container_query = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelWorkspace:
 		{
-			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Projects_query = request.QueryParameter("project_query")
-			param.Workloads_query = request.QueryParameter("workload_query")
-			param.Pods_query = request.QueryParameter("pod_query")
-			param.Containers_query = request.QueryParameter("container_query")
+			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Namespace_query = request.QueryParameter("namespace_query")
+			//param.Workloads_query = request.QueryParameter("workload_query")
+			param.Pod_query = request.QueryParameter("pod_query")
+			param.Container_query = request.QueryParameter("container_query")
 		}
-	case constants.QueryLevelProject:
+	case constants.QueryLevelNamespace:
 		{
-			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
-			param.Workloads_query = request.QueryParameter("workload_query")
-			param.Pods_query = request.QueryParameter("pod_query")
-			param.Containers_query = request.QueryParameter("container_query")
+			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Namespaces = []string{request.PathParameter("namespace_name")}
+			//param.Workloads_query = request.QueryParameter("workload_query")
+			param.Pod_query = request.QueryParameter("pod_query")
+			param.Container_query = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelWorkload:
 		{
-			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
-			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			param.Pods_query = request.QueryParameter("pod_query")
-			param.Containers_query = request.QueryParameter("container_query")
+			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Namespaces = []string{request.PathParameter("namespace_name")}
+			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pod_query = request.QueryParameter("pod_query")
+			param.Container_query = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelPod:
 		{
-			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
-			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			param.Pods = strings.Split(request.PathParameter("pod_name"), ",")
-			param.Containers_query = request.QueryParameter("container_query")
+			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Namespaces = []string{request.PathParameter("namespace_name")}
+			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pods = []string{request.PathParameter("pod_name")}
+			param.Container_query = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelContainer:
 		{
-			param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Projects = strings.Split(request.PathParameter("project_name"), ",")
-			param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			param.Pods = strings.Split(request.PathParameter("pod_name"), ",")
-			param.Containers = strings.Split(request.PathParameter("container_name"), ",")
+			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.Namespaces = []string{request.PathParameter("namespace_name")}
+			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.Pods = []string{request.PathParameter("pod_name")}
+			param.Containers = []string{request.PathParameter("container_name")}
 		}
 	}
 

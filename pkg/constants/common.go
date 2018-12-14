@@ -66,7 +66,7 @@ type LogQueryLevel int
 const (
 	QueryLevelCluster LogQueryLevel = iota
 	QueryLevelWorkspace
-	QueryLevelProject
+	QueryLevelNamespace
 	QueryLevelWorkload
 	QueryLevelPod
 	QueryLevelContainer
@@ -75,7 +75,7 @@ const (
 const (
 	LogQueryLevelCluster   = "Cluster"
 	LogQueryLevelWorkspace = "Workspace"
-	LogQueryLevelProject   = "Project"
+	LogQueryLevelNamespace = "Namespace"
 	LogQueryLevelWorkload  = "Workload"
 	LogQueryLevelPod       = "Pod"
 	LogQueryLevelContainer = "Container"
