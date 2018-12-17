@@ -176,7 +176,8 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	}
 	// matrix type can not be sorted
 	for _, metricItem := range fmtLevelMetric.Results {
-		if metricItem.Data.ResultType != ResultTypeVector {
+		// if metric reterieved field, resultType: ""
+		if metricItem.Data.ResultType == ResultTypeMatrix {
 			return fmtLevelMetric
 		}
 	}
