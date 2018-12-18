@@ -71,6 +71,10 @@ func Query(param QueryParameters) *elastic.SearchResult {
 		hasShould = true
 	}
 
+	if hasShould {
+		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
+	}
+
 	if param.Namespace_query != "" {
 		matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.Namespace_query)
 		boolQuery = boolQuery.Must(matchQuery)
@@ -84,13 +88,13 @@ func Query(param QueryParameters) *elastic.SearchResult {
 		boolQuery = boolQuery.Must(matchQuery)
 	}
 
-	if hasShould {
-		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
+	if param.Log_query != "" {
+		matchQuery := elastic.NewMatchQuery("log", param.Log_query)
+		boolQuery = boolQuery.Must(matchQuery)
 	}
 
-	matchQuery := elastic.NewMatchQuery("log", param.Log_query)
 	rangeQuery := elastic.NewRangeQuery("time").From(param.Start_time).To(param.End_time)
-	boolQuery = boolQuery.Must(matchQuery).Must(rangeQuery)
+	boolQuery = boolQuery.Must(rangeQuery)
 	searchResult, err := client.Search().
 		Index("logstash-*"). // search in index "logstash-*"
 		Query(boolQuery).

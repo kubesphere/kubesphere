@@ -20,22 +20,71 @@ import (
 	//"fmt"
 	//"encoding/json"
 	//"regexp"
-	"log"
+
 	"strconv"
+	"strings"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
 	//"time"
 
-	//"k8s.io/api/core/v1"
-	//metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	//"kubesphere.io/kubesphere/pkg/models"
 	"github.com/olivere/elastic"
 )
+
+func queryLabel(label string, labels_query []string) bool {
+	var result = false
+
+	for _, label_query := range labels_query {
+		if strings.Contains(label, label_query) {
+			result = true
+			break
+		}
+	}
+
+	return result
+}
+
+//Input: workspace_query, multiple workspace query keyword
+//Output: namespaces which workspace string contains query keyword
+func queryWorkspace(workspace_query string) []string {
+	if workspace_query == "" {
+		return nil
+	}
+
+	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Error("failed to list namespace, error: ", err)
+		return nil
+	}
+
+	var namespaces []string
+
+	label_query := strings.ToLower(strings.Replace(workspace_query, ",", " ", -1))
+	labels_query := strings.Split(label_query, " ")
+	glog.Infof("labels_query %v", labels_query)
+
+	for _, ns := range nsList.Items {
+		labels := ns.GetLabels()
+		_, ok := labels[constants.WorkspaceLabelKey]
+		if ok {
+			if queryLabel(strings.ToLower(labels[constants.WorkspaceLabelKey]), labels_query) {
+				namespaces = append(namespaces, ns.GetName())
+			}
+		}
+	}
+
+	return namespaces
+}
+
+func getNamespacesFromWorkspace() {
+
+}
 
 func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.SearchResult {
 	var param client.QueryParameters
@@ -47,7 +96,8 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 	switch level {
 	case constants.QueryLevelCluster:
 		{
-			//param.Workspaces_query = request.QueryParameter("workspace_query")
+			param.Namespaces = queryWorkspace(request.QueryParameter("workspace_query"))
+			glog.Infof("queryWorkspace return %v", param.Namespaces)
 			param.Namespace_query = request.QueryParameter("namespace_query")
 			//param.Workloads_query = request.QueryParameter("workload_query")
 			param.Pod_query = request.QueryParameter("pod_query")
@@ -109,7 +159,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		param.Size = 10
 	}
 
-	log.Printf("LogQuery with %v", param)
+	//log.Printf("LogQuery with %v", param)
 
 	glog.Infof("LogQuery with %v", param)
 
