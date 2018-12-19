@@ -21,21 +21,24 @@ import (
 )
 
 type QueryParameters struct {
-	Namespaces []string
-	Pods       []string
-	Containers []string
+	NamespaceFilled bool
+	Namespaces      []string
+	PodFilled       bool
+	Pods            []string
+	ContainerFilled bool
+	Containers      []string
 
-	Namespace_query string
-	Pod_query       string
-	Container_query string
+	NamespaceQuery string
+	PodQuery       string
+	ContainerQuery string
 
-	Level      constants.LogQueryLevel
-	Operation  string
-	Log_query  string
-	Start_time string
-	End_time   string
-	From       int
-	Size       int
+	Level     constants.LogQueryLevel
+	Operation string
+	LogQuery  string
+	StartTime string
+	EndTime   string
+	From      int
+	Size      int
 }
 
 func Query(param QueryParameters) *elastic.SearchResult {
@@ -55,19 +58,25 @@ func Query(param QueryParameters) *elastic.SearchResult {
 	var boolQuery *elastic.BoolQuery = elastic.NewBoolQuery()
 	var hasShould bool = false
 
-	for _, namespace := range param.Namespaces {
-		matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
-		boolQuery = boolQuery.Should(matchPhraseQuery)
+	if param.NamespaceFilled {
+		for _, namespace := range param.Namespaces {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
+			boolQuery = boolQuery.Should(matchPhraseQuery)
+		}
 		hasShould = true
 	}
-	for _, pod := range param.Pods {
-		matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", pod)
-		boolQuery = boolQuery.Should(matchPhraseQuery)
+	if param.PodFilled {
+		for _, pod := range param.Pods {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", pod)
+			boolQuery = boolQuery.Should(matchPhraseQuery)
+		}
 		hasShould = true
 	}
-	for _, container := range param.Containers {
-		matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
-		boolQuery = boolQuery.Should(matchPhraseQuery)
+	if param.ContainerFilled {
+		for _, container := range param.Containers {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
+			boolQuery = boolQuery.Should(matchPhraseQuery)
+		}
 		hasShould = true
 	}
 
@@ -75,25 +84,25 @@ func Query(param QueryParameters) *elastic.SearchResult {
 		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
 	}
 
-	if param.Namespace_query != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.Namespace_query)
+	if param.NamespaceQuery != "" {
+		matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.NamespaceQuery)
 		boolQuery = boolQuery.Must(matchQuery)
 	}
-	if param.Pod_query != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.Pod_query)
+	if param.PodQuery != "" {
+		matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.PodQuery)
 		boolQuery = boolQuery.Must(matchQuery)
 	}
-	if param.Container_query != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.Container_query)
-		boolQuery = boolQuery.Must(matchQuery)
-	}
-
-	if param.Log_query != "" {
-		matchQuery := elastic.NewMatchQuery("log", param.Log_query)
+	if param.ContainerQuery != "" {
+		matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.ContainerQuery)
 		boolQuery = boolQuery.Must(matchQuery)
 	}
 
-	rangeQuery := elastic.NewRangeQuery("time").From(param.Start_time).To(param.End_time)
+	if param.LogQuery != "" {
+		matchQuery := elastic.NewMatchQuery("log", param.LogQuery)
+		boolQuery = boolQuery.Must(matchQuery)
+	}
+
+	rangeQuery := elastic.NewRangeQuery("time").From(param.StartTime).To(param.EndTime)
 	boolQuery = boolQuery.Must(rangeQuery)
 	searchResult, err := client.Search().
 		Index("logstash-*"). // search in index "logstash-*"

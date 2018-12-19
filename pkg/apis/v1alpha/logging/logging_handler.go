@@ -64,10 +64,14 @@ func Register(ws *restful.WebService, subPath string) {
 		Filter(route.RouteLogging).
 		Doc("cluster level log query").
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
+		Param(ws.QueryParameter("workspaces", "workspaces specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspace_query", "workspace query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespaces", "namespaces specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "namespace query keywords").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
@@ -81,11 +85,14 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}/v1alpha1/logging").To(u.loggingQueryWorkspace).
 		Filter(route.RouteLogging).
 		Doc("workspace level log query").
-		Param(ws.PathParameter("workspace_name", "specific workspace").DataType("string").Required(true)).
+		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
+		Param(ws.QueryParameter("namespaces", "namespaces specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "namespace query keywords").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
@@ -99,11 +106,13 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}/namespaces/{namespace_name}/v1alpha1/logging").To(u.loggingQueryNamespace).
 		Filter(route.RouteLogging).
 		Doc("namespace level log query").
-		Param(ws.PathParameter("workspace_name", "specific workspace").DataType("string").Required(true)).
-		Param(ws.PathParameter("namespace_name", "specific namespace").DataType("string").Required(true)).
+		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
-		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
@@ -117,11 +126,13 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}/v1alpha1/logging").To(u.loggingQueryWorkload).
 		Filter(route.RouteLogging).
 		Doc("workload level log query").
-		Param(ws.PathParameter("workspace_name", "specific workspace").DataType("string").Required(true)).
-		Param(ws.PathParameter("namespace_name", "specific namespace").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_name", "specific workload").DataType("string").Required(true)).
+		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
+		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
@@ -135,11 +146,12 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}/pods/{pod_name}/v1alpha1/logging").To(u.loggingQueryPod).
 		Filter(route.RouteLogging).
 		Doc("pod level log query").
-		Param(ws.PathParameter("workspace_name", "specific workspace").DataType("string").Required(true)).
-		Param(ws.PathParameter("namespace_name", "specific namespace").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_name", "specific workload").DataType("string").Required(true)).
-		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true)).
+		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("pod_name", "pod specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
+		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
@@ -153,11 +165,11 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET(subPath+"/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}/pods/{pod_name}/containers/{container_name}/v1alpha1/logging").To(u.loggingQueryContainer).
 		Filter(route.RouteLogging).
 		Doc("container level log query").
-		Param(ws.PathParameter("workspace_name", "specific workspace").DataType("string").Required(true)).
-		Param(ws.PathParameter("namespace_name", "specific namespace").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_name", "specific workload").DataType("string").Required(true)).
-		Param(ws.PathParameter("pod_name", "specific pod").DataType("string").Required(true)).
-		Param(ws.PathParameter("container_name", "specific container").DataType("string").Required(true)).
+		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("pod_name", "pod specify").DataType("string").Required(true)).
+		Param(ws.PathParameter("container_name", "container specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
