@@ -20,6 +20,7 @@ import (
 	//"fmt"
 	//"encoding/json"
 	//"regexp"
+	"reflect"
 
 	"strconv"
 	"strings"
@@ -63,6 +64,28 @@ func removeDups(elements []string) (nodups []string) {
 		}
 	}
 	return
+}
+
+func In(value interface{}, container interface{}) int {
+	if container == nil {
+		return -1
+	}
+	containerValue := reflect.ValueOf(container)
+	switch reflect.TypeOf(container).Kind() {
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < containerValue.Len(); i++ {
+			if containerValue.Index(i).Interface() == value {
+				return i
+			}
+		}
+	case reflect.Map:
+		if containerValue.MapIndex(reflect.ValueOf(value)).IsValid() {
+			return -1
+		}
+	default:
+		return -1
+	}
+	return -1
 }
 
 func matchLabel(label string, labelsMatch []string) bool {
@@ -157,16 +180,43 @@ func matchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []st
 	return true, namespacesMatch
 }
 
-func matchWorkload(workloadMatch string) (bool, []string) {
-	return false, nil
-}
-
-func matchPod(podMatch string) (bool, []string) {
-	if podMatch == "" {
+func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
+	if workloadMatch == "" {
 		return false, nil
 	}
 
-	return true, strings.Split(strings.Replace(podMatch, ",", " ", -1), " ")
+	workloadsMatch := strings.Split(strings.Replace(strings.Replace(workloadMatch, ",", " ", -1), "Deployment", "ReplicaSet", -1), " ")
+
+	podList, err := client.NewK8sClient().CoreV1().Pods("").List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Error("failed to list pods, error: ", err)
+		return true, nil
+	}
+
+	var pods []string
+
+	for _, pod := range podList.Items {
+		//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+		if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
+			pods = append(pods, pod.Name)
+		}
+	}
+
+	return true, pods
+}
+
+func matchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {
+	if podMatch == "" {
+		return podFilled, pods
+	}
+
+	podsMatch := strings.Split(strings.Replace(podMatch, ",", " ", -1), " ")
+
+	if podFilled {
+		return true, intersection(podsMatch, pods)
+	}
+
+	return true, podsMatch
 }
 
 func matchContainer(containerMatch string) (bool, []string) {
@@ -188,51 +238,59 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.QueryParameter("workspaces"), request.QueryParameter("workspace_query"))
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			matchWorkload(request.QueryParameter("workloads"))
-			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"))
+			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = matchPod(request.QueryParameter("containers"))
+			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelWorkspace:
 		{
-			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			//param.Workloads_query = request.QueryParameter("workload_query")
+			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
+			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelNamespace:
 		{
-			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Namespaces = []string{request.PathParameter("namespace_name")}
-			//param.Workloads_query = request.QueryParameter("workload_query")
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
+			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelWorkload:
 		{
-			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Namespaces = []string{request.PathParameter("namespace_name")}
-			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
+			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelPod:
 		{
-			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Namespaces = []string{request.PathParameter("namespace_name")}
-			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			param.Pods = []string{request.PathParameter("pod_name")}
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
+			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelContainer:
 		{
-			//param.Workspaces = strings.Split(request.PathParameter("workspace_name"), ",")
-			param.Namespaces = []string{request.PathParameter("namespace_name")}
-			//param.Workloads = strings.Split(request.PathParameter("workload_name"), ",")
-			param.Pods = []string{request.PathParameter("pod_name")}
-			param.Containers = []string{request.PathParameter("container_name")}
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
+			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
 		}
 	}
 
