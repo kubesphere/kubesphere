@@ -240,6 +240,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 	var param client.QueryParameters
 
 	param.Level = level
+	param.Operation = request.QueryParameter("operation")
 
 	switch level {
 	case constants.QueryLevelCluster:

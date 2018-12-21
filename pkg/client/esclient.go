@@ -120,17 +120,40 @@ func Query(param QueryParameters) *elastic.SearchResult {
 
 	rangeQuery := elastic.NewRangeQuery("time").From(param.StartTime).To(param.EndTime)
 	boolQuery = boolQuery.Must(rangeQuery)
-	searchResult, err := client.Search().
-		Index("logstash-*"). // search in index "logstash-*"
-		Query(boolQuery).
-		Sort("time", true).                // sort by "time" field, ascending
-		From(param.From).Size(param.Size). // take documents
-		Pretty(true).                      // pretty print request and response JSON
-		Do(ctx)                            // execute
-	if err != nil {
-		// Handle error
-		// panic(err)
-		searchResult = nil //Todo: Add error information
+
+	var searchResult *elastic.SearchResult
+	var searchError error
+
+	if param.Operation == "statistics" {
+		nsTermsAgg := elastic.NewTermsAggregation().Field("kubernetes.namespace_name.keyword")
+		containerTermsAgg := elastic.NewTermsAggregation().Field("kubernetes.container_name.keyword")
+		resultTermsAgg := nsTermsAgg.SubAggregation("Aggregate by container", containerTermsAgg)
+
+		searchResult, searchError = client.Search().
+			Index("logstash-*"). // search in index "logstash-*"
+			Query(boolQuery).
+			Aggregation("statistics", resultTermsAgg).
+			Size(0).      // take documents
+			Pretty(true). // pretty print request and response JSON
+			Do(ctx)       // execute
+		if searchError != nil {
+			// Handle error
+			// panic(err)
+			searchResult = nil //Todo: Add error information
+		}
+	} else {
+		searchResult, searchError = client.Search().
+			Index("logstash-*"). // search in index "logstash-*"
+			Query(boolQuery).
+			Sort("time", true).                // sort by "time" field, ascending
+			From(param.From).Size(param.Size). // take documents
+			Pretty(true).                      // pretty print request and response JSON
+			Do(ctx)                            // execute
+		if searchError != nil {
+			// Handle error
+			// panic(err)
+			searchResult = nil //Todo: Add error information
+		}
 	}
 
 	return searchResult
