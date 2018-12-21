@@ -59,27 +59,42 @@ func Query(param QueryParameters) *elastic.SearchResult {
 
 	if param.NamespaceFilled {
 		var nsQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		for _, namespace := range param.Namespaces {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
+		if len(param.Namespaces) == 0 {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.key_word", "")
 			nsQuery = nsQuery.Should(matchPhraseQuery)
+		} else {
+			for _, namespace := range param.Namespaces {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
+				nsQuery = nsQuery.Should(matchPhraseQuery)
+			}
 		}
 		nsQuery = nsQuery.MinimumNumberShouldMatch(1)
 		boolQuery = boolQuery.Must(nsQuery)
 	}
 	if param.PodFilled {
 		var podQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		for _, pod := range param.Pods {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.keyword", pod)
+		if len(param.Pods) == 0 {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", "")
 			podQuery = podQuery.Should(matchPhraseQuery)
+		} else {
+			for _, pod := range param.Pods {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.keyword", pod)
+				podQuery = podQuery.Should(matchPhraseQuery)
+			}
 		}
 		podQuery = podQuery.MinimumNumberShouldMatch(1)
 		boolQuery = boolQuery.Must(podQuery)
 	}
 	if param.ContainerFilled {
 		var containerQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		for _, container := range param.Containers {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
+		if len(param.Containers) == 0 {
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.key_word", "")
 			containerQuery = containerQuery.Should(matchPhraseQuery)
+		} else {
+			for _, container := range param.Containers {
+				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
+				containerQuery = containerQuery.Should(matchPhraseQuery)
+			}
 		}
 		containerQuery = containerQuery.MinimumNumberShouldMatch(1)
 		boolQuery = boolQuery.Must(containerQuery)
