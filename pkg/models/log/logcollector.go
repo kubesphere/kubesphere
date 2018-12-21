@@ -195,10 +195,19 @@ func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
 
 	var pods []string
 
-	for _, pod := range podList.Items {
-		//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-		if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
-			pods = append(pods, pod.Name)
+	if namespaces == nil {
+		for _, pod := range podList.Items {
+			//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 {
+				pods = append(pods, pod.Name)
+			}
+		}
+	} else {
+		for _, pod := range podList.Items {
+			//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
+				pods = append(pods, pod.Name)
+			}
 		}
 	}
 

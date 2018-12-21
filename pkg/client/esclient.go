@@ -56,32 +56,33 @@ func Query(param QueryParameters) *elastic.SearchResult {
 	}
 
 	var boolQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-	var hasShould bool = false
 
 	if param.NamespaceFilled {
+		var nsQuery *elastic.BoolQuery = elastic.NewBoolQuery()
 		for _, namespace := range param.Namespaces {
 			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
-			boolQuery = boolQuery.Should(matchPhraseQuery)
+			nsQuery = nsQuery.Should(matchPhraseQuery)
 		}
-		hasShould = true
+		nsQuery = nsQuery.MinimumNumberShouldMatch(1)
+		boolQuery = boolQuery.Must(nsQuery)
 	}
 	if param.PodFilled {
+		var podQuery *elastic.BoolQuery = elastic.NewBoolQuery()
 		for _, pod := range param.Pods {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", pod)
-			boolQuery = boolQuery.Should(matchPhraseQuery)
+			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.keyword", pod)
+			podQuery = podQuery.Should(matchPhraseQuery)
 		}
-		hasShould = true
+		podQuery = podQuery.MinimumNumberShouldMatch(1)
+		boolQuery = boolQuery.Must(podQuery)
 	}
 	if param.ContainerFilled {
+		var containerQuery *elastic.BoolQuery = elastic.NewBoolQuery()
 		for _, container := range param.Containers {
 			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
-			boolQuery = boolQuery.Should(matchPhraseQuery)
+			containerQuery = containerQuery.Should(matchPhraseQuery)
 		}
-		hasShould = true
-	}
-
-	if hasShould {
-		boolQuery = boolQuery.MinimumNumberShouldMatch(1)
+		containerQuery = containerQuery.MinimumNumberShouldMatch(1)
+		boolQuery = boolQuery.Must(containerQuery)
 	}
 
 	if param.NamespaceQuery != "" {
