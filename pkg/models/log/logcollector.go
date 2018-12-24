@@ -88,6 +88,17 @@ func In(value interface{}, container interface{}) int {
 	return -1
 }
 
+func getWorkloadName(name string, kind string) string {
+	if kind == "ReplicaSet" {
+		lastIndex := strings.LastIndex(name, "-")
+		if lastIndex >= 0 {
+			return name[:lastIndex]
+		}
+	}
+
+	return name
+}
+
 func matchLabel(label string, labelsMatch []string) bool {
 	var result = false
 
@@ -185,7 +196,7 @@ func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
 		return false, nil
 	}
 
-	workloadsMatch := strings.Split(strings.Replace(strings.Replace(workloadMatch, ",", " ", -1), "Deployment", "ReplicaSet", -1), " ")
+	workloadsMatch := strings.Split(strings.Replace(workloadMatch, ",", " ", -1), " ")
 
 	podList, err := client.NewK8sClient().CoreV1().Pods("").List(metaV1.ListOptions{})
 	if err != nil {
@@ -197,15 +208,19 @@ func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
 
 	if namespaces == nil {
 		for _, pod := range podList.Items {
-			//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 {
+			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
+				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			}*/
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind), workloadsMatch) >= 0 {
 				pods = append(pods, pod.Name)
 			}
 		}
 	} else {
 		for _, pod := range podList.Items {
-			//glog.Infof("List Pod %v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.ObjectMeta.OwnerReferences[0].Kind, workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
+			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
+				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			}*/
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind), workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
 				pods = append(pods, pod.Name)
 			}
 		}
