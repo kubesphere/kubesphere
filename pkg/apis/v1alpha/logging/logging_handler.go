@@ -69,6 +69,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("namespaces", "namespaces specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "namespace query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
@@ -90,6 +91,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("namespaces", "namespaces specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "namespace query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
@@ -110,6 +112,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
 		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "workload query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pods", "pods specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("pod_query", "pod query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).

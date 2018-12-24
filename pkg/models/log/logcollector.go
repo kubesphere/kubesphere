@@ -139,16 +139,16 @@ func queryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []strin
 	var namespaces []string
 
 	var hasMatch = false
-	var labelsMatch []string
+	var workspacesMatch []string
 	if workspaceMatch != "" {
-		labelsMatch = strings.Split(strings.Replace(workspaceMatch, ",", " ", -1), " ")
+		workspacesMatch = strings.Split(strings.Replace(workspaceMatch, ",", " ", -1), " ")
 		hasMatch = true
 	}
 
 	var hasQuery = false
-	var labelsQuery []string
+	var workspacesQuery []string
 	if workspaceQuery != "" {
-		labelsQuery = strings.Split(strings.ToLower(strings.Replace(workspaceQuery, ",", " ", -1)), " ")
+		workspacesQuery = strings.Split(strings.ToLower(strings.Replace(workspaceQuery, ",", " ", -1)), " ")
 		hasQuery = true
 	}
 
@@ -156,19 +156,19 @@ func queryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []strin
 		labels := ns.GetLabels()
 		_, ok := labels[constants.WorkspaceLabelKey]
 		if ok {
-			var namespaceMatch = true
+			var namespaceCanAppend = true
 			if hasMatch {
-				if !matchLabel(labels[constants.WorkspaceLabelKey], labelsMatch) {
-					namespaceMatch = false
+				if !matchLabel(labels[constants.WorkspaceLabelKey], workspacesMatch) {
+					namespaceCanAppend = false
 				}
 			}
 			if hasQuery {
-				if !queryLabel(strings.ToLower(labels[constants.WorkspaceLabelKey]), labelsQuery) {
-					namespaceMatch = false
+				if !queryLabel(strings.ToLower(labels[constants.WorkspaceLabelKey]), workspacesQuery) {
+					namespaceCanAppend = false
 				}
 			}
 
-			if namespaceMatch {
+			if namespaceCanAppend {
 				namespaces = append(namespaces, ns.GetName())
 			}
 		}
@@ -229,6 +229,86 @@ func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
 	return true, pods
 }
 
+func queryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
+	if workloadMatch == "" && workloadQuery == "" {
+		return false, nil
+	}
+
+	podList, err := client.NewK8sClient().CoreV1().Pods("").List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Error("failed to list pods, error: ", err)
+		return true, nil
+	}
+
+	var pods []string
+
+	var hasMatch = false
+	var workloadsMatch []string
+	if workloadMatch != "" {
+		workloadsMatch = strings.Split(strings.Replace(workloadMatch, ",", " ", -1), " ")
+		hasMatch = true
+	}
+
+	var hasQuery = false
+	var workloadsQuery []string
+	if workloadQuery != "" {
+		workloadsQuery = strings.Split(strings.ToLower(strings.Replace(workloadQuery, ",", " ", -1)), " ")
+		hasQuery = true
+	}
+
+	if namespaces == nil {
+		for _, pod := range podList.Items {
+			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
+				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			}*/
+			if len(pod.ObjectMeta.OwnerReferences) > 0 {
+				var podCanAppend = true
+				workloadName := getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+				if hasMatch {
+					if !matchLabel(workloadName, workloadsMatch) {
+						podCanAppend = false
+					}
+				}
+				if hasQuery {
+					if !queryLabel(strings.ToLower(workloadName), workloadsQuery) {
+						podCanAppend = false
+					}
+				}
+
+				if podCanAppend {
+					pods = append(pods, pod.Name)
+				}
+			}
+		}
+	} else {
+		for _, pod := range podList.Items {
+			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
+				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+			}*/
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.Namespace, namespaces) >= 0 {
+				var podCanAppend = true
+				workloadName := getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
+				if hasMatch {
+					if !matchLabel(workloadName, workloadsMatch) {
+						podCanAppend = false
+					}
+				}
+				if hasQuery {
+					if !queryLabel(strings.ToLower(workloadName), workloadsQuery) {
+						podCanAppend = false
+					}
+				}
+
+				if podCanAppend {
+					pods = append(pods, pod.Name)
+				}
+			}
+		}
+	}
+
+	return true, pods
+}
+
 func matchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {
 	if podMatch == "" {
 		return podFilled, pods
@@ -263,7 +343,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.QueryParameter("workspaces"), request.QueryParameter("workspace_query"))
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
@@ -271,10 +351,10 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		}
 	case constants.QueryLevelWorkspace:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
@@ -282,9 +362,9 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		}
 	case constants.QueryLevelNamespace:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = matchWorkload(request.QueryParameter("workloads"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
@@ -292,9 +372,9 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		}
 	case constants.QueryLevelWorkload:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
@@ -302,18 +382,18 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 		}
 	case constants.QueryLevelPod:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelContainer:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), request.QueryParameter("workspace_query"))
+			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
 			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = matchWorkload(request.PathParameter("workload_name"), param.Namespaces)
+			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
 			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
 		}
