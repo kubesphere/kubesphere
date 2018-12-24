@@ -234,12 +234,19 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 
 	allPage := int(math.Ceil(float64(maxLength) / float64(limit)))
 
-	return &PagedFormatedLevelMetric{
-		Message:     "paged",
-		TotalPage:   allPage,
-		TotalItem:   maxLength,
-		CurrentPage: page,
-		Metric:      *fmtLevelMetric,
+	// add page fields
+	return &struct {
+		*FormatedLevelMetric
+		CurrentPage int    `json:"page"`
+		TotalPage   int    `json:"total_page"`
+		TotalItem   int    `json:"total_item"`
+		Message     string `json:"msg"`
+	}{
+		FormatedLevelMetric: fmtLevelMetric,
+		CurrentPage:         page,
+		TotalItem:           maxLength,
+		TotalPage:           allPage,
+		Message:             "paged",
 	}
 }
 
