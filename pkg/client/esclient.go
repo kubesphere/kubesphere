@@ -35,6 +35,7 @@ type QueryParameters struct {
 	Level     constants.LogQueryLevel
 	Operation string
 	LogQuery  string
+	Interval  string
 	StartTime string
 	EndTime   string
 	From      int
@@ -133,6 +134,27 @@ func Query(param QueryParameters) *elastic.SearchResult {
 			Index("logstash-*"). // search in index "logstash-*"
 			Query(boolQuery).
 			Aggregation("statistics", resultTermsAgg).
+			Size(0).      // take documents
+			Pretty(true). // pretty print request and response JSON
+			Do(ctx)       // execute
+		if searchError != nil {
+			// Handle error
+			// panic(err)
+			searchResult = nil //Todo: Add error information
+		}
+	} else if param.Operation == "histogram" {
+		var interval string
+		if param.Interval != "" {
+			interval = param.Interval
+		} else {
+			interval = "15m"
+		}
+		dateAgg := elastic.NewDateHistogramAggregation().Field("time").Interval(interval)
+
+		searchResult, searchError = client.Search().
+			Index("logstash-*"). // search in index "logstash-*"
+			Query(boolQuery).
+			Aggregation("histogram", dateAgg).
 			Size(0).      // take documents
 			Pretty(true). // pretty print request and response JSON
 			Do(ctx)       // execute

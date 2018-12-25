@@ -75,6 +75,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
@@ -97,6 +98,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
@@ -118,6 +120,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
@@ -138,6 +141,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
@@ -157,6 +161,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
 		Param(ws.QueryParameter("container_query", "container query keywords").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
@@ -175,6 +180,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.PathParameter("container_name", "container specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
 		Param(ws.QueryParameter("log_query", "log query keywords").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).

@@ -191,44 +191,6 @@ func matchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []st
 	return true, namespacesMatch
 }
 
-func matchWorkload(workloadMatch string, namespaces []string) (bool, []string) {
-	if workloadMatch == "" {
-		return false, nil
-	}
-
-	workloadsMatch := strings.Split(strings.Replace(workloadMatch, ",", " ", -1), " ")
-
-	podList, err := client.NewK8sClient().CoreV1().Pods("").List(metaV1.ListOptions{})
-	if err != nil {
-		glog.Error("failed to list pods, error: ", err)
-		return true, nil
-	}
-
-	var pods []string
-
-	if namespaces == nil {
-		for _, pod := range podList.Items {
-			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
-				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			}*/
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind), workloadsMatch) >= 0 {
-				pods = append(pods, pod.Name)
-			}
-		}
-	} else {
-		for _, pod := range podList.Items {
-			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
-				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			}*/
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind), workloadsMatch) >= 0 && In(pod.Namespace, namespaces) >= 0 {
-				pods = append(pods, pod.Name)
-			}
-		}
-	}
-
-	return true, pods
-}
-
 func queryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
 	if workloadMatch == "" && workloadQuery == "" {
 		return false, nil
@@ -398,6 +360,8 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.
 			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
 		}
 	}
+
+	param.Interval = request.QueryParameter("interval")
 
 	param.LogQuery = request.QueryParameter("log_query")
 	param.StartTime = request.QueryParameter("start_time")
