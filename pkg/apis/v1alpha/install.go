@@ -68,7 +68,7 @@ func init() {
 	daemonsets.Register(ws, "/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}")
 	statefulsets.Register(ws, "/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}")
 	resources.Register(ws, "/resources")
-	logging.Register(ws, "/logging.kubesphere.io")
+	logging.Register(ws, "/logging")
 	monitoring.Register(ws, "/monitoring")
 	workspaces.Register(ws, "/workspaces")
 	// add webservice to default container
