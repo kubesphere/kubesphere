@@ -35,7 +35,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	//"kubesphere.io/kubesphere/pkg/models"
-	"github.com/olivere/elastic"
 )
 
 func intersection(s1, s2 []string) (inter []string) {
@@ -293,7 +292,7 @@ func matchContainer(containerMatch string) (bool, []string) {
 	return true, strings.Split(strings.Replace(containerMatch, ",", " ", -1), " ")
 }
 
-func LogQuery(level constants.LogQueryLevel, request *restful.Request) *elastic.SearchResult {
+func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.QueryResult {
 	var param client.QueryParameters
 
 	param.Level = level
