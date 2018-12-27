@@ -60,7 +60,7 @@ func Register(ws *restful.WebService, subPath string) {
 	tags := []string{"logging apis"}
 	u := LoggingResource{}
 
-	ws.Route(ws.GET(subPath).To(u.loggingQueryCluster).
+	ws.Route(ws.GET("/cluster"+subPath).To(u.loggingQueryCluster).
 		Filter(route.RouteLogging).
 		Doc("cluster level log query").
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).

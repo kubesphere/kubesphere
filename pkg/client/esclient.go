@@ -15,6 +15,8 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/olivere/elastic"
 
@@ -39,7 +41,7 @@ type Kubernetes struct {
 }
 
 type LogRecord struct {
-	Time      string `json:"time,omitempty"`
+	Time      int64  `json:"time,omitempty"`
 	Log       string `json:"log,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 	Pod       string `json:"pod,omitempty"`
@@ -60,7 +62,7 @@ type NamespaceAggregation struct {
 
 type NamespaceStatistics struct {
 	Namespace            string          `json:"Key"`
-	Count                int             `json:"doc_count"`
+	Count                int64           `json:"doc_count"`
 	ContainerAggregation json.RawMessage `json:"Aggregate by container"`
 }
 
@@ -70,18 +72,18 @@ type ContainerAggregation struct {
 
 type ContainerStatistics struct {
 	Container string `json:"Key"`
-	Count     int    `json:"doc_count"`
+	Count     int64  `json:"doc_count"`
 }
 
 type NamespaceResult struct {
 	Namespace  string            `json:"namespace"`
-	Count      int               `json:"count"`
+	Count      int64             `json:"count"`
 	Containers []ContainerResult `json:"containers"`
 }
 
 type ContainerResult struct {
 	Container string `json:"container"`
-	Count     int    `json:"count"`
+	Count     int64  `json:"count"`
 }
 
 type StatisticsResult struct {
@@ -94,19 +96,19 @@ type HistogramAggregation struct {
 }
 
 type HistogramStatistics struct {
-	Time  string `json:"key_as_string"`
-	Count int    `json:"doc_count"`
+	Time  int64 `json:"key"`
+	Count int64 `json:"doc_count"`
 }
 
 type HistogramRecord struct {
-	Time  string `json:"time"`
-	Count int    `json:"count"`
+	Time  int64 `json:"time"`
+	Count int64 `json:"count"`
 }
 
 type HistogramResult struct {
 	Total      int64             `json:"total"`
-	StartTime  string            `json:"start_time"`
-	EndTime    string            `json:"end_time"`
+	StartTime  int64             `json:"start_time"`
+	EndTime    int64             `json:"end_time"`
 	Interval   string            `json:"interval"`
 	Histograms []HistogramRecord `json:"histograms"`
 }
@@ -123,6 +125,27 @@ const (
 	OperationHistogram
 )
 
+func calcTimestamp(input string) int64 {
+	var t time.Time
+	var err error
+	var ret int64
+
+	ret = 0
+
+	t, err = time.Parse(time.RFC3339, input)
+	if err != nil {
+		var i int64
+		i, err = strconv.ParseInt(input, 10, 64)
+		if err == nil {
+			ret = time.Unix(i/1000, (i%1000)*1000000).UnixNano() / 1000000
+		}
+	} else {
+		ret = t.UnixNano() / 1000000
+	}
+
+	return ret
+}
+
 func parseQueryResult(operation int, param QueryParameters, esResult *elastic.SearchResult) *QueryResult {
 	var queryResult QueryResult
 
@@ -136,7 +159,7 @@ func parseQueryResult(operation int, param QueryParameters, esResult *elastic.Se
 			var logRecord LogRecord
 			var source Source
 			json.Unmarshal(*hit.Source, &source)
-			logRecord.Time = source.Time
+			logRecord.Time = calcTimestamp(source.Time)
 			logRecord.Log = source.Log
 			var kubernetes Kubernetes
 			json.Unmarshal(source.Kubernetes, &kubernetes)
@@ -176,8 +199,8 @@ func parseQueryResult(operation int, param QueryParameters, esResult *elastic.Se
 	case OperationHistogram:
 		var histogramResult HistogramResult
 		histogramResult.Total = esResult.Hits.TotalHits
-		histogramResult.StartTime = param.StartTime
-		histogramResult.EndTime = param.EndTime
+		histogramResult.StartTime = calcTimestamp(param.StartTime)
+		histogramResult.EndTime = calcTimestamp(param.EndTime)
 		histogramResult.Interval = param.Interval
 
 		var histogramAggregation HistogramAggregation
