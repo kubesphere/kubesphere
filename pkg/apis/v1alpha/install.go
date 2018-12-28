@@ -19,28 +19,8 @@ package v1alpha
 import (
 	"github.com/emicklei/go-restful"
 
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/components"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/containers"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/daemonsets"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/deployments"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/hpa"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/iam"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/jobs"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/logging"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/monitoring"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/nodes"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/pods"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/quota"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/registries"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/resources"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/routes"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/statefulsets"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/storage"
 	"kubesphere.io/kubesphere/pkg/apis/v1alpha/terminal"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/users"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/volumes"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/workloadstatus"
-	"kubesphere.io/kubesphere/pkg/apis/v1alpha/workspaces"
 	_ "kubesphere.io/kubesphere/pkg/filter/container"
 )
 
@@ -49,7 +29,7 @@ func init() {
 	ws := new(restful.WebService)
 	ws.Path("/api/v1alpha1")
 
-	registries.Register(ws, "/registries")
+	/*registries.Register(ws, "/registries")
 	storage.Register(ws, "/storage")
 	volumes.Register(ws, "/volumes")
 	nodes.Register(ws, "/nodes")
@@ -67,10 +47,10 @@ func init() {
 	deployments.Register(ws, "/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}")
 	daemonsets.Register(ws, "/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}")
 	statefulsets.Register(ws, "/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}")
-	resources.Register(ws, "/resources")
+	resources.Register(ws, "/resources")*/
 	logging.Register(ws, "")
-	monitoring.Register(ws, "/monitoring")
-	workspaces.Register(ws, "/workspaces")
+	/*monitoring.Register(ws, "/monitoring")
+	workspaces.Register(ws, "/workspaces")*/
 	// add webservice to default container
 	restful.Add(ws)
 

@@ -107,10 +107,9 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace_name}/namespaces/{namespace_name}"+subPath).To(u.loggingQueryNamespace).
+	ws.Route(ws.GET("/namespaces/{namespace_name}"+subPath).To(u.loggingQueryNamespace).
 		Filter(route.RouteLogging).
 		Doc("namespace level log query").
-		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
 		Param(ws.QueryParameter("workloads", "workloads specify").DataType("string").Required(false)).
@@ -129,10 +128,9 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}"+subPath).To(u.loggingQueryWorkload).
+	ws.Route(ws.GET("/namespaces/{namespace_name}/workloads/{workload_name}"+subPath).To(u.loggingQueryWorkload).
 		Filter(route.RouteLogging).
 		Doc("workload level log query").
-		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
@@ -150,12 +148,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}/pods/{pod_name}"+subPath).To(u.loggingQueryPod).
+	ws.Route(ws.GET("/namespaces/{namespace_name}/pods/{pod_name}"+subPath).To(u.loggingQueryPod).
 		Filter(route.RouteLogging).
 		Doc("pod level log query").
-		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod_name", "pod specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).
 		Param(ws.QueryParameter("containers", "containers specify").DataType("string").Required(false)).
@@ -170,12 +166,10 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace_name}/namespaces/{namespace_name}/workloads/{workload_name}/pods/{pod_name}/containers/{container_name}"+subPath).To(u.loggingQueryContainer).
+	ws.Route(ws.GET("/namespaces/{namespace_name}/pods/{pod_name}/containers/{container_name}"+subPath).To(u.loggingQueryContainer).
 		Filter(route.RouteLogging).
 		Doc("container level log query").
-		Param(ws.PathParameter("workspace_name", "workspace specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("namespace_name", "namespace specify").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_name", "workload specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod_name", "pod specify").DataType("string").Required(true)).
 		Param(ws.PathParameter("container_name", "container specify").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "operation: query statistics").DataType("string").Required(true)).

@@ -323,8 +323,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 		}
 	case constants.QueryLevelNamespace:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
 			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
@@ -333,8 +332,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 		}
 	case constants.QueryLevelWorkload:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
 			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
 			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
@@ -343,19 +341,15 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 		}
 	case constants.QueryLevelPod:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
+			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), false, nil)
 			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
 	case constants.QueryLevelContainer:
 		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), param.NamespaceFilled, param.Namespaces)
-			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), param.PodFilled, param.Pods)
+			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
+			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), false, nil)
 			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
 		}
 	}
