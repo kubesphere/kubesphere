@@ -114,6 +114,7 @@ type HistogramResult struct {
 }
 
 type QueryResult struct {
+	Status     int               `json:"status,omitempty"`
 	Read       *ReadResult       `json:"query,omitempty"`
 	Statistics *StatisticsResult `json:"statistics,omitempty"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty"`
@@ -146,8 +147,18 @@ func calcTimestamp(input string) int64 {
 	return ret
 }
 
-func parseQueryResult(operation int, param QueryParameters, esResult *elastic.SearchResult) *QueryResult {
+func parseQueryResult(operation int, param QueryParameters, esResult *elastic.SearchResult, esError error) *QueryResult {
 	var queryResult QueryResult
+
+	if esError != nil {
+		queryResult.Status = 404
+		return &queryResult
+	}
+
+	if esResult.Error != nil {
+		queryResult.Status = 400
+		return &queryResult
+	}
 
 	switch operation {
 	case OperationQuery:
@@ -216,6 +227,8 @@ func parseQueryResult(operation int, param QueryParameters, esResult *elastic.Se
 		queryResult.Histogram = &histogramResult
 	}
 
+	queryResult.Status = 200
+
 	return &queryResult
 }
 
@@ -242,6 +255,8 @@ type QueryParameters struct {
 }
 
 func Query(param QueryParameters) *QueryResult {
+	var queryResult *QueryResult
+
 	// Starting with elastic.v5, you must pass a context to execute each service
 	ctx := context.Background()
 
@@ -252,7 +267,9 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		// Handle error
 		// panic(err)
-		return nil //Todo: Return error information
+		queryResult = new(QueryResult)
+		queryResult.Status = 404
+		return queryResult
 	}
 
 	var boolQuery *elastic.BoolQuery = elastic.NewBoolQuery()
@@ -321,7 +338,6 @@ func Query(param QueryParameters) *QueryResult {
 	rangeQuery := elastic.NewRangeQuery("time").From(param.StartTime).To(param.EndTime)
 	boolQuery = boolQuery.Must(rangeQuery)
 
-	var queryResult *QueryResult
 	var searchResult *elastic.SearchResult
 	var searchError error
 
@@ -337,13 +353,7 @@ func Query(param QueryParameters) *QueryResult {
 			Size(0). // take documents
 			Do(ctx)  // execute
 
-		queryResult = parseQueryResult(OperationStatistics, param, searchResult)
-
-		if searchError != nil {
-			// Handle error
-			// panic(err)
-			queryResult = nil //Todo: Add error information
-		}
+		queryResult = parseQueryResult(OperationStatistics, param, searchResult, searchError)
 	} else if param.Operation == "histogram" {
 		var interval string
 		if param.Interval != "" {
@@ -361,13 +371,7 @@ func Query(param QueryParameters) *QueryResult {
 			Size(0). // take documents
 			Do(ctx)  // execute
 
-		queryResult = parseQueryResult(OperationHistogram, param, searchResult)
-
-		if searchError != nil {
-			// Handle error
-			// panic(err)
-			queryResult = nil //Todo: Add error information
-		}
+		queryResult = parseQueryResult(OperationHistogram, param, searchResult, searchError)
 	} else {
 		searchResult, searchError = client.Search().
 			Index("logstash-*"). // search in index "logstash-*"
@@ -376,13 +380,7 @@ func Query(param QueryParameters) *QueryResult {
 			From(param.From).Size(param.Size). // take documents
 			Do(ctx)                            // execute
 
-		queryResult = parseQueryResult(OperationQuery, param, searchResult)
-
-		if searchError != nil {
-			// Handle error
-			// panic(err)
-			queryResult = nil //Todo: Add error information
-		}
+		queryResult = parseQueryResult(OperationQuery, param, searchResult, searchError)
 	}
 
 	return queryResult
