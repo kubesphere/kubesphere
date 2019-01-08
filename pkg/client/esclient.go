@@ -13,24 +13,237 @@ limitations under the License.
 package client
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/olivere/elastic"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-type Records struct {
-	Source json.RawMessage `json:"_source"`
+type Request struct {
+	From      int64       `json:"from"`
+	Size      int64       `json:"size"`
+	Sorts     []Sort      `json:"sort,omitempty"`
+	MainQuery MainQuery   `json:"query"`
+	Aggs      interface{} `json:"aggs,omitempty"`
+}
+
+type Sort struct {
+	Order Order `json:"time"`
+}
+
+type Order struct {
+	Order string `json:"order"`
+}
+
+type MainQuery struct {
+	MainBoolQuery MainBoolQuery `json:"bool"`
+}
+
+type MainBoolQuery struct {
+	Musts []interface{} `json:"must"`
+}
+
+type RangeQuery struct {
+	RangeSpec RangeSpec `json:"range"`
+}
+
+type RangeSpec struct {
+	TimeRange TimeRange `json:"time"`
+}
+
+type TimeRange struct {
+	Gte string `json:"gte"`
+	Lte string `json:"lte"`
+}
+
+type BoolShouldMatchPhrase struct {
+	ShouldMatchPhrase ShouldMatchPhrase `json:"bool"`
+}
+
+type ShouldMatchPhrase struct {
+	Shoulds            []interface{} `json:"should"`
+	MinimumShouldMatch int64         `json:"minimum_should_match"`
+}
+
+type MatchPhrase struct {
+	MatchPhrase interface{} `json:"match_phrase"`
+}
+
+type Match struct {
+	Match interface{} `json:"match"`
+}
+
+type QueryWord struct {
+	Word string `json:"query"`
+}
+
+type StatisticsAggs struct {
+	NamespaceAgg NamespaceAgg `json:"Namespace"`
+}
+
+type NamespaceAgg struct {
+	Terms         StatisticsAggTerm `json:"terms"`
+	ContainerAggs ContainerAggs     `json:"aggs"`
+}
+
+type ContainerAggs struct {
+	ContainerAgg ContainerAgg `json:"Container"`
+}
+
+type ContainerAgg struct {
+	Terms StatisticsAggTerm `json:"terms"`
+}
+
+type StatisticsAggTerm struct {
+	Field string `json:"field"`
+	Size  int64  `json:"size"`
+}
+
+type HistogramAggs struct {
+	HistogramAgg HistogramAgg `json:"histogram"`
+}
+
+type HistogramAgg struct {
+	DateHistogram DateHistogram `json:"date_histogram"`
+}
+
+type DateHistogram struct {
+	Field    string `json:"field"`
+	Interval string `json:"interval"`
+}
+
+func createQueryRequest(param QueryParameters) (int, []byte, error) {
+	var request Request
+	var mainBoolQuery MainBoolQuery
+
+	if param.NamespaceFilled {
+		var shouldMatchPhrase ShouldMatchPhrase
+		if len(param.Namespaces) == 0 {
+			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.key_word": QueryWord{""}}}
+			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+		} else {
+			for _, namespace := range param.Namespaces {
+				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.keyword": QueryWord{namespace}}}
+				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+			}
+		}
+		shouldMatchPhrase.MinimumShouldMatch = 1
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	}
+	if param.PodFilled {
+		var shouldMatchPhrase ShouldMatchPhrase
+		if len(param.Pods) == 0 {
+			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.key_word": QueryWord{""}}}
+			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+		} else {
+			for _, pod := range param.Pods {
+				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.keyword": QueryWord{pod}}}
+				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+			}
+		}
+		shouldMatchPhrase.MinimumShouldMatch = 1
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	}
+	if param.ContainerFilled {
+		var shouldMatchPhrase ShouldMatchPhrase
+		if len(param.Containers) == 0 {
+			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.key_word": QueryWord{""}}}
+			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+		} else {
+			for _, container := range param.Containers {
+				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.keyword": QueryWord{container}}}
+				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+			}
+		}
+		shouldMatchPhrase.MinimumShouldMatch = 1
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	}
+
+	if param.NamespaceQuery != "" {
+		match := Match{map[string]interface{}{"kubernetes.namespace_name": QueryWord{param.NamespaceQuery}}}
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	}
+	if param.PodQuery != "" {
+		match := Match{map[string]interface{}{"kubernetes.pod_name": QueryWord{param.PodQuery}}}
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	}
+	if param.ContainerQuery != "" {
+		match := Match{map[string]interface{}{"kubernetes.container_name": QueryWord{param.ContainerQuery}}}
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	}
+
+	if param.LogQuery != "" {
+		match := Match{map[string]interface{}{"log": QueryWord{param.LogQuery}}}
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	}
+
+	rangeQuery := RangeQuery{RangeSpec{TimeRange{param.StartTime, param.EndTime}}}
+	mainBoolQuery.Musts = append(mainBoolQuery.Musts, rangeQuery)
+
+	var operation int
+
+	if param.Operation == "statistics" {
+		operation = OperationStatistics
+		containerAggs := ContainerAggs{ContainerAgg{StatisticsAggTerm{"kubernetes.container_name.keyword", 2147483647}}}
+		namespaceAgg := NamespaceAgg{StatisticsAggTerm{"kubernetes.namespace_name.keyword", 2147483647}, containerAggs}
+		request.Aggs = StatisticsAggs{namespaceAgg}
+		request.Size = 0
+	} else if param.Operation == "histogram" {
+		operation = OperationHistogram
+		var interval string
+		if param.Interval != "" {
+			interval = param.Interval
+		} else {
+			interval = "15m"
+		}
+		param.Interval = interval
+		request.Aggs = HistogramAggs{HistogramAgg{DateHistogram{"time", interval}}}
+		request.Size = 0
+	} else {
+		operation = OperationQuery
+		request.From = param.From
+		request.Size = param.Size
+		request.Sorts = append(request.Sorts, Sort{Order{"asc"}})
+	}
+
+	request.MainQuery = MainQuery{mainBoolQuery}
+
+	queryRequest, err := json.Marshal(request)
+
+	return operation, queryRequest, err
+}
+
+type Response struct {
+	Status       int             `json:"status"`
+	Shards       Shards          `json:"_shards"`
+	Hits         Hits            `json:"hits"`
+	Aggregations json.RawMessage `json:"aggregations"`
+}
+
+type Shards struct {
+	Total      int64 `json:"total"`
+	Successful int64 `json:"successful"`
+	Skipped    int64 `json:"skipped"`
+	Failed     int64 `json:"failed"`
+}
+
+type Hits struct {
+	Total int64 `json:"total"`
+	Hits  []Hit `json:"hits"`
+}
+
+type Hit struct {
+	Source Source `json:"_source"`
 }
 
 type Source struct {
-	Log        string          `json:"log"`
-	Time       string          `json:"time"`
-	Kubernetes json.RawMessage `json:"kubernetes"`
+	Log        string     `json:"log"`
+	Time       string     `json:"time"`
+	Kubernetes Kubernetes `json:"kubernetes"`
 }
 
 type Kubernetes struct {
@@ -51,9 +264,13 @@ type LogRecord struct {
 
 type ReadResult struct {
 	Total   int64       `json:"total"`
-	From    int         `json:"from"`
-	Size    int         `json:"size"`
+	From    int64       `json:"from"`
+	Size    int64       `json:"size"`
 	Records []LogRecord `json:"records,omitempty"`
+}
+
+type NamespaceAggregations struct {
+	NamespaceAggregation NamespaceAggregation `json:"Namespace"`
 }
 
 type NamespaceAggregation struct {
@@ -61,9 +278,9 @@ type NamespaceAggregation struct {
 }
 
 type NamespaceStatistics struct {
-	Namespace            string          `json:"Key"`
-	Count                int64           `json:"doc_count"`
-	ContainerAggregation json.RawMessage `json:"Aggregate by container"`
+	Namespace            string               `json:"Key"`
+	Count                int64                `json:"doc_count"`
+	ContainerAggregation ContainerAggregation `json:"Container"`
 }
 
 type ContainerAggregation struct {
@@ -89,6 +306,10 @@ type ContainerResult struct {
 type StatisticsResult struct {
 	Total      int64             `json:"total"`
 	Namespaces []NamespaceResult `json:"namespaces"`
+}
+
+type HistogramAggregations struct {
+	HistogramAggregation HistogramAggregation `json:"histogram"`
 }
 
 type HistogramAggregation struct {
@@ -118,6 +339,8 @@ type QueryResult struct {
 	Read       *ReadResult       `json:"query,omitempty"`
 	Statistics *StatisticsResult `json:"statistics,omitempty"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty"`
+	Request    string            `json:"request,omitempty"`
+	Response   string            `json:"response,omitempty"`
 }
 
 const (
@@ -147,15 +370,27 @@ func calcTimestamp(input string) int64 {
 	return ret
 }
 
-func parseQueryResult(operation int, param QueryParameters, esResult *elastic.SearchResult, esError error) *QueryResult {
+func parseQueryResult(operation int, param QueryParameters, body []byte, query []byte) *QueryResult {
 	var queryResult QueryResult
+	//queryResult.Request = string(query)
+	//queryResult.Response = string(body)
 
-	if esError != nil {
+	var response Response
+	err := json.Unmarshal(body, &response)
+	if err != nil {
+		//fmt.Println("Parse response error ", err.Error())
 		queryResult.Status = 404
 		return &queryResult
 	}
 
-	if esResult.Error != nil {
+	if response.Status != 0 {
+		//Elastic error, eg, es_rejected_execute_exception
+		queryResult.Status = response.Status
+		return &queryResult
+	}
+
+	if response.Shards.Successful != response.Shards.Total {
+		//Elastic some shards error
 		queryResult.Status = 400
 		return &queryResult
 	}
@@ -163,39 +398,34 @@ func parseQueryResult(operation int, param QueryParameters, esResult *elastic.Se
 	switch operation {
 	case OperationQuery:
 		var readResult ReadResult
-		readResult.Total = esResult.Hits.TotalHits
+		readResult.Total = response.Hits.Total
 		readResult.From = param.From
 		readResult.Size = param.Size
-		for _, hit := range esResult.Hits.Hits {
+		for _, hit := range response.Hits.Hits {
 			var logRecord LogRecord
-			var source Source
-			json.Unmarshal(*hit.Source, &source)
-			logRecord.Time = calcTimestamp(source.Time)
-			logRecord.Log = source.Log
-			var kubernetes Kubernetes
-			json.Unmarshal(source.Kubernetes, &kubernetes)
-			logRecord.Namespace = kubernetes.Namespace
-			logRecord.Pod = kubernetes.Pod
-			logRecord.Container = kubernetes.Container
-			logRecord.Host = kubernetes.Host
+			logRecord.Time = calcTimestamp(hit.Source.Time)
+			logRecord.Log = hit.Source.Log
+			logRecord.Namespace = hit.Source.Kubernetes.Namespace
+			logRecord.Pod = hit.Source.Kubernetes.Pod
+			logRecord.Container = hit.Source.Kubernetes.Container
+			logRecord.Host = hit.Source.Kubernetes.Host
 			readResult.Records = append(readResult.Records, logRecord)
 		}
 		queryResult.Read = &readResult
 
 	case OperationStatistics:
 		var statisticsResult StatisticsResult
-		statisticsResult.Total = esResult.Hits.TotalHits
+		statisticsResult.Total = response.Hits.Total
 
-		var namespaceAggregation NamespaceAggregation
-		json.Unmarshal(*esResult.Aggregations["statistics"], &namespaceAggregation)
-		for _, namespace := range namespaceAggregation.Namespaces {
+		var namespaceAggregations NamespaceAggregations
+		json.Unmarshal(response.Aggregations, &namespaceAggregations)
+
+		for _, namespace := range namespaceAggregations.NamespaceAggregation.Namespaces {
 			var namespaceResult NamespaceResult
 			namespaceResult.Namespace = namespace.Namespace
 			namespaceResult.Count = namespace.Count
 
-			var containerAggregation ContainerAggregation
-			json.Unmarshal(namespace.ContainerAggregation, &containerAggregation)
-			for _, container := range containerAggregation.Containers {
+			for _, container := range namespace.ContainerAggregation.Containers {
 				var containerResult ContainerResult
 				containerResult.Container = container.Container
 				containerResult.Count = container.Count
@@ -209,14 +439,14 @@ func parseQueryResult(operation int, param QueryParameters, esResult *elastic.Se
 
 	case OperationHistogram:
 		var histogramResult HistogramResult
-		histogramResult.Total = esResult.Hits.TotalHits
+		histogramResult.Total = response.Hits.Total
 		histogramResult.StartTime = calcTimestamp(param.StartTime)
 		histogramResult.EndTime = calcTimestamp(param.EndTime)
 		histogramResult.Interval = param.Interval
 
-		var histogramAggregation HistogramAggregation
-		json.Unmarshal(*esResult.Aggregations["histogram"], &histogramAggregation)
-		for _, histogram := range histogramAggregation.Histograms {
+		var histogramAggregations HistogramAggregations
+		json.Unmarshal(response.Aggregations, &histogramAggregations)
+		for _, histogram := range histogramAggregations.HistogramAggregation.Histograms {
 			var histogramRecord HistogramRecord
 			histogramRecord.Time = histogram.Time
 			histogramRecord.Count = histogram.Count
@@ -250,138 +480,61 @@ type QueryParameters struct {
 	Interval  string
 	StartTime string
 	EndTime   string
-	From      int
-	Size      int
+	From      int64
+	Size      int64
+}
+
+func stubResult() *QueryResult {
+	var queryResult QueryResult
+
+	queryResult.Status = 200
+
+	return &queryResult
 }
 
 func Query(param QueryParameters) *QueryResult {
 	var queryResult *QueryResult
 
-	// Starting with elastic.v5, you must pass a context to execute each service
-	ctx := context.Background()
+	//queryResult = stubResult()
+	//return queryResult
 
-	// Obtain a client and connect to Elasticsearch
-	client, err := elastic.NewClient(
-		elastic.SetURL("http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200"), elastic.SetSniff(false),
-	)
+	client := &http.Client{}
+
+	operation, query, err := createQueryRequest(param)
 	if err != nil {
-		// Handle error
-		// panic(err)
+		//fmt.Println("Create query error ", err.Error())
 		queryResult = new(QueryResult)
 		queryResult.Status = 404
 		return queryResult
 	}
 
-	var boolQuery *elastic.BoolQuery = elastic.NewBoolQuery()
+	request, err := http.NewRequest("GET", "http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200/logstash-*/_search", bytes.NewBuffer(query))
+	if err != nil {
+		//fmt.Println("Create request error ", err.Error())
+		queryResult = new(QueryResult)
+		queryResult.Status = 404
+		return queryResult
+	}
+	request.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-	if param.NamespaceFilled {
-		var nsQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		if len(param.Namespaces) == 0 {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.key_word", "")
-			nsQuery = nsQuery.Should(matchPhraseQuery)
-		} else {
-			for _, namespace := range param.Namespaces {
-				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.namespace_name.keyword", namespace)
-				nsQuery = nsQuery.Should(matchPhraseQuery)
-			}
-		}
-		nsQuery = nsQuery.MinimumNumberShouldMatch(1)
-		boolQuery = boolQuery.Must(nsQuery)
+	response, err := client.Do(request)
+	if err != nil {
+		//fmt.Println("Send request error ", err.Error())
+		queryResult = new(QueryResult)
+		queryResult.Status = 404
+		return queryResult
 	}
-	if param.PodFilled {
-		var podQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		if len(param.Pods) == 0 {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.key_word", "")
-			podQuery = podQuery.Should(matchPhraseQuery)
-		} else {
-			for _, pod := range param.Pods {
-				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.pod_name.keyword", pod)
-				podQuery = podQuery.Should(matchPhraseQuery)
-			}
-		}
-		podQuery = podQuery.MinimumNumberShouldMatch(1)
-		boolQuery = boolQuery.Must(podQuery)
-	}
-	if param.ContainerFilled {
-		var containerQuery *elastic.BoolQuery = elastic.NewBoolQuery()
-		if len(param.Containers) == 0 {
-			matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.key_word", "")
-			containerQuery = containerQuery.Should(matchPhraseQuery)
-		} else {
-			for _, container := range param.Containers {
-				matchPhraseQuery := elastic.NewMatchPhraseQuery("kubernetes.container_name.keyword", container)
-				containerQuery = containerQuery.Should(matchPhraseQuery)
-			}
-		}
-		containerQuery = containerQuery.MinimumNumberShouldMatch(1)
-		boolQuery = boolQuery.Must(containerQuery)
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		//fmt.Println("Read response error ", err.Error())
+		queryResult = new(QueryResult)
+		queryResult.Status = 404
+		return queryResult
 	}
 
-	if param.NamespaceQuery != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.namespace_name", param.NamespaceQuery)
-		boolQuery = boolQuery.Must(matchQuery)
-	}
-	if param.PodQuery != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.pod_name", param.PodQuery)
-		boolQuery = boolQuery.Must(matchQuery)
-	}
-	if param.ContainerQuery != "" {
-		matchQuery := elastic.NewMatchQuery("kubernetes.container_name", param.ContainerQuery)
-		boolQuery = boolQuery.Must(matchQuery)
-	}
-
-	if param.LogQuery != "" {
-		matchQuery := elastic.NewMatchQuery("log", param.LogQuery)
-		boolQuery = boolQuery.Must(matchQuery)
-	}
-
-	rangeQuery := elastic.NewRangeQuery("time").From(param.StartTime).To(param.EndTime)
-	boolQuery = boolQuery.Must(rangeQuery)
-
-	var searchResult *elastic.SearchResult
-	var searchError error
-
-	if param.Operation == "statistics" {
-		nsTermsAgg := elastic.NewTermsAggregation().Field("kubernetes.namespace_name.keyword").Size(2147483647)
-		containerTermsAgg := elastic.NewTermsAggregation().Field("kubernetes.container_name.keyword").Size(2147483647)
-		resultTermsAgg := nsTermsAgg.SubAggregation("Aggregate by container", containerTermsAgg)
-
-		searchResult, searchError = client.Search().
-			Index("logstash-*"). // search in index "logstash-*"
-			Query(boolQuery).
-			Aggregation("statistics", resultTermsAgg).
-			Size(0). // take documents
-			Do(ctx)  // execute
-
-		queryResult = parseQueryResult(OperationStatistics, param, searchResult, searchError)
-	} else if param.Operation == "histogram" {
-		var interval string
-		if param.Interval != "" {
-			interval = param.Interval
-		} else {
-			interval = "15m"
-		}
-		param.Interval = interval
-		dateAgg := elastic.NewDateHistogramAggregation().Field("time").Interval(interval)
-
-		searchResult, searchError = client.Search().
-			Index("logstash-*"). // search in index "logstash-*"
-			Query(boolQuery).
-			Aggregation("histogram", dateAgg).
-			Size(0). // take documents
-			Do(ctx)  // execute
-
-		queryResult = parseQueryResult(OperationHistogram, param, searchResult, searchError)
-	} else {
-		searchResult, searchError = client.Search().
-			Index("logstash-*"). // search in index "logstash-*"
-			Query(boolQuery).
-			Sort("time", true).                // sort by "time" field, ascending
-			From(param.From).Size(param.Size). // take documents
-			Do(ctx)                            // execute
-
-		queryResult = parseQueryResult(OperationQuery, param, searchResult, searchError)
-	}
+	queryResult = parseQueryResult(operation, param, body, query)
 
 	return queryResult
 }

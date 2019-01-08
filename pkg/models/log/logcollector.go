@@ -361,11 +361,11 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 	param.EndTime = request.QueryParameter("end_time")
 
 	var err error
-	param.From, err = strconv.Atoi(request.QueryParameter("from"))
+	param.From, err = strconv.ParseInt(request.QueryParameter("from"), 10, 64)
 	if err != nil {
 		param.From = 0
 	}
-	param.Size, err = strconv.Atoi(request.QueryParameter("size"))
+	param.Size, err = strconv.ParseInt(request.QueryParameter("size"), 10, 64)
 	if err != nil {
 		param.Size = 10
 	}
