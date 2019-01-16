@@ -292,6 +292,29 @@ func matchContainer(containerMatch string) (bool, []string) {
 	return true, strings.Split(strings.Replace(containerMatch, ",", " ", -1), " ")
 }
 
+func getWorkspaceOfNamesapce(namespace string) string {
+	var workspace string
+	workspace = ""
+
+	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(metaV1.ListOptions{})
+	if err != nil {
+		glog.Error("failed to list namespace, error: ", err)
+		return workspace
+	}
+
+	for _, ns := range nsList.Items {
+		if ns.GetName() == namespace {
+			labels := ns.GetLabels()
+			_, ok := labels[constants.WorkspaceLabelKey]
+			if ok {
+				workspace = labels[constants.WorkspaceLabelKey]
+			}
+		}
+	}
+
+	return workspace
+}
+
 func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.QueryResult {
 	var param client.QueryParameters
 
@@ -352,6 +375,10 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), false, nil)
 			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
 		}
+	}
+
+	if len(param.Namespaces) == 1 {
+		param.Workspace = getWorkspaceOfNamesapce(param.Namespaces[0])
 	}
 
 	param.Interval = request.QueryParameter("interval")

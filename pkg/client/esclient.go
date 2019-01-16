@@ -227,6 +227,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 
 type Response struct {
 	Status       int             `json:"status"`
+	Workspace    string          `json:"workspace,omitempty"`
 	Shards       Shards          `json:"_shards"`
 	Hits         Hits            `json:"hits"`
 	Aggregations json.RawMessage `json:"aggregations"`
@@ -344,6 +345,7 @@ type HistogramResult struct {
 
 type QueryResult struct {
 	Status     int               `json:"status,omitempty"`
+	Workspace  string            `json:"workspace,omitempty"`
 	Read       *ReadResult       `json:"query,omitempty"`
 	Statistics *StatisticsResult `json:"statistics,omitempty"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty"`
@@ -466,6 +468,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	}
 
 	queryResult.Status = 200
+	queryResult.Workspace = param.Workspace
 
 	return &queryResult
 }
@@ -481,6 +484,8 @@ type QueryParameters struct {
 	NamespaceQuery string
 	PodQuery       string
 	ContainerQuery string
+
+	Workspace string
 
 	Level     constants.LogQueryLevel
 	Operation string
