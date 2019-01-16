@@ -24,9 +24,7 @@
 #   go-tests = true
 #   unused-packages = true
 
-[[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.7"
+ignored = ["github.com/mholt/caddy","github.com/mholt/caddy/caddyfile","github.com/mholt/caddy/caddyhttp/httpserver","github.com/mholt/caddy/caddyhttp/staticfiles","github.com/mholt/caddy/caddytls","github.com/mholt/caddy/telemetry"]
 
 [[constraint]]
   name = "github.com/docker/docker"
@@ -44,7 +42,7 @@
   name = "github.com/spf13/pflag"
   version = "1.0.1"
 
-[[constraint]]
+[[override]]
   name = "gopkg.in/igm/sockjs-go.v2"
   version = "2.0.0"
 
@@ -54,19 +52,28 @@
 
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.10.0"
+  version = "kubernetes-1.11.2"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.10.0"
+  version = "kubernetes-1.11.2"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "7.0.0"
+  version = "kubernetes-1.11.2"
 
 [[constraint]]
   name = "k8s.io/kubernetes"
-  version = "1.10.4"
+  version = "1.11.2"
+
+
+[[constraint]]
+  name="sigs.k8s.io/controller-runtime"
+  version="v0.1.1"
+
+[[override]]
+  name="sigs.k8s.io/controller-tools"
+  version="v0.1.1"
 
 [prune]
   go-tests = true
@@ -88,3 +95,17 @@
 [[override]]
   name = "github.com/docker/go-connections"
   branch = "master"
+
+# To use reference package:
+#  vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go:104:3: unknown field 'CaseSensitive' in struct literal of type jsoniter.Config
+[[override]]
+  name = "github.com/json-iterator/go"
+  branch = "master"
+
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
+  version = "v1.4.7"
+

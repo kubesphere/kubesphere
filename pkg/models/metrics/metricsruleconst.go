@@ -24,7 +24,7 @@ const (
 	ResultItemValue          = "value"
 	ResultItemValues         = "values"
 	ResultSortTypeDesc       = "desc"
-	ResultSortTypeAsce       = "asce"
+	ResultSortTypeAsc        = "asc"
 )
 
 const (

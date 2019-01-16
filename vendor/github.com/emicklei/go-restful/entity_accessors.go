@@ -5,9 +5,7 @@ package restful
 // that can be found in the LICENSE file.
 
 import (
-	"encoding/json"
 	"encoding/xml"
-	"io"
 	"strings"
 	"sync"
 )
@@ -127,16 +125,11 @@ type entityJSONAccess struct {
 	ContentType string
 }
 
-// JSONNewDecoderFunc can be used to inject a different configration for the json Decoder instance.
-var JSONNewDecoderFunc = func(r io.Reader) *json.Decoder {
-	decoder := json.NewDecoder(r)
-	decoder.UseNumber()
-	return decoder
-}
-
 // Read unmarshalls the value from JSON
 func (e entityJSONAccess) Read(req *Request, v interface{}) error {
-	return JSONNewDecoderFunc(req.Request.Body).Decode(v)
+	decoder := NewDecoder(req.Request.Body)
+	decoder.UseNumber()
+	return decoder.Decode(v)
 }
 
 // Write marshalls the value to JSON and set the Content-Type Header.
@@ -153,7 +146,7 @@ func writeJSON(resp *Response, status int, contentType string, v interface{}) er
 	}
 	if resp.prettyPrint {
 		// pretty output must be created and written explicitly
-		output, err := json.MarshalIndent(v, " ", " ")
+		output, err := MarshalIndent(v, "", " ")
 		if err != nil {
 			return err
 		}
@@ -165,5 +158,5 @@ func writeJSON(resp *Response, status int, contentType string, v interface{}) er
 	// not-so-pretty
 	resp.Header().Set(HEADER_ContentType, contentType)
 	resp.WriteHeader(status)
-	return json.NewEncoder(resp).Encode(v)
+	return NewEncoder(resp).Encode(v)
 }

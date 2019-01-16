@@ -17,25 +17,26 @@ limitations under the License.
 package version
 
 import (
+	"flag"
 	"fmt"
 	"os"
-
-	"github.com/spf13/pflag"
-
-	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 var (
-	versionFlag = pflag.Bool("version", false, "print the version of kubesphere")
+	Version     = ""
+	BuildTime   = ""
+	versionFlag = false
 )
 
 // PrintAndExitIfRequested will check if the -version flag was passed
 // and, if so, print the version and exit.
+func init() {
+	flag.BoolVar(&versionFlag, "version", false, "print the version of kubesphere")
+}
 
 func PrintAndExitIfRequested() {
-
-	if *versionFlag {
-		fmt.Printf("Kubesphere %s\n", constants.APIVersion)
+	if versionFlag {
+		fmt.Printf("Version: %s\nBuildTime: %s\n", Version, BuildTime)
 		os.Exit(0)
 	}
 }

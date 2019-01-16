@@ -1,17 +1,19 @@
 /*
-Copyright 2018 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Copyright 2019 The KubeSphere Authors.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 
 package kubectl
@@ -30,25 +32,24 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/options"
 )
 
 const (
 	namespace = constants.KubeSphereControlNamespace
 )
 
-type KubectlPodInfo struct {
+type PodInfo struct {
 	Namespace string `json:"namespace"`
 	Pod       string `json:"pod"`
 	Container string `json:"container"`
 }
 
-func GetKubectlPod(user string) (KubectlPodInfo, error) {
-	k8sClient := client.NewK8sClient()
-	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
+func GetKubectlPod(username string) (PodInfo, error) {
+	k8sClient := client.K8sClient()
+	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(username, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
-		return KubectlPodInfo{}, err
+		return PodInfo{}, err
 	}
 
 	selectors := deploy.Spec.Selector.MatchLabels
@@ -56,16 +57,16 @@ func GetKubectlPod(user string) (KubectlPodInfo, error) {
 	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorln(err)
-		return KubectlPodInfo{}, err
+		return PodInfo{}, err
 	}
 
 	pod, err := selectCorrectPod(namespace, podList.Items)
 	if err != nil {
 		glog.Errorln(err)
-		return KubectlPodInfo{}, err
+		return PodInfo{}, err
 	}
 
-	info := KubectlPodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
+	info := PodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
 
 	return info, nil
 
@@ -73,25 +74,25 @@ func GetKubectlPod(user string) (KubectlPodInfo, error) {
 
 func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err error) {
 
-	var kubectPodList []v1.Pod
+	var kubectlPodList []v1.Pod
 	for _, pod := range pods {
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
-				kubectPodList = append(kubectPodList, pod)
+				kubectlPodList = append(kubectlPodList, pod)
 			}
 		}
 	}
-	if len(kubectPodList) < 1 {
+	if len(kubectlPodList) < 1 {
 		err = fmt.Errorf("cannot find valid kubectl pod in namespace:%s", namespace)
 		return v1.Pod{}, err
 	}
 
-	random := rand.Intn(len(kubectPodList))
-	return kubectPodList[random], nil
+	random := rand.Intn(len(kubectlPodList))
+	return kubectlPodList[random], nil
 }
 
 func CreateKubectlDeploy(user string) error {
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if err == nil {
 		return nil
@@ -116,7 +117,7 @@ func CreateKubectlDeploy(user string) error {
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{Name: "kubectl",
-							Image:        options.ServerOptions.GetKubectlImage(),
+							Image:        "",
 							VolumeMounts: []v1.VolumeMount{{Name: "kubeconfig", MountPath: "/root/.kube"}},
 						},
 					},
@@ -132,7 +133,7 @@ func CreateKubectlDeploy(user string) error {
 }
 
 func DelKubectlDeploy(user string) error {
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil

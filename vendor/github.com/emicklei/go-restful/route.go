@@ -45,6 +45,9 @@ type Route struct {
 
 	// marks a route as deprecated
 	Deprecated bool
+
+	//Overrides the container.contentEncodingEnabled
+	contentEncodingEnabled *bool
 }
 
 // Initialize for Route
@@ -146,4 +149,9 @@ func tokenizePath(path string) []string {
 // for debugging
 func (r Route) String() string {
 	return r.Method + " " + r.Path
+}
+
+// EnableContentEncoding (default=false) allows for GZIP or DEFLATE encoding of responses. Overrides the container.contentEncodingEnabled value.
+func (r Route) EnableContentEncoding(enabled bool) {
+	r.contentEncodingEnabled = &enabled
 }

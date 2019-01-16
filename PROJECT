@@ -1,0 +1,3 @@
+version: "1"
+domain: kubesphere.io
+repo: kubesphere.io/kubesphere

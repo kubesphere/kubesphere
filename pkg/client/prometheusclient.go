@@ -116,12 +116,12 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
 	workloadName := strings.Trim(request.QueryParameter("workload_name"), " ")
 
-	nodeId := strings.Trim(request.PathParameter("node_id"), " ")
-	wsName := strings.Trim(request.PathParameter("workspace_name"), " ")
-	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	podName := strings.Trim(request.PathParameter("pod_name"), " ")
-	containerName := strings.Trim(request.PathParameter("container_name"), " ")
-	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
+	nodeId := strings.Trim(request.PathParameter("node"), " ")
+	wsName := strings.Trim(request.PathParameter("workspace"), " ")
+	nsName := strings.Trim(request.PathParameter("namespace"), " ")
+	podName := strings.Trim(request.PathParameter("pod"), " ")
+	containerName := strings.Trim(request.PathParameter("container"), " ")
+	workloadKind := strings.Trim(request.PathParameter("workload"), " ")
 
 	var requestParams = MonitoringRequestParams{
 		SortMetricName:   sortMetricName,
@@ -177,12 +177,6 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 		requestParams.Params = u
 		return &requestParams
 	}
-
-	glog.Errorln("Parse request %s failed", u)
-	requestParams.QueryType = DefaultQueryType
-	requestParams.Params = u
-
-	return &requestParams
 }
 
 func convertTimeGranularity(ts string) string {
