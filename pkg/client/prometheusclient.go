@@ -48,28 +48,23 @@ func init() {
 }
 
 type MonitoringRequestParams struct {
-	Params           url.Values
-	QueryType        string
-	SortMetricName   string
-	SortType         string
-	PageNum          string
-	LimitNum         string
-	Tp               string
-	MetricsFilter    string
-	NodesFilter      string
-	WsFilter         string
-	NsFilter         string
-	PodsFilter       string
-	ContainersFilter string
-	MetricsName      string
-	WorkloadName     string
-	WlFilter         string
-	NodeId           string
-	WsName           string
-	NsName           string
-	PodName          string
-	ContainerName    string
-	WorkloadKind     string
+	Params          url.Values
+	QueryType       string
+	SortMetricName  string
+	SortType        string
+	PageNum         string
+	LimitNum        string
+	Tp              string
+	MetricsFilter   string
+	ResourcesFilter string
+	MetricsName     string
+	WorkloadName    string
+	NodeId          string
+	WsName          string
+	NsName          string
+	PodName         string
+	ContainerName   string
+	WorkloadKind    string
 }
 
 var client = &http.Client{}
@@ -106,15 +101,10 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	tp := strings.Trim(request.QueryParameter("type"), " ")
 
 	metricsFilter := strings.Trim(request.QueryParameter("metrics_filter"), " ")
-	nodesFilter := strings.Trim(request.QueryParameter("nodes_filter"), " ")
-	wsFilter := strings.Trim(request.QueryParameter("workspaces_filter"), " ")
-	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
-	wlFilter := strings.Trim(request.QueryParameter("workloads_filter"), " ")
-	podsFilter := strings.Trim(request.QueryParameter("pods_filter"), " ")
-	containersFilter := strings.Trim(request.QueryParameter("containers_filter"), " ")
+	resourcesFilter := strings.Trim(request.QueryParameter("resources_filter"), " ")
 
 	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
-	workloadName := strings.Trim(request.QueryParameter("workload_name"), " ")
+	workloadName := strings.Trim(request.PathParameter("workload_name"), " ")
 
 	nodeId := strings.Trim(request.PathParameter("node_id"), " ")
 	wsName := strings.Trim(request.PathParameter("workspace_name"), " ")
@@ -124,26 +114,21 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
 
 	var requestParams = MonitoringRequestParams{
-		SortMetricName:   sortMetricName,
-		SortType:         sortType,
-		PageNum:          pageNum,
-		LimitNum:         limitNum,
-		Tp:               tp,
-		MetricsFilter:    metricsFilter,
-		NodesFilter:      nodesFilter,
-		WsFilter:         wsFilter,
-		NsFilter:         nsFilter,
-		PodsFilter:       podsFilter,
-		ContainersFilter: containersFilter,
-		MetricsName:      metricsName,
-		WorkloadName:     workloadName,
-		WlFilter:         wlFilter,
-		NodeId:           nodeId,
-		WsName:           wsName,
-		NsName:           nsName,
-		PodName:          podName,
-		ContainerName:    containerName,
-		WorkloadKind:     workloadKind,
+		SortMetricName:  sortMetricName,
+		SortType:        sortType,
+		PageNum:         pageNum,
+		LimitNum:        limitNum,
+		Tp:              tp,
+		MetricsFilter:   metricsFilter,
+		ResourcesFilter: resourcesFilter,
+		MetricsName:     metricsName,
+		WorkloadName:    workloadName,
+		NodeId:          nodeId,
+		WsName:          wsName,
+		NsName:          nsName,
+		PodName:         podName,
+		ContainerName:   containerName,
+		WorkloadKind:    workloadKind,
 	}
 
 	if timeout == "" {

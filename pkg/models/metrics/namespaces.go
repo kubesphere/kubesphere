@@ -18,10 +18,10 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 	var timeRelateParams = make(url.Values)
 
 	params := client.MonitoringRequestParams{
-		NsFilter:      nsFilter,
-		Params:        timeRelateParams,
-		QueryType:     client.DefaultQueryType,
-		MetricsFilter: "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
+		ResourcesFilter: nsFilter,
+		Params:          timeRelateParams,
+		QueryType:       client.DefaultQueryType,
+		MetricsFilter:   "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
 	}
 
 	rawMetrics := MonitorAllMetrics(&params, MetricLevelNamespace)

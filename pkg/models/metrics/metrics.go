@@ -17,7 +17,6 @@ limitations under the License.
 package metrics
 
 import (
-	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -25,8 +24,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"runtime/debug"
 	"sort"
 
@@ -37,7 +34,6 @@ import (
 	listerV1 "k8s.io/client-go/listers/core/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/controllers"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 )
@@ -142,7 +138,7 @@ func getAllWorkspaces() map[string]int {
 	params := paramValues.Encode()
 	res := client.SendMonitoringRequest(client.DefaultQueryType, params)
 
-	metric := ReformatJson(res, "")
+	metric := ReformatJson(res, "", map[string]string{"workspace": "workspace"})
 
 	return getAllWorkspaceNames(metric)
 }
@@ -238,10 +234,10 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 func AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string, bool) {
 
 	nsName := monitoringRequest.NsName
-	wkName := monitoringRequest.WorkloadName
-	podsFilter := monitoringRequest.PodsFilter
+	wlName := monitoringRequest.WorkloadName
+	podsFilter := monitoringRequest.ResourcesFilter
 
-	rule := MakeSpecificWorkloadRule(monitoringRequest.WorkloadKind, wkName, nsName)
+	rule := MakeSpecificWorkloadRule(monitoringRequest.WorkloadKind, wlName, nsName)
 	paramValues := monitoringRequest.Params
 	params := makeRequestParamString(rule, paramValues)
 
@@ -261,7 +257,7 @@ func AssembleAllWorkloadMetricRequestInfo(monitoringRequest *client.MonitoringRe
 
 	paramValues := monitoringRequest.Params
 
-	rule := MakeWorkloadPromQL(metricName, monitoringRequest.NsName, monitoringRequest.WlFilter)
+	rule := MakeWorkloadPromQL(metricName, monitoringRequest.NsName, monitoringRequest.ResourcesFilter)
 	params := makeRequestParamString(rule, paramValues)
 	return queryType, params
 }
@@ -271,15 +267,9 @@ func AssemblePodMetricRequestInfo(monitoringRequest *client.MonitoringRequestPar
 
 	paramValues := monitoringRequest.Params
 
-	rule := MakePodPromQL(metricName, monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.PodsFilter)
+	rule := MakePodPromQL(metricName, monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ResourcesFilter)
 	params := makeRequestParamString(rule, paramValues)
 	return queryType, params, rule == ""
-}
-
-func GetMetric(queryType, params, metricName string) *FormatedMetric {
-	res := client.SendMonitoringRequest(queryType, params)
-	formatedMetric := ReformatJson(res, metricName)
-	return formatedMetric
 }
 
 func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
@@ -320,7 +310,8 @@ func AddNodeAddressMetric(nodeMetric *FormatedMetric, nodeAddress *map[string][]
 
 func MonitorContainer(monitoringRequest *client.MonitoringRequestParams, metricName string) *FormatedMetric {
 	queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
-	res := GetMetric(queryType, params, metricName)
+	metricsStr := client.SendMonitoringRequest(queryType, params)
+	res := ReformatJson(metricsStr, metricName, map[string]string{"container_name": ""})
 	return res
 }
 
@@ -328,7 +319,7 @@ func AssembleContainerMetricRequestInfo(monitoringRequest *client.MonitoringRequ
 	queryType := monitoringRequest.QueryType
 
 	paramValues := monitoringRequest.Params
-	rule := MakeContainerPromQL(monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ContainerName, metricName, monitoringRequest.ContainersFilter)
+	rule := MakeContainerPromQL(monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ContainerName, metricName, monitoringRequest.ResourcesFilter)
 	params := makeRequestParamString(rule, paramValues)
 
 	return queryType, params
@@ -338,7 +329,7 @@ func AssembleNamespaceMetricRequestInfo(monitoringRequest *client.MonitoringRequ
 	queryType := monitoringRequest.QueryType
 
 	paramValues := monitoringRequest.Params
-	rule := MakeNamespacePromQL(monitoringRequest.NsName, monitoringRequest.NsFilter, metricName)
+	rule := MakeNamespacePromQL(monitoringRequest.NsName, monitoringRequest.ResourcesFilter, metricName)
 	params := makeRequestParamString(rule, paramValues)
 
 	return queryType, params
@@ -428,7 +419,7 @@ func MonitorAllWorkspaces(monitoringRequest *client.MonitoringRequestParams) *Fo
 	wsMap := getAllWorkspaces()
 
 	for ws := range wsMap {
-		bol, err := regexp.MatchString(monitoringRequest.WsFilter, ws)
+		bol, err := regexp.MatchString(monitoringRequest.ResourcesFilter, ws)
 		if err == nil && bol {
 			// a workspace
 			wgAll.Add(1)
@@ -483,7 +474,8 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 		go func(metricName string) {
 
 			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
-			ch <- GetMetric(queryType, params, metricName)
+			metricsStr := client.SendMonitoringRequest(queryType, params)
+			ch <- ReformatJson(metricsStr, metricName, map[string]string{"namespace": ""})
 
 			wg.Done()
 		}(metricName)
@@ -528,10 +520,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					wg.Add(1)
 					go func(metricName string) {
 						queryType, params := AssembleClusterMetricRequestInfo(monitoringRequest, metricName)
-						clusterMetrics := GetMetric(queryType, params, metricName)
-
-						ch <- clusterMetrics
-
+						metricsStr := client.SendMonitoringRequest(queryType, params)
+						ch <- ReformatJson(metricsStr, metricName, map[string]string{"cluster": "local"})
 						wg.Done()
 					}(metricName)
 				}
@@ -545,7 +535,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					wg.Add(1)
 					go func(metricName string) {
 						queryType, params := AssembleNodeMetricRequestInfo(monitoringRequest, metricName)
-						ch <- GetMetric(queryType, params, metricName)
+						metricsStr := client.SendMonitoringRequest(queryType, params)
+						ch <- ReformatJson(metricsStr, metricName, map[string]string{"node": ""})
 						wg.Done()
 					}(metricName)
 				}
@@ -559,7 +550,7 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 				if err != nil {
 					glog.Errorln(err.Error())
 				}
-				namespaceArray = filterNamespace(monitoringRequest.NsFilter, namespaceArray)
+				namespaceArray = filterNamespace(monitoringRequest.ResourcesFilter, namespaceArray)
 
 				if monitoringRequest.Tp == "rank" {
 					for _, metricName := range NamespaceMetricsNames {
@@ -569,12 +560,13 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 
 						bol, err := regexp.MatchString(metricsFilter, metricName)
 						ns := "^(" + strings.Join(namespaceArray, "|") + ")$"
-						monitoringRequest.NsFilter = ns
+						monitoringRequest.ResourcesFilter = ns
 						if err == nil && bol {
 							wg.Add(1)
 							go func(metricName string) {
 								queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
-								ch <- GetMetric(queryType, params, metricName)
+								metricsStr := client.SendMonitoringRequest(queryType, params)
+								ch <- ReformatJson(metricsStr, metricName, map[string]string{"workspace": "workspace"})
 								wg.Done()
 							}(metricName)
 						}
@@ -592,7 +584,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 							wg.Add(1)
 							go func(metricName string) {
 								queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
-								ch <- GetMetric(queryType, params, metricName)
+								metricsStr := client.SendMonitoringRequest(queryType, params)
+								ch <- ReformatJson(metricsStr, metricName, map[string]string{"workspace": "workspace"})
 								wg.Done()
 							}(metricName)
 						}
@@ -609,9 +602,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 
 						go func(metricName string) {
 							queryType, params := AssembleAllWorkspaceMetricRequestInfo(monitoringRequest, nil, metricName)
-
-							ch <- GetMetric(queryType, params, metricName)
-
+							metricsStr := client.SendMonitoringRequest(queryType, params)
+							ch <- ReformatJson(metricsStr, metricName, map[string]string{"workspace": "workspaces"})
 							wg.Done()
 						}(metricName)
 					}
@@ -626,7 +618,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					wg.Add(1)
 					go func(metricName string) {
 						queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
-						ch <- GetMetric(queryType, params, metricName)
+						metricsStr := client.SendMonitoringRequest(queryType, params)
+						ch <- ReformatJson(metricsStr, metricName, map[string]string{"namespace": ""})
 						wg.Done()
 					}(metricName)
 				}
@@ -634,15 +627,15 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 		}
 	case MetricLevelWorkload:
 		{
-			if monitoringRequest.Tp == "rank" {
+			if monitoringRequest.WorkloadName == "" {
 				for _, metricName := range WorkloadMetricsNames {
 					bol, err := regexp.MatchString(metricsFilter, metricName)
 					if err == nil && bol {
 						wg.Add(1)
 						go func(metricName string) {
 							queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
-							fmtMetrics := GetMetric(queryType, params, metricName)
-							ch <- fmtMetrics
+							metricsStr := client.SendMonitoringRequest(queryType, params)
+							ch <- ReformatJson(metricsStr, metricName, map[string]string{"workload": ""})
 							wg.Done()
 						}(metricName)
 					}
@@ -656,7 +649,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 							metricName = strings.TrimLeft(metricName, "workload_")
 							queryType, params, nullRule := AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest, metricName)
 							if !nullRule {
-								fmtMetrics := GetMetric(queryType, params, metricName)
+								metricsStr := client.SendMonitoringRequest(queryType, params)
+								fmtMetrics := ReformatJson(metricsStr, metricName, map[string]string{"pod_name": ""})
 								unifyMetricHistoryTimeRange(fmtMetrics)
 								ch <- fmtMetrics
 							}
@@ -675,7 +669,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					go func(metricName string) {
 						queryType, params, nullRule := AssemblePodMetricRequestInfo(monitoringRequest, metricName)
 						if !nullRule {
-							ch <- GetMetric(queryType, params, metricName)
+							metricsStr := client.SendMonitoringRequest(queryType, params)
+							ch <- ReformatJson(metricsStr, metricName, map[string]string{"pod_name": ""})
 						} else {
 							ch <- nil
 						}
@@ -692,7 +687,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					wg.Add(1)
 					go func(metricName string) {
 						queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
-						ch <- GetMetric(queryType, params, metricName)
+						metricsStr := client.SendMonitoringRequest(queryType, params)
+						ch <- ReformatJson(metricsStr, metricName, map[string]string{"container_name": ""})
 						wg.Done()
 					}(metricName)
 				}
@@ -867,124 +863,6 @@ func getSpecificMetricItem(timestamp int64, metricName string, resource string, 
 	return &nsMetrics
 }
 
-// k8s component(controller, scheduler, etcd) status
-func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *[]interface{} {
-	componentList, err := client.NewK8sClient().CoreV1().ComponentStatuses().List(metaV1.ListOptions{})
-	if err != nil {
-		glog.Errorln(err.Error())
-	}
-
-	var componentStatusList []*ComponentStatus
-	for _, item := range componentList.Items {
-		var status []OneComponentStatus
-		for _, cond := range item.Conditions {
-			status = append(status, OneComponentStatus{
-				Type:    string(cond.Type),
-				Status:  string(cond.Status),
-				Message: cond.Message,
-				Error:   cond.Error,
-			})
-		}
-
-		componentStatusList = append(componentStatusList, &ComponentStatus{
-			Name:            item.Name,
-			Namespace:       item.Namespace,
-			Labels:          item.Labels,
-			ComponentStatus: status,
-		})
-	}
-
-	// node status
-	queryType := monitoringRequest.QueryType
-	paramValues := monitoringRequest.Params
-	paramValues.Set("query", NodeStatusRule)
-	params := paramValues.Encode()
-	res := client.SendMonitoringRequest(queryType, params)
-
-	nodeStatusMetric := ReformatJson(res, "node_status", nodeStatusDelLables...)
-	nodeStatusMetric = ReformatNodeStatusField(nodeStatusMetric)
-
-	var normalNodes []string
-	var abnormalNodes []string
-	for _, result := range nodeStatusMetric.Data.Result {
-		tmap, sure := result[ResultItemMetric].(map[string]interface{})
-
-		if sure {
-			if tmap[MetricStatus].(string) == "false" {
-				abnormalNodes = append(abnormalNodes, tmap[MetricLevelNode].(string))
-			} else {
-				normalNodes = append(normalNodes, tmap[MetricLevelNode].(string))
-			}
-		}
-	}
-
-	Components, err := models.GetAllComponentsStatus()
-
-	if err != nil {
-		glog.Error(err.Error())
-	}
-
-	var namspaceComponentHealthyMap = make(map[string]int)
-	var namspaceComponentTotalMap = make(map[string]int)
-
-	for _, ns := range models.SYSTEM_NAMESPACES {
-		nsStatus, exist := Components[ns]
-		if exist {
-			for _, nsStatusItem := range nsStatus.(map[string]interface{}) {
-				component := nsStatusItem.(models.Component)
-				namspaceComponentTotalMap[ns] += 1
-				if component.HealthyBackends != 0 && component.HealthyBackends == component.TotalBackends {
-					namspaceComponentHealthyMap[ns] += 1
-				}
-			}
-		}
-	}
-
-	timestamp := int64(time.Now().Unix())
-
-	onlineMetricItems := makeMetricItems(timestamp, namspaceComponentHealthyMap, MetricLevelNamespace)
-	metricItems := makeMetricItems(timestamp, namspaceComponentTotalMap, MetricLevelNamespace)
-
-	var assembleList []interface{}
-	assembleList = append(assembleList, nodeStatusMetric)
-
-	for _, statusItem := range componentStatusList {
-		assembleList = append(assembleList, statusItem)
-	}
-
-	assembleList = append(assembleList, FormatedMetric{
-		Data: FormatedMetricData{
-			Result:     *onlineMetricItems,
-			ResultType: ResultTypeVector,
-		},
-		MetricName: MetricNameComponentOnLine,
-		Status:     MetricStatusSuccess,
-	})
-
-	assembleList = append(assembleList, FormatedMetric{
-		Data: FormatedMetricData{
-			Result:     *metricItems,
-			ResultType: ResultTypeVector,
-		},
-		MetricName: MetricNameComponentLine,
-		Status:     MetricStatusSuccess,
-	})
-
-	return &assembleList
-}
-
-func makeMetricItems(timestamp int64, statusMap map[string]int, resourceType string) *[]map[string]interface{} {
-	var metricItems []map[string]interface{}
-
-	for ns, count := range statusMap {
-		metricItems = append(metricItems, map[string]interface{}{
-			ResultItemMetric: map[string]string{resourceType: ns},
-			ResultItemValue:  []interface{}{timestamp, fmt.Sprintf("%d", count)},
-		})
-	}
-	return &metricItems
-}
-
 func AssembleClusterMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
 	queryType := monitoringRequest.QueryType
 	paramValues := monitoringRequest.Params
@@ -997,7 +875,7 @@ func AssembleClusterMetricRequestInfo(monitoringRequest *client.MonitoringReques
 func AssembleNodeMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string) {
 	queryType := monitoringRequest.QueryType
 	paramValues := monitoringRequest.Params
-	rule := MakeNodeRule(monitoringRequest.NodeId, monitoringRequest.NodesFilter, metricName)
+	rule := MakeNodeRule(monitoringRequest.NodeId, monitoringRequest.ResourcesFilter, metricName)
 	params := makeRequestParamString(rule, paramValues)
 
 	return queryType, params
