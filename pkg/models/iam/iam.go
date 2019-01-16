@@ -7,31 +7,38 @@ import (
 	"net/http"
 	"strings"
 
+	v12 "k8s.io/client-go/listers/rbac/v1"
+
+	"kubesphere.io/kubesphere/pkg/informers"
+
 	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	v12 "k8s.io/client-go/listers/rbac/v1"
-
 	"k8s.io/kubernetes/pkg/util/slice"
 
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/controllers"
-	ksErr "kubesphere.io/kubesphere/pkg/util/errors"
+	ksErr "kubesphere.io/kubesphere/pkg/errors"
 )
 
 const ClusterRoleKind = "ClusterRole"
 
+var (
+	clusterRoleBindingLister v12.ClusterRoleBindingLister
+	clusterRoleLister        v12.ClusterRoleLister
+	roleBindingLister        v12.RoleBindingLister
+	roleLister               v12.RoleLister
+)
+
+func init() {
+	clusterRoleBindingLister = informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
+	clusterRoleLister = informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+	roleBindingLister = informers.SharedInformerFactory().Rbac().V1().RoleBindings().Lister()
+	roleLister = informers.SharedInformerFactory().Rbac().V1().Roles().Lister()
+}
+
 // Get user list based on workspace role
 func WorkspaceRoleUsers(workspace string, roleName string) ([]User, error) {
-
-	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
 
 	workspaceRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, roleName))
 
@@ -123,40 +130,6 @@ func GetUser(name string) (*User, error) {
 	return &user, nil
 }
 
-// Get rules
-func WorkspaceRoleRules(workspace string, roleName string) (*v1.ClusterRole, []Rule, error) {
-
-	clusterRoleName := fmt.Sprintf("system:%s:%s", workspace, roleName)
-
-	workspaceRole, err := GetClusterRole(clusterRoleName)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for i := 0; i < len(workspaceRole.Rules); i++ {
-		workspaceRole.Rules[i].ResourceNames = nil
-	}
-
-	rules := make([]Rule, 0)
-	for i := 0; i < len(WorkspaceRoleRuleMapping); i++ {
-		rule := Rule{Name: WorkspaceRoleRuleMapping[i].Name}
-		rule.Actions = make([]Action, 0)
-		for j := 0; j < len(WorkspaceRoleRuleMapping[i].Actions); j++ {
-			if rulesMatchesAction(workspaceRole.Rules, WorkspaceRoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, WorkspaceRoleRuleMapping[i].Actions[j])
-			}
-		}
-		if len(rule.Actions) > 0 {
-			rules = append(rules, rule)
-		}
-	}
-
-	workspaceRole.Name = roleName
-
-	return workspaceRole, rules, nil
-}
-
 func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespace bool, namespaces []string, err error) {
 
 	clusterRoles, err := GetClusterRoles(username)
@@ -215,28 +188,15 @@ func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespac
 }
 
 func GetRole(namespace string, name string) (*v1.Role, error) {
-	lister, err := controllers.GetLister(controllers.Roles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	roleLister := lister.(v12.RoleLister)
 	role, err := roleLister.Roles(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
+
 	return role.DeepCopy(), nil
 }
+
 func GetWorkspaceUsers(workspace string, workspaceRole string) ([]string, error) {
-
-	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
 	clusterRoleBinding, err := clusterRoleBindingLister.Get(fmt.Sprintf("system:%s:%s", workspace, workspaceRole))
 
 	if err != nil {
@@ -253,66 +213,7 @@ func GetWorkspaceUsers(workspace string, workspaceRole string) ([]string, error)
 	return users, nil
 }
 
-func GetClusterRoleBindings(name string) ([]v1.ClusterRoleBinding, error) {
-	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
-
-	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
-
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.ClusterRoleBinding, 0)
-
-	for _, clusterRoleBinding := range clusterRoleBindings {
-		if clusterRoleBinding.RoleRef.Name == name {
-			items = append(items, *clusterRoleBinding)
-		}
-	}
-
-	return items, nil
-}
-
-func GetRoleBindings(namespace string, name string) ([]v1.RoleBinding, error) {
-	lister, err := controllers.GetLister(controllers.RoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	roleBindingLister := lister.(v12.RoleBindingLister)
-
-	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
-
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.RoleBinding, 0)
-
-	for _, roleBinding := range roleBindings {
-		if roleBinding.RoleRef.Name == name {
-			items = append(items, *roleBinding)
-		}
-	}
-
-	return items, nil
-}
-
 func GetClusterRole(name string) (*v1.ClusterRole, error) {
-	lister, err := controllers.GetLister(controllers.ClusterRoles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleLister := lister.(v12.ClusterRoleLister)
 
 	role, err := clusterRoleLister.Get(name)
 
@@ -323,30 +224,6 @@ func GetClusterRole(name string) (*v1.ClusterRole, error) {
 }
 
 func GetRoles(namespace string, username string) ([]v1.Role, error) {
-	lister, err := controllers.GetLister(controllers.RoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	roleBindingLister := lister.(v12.RoleBindingLister)
-
-	lister, err = controllers.GetLister(controllers.Roles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	roleLister := lister.(v12.RoleLister)
-
-	lister, err = controllers.GetLister(controllers.ClusterRoles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleLister := lister.(v12.ClusterRoleLister)
-
 	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
 
 	if err != nil {
@@ -399,23 +276,6 @@ func GetRoles(namespace string, username string) ([]v1.Role, error) {
 
 // Get cluster roles by username
 func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
-
-	lister, err := controllers.GetLister(controllers.ClusterRoleBindings)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleBindingLister := lister.(v12.ClusterRoleBindingLister)
-
-	lister, err = controllers.GetLister(controllers.ClusterRoles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleLister := lister.(v12.ClusterRoleLister)
-
 	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
@@ -453,146 +313,6 @@ func GetClusterRoles(username string) ([]v1.ClusterRole, error) {
 	}
 
 	return roles, nil
-}
-
-func GetUserRules(username string) (map[string][]Rule, error) {
-
-	items := make(map[string][]Rule, 0)
-	userRoles, err := GetRoles("", username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	rulesMapping := make(map[string][]v1.PolicyRule, 0)
-
-	for _, role := range userRoles {
-		rules := rulesMapping[role.Namespace]
-		if rules == nil {
-			rules = make([]v1.PolicyRule, 0)
-		}
-		rules = append(rules, role.Rules...)
-		rulesMapping[role.Namespace] = rules
-	}
-
-	for namespace, policyRules := range rulesMapping {
-		rules := convertToRules(policyRules)
-		if len(rules) > 0 {
-			items[namespace] = rules
-		}
-	}
-
-	return items, nil
-}
-
-func convertToRules(policyRules []v1.PolicyRule) []Rule {
-	rules := make([]Rule, 0)
-
-	for i := 0; i < (len(RoleRuleMapping)); i++ {
-		rule := Rule{Name: RoleRuleMapping[i].Name}
-		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(RoleRuleMapping[i].Actions)); j++ {
-			if rulesMatchesAction(policyRules, RoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, RoleRuleMapping[i].Actions[j])
-			}
-		}
-
-		if len(rule.Actions) > 0 {
-			rules = append(rules, rule)
-		}
-	}
-
-	return rules
-}
-
-func GetUserClusterRules(username string) ([]Rule, error) {
-
-	rules := make([]Rule, 0)
-
-	clusterRoles, err := GetClusterRoles(username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRules := make([]v1.PolicyRule, 0)
-
-	for _, role := range clusterRoles {
-		clusterRules = append(clusterRules, role.Rules...)
-	}
-
-	for i := 0; i < (len(ClusterRoleRuleMapping)); i++ {
-		rule := Rule{Name: ClusterRoleRuleMapping[i].Name}
-		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(ClusterRoleRuleMapping[i].Actions)); j++ {
-			if rulesMatchesAction(clusterRules, ClusterRoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, ClusterRoleRuleMapping[i].Actions[j])
-			}
-		}
-		if len(rule.Actions) > 0 {
-			rules = append(rules, rule)
-		}
-	}
-
-	return rules, nil
-}
-
-func GetClusterRoleRules(name string) ([]Rule, error) {
-
-	clusterRole, err := GetClusterRole(name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	rules := make([]Rule, 0)
-
-	for i := 0; i < len(ClusterRoleRuleMapping); i++ {
-		rule := Rule{Name: ClusterRoleRuleMapping[i].Name}
-		rule.Actions = make([]Action, 0)
-		for j := 0; j < (len(ClusterRoleRuleMapping[i].Actions)); j++ {
-			if rulesMatchesAction(clusterRole.Rules, ClusterRoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, ClusterRoleRuleMapping[i].Actions[j])
-			}
-		}
-		if len(rule.Actions) > 0 {
-			rules = append(rules, rule)
-		}
-	}
-
-	return rules, nil
-}
-
-func GetRoleRules(namespace string, name string) ([]Rule, error) {
-	role, err := GetRole(namespace, name)
-	if err != nil {
-		return nil, err
-	}
-
-	rules := make([]Rule, 0)
-	for i := 0; i < len(RoleRuleMapping); i++ {
-		rule := Rule{Name: RoleRuleMapping[i].Name}
-		rule.Actions = make([]Action, 0)
-		for j := 0; j < len(RoleRuleMapping[i].Actions); j++ {
-			if rulesMatchesAction(role.Rules, RoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, RoleRuleMapping[i].Actions[j])
-			}
-		}
-		if len(rule.Actions) > 0 {
-			rules = append(rules, rule)
-		}
-	}
-	return rules, nil
-}
-
-func rulesMatchesAction(rules []v1.PolicyRule, action Action) bool {
-
-	for _, rule := range action.Rules {
-		if !RulesMatchesRequired(rules, rule) {
-			return false
-		}
-	}
-	return true
 }
 
 func RulesMatchesRequired(rules []v1.PolicyRule, required v1.PolicyRule) bool {

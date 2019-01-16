@@ -1,3 +1,20 @@
+/*
+
+ Copyright 2019 The KubeSphere Authors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/
 package workspaces
 
 import (
@@ -6,6 +23,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	lister "k8s.io/client-go/listers/core/v1"
+
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 
 	"log"
 	"strings"
@@ -21,21 +44,27 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	clientV1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/pkg/util/slice"
 
 	"github.com/golang/glog"
 
 	"sort"
 
-	v12 "k8s.io/client-go/listers/rbac/v1"
+	lister2 "k8s.io/client-go/listers/rbac/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/controllers"
-	"kubesphere.io/kubesphere/pkg/models/iam"
-	ksErr "kubesphere.io/kubesphere/pkg/util/errors"
+	ksErr "kubesphere.io/kubesphere/pkg/errors"
 )
+
+var (
+	namespaceLister   lister.NamespaceLister
+	clusterRoleLister lister2.ClusterRoleLister
+)
+
+func init() {
+	namespaceLister = informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+	clusterRoleLister = informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+}
 
 func UnBindDevopsProject(workspace string, devops string) error {
 	db := client.NewSharedDBClient()
@@ -268,9 +297,7 @@ func ListNamespaceByUser(workspaceName string, username string, keyword string, 
 
 func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 
-	lister := controllers.ResourceControllers.Controllers[controllers.Namespaces].Lister().(clientV1.NamespaceLister)
-
-	namespaces, err := lister.List(labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspaceName}))
+	namespaces, err := namespaceLister.List(labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspaceName}))
 
 	if err != nil {
 		return nil, err
@@ -290,19 +317,21 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 }
 
 func BindingDevopsProject(workspace string, devops string) error {
-	db := client.NewSharedDBClient()
-	defer db.Close()
-	return db.Create(&WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
+	//db := client.NewSharedDBClient()
+	//defer db.Close()
+	//return db.Create(&WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
+	// TODO FIX
+	return nil
 }
 
 func DeleteNamespace(workspace string, namespaceName string) error {
-	namespace, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	namespace, err := client.K8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	if namespace.Labels != nil && namespace.Labels["kubesphere.io/workspace"] == workspace {
 		deletePolicy := meta_v1.DeletePropagationForeground
-		return client.NewK8sClient().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+		return client.K8sClient().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	} else {
 		return errors.New("resource not found")
 	}
@@ -362,7 +391,7 @@ func release(workspace *Workspace) error {
 	return err
 }
 func workspaceRoleRelease(workspace string) error {
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 	deletePolicy := meta_v1.DeletePropagationForeground
 
 	for _, role := range constants.WorkSpaceRoles {
@@ -731,16 +760,10 @@ func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 
 func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
 
-	ns, err := client.NewK8sClient().CoreV1().Namespaces().Create(namespace)
+	ns, err := client.K8sClient().CoreV1().Namespaces().Create(namespace)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if ctl, ok := controllers.ResourceControllers.Controllers[controllers.Namespaces]; ok {
-		if nsCtl, ok := ctl.(*controllers.NamespaceCtl); ok {
-			nsCtl.CreateDefaultRoleAndRoleBinding(ns)
-		}
 	}
 
 	return ns, nil
@@ -783,7 +806,7 @@ func Invite(workspaceName string, users []UserInvite) error {
 
 func NamespaceExistCheck(namespaceName string) (bool, error) {
 
-	_, err := client.NewK8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	_, err := client.K8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -827,14 +850,6 @@ func RemoveMembers(workspaceName string, users []string) error {
 
 func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	roles := make([]*v1.ClusterRole, 0)
-
-	lister, err := controllers.GetLister(controllers.ClusterRoles)
-
-	if err != nil {
-		return nil, err
-	}
-
-	clusterRoleLister := lister.(v12.ClusterRoleLister)
 
 	for _, name := range constants.WorkSpaceRoles {
 
@@ -894,7 +909,7 @@ func GetWorkspaceMembers(workspace string, keyword string) ([]iam.User, error) {
 }
 
 func WorkspaceRoleInit(workspace *Workspace) error {
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 
 	admin := new(v1.ClusterRole)
 	admin.Name = fmt.Sprintf("system:%s:%s", workspace.Name, constants.WorkspaceAdmin)
@@ -1093,7 +1108,7 @@ func WorkspaceRoleInit(workspace *Workspace) error {
 }
 
 func unbindWorkspaceRole(workspace string, users []string) error {
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 
 	for _, name := range constants.WorkSpaceRoles {
 		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, name), meta_v1.GetOptions{})
@@ -1125,7 +1140,7 @@ func unbindWorkspaceRole(workspace string, users []string) error {
 
 func unbindNamespacesRole(namespaces []string, users []string) error {
 
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 	for _, namespace := range namespaces {
 
 		roleBindings, err := k8sClient.RbacV1().RoleBindings(namespace).List(meta_v1.ListOptions{})
@@ -1173,7 +1188,7 @@ func UnbindWorkspace(workspace *Workspace, users []string) error {
 
 func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role string) error {
 
-	k8sClient := client.NewK8sClient()
+	k8sClient := client.K8sClient()
 
 	for _, roleName := range constants.WorkSpaceRoles {
 		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace.Name, roleName), meta_v1.GetOptions{})
@@ -1272,7 +1287,8 @@ func WorkspaceNamespaces(workspaceName string) ([]string, error) {
 	return namespaces, nil
 }
 
-func CountAll() (int, error) {
+func Count() (int, error) {
+
 	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/count", constants.AccountAPIServer))
 
 	if err != nil {
@@ -1280,48 +1296,41 @@ func CountAll() (int, error) {
 	}
 
 	defer result.Body.Close()
+
 	data, err := ioutil.ReadAll(result.Body)
+
 	if err != nil {
 		return 0, err
 	}
+
 	if result.StatusCode > 200 {
 		return 0, ksErr.Wrap(data)
 	}
-	var count map[string]interface{}
+	var count map[string]json.Number
 
 	err = json.Unmarshal(data, &count)
 
 	if err != nil {
 		return 0, err
 	}
-	val, ok := count["total_count"]
 
-	if !ok {
-		return 0, errors.New("not found")
-	}
+	value := count["total_count"]
 
-	switch val.(type) {
-	case int:
-		return val.(int), nil
-	case float32:
-		return int(val.(float32)), nil
-	case float64:
-		return int(val.(float64)), nil
-	}
+	v, err := value.Int64()
 
-	return 0, errors.New("not found")
-}
-
-func GetAllOrgNums() (int, error) {
-	count, err := CountAll()
 	if err != nil {
-		return 0, err
+		return 0, ksErr.New(ksErr.Internal, err.Error())
 	}
-	return count, nil
+
+	return int(v), nil
 }
 
 func GetAllProjectNums() (int, error) {
-	return controllers.ResourceControllers.Controllers[controllers.Namespaces].CountWithConditions(""), nil
+	list, err := namespaceLister.List(labels.Everything())
+	if err != nil {
+		return 0, err
+	}
+	return len(list), nil
 }
 
 func GetAllDevOpsProjectsNums() (int, error) {
@@ -1350,26 +1359,21 @@ func GetAllAccountNums() (int, error) {
 	if result.StatusCode > 200 {
 		return 0, ksErr.Wrap(data)
 	}
-	var count map[string]interface{}
+	var count map[string]json.Number
 
 	err = json.Unmarshal(data, &count)
 
 	if err != nil {
 		return 0, err
 	}
-	val, ok := count["total_count"]
 
-	if !ok {
-		return 0, errors.New("not found")
+	value := count["total_count"]
+
+	v, err := value.Int64()
+
+	if err != nil {
+		return 0, err
 	}
 
-	switch val.(type) {
-	case int:
-		return val.(int), nil
-	case float32:
-		return int(val.(float32)), nil
-	case float64:
-		return int(val.(float64)), nil
-	}
-	return 0, errors.New("not found")
+	return int(v), nil
 }

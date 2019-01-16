@@ -177,12 +177,6 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 		requestParams.Params = u
 		return &requestParams
 	}
-
-	glog.Errorln("Parse request %s failed", u)
-	requestParams.QueryType = DefaultQueryType
-	requestParams.Params = u
-
-	return &requestParams
 }
 
 func convertTimeGranularity(ts string) string {

@@ -75,7 +75,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 	for _, metricItem := range fmtLevelMetric.Results {
 		if metricItem.Data.ResultType == ResultTypeVector && metricItem.Status == MetricStatusSuccess {
 			if metricItem.MetricName == sortMetricName {
-				if sortType == ResultSortTypeAsce {
+				if sortType == ResultSortTypeAsc {
 					// desc
 					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *map[string]interface{}) bool {
 						value1 := (*p)[ResultItemValue].([]interface{})

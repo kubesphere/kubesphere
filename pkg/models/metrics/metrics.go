@@ -1,17 +1,19 @@
 /*
-Copyright 2018 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Copyright 2019 The KubeSphere Authors.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 
 package metrics
@@ -24,6 +26,13 @@ import (
 	"sync"
 	"time"
 
+	v12 "k8s.io/client-go/listers/core/v1"
+
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/components"
+	"kubesphere.io/kubesphere/pkg/models/workspaces"
+
 	"github.com/golang/glog"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -34,17 +43,15 @@ import (
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	listerV1 "k8s.io/client-go/listers/core/v1"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/controllers"
-	"kubesphere.io/kubesphere/pkg/models/workspaces"
 )
 
-var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
-
-var nodeStatusDelLables = []string{"endpoint", "instance", "job", "namespace", "pod", "service"}
+var (
+	jsonIter           = jsoniter.ConfigCompatibleWithStandardLibrary
+	nodeStatusDelLabel = []string{"endpoint", "instance", "job", "namespace", "pod", "service"}
+	nodeLister         v12.NodeLister
+)
 
 const (
 	ChannelMaxCapacityWorkspaceMetric = 800
@@ -117,6 +124,10 @@ type OneComponentStatus struct {
 	Message string `json:"message,omitempty"`
 	// Condition error code for a component.
 	Error string `json:"error,omitempty"`
+}
+
+func init() {
+	nodeLister = informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 }
 
 func getAllWorkspaceNames(formatedMetric *FormatedMetric) map[string]int {
@@ -283,11 +294,7 @@ func GetMetric(queryType, params, metricName string) *FormatedMetric {
 }
 
 func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
-	lister, err := controllers.GetLister(controllers.Nodes)
-	if err != nil {
-		glog.Errorln(err)
-	}
-	nodeLister := lister.(listerV1.NodeLister)
+
 	nodes, err := nodeLister.List(labels.Everything())
 
 	if err != nil {
@@ -731,7 +738,7 @@ func MonitorAllWorkspacesStatistics() *FormatedLevelMetric {
 	wg.Add(4)
 
 	go func() {
-		orgNums, errOrg := workspaces.GetAllOrgNums()
+		orgNums, errOrg := workspaces.Count()
 		if errOrg != nil {
 			glog.Errorln(errOrg.Error())
 		}
@@ -869,7 +876,7 @@ func getSpecificMetricItem(timestamp int64, metricName string, resource string, 
 
 // k8s component(controller, scheduler, etcd) status
 func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *[]interface{} {
-	componentList, err := client.NewK8sClient().CoreV1().ComponentStatuses().List(metaV1.ListOptions{})
+	componentList, err := client.K8sClient().CoreV1().ComponentStatuses().List(metaV1.ListOptions{})
 	if err != nil {
 		glog.Errorln(err.Error())
 	}
@@ -901,7 +908,7 @@ func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *
 	params := paramValues.Encode()
 	res := client.SendMonitoringRequest(queryType, params)
 
-	nodeStatusMetric := ReformatJson(res, "node_status", nodeStatusDelLables...)
+	nodeStatusMetric := ReformatJson(res, "node_status", nodeStatusDelLabel...)
 	nodeStatusMetric = ReformatNodeStatusField(nodeStatusMetric)
 
 	var normalNodes []string
@@ -918,23 +925,23 @@ func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *
 		}
 	}
 
-	Components, err := models.GetAllComponentsStatus()
+	Components, err := components.GetAllComponentsStatus()
 
 	if err != nil {
 		glog.Error(err.Error())
 	}
 
-	var namspaceComponentHealthyMap = make(map[string]int)
-	var namspaceComponentTotalMap = make(map[string]int)
+	var namespaceComponentHealthyMap = make(map[string]int)
+	var namespaceComponentTotalMap = make(map[string]int)
 
-	for _, ns := range models.SYSTEM_NAMESPACES {
+	for _, ns := range constants.SystemNamespaces {
 		nsStatus, exist := Components[ns]
 		if exist {
 			for _, nsStatusItem := range nsStatus.(map[string]interface{}) {
-				component := nsStatusItem.(models.Component)
-				namspaceComponentTotalMap[ns] += 1
+				component := nsStatusItem.(components.Component)
+				namespaceComponentTotalMap[ns] += 1
 				if component.HealthyBackends != 0 && component.HealthyBackends == component.TotalBackends {
-					namspaceComponentHealthyMap[ns] += 1
+					namespaceComponentHealthyMap[ns] += 1
 				}
 			}
 		}
@@ -942,8 +949,8 @@ func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *
 
 	timestamp := int64(time.Now().Unix())
 
-	onlineMetricItems := makeMetricItems(timestamp, namspaceComponentHealthyMap, MetricLevelNamespace)
-	metricItems := makeMetricItems(timestamp, namspaceComponentTotalMap, MetricLevelNamespace)
+	onlineMetricItems := makeMetricItems(timestamp, namespaceComponentHealthyMap, MetricLevelNamespace)
+	metricItems := makeMetricItems(timestamp, namespaceComponentTotalMap, MetricLevelNamespace)
 
 	var assembleList []interface{}
 	assembleList = append(assembleList, nodeStatusMetric)
