@@ -59,7 +59,6 @@ func getController(resource string) (controllers.Controller, error) {
 		return nil, fmt.Errorf("invalid resource Name '%s'", resource)
 	}
 	return nil, nil
-
 }
 
 func getConditions(str string) (*searchConditions, map[string]string, error) {

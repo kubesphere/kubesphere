@@ -40,6 +40,7 @@ import (
 	"k8s.io/api/core/v1"
 
 	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha"
+	_ "kubesphere.io/kubesphere/pkg/apis/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"

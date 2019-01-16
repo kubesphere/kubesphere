@@ -57,7 +57,7 @@ const (
 )
 
 var adminRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}
-var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "kubesphere.io", "account.kubesphere.io"}, Resources: []string{"*"}}}
+var editorRules = []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "kubesphere.io", "account.kubesphere.io", "autoscaling"}, Resources: []string{"*"}}}
 var viewerRules = []rbac.PolicyRule{{Verbs: []string{"list", "get", "watch"}, APIGroups: []string{"", "apps", "extensions", "batch", "kubesphere.io", "account.kubesphere.io"}, Resources: []string{"*"}}}
 
 type runTime struct {

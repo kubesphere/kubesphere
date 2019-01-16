@@ -613,7 +613,7 @@
   version = "kubernetes-1.10.0"
 
 [[projects]]
-  digest = "1:7ee72261d268f7443085aad95b39fefc17fca826a9bfd8bd2d431bc081852a62"
+  digest = "1:e395c1bbf5c6b35b34b26fad8d30c51a09a64443a70d715d0a02b17840d1a518"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -736,6 +736,7 @@
     "util/homedir",
     "util/integer",
     "util/retry",
+    "util/workqueue",
   ]
   pruneopts = "UT"
   revision = "23781f4d6632d88e869066eaebb743857aa1ef9b"
@@ -769,6 +770,7 @@
     "github.com/go-sql-driver/mysql",
     "github.com/golang/glog",
     "github.com/jinzhu/gorm",
+    "github.com/json-iterator/go",
     "github.com/pkg/errors",
     "github.com/spf13/pflag",
     "gopkg.in/igm/sockjs-go.v2/sockjs",
@@ -788,9 +790,12 @@
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/informers",
+    "k8s.io/client-go/informers/core/v1",
+    "k8s.io/client-go/informers/rbac/v1",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/listers/apps/v1",
@@ -804,6 +809,7 @@
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/remotecommand",
+    "k8s.io/client-go/util/workqueue",
     "k8s.io/kubernetes/pkg/apis/core",
     "k8s.io/kubernetes/pkg/util/slice",
     "k8s.io/kubernetes/pkg/util/version",

@@ -19,7 +19,9 @@ package options
 
 import (
 	goflag "flag"
+	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -159,7 +161,16 @@ func (s *ServerRunOptions) GetKubeConfig() (kubeConfig *rest.Config, err error) 
 
 	} else {
 
+		defaultKubeConfig := fmt.Sprintf("%s/.kube/config", os.Getenv("HOME"))
+
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", defaultKubeConfig)
+
+		if err == nil {
+			return kubeConfig, nil
+		}
+
 		kubeConfig, err = rest.InClusterConfig()
+
 		if err != nil {
 			return nil, err
 		}
