@@ -378,7 +378,7 @@ func (ctl *ApplicationCtl) ListApplication(runtimeId string, match, fuzzy map[st
 		ctl.OpenpitrixAddr = strings.TrimSuffix(ctl.OpenpitrixAddr, "/")
 	}
 
-	defaultStatus := "status=active&status=stopped&status=pending&status=ceased"
+	defaultStatus := "status=active&status=stopped&status=pending&status=deleting&status=deleted"
 
 	url := fmt.Sprintf("%s/v1/clusters?limit=%s&offset=%s", ctl.OpenpitrixAddr, strconv.Itoa(limit), strconv.Itoa(offset))
 
