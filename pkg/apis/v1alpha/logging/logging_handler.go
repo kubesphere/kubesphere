@@ -58,6 +58,11 @@ func (u LoggingResource) loggingQueryCRD(request *restful.Request, response *res
 	response.WriteAsJson(res)
 }
 
+func (u LoggingResource) loggingUpdateCRD(request *restful.Request, response *restful.Response) {
+	res := log.CRDUpdate(request)
+	response.WriteAsJson(res)
+}
+
 type LoggingResource struct {
 }
 
@@ -191,6 +196,13 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.GET("/crd"+subPath).To(u.loggingQueryCRD).
 		Filter(route.RouteLogging).
 		Doc("log crd query").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/crd"+subPath).To(u.loggingUpdateCRD).
+		Filter(route.RouteLogging).
+		Doc("log crd update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
