@@ -24,11 +24,12 @@ import (
 )
 
 type Request struct {
-	From      int64       `json:"from"`
-	Size      int64       `json:"size"`
-	Sorts     []Sort      `json:"sort,omitempty"`
-	MainQuery MainQuery   `json:"query"`
-	Aggs      interface{} `json:"aggs,omitempty"`
+	From          int64         `json:"from"`
+	Size          int64         `json:"size"`
+	Sorts         []Sort        `json:"sort,omitempty"`
+	MainQuery     MainQuery     `json:"query"`
+	Aggs          interface{}   `json:"aggs,omitempty"`
+	MainHighLight MainHighLight `json:"highlight,omitempty"`
 }
 
 type Sort struct {
@@ -87,6 +88,29 @@ type Match struct {
 
 type QueryWord struct {
 	Word string `json:"query"`
+}
+
+type MainHighLight struct {
+	Fields []interface{} `json:"fields"`
+}
+
+type LogHighLightField struct {
+	FieldContent EmptyField `json:"log"`
+}
+
+type NamespaceHighLightField struct {
+	FieldContent EmptyField `json:"kubernetes.namespace_name.keyword"`
+}
+
+type PodHighLightField struct {
+	FieldContent EmptyField `json:"kubernetes.pod_name.keyword"`
+}
+
+type ContainerHighLightField struct {
+	FieldContent EmptyField `json:"kubernetes.container_name.keyword"`
+}
+
+type EmptyField struct {
 }
 
 type StatisticsAggs struct {
@@ -216,6 +240,13 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		request.From = param.From
 		request.Size = param.Size
 		request.Sorts = append(request.Sorts, Sort{Order{"asc"}})
+
+		var mainHighLight MainHighLight
+		mainHighLight.Fields = append(mainHighLight.Fields, LogHighLightField{})
+		mainHighLight.Fields = append(mainHighLight.Fields, NamespaceHighLightField{})
+		mainHighLight.Fields = append(mainHighLight.Fields, PodHighLightField{})
+		mainHighLight.Fields = append(mainHighLight.Fields, ContainerHighLightField{})
+		request.MainHighLight = mainHighLight
 	}
 
 	request.MainQuery = MainQuery{mainBoolQuery}
@@ -246,7 +277,8 @@ type Hits struct {
 }
 
 type Hit struct {
-	Source Source `json:"_source"`
+	Source    Source    `json:"_source"`
+	HighLight HighLight `json:"highlight"`
 }
 
 type Source struct {
@@ -262,13 +294,21 @@ type Kubernetes struct {
 	Host      string `json:"host"`
 }
 
+type HighLight struct {
+	LogHighLights       []string `json:"log,omitempty"`
+	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty"`
+	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty"`
+	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty"`
+}
+
 type LogRecord struct {
-	Time      int64  `json:"time,omitempty"`
-	Log       string `json:"log,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Pod       string `json:"pod,omitempty"`
-	Container string `json:"container,omitempty"`
-	Host      string `json:"host,omitempty"`
+	Time      int64     `json:"time,omitempty"`
+	Log       string    `json:"log,omitempty"`
+	Namespace string    `json:"namespace,omitempty"`
+	Pod       string    `json:"pod,omitempty"`
+	Container string    `json:"container,omitempty"`
+	Host      string    `json:"host,omitempty"`
+	HighLight HighLight `json:"highlight,omitempty"`
 }
 
 type ReadResult struct {
@@ -419,6 +459,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 			logRecord.Pod = hit.Source.Kubernetes.Pod
 			logRecord.Container = hit.Source.Kubernetes.Container
 			logRecord.Host = hit.Source.Kubernetes.Host
+			logRecord.HighLight = hit.HighLight
 			readResult.Records = append(readResult.Records, logRecord)
 		}
 		queryResult.Read = &readResult
