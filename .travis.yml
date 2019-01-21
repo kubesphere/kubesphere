@@ -3,6 +3,9 @@ services:
 
 language: go
 
+git:
+  depth: false
+
 go:
   - 1.10
 
@@ -20,6 +23,7 @@ script:
   - make fmt-check && make build
 
 deploy:
+  skip_cleanup: true
   provider: script
   script: bash install/scripts/docker_push
   on:
