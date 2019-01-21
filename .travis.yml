@@ -15,6 +15,7 @@ before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 before_script:
+  - dep ensure -v
   - docker --version
   - dep ensure -v
 
