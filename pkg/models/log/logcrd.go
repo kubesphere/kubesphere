@@ -21,7 +21,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
-func CRDQuery(request *restful.Request) *client.LoggingOperatorSpec {
+func CRDQuery(request *restful.Request) *client.FluentBitOperatorSpec {
 	config, err := client.GetClientConfig("")
 	if err != nil {
 		//panic(err.Error())
@@ -47,8 +47,8 @@ func CRDQuery(request *restful.Request) *client.LoggingOperatorSpec {
 	return &item.Spec
 }
 
-func CRDUpdate(request *restful.Request) *client.LoggingOperatorSpec {
-	spec := new(client.LoggingOperatorSpec)
+func CRDUpdate(request *restful.Request) *client.FluentBitOperatorSpec {
+	spec := new(client.FluentBitOperatorSpec)
 
 	err := request.ReadEntity(&spec)
 	if err != nil {
@@ -71,7 +71,7 @@ func CRDUpdate(request *restful.Request) *client.LoggingOperatorSpec {
 	// Create a CRD client interface
 	crdclient := client.CrdClient(crdcs, scheme, "default")
 
-	var item *client.LoggingOperator
+	var item *client.FluentBitOperator
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")

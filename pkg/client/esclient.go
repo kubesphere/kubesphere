@@ -91,7 +91,7 @@ type QueryWord struct {
 }
 
 type MainHighLight struct {
-	Fields []interface{} `json:"fields"`
+	Fields []interface{} `json:"fields,omitempty"`
 }
 
 type LogHighLightField struct {
