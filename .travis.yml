@@ -14,6 +14,7 @@ before_install:
 before_script:
   - dep ensure -v
   - docker --version
+  - dep ensure -v
 
 script:
   - make fmt-check && make build
