@@ -97,7 +97,7 @@ build: fmt
 	$(call get_build_flags)
 	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
 	mv ./tmp/bin/cmd ./tmp/bin/$(TRAG.Name)
-	@docker build -t ${REGISTRY}/$(TRAG.Name) -f - ./tmp < ./Dockerfile.dev 
+	@docker build -t ${REGISTRY} -f - ./tmp < ./Dockerfile.dev 
 	@docker image prune -f 1>/dev/null 2>&1
 	@echo "build done"
 
