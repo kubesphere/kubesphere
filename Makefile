@@ -2,6 +2,9 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
+# The binary to build 
+BIN ?= kubesphere
+
 TRAG.Org:=kubesphere
 TRAG.Name:=ks-apiserver
 TRAG.Gopkg:=kubesphere.io/kubesphere
@@ -11,6 +14,8 @@ DOCKER_TAGS=latest
 RUN_IN_DOCKER:=docker run -it --rm -v `pwd`:/go/src/$(TRAG.Gopkg) -v `pwd`/tmp/cache:/root/.cache/go-build  -w /go/src/$(TRAG.Gopkg) -e GOBIN=/go/src/$(TRAG.Gopkg)/tmp/bin -e USER_ID=`id -u` -e GROUP_ID=`id -g` kubesphere/kubesphere-builder
 GO_FMT:=goimports -l -w -e -local=kubesphere -srcdir=/go/src/$(TRAG.Gopkg)
 GO_FILES:=./cmd ./pkg
+
+REGISTRY ?= kubespheredev/ks-apiserver
 
 define get_diff_files
     $(eval DIFF_FILES=$(shell git diff --name-only --diff-filter=ad | grep -E "^(test|cmd|pkg)/.+\.go"))
@@ -92,7 +97,7 @@ build: fmt
 	$(call get_build_flags)
 	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
 	mv ./tmp/bin/cmd ./tmp/bin/$(TRAG.Name)
-	@docker build -t $(TRAG.Org)/$(TRAG.Name) -f ./Dockerfile.dev ./tmp
+	@docker build -t ${REGISTRY}/$(TRAG.Name) -f - ./tmp < ./Dockerfile.dev 
 	@docker image prune -f 1>/dev/null 2>&1
 	@echo "build done"
 
