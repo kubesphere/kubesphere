@@ -27,6 +27,10 @@ type CRDResult struct {
 	CRD client.FluentBitOperatorSpec `json:"CRD,omitempty"`
 }
 
+type CRDDeleteResult struct {
+	Status int `json:"status"`
+}
+
 func CRDQuery(request *restful.Request) *CRDResult {
 	var result CRDResult
 
@@ -127,5 +131,37 @@ func CRDUpdate(request *restful.Request) *CRDResult {
 		result.Status = 200
 	}
 
+	return &result
+}
+
+func CRDDelete(request *restful.Request) *CRDDeleteResult {
+	var result CRDDeleteResult
+
+	config, err := client.GetClientConfig("")
+	if err != nil {
+		//panic(err.Error())
+		result.Status = 400
+		return &result
+	}
+
+	// Create a new clientset which include our CRD schema
+	crdcs, scheme, err := client.NewClient(config)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	err = crdclient.Delete("fluent-bit", nil)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	result.Status = 200
 	return &result
 }

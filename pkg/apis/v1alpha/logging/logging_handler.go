@@ -63,6 +63,11 @@ func (u LoggingResource) loggingUpdateCRD(request *restful.Request, response *re
 	response.WriteAsJson(res)
 }
 
+func (u LoggingResource) loggingDeleteCRD(request *restful.Request, response *restful.Response) {
+	res := log.CRDDelete(request)
+	response.WriteAsJson(res)
+}
+
 type LoggingResource struct {
 }
 
@@ -203,6 +208,13 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.POST("/crd"+subPath).To(u.loggingUpdateCRD).
 		Filter(route.RouteLogging).
 		Doc("log crd update").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.DELETE("/crd"+subPath).To(u.loggingDeleteCRD).
+		Filter(route.RouteLogging).
+		Doc("log crd delete").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
