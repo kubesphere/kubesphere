@@ -18,21 +18,31 @@ package log
 
 import (
 	"github.com/emicklei/go-restful"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
-func CRDQuery(request *restful.Request) *client.FluentBitOperatorSpec {
+type CRDResult struct {
+	Status int `json:"status"`
+	CRD client.FluentBitOperatorSpec `json:"CRD,omitempty"`
+}
+
+func CRDQuery(request *restful.Request) *CRDResult {
+	var result CRDResult
+
 	config, err := client.GetClientConfig("")
 	if err != nil {
 		//panic(err.Error())
-		return nil
+		result.Status = 400
+		return &result
 	}
 
 	// Create a new clientset which include our CRD schema
 	crdcs, scheme, err := client.NewClient(config)
 	if err != nil {
 		//panic(err)
-		return nil
+		result.Status = 400
+		return &result
 	}
 
 	// Create a CRD client interface
@@ -41,31 +51,41 @@ func CRDQuery(request *restful.Request) *client.FluentBitOperatorSpec {
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
 		//panic(err)
-		return nil
+		result.Status = 200
+		return &result
 	}
 
-	return &item.Spec
+	result.CRD = item.Spec
+	result.Status = 200
+
+	return &result
 }
 
-func CRDUpdate(request *restful.Request) *client.FluentBitOperatorSpec {
+func CRDUpdate(request *restful.Request) *CRDResult {
+	var result CRDResult
+
 	spec := new(client.FluentBitOperatorSpec)
 
 	err := request.ReadEntity(&spec)
 	if err != nil {
-		return nil
+		//panic(err.Error())
+		result.Status = 400
+		return &result
 	}
 
 	config, err := client.GetClientConfig("")
 	if err != nil {
 		//panic(err.Error())
-		return nil
+		result.Status = 400
+		return &result
 	}
 
 	// Create a new clientset which include our CRD schema
 	crdcs, scheme, err := client.NewClient(config)
 	if err != nil {
 		//panic(err)
-		return nil
+		result.Status = 400
+		return &result
 	}
 
 	// Create a CRD client interface
@@ -77,16 +97,35 @@ func CRDUpdate(request *restful.Request) *client.FluentBitOperatorSpec {
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
 		//panic(err)
-		return nil
+		fluentBitOperator := &client.FluentBitOperator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fluent-bit",
+			},
+			Spec: *spec,
+		}
+
+		itemnew, err := crdclient.Create(fluentBitOperator)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.CRD = itemnew.Spec
+		result.Status = 200
+	} else {
+		item.Spec = *spec
+
+		itemnew, err := crdclient.Update("fluent-bit", item)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.CRD = itemnew.Spec
+		result.Status = 200
 	}
 
-	item.Spec = *spec
-
-	itemnew, err := crdclient.Update("fluent-bit", item)
-	if err != nil {
-		//panic(err)
-		return nil
-	}
-
-	return &itemnew.Spec
+	return &result
 }
