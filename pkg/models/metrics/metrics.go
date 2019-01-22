@@ -51,14 +51,6 @@ const (
 	ChannelMaxCapacity                = 100
 )
 
-type PagedFormatedLevelMetric struct {
-	CurrentPage int                 `json:"page"`
-	TotalPage   int                 `json:"total_page"`
-	TotalItem   int                 `json:"total_item"`
-	Message     string              `json:"msg"`
-	Metric      FormatedLevelMetric `json:"metrics"`
-}
-
 type FormatedLevelMetric struct {
 	MetricsLevel string           `json:"metrics_level"`
 	Results      []FormatedMetric `json:"results"`
