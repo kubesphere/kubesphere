@@ -403,3 +403,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 
 	return client.Query(param)
 }
+
+func InitClientConfigMapWatcher() {
+	client.InitConfigMapWatcher()
+}

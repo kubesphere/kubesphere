@@ -18,10 +18,129 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
+
+	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
+
+type Value struct{ atomic.Value }
+
+// String is an atomic type-safe wrapper around Value for strings.
+type String struct{ v Value }
+
+// NewString creates a String.
+func NewString(str string) *String {
+	s := &String{}
+	if str != "" {
+		s.Store(str)
+	}
+	return s
+}
+
+// Load atomically loads the wrapped string.
+func (s *String) Load() string {
+	v := s.v.Load()
+	if v == nil {
+		return ""
+	}
+	return v.(string)
+}
+
+// Store atomically stores the passed string.
+// Note: Converting the string to an interface{} to store in the Value
+// requires an allocation.
+func (s *String) Store(str string) {
+	s.v.Store(str)
+}
+
+const (
+	ConfigMapName     = "ks-apiserver-config"
+	ConfigMapDataName = "esURL"
+	DefaultESURL      = "http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200"
+)
+
+var esURL *String
+
+func InitConfigMapWatcher() {
+	esURL = NewString(DefaultESURL)
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		//panic(err.Error())
+		glog.Error("Watch InClusterConfig error")
+		return
+	}
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		//panic(err.Error())
+		glog.Error("Watch NewForConfig error")
+		return
+	}
+
+	informerFactory := informers.NewSharedInformerFactory(clientset, time.Second*5)
+
+	informer := informerFactory.Core().V1().ConfigMaps().Informer()
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			cm, ok := obj.(*v1.ConfigMap)
+
+			if !ok {
+				glog.Info("Watch add configmap error")
+				return
+			}
+
+			if cm.Name == ConfigMapName {
+				//fmt.Println("Add config", cm.Data[ConfigMapDataName])
+				if cm.Data[ConfigMapDataName] != "" {
+					esURL.Store(cm.Data[ConfigMapDataName])
+				}
+			}
+		},
+		UpdateFunc: func(old, new interface{}) {
+			cm, ok := new.(*v1.ConfigMap)
+
+			if !ok {
+				glog.Info("Watch update configmap error")
+				return
+			}
+
+			if cm.Name == ConfigMapName {
+				//fmt.Println("Update config", cm.Data[ConfigMapDataName])
+				if cm.Data[ConfigMapDataName] != "" {
+					esURL.Store(cm.Data[ConfigMapDataName])
+				}
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+			cm, ok := obj.(*v1.ConfigMap)
+
+			if !ok {
+				glog.Info("Watch delete configmap error")
+				return
+			}
+
+			if cm.Name == ConfigMapName {
+				//fmt.Println("Delete config")
+				esURL.Store(DefaultESURL)
+			}
+		},
+	})
+
+	go func() {
+		informer.Run(make(chan struct{}))
+	}()
+}
 
 type Request struct {
 	From          int64         `json:"from"`
@@ -562,7 +681,7 @@ func Query(param QueryParameters) *QueryResult {
 		return queryResult
 	}
 
-	request, err := http.NewRequest("GET", "http://elasticsearch-logging-data.kubesphere-logging-system.svc.cluster.local:9200/logstash-*/_search", bytes.NewBuffer(query))
+	request, err := http.NewRequest("GET", esURL.Load()+"/logstash-*/_search", bytes.NewBuffer(query))
 	if err != nil {
 		//fmt.Println("Create request error ", err.Error())
 		queryResult = new(QueryResult)

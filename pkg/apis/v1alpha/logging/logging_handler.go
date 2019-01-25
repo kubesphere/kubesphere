@@ -75,6 +75,8 @@ func Register(ws *restful.WebService, subPath string) {
 	tags := []string{"logging apis"}
 	u := LoggingResource{}
 
+	log.InitClientConfigMapWatcher()
+
 	ws.Route(ws.GET("/cluster"+subPath).To(u.loggingQueryCluster).
 		Filter(route.RouteLogging).
 		Doc("cluster level log query").
