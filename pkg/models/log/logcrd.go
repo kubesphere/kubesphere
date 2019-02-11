@@ -19,30 +19,54 @@ package log
 import (
 	"github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
+
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
 type CRDResult struct {
-	Status int `json:"status"`
-	CRD client.FluentBitOperatorSpec `json:"CRD,omitempty"`
+	Status int                          `json:"status"`
+	CRD    client.FluentBitOperatorSpec `json:"CRD,omitempty"`
 }
 
 type CRDDeleteResult struct {
 	Status int `json:"status"`
 }
 
-func CRDQuery(request *restful.Request) *CRDResult {
-	var result CRDResult
+type EnableResult struct {
+	Status int    `json:"status"`
+	Enable string `json:"Enable,omitempty"`
+}
 
+func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
 	config, err := client.GetClientConfig("")
 	if err != nil {
 		//panic(err.Error())
-		result.Status = 400
-		return &result
+		return nil, nil, err
 	}
 
 	// Create a new clientset which include our CRD schema
-	crdcs, scheme, err := client.NewClient(config)
+	return client.NewClient(config)
+}
+
+func getParameterValue(parameters []client.Parameter, name string) string {
+	var value string
+
+	value = ""
+	for _, parameter := range parameters {
+		if parameter.Name == name {
+			value = parameter.Value
+		}
+	}
+
+	return value
+}
+
+func CRDQuery(request *restful.Request) *CRDResult {
+	var result CRDResult
+
+	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
 		//panic(err)
 		result.Status = 400
@@ -77,15 +101,7 @@ func CRDUpdate(request *restful.Request) *CRDResult {
 		return &result
 	}
 
-	config, err := client.GetClientConfig("")
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
-	// Create a new clientset which include our CRD schema
-	crdcs, scheme, err := client.NewClient(config)
+	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
 		//panic(err)
 		result.Status = 400
@@ -137,15 +153,7 @@ func CRDUpdate(request *restful.Request) *CRDResult {
 func CRDDelete(request *restful.Request) *CRDDeleteResult {
 	var result CRDDeleteResult
 
-	config, err := client.GetClientConfig("")
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
-	// Create a new clientset which include our CRD schema
-	crdcs, scheme, err := client.NewClient(config)
+	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
 		//panic(err)
 		result.Status = 400
@@ -163,5 +171,104 @@ func CRDDelete(request *restful.Request) *CRDDeleteResult {
 	}
 
 	result.Status = 200
+	return &result
+}
+
+func EnableQuery(request *restful.Request) *EnableResult {
+	var result EnableResult
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	item, err := crdclient.Get("fluent-bit")
+	if err != nil {
+		//panic(err)
+		result.Enable = "true"
+		result.Status = 200
+		return &result
+	}
+
+	if len(item.Spec.Settings) > 0 {
+		result.Enable = getParameterValue(item.Spec.Settings[0].Parameters, "Enable")
+	} else {
+		result.Enable = "true"
+	}
+
+	result.Status = 200
+
+	return &result
+}
+
+func EnableUpdate(request *restful.Request) *EnableResult {
+	var result EnableResult
+
+	parameters := new([]client.Parameter)
+
+	err := request.ReadEntity(&parameters)
+	if err != nil {
+		//panic(err.Error())
+		result.Status = 400
+		return &result
+	}
+
+	var settings []client.Plugin
+	settings = append(settings, client.Plugin{"fluentbit_settings", "fluentbit-settings", *parameters})
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	var item *client.FluentBitOperator
+	var err_read error
+
+	item, err_read = crdclient.Get("fluent-bit")
+	if err_read != nil {
+		//panic(err)
+		spec := new(client.FluentBitOperatorSpec)
+		spec.Settings = settings
+
+		fluentBitOperator := &client.FluentBitOperator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fluent-bit",
+			},
+			Spec: *spec,
+		}
+
+		itemnew, err := crdclient.Create(fluentBitOperator)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.Enable = getParameterValue(itemnew.Spec.Settings[0].Parameters, "Enable")
+		result.Status = 200
+	} else {
+		item.Spec.Settings = settings
+
+		itemnew, err := crdclient.Update("fluent-bit", item)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.Enable = getParameterValue(itemnew.Spec.Settings[0].Parameters, "Enable")
+		result.Status = 200
+	}
+
 	return &result
 }

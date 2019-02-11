@@ -68,6 +68,16 @@ func (u LoggingResource) loggingDeleteCRD(request *restful.Request, response *re
 	response.WriteAsJson(res)
 }
 
+func (u LoggingResource) loggingQueryEnable(request *restful.Request, response *restful.Response) {
+	res := log.EnableQuery(request)
+	response.WriteAsJson(res)
+}
+
+func (u LoggingResource) loggingUpdateEnable(request *restful.Request, response *restful.Response) {
+	res := log.EnableUpdate(request)
+	response.WriteAsJson(res)
+}
+
 type LoggingResource struct {
 }
 
@@ -217,6 +227,20 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.DELETE("/crd"+subPath).To(u.loggingDeleteCRD).
 		Filter(route.RouteLogging).
 		Doc("log crd delete").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/enable"+subPath).To(u.loggingQueryEnable).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit enable query").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/enable"+subPath).To(u.loggingUpdateEnable).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit enable set").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)

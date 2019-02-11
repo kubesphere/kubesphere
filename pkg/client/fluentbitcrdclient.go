@@ -49,10 +49,11 @@ type FluentBitOperator struct {
 
 // FluentBitOperatorSpec holds the spec for the operator
 type FluentBitOperatorSpec struct {
-	Service []Plugin `json:"service"`
-	Input   []Plugin `json:"input"`
-	Filter  []Plugin `json:"filter"`
-	Output  []Plugin `json:"output"`
+	Service  []Plugin `json:"service"`
+	Input    []Plugin `json:"input"`
+	Filter   []Plugin `json:"filter"`
+	Output   []Plugin `json:"output"`
+	Settings []Plugin `json:"settings"`
 }
 
 // FluentBitOperatorStatus holds the status info for the operator
