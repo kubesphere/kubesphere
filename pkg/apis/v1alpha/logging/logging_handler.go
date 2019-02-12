@@ -78,6 +78,16 @@ func (u LoggingResource) loggingUpdateSettings(request *restful.Request, respons
 	response.WriteAsJson(res)
 }
 
+func (u LoggingResource) loggingQueryFilters(request *restful.Request, response *restful.Response) {
+	res := log.FiltersQuery(request)
+	response.WriteAsJson(res)
+}
+
+func (u LoggingResource) loggingUpdateFilters(request *restful.Request, response *restful.Response) {
+	res := log.FiltersUpdate(request)
+	response.WriteAsJson(res)
+}
+
 type LoggingResource struct {
 }
 
@@ -241,6 +251,20 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.POST("/settings"+subPath).To(u.loggingUpdateSettings).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit settings update").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/filters"+subPath).To(u.loggingQueryFilters).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit filters query").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/filters"+subPath).To(u.loggingUpdateFilters).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit filters update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)

@@ -17,6 +17,8 @@ limitations under the License.
 package log
 
 import (
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +39,17 @@ type CRDDeleteResult struct {
 type SettingsResult struct {
 	Status int    `json:"status"`
 	Enable string `json:"Enable,omitempty"`
+}
+
+type Filter struct {
+	Type       string `json:"type"`
+	Field      string `json:"field"`
+	Expression string `json:"expression"`
+}
+
+type FiltersResult struct {
+	Status  int      `json:"status"`
+	Filters []Filter `json:"filters,omitempty"`
 }
 
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
@@ -267,6 +280,171 @@ func SettingsUpdate(request *restful.Request) *SettingsResult {
 		}
 
 		result.Enable = getParameterValue(itemnew.Spec.Settings[0].Parameters, "Enable")
+		result.Status = 200
+	}
+
+	return &result
+}
+
+func getFilters(result *FiltersResult, Filters []client.Plugin) {
+	for _, filter := range Filters {
+		if strings.Compare(filter.Name, "fluentbit-filter-input-regex") == 0 {
+			parameters := strings.Split(getParameterValue(filter.Parameters, "Regex"), " ")
+			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
+			expression := parameters[1]
+			result.Filters = append(result.Filters, Filter{"Regex", field, expression})
+		}
+		if strings.Compare(filter.Name, "fluentbit-filter-input-exclude") == 0 {
+			parameters := strings.Split(getParameterValue(filter.Parameters, "Exclude"), " ")
+			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
+			expression := parameters[1]
+			result.Filters = append(result.Filters, Filter{"Exclude", field, expression})
+		}
+	}
+}
+
+func FiltersQuery(request *restful.Request) *FiltersResult {
+	var result FiltersResult
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	item, err := crdclient.Get("fluent-bit")
+	if err != nil {
+		//panic(err)
+		result.Status = 200
+		return &result
+	}
+
+	getFilters(&result, item.Spec.Filter)
+
+	result.Status = 200
+
+	return &result
+}
+
+func FiltersUpdate(request *restful.Request) *FiltersResult {
+	var result FiltersResult
+
+	filters := new([]Filter)
+
+	err := request.ReadEntity(&filters)
+	if err != nil {
+		//panic(err.Error())
+		result.Status = 400
+		return &result
+	}
+
+	//Generate filter plugin config
+	var filter []client.Plugin
+
+	var para_kubernetes []client.Parameter
+	para_kubernetes = append(para_kubernetes, client.Parameter{"Name", nil, "kubernetes"})
+	para_kubernetes = append(para_kubernetes, client.Parameter{"Match", nil, "kube.*"})
+	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_URL", nil, "https://kubernetes.default.svc:443"})
+	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_CA_File", nil, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"})
+	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_Token_File", nil, "/var/run/secrets/kubernetes.io/serviceaccount/token"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-kubernetes", para_kubernetes})
+
+	if len(*filters) > 0 {
+		var para_copy []client.Parameter
+		para_copy = append(para_copy, client.Parameter{"Name", nil, "modify"})
+		para_copy = append(para_copy, client.Parameter{"Match", nil, "kube.*"})
+		para_copy = append(para_copy, client.Parameter{"Copy", nil, "kubernetes kubernetes_copy"})
+		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-copy", para_copy})
+
+		var para_lift []client.Parameter
+		para_lift = append(para_lift, client.Parameter{"Name", nil, "nest"})
+		para_lift = append(para_lift, client.Parameter{"Match", nil, "kube.*"})
+		para_lift = append(para_lift, client.Parameter{"Operation", nil, "lift"})
+		para_lift = append(para_lift, client.Parameter{"Nested_under", nil, "kubernetes_copy"})
+		para_lift = append(para_lift, client.Parameter{"Prefix_with", nil, "kubernetes_copy_"})
+		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-lift", para_lift})
+
+		for _, item := range *filters {
+			if strings.Compare(item.Type, "Regex") == 0 {
+				field := "kubernetes_copy_" + strings.TrimSpace(item.Field) + "_name"
+				expression := strings.TrimSpace(item.Expression)
+
+				var para_regex []client.Parameter
+				para_regex = append(para_regex, client.Parameter{"Name", nil, "grep"})
+				para_regex = append(para_regex, client.Parameter{"Match", nil, "kube.*"})
+				para_regex = append(para_regex, client.Parameter{"Regex", nil, field + " " + expression})
+				filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-regex", para_regex})
+			}
+
+			if strings.Compare(item.Type, "Exclude") == 0 {
+				field := "kubernetes_copy_" + strings.TrimSpace(item.Field) + "_name"
+				expression := strings.TrimSpace(item.Expression)
+
+				var para_exclude []client.Parameter
+				para_exclude = append(para_exclude, client.Parameter{"Name", nil, "grep"})
+				para_exclude = append(para_exclude, client.Parameter{"Match", nil, "kube.*"})
+				para_exclude = append(para_exclude, client.Parameter{"Exclude", nil, field + " " + expression})
+				filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-exclude", para_exclude})
+			}
+		}
+
+		var para_remove []client.Parameter
+		para_remove = append(para_remove, client.Parameter{"Name", nil, "modify"})
+		para_remove = append(para_remove, client.Parameter{"Match", nil, "kube.*"})
+		para_remove = append(para_remove, client.Parameter{"Remove_wildcard", nil, "kubernetes_copy"})
+		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove", para_remove})
+	}
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	var item *client.FluentBitOperator
+	var err_read error
+
+	item, err_read = crdclient.Get("fluent-bit")
+	if err_read != nil {
+		//panic(err)
+		spec := new(client.FluentBitOperatorSpec)
+		spec.Filter = filter
+
+		fluentBitOperator := &client.FluentBitOperator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fluent-bit",
+			},
+			Spec: *spec,
+		}
+
+		itemnew, err := crdclient.Create(fluentBitOperator)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		getFilters(&result, itemnew.Spec.Filter)
+		result.Status = 200
+	} else {
+		item.Spec.Filter = filter
+
+		itemnew, err := crdclient.Update("fluent-bit", item)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		getFilters(&result, itemnew.Spec.Filter)
 		result.Status = 200
 	}
 
