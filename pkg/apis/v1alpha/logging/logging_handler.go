@@ -68,13 +68,13 @@ func (u LoggingResource) loggingDeleteCRD(request *restful.Request, response *re
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingQueryEnable(request *restful.Request, response *restful.Response) {
-	res := log.EnableQuery(request)
+func (u LoggingResource) loggingQuerySettings(request *restful.Request, response *restful.Response) {
+	res := log.SettingsQuery(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingUpdateEnable(request *restful.Request, response *restful.Response) {
-	res := log.EnableUpdate(request)
+func (u LoggingResource) loggingUpdateSettings(request *restful.Request, response *restful.Response) {
+	res := log.SettingsUpdate(request)
 	response.WriteAsJson(res)
 }
 
@@ -231,16 +231,16 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/enable"+subPath).To(u.loggingQueryEnable).
+	ws.Route(ws.GET("/settings"+subPath).To(u.loggingQuerySettings).
 		Filter(route.RouteLogging).
-		Doc("log fluent-bit enable query").
+		Doc("log fluent-bit settings query").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/enable"+subPath).To(u.loggingUpdateEnable).
+	ws.Route(ws.POST("/settings"+subPath).To(u.loggingUpdateSettings).
 		Filter(route.RouteLogging).
-		Doc("log fluent-bit enable set").
+		Doc("log fluent-bit settings update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)

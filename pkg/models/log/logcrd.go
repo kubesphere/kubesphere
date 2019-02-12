@@ -34,7 +34,7 @@ type CRDDeleteResult struct {
 	Status int `json:"status"`
 }
 
-type EnableResult struct {
+type SettingsResult struct {
 	Status int    `json:"status"`
 	Enable string `json:"Enable,omitempty"`
 }
@@ -174,8 +174,8 @@ func CRDDelete(request *restful.Request) *CRDDeleteResult {
 	return &result
 }
 
-func EnableQuery(request *restful.Request) *EnableResult {
-	var result EnableResult
+func SettingsQuery(request *restful.Request) *SettingsResult {
+	var result SettingsResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
@@ -206,8 +206,8 @@ func EnableQuery(request *restful.Request) *EnableResult {
 	return &result
 }
 
-func EnableUpdate(request *restful.Request) *EnableResult {
-	var result EnableResult
+func SettingsUpdate(request *restful.Request) *SettingsResult {
+	var result SettingsResult
 
 	parameters := new([]client.Parameter)
 

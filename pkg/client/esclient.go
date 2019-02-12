@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/json-iterator/go"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +31,8 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
+
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Value struct{ atomic.Value }
 
@@ -545,7 +548,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	//queryResult.Response = string(body)
 
 	var response Response
-	err := json.Unmarshal(body, &response)
+	err := jsonIter.Unmarshal(body, &response)
 	if err != nil {
 		//fmt.Println("Parse response error ", err.Error())
 		queryResult.Status = 404
@@ -588,7 +591,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		statisticsResult.Total = response.Hits.Total
 
 		var namespaceAggregations NamespaceAggregations
-		json.Unmarshal(response.Aggregations, &namespaceAggregations)
+		jsonIter.Unmarshal(response.Aggregations, &namespaceAggregations)
 
 		for _, namespace := range namespaceAggregations.NamespaceAggregation.Namespaces {
 			var namespaceResult NamespaceResult
@@ -615,7 +618,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		histogramResult.Interval = param.Interval
 
 		var histogramAggregations HistogramAggregations
-		json.Unmarshal(response.Aggregations, &histogramAggregations)
+		jsonIter.Unmarshal(response.Aggregations, &histogramAggregations)
 		for _, histogram := range histogramAggregations.HistogramAggregation.Histograms {
 			var histogramRecord HistogramRecord
 			histogramRecord.Time = histogram.Time
