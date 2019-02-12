@@ -53,38 +53,38 @@ func (u LoggingResource) loggingQueryContainer(request *restful.Request, respons
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingQueryCRD(request *restful.Request, response *restful.Response) {
-	res := log.CRDQuery(request)
+func (u LoggingResource) loggingQueryFluentbitCRD(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitCRDQuery(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingUpdateCRD(request *restful.Request, response *restful.Response) {
-	res := log.CRDUpdate(request)
+func (u LoggingResource) loggingUpdateFluentbitCRD(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitCRDUpdate(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingDeleteCRD(request *restful.Request, response *restful.Response) {
-	res := log.CRDDelete(request)
+func (u LoggingResource) loggingDeleteFluentbitCRD(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitCRDDelete(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingQuerySettings(request *restful.Request, response *restful.Response) {
-	res := log.SettingsQuery(request)
+func (u LoggingResource) loggingQueryFluentbitSettings(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitSettingsQuery(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingUpdateSettings(request *restful.Request, response *restful.Response) {
-	res := log.SettingsUpdate(request)
+func (u LoggingResource) loggingUpdateFluentbitSettings(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitSettingsUpdate(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingQueryFilters(request *restful.Request, response *restful.Response) {
-	res := log.FiltersQuery(request)
+func (u LoggingResource) loggingQueryFluentbitFilters(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitFiltersQuery(request)
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingUpdateFilters(request *restful.Request, response *restful.Response) {
-	res := log.FiltersUpdate(request)
+func (u LoggingResource) loggingUpdateFluentbitFilters(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitFiltersUpdate(request)
 	response.WriteAsJson(res)
 }
 
@@ -220,49 +220,49 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/crd"+subPath).To(u.loggingQueryCRD).
+	ws.Route(ws.GET("/fluentbit"+subPath).To(u.loggingQueryFluentbitCRD).
 		Filter(route.RouteLogging).
-		Doc("log crd query").
+		Doc("log fluent-bit crd query").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/crd"+subPath).To(u.loggingUpdateCRD).
+	ws.Route(ws.POST("/fluentbit"+subPath).To(u.loggingUpdateFluentbitCRD).
 		Filter(route.RouteLogging).
-		Doc("log crd update").
+		Doc("log fluent-bit crd update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.DELETE("/crd"+subPath).To(u.loggingDeleteCRD).
+	ws.Route(ws.DELETE("/fluentbit"+subPath).To(u.loggingDeleteFluentbitCRD).
 		Filter(route.RouteLogging).
-		Doc("log crd delete").
+		Doc("log fluent-bit crd delete").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/settings"+subPath).To(u.loggingQuerySettings).
+	ws.Route(ws.GET("/fluentbit/settings"+subPath).To(u.loggingQueryFluentbitSettings).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit settings query").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/settings"+subPath).To(u.loggingUpdateSettings).
+	ws.Route(ws.POST("/fluentbit/settings"+subPath).To(u.loggingUpdateFluentbitSettings).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit settings update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/filters"+subPath).To(u.loggingQueryFilters).
+	ws.Route(ws.GET("/fluentbit/filters"+subPath).To(u.loggingQueryFluentbitFilters).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit filters query").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/filters"+subPath).To(u.loggingUpdateFilters).
+	ws.Route(ws.POST("/fluentbit/filters"+subPath).To(u.loggingUpdateFluentbitFilters).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit filters update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).

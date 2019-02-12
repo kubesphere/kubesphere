@@ -27,29 +27,29 @@ import (
 	"kubesphere.io/kubesphere/pkg/client"
 )
 
-type CRDResult struct {
+type FluentbitCRDResult struct {
 	Status int                          `json:"status"`
 	CRD    client.FluentBitOperatorSpec `json:"CRD,omitempty"`
 }
 
-type CRDDeleteResult struct {
+type FluentbitCRDDeleteResult struct {
 	Status int `json:"status"`
 }
 
-type SettingsResult struct {
+type FluentbitSettingsResult struct {
 	Status int    `json:"status"`
 	Enable string `json:"Enable,omitempty"`
 }
 
-type Filter struct {
+type FluentbitFilter struct {
 	Type       string `json:"type"`
 	Field      string `json:"field"`
 	Expression string `json:"expression"`
 }
 
-type FiltersResult struct {
-	Status  int      `json:"status"`
-	Filters []Filter `json:"filters,omitempty"`
+type FluentbitFiltersResult struct {
+	Status  int               `json:"status"`
+	Filters []FluentbitFilter `json:"filters,omitempty"`
 }
 
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
@@ -76,8 +76,8 @@ func getParameterValue(parameters []client.Parameter, name string) string {
 	return value
 }
 
-func CRDQuery(request *restful.Request) *CRDResult {
-	var result CRDResult
+func FluentbitCRDQuery(request *restful.Request) *FluentbitCRDResult {
+	var result FluentbitCRDResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
@@ -102,8 +102,8 @@ func CRDQuery(request *restful.Request) *CRDResult {
 	return &result
 }
 
-func CRDUpdate(request *restful.Request) *CRDResult {
-	var result CRDResult
+func FluentbitCRDUpdate(request *restful.Request) *FluentbitCRDResult {
+	var result FluentbitCRDResult
 
 	spec := new(client.FluentBitOperatorSpec)
 
@@ -163,8 +163,8 @@ func CRDUpdate(request *restful.Request) *CRDResult {
 	return &result
 }
 
-func CRDDelete(request *restful.Request) *CRDDeleteResult {
-	var result CRDDeleteResult
+func FluentbitCRDDelete(request *restful.Request) *FluentbitCRDDeleteResult {
+	var result FluentbitCRDDeleteResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
@@ -187,8 +187,8 @@ func CRDDelete(request *restful.Request) *CRDDeleteResult {
 	return &result
 }
 
-func SettingsQuery(request *restful.Request) *SettingsResult {
-	var result SettingsResult
+func FluentbitSettingsQuery(request *restful.Request) *FluentbitSettingsResult {
+	var result FluentbitSettingsResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
@@ -219,8 +219,8 @@ func SettingsQuery(request *restful.Request) *SettingsResult {
 	return &result
 }
 
-func SettingsUpdate(request *restful.Request) *SettingsResult {
-	var result SettingsResult
+func FluentbitSettingsUpdate(request *restful.Request) *FluentbitSettingsResult {
+	var result FluentbitSettingsResult
 
 	parameters := new([]client.Parameter)
 
@@ -286,25 +286,25 @@ func SettingsUpdate(request *restful.Request) *SettingsResult {
 	return &result
 }
 
-func getFilters(result *FiltersResult, Filters []client.Plugin) {
+func getFilters(result *FluentbitFiltersResult, Filters []client.Plugin) {
 	for _, filter := range Filters {
 		if strings.Compare(filter.Name, "fluentbit-filter-input-regex") == 0 {
 			parameters := strings.Split(getParameterValue(filter.Parameters, "Regex"), " ")
 			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
 			expression := parameters[1]
-			result.Filters = append(result.Filters, Filter{"Regex", field, expression})
+			result.Filters = append(result.Filters, FluentbitFilter{"Regex", field, expression})
 		}
 		if strings.Compare(filter.Name, "fluentbit-filter-input-exclude") == 0 {
 			parameters := strings.Split(getParameterValue(filter.Parameters, "Exclude"), " ")
 			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
 			expression := parameters[1]
-			result.Filters = append(result.Filters, Filter{"Exclude", field, expression})
+			result.Filters = append(result.Filters, FluentbitFilter{"Exclude", field, expression})
 		}
 	}
 }
 
-func FiltersQuery(request *restful.Request) *FiltersResult {
-	var result FiltersResult
+func FluentbitFiltersQuery(request *restful.Request) *FluentbitFiltersResult {
+	var result FluentbitFiltersResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
@@ -330,10 +330,10 @@ func FiltersQuery(request *restful.Request) *FiltersResult {
 	return &result
 }
 
-func FiltersUpdate(request *restful.Request) *FiltersResult {
-	var result FiltersResult
+func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
+	var result FluentbitFiltersResult
 
-	filters := new([]Filter)
+	filters := new([]FluentbitFilter)
 
 	err := request.ReadEntity(&filters)
 	if err != nil {
