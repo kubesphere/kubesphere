@@ -52,6 +52,11 @@ type FluentbitFiltersResult struct {
 	Filters []FluentbitFilter `json:"filters,omitempty"`
 }
 
+type FluentbitOutputsResult struct {
+	Status  int             `json:"status"`
+	Outputs []client.Plugin `json:"outputs,omitempty"`
+}
+
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
 	config, err := client.GetClientConfig("")
 	if err != nil {
@@ -445,6 +450,96 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 		}
 
 		getFilters(&result, itemnew.Spec.Filter)
+		result.Status = 200
+	}
+
+	return &result
+}
+
+func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	item, err := crdclient.Get("fluent-bit")
+	if err != nil {
+		//panic(err)
+		result.Status = 200
+		return &result
+	}
+
+	result.Outputs = item.Spec.Output
+	result.Status = 200
+
+	return &result
+}
+
+func FluentbitOutputsUpdate(request *restful.Request) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	outputs := new([]client.Plugin)
+
+	err := request.ReadEntity(&outputs)
+	if err != nil {
+		//panic(err.Error())
+		result.Status = 400
+		return &result
+	}
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// Create a CRD client interface
+	crdclient := client.CrdClient(crdcs, scheme, "default")
+
+	var item *client.FluentBitOperator
+	var err_read error
+
+	item, err_read = crdclient.Get("fluent-bit")
+	if err_read != nil {
+		//panic(err)
+		spec := new(client.FluentBitOperatorSpec)
+		spec.Output = *outputs
+
+		fluentBitOperator := &client.FluentBitOperator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fluent-bit",
+			},
+			Spec: *spec,
+		}
+
+		itemnew, err := crdclient.Create(fluentBitOperator)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.Outputs = itemnew.Spec.Output
+		result.Status = 200
+	} else {
+		item.Spec.Output = *outputs
+
+		itemnew, err := crdclient.Update("fluent-bit", item)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+
+		result.Outputs = itemnew.Spec.Output
 		result.Status = 200
 	}
 

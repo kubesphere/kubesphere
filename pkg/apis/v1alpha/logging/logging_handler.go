@@ -88,6 +88,16 @@ func (u LoggingResource) loggingUpdateFluentbitFilters(request *restful.Request,
 	response.WriteAsJson(res)
 }
 
+func (u LoggingResource) loggingQueryFluentbitOutputs(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitOutputsQuery(request)
+	response.WriteAsJson(res)
+}
+
+func (u LoggingResource) loggingUpdateFluentbitOutputs(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitOutputsUpdate(request)
+	response.WriteAsJson(res)
+}
+
 type LoggingResource struct {
 }
 
@@ -265,6 +275,20 @@ func Register(ws *restful.WebService, subPath string) {
 	ws.Route(ws.POST("/fluentbit/filters"+subPath).To(u.loggingUpdateFluentbitFilters).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit filters update").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/fluentbit/outputs"+subPath).To(u.loggingQueryFluentbitOutputs).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit outputs query").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/fluentbit/outputs"+subPath).To(u.loggingUpdateFluentbitOutputs).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit outputs update").
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
