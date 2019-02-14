@@ -25,7 +25,7 @@ import (
 
 const (
 	CRDPlural   string = "fluentbitoperators"
-	CRDGroup    string = "fluentbit.kubesphere.io"
+	CRDGroup    string = "logging.kubesphere.io"
 	CRDVersion  string = "v1alpha1"
 	FullCRDName string = CRDPlural + "." + CRDGroup
 )
