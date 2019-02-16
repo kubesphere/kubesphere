@@ -28,8 +28,8 @@ import (
 )
 
 type FluentbitCRDResult struct {
-	Status int                          `json:"status"`
-	CRD    client.FluentBitOperatorSpec `json:"CRD,omitempty"`
+	Status int                  `json:"status"`
+	CRD    client.FluentBitSpec `json:"CRD,omitempty"`
 }
 
 type FluentbitCRDDeleteResult struct {
@@ -92,7 +92,7 @@ func FluentbitCRDQuery(request *restful.Request) *FluentbitCRDResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -110,7 +110,7 @@ func FluentbitCRDQuery(request *restful.Request) *FluentbitCRDResult {
 func FluentbitCRDUpdate(request *restful.Request) *FluentbitCRDResult {
 	var result FluentbitCRDResult
 
-	spec := new(client.FluentBitOperatorSpec)
+	spec := new(client.FluentBitSpec)
 
 	err := request.ReadEntity(&spec)
 	if err != nil {
@@ -127,15 +127,15 @@ func FluentbitCRDUpdate(request *restful.Request) *FluentbitCRDResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
-	var item *client.FluentBitOperator
+	var item *client.FluentBit
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
 		//panic(err)
-		fluentBitOperator := &client.FluentBitOperator{
+		fluentBitOperator := &client.FluentBit{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "fluent-bit",
 			},
@@ -179,7 +179,7 @@ func FluentbitCRDDelete(request *restful.Request) *FluentbitCRDDeleteResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
 	err = crdclient.Delete("fluent-bit", nil)
 	if err != nil {
@@ -203,7 +203,7 @@ func FluentbitSettingsQuery(request *restful.Request) *FluentbitSettingsResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -247,18 +247,18 @@ func FluentbitSettingsUpdate(request *restful.Request) *FluentbitSettingsResult 
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
-	var item *client.FluentBitOperator
+	var item *client.FluentBit
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
 		//panic(err)
-		spec := new(client.FluentBitOperatorSpec)
+		spec := new(client.FluentBitSpec)
 		spec.Settings = settings
 
-		fluentBitOperator := &client.FluentBitOperator{
+		fluentBitOperator := &client.FluentBit{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "fluent-bit",
 			},
@@ -319,7 +319,7 @@ func FluentbitFiltersQuery(request *restful.Request) *FluentbitFiltersResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -412,18 +412,18 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
-	var item *client.FluentBitOperator
+	var item *client.FluentBit
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
 		//panic(err)
-		spec := new(client.FluentBitOperatorSpec)
+		spec := new(client.FluentBitSpec)
 		spec.Filter = filter
 
-		fluentBitOperator := &client.FluentBitOperator{
+		fluentBitOperator := &client.FluentBit{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "fluent-bit",
 			},
@@ -467,7 +467,7 @@ func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -502,18 +502,18 @@ func FluentbitOutputsUpdate(request *restful.Request) *FluentbitOutputsResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "default")
+	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
-	var item *client.FluentBitOperator
+	var item *client.FluentBit
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
 		//panic(err)
-		spec := new(client.FluentBitOperatorSpec)
+		spec := new(client.FluentBitSpec)
 		spec.Output = *outputs
 
-		fluentBitOperator := &client.FluentBitOperator{
+		fluentBitOperator := &client.FluentBit{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "fluent-bit",
 			},
