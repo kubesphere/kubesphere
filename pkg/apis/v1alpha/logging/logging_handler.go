@@ -125,6 +125,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
@@ -148,6 +149,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
@@ -169,6 +171,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
@@ -189,6 +192,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
@@ -207,6 +211,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
@@ -224,6 +229,7 @@ func Register(ws *restful.WebService, subPath string) {
 		Param(ws.QueryParameter("interval", "interval of time histogram").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "range start time").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "range end time").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "sort method").DataType("string").Required(false)).
 		Param(ws.QueryParameter("from", "begin index of result returned").DataType("int").Required(true)).
 		Param(ws.QueryParameter("size", "size of result returned").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).

@@ -386,6 +386,7 @@ func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.Q
 	param.LogQuery = request.QueryParameter("log_query")
 	param.StartTime = request.QueryParameter("start_time")
 	param.EndTime = request.QueryParameter("end_time")
+	param.Sort = request.QueryParameter("sort")
 
 	var err error
 	param.From, err = strconv.ParseInt(request.QueryParameter("from"), 10, 64)

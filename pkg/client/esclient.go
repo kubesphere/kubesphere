@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -187,8 +188,8 @@ type RangeSpec struct {
 }
 
 type TimeRange struct {
-	Gte string `json:"gte"`
-	Lte string `json:"lte"`
+	Gte string `json:"gte,omitempty"`
+	Lte string `json:"lte,omitempty"`
 }
 
 type BoolShouldMatchPhrase struct {
@@ -361,7 +362,13 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		operation = OperationQuery
 		request.From = param.From
 		request.Size = param.Size
-		request.Sorts = append(request.Sorts, Sort{Order{"asc"}})
+		var order string
+		if strings.Compare(strings.ToLower(param.Sort), "desc") == 0 {
+			order = "desc"
+		} else {
+			order = "asc"
+		}
+		request.Sorts = append(request.Sorts, Sort{Order{order}})
 
 		var mainHighLight MainHighLight
 		mainHighLight.Fields = append(mainHighLight.Fields, LogHighLightField{})
@@ -656,6 +663,7 @@ type QueryParameters struct {
 	Interval  string
 	StartTime string
 	EndTime   string
+	Sort      string
 	From      int64
 	Size      int64
 }
