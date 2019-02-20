@@ -363,10 +363,10 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		request.From = param.From
 		request.Size = param.Size
 		var order string
-		if strings.Compare(strings.ToLower(param.Sort), "desc") == 0 {
-			order = "desc"
-		} else {
+		if strings.Compare(strings.ToLower(param.Sort), "asc") == 0 {
 			order = "asc"
+		} else {
+			order = "desc"
 		}
 		request.Sorts = append(request.Sorts, Sort{Order{order}})
 
