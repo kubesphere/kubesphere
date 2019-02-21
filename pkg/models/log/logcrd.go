@@ -295,13 +295,13 @@ func getFilters(result *FluentbitFiltersResult, Filters []client.Plugin) {
 	for _, filter := range Filters {
 		if strings.Compare(filter.Name, "fluentbit-filter-input-regex") == 0 {
 			parameters := strings.Split(getParameterValue(filter.Parameters, "Regex"), " ")
-			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
+			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_"), "_name")
 			expression := parameters[1]
 			result.Filters = append(result.Filters, FluentbitFilter{"Regex", field, expression})
 		}
 		if strings.Compare(filter.Name, "fluentbit-filter-input-exclude") == 0 {
 			parameters := strings.Split(getParameterValue(filter.Parameters, "Exclude"), " ")
-			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_copy_"), "_name")
+			field := strings.TrimSuffix(strings.TrimPrefix(parameters[0], "kubernetes_"), "_name")
 			expression := parameters[1]
 			result.Filters = append(result.Filters, FluentbitFilter{"Exclude", field, expression})
 		}
@@ -358,24 +358,48 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_Token_File", nil, "/var/run/secrets/kubernetes.io/serviceaccount/token"})
 	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-kubernetes", para_kubernetes})
 
+	var para_lift []client.Parameter
+	para_lift = append(para_lift, client.Parameter{"Name", nil, "nest"})
+	para_lift = append(para_lift, client.Parameter{"Match", nil, "kube.*"})
+	para_lift = append(para_lift, client.Parameter{"Operation", nil, "lift"})
+	para_lift = append(para_lift, client.Parameter{"Nested_under", nil, "kubernetes"})
+	para_lift = append(para_lift, client.Parameter{"Prefix_with", nil, "kubernetes_"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-lift", para_lift})
+
+	var para_remove_stream []client.Parameter
+	para_remove_stream = append(para_remove_stream, client.Parameter{"Name", nil, "modify"})
+	para_remove_stream = append(para_remove_stream, client.Parameter{"Match", nil, "kube.*"})
+	para_remove_stream = append(para_remove_stream, client.Parameter{"Remove", nil, "stream"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-stream", para_remove_stream})
+
+	var para_remove_labels []client.Parameter
+	para_remove_labels = append(para_remove_labels, client.Parameter{"Name", nil, "modify"})
+	para_remove_labels = append(para_remove_labels, client.Parameter{"Match", nil, "kube.*"})
+	para_remove_labels = append(para_remove_labels, client.Parameter{"Remove", nil, "kubernetes_labels"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-labels", para_remove_labels})
+
+	var para_remove_annotations []client.Parameter
+	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Name", nil, "modify"})
+	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Match", nil, "kube.*"})
+	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Remove", nil, "kubernetes_annotations"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-annotations", para_remove_annotations})
+
+	var para_remove_pod_id []client.Parameter
+	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Name", nil, "modify"})
+	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Match", nil, "kube.*"})
+	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Remove", nil, "kubernetes_pod_id"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-podid", para_remove_pod_id})
+
+	var para_remove_docker_id []client.Parameter
+	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Name", nil, "modify"})
+	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Match", nil, "kube.*"})
+	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Remove", nil, "kubernetes_docker_id"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-dockerid", para_remove_docker_id})
+
 	if len(*filters) > 0 {
-		var para_copy []client.Parameter
-		para_copy = append(para_copy, client.Parameter{"Name", nil, "modify"})
-		para_copy = append(para_copy, client.Parameter{"Match", nil, "kube.*"})
-		para_copy = append(para_copy, client.Parameter{"Copy", nil, "kubernetes kubernetes_copy"})
-		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-copy", para_copy})
-
-		var para_lift []client.Parameter
-		para_lift = append(para_lift, client.Parameter{"Name", nil, "nest"})
-		para_lift = append(para_lift, client.Parameter{"Match", nil, "kube.*"})
-		para_lift = append(para_lift, client.Parameter{"Operation", nil, "lift"})
-		para_lift = append(para_lift, client.Parameter{"Nested_under", nil, "kubernetes_copy"})
-		para_lift = append(para_lift, client.Parameter{"Prefix_with", nil, "kubernetes_copy_"})
-		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-lift", para_lift})
-
 		for _, item := range *filters {
 			if strings.Compare(item.Type, "Regex") == 0 {
-				field := "kubernetes_copy_" + strings.TrimSpace(item.Field) + "_name"
+				field := "kubernetes_" + strings.TrimSpace(item.Field) + "_name"
 				expression := strings.TrimSpace(item.Expression)
 
 				var para_regex []client.Parameter
@@ -386,7 +410,7 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 			}
 
 			if strings.Compare(item.Type, "Exclude") == 0 {
-				field := "kubernetes_copy_" + strings.TrimSpace(item.Field) + "_name"
+				field := "kubernetes_" + strings.TrimSpace(item.Field) + "_name"
 				expression := strings.TrimSpace(item.Expression)
 
 				var para_exclude []client.Parameter
@@ -396,13 +420,16 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 				filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-exclude", para_exclude})
 			}
 		}
-
-		var para_remove []client.Parameter
-		para_remove = append(para_remove, client.Parameter{"Name", nil, "modify"})
-		para_remove = append(para_remove, client.Parameter{"Match", nil, "kube.*"})
-		para_remove = append(para_remove, client.Parameter{"Remove_wildcard", nil, "kubernetes_copy"})
-		filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove", para_remove})
 	}
+
+	var para_nest []client.Parameter
+	para_nest = append(para_nest, client.Parameter{"Name", nil, "nest"})
+	para_nest = append(para_nest, client.Parameter{"Match", nil, "kube.*"})
+	para_nest = append(para_nest, client.Parameter{"Operation", nil, "nest"})
+	para_nest = append(para_nest, client.Parameter{"Wildcard", nil, "kubernetes_*"})
+	para_nest = append(para_nest, client.Parameter{"Nested_under", nil, "kubernetes"})
+	para_nest = append(para_nest, client.Parameter{"Remove_prefix", nil, "kubernetes_"})
+	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-nest", para_nest})
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
