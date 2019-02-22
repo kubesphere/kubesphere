@@ -93,8 +93,18 @@ func (u LoggingResource) loggingQueryFluentbitOutputs(request *restful.Request, 
 	response.WriteAsJson(res)
 }
 
-func (u LoggingResource) loggingUpdateFluentbitOutputs(request *restful.Request, response *restful.Response) {
-	res := log.FluentbitOutputsUpdate(request)
+func (u LoggingResource) loggingInsertFluentbitOutput(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitOutputInsert(request)
+	response.WriteAsJson(res)
+}
+
+func (u LoggingResource) loggingUpdateFluentbitOutput(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitOutputUpdate(request)
+	response.WriteAsJson(res)
+}
+
+func (u LoggingResource) loggingDeleteFluentbitOutput(request *restful.Request, response *restful.Response) {
+	res := log.FluentbitOutputDelete(request)
 	response.WriteAsJson(res)
 }
 
@@ -292,9 +302,25 @@ func Register(ws *restful.WebService, subPath string) {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/fluentbit/outputs"+subPath).To(u.loggingUpdateFluentbitOutputs).
+	ws.Route(ws.POST("/fluentbit/outputs"+subPath).To(u.loggingInsertFluentbitOutput).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit outputs insert").
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.POST("/fluentbit/outputs/{output_id}"+subPath).To(u.loggingUpdateFluentbitOutput).
 		Filter(route.RouteLogging).
 		Doc("log fluent-bit outputs update").
+		Param(ws.PathParameter("output_id", "output id").DataType("int").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.DELETE("/fluentbit/outputs/{output_id}"+subPath).To(u.loggingDeleteFluentbitOutput).
+		Filter(route.RouteLogging).
+		Doc("log fluent-bit outputs delete").
+		Param(ws.PathParameter("output_id", "output id").DataType("int").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags)).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
