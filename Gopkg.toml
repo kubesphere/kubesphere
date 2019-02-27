@@ -24,10 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-[[override]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.7"
-
 [[constraint]]
   name = "github.com/docker/docker"
   version = "v17.05.0-ce"
@@ -68,6 +64,15 @@
   name = "k8s.io/kubernetes"
   version = "1.11.2"
 
+
+[[constraint]]
+  name="sigs.k8s.io/controller-runtime"
+  version="v0.1.1"
+
+[[override]]
+  name="sigs.k8s.io/controller-tools"
+  version="v0.1.1"
+
 [prune]
   go-tests = true
   unused-packages = true
@@ -88,3 +93,16 @@
 [[override]]
   name = "github.com/docker/go-connections"
   branch = "master"
+
+# To use reference package:
+#  vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go:104:3: unknown field 'CaseSensitive' in struct literal of type jsoniter.Config
+[[override]]
+  name = "github.com/json-iterator/go"
+  branch = "master"
+
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "https://github.com/fsnotify/fsnotify.git"
+version="v1.4.7"

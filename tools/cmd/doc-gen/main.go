@@ -23,8 +23,7 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	"kubesphere.io/kubesphere/pkg/apiserver"
-	"kubesphere.io/kubesphere/pkg/monitoring"
+	"kubesphere.io/kubesphere/pkg/apis"
 	"log"
 )
 
@@ -42,9 +41,7 @@ func generateSwaggerJson() {
 
 	container := restful.NewContainer()
 
-	apiserver.AddToContainer(container)
-
-	monitoring.AddToContainer(container)
+	apis.AddToContainer(container)
 
 	apiTree(container)
 
@@ -55,7 +52,6 @@ func generateSwaggerJson() {
 func apiTree(container *restful.Container) {
 	buf := bytes.NewBufferString("\n")
 	for _, ws := range container.RegisteredWebServices() {
-		log.Println(ws.RootPath())
 		for _, route := range ws.Routes() {
 			buf.WriteString(fmt.Sprintf("%s %s\n", route.Method, route.Path))
 		}

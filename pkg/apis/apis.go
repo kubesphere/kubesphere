@@ -21,7 +21,12 @@ limitations under the License.
 package apis
 
 import (
+	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime"
+	"kubesphere.io/kubesphere/pkg/apibuilder"
+	metrics "kubesphere.io/kubesphere/pkg/apis/metrics/install"
+	operations "kubesphere.io/kubesphere/pkg/apis/operations/install"
+	resources "kubesphere.io/kubesphere/pkg/apis/resources/install"
 )
 
 // AddToSchemes may be used to add all resources defined in the project to a Scheme
@@ -30,4 +35,14 @@ var AddToSchemes runtime.SchemeBuilder
 // AddToScheme adds all Resources to the Scheme
 func AddToScheme(s *runtime.Scheme) error {
 	return AddToSchemes.AddToScheme(s)
+}
+
+var APIBuilder apibuilder.APIBuilder
+
+func init() {
+	APIBuilder = append(APIBuilder, metrics.Install, resources.Install, operations.Install)
+}
+
+func AddToContainer(container *restful.Container) {
+	APIBuilder.AddToContainer(container)
 }

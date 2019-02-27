@@ -3,6 +3,10 @@ package main
 import (
 	goflag "flag"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/apibuilder"
+	metrics "kubesphere.io/kubesphere/pkg/apis/metrics/install"
+	operations "kubesphere.io/kubesphere/pkg/apis/operations/install"
+	resources "kubesphere.io/kubesphere/pkg/apis/resources/install"
 	"log"
 	"net/http"
 
@@ -10,10 +14,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"kubesphere.io/kubesphere/pkg/apiserver"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/monitoring"
 	"kubesphere.io/kubesphere/pkg/signals"
 )
 
@@ -34,8 +36,10 @@ var (
 
 			container := restful.NewContainer()
 			container.Filter(filter.Logging)
-			apiserver.AddToContainer(container)
-			monitoring.AddToContainer(container)
+
+			apis := make(apibuilder.APIBuilder, 0)
+			apis = append(apis, metrics.Install, resources.Install, operations.Install)
+			apis.AddToContainer(container)
 
 			log.Printf("Server listening on %d.", port)
 
@@ -51,9 +55,9 @@ var (
 func init() {
 	glog.CopyStandardLogTo("INFO")
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
-	cmd.PersistentFlags().IntVarP(&port, "port", "p", 9090, "server port")
-	cmd.PersistentFlags().StringVarP(&certFile, "certFile", "", "", "TLS cert")
-	cmd.PersistentFlags().StringVarP(&keyFile, "keyFile", "", "", "TLS key")
+	cmd.PersistentFlags().IntVarP(&port, "insecure-port", "p", 9090, "server port")
+	cmd.PersistentFlags().StringVarP(&certFile, "tls-cert-file", "", "", "TLS cert")
+	cmd.PersistentFlags().StringVarP(&keyFile, "tls-key-file", "", "", "TLS key")
 }
 
 func main() {

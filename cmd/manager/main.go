@@ -26,9 +26,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
-	"kubesphere.io/kubesphere/t/pkg/apis"
-	"kubesphere.io/kubesphere/t/pkg/controller"
-	"kubesphere.io/kubesphere/t/pkg/webhook"
+	"kubesphere.io/kubesphere/pkg/apis"
+	"kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/webhook"
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 
 	// Create a new Cmd to provide shared dependencies and start components
 	log.Info("setting up manager")
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: metricsAddr})
+	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
@@ -75,6 +75,9 @@ func main() {
 		log.Error(err, "unable to register webhooks to the manager")
 		os.Exit(1)
 	}
+
+
+	controller.Run(signals.SetupSignalHandler())
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")

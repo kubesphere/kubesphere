@@ -17,6 +17,7 @@
 */
 package models
 
+
 type MessageResponse struct {
 	Message string `json:"message"`
 }
@@ -25,3 +26,4 @@ type PageableResponse struct {
 	Items      []interface{} `json:"items"`
 	TotalCount int           `json:"total_count"`
 }
+
