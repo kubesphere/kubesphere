@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"time"
 )
 
 const (
@@ -71,10 +72,10 @@ type Plugin struct {
 // Fluent-bit output plugins
 type OutputPlugin struct {
 	Plugin
-	Id         int    `json:"id"`
-	Internal   bool   `json:"internal"`
-	Enable     bool   `json:"enable"`
-	Updatetime string `json:"updatetime"`
+	Id         uint      `json:"id"`
+	Internal   bool      `json:"internal"`
+	Enable     bool      `json:"enable"`
+	Updatetime time.Time `json:"updatetime"`
 }
 
 // Parameter generic parameter type to handle values from different sources
