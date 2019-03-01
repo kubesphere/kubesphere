@@ -17,6 +17,10 @@ limitations under the License.
 package log
 
 import (
+	"database/sql"
+	"fmt"
+	"github.com/json-iterator/go"
+	"strconv"
 	"strings"
 
 	"github.com/emicklei/go-restful"
@@ -25,7 +29,16 @@ import (
 	"k8s.io/client-go/rest"
 
 	"kubesphere.io/kubesphere/pkg/client"
+
+	_ "github.com/go-sql-driver/mysql"
 )
+
+const (
+	driverName     = "mysql"
+	dataSourceName = "root:123456@(10.96.130.17:3306)/logging_configs"
+)
+
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type FluentbitCRDResult struct {
 	Status int                  `json:"status"`
@@ -53,8 +66,8 @@ type FluentbitFiltersResult struct {
 }
 
 type FluentbitOutputsResult struct {
-	Status  int             `json:"status"`
-	Outputs []client.Plugin `json:"outputs,omitempty"`
+	Status  int                   `json:"status"`
+	Outputs []client.OutputPlugin `json:"outputs,omitempty"`
 }
 
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
@@ -486,89 +499,244 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	crdcs, scheme, err := createCRDClientSet()
+	// Retrieve outputs from DB
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT * FROM OUTPUTS;")
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	defer rows.Close()
+
+	var outputs []client.OutputPlugin
+	for rows.Next() {
+		var output client.OutputPlugin
+		var params string
+		err := rows.Scan(&output.Id, &output.Type, &output.Name, &params, &output.Internal, &output.Enable, &output.Updatetime)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+		err = jsonIter.UnmarshalFromString(params, &output.Parameters)
+		if err != nil {
+			//panic(err)
+			result.Status = 400
+			return &result
+		}
+		outputs = append(outputs, output)
+	}
+	err = rows.Err()
 	if err != nil {
 		//panic(err)
 		result.Status = 400
 		return &result
 	}
 
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	item, err := crdclient.Get("fluent-bit")
-	if err != nil {
-		//panic(err)
-		result.Status = 200
-		return &result
-	}
-
-	result.Outputs = item.Spec.Output
+	result.Outputs = outputs
 	result.Status = 200
 
 	return &result
 }
 
-func FluentbitOutputsUpdate(request *restful.Request) *FluentbitOutputsResult {
+func FluentbitOutputInsert(request *restful.Request) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	outputs := new([]client.Plugin)
-
-	err := request.ReadEntity(&outputs)
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
-	crdcs, scheme, err := createCRDClientSet()
+	var output = new(client.OutputPlugin)
+	err := request.ReadEntity(&output)
 	if err != nil {
 		//panic(err)
 		result.Status = 400
 		return &result
+	}
+
+	// 1. update DB
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	defer db.Close()
+
+	params, err := jsoniter.MarshalToString(output.Parameters)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	stmt := fmt.Sprintf("INSERT INTO OUTPUTS (Type, Name, PARAMS, INTERNAL, ENABLE) VALUES(%q, %q, %q, %t, %t);",
+		output.Type, output.Name, params, output.Internal, output.Enable)
+	_, err = db.Exec(stmt)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// 2. update CRD in accord with DB
+	err = syncFluentbitCRDOutputWithDB(db)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	result.Status = 200
+	return &result
+}
+
+func FluentbitOutputUpdate(request *restful.Request) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	var (
+		id     string
+		output client.OutputPlugin
+	)
+
+	id = request.PathParameter("output_id")
+	_, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	err = request.ReadEntity(&output)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// 1. update DB
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	defer db.Close()
+
+	params, err := jsoniter.MarshalToString(output.Parameters)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	stmt := fmt.Sprintf("UPDATE OUTPUTS SET Name=%q, PARAMS=%q, INTERNAL=%t, ENABLE=%t WHERE ID=%s;",
+		output.Name, params, output.Internal, output.Enable, id)
+	_, err = db.Exec(stmt)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// 2. update CRD in accord with DB
+	err = syncFluentbitCRDOutputWithDB(db)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	result.Status = 200
+	return &result
+}
+
+func FluentbitOutputDelete(request *restful.Request) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	id := request.PathParameter("output_id")
+	_, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+	defer db.Close()
+
+	// 1. remove the output from DB
+	stmt := fmt.Sprintf("DELETE FROM OUTPUTS WHERE ID = %s;", id)
+	_, err = db.Exec(stmt)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	// 2. update CRD in accord with DB
+	err = syncFluentbitCRDOutputWithDB(db)
+	if err != nil {
+		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	result.Status = 200
+	return &result
+}
+
+func syncFluentbitCRDOutputWithDB(db *sql.DB) error {
+
+	var outputs []client.Plugin
+
+	rows, err := db.Query("SELECT TYPE,NAME,PARAMS FROM OUTPUTS WHERE ENABLE IS TRUE;")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var output client.Plugin
+		var params string
+		err := rows.Scan(&output.Type, &output.Name, &params)
+		if err != nil {
+			return err
+		}
+		err = jsonIter.UnmarshalFromString(params, &output.Parameters)
+		if err != nil {
+			return err
+		}
+		outputs = append(outputs, output)
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	crdcs, scheme, err := createCRDClientSet()
+	if err != nil {
+		return err
 	}
 
 	// Create a CRD client interface
 	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
 
-	var item *client.FluentBit
-	var err_read error
-
-	item, err_read = crdclient.Get("fluent-bit")
-	if err_read != nil {
-		//panic(err)
-		spec := new(client.FluentBitSpec)
-		spec.Output = *outputs
-
-		fluentBitOperator := &client.FluentBit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fluent-bit",
-			},
-			Spec: *spec,
-		}
-
-		itemnew, err := crdclient.Create(fluentBitOperator)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.Outputs = itemnew.Spec.Output
-		result.Status = 200
-	} else {
-		item.Spec.Output = *outputs
-
-		itemnew, err := crdclient.Update("fluent-bit", item)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.Outputs = itemnew.Spec.Output
-		result.Status = 200
+	fluentbit, err := crdclient.Get("fluent-bit")
+	if err != nil {
+		return err
+	}
+	fluentbit.Spec.Output = outputs
+	_, err = crdclient.Update("fluent-bit", fluentbit)
+	if err != nil {
+		return err
 	}
 
-	return &result
+	return nil
 }

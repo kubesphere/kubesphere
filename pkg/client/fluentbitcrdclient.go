@@ -68,6 +68,15 @@ type Plugin struct {
 	Parameters []Parameter `json:"parameters"`
 }
 
+// Fluent-bit output plugins
+type OutputPlugin struct {
+	Plugin
+	Id         int    `json:"id"`
+	Internal   bool   `json:"internal"`
+	Enable     bool   `json:"enable"`
+	Updatetime string `json:"updatetime"`
+}
+
 // Parameter generic parameter type to handle values from different sources
 type Parameter struct {
 	Name      string     `json:"name"`
