@@ -73,7 +73,6 @@ type Plugin struct {
 type OutputPlugin struct {
 	Plugin
 	Id         uint      `json:"id"`
-	Internal   bool      `json:"internal"`
 	Enable     bool      `json:"enable"`
 	Updatetime time.Time `json:"updatetime"`
 }

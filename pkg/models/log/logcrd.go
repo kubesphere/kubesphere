@@ -489,7 +489,7 @@ func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
 
 		unmarshaledOutputs = append(unmarshaledOutputs,
 			client.OutputPlugin{Plugin: client.Plugin{Type: output.Type, Name: output.Name, Parameters: params},
-				Id: output.Id, Internal: output.Internal, Enable: output.Enable, Updatetime: output.Updatetime})
+				Id: output.Id, Enable: output.Enable, Updatetime: output.Updatetime})
 	}
 
 	result.Outputs = unmarshaledOutputs
@@ -648,6 +648,25 @@ func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
 		}
 
 		unmarshaledOutputs = append(unmarshaledOutputs, client.Plugin{Type: output.Type, Name: output.Name, Parameters: params})
+	}
+	// empty output is not allowed, must specify a null-type output
+	if len(unmarshaledOutputs) ==0 {
+		unmarshaledOutputs = []client.Plugin{
+			{
+				Type: "fluentbit_output",
+				Name: "fluentbit-output-null",
+				Parameters: []client.Parameter{
+					{
+						Name:  "Name",
+						Value: "null",
+					},
+					{
+						Name:  "Match",
+						Value: "*",
+					},
+				},
+			},
+		}
 	}
 
 	crdcs, scheme, err := createCRDClientSet()
