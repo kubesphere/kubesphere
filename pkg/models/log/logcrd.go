@@ -17,11 +17,11 @@ limitations under the License.
 package log
 
 import (
-	"database/sql"
-	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/json-iterator/go"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,42 +33,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const (
-	driverName     = "mysql"
-	dataSourceName = "root:123456@(10.96.130.17:3306)/logging_configs"
-)
-
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
-
-type FluentbitCRDResult struct {
-	Status int                  `json:"status"`
-	CRD    client.FluentBitSpec `json:"CRD,omitempty"`
-}
-
-type FluentbitCRDDeleteResult struct {
-	Status int `json:"status"`
-}
-
-type FluentbitSettingsResult struct {
-	Status int    `json:"status"`
-	Enable string `json:"Enable,omitempty"`
-}
-
-type FluentbitFilter struct {
-	Type       string `json:"type"`
-	Field      string `json:"field"`
-	Expression string `json:"expression"`
-}
-
-type FluentbitFiltersResult struct {
-	Status  int               `json:"status"`
-	Filters []FluentbitFilter `json:"filters,omitempty"`
-}
-
-type FluentbitOutputsResult struct {
-	Status  int                   `json:"status"`
-	Outputs []client.OutputPlugin `json:"outputs,omitempty"`
-}
 
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
 	config, err := client.GetClientConfig("")
@@ -500,48 +465,34 @@ func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
 	// Retrieve outputs from DB
-	db, err := sql.Open(driverName, dataSourceName)
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
+	db := client.NewSharedDBClient()
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM OUTPUTS;")
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-	defer rows.Close()
+	var outputs []OutputDBBinding
 
-	var outputs []client.OutputPlugin
-	for rows.Next() {
-		var output client.OutputPlugin
-		var params string
-		err := rows.Scan(&output.Id, &output.Type, &output.Name, &params, &output.Internal, &output.Enable, &output.Updatetime)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-		err = jsonIter.UnmarshalFromString(params, &output.Parameters)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-		outputs = append(outputs, output)
-	}
-	err = rows.Err()
+	err := db.Find(&outputs).Error
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
 
-	result.Outputs = outputs
+	var unmarshaledOutputs []client.OutputPlugin
+
+	for _, output := range outputs {
+		var params []client.Parameter
+
+		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
+		if err != nil {
+			result.Status = 400
+			return &result
+		}
+
+		unmarshaledOutputs = append(unmarshaledOutputs,
+			client.OutputPlugin{Plugin: client.Plugin{Type: output.Type, Name: output.Name, Parameters: params},
+				Id: output.Id, Internal: output.Internal, Enable: output.Enable, Updatetime: output.Updatetime})
+	}
+
+	result.Outputs = unmarshaledOutputs
 	result.Status = 200
 
 	return &result
@@ -550,34 +501,28 @@ func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
 func FluentbitOutputInsert(request *restful.Request) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	var output = new(client.OutputPlugin)
+	var output client.OutputPlugin
+
 	err := request.ReadEntity(&output)
 	if err != nil {
-		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	params, err := jsoniter.MarshalToString(output.Parameters)
+	if err != nil {
 		result.Status = 400
 		return &result
 	}
 
 	// 1. update DB
-	db, err := sql.Open(driverName, dataSourceName)
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
+	db := client.NewSharedDBClient()
 	defer db.Close()
 
-	params, err := jsoniter.MarshalToString(output.Parameters)
+	marshaledOutput := OutputDBBinding{Type: output.Type, Name: output.Name, Parameters: params,
+		Enable: output.Enable, Updatetime: time.Now()}
+	err = db.Create(&marshaledOutput).Error
 	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-	stmt := fmt.Sprintf("INSERT INTO OUTPUTS (Type, Name, PARAMS, INTERNAL, ENABLE) VALUES(%q, %q, %q, %t, %t);",
-		output.Type, output.Name, params, output.Internal, output.Enable)
-	_, err = db.Exec(stmt)
-	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
@@ -585,7 +530,6 @@ func FluentbitOutputInsert(request *restful.Request) *FluentbitOutputsResult {
 	// 2. update CRD in accord with DB
 	err = syncFluentbitCRDOutputWithDB(db)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
@@ -603,39 +547,42 @@ func FluentbitOutputUpdate(request *restful.Request) *FluentbitOutputsResult {
 	)
 
 	id = request.PathParameter("output_id")
-	_, err := strconv.ParseInt(id, 10, 64)
+	_, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
 	err = request.ReadEntity(&output)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
 
 	// 1. update DB
-	db, err := sql.Open(driverName, dataSourceName)
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
+	db := client.NewSharedDBClient()
 	defer db.Close()
 
 	params, err := jsoniter.MarshalToString(output.Parameters)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
-	stmt := fmt.Sprintf("UPDATE OUTPUTS SET Name=%q, PARAMS=%q, INTERNAL=%t, ENABLE=%t WHERE ID=%s;",
-		output.Name, params, output.Internal, output.Enable, id)
-	_, err = db.Exec(stmt)
+
+	var marshaledOutput OutputDBBinding
+	err = db.Where("id = ?", id).First(&marshaledOutput).Error
 	if err != nil {
-		//panic(err)
+		result.Status = 400
+		return &result
+	}
+
+	marshaledOutput.Name = output.Name
+	marshaledOutput.Type = output.Type
+	marshaledOutput.Parameters = params
+	marshaledOutput.Enable = output.Enable
+	marshaledOutput.Updatetime = time.Now()
+
+	err = db.Save(&marshaledOutput).Error
+	if err != nil {
 		result.Status = 400
 		return &result
 	}
@@ -643,7 +590,6 @@ func FluentbitOutputUpdate(request *restful.Request) *FluentbitOutputsResult {
 	// 2. update CRD in accord with DB
 	err = syncFluentbitCRDOutputWithDB(db)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
@@ -656,26 +602,18 @@ func FluentbitOutputDelete(request *restful.Request) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
 	id := request.PathParameter("output_id")
-	_, err := strconv.ParseInt(id, 10, 64)
+	_, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
 
-	db, err := sql.Open(driverName, dataSourceName)
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
+	// 1. remove the OutputDBBinding from DB
+	db := client.NewSharedDBClient()
 	defer db.Close()
 
-	// 1. remove the output from DB
-	stmt := fmt.Sprintf("DELETE FROM OUTPUTS WHERE ID = %s;", id)
-	_, err = db.Exec(stmt)
+	err = db.Where("id = ?", id).Delete(&OutputDBBinding{}).Error
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
@@ -683,7 +621,6 @@ func FluentbitOutputDelete(request *restful.Request) *FluentbitOutputsResult {
 	// 2. update CRD in accord with DB
 	err = syncFluentbitCRDOutputWithDB(db)
 	if err != nil {
-		//panic(err)
 		result.Status = 400
 		return &result
 	}
@@ -692,32 +629,25 @@ func FluentbitOutputDelete(request *restful.Request) *FluentbitOutputsResult {
 	return &result
 }
 
-func syncFluentbitCRDOutputWithDB(db *sql.DB) error {
+func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
+	var outputs []OutputDBBinding
 
-	var outputs []client.Plugin
-
-	rows, err := db.Query("SELECT TYPE,NAME,PARAMS FROM OUTPUTS WHERE ENABLE IS TRUE;")
+	err := db.Where("enable is true").Find(&outputs).Error
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var output client.Plugin
-		var params string
-		err := rows.Scan(&output.Type, &output.Name, &params)
+	var unmarshaledOutputs []client.Plugin
+
+	for _, output := range outputs {
+		var params []client.Parameter
+
+		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
 		if err != nil {
 			return err
 		}
-		err = jsonIter.UnmarshalFromString(params, &output.Parameters)
-		if err != nil {
-			return err
-		}
-		outputs = append(outputs, output)
-	}
-	err = rows.Err()
-	if err != nil {
-		return err
+
+		unmarshaledOutputs = append(unmarshaledOutputs, client.Plugin{Type: output.Type, Name: output.Name, Parameters: params})
 	}
 
 	crdcs, scheme, err := createCRDClientSet()
@@ -732,7 +662,7 @@ func syncFluentbitCRDOutputWithDB(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	fluentbit.Spec.Output = outputs
+	fluentbit.Spec.Output = unmarshaledOutputs
 	_, err = crdclient.Update("fluent-bit", fluentbit)
 	if err != nil {
 		return err
