@@ -80,7 +80,7 @@ type OutputPlugin struct {
 // Parameter generic parameter type to handle values from different sources
 type Parameter struct {
 	Name      string     `json:"name"`
-	ValueFrom *ValueFrom `json:"valueFrom"`
+	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
 	Value     string     `json:"value"`
 }
 
