@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubesphere-router-gateway
+  labels:
+    app: kubesphere
+    component: ks-router
+    tier: backend
+spec:
+  selector:
+    app: kubesphere
+    component: ks-router
+    tier: backend
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+
