@@ -73,7 +73,6 @@ type Plugin struct {
 type OutputPlugin struct {
 	Plugin
 	Id         uint      `json:"id"`
-	Internal   bool      `json:"internal"`
 	Enable     bool      `json:"enable"`
 	Updatetime time.Time `json:"updatetime"`
 }
@@ -81,7 +80,7 @@ type OutputPlugin struct {
 // Parameter generic parameter type to handle values from different sources
 type Parameter struct {
 	Name      string     `json:"name"`
-	ValueFrom *ValueFrom `json:"valueFrom"`
+	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
 	Value     string     `json:"value"`
 }
 
