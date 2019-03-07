@@ -7,7 +7,7 @@ git:
   depth: false
 
 go:
-  - 1.10
+  - 1.10.3
 
 go_import_path: kubesphere.io/kubesphere
 
@@ -17,14 +17,13 @@ before_install:
 before_script:
   - dep ensure -v
   - docker --version
-  - dep ensure -v
 
 script:
-  - make fmt-check && make build
+  - make all && make test
 
 deploy:
   skip_cleanup: true
   provider: script
-  script: bash install/scripts/docker_push
+  script: bash hack/docker_push.sh
   on:
     branch: master
