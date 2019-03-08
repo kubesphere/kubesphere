@@ -38,11 +38,11 @@ const (
 )
 
 var (
-	prometheusAPIEndpoint string
+	PrometheusAPIEndpoint string
 )
 
 func init() {
-	flag.StringVar(&prometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "prometheus api endpoint")
+	flag.StringVar(&PrometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "prometheus api endpoint")
 }
 
 type MonitoringRequestParams struct {
@@ -71,7 +71,7 @@ type MonitoringRequestParams struct {
 }
 
 func SendMonitoringRequest(queryType string, params string) string {
-	epurl := prometheusAPIEndpoint + queryType + params
+	epurl := PrometheusAPIEndpoint + queryType + params
 
 	response, err := http.DefaultClient.Get(epurl)
 	if err != nil {

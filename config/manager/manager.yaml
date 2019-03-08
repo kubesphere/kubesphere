@@ -43,8 +43,8 @@ spec:
     spec:
       containers:
       - command:
-        - /manager
-        image: controller:latest
+        - ./controller-manager
+        image: kubespheredev/controller-manager:latest
         imagePullPolicy: Always
         name: manager
         env:

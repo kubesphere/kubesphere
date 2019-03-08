@@ -21,18 +21,22 @@ import (
 	goflag "flag"
 	"fmt"
 	"github.com/golang/glog"
+	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/options"
 	"kubesphere.io/kubesphere/pkg/signals"
+	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 func NewAPIServerCommand() *cobra.Command {
-	s := options.SharedOptions
+	s := options.NewServerRunOptions()
 
 	cmd := &cobra.Command{
 		Use: "ks-apiserver",
@@ -44,13 +48,18 @@ cluster's shared state through which all other components interact.`,
 		},
 	}
 
-	cmd.Flags().AddFlagSet(s.CommandLine)
+	s.AddFlags(cmd.Flags())
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	glog.CopyStandardLogTo("INFO")
+
 	return cmd
 }
 
 func Run(s *options.ServerRunOptions) error {
+
+	pflag.VisitAll(func(flag *pflag.Flag) {
+		log.Printf("FLAG: --%s=%q", flag.Name, flag.Value)
+	})
 
 	var err error
 
@@ -59,17 +68,53 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.Filter(filter.Logging)
 
-	log.Printf("Server listening on %d.", s.InsecurePort)
+	log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
 
-	if s.InsecurePort != 0 {
-		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.BindAddress, s.InsecurePort), container)
+	for _, webservice := range container.RegisteredWebServices() {
+		for _, route := range webservice.Routes() {
+			log.Printf(route.Path)
+		}
 	}
 
-	if s.SecurePort != 0 && len(s.TlsCertFile) > 0 && len(s.TlsPrivateKey) > 0 {
-		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.BindAddress, s.SecurePort), s.TlsCertFile, s.TlsPrivateKey, container)
+	initializeKialiConfig(s)
+
+	if s.GenericServerRunOptions.InsecurePort != 0 {
+		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
+	}
+
+	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
+		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
 	}
 
 	return err
+}
+
+func initializeKialiConfig(s *options.ServerRunOptions) {
+	// Initialize kiali config
+	config := kconfig.NewConfig()
+
+	// Exclude system namespaces
+	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
+	config.InCluster = false
+
+	// Set default prometheus service url
+	config.ExternalServices.PrometheusServiceURL = "http://prometheus.kubesphere-monitoring-system.svc:9090"
+
+	// ugly hack to get prometheus service url
+	if pflag.Parsed() && pflag.Lookup("prometheus-endpoint") != nil {
+		// Set prometheus
+		endpoint, err := url.Parse(prometheus.PrometheusAPIEndpoint)
+		if err != nil {
+			config.ExternalServices.PrometheusServiceURL = endpoint.Path
+		}
+	}
+
+	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
+
+	// Set istio pilot discovery service url
+	config.ExternalServices.Istio.UrlServiceVersion = s.IstioPilotServiceURL
+
+	kconfig.Set(config)
 }
 
 func waitForResourceSync() {

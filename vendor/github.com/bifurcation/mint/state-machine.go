@@ -19,12 +19,12 @@ type SendEarlyData struct{}
 
 type RekeyIn struct {
 	epoch  Epoch
-	KeySet keySet
+	KeySet KeySet
 }
 
 type RekeyOut struct {
 	epoch  Epoch
-	KeySet keySet
+	KeySet KeySet
 }
 
 type ResetOut struct {
@@ -111,7 +111,7 @@ func (state stateConnected) State() State {
 }
 
 func (state *stateConnected) KeyUpdate(request KeyUpdateRequest) ([]HandshakeAction, Alert) {
-	var trafficKeys keySet
+	var trafficKeys KeySet
 	if state.isClient {
 		state.clientTrafficSecret = HkdfExpandLabel(state.cryptoParams.Hash, state.clientTrafficSecret,
 			labelClientApplicationTrafficSecret, []byte{}, state.cryptoParams.Hash.Size())
@@ -196,7 +196,7 @@ func (state stateConnected) ProcessMessage(hm *HandshakeMessage) (HandshakeState
 
 	switch body := bodyGeneric.(type) {
 	case *KeyUpdateBody:
-		var trafficKeys keySet
+		var trafficKeys KeySet
 		if !state.isClient {
 			state.clientTrafficSecret = HkdfExpandLabel(state.cryptoParams.Hash, state.clientTrafficSecret,
 				labelClientApplicationTrafficSecret, []byte{}, state.cryptoParams.Hash.Size())

@@ -120,7 +120,7 @@ func (h *HandshakeLayer) HandshakeMessageFromBody(body HandshakeMessageBody) (*H
 type HandshakeLayer struct {
 	ctx            *HandshakeContext   // The handshake we are attached to
 	nonblocking    bool                // Should we operate in nonblocking mode
-	conn           *RecordLayer        // Used for reading/writing records
+	conn           RecordLayer         // Used for reading/writing records
 	frame          *frameReader        // The buffered frame reader
 	datagram       bool                // Is this DTLS?
 	msgSeq         uint32              // The DTLS message sequence number
@@ -153,7 +153,7 @@ func (d handshakeLayerFrameDetails) frameLen(hdr []byte) (int, error) {
 	return int(val), nil
 }
 
-func NewHandshakeLayerTLS(c *HandshakeContext, r *RecordLayer) *HandshakeLayer {
+func NewHandshakeLayerTLS(c *HandshakeContext, r RecordLayer) *HandshakeLayer {
 	h := HandshakeLayer{}
 	h.ctx = c
 	h.conn = r
@@ -163,7 +163,7 @@ func NewHandshakeLayerTLS(c *HandshakeContext, r *RecordLayer) *HandshakeLayer {
 	return &h
 }
 
-func NewHandshakeLayerDTLS(c *HandshakeContext, r *RecordLayer) *HandshakeLayer {
+func NewHandshakeLayerDTLS(c *HandshakeContext, r RecordLayer) *HandshakeLayer {
 	h := HandshakeLayer{}
 	h.ctx = c
 	h.conn = r
@@ -174,8 +174,15 @@ func NewHandshakeLayerDTLS(c *HandshakeContext, r *RecordLayer) *HandshakeLayer 
 }
 
 func (h *HandshakeLayer) readRecord() error {
-	logf(logTypeVerbose, "Trying to read record")
-	pt, err := h.conn.readRecordAnyEpoch()
+	var pt *TLSPlaintext
+	var err error
+
+	if h.datagram {
+		logf(logTypeVerbose, "Trying to read record")
+		pt, err = h.conn.(*RecordLayerImpl).ReadRecordAnyEpoch()
+	} else {
+		pt, err = h.conn.ReadRecord()
+	}
 	if err != nil {
 		return err
 	}
@@ -204,7 +211,7 @@ func (h *HandshakeLayer) readRecord() error {
 	}
 
 	assert(h.ctx.hIn.conn != nil)
-	if pt.epoch != h.ctx.hIn.conn.cipher.epoch {
+	if pt.epoch != h.ctx.hIn.conn.Epoch() {
 		// This is out of order but we're dropping it.
 		// TODO(ekr@rtfm.com): If server, need to retransmit Finished.
 		if pt.epoch == EpochClear || pt.epoch == EpochHandshakeData {
@@ -394,9 +401,13 @@ func (h *HandshakeLayer) ReadMessage() (*HandshakeMessage, error) {
 }
 
 func (h *HandshakeLayer) QueueMessage(hm *HandshakeMessage) error {
-	hm.cipher = h.conn.cipher
-	h.queued = append(h.queued, hm)
-	return nil
+	if h.datagram {
+		hm.cipher = h.conn.(*RecordLayerImpl).cipher
+		h.queued = append(h.queued, hm)
+		return nil
+	}
+	_, err := h.WriteMessages([]*HandshakeMessage{hm})
+	return err
 }
 
 func (h *HandshakeLayer) SendQueuedMessages() (int, error) {
@@ -456,22 +467,30 @@ func (h *HandshakeLayer) writeFragment(hm *HandshakeMessage, start int, room int
 		buf = body
 	}
 
+	var err error
 	if h.datagram {
 		// Remember that we sent this.
 		h.ctx.sentFragments = append(h.ctx.sentFragments, &SentHandshakeFragment{
 			hm.seq,
 			start,
 			len(body),
-			h.conn.cipher.combineSeq(true),
+			h.conn.(*RecordLayerImpl).cipher.combineSeq(true),
 			false,
 		})
+		err = h.conn.(*RecordLayerImpl).writeRecordWithPadding(
+			&TLSPlaintext{
+				contentType: RecordTypeHandshake,
+				fragment:    buf,
+			},
+			hm.cipher, 0)
+	} else {
+		err = h.conn.WriteRecord(
+			&TLSPlaintext{
+				contentType: RecordTypeHandshake,
+				fragment:    buf,
+			})
 	}
-	return true, start + bodylen, h.conn.writeRecordWithPadding(
-		&TLSPlaintext{
-			contentType: RecordTypeHandshake,
-			fragment:    buf,
-		},
-		hm.cipher, 0)
+	return true, start + bodylen, err
 }
 
 func (h *HandshakeLayer) WriteMessage(hm *HandshakeMessage) (int, error) {

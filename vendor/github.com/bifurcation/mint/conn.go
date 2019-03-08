@@ -129,6 +129,8 @@ type Config struct {
 	NonBlocking      bool
 	UseDTLS          bool
 
+	RecordLayer RecordLayerFactory
+
 	// The same config object can be shared among different connections, so it
 	// needs its own mutex
 	mutex sync.RWMutex
@@ -270,28 +272,33 @@ type Conn struct {
 	handshakeComplete bool
 
 	readBuffer []byte
-	in, out    *RecordLayer
+	in, out    RecordLayer
 	hsCtx      *HandshakeContext
 }
 
 func NewConn(conn net.Conn, config *Config, isClient bool) *Conn {
 	c := &Conn{conn: conn, config: config, isClient: isClient, hsCtx: &HandshakeContext{}}
 	if !config.UseDTLS {
-		c.in = NewRecordLayerTLS(c.conn, directionRead)
-		c.out = NewRecordLayerTLS(c.conn, directionWrite)
+		if config.RecordLayer == nil {
+			c.in = NewRecordLayerTLS(c.conn, DirectionRead)
+			c.out = NewRecordLayerTLS(c.conn, DirectionWrite)
+		} else {
+			c.in = config.RecordLayer.NewLayer(c.conn, DirectionRead)
+			c.out = config.RecordLayer.NewLayer(c.conn, DirectionWrite)
+		}
 		c.hsCtx.hIn = NewHandshakeLayerTLS(c.hsCtx, c.in)
 		c.hsCtx.hOut = NewHandshakeLayerTLS(c.hsCtx, c.out)
 	} else {
-		c.in = NewRecordLayerDTLS(c.conn, directionRead)
-		c.out = NewRecordLayerDTLS(c.conn, directionWrite)
+		c.in = NewRecordLayerDTLS(c.conn, DirectionRead)
+		c.out = NewRecordLayerDTLS(c.conn, DirectionWrite)
 		c.hsCtx.hIn = NewHandshakeLayerDTLS(c.hsCtx, c.in)
 		c.hsCtx.hOut = NewHandshakeLayerDTLS(c.hsCtx, c.out)
 		c.hsCtx.timeoutMS = initialTimeout
 		c.hsCtx.timers = newTimerSet()
 		c.hsCtx.waitingNextFlight = true
 	}
-	c.in.label = c.label()
-	c.out.label = c.label()
+	c.in.SetLabel(c.label())
+	c.out.SetLabel(c.label())
 	c.hsCtx.hIn.nonblocking = c.config.NonBlocking
 	return c
 }
@@ -598,7 +605,7 @@ func (c *Conn) takeAction(actionGeneric HandshakeAction) Alert {
 			logf(logTypeHandshake, "%s Rekey with data still in handshake buffers", label)
 			return AlertDecodeError
 		}
-		err := c.in.Rekey(action.epoch, action.KeySet.cipher, action.KeySet.key, action.KeySet.iv)
+		err := c.in.Rekey(action.epoch, action.KeySet.Cipher, &action.KeySet)
 		if err != nil {
 			logf(logTypeHandshake, "%s Unable to rekey inbound: %v", label, err)
 			return AlertInternalError
@@ -606,7 +613,7 @@ func (c *Conn) takeAction(actionGeneric HandshakeAction) Alert {
 
 	case RekeyOut:
 		logf(logTypeHandshake, "%s Rekeying out to %s: %+v", label, action.epoch.label(), action.KeySet)
-		err := c.out.Rekey(action.epoch, action.KeySet.cipher, action.KeySet.key, action.KeySet.iv)
+		err := c.out.Rekey(action.epoch, action.KeySet.Cipher, &action.KeySet)
 		if err != nil {
 			logf(logTypeHandshake, "%s Unable to rekey outbound: %v", label, err)
 			return AlertInternalError
@@ -906,7 +913,7 @@ func (c *Conn) Writable() bool {
 	}
 
 	// If we're a client in 0-RTT, then we're writable.
-	if c.isClient && c.out.cipher.epoch == EpochEarlyData {
+	if c.isClient && c.out.Epoch() == EpochEarlyData {
 		return true
 	}
 

@@ -22,18 +22,19 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/cmd/ks-iam/app/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
-	"kubesphere.io/kubesphere/pkg/options"
 	"kubesphere.io/kubesphere/pkg/signals"
 	"log"
 	"net/http"
 )
 
 func NewAPIServerCommand() *cobra.Command {
-	s := options.SharedOptions
+	s := options.NewServerRunOptions()
 
 	cmd := &cobra.Command{
 		Use: "ks-iam",
@@ -44,13 +45,18 @@ cluster's shared state through which all other components interact.`,
 			return Run(s)
 		},
 	}
-	cmd.Flags().AddFlagSet(s.CommandLine)
+	s.AddFlags(cmd.Flags())
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	glog.CopyStandardLogTo("INFO")
+
 	return cmd
 }
 
 func Run(s *options.ServerRunOptions) error {
+
+	pflag.VisitAll(func(flag *pflag.Flag) {
+		log.Printf("FLAG: --%s=%q", flag.Name, flag.Value)
+	})
 
 	var err error
 
@@ -65,14 +71,12 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.Filter(filter.Logging)
 
-	log.Printf("Server listening on %d.", s.InsecurePort)
-
-	if s.InsecurePort != 0 {
-		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.BindAddress, s.InsecurePort), container)
+	if s.GenericServerRunOptions.InsecurePort != 0 {
+		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
 	}
 
-	if s.SecurePort != 0 && len(s.TlsCertFile) > 0 && len(s.TlsPrivateKey) > 0 {
-		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.BindAddress, s.SecurePort), s.TlsCertFile, s.TlsPrivateKey, container)
+	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
+		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
 	}
 
 	return err
