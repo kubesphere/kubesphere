@@ -20,11 +20,9 @@ include Makefile.common
 update_fixtures:
 	rm -vf fixtures/.unpacked
 	./ttar -c -f fixtures.ttar fixtures/
-	rm -vf sysfs/fixtures/.unpacked
-	./ttar -C sysfs/ -c -f sysfs/fixtures.ttar fixtures/
 
 .PHONY: build
 build:
 
 .PHONY: test
-test: fixtures/.unpacked sysfs/fixtures/.unpacked common-test
+test: fixtures/.unpacked common-test

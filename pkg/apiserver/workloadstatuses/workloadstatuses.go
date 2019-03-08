@@ -20,39 +20,25 @@ package workloadstatuses
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/status"
 )
 
-func V1Alpha2(ws *restful.WebService) {
-	tags := []string{"workloadStatus"}
-
-	ws.Route(ws.GET("/workloadstatuses").
-		Doc("get abnormal workloads' count of whole cluster").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(getClusterResourceStatus))
-	ws.Route(ws.GET("/namespaces/{namespace}/workloadstatuses").
-		Doc("get abnormal workloads' count of specified namespace").
-		Param(ws.PathParameter("namespace", "the name of namespace").
-			DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(getNamespacesResourceStatus))
-
-}
-
-func getClusterResourceStatus(req *restful.Request, resp *restful.Response) {
+func GetClusterResourceStatus(req *restful.Request, resp *restful.Response) {
 	res, err := status.GetClusterResourceStatus()
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	resp.WriteAsJson(res)
 }
 
-func getNamespacesResourceStatus(req *restful.Request, resp *restful.Response) {
+func GetNamespacesResourceStatus(req *restful.Request, resp *restful.Response) {
 	res, err := status.GetNamespacesResourceStatus(req.PathParameter("namespace"))
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	resp.WriteAsJson(res)

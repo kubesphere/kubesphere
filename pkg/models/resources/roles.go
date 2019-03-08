@@ -18,20 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
 	rbac "k8s.io/api/rbac/v1"
-	lister "k8s.io/client-go/listers/rbac/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type roleSearcher struct {
-	roleLister lister.RoleLister
 }
 
-// exactly match
+// exactly Match
 func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 	for k, v := range match {
 		switch k {
@@ -46,7 +45,7 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -87,8 +86,8 @@ func (*roleSearcher) compare(a, b *rbac.Role, orderBy string) bool {
 	}
 }
 
-func (s *roleSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	roles, err := s.roleLister.Roles(namespace).List(labels.Everything())
+func (s *roleSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	roles, err := informers.SharedInformerFactory().Rbac().V1().Roles().Lister().Roles(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -96,11 +95,11 @@ func (s *roleSearcher) search(namespace string, conditions *conditions, orderBy 
 
 	result := make([]*rbac.Role, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = roles
 	} else {
 		for _, item := range roles {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

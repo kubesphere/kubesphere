@@ -24,10 +24,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	lister "k8s.io/client-go/listers/core/v1"
-
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 
 	"log"
@@ -50,26 +49,14 @@ import (
 
 	"sort"
 
-	lister2 "k8s.io/client-go/listers/rbac/v1"
-
 	"kubesphere.io/kubesphere/pkg/client"
-	ksErr "kubesphere.io/kubesphere/pkg/errors"
+	kserr "kubesphere.io/kubesphere/pkg/errors"
 )
-
-var (
-	namespaceLister   lister.NamespaceLister
-	clusterRoleLister lister2.ClusterRoleLister
-)
-
-func init() {
-	namespaceLister = informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
-	clusterRoleLister = informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
-}
 
 func UnBindDevopsProject(workspace string, devops string) error {
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 	defer db.Close()
-	return db.Delete(&WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
+	return db.Delete(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
 func DeleteDevopsProject(username string, devops string) error {
@@ -87,12 +74,12 @@ func DeleteDevopsProject(username string, devops string) error {
 		return err
 	}
 	if result.StatusCode > 200 {
-		return ksErr.Wrap(data)
+		return kserr.Parse(data)
 	}
 	return nil
 }
 
-func CreateDevopsProject(username string, workspace string, devops DevopsProject) (*DevopsProject, error) {
+func CreateDevopsProject(username string, workspace string, devops models.DevopsProject) (*models.DevopsProject, error) {
 
 	data, err := json.Marshal(devops)
 
@@ -117,10 +104,10 @@ func CreateDevopsProject(username string, workspace string, devops DevopsProject
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var project DevopsProject
+	var project models.DevopsProject
 
 	err = json.Unmarshal(data, &project)
 
@@ -140,7 +127,7 @@ func CreateDevopsProject(username string, workspace string, devops DevopsProject
 	return &project, nil
 }
 
-func createDefaultDevopsRoleBinding(workspace string, project DevopsProject) error {
+func createDefaultDevopsRoleBinding(workspace string, project models.DevopsProject) error {
 	admins, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
 
 	if err != nil {
@@ -296,7 +283,7 @@ func ListNamespaceByUser(workspaceName string, username string, keyword string, 
 }
 
 func Namespaces(workspaceName string) ([]*core.Namespace, error) {
-
+	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
 	namespaces, err := namespaceLister.List(labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspaceName}))
 
 	if err != nil {
@@ -317,11 +304,9 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 }
 
 func BindingDevopsProject(workspace string, devops string) error {
-	//db := client.NewSharedDBClient()
-	//defer db.Close()
-	//return db.Create(&WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
-	// TODO FIX
-	return nil
+	db := client.DBClient()
+	defer db.Close()
+	return db.Create(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
 func DeleteNamespace(workspace string, namespaceName string) error {
@@ -338,7 +323,7 @@ func DeleteNamespace(workspace string, namespaceName string) error {
 
 }
 
-func Delete(workspace *Workspace) error {
+func Delete(workspace *models.Workspace) error {
 
 	err := release(workspace)
 
@@ -365,13 +350,13 @@ func Delete(workspace *Workspace) error {
 	}
 
 	if result.StatusCode > 200 {
-		return ksErr.Wrap(data)
+		return kserr.Parse(data)
 	}
 
 	return nil
 }
 
-func release(workspace *Workspace) error {
+func release(workspace *models.Workspace) error {
 	for _, namespace := range workspace.Namespaces {
 		err := DeleteNamespace(workspace.Name, namespace)
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -413,7 +398,7 @@ func workspaceRoleRelease(workspace string) error {
 	return nil
 }
 
-func Create(workspace *Workspace) (*Workspace, error) {
+func Create(workspace *models.Workspace) (*models.Workspace, error) {
 
 	data, err := json.Marshal(workspace)
 
@@ -434,10 +419,10 @@ func Create(workspace *Workspace) (*Workspace, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var created Workspace
+	var created models.Workspace
 
 	err = json.Unmarshal(data, &created)
 
@@ -458,7 +443,7 @@ func Create(workspace *Workspace) (*Workspace, error) {
 	return &created, nil
 }
 
-func Edit(workspace *Workspace) (*Workspace, error) {
+func Edit(workspace *models.Workspace) (*models.Workspace, error) {
 
 	data, err := json.Marshal(workspace)
 
@@ -487,10 +472,10 @@ func Edit(workspace *Workspace) (*Workspace, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var edited Workspace
+	var edited models.Workspace
 
 	err = json.Unmarshal(data, &edited)
 
@@ -501,7 +486,7 @@ func Edit(workspace *Workspace) (*Workspace, error) {
 	return &edited, nil
 }
 
-func Detail(name string) (*Workspace, error) {
+func Detail(name string) (*models.Workspace, error) {
 
 	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/%s", constants.AccountAPIServer, name))
 
@@ -517,10 +502,10 @@ func Detail(name string) (*Workspace, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var group Group
+	var group models.Group
 
 	err = json.Unmarshal(data, &group)
 
@@ -528,7 +513,7 @@ func Detail(name string) (*Workspace, error) {
 		return nil, err
 	}
 
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 	defer db.Close()
 
 	workspace, err := convertGroupToWorkspace(db, group)
@@ -541,7 +526,7 @@ func Detail(name string) (*Workspace, error) {
 }
 
 // List all workspaces for the current user
-func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) {
+func ListWorkspaceByUser(username string, keyword string) ([]*models.Workspace, error) {
 	clusterRoles, err := iam.GetClusterRoles(username)
 
 	if err != nil {
@@ -556,7 +541,7 @@ func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) 
 
 	workspacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, Verbs: []string{"list", "get"}, Resources: []string{"workspaces"}}
 
-	var workspaces []*Workspace
+	var workspaces []*models.Workspace
 	if iam.RulesMatchesRequired(rules, workspacesManager) {
 		workspaces, err = fetch(nil)
 	} else {
@@ -582,13 +567,13 @@ func ListWorkspaceByUser(username string, keyword string) ([]*Workspace, error) 
 	return workspaces, err
 }
 
-func fetch(names []string) ([]*Workspace, error) {
+func fetch(names []string) ([]*models.Workspace, error) {
 
 	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups", constants.AccountAPIServer)
 
 	if names != nil {
 		if len(names) == 0 {
-			return make([]*Workspace, 0), nil
+			return make([]*models.Workspace, 0), nil
 		} else {
 			url = url + "?path=" + strings.Join(names, ",")
 		}
@@ -608,10 +593,10 @@ func fetch(names []string) ([]*Workspace, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var groups []Group
+	var groups []models.Group
 
 	err = json.Unmarshal(data, &groups)
 
@@ -619,11 +604,11 @@ func fetch(names []string) ([]*Workspace, error) {
 		return nil, err
 	}
 
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 
 	defer db.Close()
 
-	workspaces := make([]*Workspace, 0)
+	workspaces := make([]*models.Workspace, 0)
 	for _, group := range groups {
 		workspace, err := convertGroupToWorkspace(db, group)
 		if err != nil {
@@ -635,21 +620,21 @@ func fetch(names []string) ([]*Workspace, error) {
 	return workspaces, nil
 }
 
-func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []DevopsProject, error) {
+func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []models.DevopsProject, error) {
 
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 	defer db.Close()
 
-	var workspaceDOPBindings []WorkspaceDPBinding
+	var workspaceDOPBindings []models.WorkspaceDPBinding
 
 	if err := db.Where("workspace = ?", workspace).Find(&workspaceDOPBindings).Error; err != nil {
 		return 0, nil, err
 	}
 
-	devOpsProjects := make([]DevopsProject, 0)
+	devOpsProjects := make([]models.DevopsProject, 0)
 
 	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects", constants.DevopsAPIServer), nil)
-	request.Header.Add("X-Token-Username", username)
+	request.Header.Add(constants.UserNameHeader, username)
 
 	result, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -662,15 +647,8 @@ func ListDevopsProjectsByUser(username string, workspace string, keyword string,
 		return 0, nil, err
 	}
 
-	//if result.StatusCode == 403 || result.StatusCode == 404 {
-	//	if err := db.Delete(&workspaceDOPBinding).Error; err != nil {
-	//		return nil, err
-	//	}
-	//	continue
-	//}
-
 	if result.StatusCode > 200 {
-		return 0, nil, ksErr.Wrap(data)
+		return 0, nil, kserr.Parse(data)
 	}
 
 	err = json.Unmarshal(data, &devOpsProjects)
@@ -720,14 +698,14 @@ func ListDevopsProjectsByUser(username string, workspace string, keyword string,
 	}
 
 	if len(devOpsProjects) < offset {
-		return len(devOpsProjects), make([]DevopsProject, 0), nil
+		return len(devOpsProjects), make([]models.DevopsProject, 0), nil
 	} else if len(devOpsProjects) < limit+offset {
 		return len(devOpsProjects), devOpsProjects[offset:], nil
 	} else {
 		return len(devOpsProjects), devOpsProjects[offset : limit+offset], nil
 	}
 }
-func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
+func convertGroupToWorkspace(db *gorm.DB, group models.Group) (*models.Workspace, error) {
 	namespaces, err := Namespaces(group.Name)
 
 	if err != nil {
@@ -740,7 +718,7 @@ func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 		namespacesNames = append(namespacesNames, namespace.Name)
 	}
 
-	var workspaceDOPBindings []WorkspaceDPBinding
+	var workspaceDOPBindings []models.WorkspaceDPBinding
 
 	if err := db.Where("workspace = ?", group.Name).Find(&workspaceDOPBindings).Error; err != nil {
 		return nil, err
@@ -752,7 +730,7 @@ func convertGroupToWorkspace(db *gorm.DB, group Group) (*Workspace, error) {
 		devOpsProjects = append(devOpsProjects, workspaceDOPBinding.DevOpsProject)
 	}
 
-	workspace := Workspace{Group: group}
+	workspace := models.Workspace{Group: group}
 	workspace.Namespaces = namespacesNames
 	workspace.DevopsProjects = devOpsProjects
 	return &workspace, nil
@@ -769,7 +747,7 @@ func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
 	return ns, nil
 }
 
-func Invite(workspaceName string, users []UserInvite) error {
+func Invite(workspaceName string, users []models.UserInvite) error {
 	for _, user := range users {
 		if !slice.ContainsString(constants.WorkSpaceRoles, user.Role, nil) {
 			return fmt.Errorf("role %s not exist", user.Role)
@@ -848,9 +826,9 @@ func RemoveMembers(workspaceName string, users []string) error {
 	return nil
 }
 
-func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
+func Roles(workspace *models.Workspace) ([]*v1.ClusterRole, error) {
 	roles := make([]*v1.ClusterRole, 0)
-
+	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
 	for _, name := range constants.WorkSpaceRoles {
 
 		clusterRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace.Name, name))
@@ -871,7 +849,7 @@ func Roles(workspace *Workspace) ([]*v1.ClusterRole, error) {
 	return roles, nil
 }
 
-func GetWorkspaceMembers(workspace string, keyword string) ([]iam.User, error) {
+func GetWorkspaceMembers(workspace string, keyword string) ([]models.User, error) {
 
 	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/workspaces/%s/members", constants.AccountAPIServer, workspace)
 
@@ -893,10 +871,10 @@ func GetWorkspaceMembers(workspace string, keyword string) ([]iam.User, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return nil, ksErr.Wrap(data)
+		return nil, kserr.Parse(data)
 	}
 
-	var users []iam.User
+	var users []models.User
 
 	err = json.Unmarshal(data, &users)
 
@@ -908,7 +886,7 @@ func GetWorkspaceMembers(workspace string, keyword string) ([]iam.User, error) {
 
 }
 
-func WorkspaceRoleInit(workspace *Workspace) error {
+func WorkspaceRoleInit(workspace *models.Workspace) error {
 	k8sClient := client.K8sClient()
 
 	admin := new(v1.ClusterRole)
@@ -1169,7 +1147,7 @@ func unbindNamespacesRole(namespaces []string, users []string) error {
 	return nil
 }
 
-func UnbindWorkspace(workspace *Workspace, users []string) error {
+func UnbindWorkspace(workspace *models.Workspace, users []string) error {
 
 	err := unbindNamespacesRole(workspace.Namespaces, users)
 
@@ -1186,7 +1164,7 @@ func UnbindWorkspace(workspace *Workspace, users []string) error {
 	return nil
 }
 
-func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role string) error {
+func CreateWorkspaceRoleBinding(workspace *models.Workspace, username string, role string) error {
 
 	k8sClient := client.K8sClient()
 
@@ -1242,10 +1220,10 @@ func CreateWorkspaceRoleBinding(workspace *Workspace, username string, role stri
 
 func GetDevOpsProjects(workspaceName string) ([]string, error) {
 
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 	defer db.Close()
 
-	var workspaceDOPBindings []WorkspaceDPBinding
+	var workspaceDOPBindings []models.WorkspaceDPBinding
 
 	if err := db.Where("workspace = ?", workspaceName).Find(&workspaceDOPBindings).Error; err != nil {
 		return nil, err
@@ -1304,7 +1282,7 @@ func Count() (int, error) {
 	}
 
 	if result.StatusCode > 200 {
-		return 0, ksErr.Wrap(data)
+		return 0, kserr.Parse(data)
 	}
 	var count map[string]json.Number
 
@@ -1319,13 +1297,14 @@ func Count() (int, error) {
 	v, err := value.Int64()
 
 	if err != nil {
-		return 0, ksErr.New(ksErr.Internal, err.Error())
+		return 0, err
 	}
 
 	return int(v), nil
 }
 
 func GetAllProjectNums() (int, error) {
+	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
 	list, err := namespaceLister.List(labels.Everything())
 	if err != nil {
 		return 0, err
@@ -1334,11 +1313,11 @@ func GetAllProjectNums() (int, error) {
 }
 
 func GetAllDevOpsProjectsNums() (int, error) {
-	db := client.NewSharedDBClient()
+	db := client.DBClient()
 	defer db.Close()
 
 	var count int
-	if err := db.Model(&WorkspaceDPBinding{}).Count(&count).Error; err != nil {
+	if err := db.Model(&models.WorkspaceDPBinding{}).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -1357,7 +1336,7 @@ func GetAllAccountNums() (int, error) {
 		return 0, err
 	}
 	if result.StatusCode > 200 {
-		return 0, ksErr.Wrap(data)
+		return 0, kserr.Parse(data)
 	}
 	var count map[string]json.Number
 

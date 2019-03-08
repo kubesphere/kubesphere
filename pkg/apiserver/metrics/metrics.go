@@ -21,9 +21,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/storage"
+	"net/http"
 )
 
-type scMetricsItem struct {
+type ScMetricsItem struct {
 	Name    string             `json:"name"`
 	Metrics *storage.ScMetrics `json:"metrics"`
 }
@@ -35,11 +36,12 @@ func GetScMetrics(request *restful.Request, response *restful.Response) {
 
 	metrics, err := storage.GetScMetrics(scName)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	result := scMetricsItem{
+	result := ScMetricsItem{
 		Name: scName, Metrics: metrics,
 	}
 
@@ -51,21 +53,23 @@ func GetScMetrics(request *restful.Request, response *restful.Response) {
 func GetScMetricsList(request *restful.Request, response *restful.Response) {
 	scList, err := storage.GetScList()
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	// Set return value
-	items := make([]scMetricsItem, 0)
+	items := make([]ScMetricsItem, 0)
 
 	for _, v := range scList {
 		metrics, err := storage.GetScMetrics(v.GetName())
 
-		if errors.HandlerError(err, response) {
+		if err != nil {
+			response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
 
-		item := scMetricsItem{
+		item := ScMetricsItem{
 			Name: v.GetName(), Metrics: metrics,
 		}
 

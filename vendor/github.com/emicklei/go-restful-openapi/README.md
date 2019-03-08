@@ -23,4 +23,4 @@ See TestThatExtraTagsAreReadIntoModel for examples.
 - [go-restful](https://github.com/emicklei/go-restful)
 - [go-openapi](https://github.com/go-openapi/spec)
 
-© 2017, ernestmicklei.com.  MIT License. Contributions welcome.
+© 2018, ernestmicklei.com.  MIT License. Contributions welcome.

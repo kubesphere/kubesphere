@@ -18,20 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	v12 "k8s.io/client-go/listers/core/v1"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type podSearcher struct {
-	podLister v12.PodLister
 }
 
-// exactly match
+// exactly Match
 func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 	for k, v := range match {
 		switch k {
@@ -46,7 +45,7 @@ func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -91,9 +90,9 @@ func (*podSearcher) compare(a, b *v1.Pod, orderBy string) bool {
 	}
 }
 
-func (s *podSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
+func (s *podSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 
-	pods, err := s.podLister.Pods(namespace).List(labels.Everything())
+	pods, err := informers.SharedInformerFactory().Core().V1().Pods().Lister().Pods(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -101,11 +100,11 @@ func (s *podSearcher) search(namespace string, conditions *conditions, orderBy s
 
 	result := make([]*v1.Pod, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = pods
 	} else {
 		for _, item := range pods {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

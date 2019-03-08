@@ -1,105 +1,42 @@
+/*
+
+ Copyright 2019 The KubeSphere Authors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/
 package errors
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
-	"net/http"
-	"reflect"
-
-	k8sError "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/emicklei/go-restful"
-	"github.com/go-sql-driver/mysql"
-	"github.com/golang/glog"
 )
 
 type Error struct {
-	Code    Code   `json:"code"`
 	Message string `json:"message"`
 }
 
-var None = New(OK, "success")
+var None = Error{Message: "success"}
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("error: %v,message: %v", e.Code.String(), e.Message)
-}
-func (e *Error) HttpStatusCode() int {
-	switch e.Code {
-	case OK:
-		return http.StatusOK
-	case InvalidArgument:
-		return http.StatusBadRequest
-	case AlreadyExists:
-		return http.StatusConflict
-	case Unavailable:
-		return http.StatusServiceUnavailable
-	case NotImplement:
-		return http.StatusNotImplemented
-	case VerifyFailed:
-		return http.StatusBadRequest
-	case Conflict:
-		return http.StatusConflict
-	case Internal:
-		fallthrough
-	case Unknown:
-		fallthrough
-	default:
-		return http.StatusInternalServerError
-	}
+	return e.Message
 }
 
-func New(code Code, message string) error {
-	if message == "" {
-		message = code.String()
-	}
-	return &Error{Code: code, Message: message}
+func Wrap(err error) Error {
+	return Error{Message: err.Error()}
 }
 
-func HandlerError(err error, resp *restful.Response) bool {
-
-	if err == nil {
-		return false
-	}
-
-	glog.Errorln(reflect.TypeOf(err), err)
-
-	resp.WriteHeaderAndEntity(wrapper(err))
-
-	return true
-}
-
-func wrapper(err error) (int, interface{}) {
-	switch err.(type) {
-	case *Error:
-	case *json.UnmarshalTypeError:
-		err = New(InvalidArgument, err.Error())
-	case *mysql.MySQLError:
-		err = wrapperMysqlError(err.(*mysql.MySQLError))
-	case *net.OpError:
-		err = New(Internal, err.Error())
-	default:
-		if k8sError.IsNotFound(err) {
-			err = New(NotFound, err.Error())
-		} else {
-			err = New(Unknown, err.Error())
-		}
-
-	}
-	return err.(*Error).HttpStatusCode(), err
-}
-
-func wrapperMysqlError(sqlError *mysql.MySQLError) error {
-	switch sqlError.Number {
-	case 1062:
-		return New(AlreadyExists, sqlError.Message)
-	default:
-		return New(Unknown, sqlError.Message)
-	}
-}
-
-func Wrap(data []byte) error {
+func Parse(data []byte) error {
 	var j map[string]string
 	err := json.Unmarshal(data, &j)
 	if err != nil {

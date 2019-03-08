@@ -18,47 +18,27 @@
 package components
 
 import (
-	"time"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/models"
 
-	lister "k8s.io/client-go/listers/core/v1"
+	"kubesphere.io/kubesphere/pkg/client"
 
 	"kubesphere.io/kubesphere/pkg/informers"
 
 	"github.com/golang/glog"
-	coreV1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-type Component struct {
-	Name            string      `json:"name"`
-	Namespace       string      `json:"namespace"`
-	SelfLink        string      `json:"selfLink"`
-	Label           interface{} `json:"label"`
-	StartedAt       time.Time   `json:"startedAt"`
-	TotalBackends   int         `json:"totalBackends"`
-	HealthyBackends int         `json:"healthyBackends"`
-}
-
-var (
-	componentStatusLister lister.ComponentStatusLister
-	serviceLister         lister.ServiceLister
-	podLister             lister.PodLister
-	nodeLister            lister.NodeLister
-)
-
-func init() {
-	componentStatusLister = informers.SharedInformerFactory().Core().V1().ComponentStatuses().Lister()
-	serviceLister = informers.SharedInformerFactory().Core().V1().Services().Lister()
-	podLister = informers.SharedInformerFactory().Core().V1().Pods().Lister()
-	nodeLister = informers.SharedInformerFactory().Core().V1().Nodes().Lister()
-}
-
 func GetComponentStatus(name string) (interface{}, error) {
 
-	var service *coreV1.Service
+	var service *corev1.Service
 	var err error
+
+	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
+
 	for _, ns := range constants.SystemNamespaces {
 		service, err = serviceLister.Services(ns).Get(name)
 		if err == nil {
@@ -70,13 +50,15 @@ func GetComponentStatus(name string) (interface{}, error) {
 		return nil, err
 	}
 
+	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
+
 	pods, err := podLister.Pods(service.Namespace).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
 
 	if err != nil {
 		return nil, err
 	}
 
-	component := Component{
+	component := models.Component{
 		Name:            service.Name,
 		Namespace:       service.Namespace,
 		SelfLink:        service.SelfLink,
@@ -102,11 +84,11 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 
 	status := make(map[string]interface{})
 
-	componentStatuses, err := componentStatusLister.List(labels.Everything())
+	componentStatuses, err := client.K8sClient().CoreV1().ComponentStatuses().List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, cs := range componentStatuses {
+	for _, cs := range componentStatuses.Items {
 		status[cs.Name] = cs.Conditions[0]
 	}
 
@@ -119,6 +101,8 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 	for k, v := range systemComponentStatus {
 		status[k] = v
 	}
+
+	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 	// get node status
 	nodes, err := nodeLister.List(labels.Everything())
 	if err != nil {
@@ -132,7 +116,7 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 	for _, nodes := range nodes {
 		totalNodes++
 		for _, condition := range nodes.Status.Conditions {
-			if condition.Type == coreV1.NodeReady && condition.Status == coreV1.ConditionTrue {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 				healthyNodes++
 			}
 		}
@@ -147,11 +131,12 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 }
 
 func GetAllComponentsStatus() (map[string]interface{}, error) {
+	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
+	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
 
 	status := make(map[string]interface{})
 
 	var err error
-
 	for _, ns := range constants.SystemNamespaces {
 
 		nsStatus := make(map[string]interface{})
@@ -164,7 +149,7 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 		}
 
 		for _, service := range services {
-			component := Component{
+			component := models.Component{
 				Name:            service.Name,
 				Namespace:       service.Namespace,
 				SelfLink:        service.SelfLink,

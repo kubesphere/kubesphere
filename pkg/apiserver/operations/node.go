@@ -20,6 +20,7 @@ package operations
 
 import (
 	"github.com/emicklei/go-restful"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/nodes"
@@ -31,7 +32,8 @@ func DrainNode(request *restful.Request, response *restful.Response) {
 
 	err := nodes.DrainNode(nodeName)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

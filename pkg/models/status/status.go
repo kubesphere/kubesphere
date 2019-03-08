@@ -18,7 +18,8 @@
 package status
 
 import (
-	"fmt"
+	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/params"
 
 	"kubesphere.io/kubesphere/pkg/models/resources"
 )
@@ -31,7 +32,7 @@ type workLoadStatus struct {
 
 func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 	res := workLoadStatus{Count: make(map[string]int), Namespace: namespace, Items: make(map[string]interface{})}
-	var notReadyList *resources.ResourceList
+	var notReadyList *models.PageableResponse
 	var err error
 	for _, resource := range []string{resources.Deployments, resources.StatefulSets, resources.DaemonSets, resources.PersistentVolumeClaims} {
 		notReadyStatus := "updating"
@@ -39,7 +40,7 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 			notReadyStatus = "pending"
 		}
 
-		notReadyList, err = resources.ListNamespaceResource(namespace, resource, fmt.Sprintf("status=%s", notReadyStatus), "", false, -1, 0)
+		notReadyList, err = resources.ListNamespaceResource(namespace, resource, &params.Conditions{Match: map[string]string{"status": notReadyStatus}}, "", false, -1, 0)
 
 		if err != nil {
 			return nil, err

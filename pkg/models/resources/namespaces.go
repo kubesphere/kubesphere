@@ -18,19 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	lister "k8s.io/client-go/listers/core/v1"
 )
 
 type namespaceSearcher struct {
-	namespaceLister lister.NamespaceLister
 }
 
-// exactly match
+// exactly Match
 func (*namespaceSearcher) match(match map[string]string, item *v1.Namespace) bool {
 	for k, v := range match {
 		switch k {
@@ -45,7 +45,7 @@ func (*namespaceSearcher) match(match map[string]string, item *v1.Namespace) boo
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*namespaceSearcher) fuzzy(fuzzy map[string]string, item *v1.Namespace) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -90,8 +90,8 @@ func (*namespaceSearcher) compare(a, b *v1.Namespace, orderBy string) bool {
 	}
 }
 
-func (s *namespaceSearcher) search(conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	namespaces, err := s.namespaceLister.List(labels.Everything())
+func (s *namespaceSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	namespaces, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -99,11 +99,11 @@ func (s *namespaceSearcher) search(conditions *conditions, orderBy string, rever
 
 	result := make([]*v1.Namespace, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = namespaces
 	} else {
 		for _, item := range namespaces {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

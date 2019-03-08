@@ -20,35 +20,74 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
+	"github.com/go-openapi/spec"
+	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"log"
-
+	// Install apis
 	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
 )
 
+var output string
+
+func init() {
+	flag.StringVar(&output, "output", "./api.json", "--output=./api.json")
+}
+
 func main() {
+	flag.Parse()
 	generateSwaggerJson()
 }
 
 func generateSwaggerJson() {
 
-	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(),
-	}
-
-	swagger := restfulspec.BuildSwagger(config)
-
 	container := runtime.Container
 
 	apiTree(container)
 
+	config := restfulspec.Config{
+		WebServices:                   container.RegisteredWebServices(),
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+
+	swagger := restfulspec.BuildSwagger(config)
+
 	data, _ := json.Marshal(swagger)
-	log.Println(string(data))
+	err := ioutil.WriteFile(output, data, 420)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("successfully written to %s", output)
+}
+
+func enrichSwaggerObject(swo *spec.Swagger) {
+	swo.Info = &spec.Info{
+		InfoProps: spec.InfoProps{
+			Title:       "KubeSphere",
+			Description: "KubeSphere OpenAPI",
+			Contact: &spec.ContactInfo{
+				Name:  "kubesphere",
+				Email: "kubesphere@yunify.com",
+				URL:   "kubesphere.io",
+			},
+			License: &spec.License{
+				Name: "Apache",
+				URL:  "http://www.apache.org/licenses/",
+			},
+			Version: "2.0.0",
+		},
+	}
+
+	// setup security definitions
+	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
+		"jwt": spec.APIKeyAuth("Authorization", "header"),
+	}
+	swo.Security = []map[string][]string{{"jwt": []string{}}}
 }
 
 func apiTree(container *restful.Container) {

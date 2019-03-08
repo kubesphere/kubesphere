@@ -22,93 +22,59 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
-	"k8s.io/api/apps/v1"
-
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/revisions"
 )
 
-func V1Alpha2(ws *restful.WebService) {
-	ws.Route(ws.GET("/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}").
-		To(getDaemonSetRevision).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"daemonsets", "revision"}).
-		Doc("Handle daemonset operation").
-		Param(ws.PathParameter("daemonset", "daemonset's name").
-			DataType("string")).
-		Param(ws.PathParameter("namespace", "daemonset's namespace").
-			DataType("string")).
-		Param(ws.PathParameter("revision", "daemonset's revision")).
-		Writes(v1.DaemonSet{}))
-	ws.Route(ws.GET("/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}").
-		To(getDeployRevision).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"deployments", "revision"}).
-		Doc("Handle deployment operation").
-		Param(ws.PathParameter("deployment", "deployment's name").
-			DataType("string")).
-		Param(ws.PathParameter("namespace",
-			"deployment's namespace").
-			DataType("string")).
-		Param(ws.PathParameter("deployment", "deployment's name")).
-		Writes(v1.ReplicaSet{}))
-	ws.Route(ws.GET("/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}").
-		To(getStatefulSetRevision).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"statefulsets", "revisions"}).
-		Doc("Handle statefulset operation").
-		Param(ws.PathParameter("statefulset", "statefulset's name").
-			DataType("string")).
-		Param(ws.PathParameter("namespace", "statefulset's namespace").
-			DataType("string")).
-		Param(ws.PathParameter("revision", "statefulset's revision")).
-		Writes(v1.StatefulSet{}))
-}
-
-func getDaemonSetRevision(req *restful.Request, resp *restful.Response) {
+func GetDaemonSetRevision(req *restful.Request, resp *restful.Response) {
 	daemonset := req.PathParameter("daemonset")
 	namespace := req.PathParameter("namespace")
 	revision, err := strconv.Atoi(req.PathParameter("revision"))
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New(errors.InvalidArgument, err.Error()))
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	result, err := revisions.GetDaemonSetRevision(namespace, daemonset, revision)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	resp.WriteAsJson(result)
 }
 
-func getDeployRevision(req *restful.Request, resp *restful.Response) {
+func GetDeployRevision(req *restful.Request, resp *restful.Response) {
 	deploy := req.PathParameter("deployment")
 	namespace := req.PathParameter("namespace")
 	revision := req.PathParameter("revision")
 
 	result, err := revisions.GetDeployRevision(namespace, deploy, revision)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	resp.WriteAsJson(result)
 }
 
-func getStatefulSetRevision(req *restful.Request, resp *restful.Response) {
+func GetStatefulSetRevision(req *restful.Request, resp *restful.Response) {
 	statefulset := req.PathParameter("statefulset")
 	namespace := req.PathParameter("namespace")
 	revision, err := strconv.Atoi(req.PathParameter("revision"))
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New(errors.InvalidArgument, err.Error()))
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	result, err := revisions.GetStatefulSetRevision(namespace, statefulset, revision)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

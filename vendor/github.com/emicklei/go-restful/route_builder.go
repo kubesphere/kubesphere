@@ -261,11 +261,11 @@ func (b *RouteBuilder) typeNameHandler(handler TypeNameHandleFunction) *RouteBui
 func (b *RouteBuilder) Build() Route {
 	pathExpr, err := newPathExpression(b.currentPath)
 	if err != nil {
-		log.Printf("[restful] Invalid path:%s because:%v", b.currentPath, err)
+		log.Printf("Invalid path:%s because:%v", b.currentPath, err)
 		os.Exit(1)
 	}
 	if b.function == nil {
-		log.Printf("[restful] No function specified for route:" + b.currentPath)
+		log.Printf("No function specified for route:" + b.currentPath)
 		os.Exit(1)
 	}
 	operationName := b.operation

@@ -18,37 +18,36 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 	"time"
 
-	lister "k8s.io/client-go/listers/batch/v1"
-
-	batchV1 "k8s.io/api/batch/v1"
-	coreV1 "k8s.io/api/core/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type jobSearcher struct {
-	jobLister lister.JobLister
 }
 
-func jobStatus(item *batchV1.Job) string {
+func jobStatus(item *batchv1.Job) string {
 	status := ""
 
 	for _, condition := range item.Status.Conditions {
-		if condition.Type == batchV1.JobFailed && condition.Status == coreV1.ConditionTrue {
+		if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
 			status = failed
 		}
-		if condition.Type == batchV1.JobComplete && condition.Status == coreV1.ConditionTrue {
+		if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
 			status = complete
 		}
 	}
 	return status
 }
 
-// Exactly match
-func (*jobSearcher) match(match map[string]string, item *batchV1.Job) bool {
+// Exactly Match
+func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 	for k, v := range match {
 		switch k {
 		case status:
@@ -62,7 +61,7 @@ func (*jobSearcher) match(match map[string]string, item *batchV1.Job) bool {
 	return true
 }
 
-func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchV1.Job) bool {
+func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchv1.Job) bool {
 
 	for k, v := range fuzzy {
 		switch k {
@@ -97,7 +96,7 @@ func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchV1.Job) bool {
 	return true
 }
 
-func jobUpdateTime(item *batchV1.Job) time.Time {
+func jobUpdateTime(item *batchv1.Job) time.Time {
 	updateTime := item.CreationTimestamp.Time
 	for _, condition := range item.Status.Conditions {
 		if updateTime.Before(condition.LastProbeTime.Time) {
@@ -110,7 +109,7 @@ func jobUpdateTime(item *batchV1.Job) time.Time {
 	return updateTime
 }
 
-func (*jobSearcher) compare(a, b *batchV1.Job, orderBy string) bool {
+func (*jobSearcher) compare(a, b *batchv1.Job, orderBy string) bool {
 	switch orderBy {
 	case updateTime:
 		return jobUpdateTime(a).After(jobUpdateTime(b))
@@ -121,20 +120,20 @@ func (*jobSearcher) compare(a, b *batchV1.Job, orderBy string) bool {
 	}
 }
 
-func (s *jobSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	jobs, err := s.jobLister.Jobs(namespace).List(labels.Everything())
+func (s *jobSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	jobs, err := informers.SharedInformerFactory().Batch().V1().Jobs().Lister().Jobs(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*batchV1.Job, 0)
+	result := make([]*batchv1.Job, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = jobs
 	} else {
 		for _, item := range jobs {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

@@ -19,6 +19,7 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/resources"
@@ -27,14 +28,15 @@ import (
 
 func ClusterResourceHandler(req *restful.Request, resp *restful.Response) {
 	resourceName := req.PathParameter("resources")
-	conditions := req.QueryParameter(params.Conditions)
-	orderBy := req.QueryParameter(params.OrderBy)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.Paging))
-	reverse := params.ParseReserve(req.QueryParameter(params.Reserve))
+	conditions, err := params.ParseConditions(req)
+	orderBy := req.QueryParameter(params.OrderByParam)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.ParseReverse(req)
 
 	result, err := resources.ListClusterResource(resourceName, conditions, orderBy, reverse, limit, offset)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

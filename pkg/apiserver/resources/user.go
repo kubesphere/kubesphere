@@ -19,6 +19,7 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
@@ -31,7 +32,8 @@ func GetKubectl(req *restful.Request, resp *restful.Response) {
 
 	kubectlPod, err := kubectl.GetKubectlPod(user)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -44,7 +46,8 @@ func GetKubeconfig(req *restful.Request, resp *restful.Response) {
 
 	kubectlConfig, err := kubeconfig.GetKubeConfig(user)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

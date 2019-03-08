@@ -20,13 +20,12 @@ package metrics
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/models"
 	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	v12 "k8s.io/client-go/listers/core/v1"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -50,7 +49,6 @@ import (
 var (
 	jsonIter           = jsoniter.ConfigCompatibleWithStandardLibrary
 	nodeStatusDelLabel = []string{"endpoint", "instance", "job", "namespace", "pod", "service"}
-	nodeLister         v12.NodeLister
 )
 
 const (
@@ -126,10 +124,6 @@ type OneComponentStatus struct {
 	Error string `json:"error,omitempty"`
 }
 
-func init() {
-	nodeLister = informers.SharedInformerFactory().Core().V1().Nodes().Lister()
-}
-
 func getAllWorkspaceNames(formatedMetric *FormatedMetric) map[string]int {
 
 	var wsMap = make(map[string]int)
@@ -197,12 +191,12 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 	var timestampMap = make(map[float64]bool)
 
 	if fmtMetrics.Data.ResultType == ResultTypeMatrix {
-		for i, _ := range fmtMetrics.Data.Result {
+		for i := range fmtMetrics.Data.Result {
 			values, exist := fmtMetrics.Data.Result[i][ResultItemValues]
 			if exist {
 				valueArray, sure := values.([]interface{})
 				if sure {
-					for j, _ := range valueArray {
+					for j := range valueArray {
 						timeAndValue := valueArray[j].([]interface{})
 						timestampMap[float64(timeAndValue[0].(uint64))] = true
 					}
@@ -213,7 +207,7 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 
 	timestampArray := make([]float64, len(timestampMap))
 	i := 0
-	for timestamp, _ := range timestampMap {
+	for timestamp := range timestampMap {
 		timestampArray[i] = timestamp
 		i++
 	}
@@ -230,7 +224,7 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 					formatValueArray := make([][]interface{}, len(timestampArray))
 					j := 0
 
-					for k, _ := range timestampArray {
+					for k := range timestampArray {
 						valueItem, sure := valueArray[j].([]interface{})
 						if sure && float64(valueItem[0].(uint64)) == timestampArray[k] {
 							formatValueArray[k] = []interface{}{int64(timestampArray[k]), valueItem[1]}
@@ -294,7 +288,7 @@ func GetMetric(queryType, params, metricName string) *FormatedMetric {
 }
 
 func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
-
+	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 	nodes, err := nodeLister.List(labels.Everything())
 
 	if err != nil {
@@ -938,7 +932,7 @@ func MonitorComponentStatus(monitoringRequest *client.MonitoringRequestParams) *
 		nsStatus, exist := Components[ns]
 		if exist {
 			for _, nsStatusItem := range nsStatus.(map[string]interface{}) {
-				component := nsStatusItem.(components.Component)
+				component := nsStatusItem.(models.Component)
 				namespaceComponentTotalMap[ns] += 1
 				if component.HealthyBackends != 0 && component.HealthyBackends == component.TotalBackends {
 					namespaceComponentHealthyMap[ns] += 1

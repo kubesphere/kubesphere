@@ -129,14 +129,6 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 	p := spec.Parameter{}
 	param := restfulParam.Data()
 	p.In = asParamType(param.Kind)
-	if param.AllowMultiple {
-		p.Type = "array"
-		p.Items = spec.NewItems()
-		p.Items.Type = param.DataType
-		p.CollectionFormat = param.CollectionFormat
-	} else {
-		p.Type = param.DataType
-	}
 	p.Description = param.Description
 	p.Name = param.Name
 	p.Required = param.Required
@@ -149,7 +141,7 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 		p.Schema = new(spec.Schema)
 		p.SimpleSchema = spec.SimpleSchema{}
 		if st.Kind() == reflect.Array || st.Kind() == reflect.Slice {
-			dataTypeName := definitionBuilder{}.keyFrom(st.Elem())
+			dataTypeName := keyFrom(st.Elem(), cfg)
 			p.Schema.Type = []string{"array"}
 			p.Schema.Items = &spec.SchemaOrArray{
 				Schema: &spec.Schema{},
@@ -162,11 +154,19 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 				p.Schema.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + dataTypeName)
 			}
 		} else {
-			p.Schema.Ref = spec.MustCreateRef("#/definitions/" + param.DataType)
+			dataTypeName := keyFrom(st, cfg)
+			p.Schema.Ref = spec.MustCreateRef("#/definitions/" + dataTypeName)
 		}
 
 	} else {
-		p.Type = param.DataType
+		if param.AllowMultiple {
+			p.Type = "array"
+			p.Items = spec.NewItems()
+			p.Items.Type = param.DataType
+			p.CollectionFormat = param.CollectionFormat
+		} else {
+			p.Type = param.DataType
+		}
 		p.Default = stringAutoType(param.DefaultValue)
 		p.Format = param.DataFormat
 	}
@@ -185,7 +185,7 @@ func buildResponse(e restful.ResponseError, cfg Config) (r spec.Response) {
 		}
 		r.Schema = new(spec.Schema)
 		if st.Kind() == reflect.Array || st.Kind() == reflect.Slice {
-			modelName := definitionBuilder{}.keyFrom(st.Elem())
+			modelName := keyFrom(st.Elem(), cfg)
 			r.Schema.Type = []string{"array"}
 			r.Schema.Items = &spec.SchemaOrArray{
 				Schema: &spec.Schema{},
@@ -198,13 +198,13 @@ func buildResponse(e restful.ResponseError, cfg Config) (r spec.Response) {
 				r.Schema.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + modelName)
 			}
 		} else {
-			modelName := definitionBuilder{}.keyFrom(st)
+			modelName := keyFrom(st, cfg)
 			if isPrimitiveType(modelName) {
 				// If the response is a primitive type, then don't reference any definitions.
 				// Instead, set the schema's "type" to the model name.
 				r.Schema.AddType(modelName, "")
 			} else {
-				modelName := definitionBuilder{}.keyFrom(st)
+				modelName := keyFrom(st, cfg)
 				r.Schema.Ref = spec.MustCreateRef("#/definitions/" + modelName)
 			}
 		}

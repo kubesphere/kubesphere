@@ -24,6 +24,8 @@
 #   go-tests = true
 #   unused-packages = true
 
+ignored = ["github.com/mholt/caddy","github.com/mholt/caddy/caddyfile","github.com/mholt/caddy/caddyhttp/httpserver","github.com/mholt/caddy/caddyhttp/staticfiles","github.com/mholt/caddy/caddytls","github.com/mholt/caddy/telemetry"]
+
 [[constraint]]
   name = "github.com/docker/docker"
   version = "v17.05.0-ce"

@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/errors"
 )
 
 func DrainNode(nodename string) (err error) {
@@ -45,7 +44,7 @@ func DrainNode(nodename string) (err error) {
 	}
 
 	if node.Spec.Unschedulable {
-		return errors.New(errors.Conflict, fmt.Sprintf("node %s have been drained", nodename))
+		return fmt.Errorf("node %s have been drained", nodename)
 	}
 
 	data := []byte(" {\"spec\":{\"unschedulable\":true}}")

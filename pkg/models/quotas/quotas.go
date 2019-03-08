@@ -23,10 +23,10 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
-	v12 "k8s.io/client-go/listers/core/v1"
-
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/params"
 )
 
 const (
@@ -51,27 +51,17 @@ var (
 		statefulsetsKey: resources.StatefulSets, persistentvolumeclaimsKey: resources.PersistentVolumeClaims, podsKey: resources.Pods,
 		namespaceKey: resources.Namespaces, storageClassesKey: resources.StorageClasses, clusterRolesKey: resources.ClusterRoles,
 		jobsKey: resources.Jobs, cronJobsKey: resources.CronJobs}
-	resouceQuotaLister v12.ResourceQuotaLister
 )
 
-type ResourceQuota struct {
-	Namespace string                 `json:"namespace"`
-	Data      v1.ResourceQuotaStatus `json:"data"`
-}
-
 func getUsage(namespace, resource string) (int, error) {
-	list, err := resources.ListNamespaceResource(namespace, resource, "", "", false, -1, 0)
+	list, err := resources.ListNamespaceResource(namespace, resource, &params.Conditions{}, "", false, -1, 0)
 	if err != nil {
 		return 0, err
 	}
 	return list.TotalCount, nil
 }
 
-func init() {
-	resouceQuotaLister = informers.SharedInformerFactory().Core().V1().ResourceQuotas().Lister()
-}
-
-func GetClusterQuotas() (*ResourceQuota, error) {
+func GetClusterQuotas() (*models.ResourceQuota, error) {
 
 	quota := v1.ResourceQuotaStatus{Hard: make(v1.ResourceList), Used: make(v1.ResourceList)}
 
@@ -85,11 +75,11 @@ func GetClusterQuotas() (*ResourceQuota, error) {
 		quota.Used[v1.ResourceName(k)] = quantity
 	}
 
-	return &ResourceQuota{Namespace: "\"\"", Data: quota}, nil
+	return &models.ResourceQuota{Namespace: "\"\"", Data: quota}, nil
 
 }
 
-func GetNamespaceQuotas(namespace string) (*ResourceQuota, error) {
+func GetNamespaceQuotas(namespace string) (*models.ResourceQuota, error) {
 	quota, err := getNamespaceResourceQuota(namespace)
 	if err != nil {
 		glog.Error(err)
@@ -115,7 +105,7 @@ func GetNamespaceQuotas(namespace string) (*ResourceQuota, error) {
 		}
 	}
 
-	return &ResourceQuota{Namespace: namespace, Data: *quota}, nil
+	return &models.ResourceQuota{Namespace: namespace, Data: *quota}, nil
 }
 
 func updateNamespaceQuota(tmpResourceList, resourceList v1.ResourceList) {
@@ -135,7 +125,8 @@ func updateNamespaceQuota(tmpResourceList, resourceList v1.ResourceList) {
 }
 
 func getNamespaceResourceQuota(namespace string) (*v1.ResourceQuotaStatus, error) {
-	quotaList, err := resouceQuotaLister.ResourceQuotas(namespace).List(labels.Everything())
+	resourceQuotaLister := informers.SharedInformerFactory().Core().V1().ResourceQuotas().Lister()
+	quotaList, err := resourceQuotaLister.ResourceQuotas(namespace).List(labels.Everything())
 	if err != nil || len(quotaList) == 0 {
 		return nil, err
 	}

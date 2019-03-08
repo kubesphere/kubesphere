@@ -23,15 +23,12 @@ import (
 	"io/ioutil"
 
 	"k8s.io/apimachinery/pkg/labels"
-	v12 "k8s.io/client-go/listers/core/v1"
-
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/informers"
 
 	"github.com/golang/glog"
-	coreV1 "k8s.io/api/core/v1"
-	extensionsV1beta1 "k8s.io/api/extensions/v1beta1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"k8s.io/api/rbac/v1"
@@ -43,18 +40,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
-var (
-	serviceLister v12.ServiceLister
-)
-
-func init() {
-	serviceLister = informers.SharedInformerFactory().Core().V1().Services().Lister()
-}
-
-func GetAllRouters() ([]*coreV1.Service, error) {
+func GetAllRouters() ([]*corev1.Service, error) {
 
 	selector := labels.SelectorFromSet(labels.Set{"app": "kubesphere", "component": "ks-router", "tier": "backend"})
-
+	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
 	services, err := serviceLister.Services(constants.IngressControllerNamespace).List(selector)
 
 	if err != nil {
@@ -65,7 +54,7 @@ func GetAllRouters() ([]*coreV1.Service, error) {
 	return services, nil
 }
 
-func GetAllRoutersOfUser(username string) ([]*coreV1.Service, error) {
+func GetAllRoutersOfUser(username string) ([]*corev1.Service, error) {
 	allNamespace, namespaces, err := iam.GetUserNamespaces(username, v1.PolicyRule{
 		Verbs:     []string{"get", "list"},
 		APIGroups: []string{""},
@@ -82,7 +71,7 @@ func GetAllRoutersOfUser(username string) ([]*coreV1.Service, error) {
 		return GetAllRouters()
 	}
 
-	routers := make([]*coreV1.Service, 0)
+	routers := make([]*corev1.Service, 0)
 
 	for _, namespace := range namespaces {
 		router, err := GetRouter(namespace)
@@ -99,11 +88,11 @@ func GetAllRoutersOfUser(username string) ([]*coreV1.Service, error) {
 }
 
 // Get router from a namespace
-func GetRouter(namespace string) (*coreV1.Service, error) {
+func GetRouter(namespace string) (*corev1.Service, error) {
 	serviceName := constants.IngressControllerPrefix + namespace
 
 	selector := labels.SelectorFromSet(labels.Set{"app": "kubesphere", "component": "ks-router", "tier": "backend", "project": namespace})
-
+	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
 	services, err := serviceLister.Services(constants.IngressControllerNamespace).List(selector)
 
 	if err != nil {
@@ -116,7 +105,7 @@ func GetRouter(namespace string) (*coreV1.Service, error) {
 		}
 	}
 
-	return nil, errors.New(errors.NotFound, fmt.Sprintf("resources not found %s", serviceName))
+	return nil, fmt.Errorf("resources not found %s", serviceName)
 }
 
 // Load all resource yamls
@@ -148,11 +137,11 @@ func LoadYamls() ([]string, error) {
 }
 
 // Create a ingress controller in a namespace
-func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations map[string]string) (*coreV1.Service, error) {
+func CreateRouter(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
 
 	k8sClient := client.K8sClient()
 
-	var router *coreV1.Service
+	var router *corev1.Service
 
 	yamls, err := LoadYamls()
 
@@ -170,8 +159,8 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 		}
 
 		switch obj.(type) {
-		case *coreV1.Service:
-			service := obj.(*coreV1.Service)
+		case *corev1.Service:
+			service := obj.(*corev1.Service)
 
 			service.SetAnnotations(annotations)
 			service.Spec.Type = routerType
@@ -190,8 +179,8 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 
 			router = service
 
-		case *extensionsV1beta1.Deployment:
-			deployment := obj.(*extensionsV1beta1.Deployment)
+		case *extensionsv1beta1.Deployment:
+			deployment := obj.(*extensionsv1beta1.Deployment)
 			deployment.Name = constants.IngressControllerPrefix + namespace
 
 			// Add project label
@@ -204,7 +193,7 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 			// Choose self as master
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
 
-			if routerType == coreV1.ServiceTypeLoadBalancer {
+			if routerType == corev1.ServiceTypeLoadBalancer {
 				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+constants.IngressControllerNamespace+"/"+constants.IngressControllerPrefix+namespace)
 			} else {
 				deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
@@ -224,11 +213,11 @@ func CreateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 
 // DeleteRouter is used to delete ingress controller related resources in namespace
 // It will not delete ClusterRole resource cause it maybe used by other controllers
-func DeleteRouter(namespace string) (*coreV1.Service, error) {
+func DeleteRouter(namespace string) (*corev1.Service, error) {
 	k8sClient := client.K8sClient()
 
 	var err error
-	var router *coreV1.Service
+	var router *corev1.Service
 
 	if err != nil {
 		glog.Error(err)
@@ -236,9 +225,9 @@ func DeleteRouter(namespace string) (*coreV1.Service, error) {
 
 	// delete controller service
 	serviceName := constants.IngressControllerPrefix + namespace
-	deleteOptions := metaV1.DeleteOptions{}
+	deleteOptions := meta_v1.DeleteOptions{}
 
-	listOptions := metaV1.ListOptions{
+	listOptions := meta_v1.ListOptions{
 		LabelSelector: "app=kubesphere,component=ks-router,tier=backend,project=" + namespace,
 		FieldSelector: "metadata.name=" + serviceName}
 
@@ -259,7 +248,7 @@ func DeleteRouter(namespace string) (*coreV1.Service, error) {
 	// delete controller deployment
 	deploymentName := constants.IngressControllerPrefix + namespace
 
-	listOptions = metaV1.ListOptions{
+	listOptions = meta_v1.ListOptions{
 		LabelSelector: "app=kubesphere,component=ks-router,tier=backend,project=" + namespace,
 	}
 	deployments, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).List(listOptions)
@@ -279,10 +268,10 @@ func DeleteRouter(namespace string) (*coreV1.Service, error) {
 }
 
 // Update Ingress Controller Service, change type from NodePort to Loadbalancer or vice versa.
-func UpdateRouter(namespace string, routerType coreV1.ServiceType, annotations map[string]string) (*coreV1.Service, error) {
+func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
 	k8sClient := client.K8sClient()
 
-	var router *coreV1.Service
+	var router *corev1.Service
 
 	router, err := GetRouter(namespace)
 
@@ -293,7 +282,7 @@ func UpdateRouter(namespace string, routerType coreV1.ServiceType, annotations m
 
 	if router == nil {
 		glog.Error("Trying to update a non-existed router")
-		return nil, errors.New(errors.Internal, "router not created yet")
+		return nil, fmt.Errorf("router not created yet")
 	}
 
 	// from LoadBalancer to NodePort, or vice-versa

@@ -20,19 +20,12 @@ package storage
 import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	v12 "k8s.io/client-go/listers/core/v1"
-
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
-var podLister v12.PodLister
-
-func init() {
-	podLister = informers.SharedInformerFactory().Core().V1().Pods().Lister()
-}
-
 // List pods of a specific persistent volume claims
 func GetPodListByPvc(pvc string, ns string) (res []*v1.Pod, err error) {
+	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
 	podList, err := podLister.Pods(ns).List(labels.Everything())
 	if err != nil {
 		return nil, err

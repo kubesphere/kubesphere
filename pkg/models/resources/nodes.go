@@ -18,19 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	lister "k8s.io/client-go/listers/core/v1"
 )
 
 type nodeSearcher struct {
-	nodeLister lister.NodeLister
 }
 
-// exactly match
+// exactly Match
 func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 	for k, v := range match {
 		switch k {
@@ -45,7 +45,7 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*nodeSearcher) fuzzy(fuzzy map[string]string, item *v1.Node) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -90,8 +90,8 @@ func (*nodeSearcher) compare(a, b *v1.Node, orderBy string) bool {
 	}
 }
 
-func (s *nodeSearcher) search(conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	nodes, err := s.nodeLister.List(labels.Everything())
+func (s *nodeSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	nodes, err := informers.SharedInformerFactory().Core().V1().Nodes().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -99,11 +99,11 @@ func (s *nodeSearcher) search(conditions *conditions, orderBy string, reverse bo
 
 	result := make([]*v1.Node, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = nodes
 	} else {
 		for _, item := range nodes {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

@@ -18,73 +18,34 @@
 package resources
 
 import (
-	"regexp"
+	"fmt"
+	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/params"
 	"strings"
-
-	"kubesphere.io/kubesphere/pkg/informers"
-
-	"kubesphere.io/kubesphere/pkg/errors"
 )
 
 func init() {
-	namespacedResources[ConfigMaps] = &configMapSearcher{
-		configMapLister: informers.SharedInformerFactory().Core().V1().ConfigMaps().Lister(),
-	}
-	namespacedResources[CronJobs] = &cronJobSearcher{
-		cronJobLister: informers.SharedInformerFactory().Batch().V2alpha1().CronJobs().Lister(),
-	}
-	namespacedResources[DaemonSets] = &daemonSetSearcher{
-		daemonSetLister: informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister(),
-	}
-	namespacedResources[Deployments] = &deploymentSearcher{
-		deploymentLister: informers.SharedInformerFactory().Apps().V1().Deployments().Lister(),
-	}
-	namespacedResources[Ingresses] = &ingressSearcher{
-		ingressLister: informers.SharedInformerFactory().Extensions().V1beta1().Ingresses().Lister(),
-	}
-	namespacedResources[Jobs] = &jobSearcher{
-		jobLister: informers.SharedInformerFactory().Batch().V1().Jobs().Lister(),
-	}
-	namespacedResources[PersistentVolumeClaims] = &persistentVolumeClaimSearcher{
-		persistentVolumeClaimLister: informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister(),
-	}
-	namespacedResources[Secrets] = &secretSearcher{
-		secretLister: informers.SharedInformerFactory().Core().V1().Secrets().Lister(),
-	}
-	namespacedResources[Services] = &serviceSearcher{
-		serviceLister: informers.SharedInformerFactory().Core().V1().Services().Lister(),
-	}
-	namespacedResources[StatefulSets] = &statefulSetSearcher{
-		statefulSetLister: informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister(),
-	}
-	namespacedResources[Pods] = &podSearcher{
-		podLister: informers.SharedInformerFactory().Core().V1().Pods().Lister(),
-	}
-	namespacedResources[Roles] = &roleSearcher{
-		roleLister: informers.SharedInformerFactory().Rbac().V1().Roles().Lister(),
-	}
+	namespacedResources[ConfigMaps] = &configMapSearcher{}
+	namespacedResources[CronJobs] = &cronJobSearcher{}
+	namespacedResources[DaemonSets] = &daemonSetSearcher{}
+	namespacedResources[Deployments] = &deploymentSearcher{}
+	namespacedResources[Ingresses] = &ingressSearcher{}
+	namespacedResources[Jobs] = &jobSearcher{}
+	namespacedResources[PersistentVolumeClaims] = &persistentVolumeClaimSearcher{}
+	namespacedResources[Secrets] = &secretSearcher{}
+	namespacedResources[Services] = &serviceSearcher{}
+	namespacedResources[StatefulSets] = &statefulSetSearcher{}
+	namespacedResources[Pods] = &podSearcher{}
+	namespacedResources[Roles] = &roleSearcher{}
 
-	clusterResources[Nodes] = &nodeSearcher{
-		nodeLister: informers.SharedInformerFactory().Core().V1().Nodes().Lister(),
-	}
-	clusterResources[Namespaces] = &namespaceSearcher{
-		namespaceLister: informers.SharedInformerFactory().Core().V1().Namespaces().Lister(),
-	}
-	clusterResources[ClusterRoles] = &clusterRoleSearcher{
-		clusterRoleLister: informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister(),
-	}
-	clusterResources[StorageClasses] = &storageClassesSearcher{
-		storageClassesLister: informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister(),
-	}
+	clusterResources[Nodes] = &nodeSearcher{}
+	clusterResources[Namespaces] = &namespaceSearcher{}
+	clusterResources[ClusterRoles] = &clusterRoleSearcher{}
+	clusterResources[StorageClasses] = &storageClassesSearcher{}
 }
 
 var namespacedResources = make(map[string]namespacedSearcherInterface)
 var clusterResources = make(map[string]clusterSearcherInterface)
-
-type conditions struct {
-	match map[string]string
-	fuzzy map[string]string
-}
 
 const (
 	name                   = "name"
@@ -123,33 +84,26 @@ const (
 )
 
 type namespacedSearcherInterface interface {
-	search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error)
+	search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
 }
 type clusterSearcherInterface interface {
-	search(conditions *conditions, orderBy string, reverse bool) ([]interface{}, error)
+	search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
 }
 
-func ListNamespaceResource(namespace, resource, conditionStr, orderBy string, reverse bool, limit, offset int) (*ResourceList, error) {
+func ListNamespaceResource(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	items := make([]interface{}, 0)
 	total := 0
 	var err error
-
-	conditions, err := parseToConditions(conditionStr)
-
-	if err != nil {
-		return nil, err
-	}
-
 	var result []interface{}
 
 	if searcher, ok := namespacedResources[resource]; ok {
 		result, err = searcher.search(namespace, conditions, orderBy, reverse)
 	} else {
-		return nil, errors.New(errors.NotImplement, "not support")
+		return nil, fmt.Errorf("not support")
 	}
 
 	if err != nil {
-		return nil, errors.New(errors.Internal, err.Error())
+		return nil, err
 	}
 
 	total = len(result)
@@ -160,15 +114,13 @@ func ListNamespaceResource(namespace, resource, conditionStr, orderBy string, re
 		}
 	}
 
-	return &ResourceList{TotalCount: total, Items: items}, nil
+	return &models.PageableResponse{TotalCount: total, Items: items}, nil
 }
 
-func ListClusterResource(resource, conditionStr, orderBy string, reverse bool, limit, offset int) (*ResourceList, error) {
+func ListClusterResource(resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	items := make([]interface{}, 0)
 	total := 0
 	var err error
-
-	conditions, err := parseToConditions(conditionStr)
 
 	if err != nil {
 		return nil, err
@@ -179,11 +131,11 @@ func ListClusterResource(resource, conditionStr, orderBy string, reverse bool, l
 	if searcher, ok := clusterResources[resource]; ok {
 		result, err = searcher.search(conditions, orderBy, reverse)
 	} else {
-		return nil, errors.New(errors.NotImplement, "not support")
+		return nil, fmt.Errorf("not support")
 	}
 
 	if err != nil {
-		return nil, errors.New(errors.Internal, err.Error())
+		return nil, err
 	}
 
 	total = len(result)
@@ -194,36 +146,7 @@ func ListClusterResource(resource, conditionStr, orderBy string, reverse bool, l
 		}
 	}
 
-	return &ResourceList{TotalCount: total, Items: items}, nil
-}
-
-func parseToConditions(str string) (*conditions, error) {
-	conditions := &conditions{match: make(map[string]string, 0), fuzzy: make(map[string]string, 0)}
-
-	if str == "" {
-		return conditions, nil
-	}
-
-	for _, item := range strings.Split(str, ",") {
-		if strings.Count(item, "=") > 1 || strings.Count(item, "~") > 1 {
-			return nil, errors.New(errors.InvalidArgument, "invalid condition")
-		}
-		if groups := regexp.MustCompile(`(\S+)([=~])(\S+)`).FindStringSubmatch(item); len(groups) == 4 {
-			if groups[2] == "=" {
-				conditions.match[groups[1]] = groups[3]
-			} else {
-				conditions.fuzzy[groups[1]] = groups[3]
-			}
-		} else {
-			return nil, errors.New(errors.InvalidArgument, "invalid condition")
-		}
-	}
-	return conditions, nil
-}
-
-type ResourceList struct {
-	TotalCount int           `json:"total_count"`
-	Items      []interface{} `json:"items"`
+	return &models.PageableResponse{TotalCount: total, Items: items}, nil
 }
 
 func searchFuzzy(m map[string]string, key, value string) bool {

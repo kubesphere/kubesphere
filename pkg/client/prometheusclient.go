@@ -1,18 +1,24 @@
 /*
-Copyright 2018 The KubeSphere Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+
+ Copyright 2019 The KubeSphere Authors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 package client
 
 import (
+	"flag"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -20,31 +26,23 @@ import (
 	"strings"
 	"time"
 
-	"os"
-
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 )
 
 const (
-	DefaultScheme          = "http"
-	DefaultPrometheusPort  = "9090"
-	PrometheusApiPath      = "/api/v1/"
-	DefaultQueryStep       = "10m"
-	DefaultQueryTimeout    = "10s"
-	RangeQueryType         = "query_range?"
-	DefaultQueryType       = "query?"
-	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"
+	DefaultQueryStep    = "10m"
+	DefaultQueryTimeout = "10s"
+	RangeQueryType      = "query_range?"
+	DefaultQueryType    = "query?"
 )
 
-var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
-var PrometheusEndpointUrl string
+var (
+	prometheusAPIEndpoint string
+)
 
 func init() {
-	if env := os.Getenv(PrometheusAPIServerEnv); env != "" {
-		PrometheusAPIServer = env
-	}
-	PrometheusEndpointUrl = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
+	flag.StringVar(&prometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "prometheus api endpoint")
 }
 
 type MonitoringRequestParams struct {
@@ -72,11 +70,10 @@ type MonitoringRequestParams struct {
 	WorkloadKind     string
 }
 
-var client = &http.Client{}
-
 func SendMonitoringRequest(queryType string, params string) string {
-	epurl := PrometheusEndpointUrl + queryType + params
-	response, err := client.Get(epurl)
+	epurl := prometheusAPIEndpoint + queryType + params
+
+	response, err := http.DefaultClient.Get(epurl)
 	if err != nil {
 		glog.Error(err)
 	} else {
@@ -116,11 +113,11 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
 	workloadName := strings.Trim(request.QueryParameter("workload_name"), " ")
 
-	nodeId := strings.Trim(request.PathParameter("node_id"), " ")
-	wsName := strings.Trim(request.PathParameter("workspace_name"), " ")
-	nsName := strings.Trim(request.PathParameter("ns_name"), " ")
-	podName := strings.Trim(request.PathParameter("pod_name"), " ")
-	containerName := strings.Trim(request.PathParameter("container_name"), " ")
+	nodeId := strings.Trim(request.PathParameter("node"), " ")
+	wsName := strings.Trim(request.PathParameter("workspace"), " ")
+	nsName := strings.Trim(request.PathParameter("namespace"), " ")
+	podName := strings.Trim(request.PathParameter("pod"), " ")
+	containerName := strings.Trim(request.PathParameter("container"), " ")
 	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
 
 	var requestParams = MonitoringRequestParams{

@@ -19,46 +19,18 @@
 package routers
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 
-	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 
 	"kubesphere.io/kubesphere/pkg/models/routers"
 )
-
-func V1Alpha2(ws *restful.WebService) {
-	ws.Route(ws.GET("/routers").To(getAllRouters).
-		Doc("Get all routers"))
-
-	ws.Route(ws.GET("/users/{username}/routers").To(getAllRoutersOfUser).
-		Doc("Get routers for user"))
-
-	ws.Route(ws.GET("/namespaces/{namespace}/router").To(getRouter).
-		Doc("Get router of a specified project").
-		Param(ws.PathParameter("namespace", "name of the project").
-			DataType("string")))
-
-	ws.Route(ws.DELETE("/namespaces/{namespace}/router").To(deleteRouter).
-		Doc("Get router of a specified project").
-		Param(ws.PathParameter("namespace", "name of the project").
-			DataType("string")))
-
-	ws.Route(ws.POST("/namespaces/{namespace}/router").To(createRouter).
-		Doc("Create a router for a specified project").
-		Param(ws.PathParameter("namespace", "name of the project").
-			DataType("string")))
-
-	ws.Route(ws.PUT("/namespaces/{namespace}/router").To(updateRouter).
-		Doc("Update a router for a specified project").
-		Param(ws.PathParameter("namespace", "name of the project").
-			DataType("string")))
-}
 
 type Router struct {
 	RouterType  string            `json:"type"`
@@ -66,11 +38,12 @@ type Router struct {
 }
 
 // Get all namespace ingress controller services
-func getAllRouters(request *restful.Request, response *restful.Response) {
+func GetAllRouters(request *restful.Request, response *restful.Response) {
 
 	routers, err := routers.GetAllRouters()
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -78,13 +51,14 @@ func getAllRouters(request *restful.Request, response *restful.Response) {
 }
 
 // Get all namespace ingress controller services for user
-func getAllRoutersOfUser(request *restful.Request, response *restful.Response) {
+func GetAllRoutersOfUser(request *restful.Request, response *restful.Response) {
 
 	username := request.PathParameter("username")
 
 	routers, err := routers.GetAllRoutersOfUser(username)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -92,12 +66,13 @@ func getAllRoutersOfUser(request *restful.Request, response *restful.Response) {
 }
 
 // Get ingress controller service for specified namespace
-func getRouter(request *restful.Request, response *restful.Response) {
+func GetRouter(request *restful.Request, response *restful.Response) {
 
 	namespace := request.PathParameter("namespace")
 	router, err := routers.GetRouter(namespace)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -105,7 +80,7 @@ func getRouter(request *restful.Request, response *restful.Response) {
 }
 
 // Create ingress controller and related services
-func createRouter(request *restful.Request, response *restful.Response) {
+func CreateRouter(request *restful.Request, response *restful.Response) {
 
 	namespace := request.PathParameter("namespace")
 
@@ -119,18 +94,17 @@ func createRouter(request *restful.Request, response *restful.Response) {
 
 	var router *v1.Service
 
-	serviceType, annotationMap, err := ParseParameter(newRouter)
+	serviceType, annotationMap, err := parseParameter(newRouter)
 
 	if err != nil {
-		glog.Error("Wrong annotations, missing key or value")
-		response.WriteHeaderAndEntity(http.StatusBadRequest,
-			errors.New(errors.InvalidArgument, "Wrong annotations, missing key or value"))
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("wrong annotations, missing key or value")))
 		return
 	}
 
 	router, err = routers.CreateRouter(namespace, serviceType, annotationMap)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -138,19 +112,20 @@ func createRouter(request *restful.Request, response *restful.Response) {
 }
 
 // Delete ingress controller and services
-func deleteRouter(request *restful.Request, response *restful.Response) {
+func DeleteRouter(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
 
 	router, err := routers.DeleteRouter(namespace)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	response.WriteAsJson(router)
 }
 
-func updateRouter(request *restful.Request, response *restful.Response) {
+func UpdateRouter(request *restful.Request, response *restful.Response) {
 
 	namespace := request.PathParameter("namespace")
 
@@ -158,23 +133,23 @@ func updateRouter(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&newRouter)
 
 	if err != nil {
-		glog.Error(err)
-		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.New(errors.InvalidArgument, err.Error()))
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
-	serviceType, annotationMap, err := ParseParameter(newRouter)
+	serviceType, annotationMap, err := parseParameter(newRouter)
 
 	router, err := routers.UpdateRouter(namespace, serviceType, annotationMap)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	response.WriteAsJson(router)
 }
 
-func ParseParameter(router Router) (routerType v1.ServiceType, annotationMap map[string]string, err error) {
+func parseParameter(router Router) (routerType v1.ServiceType, annotationMap map[string]string, err error) {
 
 	routerType = v1.ServiceTypeNodePort
 

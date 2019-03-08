@@ -18,20 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/core/v1"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type serviceSearcher struct {
-	serviceLister lister.ServiceLister
 }
 
-// exactly match
+// exactly Match
 func (*serviceSearcher) match(match map[string]string, item *v1.Service) bool {
 	for k, v := range match {
 		switch k {
@@ -46,7 +45,7 @@ func (*serviceSearcher) match(match map[string]string, item *v1.Service) bool {
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*serviceSearcher) fuzzy(fuzzy map[string]string, item *v1.Service) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -91,8 +90,8 @@ func (*serviceSearcher) compare(a, b *v1.Service, orderBy string) bool {
 	}
 }
 
-func (s *serviceSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	services, err := s.serviceLister.Services(namespace).List(labels.Everything())
+func (s *serviceSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	services, err := informers.SharedInformerFactory().Core().V1().Services().Lister().Services(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -100,11 +99,11 @@ func (s *serviceSearcher) search(namespace string, conditions *conditions, order
 
 	result := make([]*v1.Service, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = services
 	} else {
 		for _, item := range services {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

@@ -18,17 +18,16 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/apps/v1"
 
 	"k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type daemonSetSearcher struct {
-	daemonSetLister lister.DaemonSetLister
 }
 
 func daemonSetStatus(item *v1.DaemonSet) string {
@@ -41,7 +40,7 @@ func daemonSetStatus(item *v1.DaemonSet) string {
 	}
 }
 
-// Exactly match
+// Exactly Match
 func (*daemonSetSearcher) match(match map[string]string, item *v1.DaemonSet) bool {
 	for k, v := range match {
 		switch k {
@@ -102,8 +101,8 @@ func (*daemonSetSearcher) compare(a, b *v1.DaemonSet, orderBy string) bool {
 	}
 }
 
-func (s *daemonSetSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	daemonSets, err := s.daemonSetLister.DaemonSets(namespace).List(labels.Everything())
+func (s *daemonSetSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	daemonSets, err := informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister().DaemonSets(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -111,11 +110,11 @@ func (s *daemonSetSearcher) search(namespace string, conditions *conditions, ord
 
 	result := make([]*v1.DaemonSet, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = daemonSets
 	} else {
 		for _, item := range daemonSets {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

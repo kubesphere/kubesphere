@@ -5,11 +5,19 @@
 [![GolangCI](https://golangci.com/badges/github.com/go-openapi/swag.svg)](https://golangci.com)
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-openapi/swag)](https://goreportcard.com/report/github.com/go-openapi/swag)
 
-Contains a bunch of helper functions:
+Contains a bunch of helper functions for go-openapi and go-swagger projects.
 
-* convert between value and pointers for builtins
-* convert from string to builtin
+You may also use it standalone for your projects.
+
+* convert between value and pointers for builtin types
+* convert from string to builtin types (wraps strconv)
 * fast json concatenation
 * search in path
 * load from file or http
 * name mangling
+
+
+This repo has only few dependencies outside of the standard library:
+
+* JSON utilities depend on github.com/mailru/easyjson
+* YAML utilities depend on gopkg.in/yaml.v2

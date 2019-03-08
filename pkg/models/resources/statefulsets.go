@@ -18,17 +18,16 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/apps/v1"
 
 	"k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type statefulSetSearcher struct {
-	statefulSetLister lister.StatefulSetLister
 }
 
 func statefulSetStatus(item *v1.StatefulSet) string {
@@ -44,7 +43,7 @@ func statefulSetStatus(item *v1.StatefulSet) string {
 	return stopped
 }
 
-// Exactly match
+// Exactly Match
 func (*statefulSetSearcher) match(match map[string]string, item *v1.StatefulSet) bool {
 	for k, v := range match {
 		switch k {
@@ -105,8 +104,8 @@ func (*statefulSetSearcher) compare(a, b *v1.StatefulSet, orderBy string) bool {
 	}
 }
 
-func (s *statefulSetSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	statefulSets, err := s.statefulSetLister.StatefulSets(namespace).List(labels.Everything())
+func (s *statefulSetSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	statefulSets, err := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister().StatefulSets(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -114,11 +113,11 @@ func (s *statefulSetSearcher) search(namespace string, conditions *conditions, o
 
 	result := make([]*v1.StatefulSet, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = statefulSets
 	} else {
 		for _, item := range statefulSets {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}
