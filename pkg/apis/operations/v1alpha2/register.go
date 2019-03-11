@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/operations"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/errors"
 )
 
 const GroupName = "operations.kubesphere.io"
@@ -36,20 +37,24 @@ var (
 
 func addWebService(c *restful.Container) error {
 
+	tags := []string{"Operations"}
+
 	webservice := runtime.NewWebService(GroupVersion)
 
-	webservice.Route(webservice.POST("/nodes/{node}/drainage").To(operations.DrainNode))
+	webservice.Route(webservice.POST("/nodes/{node}/drainage").
+		To(operations.DrainNode).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("").
+		Param(webservice.PathParameter("node", "node name")).
+		Writes(errors.Error{}))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
 		To(operations.RerunJob).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"jobs"}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Handle job operation").
-		Param(webservice.PathParameter("job", "job name").
-			DataType("string")).
-		Param(webservice.PathParameter("namespace", "job's namespace").
-			DataType("string")).
-		Param(webservice.QueryParameter("a", "action").
-			DataType("string")).
+		Param(webservice.PathParameter("job", "job name")).
+		Param(webservice.PathParameter("namespace", "job's namespace")).
+		Param(webservice.QueryParameter("a", "action")).
 		Writes(""))
 
 	c.Add(webservice)

@@ -99,11 +99,10 @@ func (r RouterJSR311) detectRoute(routes []Route, httpRequest *http.Request) (*R
 		}
 		return nil, NewError(http.StatusMethodNotAllowed, "405: Method Not Allowed")
 	}
-	inputMediaOk := methodOk
 
 	// content-type
 	contentType := httpRequest.Header.Get(HEADER_ContentType)
-	inputMediaOk = []Route{}
+	inputMediaOk := []Route{}
 	for _, each := range methodOk {
 		if each.matchesContentType(contentType) {
 			inputMediaOk = append(inputMediaOk, each)

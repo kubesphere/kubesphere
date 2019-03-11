@@ -20,48 +20,30 @@ package quotas
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 
 	"kubesphere.io/kubesphere/pkg/models/quotas"
 )
 
-func V1Alpha2(ws *restful.WebService) {
-
-	tags := []string{"quotas"}
-
-	ws.Route(ws.GET("/quotas").
-		To(getClusterQuotas).
-		Doc("get whole cluster's resource usage").
-		Writes(quotas.ResourceQuota{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	ws.Route(ws.GET("/namespaces/{namespace}/quotas").
-		Doc("get specified namespace's resource quota and usage").
-		Param(ws.PathParameter("namespace", "namespace's name").
-			DataType("string")).
-		Writes(quotas.ResourceQuota{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		To(getNamespaceQuotas))
-
-}
-
-func getNamespaceQuotas(req *restful.Request, resp *restful.Response) {
+func GetNamespaceQuotas(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	quota, err := quotas.GetNamespaceQuotas(namespace)
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	resp.WriteAsJson(quota)
 }
 
-func getClusterQuotas(req *restful.Request, resp *restful.Response) {
+func GetClusterQuotas(req *restful.Request, resp *restful.Response) {
 	quota, err := quotas.GetClusterQuotas()
 
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

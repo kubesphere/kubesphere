@@ -18,19 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers/rbac/v1"
 )
 
 type clusterRoleSearcher struct {
-	clusterRoleLister v1.ClusterRoleLister
 }
 
-// exactly match
+// exactly Match
 func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRole) bool {
 	for k, v := range match {
 		switch k {
@@ -45,7 +45,7 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRole) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -86,8 +86,8 @@ func (*clusterRoleSearcher) compare(a, b *rbac.ClusterRole, orderBy string) bool
 	}
 }
 
-func (s *clusterRoleSearcher) search(conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	clusterRoles, err := s.clusterRoleLister.List(labels.Everything())
+func (s *clusterRoleSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	clusterRoles, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -95,11 +95,11 @@ func (s *clusterRoleSearcher) search(conditions *conditions, orderBy string, rev
 
 	result := make([]*rbac.ClusterRole, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = clusterRoles
 	} else {
 		for _, item := range clusterRoles {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

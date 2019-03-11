@@ -20,55 +20,29 @@ package registries
 
 import (
 	"github.com/emicklei/go-restful"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/registries"
 )
 
-func V1Alpha2(ws *restful.WebService) {
-
-	ws.Route(ws.POST("registries/verify").To(registryVerify))
-
-}
-
-func registryVerify(request *restful.Request, response *restful.Response) {
+func RegistryVerify(request *restful.Request, response *restful.Response) {
 
 	authInfo := registries.AuthInfo{}
 
 	err := request.ReadEntity(&authInfo)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	err = registries.RegistryVerify(authInfo)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	response.WriteAsJson(errors.None)
 }
-
-//func (c *registriesHandler) handlerImageSearch(request *restful.Request, response *restful.Response) {
-//
-//	registry := request.PathParameter("name")
-//	searchWord := request.PathParameter("searchWord")
-//	namespace := request.PathParameter("namespace")
-//
-//	res := c.registries.ImageSearch(namespace, registry, searchWord)
-//
-//	response.WriteAsJson(res)
-//
-//}
-//
-//func (c *registriesHandler) handlerGetImageTags(request *restful.Request, response *restful.Response) {
-//
-//	registry := request.PathParameter("name")
-//	image := request.QueryParameter("image")
-//	namespace := request.PathParameter("namespace")
-//
-//	res := c.registries.GetImageTags(namespace, registry, image)
-//
-//	response.WriteAsJson(res)
-//}

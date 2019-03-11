@@ -19,10 +19,9 @@
 package operations
 
 import (
-	"net/http"
-
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/workloads"
+	"net/http"
 
 	"github.com/emicklei/go-restful"
 
@@ -40,10 +39,11 @@ func RerunJob(req *restful.Request, resp *restful.Response) {
 	case "rerun":
 		err = workloads.JobReRun(namespace, job)
 	default:
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New(errors.InvalidArgument, fmt.Sprintf("invalid operation %s", action)))
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid operation %s", action)))
 		return
 	}
-	if errors.HandlerError(err, resp) {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

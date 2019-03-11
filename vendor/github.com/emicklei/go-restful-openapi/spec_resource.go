@@ -30,6 +30,13 @@ func BuildSwagger(config Config) *spec.Swagger {
 
 	for _, each := range config.WebServices {
 		for path, item := range buildPaths(each, config).Paths {
+			existingPathItem, ok := paths.Paths[path]
+			if ok {
+				for _, r := range each.Routes() {
+					_, patterns := sanitizePath(r.Path)
+					item = buildPathItem(each, r, existingPathItem, patterns, config)
+				}
+			}
 			paths.Paths[path] = item
 		}
 		for name, def := range buildDefinitions(each, config) {

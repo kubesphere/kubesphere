@@ -18,10 +18,10 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/apps/v1"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -29,7 +29,6 @@ import (
 )
 
 type deploymentSearcher struct {
-	deploymentLister lister.DeploymentLister
 }
 
 func deploymentStatus(item *v1.Deployment) string {
@@ -45,7 +44,7 @@ func deploymentStatus(item *v1.Deployment) string {
 	return stopped
 }
 
-// Exactly match
+// Exactly Match
 func (*deploymentSearcher) match(match map[string]string, item *v1.Deployment) bool {
 	for k, v := range match {
 		switch k {
@@ -106,8 +105,8 @@ func (*deploymentSearcher) compare(a, b *v1.Deployment, orderBy string) bool {
 	}
 }
 
-func (s *deploymentSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	deployments, err := s.deploymentLister.Deployments(namespace).List(labels.Everything())
+func (s *deploymentSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	deployments, err := informers.SharedInformerFactory().Apps().V1().Deployments().Lister().Deployments(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -115,11 +114,11 @@ func (s *deploymentSearcher) search(namespace string, conditions *conditions, or
 
 	result := make([]*v1.Deployment, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = deployments
 	} else {
 		for _, item := range deployments {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

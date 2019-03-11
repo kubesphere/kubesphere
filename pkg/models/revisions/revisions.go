@@ -24,29 +24,11 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	lister "k8s.io/client-go/listers/apps/v1"
-
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
-var (
-	daemonSetLister          lister.DaemonSetLister
-	deploymentLister         lister.DeploymentLister
-	replicaSetLister         lister.ReplicaSetLister
-	statefulSetLister        lister.StatefulSetLister
-	controllerRevisionLister lister.ControllerRevisionLister
-)
-
-func init() {
-	daemonSetLister = informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister()
-	deploymentLister = informers.SharedInformerFactory().Apps().V1().Deployments().Lister()
-	replicaSetLister = informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister()
-	statefulSetLister = informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister()
-	controllerRevisionLister = informers.SharedInformerFactory().Apps().V1().ControllerRevisions().Lister()
-}
-
 func GetDeployRevision(namespace, name, revision string) (*v1.ReplicaSet, error) {
+	deploymentLister := informers.SharedInformerFactory().Apps().V1().Deployments().Lister()
 	deploy, err := deploymentLister.Deployments(namespace).Get(name)
 	if err != nil {
 		glog.Errorf("get deployment %s failed, reason: %s", name, err)
@@ -56,6 +38,7 @@ func GetDeployRevision(namespace, name, revision string) (*v1.ReplicaSet, error)
 	labelMap := deploy.Spec.Template.Labels
 	labelSelector := labels.Set(labelMap).AsSelector()
 
+	replicaSetLister := informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister()
 	rsList, err := replicaSetLister.ReplicaSets(namespace).List(labelSelector)
 	if err != nil {
 		return nil, err
@@ -67,11 +50,11 @@ func GetDeployRevision(namespace, name, revision string) (*v1.ReplicaSet, error)
 		}
 	}
 
-	return nil, errors.New(errors.NotFound, fmt.Sprintf("revision not found %v#%v", name, revision))
+	return nil, fmt.Errorf("revision not found %v#%v", name, revision)
 }
 
 func GetDaemonSetRevision(namespace, name string, revisionInt int) (*v1.ControllerRevision, error) {
-
+	daemonSetLister := informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister()
 	ds, err := daemonSetLister.DaemonSets(namespace).Get(name)
 
 	if err != nil {
@@ -84,7 +67,7 @@ func GetDaemonSetRevision(namespace, name string, revisionInt int) (*v1.Controll
 }
 
 func GetStatefulSetRevision(namespace, name string, revisionInt int) (*v1.ControllerRevision, error) {
-
+	statefulSetLister := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister()
 	st, err := statefulSetLister.StatefulSets(namespace).Get(name)
 
 	if err != nil {
@@ -97,7 +80,7 @@ func GetStatefulSetRevision(namespace, name string, revisionInt int) (*v1.Contro
 func getControllerRevision(namespace, name string, labelMap map[string]string, revision int) (*v1.ControllerRevision, error) {
 
 	labelSelector := labels.Set(labelMap).AsSelector()
-
+	controllerRevisionLister := informers.SharedInformerFactory().Apps().V1().ControllerRevisions().Lister()
 	revisions, err := controllerRevisionLister.ControllerRevisions(namespace).List(labelSelector)
 
 	if err != nil {
@@ -110,5 +93,5 @@ func getControllerRevision(namespace, name string, labelMap map[string]string, r
 		}
 	}
 
-	return nil, errors.New(errors.NotFound, fmt.Sprintf("revision not found %v#%v", name, revision))
+	return nil, fmt.Errorf("revision not found %v#%v", name, revision)
 }

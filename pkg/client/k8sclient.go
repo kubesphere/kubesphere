@@ -19,24 +19,30 @@
 package client
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/mitchellh/go-homedir"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
-	KubeConfigFile string
+	kubeConfigFile string
 	k8sClient      *kubernetes.Clientset
 	k8sClientOnce  sync.Once
 	KubeConfig     *rest.Config
 )
+
+func init() {
+	flag.StringVar(&kubeConfigFile, "kubeconfig", fmt.Sprintf("%s/.kube/config", os.Getenv("HOME")), "path to kubeconfig file")
+}
 
 func K8sClient() *kubernetes.Clientset {
 
@@ -45,14 +51,10 @@ func K8sClient() *kubernetes.Clientset {
 		config, err := getKubeConfig()
 
 		if err != nil {
-			glog.Fatalf("cannot load kubeconfig: %v", err)
+			log.Fatalln(err)
 		}
 
-		k8sClient, err = kubernetes.NewForConfig(config)
-
-		if err != nil {
-			glog.Fatalf("cannot create k8s client: %v", err)
-		}
+		k8sClient = kubernetes.NewForConfigOrDie(config)
 
 		KubeConfig = config
 	})
@@ -62,36 +64,28 @@ func K8sClient() *kubernetes.Clientset {
 
 func getKubeConfig() (kubeConfig *rest.Config, err error) {
 
-	if KubeConfigFile == "" {
+	if kubeConfigFile == "" {
 		if env := os.Getenv("KUBECONFIG"); env != "" {
-			KubeConfigFile = env
+			kubeConfigFile = env
 		} else {
 			if home, err := homedir.Dir(); err == nil {
-				KubeConfigFile = fmt.Sprintf("%s/.kube/config", home)
+				kubeConfigFile = fmt.Sprintf("%s/.kube/config", home)
 			}
 		}
 	}
 
-	if KubeConfigFile != "" {
-
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", KubeConfigFile)
-
-		if err != nil {
-			return nil, err
-		}
-
+	if _, err = os.Stat(kubeConfigFile); err == nil {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 	} else {
-
 		kubeConfig, err = rest.InClusterConfig()
+	}
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	kubeConfig.QPS = 1e6
 	kubeConfig.Burst = 1e6
 
 	return kubeConfig, nil
-
 }

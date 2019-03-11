@@ -18,10 +18,10 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/extensions/v1beta1"
 
 	extensions "k8s.io/api/extensions/v1beta1"
 
@@ -29,10 +29,9 @@ import (
 )
 
 type ingressSearcher struct {
-	ingressLister lister.IngressLister
 }
 
-// exactly match
+// exactly Match
 func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress) bool {
 	for k, v := range match {
 		switch k {
@@ -47,7 +46,7 @@ func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress)
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -92,8 +91,8 @@ func (*ingressSearcher) compare(a, b *extensions.Ingress, orderBy string) bool {
 	}
 }
 
-func (s *ingressSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	ingresses, err := s.ingressLister.Ingresses(namespace).List(labels.Everything())
+func (s *ingressSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	ingresses, err := informers.SharedInformerFactory().Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -101,11 +100,11 @@ func (s *ingressSearcher) search(namespace string, conditions *conditions, order
 
 	result := make([]*extensions.Ingress, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = ingresses
 	} else {
 		for _, item := range ingresses {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

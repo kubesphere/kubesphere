@@ -18,19 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
 	"k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	lister "k8s.io/client-go/listers/storage/v1"
 )
 
 type storageClassesSearcher struct {
-	storageClassesLister lister.StorageClassLister
 }
 
-// exactly match
+// exactly Match
 func (*storageClassesSearcher) match(match map[string]string, item *v1.StorageClass) bool {
 	for k, v := range match {
 		switch k {
@@ -45,7 +45,7 @@ func (*storageClassesSearcher) match(match map[string]string, item *v1.StorageCl
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*storageClassesSearcher) fuzzy(fuzzy map[string]string, item *v1.StorageClass) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -86,8 +86,8 @@ func (*storageClassesSearcher) compare(a, b *v1.StorageClass, orderBy string) bo
 	}
 }
 
-func (s *storageClassesSearcher) search(conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	storageClasses, err := s.storageClassesLister.List(labels.Everything())
+func (s *storageClassesSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	storageClasses, err := informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -95,11 +95,11 @@ func (s *storageClassesSearcher) search(conditions *conditions, orderBy string, 
 
 	result := make([]*v1.StorageClass, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = storageClasses
 	} else {
 		for _, item := range storageClasses {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

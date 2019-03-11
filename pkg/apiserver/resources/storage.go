@@ -20,6 +20,7 @@ package resources
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/core/v1"
+	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/storage"
@@ -43,7 +44,8 @@ func GetPodListByPvc(request *restful.Request, response *restful.Response) {
 	pvcName := request.PathParameter("pvc")
 	nsName := request.PathParameter("namespace")
 	pods, err := storage.GetPodListByPvc(pvcName, nsName)
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	result := podListByPvc{Name: pvcName, Namespace: nsName, Pods: pods}
@@ -56,7 +58,8 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	scName := request.PathParameter("storageclass")
 	claims, err := storage.GetPvcListBySc(scName)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

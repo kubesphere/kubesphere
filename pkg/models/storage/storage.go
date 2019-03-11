@@ -24,9 +24,6 @@ import (
 	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
-	lister "k8s.io/client-go/listers/core/v1"
-	lister2 "k8s.io/client-go/listers/storage/v1"
-
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
@@ -36,18 +33,12 @@ type ScMetrics struct {
 	PvcNumber string `json:"pvcNumber"`
 }
 
-var (
-	persistentVolumeClaimLister lister.PersistentVolumeClaimLister
-	persistentVolumeLister      lister.PersistentVolumeLister
-	sotrageClassesLister        lister2.StorageClassLister
-)
-
 func init() {
-	persistentVolumeClaimLister = informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister()
-	persistentVolumeLister = informers.SharedInformerFactory().Core().V1().PersistentVolumes().Lister()
+
 }
 
 func GetPvcListBySc(scName string) ([]*v1.PersistentVolumeClaim, error) {
+	persistentVolumeClaimLister := informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister()
 	all, err := persistentVolumeClaimLister.List(labels.Everything())
 
 	if err != nil {
@@ -70,6 +61,7 @@ func GetPvcListBySc(scName string) ([]*v1.PersistentVolumeClaim, error) {
 
 // Get info of metrics
 func GetScMetrics(scName string) (*ScMetrics, error) {
+	persistentVolumeLister := informers.SharedInformerFactory().Core().V1().PersistentVolumes().Lister()
 	pvList, err := persistentVolumeLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
@@ -102,7 +94,7 @@ func GetScMetrics(scName string) (*ScMetrics, error) {
 func GetScList() ([]*storageV1.StorageClass, error) {
 
 	// Get StorageClass list
-	scList, err := sotrageClassesLister.List(labels.Everything())
+	scList, err := informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err

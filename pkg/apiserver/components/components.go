@@ -22,18 +22,14 @@ import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/components"
+	"net/http"
 )
 
-func V1Alpha2(ws *restful.WebService) {
-	ws.Route(ws.GET("/components").To(getComponents))
-	ws.Route(ws.GET("/components/{component}").To(getComponentStatus))
-	ws.Route(ws.GET("/health").To(getSystemHealthStatus))
-}
+func GetSystemHealthStatus(request *restful.Request, response *restful.Response) {
+	result, err := components.GetSystemHealthStatus()
 
-func getSystemHealthStatus(request *restful.Request, response *restful.Response) {
-	result, err := components.GetAllComponentsStatus()
-
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -41,12 +37,13 @@ func getSystemHealthStatus(request *restful.Request, response *restful.Response)
 }
 
 // get a specific component status
-func getComponentStatus(request *restful.Request, response *restful.Response) {
+func GetComponentStatus(request *restful.Request, response *restful.Response) {
 	component := request.PathParameter("component")
 
 	result, err := components.GetComponentStatus(component)
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -54,11 +51,12 @@ func getComponentStatus(request *restful.Request, response *restful.Response) {
 }
 
 // get all componentsHandler
-func getComponents(request *restful.Request, response *restful.Response) {
+func GetComponents(request *restful.Request, response *restful.Response) {
 
 	result, err := components.GetAllComponentsStatus()
 
-	if errors.HandlerError(err, response) {
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 

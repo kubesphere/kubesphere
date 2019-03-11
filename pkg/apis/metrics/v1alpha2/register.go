@@ -19,6 +19,7 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/metrics"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -36,8 +37,20 @@ var (
 func addWebService(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
-	webservice.Route(webservice.GET("/storageclasses/{storageclass}").To(metrics.GetScMetrics))
-	webservice.Route(webservice.GET("/metrics/storageclass").To(metrics.GetScMetricsList))
+	tags := []string{"metrics"}
+
+	webservice.Route(webservice.GET("/storageclasses/{storageclass}").
+		To(metrics.GetScMetrics).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("").
+		Param(webservice.PathParameter("storageclass", "storageclass's name")).
+		Writes(metrics.ScMetricsItem{}))
+
+	webservice.Route(webservice.GET("/storageclasses").
+		To(metrics.GetScMetricsList).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("").
+		Writes([]metrics.ScMetricsItem{}))
 
 	c.Add(webservice)
 

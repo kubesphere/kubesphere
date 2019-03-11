@@ -18,28 +18,28 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
 
-	lister "k8s.io/client-go/listers/batch/v2alpha1"
+	"k8s.io/api/batch/v1beta1"
 
-	"k8s.io/api/batch/v2alpha1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type cronJobSearcher struct {
-	cronJobLister lister.CronJobLister
 }
 
-func cronJobStatus(item *v2alpha1.CronJob) string {
+func cronJobStatus(item *v1beta1.CronJob) string {
 	if item.Spec.Suspend != nil && *item.Spec.Suspend {
 		return paused
 	}
 	return running
 }
 
-// Exactly match
-func (*cronJobSearcher) match(match map[string]string, item *v2alpha1.CronJob) bool {
+// Exactly Match
+func (*cronJobSearcher) match(match map[string]string, item *v1beta1.CronJob) bool {
 	for k, v := range match {
 		switch k {
 		case status:
@@ -53,7 +53,7 @@ func (*cronJobSearcher) match(match map[string]string, item *v2alpha1.CronJob) b
 	return true
 }
 
-func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v2alpha1.CronJob) bool {
+func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.CronJob) bool {
 
 	for k, v := range fuzzy {
 		switch k {
@@ -88,7 +88,7 @@ func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v2alpha1.CronJob) b
 	return true
 }
 
-func (*cronJobSearcher) compare(a, b *v2alpha1.CronJob, orderBy string) bool {
+func (*cronJobSearcher) compare(a, b *v1beta1.CronJob, orderBy string) bool {
 	switch orderBy {
 	case createTime:
 		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
@@ -99,20 +99,20 @@ func (*cronJobSearcher) compare(a, b *v2alpha1.CronJob, orderBy string) bool {
 	}
 }
 
-func (s *cronJobSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	cronJobs, err := s.cronJobLister.CronJobs(namespace).List(labels.Everything())
+func (s *cronJobSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	cronJobs, err := informers.SharedInformerFactory().Batch().V1beta1().CronJobs().Lister().CronJobs(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*v2alpha1.CronJob, 0)
+	result := make([]*v1beta1.CronJob, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = cronJobs
 	} else {
 		for _, item := range cronJobs {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

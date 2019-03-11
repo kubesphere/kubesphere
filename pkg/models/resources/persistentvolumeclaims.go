@@ -18,20 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/core/v1"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type persistentVolumeClaimSearcher struct {
-	persistentVolumeClaimLister lister.PersistentVolumeClaimLister
 }
 
-// exactly match
+// exactly Match
 func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.PersistentVolumeClaim) bool {
 	for k, v := range match {
 		switch k {
@@ -46,7 +45,7 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*persistentVolumeClaimSearcher) fuzzy(fuzzy map[string]string, item *v1.PersistentVolumeClaim) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -91,8 +90,8 @@ func (*persistentVolumeClaimSearcher) compare(a, b *v1.PersistentVolumeClaim, or
 	}
 }
 
-func (s *persistentVolumeClaimSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	persistentVolumeClaims, err := s.persistentVolumeClaimLister.PersistentVolumeClaims(namespace).List(labels.Everything())
+func (s *persistentVolumeClaimSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	persistentVolumeClaims, err := informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -100,11 +99,11 @@ func (s *persistentVolumeClaimSearcher) search(namespace string, conditions *con
 
 	result := make([]*v1.PersistentVolumeClaim, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = persistentVolumeClaims
 	} else {
 		for _, item := range persistentVolumeClaims {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}

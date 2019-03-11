@@ -20,12 +20,11 @@ package registries
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/golang/glog"
-
-	"kubesphere.io/kubesphere/pkg/errors"
 )
 
 type AuthInfo struct {
@@ -62,6 +61,6 @@ func RegistryVerify(authInfo AuthInfo) error {
 	if resp.Status == loginSuccess {
 		return nil
 	} else {
-		return errors.New(errors.VerifyFailed, resp.Status)
+		return fmt.Errorf(resp.Status)
 	}
 }

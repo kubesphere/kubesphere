@@ -20,6 +20,7 @@ package kubectl
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/models"
 	"math/rand"
 
 	"github.com/golang/glog"
@@ -38,18 +39,12 @@ const (
 	namespace = constants.KubeSphereControlNamespace
 )
 
-type PodInfo struct {
-	Namespace string `json:"namespace"`
-	Pod       string `json:"pod"`
-	Container string `json:"container"`
-}
-
-func GetKubectlPod(username string) (PodInfo, error) {
+func GetKubectlPod(username string) (models.PodInfo, error) {
 	k8sClient := client.K8sClient()
 	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(username, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
-		return PodInfo{}, err
+		return models.PodInfo{}, err
 	}
 
 	selectors := deploy.Spec.Selector.MatchLabels
@@ -57,16 +52,16 @@ func GetKubectlPod(username string) (PodInfo, error) {
 	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorln(err)
-		return PodInfo{}, err
+		return models.PodInfo{}, err
 	}
 
 	pod, err := selectCorrectPod(namespace, podList.Items)
 	if err != nil {
 		glog.Errorln(err)
-		return PodInfo{}, err
+		return models.PodInfo{}, err
 	}
 
-	info := PodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
+	info := models.PodInfo{Namespace: pod.Namespace, Pod: pod.Name, Container: pod.Status.ContainerStatuses[0].Name}
 
 	return info, nil
 

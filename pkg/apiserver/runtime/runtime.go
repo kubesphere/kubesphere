@@ -35,7 +35,9 @@ type ContainerBuilder []func(c *restful.Container) error
 func NewWebService(gv schema.GroupVersion) *restful.WebService {
 	webservice := restful.WebService{}
 
-	webservice.Path(ApiRootPath + "/" + gv.String())
+	webservice.Path(ApiRootPath + "/" + gv.String()).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
 
 	return &webservice
 }

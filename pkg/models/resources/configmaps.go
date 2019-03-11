@@ -18,20 +18,19 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
 	"strings"
-
-	lister "k8s.io/client-go/listers/core/v1"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 type configMapSearcher struct {
-	configMapLister lister.ConfigMapLister
 }
 
-// exactly match
+// exactly Match
 func (*configMapSearcher) match(match map[string]string, item *v1.ConfigMap) bool {
 	for k, v := range match {
 		switch k {
@@ -46,7 +45,7 @@ func (*configMapSearcher) match(match map[string]string, item *v1.ConfigMap) boo
 	return true
 }
 
-// fuzzy searchInNamespace
+// Fuzzy searchInNamespace
 func (*configMapSearcher) fuzzy(fuzzy map[string]string, item *v1.ConfigMap) bool {
 	for k, v := range fuzzy {
 		switch k {
@@ -91,8 +90,8 @@ func (*configMapSearcher) compare(a, b *v1.ConfigMap, orderBy string) bool {
 	}
 }
 
-func (s *configMapSearcher) search(namespace string, conditions *conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	configMaps, err := s.configMapLister.ConfigMaps(namespace).List(labels.Everything())
+func (s *configMapSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+	configMaps, err := informers.SharedInformerFactory().Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -100,11 +99,11 @@ func (s *configMapSearcher) search(namespace string, conditions *conditions, ord
 
 	result := make([]*v1.ConfigMap, 0)
 
-	if len(conditions.match) == 0 && len(conditions.fuzzy) == 0 {
+	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
 		result = configMaps
 	} else {
 		for _, item := range configMaps {
-			if s.match(conditions.match, item) && s.fuzzy(conditions.fuzzy, item) {
+			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
 		}
