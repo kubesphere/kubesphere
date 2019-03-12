@@ -52,6 +52,7 @@ const (
 	label                  = "label"
 	createTime             = "createTime"
 	updateTime             = "updateTime"
+	lastScheduleTime       = "lastScheduleTime"
 	displayName            = "displayName"
 	chart                  = "chart"
 	release                = "release"

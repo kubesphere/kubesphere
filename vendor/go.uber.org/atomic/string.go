@@ -20,8 +20,10 @@
 
 package atomic
 
-// String is an atomic type-safe wrapper around Value for strings.
-type String struct{ v Value }
+import "sync/atomic"
+
+// String is an atomic type-safe wrapper around atomic.Value for strings.
+type String struct{ v atomic.Value }
 
 // NewString creates a String.
 func NewString(str string) *String {
@@ -42,7 +44,7 @@ func (s *String) Load() string {
 }
 
 // Store atomically stores the passed string.
-// Note: Converting the string to an interface{} to store in the Value
+// Note: Converting the string to an interface{} to store in the atomic.Value
 // requires an allocation.
 func (s *String) Store(str string) {
 	s.v.Store(str)

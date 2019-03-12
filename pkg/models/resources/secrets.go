@@ -86,7 +86,7 @@ func (*secretSearcher) fuzzy(fuzzy map[string]string, item *v1.Secret) bool {
 func (*secretSearcher) compare(a, b *v1.Secret, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

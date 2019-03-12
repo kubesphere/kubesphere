@@ -78,7 +78,7 @@ func (*storageClassesSearcher) fuzzy(fuzzy map[string]string, item *v1.StorageCl
 func (*storageClassesSearcher) compare(a, b *v1.StorageClass, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

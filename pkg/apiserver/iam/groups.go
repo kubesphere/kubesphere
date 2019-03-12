@@ -19,6 +19,7 @@ package iam
 
 import (
 	"fmt"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
 	"regexp"
 	"strings"
@@ -109,7 +110,7 @@ func GroupDetail(req *restful.Request, resp *restful.Response) {
 
 	path := req.PathParameter("path")
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -133,7 +134,7 @@ func GroupUsers(req *restful.Request, resp *restful.Response) {
 
 	path := req.PathParameter("path")
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -228,7 +229,7 @@ func RootGroupList(req *restful.Request, resp *restful.Response) {
 
 		groups := make([]*models.Group, 0)
 
-		conn, err := iam.NewConnection()
+		conn, err := ldapclient.Client()
 
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

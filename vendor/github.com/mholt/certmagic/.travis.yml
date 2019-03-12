@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.x
+  - tip
+
+matrix:
+  allow_failures:
+    - go: tip
+  fast_finish: true
+
+install:
+  - go get -t ./...
+  - go get golang.org/x/lint/golint
+  - go get github.com/alecthomas/gometalinter
+
+script:
+  - gometalinter --install
+  - gometalinter --disable-all -E vet -E gofmt -E misspell -E ineffassign -E goimports -E deadcode --tests ./...
+  - go test -race ./...
+
+after_script:
+  - golint ./...

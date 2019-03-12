@@ -21,6 +21,7 @@ package kubectl
 import (
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"math/rand"
 
 	"github.com/golang/glog"
@@ -31,7 +32,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
@@ -40,7 +40,7 @@ const (
 )
 
 func GetKubectlPod(username string) (models.PodInfo, error) {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(username, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
@@ -87,7 +87,7 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 }
 
 func CreateKubectlDeploy(user string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if err == nil {
 		return nil
@@ -128,7 +128,7 @@ func CreateKubectlDeploy(user string) error {
 }
 
 func DelKubectlDeploy(user string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil

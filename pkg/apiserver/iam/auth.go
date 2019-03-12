@@ -22,6 +22,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
@@ -113,7 +114,7 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 
 	username := claims["username"].(string)
 
-	conn, err := iam.NewConnection()
+	conn, err := ldap.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

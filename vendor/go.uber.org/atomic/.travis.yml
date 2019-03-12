@@ -3,9 +3,9 @@ language: go
 go_import_path: go.uber.org/atomic
 
 go:
-  - 1.7
-  - 1.8
-  - 1.9
+  - 1.5
+  - 1.6
+  - tip
 
 cache:
   directories:
@@ -18,6 +18,4 @@ script:
   - make test_ci
   - scripts/test-ubergo.sh
   - make lint
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - travis_retry goveralls -coverprofile=cover.out -service=travis-ci

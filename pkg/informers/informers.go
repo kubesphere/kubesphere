@@ -18,12 +18,11 @@
 package informers
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"sync"
 	"time"
 
 	"k8s.io/client-go/informers"
-
-	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const defaultResync = 600 * time.Second
@@ -35,7 +34,7 @@ var (
 
 func SharedInformerFactory() informers.SharedInformerFactory {
 	once.Do(func() {
-		k8sClient := client.K8sClient()
+		k8sClient := k8s.Client()
 		informerFactory = informers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return informerFactory

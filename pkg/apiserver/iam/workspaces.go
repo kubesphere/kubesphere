@@ -19,6 +19,7 @@ package iam
 
 import (
 	"fmt"
+	"github.com/go-ldap/ldap"
 	"net/http"
 	"regexp"
 	"sort"
@@ -26,7 +27,6 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/go-ldap/ldap"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	apierror "k8s.io/apimachinery/pkg/api/errors"
@@ -37,6 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	sliceutils "kubesphere.io/kubesphere/pkg/utils"
 )
 
@@ -656,7 +657,7 @@ func WorkspaceMemberList(req *restful.Request, resp *restful.Response) {
 		offset = 0
 	}
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

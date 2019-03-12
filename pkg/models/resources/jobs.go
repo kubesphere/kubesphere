@@ -112,7 +112,7 @@ func jobUpdateTime(item *batchv1.Job) time.Time {
 func (*jobSearcher) compare(a, b *batchv1.Job, orderBy string) bool {
 	switch orderBy {
 	case updateTime:
-		return jobUpdateTime(a).After(jobUpdateTime(b))
+		return jobUpdateTime(a).Before(jobUpdateTime(b))
 	case name:
 		fallthrough
 	default:

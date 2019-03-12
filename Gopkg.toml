@@ -24,7 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-ignored = ["github.com/mholt/caddy","github.com/mholt/caddy/caddyfile","github.com/mholt/caddy/caddyhttp/httpserver","github.com/mholt/caddy/caddyhttp/staticfiles","github.com/mholt/caddy/caddytls","github.com/mholt/caddy/telemetry"]
 
 [[constraint]]
   name = "github.com/docker/docker"
@@ -70,18 +69,21 @@ ignored = ["github.com/mholt/caddy","github.com/mholt/caddy/caddyfile","github.c
   name = "k8s.io/kubernetes"
   version = "1.12.3"
 
+[[constraint]]
+  name = "github.com/mholt/caddy"
+  version = "v0.11.5"
 
 [[constraint]]
-  name="sigs.k8s.io/controller-runtime"
-  version="v0.1.9"
+  name = "sigs.k8s.io/controller-runtime"
+  version = "v0.1.9"
 
 [[override]]
-  name="sigs.k8s.io/controller-tools"
-  version="v0.1.9"
+  name = "sigs.k8s.io/controller-tools"
+  version = "v0.1.9"
 
 [[override]]
-  name="k8s.io/component-base"
-  branch="master"
+  name = "k8s.io/component-base"
+  branch = "master"
 
 [prune]
   go-tests = true
@@ -113,6 +115,11 @@ ignored = ["github.com/mholt/caddy","github.com/mholt/caddy/caddyfile","github.c
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
-name = "gopkg.in/fsnotify.v1"
-source = "https://github.com/fsnotify/fsnotify.git"
-version="v1.4.7"
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
+  version = "v1.4.7"
+
+
+[[override]]
+  name = "github.com/russross/blackfriday"
+  version = "v1.5.2"

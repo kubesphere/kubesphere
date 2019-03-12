@@ -96,7 +96,7 @@ func (*statefulSetSearcher) fuzzy(fuzzy map[string]string, item *v1.StatefulSet)
 func (*statefulSetSearcher) compare(a, b *v1.StatefulSet, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

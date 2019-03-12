@@ -18,6 +18,7 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -271,7 +272,7 @@ func pathMatches(path, spec string) bool {
 	return false
 }
 
-func getAuthorizerAttributes(ctx request.Context) (authorizer.Attributes, error) {
+func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error) {
 	attribs := authorizer.AttributesRecord{}
 
 	user, ok := request.UserFrom(ctx)

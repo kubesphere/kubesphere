@@ -83,7 +83,7 @@ func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress)
 func (*ingressSearcher) compare(a, b *extensions.Ingress, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

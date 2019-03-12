@@ -19,7 +19,7 @@ package iam
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/client"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"regexp"
 	"strings"
 )
@@ -60,12 +60,12 @@ func splitPath(path string) (searchBase string, cn string) {
 			basePath[i], basePath[j] = basePath[j], basePath[i]
 		}
 
-		searchBase = fmt.Sprintf("%s,%s", strings.Join(basePath, ","), client.GroupSearchBase)
+		searchBase = fmt.Sprintf("%s,%s", strings.Join(basePath, ","), ldapclient.GroupSearchBase)
 	} else if length == 2 {
-		searchBase = fmt.Sprintf("cn=%s,%s", paths[0], client.GroupSearchBase)
+		searchBase = fmt.Sprintf("cn=%s,%s", paths[0], ldapclient.GroupSearchBase)
 		cn = paths[1]
 	} else {
-		searchBase = client.GroupSearchBase
+		searchBase = ldapclient.GroupSearchBase
 		if paths[0] == "" {
 			cn = "*"
 		} else {

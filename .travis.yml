@@ -7,7 +7,7 @@ git:
   depth: false
 
 go:
-  - 1.10.3
+  - 1.12
 
 go_import_path: kubesphere.io/kubesphere
 
@@ -17,7 +17,6 @@ before_install:
 before_script:
   - dep ensure -v
   - docker --version
-  - git clone --single-branch -b v0.11.4 -q https://github.com/mholt/caddy $GOPATH/src/github.com/mholt/caddy
 
 script:
   - make test

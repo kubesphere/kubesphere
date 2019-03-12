@@ -78,7 +78,7 @@ func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
 func (*roleSearcher) compare(a, b *rbac.Role, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

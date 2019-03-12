@@ -82,7 +82,7 @@ func (*serviceSearcher) fuzzy(fuzzy map[string]string, item *v1.Service) bool {
 func (*serviceSearcher) compare(a, b *v1.Service, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

@@ -31,6 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 )
 
 const (
@@ -166,7 +167,7 @@ func CurrentUserDetail(req *restful.Request, resp *restful.Response) {
 
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -228,7 +229,7 @@ func NamespacesListHandler(req *restful.Request, resp *restful.Response) {
 func UserDetail(req *restful.Request, resp *restful.Response) {
 	username := req.PathParameter("name")
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -296,7 +297,7 @@ func UserList(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	conn, err := iam.NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

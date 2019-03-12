@@ -52,5 +52,5 @@ var (
 	SystemWorkspace  = "system-workspace"
 	DevopsAPIServer  = "ks-devops-apiserver.kubesphere-system.svc"
 	AccountAPIServer = "ks-account.kubesphere-system.svc"
-	SystemNamespaces = []string{KubeSystemNamespace, OpenPitrixNamespace, KubeSystemNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, OpenPitrixNamespace, KubeSystemNamespace}
 )

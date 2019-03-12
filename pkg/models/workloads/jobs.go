@@ -19,20 +19,19 @@ package workloads
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"kubesphere.io/kubesphere/pkg/client"
 )
 
 const retryTimes = 3
 
 func JobReRun(namespace, jobName string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	job, err := k8sClient.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -72,7 +71,7 @@ func JobReRun(namespace, jobName string) error {
 }
 
 func deleteJob(namespace, job string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	deletePolicy := metav1.DeletePropagationBackground
 	err := k8sClient.BatchV1().Jobs(namespace).Delete(job, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	return err
