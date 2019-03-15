@@ -51,5 +51,5 @@ func GetKubeconfig(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.WriteAsJson(kubectlConfig)
+	resp.Write([]byte(kubectlConfig))
 }

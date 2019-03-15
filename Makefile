@@ -40,11 +40,19 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: ks-apiserver test
+all: test ks-apiserver ks-apigateway ks-iam
 
 # Build ks-apiserver binary
-ks-apiserver: generate fmt vet
+ks-apiserver: test
 	hack/gobuild.sh cmd/ks-apiserver
+
+# Build ks-apigateway binary
+ks-apigateway: test
+	hack/gobuild.sh cmd/ks-apigateway
+
+# Build ks-iam binary
+ks-iam: test
+	hack/gobuild.sh cmd/ks-iam
 
 # Run go fmt against code 
 fmt:
@@ -62,7 +70,7 @@ endif
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image
-docker-build: test
+docker-build: all
 	docker build . -t ${IMG}
 
 # Run tests

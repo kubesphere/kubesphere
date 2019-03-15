@@ -20,8 +20,7 @@ package components
 import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/models"
-
-	"kubesphere.io/kubesphere/pkg/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 
 	"kubesphere.io/kubesphere/pkg/informers"
 
@@ -84,7 +83,7 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 
 	status := make(map[string]interface{})
 
-	componentStatuses, err := client.K8sClient().CoreV1().ComponentStatuses().List(meta_v1.ListOptions{})
+	componentStatuses, err := k8s.Client().CoreV1().ComponentStatuses().List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

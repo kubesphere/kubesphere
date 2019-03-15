@@ -50,8 +50,13 @@ func Setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		stopChan := signals.SetupSignalHandler()
-		informers.SharedInformerFactory().Start(stopChan)
-		informers.SharedInformerFactory().WaitForCacheSync(stopChan)
+		informerFactory := informers.SharedInformerFactory()
+		informerFactory.Rbac().V1().Roles().Lister()
+		informerFactory.Rbac().V1().RoleBindings().Lister()
+		informerFactory.Rbac().V1().ClusterRoles().Lister()
+		informerFactory.Rbac().V1().ClusterRoleBindings().Lister()
+		informerFactory.Start(stopChan)
+		informerFactory.WaitForCacheSync(stopChan)
 		fmt.Println("Authentication middleware is initiated")
 		return nil
 	})

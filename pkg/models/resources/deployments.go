@@ -97,7 +97,7 @@ func (*deploymentSearcher) fuzzy(fuzzy map[string]string, item *v1.Deployment) b
 func (*deploymentSearcher) compare(a, b *v1.Deployment, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

@@ -6,23 +6,15 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
-FROM golang:1.10.3 as ks-apigateway-builder
+FROM golang:1.12 as ks-apigateway-builder
 
 COPY / /go/src/kubesphere.io/kubesphere
-RUN git clone --single-branch -b v0.11.4 -q https://github.com/mholt/caddy /go/src/github.com/mholt/caddy
-WORKDIR /go/src/github.com/mholt/caddy
-RUN sed -i "/\/\/ This is where other plugins get plugged in (imported)/a\\\t\
-    _ \"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authenticate\"\n\t\
-    _ \"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authentication\"\n\t\
-    _ \"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/swagger\""\
-    caddy/caddymain/run.go && \
-    sed -i "/\/\/ github.com\/BTBurke\/caddy-jwt/a\\\t\"authenticate\",\n\t\"authentication\",\n\t\"swagger\","\
-    caddyhttp/httpserver/plugin.go && \
-    go install ./caddy && \
-    go run /go/src/kubesphere.io/kubesphere/tools/cmd/doc-gen/main.go --output=/go/src/kubesphere.io/kubesphere/install/swagger-ui/api.json
+WORKDIR /go/src/kubesphere.io/kubesphere
+RUN CGO_ENABLED=0 GO111MODULE=off GOOS=linux GOARCH=amd64 go build -i -ldflags '-w -s' -o ks-apigateway cmd/ks-apigateway/apiserver.go && \
+    go run tools/cmd/doc-gen/main.go --output=install/swagger-ui/api.json
 
-FROM alpine:3.7
+FROM alpine:3.9
 RUN apk add --update ca-certificates && update-ca-certificates
-COPY --from=ks-apigateway-builder /go/bin/* /usr/local/bin/
+COPY --from=ks-apigateway-builder /go/src/kubesphere.io/kubesphere/ks-apigateway /usr/local/bin/
 COPY --from=ks-apigateway-builder /go/src/kubesphere.io/kubesphere/install/swagger-ui /var/static/swagger-ui
 CMD ["sh"]

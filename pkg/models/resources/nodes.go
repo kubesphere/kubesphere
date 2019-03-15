@@ -82,7 +82,7 @@ func (*nodeSearcher) fuzzy(fuzzy map[string]string, item *v1.Node) bool {
 func (*nodeSearcher) compare(a, b *v1.Node, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"log"
 	"net/http"
 	"regexp"
@@ -35,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/slice"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
@@ -264,7 +265,7 @@ func ClusterRoleUsers(clusterRoleName string) ([]*models.User, error) {
 		return nil, err
 	}
 
-	conn, err := NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		return nil, err
@@ -306,7 +307,7 @@ func RoleUsers(namespace string, roleName string) ([]*models.User, error) {
 		return nil, err
 	}
 
-	conn, err := NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		return nil, err
@@ -343,7 +344,7 @@ func NamespaceUsers(namespaceName string) ([]*models.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn, err := NewConnection()
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		return nil, err
@@ -608,7 +609,7 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 				}
 			}
 
-			_, err = client.K8sClient().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
+			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
 
 			if err != nil {
 				return err
@@ -636,7 +637,7 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 
 	if clusterRoleBinding != nil {
 		clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
-		_, err := client.K8sClient().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
+		_, err := k8s.Client().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
 		if err != nil {
 			return err
 		}
@@ -647,7 +648,7 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		clusterRoleBinding.RoleRef = v1.RoleRef{Name: clusterRoleName, Kind: ClusterRoleKind}
 		clusterRoleBinding.Subjects = []v1.Subject{{Kind: v1.UserKind, Name: username}}
 
-		_, err = client.K8sClient().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
 
 		if err != nil {
 			return err

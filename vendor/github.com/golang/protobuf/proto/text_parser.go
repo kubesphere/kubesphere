@@ -630,17 +630,17 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 					if err := p.consumeToken(":"); err != nil {
 						return err
 					}
-					if err := p.readAny(key, props.MapKeyProp); err != nil {
+					if err := p.readAny(key, props.mkeyprop); err != nil {
 						return err
 					}
 					if err := p.consumeOptionalSeparator(); err != nil {
 						return err
 					}
 				case "value":
-					if err := p.checkForColon(props.MapValProp, dst.Type().Elem()); err != nil {
+					if err := p.checkForColon(props.mvalprop, dst.Type().Elem()); err != nil {
 						return err
 					}
-					if err := p.readAny(val, props.MapValProp); err != nil {
+					if err := p.readAny(val, props.mvalprop); err != nil {
 						return err
 					}
 					if err := p.consumeOptionalSeparator(); err != nil {

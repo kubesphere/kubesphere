@@ -19,12 +19,12 @@ package monitoring
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
+	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
 func MonitorPod(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	podName := requestParams.PodName
 	metricName := requestParams.MetricsName
 	if podName != "" {
@@ -49,7 +49,7 @@ func MonitorPod(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorContainer(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	metricName := requestParams.MetricsName
 	if requestParams.MetricsFilter != "" {
 		rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelContainer)
@@ -68,7 +68,7 @@ func MonitorContainer(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorWorkload(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
 
@@ -95,7 +95,7 @@ func MonitorWorkload(request *restful.Request, response *restful.Response) {
 
 func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) {
 
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
 	if tp == "_statistics" {
@@ -119,7 +119,7 @@ func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) 
 }
 
 func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
 	if tp == "rank" {
@@ -145,7 +145,7 @@ func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorNamespace(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	metricName := requestParams.MetricsName
 	nsName := requestParams.NsName
 	if nsName != "" {
@@ -166,7 +166,7 @@ func MonitorNamespace(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorCluster(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	metricName := requestParams.MetricsName
 	if metricName != "" {
@@ -183,7 +183,7 @@ func MonitorCluster(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorNode(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	metricName := requestParams.MetricsName
 	if metricName != "" {
@@ -213,7 +213,7 @@ func MonitorNode(request *restful.Request, response *restful.Response) {
 
 // k8s component(controller, scheduler, etcd) status
 func MonitorComponentStatus(request *restful.Request, response *restful.Response) {
-	requestParams := client.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	status := metrics.MonitorComponentStatus(requestParams)
 	response.WriteAsJson(status)

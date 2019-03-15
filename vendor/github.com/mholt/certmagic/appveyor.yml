@@ -1,0 +1,31 @@
+version: "{build}"
+
+clone_folder: c:\gopath\src\github.com\mholt\certmagic
+
+environment:
+  GOPATH: c:\gopath
+
+stack: go 1.11
+
+install:
+  - set PATH=%GOPATH%\bin;%PATH%
+  - set PATH=C:\msys64\mingw64\bin;%PATH%
+  - go get -t ./...
+  - go get golang.org/x/lint/golint
+  - go get github.com/alecthomas/gometalinter
+
+build: off
+
+before_test:
+  - go version
+  - go env
+
+test_script:
+  - gometalinter --install
+  - gometalinter --disable-all -E vet -E gofmt -E misspell -E ineffassign -E goimports -E deadcode --tests ./...
+  - go test -race ./...
+
+after_test:
+  - golint ./...
+
+deploy: off

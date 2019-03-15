@@ -90,11 +90,19 @@ func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.CronJob) bo
 
 func (*cronJobSearcher) compare(a, b *v1beta1.CronJob, orderBy string) bool {
 	switch orderBy {
+	case lastScheduleTime:
+		if a.Status.LastScheduleTime == nil {
+			return true
+		}
+		if b.Status.LastScheduleTime == nil {
+			return false
+		}
+		return a.Status.LastScheduleTime.Before(b.Status.LastScheduleTime)
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
-	case name:
-		fallthrough
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	default:
+		fallthrough
+	case name:
 		return strings.Compare(a.Name, b.Name) <= 0
 	}
 }

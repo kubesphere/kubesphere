@@ -1,27 +1,30 @@
 /*
-Copyright 2019 The KubeSphere authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Copyright 2019 The KubeSphere Authors.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 
 package main
 
 import (
 	"flag"
-	"os"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/controller/namespace"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -40,7 +43,7 @@ func main() {
 
 	// Get a config to talk to the apiserver
 	log.Info("setting up client for manager")
-	cfg, err := config.GetConfig()
+	cfg, err := k8s.Config()
 	if err != nil {
 		log.Error(err, "unable to set up client config")
 		os.Exit(1)
@@ -76,7 +79,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	controller.Run(signals.SetupSignalHandler())
+	err = mgr.Add(manager.RunnableFunc(func(s <-chan struct{}) error {
+		informerFactory := informers.SharedInformerFactory()
+		informerFactory.Start(s)
+		namespace.NewNamespaceController(k8s.Client(),
+			informerFactory.Core().V1().Namespaces(),
+			informerFactory.Rbac().V1().Roles()).Start(s)
+		return nil
+	}))
+
+	if err != nil {
+		log.Error(err, "error Adding controllers to the Manager")
+		os.Exit(1)
+	}
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")

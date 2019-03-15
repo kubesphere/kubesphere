@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -49,12 +51,11 @@ import (
 
 	"sort"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	kserr "kubesphere.io/kubesphere/pkg/errors"
 )
 
 func UnBindDevopsProject(workspace string, devops string) error {
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 	return db.Delete(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
@@ -304,19 +305,19 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 }
 
 func BindingDevopsProject(workspace string, devops string) error {
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 	return db.Create(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
 func DeleteNamespace(workspace string, namespaceName string) error {
-	namespace, err := client.K8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	namespace, err := k8s.Client().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	if namespace.Labels != nil && namespace.Labels["kubesphere.io/workspace"] == workspace {
 		deletePolicy := meta_v1.DeletePropagationForeground
-		return client.K8sClient().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+		return k8s.Client().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	} else {
 		return errors.New("resource not found")
 	}
@@ -376,7 +377,7 @@ func release(workspace *models.Workspace) error {
 	return err
 }
 func workspaceRoleRelease(workspace string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	deletePolicy := meta_v1.DeletePropagationForeground
 
 	for _, role := range constants.WorkSpaceRoles {
@@ -513,7 +514,7 @@ func Detail(name string) (*models.Workspace, error) {
 		return nil, err
 	}
 
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 
 	workspace, err := convertGroupToWorkspace(db, group)
@@ -604,7 +605,7 @@ func fetch(names []string) ([]*models.Workspace, error) {
 		return nil, err
 	}
 
-	db := client.DBClient()
+	db := mysql.Client()
 
 	defer db.Close()
 
@@ -622,7 +623,7 @@ func fetch(names []string) ([]*models.Workspace, error) {
 
 func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []models.DevopsProject, error) {
 
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 
 	var workspaceDOPBindings []models.WorkspaceDPBinding
@@ -738,7 +739,7 @@ func convertGroupToWorkspace(db *gorm.DB, group models.Group) (*models.Workspace
 
 func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
 
-	ns, err := client.K8sClient().CoreV1().Namespaces().Create(namespace)
+	ns, err := k8s.Client().CoreV1().Namespaces().Create(namespace)
 
 	if err != nil {
 		return nil, err
@@ -784,7 +785,7 @@ func Invite(workspaceName string, users []models.UserInvite) error {
 
 func NamespaceExistCheck(namespaceName string) (bool, error) {
 
-	_, err := client.K8sClient().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	_, err := k8s.Client().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -887,7 +888,7 @@ func GetWorkspaceMembers(workspace string, keyword string) ([]models.User, error
 }
 
 func WorkspaceRoleInit(workspace *models.Workspace) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	admin := new(v1.ClusterRole)
 	admin.Name = fmt.Sprintf("system:%s:%s", workspace.Name, constants.WorkspaceAdmin)
@@ -1086,7 +1087,7 @@ func WorkspaceRoleInit(workspace *models.Workspace) error {
 }
 
 func unbindWorkspaceRole(workspace string, users []string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	for _, name := range constants.WorkSpaceRoles {
 		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, name), meta_v1.GetOptions{})
@@ -1118,7 +1119,7 @@ func unbindWorkspaceRole(workspace string, users []string) error {
 
 func unbindNamespacesRole(namespaces []string, users []string) error {
 
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	for _, namespace := range namespaces {
 
 		roleBindings, err := k8sClient.RbacV1().RoleBindings(namespace).List(meta_v1.ListOptions{})
@@ -1166,7 +1167,7 @@ func UnbindWorkspace(workspace *models.Workspace, users []string) error {
 
 func CreateWorkspaceRoleBinding(workspace *models.Workspace, username string, role string) error {
 
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	for _, roleName := range constants.WorkSpaceRoles {
 		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace.Name, roleName), meta_v1.GetOptions{})
@@ -1220,7 +1221,7 @@ func CreateWorkspaceRoleBinding(workspace *models.Workspace, username string, ro
 
 func GetDevOpsProjects(workspaceName string) ([]string, error) {
 
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 
 	var workspaceDOPBindings []models.WorkspaceDPBinding
@@ -1313,7 +1314,7 @@ func GetAllProjectNums() (int, error) {
 }
 
 func GetAllDevOpsProjectsNums() (int, error) {
-	db := client.DBClient()
+	db := mysql.Client()
 	defer db.Close()
 
 	var count int

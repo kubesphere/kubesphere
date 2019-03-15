@@ -27,6 +27,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"math/big"
 	rd "math/rand"
 	"time"
@@ -39,7 +40,6 @@ import (
 
 	"k8s.io/api/core/v1"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
@@ -216,7 +216,7 @@ func createKubeConfig(userName string) (string, error) {
 		return "", err
 	}
 	base64ServerCa := base64.StdEncoding.EncodeToString(serverCa)
-	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: client.KubeConfig.Host}
+	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.KubeConfig.Host}
 	tmpCluster := cluster{Cluster: tmpClusterInfo, Name: clusterName}
 	tmpKubeConfig.Clusters = append(tmpKubeConfig.Clusters, tmpCluster)
 
@@ -243,7 +243,7 @@ func createKubeConfig(userName string) (string, error) {
 }
 
 func CreateKubeConfig(user string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
 
@@ -268,7 +268,7 @@ func CreateKubeConfig(user string) error {
 }
 
 func GetKubeConfig(user string) (string, error) {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	configMap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
 	if err != nil {
 		glog.Errorf("cannot get user %s's kubeConfig, reason: %v", user, err)
@@ -278,7 +278,7 @@ func GetKubeConfig(user string) (string, error) {
 }
 
 func DelKubeConfig(user string) error {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil

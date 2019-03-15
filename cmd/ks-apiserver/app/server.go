@@ -98,7 +98,7 @@ func waitForResourceSync() {
 	informerFactory.Apps().V1().DaemonSets().Lister()
 
 	informerFactory.Batch().V1().Jobs().Lister()
-	informerFactory.Batch().V1beta1().CronJobs()
+	informerFactory.Batch().V1beta1().CronJobs().Lister()
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)

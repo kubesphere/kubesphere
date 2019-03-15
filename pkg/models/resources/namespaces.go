@@ -82,7 +82,7 @@ func (*namespaceSearcher) fuzzy(fuzzy map[string]string, item *v1.Namespace) boo
 func (*namespaceSearcher) compare(a, b *v1.Namespace, orderBy string) bool {
 	switch orderBy {
 	case createTime:
-		return a.CreationTimestamp.Time.After(b.CreationTimestamp.Time)
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
 	default:

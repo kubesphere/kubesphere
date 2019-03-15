@@ -21,6 +21,7 @@ package routers
 import (
 	"fmt"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -35,7 +36,6 @@ import (
 
 	"strings"
 
-	"kubesphere.io/kubesphere/pkg/client"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 )
@@ -139,7 +139,7 @@ func LoadYamls() ([]string, error) {
 // Create a ingress controller in a namespace
 func CreateRouter(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
 
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	var router *corev1.Service
 
@@ -214,7 +214,7 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 // DeleteRouter is used to delete ingress controller related resources in namespace
 // It will not delete ClusterRole resource cause it maybe used by other controllers
 func DeleteRouter(namespace string) (*corev1.Service, error) {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	var err error
 	var router *corev1.Service
@@ -269,7 +269,7 @@ func DeleteRouter(namespace string) (*corev1.Service, error) {
 
 // Update Ingress Controller Service, change type from NodePort to Loadbalancer or vice versa.
 func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
-	k8sClient := client.K8sClient()
+	k8sClient := k8s.Client()
 
 	var router *corev1.Service
 
