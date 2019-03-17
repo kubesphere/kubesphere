@@ -50,7 +50,7 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 }
 
 // sorted metric by ascending or descending order
-func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelMetric, resourceType string) (*FormatedLevelMetric, int) {
+func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelMetric) (*FormatedLevelMetric, int) {
 	defer func() {
 		if err := recover(); err != nil {
 			glog.Errorln(err)
@@ -64,7 +64,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 
 	// default sort type is descending order
 	if sortType == "" {
-		sortType = ResultSortTypeDesc
+		sortType = ResultSortTypeDes
 	}
 
 	var currentResourceMap = make(map[string]int)
@@ -83,8 +83,8 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[resourceType]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[resourceType]
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})["resource_name"]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})["resource_name"]
 							return resourceName1.(string) < resourceName2.(string)
 						}
 
@@ -99,8 +99,8 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[resourceType]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[resourceType]
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})["resource_name"]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})["resource_name"]
 							return resourceName1.(string) > resourceName2.(string)
 						}
 
@@ -111,7 +111,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 				for _, r := range metricItem.Data.Result {
 					// for some reasons, 'metric' may not contain `resourceType` field
 					// example: {"metric":{},"value":[1541142931.731,"3"]}
-					k, exist := r[ResultItemMetric].(map[string]interface{})[resourceType]
+					k, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
 					key := k.(string)
 					if exist {
 						if _, exist := indexMap[key]; !exist {
@@ -125,7 +125,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 
 			// iterator all metric to find max metricItems length
 			for _, r := range metricItem.Data.Result {
-				k, ok := r[ResultItemMetric].(map[string]interface{})[resourceType]
+				k, ok := r[ResultItemMetric].(map[string]interface{})["resource_name"]
 				if ok {
 					currentResourceMap[k.(string)] = 1
 				}
@@ -154,7 +154,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 			sortedMetric := make([]map[string]interface{}, len(indexMap))
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
-				k, exist := r[ResultItemMetric].(map[string]interface{})[resourceType]
+				k, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
 				if exist {
 					index, exist := indexMap[k.(string)]
 					if exist {
@@ -176,7 +176,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	}
 	// matrix type can not be sorted
 	for _, metricItem := range fmtLevelMetric.Results {
-		// if metric reterieved field, resultType is ""
+		// if metric reterieved field, resultType: ""
 		if metricItem.Data.ResultType == ResultTypeMatrix {
 			return fmtLevelMetric
 		}
@@ -251,7 +251,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 }
 
 // maybe this function is time consuming
-func ReformatJson(metric string, metricsName string, needDelParams ...string) *FormatedMetric {
+func ReformatJson(metric string, metricsName string, needAddParams map[string]string, needDelParams ...string) *FormatedMetric {
 	var formatMetric FormatedMetric
 
 	err := jsonIter.Unmarshal([]byte(metric), &formatMetric)
@@ -275,6 +275,17 @@ func ReformatJson(metric string, metricsName string, needDelParams ...string) *F
 			if len(needDelParams) > 0 {
 				for _, p := range needDelParams {
 					delete(metricMap, p)
+				}
+			}
+
+			if needAddParams != nil && len(needAddParams) > 0 {
+				for n := range needAddParams {
+					if v, ok := metricMap[n]; ok {
+						delete(metricMap, n)
+						metricMap["resource_name"] = v
+					} else {
+						metricMap["resource_name"] = needAddParams[n]
+					}
 				}
 			}
 		}

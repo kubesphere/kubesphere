@@ -17,12 +17,25 @@ limitations under the License.
 package request
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/validation/path"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"k8s.io/klog"
 )
+
+// LongRunningRequestCheck is a predicate which is true for long-running http requests.
+type LongRunningRequestCheck func(r *http.Request, requestInfo *RequestInfo) bool
+
+type RequestInfoResolver interface {
+	NewRequestInfo(req *http.Request) (*RequestInfo, error)
+}
 
 // RequestInfo holds information parsed from the http.Request
 type RequestInfo struct {
@@ -54,10 +67,10 @@ type RequestInfo struct {
 // CRUDdy GET/POST/PUT/DELETE actions on REST objects.
 // TODO: find a way to keep this up to date automatically.  Maybe dynamically populate list as handlers added to
 // master's Mux.
-var specialVerbs = sets.NewString("proxy", "redirect", "watch")
+var specialVerbs = sets.NewString("proxy", "watch")
 
 // specialVerbsNoSubresources contains root verbs which do not allow subresources
-var specialVerbsNoSubresources = sets.NewString("proxy", "redirect")
+var specialVerbsNoSubresources = sets.NewString("proxy")
 
 // namespaceSubresources contains subresources of namespace
 // this list allows the parser to distinguish between a namespace subresource, and a namespaced resource
@@ -87,8 +100,6 @@ type RequestInfoFactory struct {
 // Special verbs without subresources:
 // /api/{version}/proxy/{resource}/{resourceName}
 // /api/{version}/proxy/namespaces/{namespace}/{resource}/{resourceName}
-// /api/{version}/redirect/namespaces/{namespace}/{resource}/{resourceName}
-// /api/{version}/redirect/{resource}/{resourceName}
 //
 // Special verbs with subresources:
 // /api/{version}/watch/{resource}
@@ -176,7 +187,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			}
 		}
 	} else {
-		requestInfo.Namespace = "" // TODO(sttts): solve import cycle when using metav1.NamespaceNone
+		requestInfo.Namespace = metav1.NamespaceNone
 	}
 
 	// parsing successful, so we now know the proper value for .Parts
@@ -196,13 +207,34 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list or a watch
 	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
-		// Assumes v1.ListOptions
-		// Duplicates logic of Convert_Slice_string_To_bool
-		switch strings.ToLower(req.URL.Query().Get("watch")) {
-		case "false", "0", "":
-			requestInfo.Verb = "list"
-		default:
+		opts := metainternalversion.ListOptions{}
+		if err := metainternalversion.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts); err != nil {
+			// An error in parsing request will result in default to "list" and not setting "name" field.
+			klog.Errorf("Couldn't parse request %#v: %v", req.URL.Query(), err)
+			// Reset opts to not rely on partial results from parsing.
+			// However, if watch is set, let's report it.
+			opts = metainternalversion.ListOptions{}
+			if values := req.URL.Query()["watch"]; len(values) > 0 {
+				switch strings.ToLower(values[0]) {
+				case "false", "0":
+				default:
+					opts.Watch = true
+				}
+			}
+		}
+
+		if opts.Watch {
 			requestInfo.Verb = "watch"
+		} else {
+			requestInfo.Verb = "list"
+		}
+
+		if opts.FieldSelector != nil {
+			if name, ok := opts.FieldSelector.RequiresExactMatch("metadata.name"); ok {
+				if len(path.IsValidPathSegmentName(name)) == 0 {
+					requestInfo.Name = name
+				}
+			}
 		}
 	}
 	// if there's no name on the request and we thought it was a delete before, then the actual verb is deletecollection
@@ -221,12 +253,12 @@ type requestInfoKeyType int
 const requestInfoKey requestInfoKeyType = iota
 
 // WithRequestInfo returns a copy of parent in which the request info value is set
-func WithRequestInfo(parent Context, info *RequestInfo) Context {
+func WithRequestInfo(parent context.Context, info *RequestInfo) context.Context {
 	return WithValue(parent, requestInfoKey, info)
 }
 
 // RequestInfoFrom returns the value of the RequestInfo key on the ctx
-func RequestInfoFrom(ctx Context) (*RequestInfo, bool) {
+func RequestInfoFrom(ctx context.Context) (*RequestInfo, bool) {
 	info, ok := ctx.Value(requestInfoKey).(*RequestInfo)
 	return info, ok
 }

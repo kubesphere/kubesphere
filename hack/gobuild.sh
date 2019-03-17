@@ -29,8 +29,8 @@ fi
 
 ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-OUTPUT_DIR=${ROOTDIR}/bin
-BUILDPATH=${ROOTDIR}/${1:?"path to build"}
+OUTPUT_DIR=bin
+BUILDPATH=./${1:?"path to build"}
 OUT=${OUTPUT_DIR}/${1:?"output path"}
 
 set -e

@@ -1,93 +1,68 @@
-# Gopkg.toml example
-#
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
-# for detailed Gopkg.toml documentation.
-#
-# required = ["github.com/user/thing/cmd/thing"]
-# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
-#
-# [[constraint]]
-#   name = "github.com/user/project"
-#   version = "1.0.0"
-#
-# [[constraint]]
-#   name = "github.com/user/project2"
-#   branch = "dev"
-#   source = "github.com/myfork/project2"
-#
-# [[override]]
-#   name = "github.com/x/y"
-#   version = "2.4.0"
-#
-# [prune]
-#   non-go = false
-#   go-tests = true
-#   unused-packages = true
-
+required = [
+    "github.com/emicklei/go-restful",
+    "github.com/onsi/ginkgo", # for test framework
+    "github.com/onsi/gomega", # for test matchers
+    "k8s.io/gengo/examples/defaulter-gen/generators",
+    "k8s.io/gengo/examples/deepcopy-gen/generators",
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp", # for development against gcp
+    "k8s.io/code-generator/cmd/client-gen",
+    "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
+    "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
+    "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/testing_frameworks/integration", # for integration testing
+    "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+]
 
 [[constraint]]
   name = "github.com/docker/docker"
   version = "v17.05.0-ce"
 
-[[constraint]]
-  name = "github.com/emicklei/go-restful"
-  version = "2.7.1"
-
-[[constraint]]
-  name = "github.com/emicklei/go-restful-swagger12"
-  version = "1.0.1"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/golang/glog"
-
-[[constraint]]
-  name = "github.com/spf13/pflag"
-  version = "1.0.1"
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.13.1"
 
 [[override]]
-  name = "gopkg.in/igm/sockjs-go.v2"
-  version = "2.0.0"
-
-[[constraint]]
-  name = "gopkg.in/yaml.v2"
-  version = "2.2.1"
-
-[[constraint]]
-  name = "k8s.io/api"
-  version = "kubernetes-1.12.3"
-
-[[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.12.3"
+  version = "kubernetes-1.13.1"
 
 [[constraint]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.13.1"
+
+[[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.12.3"
+  version = "kubernetes-1.13.1"
 
 [[constraint]]
   name = "k8s.io/kubernetes"
-  version = "1.12.3"
+  version = "1.13.1"
 
 [[constraint]]
-  name = "github.com/mholt/caddy"
-  version = "v0.11.5"
+  name="sigs.k8s.io/controller-runtime"
+  version="v0.1.7"
 
 [[constraint]]
-  name = "sigs.k8s.io/controller-runtime"
-  version = "v0.1.9"
+  name="sigs.k8s.io/controller-tools"
+  version="v0.1.7"
 
 [[override]]
-  name = "sigs.k8s.io/controller-tools"
-  version = "v0.1.9"
-
-[[override]]
-  name = "k8s.io/component-base"
-  branch = "master"
+  name="github.com/bifurcation/mint"
+  revision="824af65410658916142a7600349144e1289f2110"
 
 [prune]
   go-tests = true
   unused-packages = true
+  non-go = true
+
+[[prune.project]]
+  name = "k8s.io/code-generator"
+  unused-packages = false
+  non-go = false
+
 
 # To use reference package:
 #   vendor/github.com/docker/docker/client/container_commit.go:17: undefined: reference.ParseNormalizedNamed
@@ -106,20 +81,24 @@
   name = "github.com/docker/go-connections"
   branch = "master"
 
-# To use reference package:
-#  vendor/k8s.io/apimachinery/pkg/runtime/serializer/json/json.go:104:3: unknown field 'CaseSensitive' in struct literal of type jsoniter.Config
-[[override]]
-  name = "github.com/json-iterator/go"
-  branch = "master"
-
-
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
   version = "v1.4.7"
 
-
 [[override]]
   name = "github.com/russross/blackfriday"
   version = "v1.5.2"
+
+[[constraint]]
+  branch = "master"
+  name = "sigs.k8s.io/application"
+
+[[constraint]]
+  name = "github.com/kiali/kiali"
+  version = "0.15.0"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.7.0"

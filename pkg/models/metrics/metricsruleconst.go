@@ -23,7 +23,7 @@ const (
 	ResultItemMetricResource = "resource"
 	ResultItemValue          = "value"
 	ResultItemValues         = "values"
-	ResultSortTypeDesc       = "desc"
+	ResultSortTypeDes        = "des"
 	ResultSortTypeAsc        = "asc"
 )
 
@@ -318,14 +318,14 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_disk_read_throughput":  "sum(node:data_volume_throughput_bytes_read:sum)",
 	"cluster_disk_write_throughput": "sum(node:data_volume_throughput_bytes_written:sum)",
 
-	"cluster_disk_size_usage":       `sum(max((node_filesystem_size{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
-	"cluster_disk_size_utilisation": `1 - sum(max(node_filesystem_avail{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node)) / sum(max(node_filesystem_size{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
-	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
-	"cluster_disk_size_available":   `sum(max(node_filesystem_avail{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_utilisation": `1 - sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node)) / sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_available":   `sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
 
-	"cluster_disk_inode_total":       `sum(node:disk_inodes_total:)`,
-	"cluster_disk_inode_usage":       `sum(node:disk_inodes_total:) - sum(node:disk_inodes_free:)`,
-	"cluster_disk_inode_utilisation": `1 - sum(node:disk_inodes_free:) / sum(node:disk_inodes_total:)`,
+	"cluster_disk_inode_total":       `sum(node:node_inodes_total:)`,
+	"cluster_disk_inode_usage":       `sum(node:node_inodes_total:) - sum(node:node_inodes_free:)`,
+	"cluster_disk_inode_utilisation": `1 - sum(node:node_inodes_free:) / sum(node:node_inodes_total:)`,
 
 	"cluster_namespace_count": `count(kube_namespace_annotations)`,
 
@@ -396,14 +396,14 @@ var RulePromQLTmplMap = MetricMap{
 	"node_disk_read_throughput":  "node:data_volume_throughput_bytes_read:sum",
 	"node_disk_write_throughput": "node:data_volume_throughput_bytes_written:sum",
 
-	"node_disk_size_capacity":    `max(node_filesystem_size{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
-	"node_disk_size_available":   `max(node_filesystem_avail{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
-	"node_disk_size_usage":       `max((node_filesystem_size{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
-	"node_disk_size_utilisation": `max(((node_filesystem_size{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail{device=~"/dev/.+", job="node-exporter"}) / node_filesystem_size{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_capacity":    `max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_available":   `max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_usage":       `max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_utilisation": `max(((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) / node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
 
-	"node_disk_inode_total":       `node:disk_inodes_total:$1`,
-	"node_disk_inode_usage":       `node:disk_inodes_total:$1 - node:disk_inodes_free:$1`,
-	"node_disk_inode_utilisation": `(1 - (node:disk_inodes_free:$1 / node:disk_inodes_total:$1))`,
+	"node_disk_inode_total":       `node:node_inodes_total:$1`,
+	"node_disk_inode_usage":       `node:node_inodes_total:$1 - node:node_inodes_free:$1`,
+	"node_disk_inode_utilisation": `(1 - (node:node_inodes_free:$1 / node:node_inodes_total:$1))`,
 
 	"node_pod_count":           `sum by (node) ((kube_pod_status_scheduled{condition="true"} > 0)  * on (namespace, pod) group_left(node) kube_pod_info$1 unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"node_pod_quota":           `sum(kube_node_status_capacity_pods$1) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,

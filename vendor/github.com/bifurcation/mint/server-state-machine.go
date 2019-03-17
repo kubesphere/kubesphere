@@ -163,7 +163,7 @@ func (state serverStateStart) Next(hr handshakeMessageReader) (HandshakeState, [
 		logf(logTypeHandshake, "[ServerStateStart] Client did not send supported_versions")
 		return nil, nil, AlertProtocolVersion
 	}
-	versionOK, _ := VersionNegotiation(supportedVersions.Versions, []uint16{supportedVersion})
+	versionOK, _ := VersionNegotiation(supportedVersions.Versions, []uint16{tls13Version})
 	if !versionOK {
 		logf(logTypeHandshake, "[ServerStateStart] Client does not support the same version")
 		return nil, nil, AlertProtocolVersion
@@ -416,7 +416,7 @@ func (state *serverStateStart) generateHRR(cs CipherSuite, legacySessionId []byt
 
 	sv := &SupportedVersionsExtension{
 		HandshakeType: HandshakeTypeServerHello,
-		Versions:      []uint16{supportedVersion},
+		Versions:      []uint16{tls13Version},
 	}
 
 	if err := hrr.Extensions.Add(sv); err != nil {
@@ -483,7 +483,7 @@ func (state serverStateNegotiated) Next(_ handshakeMessageReader) (HandshakeStat
 
 	err := sh.Extensions.Add(&SupportedVersionsExtension{
 		HandshakeType: HandshakeTypeServerHello,
-		Versions:      []uint16{supportedVersion},
+		Versions:      []uint16{tls13Version},
 	})
 	if err != nil {
 		logf(logTypeHandshake, "[ServerStateNegotiated] Error adding supported_versions extension [%v]", err)
@@ -785,7 +785,7 @@ func (state serverStateWaitEOED) State() State {
 func (state serverStateWaitEOED) Next(hr handshakeMessageReader) (HandshakeState, []HandshakeAction, Alert) {
 	for {
 		logf(logTypeHandshake, "Server reading early data...")
-		assert(state.hsCtx.hIn.conn.cipher.epoch == EpochEarlyData)
+		assert(state.hsCtx.hIn.conn.Epoch() == EpochEarlyData)
 		t, err := state.hsCtx.hIn.conn.PeekRecordType(!state.hsCtx.hIn.nonblocking)
 		if err == AlertWouldBlock {
 			return nil, nil, AlertWouldBlock

@@ -20,11 +20,14 @@ package main
 
 import (
 	"flag"
+
+	"os"
+	"sigs.k8s.io/application/pkg/apis/app/v1beta1"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/controller/namespace"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -64,6 +67,13 @@ func main() {
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "unable add APIs to scheme")
 		os.Exit(1)
+	}
+
+	log.Info("Print all known types")
+	for k, v := range mgr.GetScheme().AllKnownTypes() {
+		if k.Group == v1beta1.SchemeGroupVersion.Group {
+			log.Info(k.String() + " / " + v.String())
+		}
 	}
 
 	// Setup all Controllers
