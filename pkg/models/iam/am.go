@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -174,7 +175,7 @@ func GetRoles(username string, namespace string) ([]*v1.Role, error) {
 func GetClusterRoles(username string) ([]*v1.ClusterRole, error) {
 	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
 	clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
-	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
+	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.SelectorFromSet(labels.Set{"": ""}))
 
 	if err != nil {
 		return nil, err
@@ -204,7 +205,7 @@ func GetClusterRoles(username string) ([]*v1.ClusterRole, error) {
 						roles = append(roles, role)
 						break
 					} else if apierrors.IsNotFound(err) {
-						log.Println(err)
+						glog.Warningln(err)
 						break
 					} else {
 						return nil, err
@@ -572,8 +573,10 @@ func GetRoleSimpleRules(roles []*v1.Role, namespace string) (map[string][]models
 	return rulesMapping, nil
 }
 
+//
 func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+
 	_, err := clusterRoleLister.Get(clusterRoleName)
 
 	if err != nil {

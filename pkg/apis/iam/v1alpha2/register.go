@@ -20,6 +20,7 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -208,6 +209,37 @@ func addWebService(c *restful.Container) error {
 		To(iam.WorkspaceMemberRemove).
 		Doc("Delete user from workspace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
+
+	tags = []string{"unstable"}
+
+	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
+		To(iam.UserNamespaceListHandler).
+		Doc("Get namespace list").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(models.PageableResponse{}))
+	ws.Route(ws.POST("/workspaces/{name}/namespaces").
+		To(iam.NamespaceCreateHandler).
+		Doc("Create namespace").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.Namespace{}))
+	ws.Route(ws.DELETE("/workspaces/{name}/namespaces/{namespace}").To(iam.NamespaceDeleteHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/workspaces/{name}/namespaces/{namespace}").To(iam.NamespaceCheckHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/namespaces/{namespace}").To(iam.NamespaceCheckHandler))
+
+	// TODO move to /apis/resources.kubesphere.io/workspaces/{workspace}/members/{username}
+	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/namespaces").To(iam.NamespacesListHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/workspaces/{name}/members/{username}/devops").To(iam.DevOpsProjectHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	// TODO /workspaces/{name}/roles/{role}
+	ws.Route(ws.GET("/workspaces/{name}/roles/{role}").To(iam.WorkspaceRoles).Metadata(restfulspec.KeyOpenAPITags, tags))
+	// TODO move to /apis/resources.kubesphere.io/devops
+	ws.Route(ws.GET("/workspaces/{name}/devops").To(iam.DevOpsProjectHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.POST("/workspaces/{name}/devops").To(iam.DevOpsProjectCreateHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.DELETE("/workspaces/{name}/devops/{id}").To(iam.DevOpsProjectDeleteHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+
+	// TODO  merge into /groups
+	ws.Route(ws.GET("/groups/count").To(iam.CountHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
+
+	ws.Route(ws.GET("/users/{name}/namespaces").To(iam.NamespacesListHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
 
 	c.Add(ws)
 	return nil

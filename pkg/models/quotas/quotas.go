@@ -34,8 +34,6 @@ const (
 	daemonsetsKey             = "count/daemonsets.apps"
 	deploymentsKey            = "count/deployments.apps"
 	ingressKey                = "count/ingresses.extensions"
-	rolesKey                  = "count/roles.rbac.authorization.k8s.io"
-	clusterRolesKey           = "count/cluster-role"
 	servicesKey               = "count/services"
 	statefulsetsKey           = "count/statefulsets.apps"
 	persistentvolumeclaimsKey = "persistentvolumeclaims"
@@ -47,18 +45,26 @@ const (
 
 var (
 	resourceMap = map[string]string{daemonsetsKey: resources.DaemonSets, deploymentsKey: resources.Deployments,
-		ingressKey: resources.Ingresses, rolesKey: resources.Roles, servicesKey: resources.Services,
+		ingressKey: resources.Ingresses, servicesKey: resources.Services,
 		statefulsetsKey: resources.StatefulSets, persistentvolumeclaimsKey: resources.PersistentVolumeClaims, podsKey: resources.Pods,
-		namespaceKey: resources.Namespaces, storageClassesKey: resources.StorageClasses, clusterRolesKey: resources.ClusterRoles,
+		namespaceKey: resources.Namespaces, storageClassesKey: resources.StorageClasses,
 		jobsKey: resources.Jobs, cronJobsKey: resources.CronJobs}
 )
 
 func getUsage(namespace, resource string) (int, error) {
-	list, err := resources.ListNamespaceResource(namespace, resource, &params.Conditions{}, "", false, -1, 0)
+	var result *models.PageableResponse
+	var err error
+	if resource == resources.Namespaces || resource == resources.StorageClasses {
+		result, err = resources.ListClusterResource(resource, &params.Conditions{}, "", false, 1, 0)
+	} else {
+		result, err = resources.ListNamespaceResource(namespace, resource, &params.Conditions{}, "", false, 1, 0)
+	}
+
 	if err != nil {
 		return 0, err
 	}
-	return list.TotalCount, nil
+
+	return result.TotalCount, nil
 }
 
 func GetClusterQuotas() (*models.ResourceQuota, error) {

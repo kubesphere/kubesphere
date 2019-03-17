@@ -24,7 +24,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,27 +41,18 @@ import (
 	jwtutils "kubesphere.io/kubesphere/pkg/utils/jwt"
 )
 
-const (
-	envAdminEmail = "ADMIN_EMAIL"
-	envAdminPWD   = "ADMIN_PWD"
-)
-
 var (
-	counter    Counter
-	AdminEmail = "admin@kubesphere.io"
-	AdminPWD   = "passw0rd"
+	counter         Counter
+	adminEmail      string
+	adminPassword   string
+	tokenExpireTime time.Duration
 )
 
-func init() {
-	if env := os.Getenv(envAdminEmail); env != "" {
-		AdminEmail = env
-	}
-	if env := os.Getenv(envAdminPWD); env != "" {
-		AdminPWD = env
-	}
-}
+func Init(email, password string, t time.Duration) error {
+	adminEmail = email
+	adminPassword = password
+	tokenExpireTime = t
 
-func DatabaseInit() error {
 	conn, err := ldapclient.Client()
 
 	if err != nil {
@@ -96,13 +86,16 @@ func checkAndCreateDefaultGroup(conn ldap.Client) error {
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 		err = createGroupsBaseDN(conn)
+		if err != nil {
+			return fmt.Errorf("GroupBaseDN %s create failed: %s\n", ldapclient.GroupSearchBase, err)
+		}
 	}
 
 	if err != nil {
-		return fmt.Errorf("GroupBaseDN %s not exist: %s\n", ldapclient.GroupSearchBase, err)
+		return fmt.Errorf("iam database init failed: %s\n", err)
 	}
 
-	if len(groups.Entries) == 0 {
+	if groups == nil || len(groups.Entries) == 0 {
 		_, err = CreateGroup(models.Group{Path: constants.SystemWorkspace, Name: constants.SystemWorkspace, Creator: constants.AdminUserName, Description: "system workspace"})
 
 		if err != nil {
@@ -127,21 +120,24 @@ func checkAndCreateDefaultUser(conn ldap.Client) error {
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 		err = createUserBaseDN(conn)
-	}
-
-	if err != nil {
-		return fmt.Errorf("UserBaseDN %s not exist: %s\n", ldapclient.UserSearchBase, err)
-	}
-
-	if len(users.Entries) == 0 {
-		err := CreateUser(models.User{Username: constants.AdminUserName, Email: AdminEmail, Password: AdminPWD, Description: "Administrator account that was always created by default."})
-
 		if err != nil {
-			return fmt.Errorf("admin create failed: %s\n", err)
+			return fmt.Errorf("UserBaseDN %s create failed: %s\n", ldapclient.UserSearchBase, err)
 		}
 	}
 
-	counter = NewCounter(len(users.Entries))
+	if err != nil {
+		return fmt.Errorf("iam database init failed: %s\n", err)
+	}
+
+	if users == nil || len(users.Entries) == 0 {
+		counter = NewCounter(0)
+		err := CreateUser(models.User{Username: constants.AdminUserName, Email: adminEmail, Password: adminPassword, Description: "Administrator account that was always created by default."})
+		if err != nil {
+			return fmt.Errorf("admin create failed: %s\n", err)
+		}
+	} else {
+		counter = NewCounter(len(users.Entries))
+	}
 
 	return nil
 }
@@ -200,8 +196,6 @@ func Login(username string, password string, ip string) (string, error) {
 	email := result.Entries[0].GetAttributeValue("mail")
 	dn := result.Entries[0].DN
 
-	user := models.User{Username: uid, Email: email}
-
 	// bind as the user to verify their password
 	err = conn.Bind(dn, password)
 
@@ -209,23 +203,27 @@ func Login(username string, password string, ip string) (string, error) {
 		return "", err
 	}
 
-	if ip != "" {
-		redisClient := redis.Client()
-		redisClient.RPush(fmt.Sprintf("kubesphere:users:%s:login-log", uid), fmt.Sprintf("%s,%s", time.Now().UTC().Format("2006-01-02T15:04:05Z"), ip))
-		redisClient.LTrim(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -10, -1)
-	}
-
 	claims := jwt.MapClaims{}
 
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
-	claims["username"] = user.Username
-	claims["email"] = user.Email
+	claims["exp"] = time.Now().Add(tokenExpireTime).Unix()
+	claims["username"] = uid
+	claims["email"] = email
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	uToken, _ := token.SignedString(jwtutils.Secret)
 
+	loginLog(uid, ip)
+
 	return uToken, nil
+}
+
+func loginLog(uid, ip string) {
+	if ip != "" {
+		redisClient := redis.Client()
+		redisClient.RPush(fmt.Sprintf("kubesphere:users:%s:login-log", uid), fmt.Sprintf("%s,%s", time.Now().UTC().Format("2006-01-02T15:04:05Z"), ip))
+		redisClient.LTrim(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -10, -1)
+	}
 }
 
 func UserList(limit int, offset int) (int, []models.User, error) {
@@ -668,7 +666,7 @@ func CreateUser(user models.User) error {
 	}
 
 	if len(result.Entries) > 0 {
-		return errors.New("username or email already exists")
+		return ldap.NewError(ldap.LDAPResultEntryAlreadyExists, fmt.Errorf("username or email already exists"))
 	}
 
 	maxUid, err := getMaxUid(conn)

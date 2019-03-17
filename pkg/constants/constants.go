@@ -39,18 +39,12 @@ const (
 	DevopsOwner       = "owner"
 	DevopsReporter    = "reporter"
 
-	envDevopsAPIServer      = "DEVOPS_API_SERVER"
-	envAccountAPIServer     = "ACCOUNT_API_SERVER"
-	envDevopsProxyToken     = "DEVOPS_PROXY_TOKEN"
-	envOpenPitrixProxyToken = "OPENPITRIX_PROXY_TOKEN"
-
 	UserNameHeader = "X-Token-Username"
 )
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
 	SystemWorkspace  = "system-workspace"
-	DevopsAPIServer  = "ks-devops-apiserver.kubesphere-system.svc"
-	AccountAPIServer = "ks-account.kubesphere-system.svc"
+	DevopsAPIServer  = "ks-devops.kubesphere-devops-system.svc"
 	SystemNamespaces = []string{KubeSphereNamespace, OpenPitrixNamespace, KubeSystemNamespace}
 )

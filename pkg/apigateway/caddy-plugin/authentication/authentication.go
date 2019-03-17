@@ -58,8 +58,9 @@ func (c Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, 
 
 		attrs, err := getAuthorizerAttributes(r.Context())
 
+		// without authenticate, no requestInfo found in the context
 		if err != nil {
-			return http.StatusInternalServerError, err
+			return c.Next.ServeHTTP(w, r)
 		}
 
 		permitted, err := permissionValidate(attrs)

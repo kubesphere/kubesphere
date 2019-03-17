@@ -29,8 +29,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
-	apierror "k8s.io/apimachinery/pkg/api/errors"
-
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -62,20 +60,6 @@ func WorkspaceRoles(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteAsJson(roles)
-}
-
-func WorkspaceMemberQuery(req *restful.Request, resp *restful.Response) {
-	workspace := req.PathParameter("name")
-	keyword := req.QueryParameter("keyword")
-
-	users, err := workspaces.GetWorkspaceMembers(workspace, keyword)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	resp.WriteAsJson(users)
 }
 
 func WorkspaceMemberDetail(req *restful.Request, resp *restful.Response) {
@@ -559,25 +543,9 @@ func DevopsRulesHandler(req *restful.Request, resp *restful.Response) {
 }
 
 func NamespacesRulesHandler(req *restful.Request, resp *restful.Response) {
-	workspaceName := req.PathParameter("workspace")
+	//workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 	namespaceName := req.PathParameter("namespace")
-
-	namespace, err := iam.GetNamespace(namespaceName)
-
-	if err != nil {
-		if apierror.IsNotFound(err) {
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("permission undefined")))
-		} else {
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		}
-		return
-	}
-
-	if namespace.Labels == nil || namespace.Labels["kubesphere.io/workspace"] != workspaceName {
-		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(fmt.Errorf("permission undefined")))
-		return
-	}
 
 	clusterRoles, err := iam.GetClusterRoles(username)
 

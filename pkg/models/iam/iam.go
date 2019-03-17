@@ -18,19 +18,13 @@
 package iam
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 
 	"k8s.io/api/rbac/v1"
 	"k8s.io/kubernetes/pkg/util/slice"
 
-	"kubesphere.io/kubesphere/pkg/constants"
-	kserr "kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
@@ -75,27 +69,18 @@ func GetUsers(names []string) ([]models.User, error) {
 		return make([]models.User, 0), nil
 	}
 
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/users?name=%s", constants.AccountAPIServer, strings.Join(names, ",")))
+	conn, err := ldap.Client()
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	err = json.Unmarshal(data, &users)
-
-	if err != nil {
-		return nil, err
+	for _, name := range names {
+		user, err := UserDetail(name, conn)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, *user)
 	}
 
 	return users, nil
@@ -103,32 +88,19 @@ func GetUsers(names []string) ([]models.User, error) {
 
 func GetUser(name string) (*models.User, error) {
 
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/users/%s", constants.AccountAPIServer, name))
+	conn, err := ldap.Client()
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
+	user, err := UserDetail(name, conn)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var user models.User
-
-	err = json.Unmarshal(data, &user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+	return user, nil
 }
 
 func GetUserNamespaces(username string, requiredRule v1.PolicyRule) (allNamespace bool, namespaces []string, err error) {

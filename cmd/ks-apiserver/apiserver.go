@@ -25,6 +25,7 @@ import (
 	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
 )
 
 func main() {

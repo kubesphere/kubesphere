@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"net/http"
 
@@ -40,7 +41,6 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/emicklei/go-restful"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +56,6 @@ import (
 
 func UnBindDevopsProject(workspace string, devops string) error {
 	db := mysql.Client()
-	defer db.Close()
 	return db.Delete(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
@@ -306,7 +305,6 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 
 func BindingDevopsProject(workspace string, devops string) error {
 	db := mysql.Client()
-	defer db.Close()
 	return db.Create(&models.WorkspaceDPBinding{Workspace: workspace, DevOpsProject: devops}).Error
 }
 
@@ -332,26 +330,10 @@ func Delete(workspace *models.Workspace) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/%s", constants.AccountAPIServer, workspace.Name), nil)
+	err = iam.DeleteGroup(workspace.Name)
 
 	if err != nil {
 		return err
-	}
-	result, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return err
-	}
-
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return err
-	}
-
-	if result.StatusCode > 200 {
-		return kserr.Parse(data)
 	}
 
 	return nil
@@ -401,34 +383,13 @@ func workspaceRoleRelease(workspace string) error {
 
 func Create(workspace *models.Workspace) (*models.Workspace, error) {
 
-	data, err := json.Marshal(workspace)
-
+	group, err := iam.CreateGroup(workspace.Group)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := http.Post(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups", constants.AccountAPIServer), restful.MIME_JSON, bytes.NewReader(data))
-
-	if err != nil {
-		return nil, err
-	}
-	defer result.Body.Close()
-	data, err = ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var created models.Workspace
-
-	err = json.Unmarshal(data, &created)
-
-	if err != nil {
-		return nil, err
+	created := models.Workspace{
+		Group: *group,
 	}
 
 	created.Members = make([]string, 0)
@@ -446,78 +407,35 @@ func Create(workspace *models.Workspace) (*models.Workspace, error) {
 
 func Edit(workspace *models.Workspace) (*models.Workspace, error) {
 
-	data, err := json.Marshal(workspace)
+	group, err := iam.UpdateGroup(&workspace.Group)
 
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/%s", constants.AccountAPIServer, workspace.Name), bytes.NewReader(data))
-	req.Header.Set("Content-Type", "application/json")
+	workspace.Group = *group
 
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer result.Body.Close()
-	data, err = ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var edited models.Workspace
-
-	err = json.Unmarshal(data, &edited)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &edited, nil
+	return workspace, nil
 }
 
 func Detail(name string) (*models.Workspace, error) {
 
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/%s", constants.AccountAPIServer, name))
-
+	conn, err := ldap.Client()
 	if err != nil {
 		return nil, err
 	}
 
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
+	defer conn.Close()
 
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var group models.Group
-
-	err = json.Unmarshal(data, &group)
+	group, err := iam.GroupDetail(name, conn)
 
 	if err != nil {
 		return nil, err
 	}
 
 	db := mysql.Client()
-	defer db.Close()
 
-	workspace, err := convertGroupToWorkspace(db, group)
+	workspace, err := convertGroupToWorkspace(db, *group)
 
 	if err != nil {
 		return nil, err
@@ -570,44 +488,32 @@ func ListWorkspaceByUser(username string, keyword string) ([]*models.Workspace, 
 
 func fetch(names []string) ([]*models.Workspace, error) {
 
-	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups", constants.AccountAPIServer)
-
-	if names != nil {
-		if len(names) == 0 {
-			return make([]*models.Workspace, 0), nil
-		} else {
-			url = url + "?path=" + strings.Join(names, ",")
+	if names != nil && len(names) == 0 {
+		return make([]*models.Workspace, 0), nil
+	}
+	var groups []models.Group
+	var err error
+	if names == nil {
+		groups, err = iam.ChildList("")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		conn, err := ldap.Client()
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+		for _, name := range names {
+			group, err := iam.GroupDetail(name, conn)
+			if err != nil {
+				return nil, err
+			}
+			groups = append(groups, *group)
 		}
 	}
 
-	result, err := http.Get(url)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var groups []models.Group
-
-	err = json.Unmarshal(data, &groups)
-
-	if err != nil {
-		return nil, err
-	}
-
 	db := mysql.Client()
-
-	defer db.Close()
 
 	workspaces := make([]*models.Workspace, 0)
 	for _, group := range groups {
@@ -624,7 +530,6 @@ func fetch(names []string) ([]*models.Workspace, error) {
 func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []models.DevopsProject, error) {
 
 	db := mysql.Client()
-	defer db.Close()
 
 	var workspaceDOPBindings []models.WorkspaceDPBinding
 
@@ -848,43 +753,6 @@ func Roles(workspace *models.Workspace) ([]*v1.ClusterRole, error) {
 	}
 
 	return roles, nil
-}
-
-func GetWorkspaceMembers(workspace string, keyword string) ([]models.User, error) {
-
-	url := fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/workspaces/%s/members", constants.AccountAPIServer, workspace)
-
-	if keyword != "" {
-		url = url + "?keyword=" + keyword
-	}
-
-	result, err := http.Get(url)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	var users []models.User
-
-	err = json.Unmarshal(data, &users)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return users, nil
-
 }
 
 func WorkspaceRoleInit(workspace *models.Workspace) error {
@@ -1222,7 +1090,6 @@ func CreateWorkspaceRoleBinding(workspace *models.Workspace, username string, ro
 func GetDevOpsProjects(workspaceName string) ([]string, error) {
 
 	db := mysql.Client()
-	defer db.Close()
 
 	var workspaceDOPBindings []models.WorkspaceDPBinding
 
@@ -1266,42 +1133,15 @@ func WorkspaceNamespaces(workspaceName string) ([]string, error) {
 	return namespaces, nil
 }
 
-func Count() (int, error) {
+func WorkspaceCount() (int, error) {
 
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/groups/count", constants.AccountAPIServer))
-
-	if err != nil {
-		return 0, err
-	}
-
-	defer result.Body.Close()
-
-	data, err := ioutil.ReadAll(result.Body)
+	workspaces, err := iam.ChildList("")
 
 	if err != nil {
 		return 0, err
 	}
 
-	if result.StatusCode > 200 {
-		return 0, kserr.Parse(data)
-	}
-	var count map[string]json.Number
-
-	err = json.Unmarshal(data, &count)
-
-	if err != nil {
-		return 0, err
-	}
-
-	value := count["total_count"]
-
-	v, err := value.Int64()
-
-	if err != nil {
-		return 0, err
-	}
-
-	return int(v), nil
+	return len(workspaces), nil
 }
 
 func GetAllProjectNums() (int, error) {
@@ -1315,7 +1155,6 @@ func GetAllProjectNums() (int, error) {
 
 func GetAllDevOpsProjectsNums() (int, error) {
 	db := mysql.Client()
-	defer db.Close()
 
 	var count int
 	if err := db.Model(&models.WorkspaceDPBinding{}).Count(&count).Error; err != nil {
@@ -1325,35 +1164,11 @@ func GetAllDevOpsProjectsNums() (int, error) {
 }
 
 func GetAllAccountNums() (int, error) {
-	result, err := http.Get(fmt.Sprintf("http://%s/apis/account.kubesphere.io/v1alpha1/users", constants.AccountAPIServer))
+	totalCount, _, err := iam.UserList(1, 0)
 
 	if err != nil {
 		return 0, err
 	}
 
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-	if err != nil {
-		return 0, err
-	}
-	if result.StatusCode > 200 {
-		return 0, kserr.Parse(data)
-	}
-	var count map[string]json.Number
-
-	err = json.Unmarshal(data, &count)
-
-	if err != nil {
-		return 0, err
-	}
-
-	value := count["total_count"]
-
-	v, err := value.Int64()
-
-	if err != nil {
-		return 0, err
-	}
-
-	return int(v), nil
+	return totalCount, nil
 }

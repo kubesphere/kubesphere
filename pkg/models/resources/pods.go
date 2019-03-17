@@ -18,6 +18,7 @@
 package resources
 
 import (
+	v12 "k8s.io/api/apps/v1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
 	"sort"
@@ -30,16 +31,149 @@ import (
 type podSearcher struct {
 }
 
+func podBelongTo(item *v1.Pod, kind string, name string) bool {
+
+	if strings.EqualFold(kind, "Deployment") {
+		if podBelongToDeployment(item, name) {
+			return true
+		}
+	} else if strings.EqualFold(kind, "ReplicaSet") {
+		if podBelongToReplicaSet(item, name) {
+			return true
+		}
+	} else if strings.EqualFold(kind, "DaemonSet") {
+		if podBelongToDaemonSet(item, name) {
+			return true
+		}
+	} else if strings.EqualFold(kind, "StatefulSet") {
+		if podBelongToStatefulSet(item, name) {
+			return true
+		}
+	} else if strings.EqualFold(kind, "Job") {
+		if podBelongToJob(item, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func replicaSetBelongToDeployment(replicaSet *v12.ReplicaSet, name string) bool {
+	for _, owner := range replicaSet.OwnerReferences {
+		if owner.Kind == "Deployment" && owner.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func podBelongToDaemonSet(item *v1.Pod, name string) bool {
+	for _, owner := range item.OwnerReferences {
+		if owner.Kind == "DaemonSet" && owner.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func podBelongToJob(item *v1.Pod, name string) bool {
+	for _, owner := range item.OwnerReferences {
+		if owner.Kind == "Job" && owner.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func podBelongToReplicaSet(item *v1.Pod, name string) bool {
+	for _, owner := range item.OwnerReferences {
+		if owner.Kind == "ReplicaSet" && owner.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func podBelongToStatefulSet(item *v1.Pod, name string) bool {
+	replicas, err := informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister().ReplicaSets(item.Namespace).List(labels.Everything())
+	if err != nil {
+		return false
+	}
+	for _, r := range replicas {
+		if replicaSetBelongToDeployment(r, name) {
+			return podBelongToReplicaSet(item, r.Name)
+		}
+	}
+	return false
+}
+
+func podBelongToDeployment(item *v1.Pod, name string) bool {
+	replicas, err := informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister().ReplicaSets(item.Namespace).List(labels.Everything())
+	if err != nil {
+		return false
+	}
+	for _, r := range replicas {
+		if replicaSetBelongToDeployment(r, name) {
+			return podBelongToReplicaSet(item, r.Name)
+		}
+	}
+	return false
+}
+
+func podBindPVC(item *v1.Pod, pvcName string) bool {
+	for _, v := range item.Spec.Volumes {
+		if v.VolumeSource.PersistentVolumeClaim != nil &&
+			v.VolumeSource.PersistentVolumeClaim.ClaimName == pvcName {
+			return true
+		}
+	}
+	return false
+}
+
+func podBelongToService(item *v1.Pod, serviceName string) bool {
+	service, err := informers.SharedInformerFactory().Core().V1().Services().Lister().Services(item.Namespace).Get(serviceName)
+	if err != nil {
+		return false
+	}
+	for k, v := range service.Spec.Selector {
+		if item.Labels[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
 // exactly Match
 func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 	for k, v := range match {
 		switch k {
+		case "ownerKind":
+			fallthrough
+		case "ownerName":
+			kind := match["ownerKind"]
+			name := match["ownerName"]
+			if !podBelongTo(item, kind, name) {
+				return false
+			}
+		case "nodeName":
+			if item.Spec.NodeName != v {
+				return false
+			}
+		case "pvcName":
+			if !podBindPVC(item, v) {
+				return false
+			}
+		case "serviceName":
+			if !podBelongToService(item, v) {
+				return false
+			}
 		case name:
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true

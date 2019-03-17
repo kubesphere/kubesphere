@@ -20,6 +20,9 @@ package authenticate
 import (
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,6 +48,10 @@ type User struct {
 	Groups   *[]string               `json:"groups,omitempty"`
 	Extra    *map[string]interface{} `json:"extra,omitempty"`
 }
+
+var requestInfoFactory = request.RequestInfoFactory{
+	APIPrefixes:          sets.NewString("api", "apis"),
+	GrouplessAPIPrefixes: sets.NewString("api")}
 
 func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error) {
 	for _, path := range h.Rule.ExceptedPath {
@@ -91,10 +98,13 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 		}
 	}
 
+	usr := &user.DefaultInfo{}
+
 	username, ok := payLoad["username"].(string)
 
 	if ok && username != "" {
 		req.Header.Set("X-Token-Username", username)
+		usr.Name = username
 	}
 
 	uid := payLoad["uid"]
@@ -103,18 +113,37 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 		switch uid.(type) {
 		case int:
 			req.Header.Set("X-Token-UID", strconv.Itoa(uid.(int)))
+			usr.UID = strconv.Itoa(uid.(int))
 			break
 		case string:
 			req.Header.Set("X-Token-UID", uid.(string))
+			usr.UID = uid.(string)
 			break
 		}
 	}
 
 	groups, ok := payLoad["groups"].([]string)
-
 	if ok && len(groups) > 0 {
 		req.Header.Set("X-Token-Groups", strings.Join(groups, ","))
+		usr.Groups = groups
 	}
+
+	// hard code, support jenkins auth plugin
+	if httpserver.Path(req.URL.Path).Matches("/apis/jenkins.kubesphere.io") || httpserver.Path(req.URL.Path).Matches("job") {
+		req.SetBasicAuth(username, token.Raw)
+	}
+
+	context := request.WithUser(req.Context(), usr)
+
+	requestInfo, err := requestInfoFactory.NewRequestInfo(req)
+
+	if err == nil {
+		context = request.WithRequestInfo(context, requestInfo)
+	} else {
+		return nil, err
+	}
+
+	req = req.WithContext(context)
 
 	return req, nil
 }

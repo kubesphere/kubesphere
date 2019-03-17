@@ -8,18 +8,6 @@ BIN ?= ks-apiserver
 IMG ?= kubespheredev/ks-apiserver
 OUTPUT_DIR=bin
 
-define get_diff_files
-    $(eval DIFF_FILES=$(shell git diff --name-only --diff-filter=ad | grep -E "^(test|cmd|pkg)/.+\.go"))
-endef
-define get_build_flags
-    $(eval SHORT_VERSION=$(shell git describe --tags --always --dirty="-dev"))
-    $(eval SHA1_VERSION=$(shell git show --quiet --pretty=format:%H))
-	$(eval DATE=$(shell date +'%Y-%m-%dT%H:%M:%S'))
-	$(eval BUILD_FLAG= -X $(TRAG.Version).ShortVersion="$(SHORT_VERSION)" \
-		-X $(TRAG.Version).GitSha1Version="$(SHA1_VERSION)" \
-		-X $(TRAG.Version).BuildDate="$(DATE)")
-endef
-
 define ALL_HELP_INFO
 # Build code.
 #
@@ -62,6 +50,18 @@ fmt:
 vet:
 	go vet ./pkg/... ./cmd/...
 
+# Generate manifests e.g. CRD, RBAC etc.
+manifests:
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+
+deploy: manifests
+	kubectl apply -f config/crds
+	kustomize build config/default | kubectl apply -f -
+
+# Generate DeepCopy to implement runtime.Object
+deepcopy:
+	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
+
 # Generate code
 generate:
 ifndef GOPATH
@@ -75,7 +75,7 @@ docker-build: all
 
 # Run tests
 test: generate fmt vet
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
 clean:

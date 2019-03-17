@@ -66,6 +66,10 @@ func CreateUser(req *restful.Request, resp *restful.Response) {
 	err = iam.CreateUser(user)
 
 	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
+			return
+		}
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -180,7 +184,7 @@ func CurrentUserDetail(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
-			resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(err))
+			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		} else {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		}
@@ -228,6 +232,12 @@ func NamespacesListHandler(req *restful.Request, resp *restful.Response) {
 
 func UserDetail(req *restful.Request, resp *restful.Response) {
 	username := req.PathParameter("name")
+	usernameFromHeader := req.HeaderParameter(constants.UserNameHeader)
+
+	if username == usernameFromHeader {
+		CurrentUserDetail(req, resp)
+		return
+	}
 
 	conn, err := ldapclient.Client()
 

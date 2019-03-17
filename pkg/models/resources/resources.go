@@ -131,6 +131,8 @@ func ListClusterResource(resource string, conditions *params.Conditions, orderBy
 
 	if searcher, ok := clusterResources[resource]; ok {
 		result, err = searcher.search(conditions, orderBy, reverse)
+	} else if searcher, ok := namespacedResources[resource]; ok {
+		result, err = searcher.search("", conditions, orderBy, reverse)
 	} else {
 		return nil, fmt.Errorf("not support")
 	}

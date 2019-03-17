@@ -9,9 +9,9 @@ import (
 
 func VersionNegotiation(offered, supported []uint16) (bool, uint16) {
 	for _, offeredVersion := range offered {
-		for _, supportedVersion := range supported {
-			logf(logTypeHandshake, "[server] version offered by client [%04x] <> [%04x]", offeredVersion, supportedVersion)
-			if offeredVersion == supportedVersion {
+		for _, tls13Version := range supported {
+			logf(logTypeHandshake, "[server] version offered by client [%04x] <> [%04x]", offeredVersion, tls13Version)
+			if offeredVersion == tls13Version {
 				// XXX: Should probably be highest supported version, but for now, we
 				// only support one version, so it doesn't really matter.
 				return true, offeredVersion

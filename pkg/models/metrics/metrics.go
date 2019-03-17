@@ -732,7 +732,7 @@ func MonitorAllWorkspacesStatistics() *FormatedLevelMetric {
 	wg.Add(4)
 
 	go func() {
-		orgNums, errOrg := workspaces.Count()
+		orgNums, errOrg := workspaces.WorkspaceCount()
 		if errOrg != nil {
 			glog.Errorln(errOrg.Error())
 		}

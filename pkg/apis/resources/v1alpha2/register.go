@@ -83,13 +83,29 @@ func addWebService(c *restful.Container) error {
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1"))
 
+	tags = []string{"Applications"}
+
+	webservice.Route(webservice.GET("/applications").
+		To(resources.ApplicationHandler).
+		Writes(models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Cluster level resource query").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
+			Required(false).
+			DataFormat("key=value,key~value").
+			DefaultValue("")).
+		Param(webservice.QueryParameter("cluster_id", "cluster id")).
+		Param(webservice.QueryParameter("runtime_id", "runtime id")).
+		Param(webservice.QueryParameter(params.PagingParam, "page").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")))
+
 	webservice.Route(webservice.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
 		To(resources.GetPvcListBySc).
 		Doc("get user's kubectl pod").
 		Param(webservice.PathParameter("username", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	webservice.Route(webservice.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}/pods").
-		To(resources.GetPodListByPvc))
 
 	tags = []string{"User resources"}
 

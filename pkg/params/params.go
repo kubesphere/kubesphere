@@ -23,8 +23,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"golang.org/x/tools/container/intsets"
 )
 
 const (
@@ -36,7 +34,7 @@ const (
 
 func ParsePaging(req *restful.Request) (limit, offset int) {
 	paging := req.QueryParameter(PagingParam)
-	limit = intsets.MaxInt
+	limit = 10
 	offset = 0
 	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
 		limit, _ = strconv.Atoi(groups[1])
