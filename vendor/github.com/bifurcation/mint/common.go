@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	supportedVersion  uint16 = 0x7f16 // draft-22
+	tls13Version      uint16 = 0x0304
 	tls12Version      uint16 = 0x0303
 	tls10Version      uint16 = 0x0301
 	dtls12WireVersion uint16 = 0xfefd
@@ -118,7 +118,7 @@ const (
 	ExtensionTypeSupportedGroups     ExtensionType = 10
 	ExtensionTypeSignatureAlgorithms ExtensionType = 13
 	ExtensionTypeALPN                ExtensionType = 16
-	ExtensionTypeKeyShare            ExtensionType = 40
+	ExtensionTypeKeyShare            ExtensionType = 51
 	ExtensionTypePreSharedKey        ExtensionType = 41
 	ExtensionTypeEarlyData           ExtensionType = 42
 	ExtensionTypeSupportedVersions   ExtensionType = 43

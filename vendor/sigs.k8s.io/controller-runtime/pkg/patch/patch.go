@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mattbaird/jsonpatch"
+	"github.com/appscode/jsonpatch"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )

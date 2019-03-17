@@ -406,7 +406,7 @@ func (cr *CertificateRequestBody) Unmarshal(data []byte) (int, error) {
 type NewSessionTicketBody struct {
 	TicketLifetime uint32
 	TicketAgeAdd   uint32
-	TicketNonce    []byte        `tls:"head=1,min=1"`
+	TicketNonce    []byte        `tls:"head=1"`
 	Ticket         []byte        `tls:"head=2,min=1"`
 	Extensions     ExtensionList `tls:"head=2"`
 }

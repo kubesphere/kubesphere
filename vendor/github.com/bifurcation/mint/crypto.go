@@ -27,11 +27,11 @@ import (
 
 var prng = rand.Reader
 
-type aeadFactory func(key []byte) (cipher.AEAD, error)
+type AeadFactory func(key []byte) (cipher.AEAD, error)
 
 type CipherSuiteParams struct {
 	Suite  CipherSuite
-	Cipher aeadFactory // Cipher factory
+	Cipher AeadFactory // Cipher factory
 	Hash   crypto.Hash // Hash function
 	KeyLen int         // Key length in octets
 	IvLen  int         // IV length in octets
@@ -546,8 +546,10 @@ const (
 //    opaque label<9..255>;
 //    opaque hash_value<0..255>;
 // };
+var HkdfLabelPrefix = "tls13 "
+
 func hkdfEncodeLabel(labelIn string, hashValue []byte, outLen int) []byte {
-	label := "tls13 " + labelIn
+	label := HkdfLabelPrefix + labelIn
 
 	labelLen := len(label)
 	hashLen := len(hashValue)
@@ -604,18 +606,20 @@ func computeFinishedData(params CipherSuiteParams, baseKey []byte, input []byte)
 	return mac.Sum(nil)
 }
 
-type keySet struct {
-	cipher aeadFactory
-	key    []byte
-	iv     []byte
+type KeySet struct {
+	Cipher AeadFactory
+	Key    []byte
+	Iv     []byte
+	Pn     []byte
 }
 
-func makeTrafficKeys(params CipherSuiteParams, secret []byte) keySet {
+func makeTrafficKeys(params CipherSuiteParams, secret []byte) KeySet {
 	logf(logTypeCrypto, "making traffic keys: secret=%x", secret)
-	return keySet{
-		cipher: params.Cipher,
-		key:    HkdfExpandLabel(params.Hash, secret, "key", []byte{}, params.KeyLen),
-		iv:     HkdfExpandLabel(params.Hash, secret, "iv", []byte{}, params.IvLen),
+	return KeySet{
+		Cipher: params.Cipher,
+		Key:    HkdfExpandLabel(params.Hash, secret, "key", []byte{}, params.KeyLen),
+		Iv:     HkdfExpandLabel(params.Hash, secret, "iv", []byte{}, params.IvLen),
+		Pn:     HkdfExpandLabel(params.Hash, secret, "pn", []byte{}, params.KeyLen),
 	}
 }
 

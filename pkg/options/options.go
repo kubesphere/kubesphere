@@ -17,11 +17,7 @@
 */
 package options
 
-import (
-	"github.com/spf13/pflag"
-)
-
-var SharedOptions = NewServerRunOptions()
+import "github.com/spf13/pflag"
 
 type ServerRunOptions struct {
 	// server bind address
@@ -38,8 +34,6 @@ type ServerRunOptions struct {
 
 	// tls private key file
 	TlsPrivateKey string
-
-	CommandLine *pflag.FlagSet
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -50,14 +44,16 @@ func NewServerRunOptions() *ServerRunOptions {
 		SecurePort:    0,
 		TlsCertFile:   "",
 		TlsPrivateKey: "",
-		CommandLine:   &pflag.FlagSet{},
 	}
 
-	s.CommandLine.StringVar(&s.BindAddress, "bind-address", "0.0.0.0", "server bind address")
-	s.CommandLine.IntVar(&s.InsecurePort, "insecure-port", 9090, "insecure port number")
-	s.CommandLine.IntVar(&s.SecurePort, "secure-port", 0, "secure port number")
-	s.CommandLine.StringVar(&s.TlsCertFile, "tls-cert-file", "", "tls cert file")
-	s.CommandLine.StringVar(&s.TlsPrivateKey, "tls-private-key", "", "tls private key")
-
 	return &s
+}
+
+func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
+
+	fs.StringVar(&s.BindAddress, "bind-address", "0.0.0.0", "server bind address")
+	fs.IntVar(&s.InsecurePort, "insecure-port", 9090, "insecure port number")
+	fs.IntVar(&s.SecurePort, "secure-port", 0, "secure port number")
+	fs.StringVar(&s.TlsCertFile, "tls-cert-file", "", "tls cert file")
+	fs.StringVar(&s.TlsPrivateKey, "tls-private-key", "", "tls private key")
 }
