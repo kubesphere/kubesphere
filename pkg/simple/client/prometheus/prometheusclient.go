@@ -43,13 +43,13 @@ const (
 )
 
 var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
-var PrometheusEndpointUrl string
+var PrometheusAPIEndpoint string
 
 func init() {
 	if env := os.Getenv(PrometheusAPIServerEnv); env != "" {
 		PrometheusAPIServer = env
 	}
-	PrometheusEndpointUrl = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
+	PrometheusAPIEndpoint = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
 }
 
 type MonitoringRequestParams struct {
@@ -75,7 +75,7 @@ type MonitoringRequestParams struct {
 var client = &http.Client{}
 
 func SendMonitoringRequest(queryType string, params string) string {
-	epurl := PrometheusEndpointUrl + queryType + params
+	epurl := PrometheusAPIEndpoint + queryType + params
 	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)

@@ -478,7 +478,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 
 	if response.Shards.Successful != response.Shards.Total {
 		//Elastic some shards error
-		queryResult.Status = 400
+		queryResult.Status = http.StatusInternalServerError
 		return &queryResult
 	}
 
@@ -545,7 +545,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		queryResult.Histogram = &histogramResult
 	}
 
-	queryResult.Status = 200
+	queryResult.Status = http.StatusOK
 	queryResult.Workspace = param.Workspace
 
 	return &queryResult
@@ -579,7 +579,7 @@ type QueryParameters struct {
 func stubResult() *QueryResult {
 	var queryResult QueryResult
 
-	queryResult.Status = 200
+	queryResult.Status = http.StatusOK
 
 	return &queryResult
 }
