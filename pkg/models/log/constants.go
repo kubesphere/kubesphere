@@ -15,25 +15,16 @@
  limitations under the License.
 
 */
-package main
 
-import (
-	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
-	"log"
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
+package log
+
+type LogQueryLevel int
+
+const (
+	QueryLevelCluster LogQueryLevel = iota
+	QueryLevelWorkspace
+	QueryLevelNamespace
+	QueryLevelWorkload
+	QueryLevelPod
+	QueryLevelContainer
 )
-
-func main() {
-
-	cmd := app.NewAPIServerCommand()
-
-	if err := cmd.Execute(); err != nil {
-		log.Fatalln(err)
-	}
-}

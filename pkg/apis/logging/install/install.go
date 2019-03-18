@@ -15,25 +15,19 @@
  limitations under the License.
 
 */
-package main
+package install
 
 import (
-	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
-	"log"
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
+	"github.com/emicklei/go-restful"
+	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/apis/logging/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
 
-func main() {
+func init() {
+	Install(runtime.Container)
+}
 
-	cmd := app.NewAPIServerCommand()
-
-	if err := cmd.Execute(); err != nil {
-		log.Fatalln(err)
-	}
+func Install(container *restful.Container) {
+	urlruntime.Must(loggingv1alpha2.AddToContainer(container))
 }

@@ -21,6 +21,7 @@ import (
 	goflag "flag"
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/json-iterator/go"
 	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,12 +29,18 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
+	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
+	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"log"
 	"net/http"
 	"net/url"
 )
+
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func NewAPIServerCommand() *cobra.Command {
 	s := options.NewServerRunOptions()
@@ -76,6 +83,7 @@ func Run(s *options.ServerRunOptions) error {
 		}
 	}
 
+	initializeESClientConfig()
 	initializeKialiConfig(s)
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
@@ -115,6 +123,35 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 	config.ExternalServices.Istio.UrlServiceVersion = s.IstioPilotServiceURL
 
 	kconfig.Set(config)
+}
+
+func initializeESClientConfig() {
+
+	var outputs []logging.OutputDBBinding
+	var configs *es.ESConfigs
+
+	db := mysql.Client()
+	if !db.HasTable(&logging.OutputDBBinding{}) {
+		// Panic
+		log.Fatal("Flyway migration is not completed")
+	}
+
+	err := db.Find(&outputs).Error
+	if err != nil {
+		return
+	}
+
+	// Retrieve es-type output from db
+	var params []fb.Parameter
+	for _, output := range outputs {
+		err := jsonIter.UnmarshalFromString(output.Parameters, &params)
+		if err == nil {
+			if configs = logging.ParseEsOutputParams(params); configs != nil {
+				configs.WriteESConfigs()
+				return
+			}
+		}
+	}
 }
 
 func waitForResourceSync() {

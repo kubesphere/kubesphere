@@ -18,7 +18,6 @@
 package prometheus
 
 import (
-	"flag"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -26,54 +25,58 @@ import (
 	"strings"
 	"time"
 
+	"os"
+
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 )
 
 const (
-	DefaultQueryStep    = "10m"
-	DefaultQueryTimeout = "10s"
-	RangeQueryType      = "query_range?"
-	DefaultQueryType    = "query?"
+	DefaultScheme          = "http"
+	DefaultPrometheusPort  = "9090"
+	PrometheusApiPath      = "/api/v1/"
+	DefaultQueryStep       = "10m"
+	DefaultQueryTimeout    = "10s"
+	RangeQueryType         = "query_range?"
+	DefaultQueryType       = "query?"
+	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"
 )
 
-var (
-	PrometheusAPIEndpoint string
-)
+var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
+var PrometheusAPIEndpoint string
 
 func init() {
-	flag.StringVar(&PrometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "prometheus api endpoint")
+	if env := os.Getenv(PrometheusAPIServerEnv); env != "" {
+		PrometheusAPIServer = env
+	}
+	PrometheusAPIEndpoint = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
 }
 
 type MonitoringRequestParams struct {
-	Params           url.Values
-	QueryType        string
-	SortMetricName   string
-	SortType         string
-	PageNum          string
-	LimitNum         string
-	Tp               string
-	MetricsFilter    string
-	NodesFilter      string
-	WsFilter         string
-	NsFilter         string
-	PodsFilter       string
-	ContainersFilter string
-	MetricsName      string
-	WorkloadName     string
-	WlFilter         string
-	NodeId           string
-	WsName           string
-	NsName           string
-	PodName          string
-	ContainerName    string
-	WorkloadKind     string
+	Params          url.Values
+	QueryType       string
+	SortMetricName  string
+	SortType        string
+	PageNum         string
+	LimitNum        string
+	Tp              string
+	MetricsFilter   string
+	ResourcesFilter string
+	MetricsName     string
+	WorkloadName    string
+	NodeId          string
+	WsName          string
+	NsName          string
+	PodName         string
+	ContainerName   string
+	WorkloadKind    string
 }
+
+var client = &http.Client{}
 
 func SendMonitoringRequest(queryType string, params string) string {
 	epurl := PrometheusAPIEndpoint + queryType + params
-
-	response, err := http.DefaultClient.Get(epurl)
+	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
 	} else {
@@ -103,15 +106,10 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	tp := strings.Trim(request.QueryParameter("type"), " ")
 
 	metricsFilter := strings.Trim(request.QueryParameter("metrics_filter"), " ")
-	nodesFilter := strings.Trim(request.QueryParameter("nodes_filter"), " ")
-	wsFilter := strings.Trim(request.QueryParameter("workspaces_filter"), " ")
-	nsFilter := strings.Trim(request.QueryParameter("namespaces_filter"), " ")
-	wlFilter := strings.Trim(request.QueryParameter("workloads_filter"), " ")
-	podsFilter := strings.Trim(request.QueryParameter("pods_filter"), " ")
-	containersFilter := strings.Trim(request.QueryParameter("containers_filter"), " ")
+	resourcesFilter := strings.Trim(request.QueryParameter("resources_filter"), " ")
 
 	metricsName := strings.Trim(request.QueryParameter("metrics_name"), " ")
-	workloadName := strings.Trim(request.QueryParameter("workload_name"), " ")
+	workloadName := strings.Trim(request.PathParameter("workload"), " ")
 
 	nodeId := strings.Trim(request.PathParameter("node"), " ")
 	wsName := strings.Trim(request.PathParameter("workspace"), " ")
@@ -121,26 +119,21 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
 
 	var requestParams = MonitoringRequestParams{
-		SortMetricName:   sortMetricName,
-		SortType:         sortType,
-		PageNum:          pageNum,
-		LimitNum:         limitNum,
-		Tp:               tp,
-		MetricsFilter:    metricsFilter,
-		NodesFilter:      nodesFilter,
-		WsFilter:         wsFilter,
-		NsFilter:         nsFilter,
-		PodsFilter:       podsFilter,
-		ContainersFilter: containersFilter,
-		MetricsName:      metricsName,
-		WorkloadName:     workloadName,
-		WlFilter:         wlFilter,
-		NodeId:           nodeId,
-		WsName:           wsName,
-		NsName:           nsName,
-		PodName:          podName,
-		ContainerName:    containerName,
-		WorkloadKind:     workloadKind,
+		SortMetricName:  sortMetricName,
+		SortType:        sortType,
+		PageNum:         pageNum,
+		LimitNum:        limitNum,
+		Tp:              tp,
+		MetricsFilter:   metricsFilter,
+		ResourcesFilter: resourcesFilter,
+		MetricsName:     metricsName,
+		WorkloadName:    workloadName,
+		NodeId:          nodeId,
+		WsName:          wsName,
+		NsName:          nsName,
+		PodName:         podName,
+		ContainerName:   containerName,
+		WorkloadKind:    workloadKind,
 	}
 
 	if timeout == "" {

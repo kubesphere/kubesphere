@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/api/core/v1"
 
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
+	prom "kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
 func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
@@ -34,11 +34,11 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 	nsFilter := "^(" + strings.Join(nsNameList, "|") + ")$"
 	var timeRelateParams = make(url.Values)
 
-	params := prometheus.MonitoringRequestParams{
-		NsFilter:      nsFilter,
-		Params:        timeRelateParams,
-		QueryType:     prometheus.DefaultQueryType,
-		MetricsFilter: "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
+	params := prom.MonitoringRequestParams{
+		ResourcesFilter: nsFilter,
+		Params:          timeRelateParams,
+		QueryType:       prom.DefaultQueryType,
+		MetricsFilter:   "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
 	}
 
 	rawMetrics := MonitorAllMetrics(&params, MetricLevelNamespace)
