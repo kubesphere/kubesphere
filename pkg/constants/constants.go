@@ -54,3 +54,14 @@ var (
 	AccountAPIServer = "ks-account.kubesphere-system.svc"
 	SystemNamespaces = []string{KubeSphereNamespace, OpenPitrixNamespace, KubeSystemNamespace}
 )
+
+type LogQueryLevel int
+
+const (
+	QueryLevelCluster LogQueryLevel = iota
+	QueryLevelWorkspace
+	QueryLevelNamespace
+	QueryLevelWorkload
+	QueryLevelPod
+	QueryLevelContainer
+)
