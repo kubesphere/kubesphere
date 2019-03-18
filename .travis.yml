@@ -11,11 +11,7 @@ go:
 
 go_import_path: kubesphere.io/kubesphere
 
-before_install:
-  - go get -u github.com/golang/dep/cmd/dep
-
 before_script:
-  - dep ensure -v
   - docker --version
   - bash hack/install_kubebuilder.sh
 
