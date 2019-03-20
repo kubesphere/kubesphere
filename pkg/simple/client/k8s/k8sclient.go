@@ -20,12 +20,9 @@ package k8s
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"sync"
-
-	"github.com/mitchellh/go-homedir"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -37,10 +34,12 @@ var (
 	k8sClient      *kubernetes.Clientset
 	k8sClientOnce  sync.Once
 	KubeConfig     *rest.Config
+	masterURL       string
 )
 
 func init() {
-	flag.StringVar(&kubeConfigFile, "kubeconfig", fmt.Sprintf("%s/.kube/config", os.Getenv("HOME")), "path to kubeconfig file")
+	flag.StringVar(&kubeConfigFile, "kubeconfig", "", "path to kubeconfig file")
+	flag.StringVar(&masterURL, "master-url","", "kube-apiserver url, only needed when out of cluster")
 }
 
 func Client() *kubernetes.Clientset {
@@ -63,18 +62,8 @@ func Client() *kubernetes.Clientset {
 
 func Config() (kubeConfig *rest.Config, err error) {
 
-	if kubeConfigFile == "" {
-		if env := os.Getenv("KUBECONFIG"); env != "" {
-			kubeConfigFile = env
-		} else {
-			if home, err := homedir.Dir(); err == nil {
-				kubeConfigFile = fmt.Sprintf("%s/.kube/config", home)
-			}
-		}
-	}
-
 	if _, err = os.Stat(kubeConfigFile); err == nil {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		kubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeConfigFile)
 	} else {
 		kubeConfig, err = rest.InClusterConfig()
 	}

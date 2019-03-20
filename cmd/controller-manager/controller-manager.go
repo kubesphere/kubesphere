@@ -30,14 +30,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
-func main() {
-	var metricsAddr, kubeConfigPath, masterURL string
+var (
+	masterURL   string
+	kubeconfig  string
+	metricsAddr string
+)
+
+func init() {
+	flag.StringVar(&masterURL, "master-url", "", "only need if out of cluster")
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "only need if out of cluster")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+}
+
+func main() {
 	flag.Parse()
+
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("controller-manager")
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags(masterURL, kubeConfigPath)
+	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		log.Error(err, "failed to build kubeconfig")
 		os.Exit(1)
@@ -46,7 +57,7 @@ func main() {
 	stopCh := signals.SetupSignalHandler()
 
 	log.Info("setting up manager")
-	mgr, err := manager.New(kubeConfig, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
@@ -64,7 +75,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := app.AddControllers(mgr, kubeConfig, stopCh); err != nil {
+	if err := app.AddControllers(mgr, cfg, stopCh); err != nil {
 		log.Error(err, "unable to register controllers to the manager")
 		os.Exit(1)
 	}

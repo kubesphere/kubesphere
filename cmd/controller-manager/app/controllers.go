@@ -1,11 +1,11 @@
 package app
 
 import (
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/controller/namespace"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
@@ -35,7 +35,7 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		return err
 	}
 
-	informerFactory := informers.SharedInformerFactory()
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, defaultResync)
 	istioInformer := istioinformers.NewSharedInformerFactory(istioclient, defaultResync)
 
 	servicemeshclient, err := servicemeshclientset.NewForConfig(cfg)

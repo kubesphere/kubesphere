@@ -18,6 +18,7 @@ func getAppNameByStrategy(strategy *v1alpha2.Strategy) string {
 	return ""
 }
 
+// if virtualservice not specified with port number, then fill with service first port
 func fillDestinationPort(vs *v1alpha3.VirtualService, service *v1.Service) error {
 
 	if len(service.Spec.Ports) == 0 {
@@ -27,14 +28,22 @@ func fillDestinationPort(vs *v1alpha3.VirtualService, service *v1.Service) error
 	// fill http port
 	for i := range vs.Spec.Http {
 		for j := range vs.Spec.Http[i].Route {
-			vs.Spec.Http[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+			if vs.Spec.Http[i].Route[j].Destination.Port.Number == 0 {
+				vs.Spec.Http[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+			}
+		}
+
+		if vs.Spec.Http[i].Mirror != nil && vs.Spec.Http[i].Mirror.Port.Number == 0 {
+			vs.Spec.Http[i].Mirror.Port.Number = uint32(service.Spec.Ports[0].Port)
 		}
 	}
 
 	// fill tcp port
 	for i := range vs.Spec.Tcp {
 		for j := range vs.Spec.Tcp[i].Route {
-			vs.Spec.Tcp[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+			if vs.Spec.Tcp[i].Route[j].Destination.Port.Number == 0 {
+				vs.Spec.Tcp[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+			}
 		}
 	}
 

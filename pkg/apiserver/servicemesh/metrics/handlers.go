@@ -48,3 +48,18 @@ func GetNamespaceGraph(request *restful.Request, response *restful.Response) {
 func GetNamespacesGraph(request *restful.Request, response *restful.Response) {
 	handlers.GraphNamespaces(request, response)
 }
+
+// Get workload health
+func GetWorkloadHealth(request *restful.Request, response *restful.Response) {
+	handlers.WorkloadHealth(request, response)
+}
+
+// Get app health
+func GetAppHealth(request *restful.Request, response *restful.Response) {
+	handlers.AppHealth(request, response)
+}
+
+// Get service health
+func GetServiceHealth(request *restful.Request, response *restful.Response) {
+	handlers.ServiceHealth(request, response)
+}

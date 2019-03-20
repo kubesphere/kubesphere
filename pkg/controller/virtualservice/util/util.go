@@ -16,7 +16,6 @@ const (
 // resource with these following labels considered as part of servicemesh
 var ApplicationLabels = [...]string{
 	ApplicationNameLabel,
-	ApplicationVersionLabel,
 	ServiceMeshEnabledLabel,
 	AppLabel,
 }
