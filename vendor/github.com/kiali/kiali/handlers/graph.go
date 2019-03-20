@@ -34,6 +34,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/emicklei/go-restful"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -51,26 +52,35 @@ import (
 	"github.com/kiali/kiali/prometheus/internalmetrics"
 )
 
-// GraphNamespaces is a REST http.HandlerFunc handling graph generation for 1 or more namespaces
-func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
-	defer handlePanic(w)
+func GetNamespaceGraph(request * restful.Request, response *restful.Response) {
+	defer handlePanic(response.ResponseWriter)
 
 	client, err := prometheus.NewClient()
 	graph.CheckError(err)
 
-	graphNamespaces(w, r, client)
+	graphNamespaces(request, response, client)
+}
+
+// GraphNamespaces is a REST http.HandlerFunc handling graph generation for 1 or more namespaces
+func GraphNamespaces(request *restful.Request, response *restful.Response) {
+	defer handlePanic(response.ResponseWriter)
+
+	client, err := prometheus.NewClient()
+	graph.CheckError(err)
+
+	graphNamespaces(request, response, client)
 }
 
 // graphNamespaces provides a testing hook that can supply a mock client
-func graphNamespaces(w http.ResponseWriter, r *http.Request, client *prometheus.Client) {
-	o := options.NewOptions(r)
+func graphNamespaces(reqeust *restful.Request, response *restful.Response, client *prometheus.Client) {
+	o := options.NewOptions(reqeust)
 
 	// time how long it takes to generate this graph
 	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.GraphType, o.InjectServiceNodes)
 	defer promtimer.ObserveDuration()
 
 	trafficMap := buildNamespacesTrafficMap(o, client)
-	generateGraph(trafficMap, w, o)
+	generateGraph(trafficMap, response.ResponseWriter, o)
 
 	// update metrics
 	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.GraphType, o.InjectServiceNodes, len(trafficMap))
@@ -613,18 +623,18 @@ func addNode(trafficMap graph.TrafficMap, namespace, workload, app, version, ser
 
 // GraphNode is a REST http.HandlerFunc handling node-detail graph
 // config generation.
-func GraphNode(w http.ResponseWriter, r *http.Request) {
-	defer handlePanic(w)
+func GraphNode(request *restful.Request, response *restful.Response) {
+	defer handlePanic(response.ResponseWriter)
 
 	client, err := prometheus.NewClient()
 	graph.CheckError(err)
 
-	graphNode(w, r, client)
+	graphNode(request, response, client)
 }
 
 // graphNode provides a testing hook that can supply a mock client
-func graphNode(w http.ResponseWriter, r *http.Request, client *prometheus.Client) {
-	o := options.NewOptions(r)
+func graphNode(request *restful.Request, response *restful.Response, client *prometheus.Client) {
+	o := options.NewOptions(request)
 	switch o.Vendor {
 	case "cytoscape":
 	default:
@@ -664,7 +674,7 @@ func graphNode(w http.ResponseWriter, r *http.Request, client *prometheus.Client
 	// the current decision is to not reduce the node graph to provide more detail.  This may be
 	// confusing to users, we'll see...
 
-	generateGraph(trafficMap, w, o)
+	generateGraph(trafficMap, response.ResponseWriter, o)
 
 	// update metrics
 	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.GraphType, o.InjectServiceNodes, len(trafficMap))

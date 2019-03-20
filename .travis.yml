@@ -15,12 +15,11 @@ before_install:
   - go get -u github.com/golang/dep/cmd/dep
 
 before_script:
-  - dep ensure -v
   - docker --version
   - bash hack/install_kubebuilder.sh
 
 script:
-  - make all && make test && bash hack/docker_build.sh
+  - make all && bash hack/docker_build.sh
 
 deploy:
   skip_cleanup: true

@@ -85,7 +85,7 @@ func NewNamespaceController(
 	return controller
 }
 
-func (c *NamespaceController) Start(stopCh <-chan struct{}) {
+func (c *NamespaceController) Start(stopCh <-chan struct{}) error {
 	go func() {
 		defer utilruntime.HandleCrash()
 		defer c.workqueue.ShutDown()
@@ -109,6 +109,8 @@ func (c *NamespaceController) Start(stopCh <-chan struct{}) {
 		<-stopCh
 		glog.Info("shutting down workers")
 	}()
+
+	return nil
 }
 
 func (c *NamespaceController) runWorker() {

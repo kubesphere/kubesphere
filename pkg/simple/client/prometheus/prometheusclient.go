@@ -18,14 +18,13 @@
 package prometheus
 
 import (
+	"flag"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"os"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -46,10 +45,7 @@ var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
 var PrometheusAPIEndpoint string
 
 func init() {
-	if env := os.Getenv(PrometheusAPIServerEnv); env != "" {
-		PrometheusAPIServer = env
-	}
-	PrometheusAPIEndpoint = DefaultScheme + "://" + PrometheusAPIServer + ":" + DefaultPrometheusPort + PrometheusApiPath
+	flag.StringVar(&PrometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1", "")
 }
 
 type MonitoringRequestParams struct {

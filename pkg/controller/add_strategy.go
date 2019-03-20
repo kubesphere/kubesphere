@@ -18,6 +18,7 @@ package controller
 
 import (
 	"kubesphere.io/kubesphere/pkg/controller/strategy"
+	"sigs.k8s.io/application/pkg/controller/application"
 )
 
 func init() {
@@ -25,6 +26,6 @@ func init() {
 	AddToManagerFuncs = append(AddToManagerFuncs, strategy.Add)
 
 	// Add application to manager functions
-	//AddToManagerFuncs = append(AddToManagerFuncs, application.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, application.Add)
 
 }

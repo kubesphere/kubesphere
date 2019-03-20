@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/emicklei/go-restful"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -60,31 +61,30 @@ func WorkloadDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 // WorkloadMetrics is the API handler to fetch metrics to be displayed, related to a single workload
-func WorkloadMetrics(w http.ResponseWriter, r *http.Request) {
-	getWorkloadMetrics(w, r, defaultPromClientSupplier, defaultK8SClientSupplier)
+func WorkloadMetrics(request *restful.Request, response *restful.Response) {
+	getWorkloadMetrics(request, response, defaultPromClientSupplier, defaultK8SClientSupplier)
 }
 
 // getWorkloadMetrics (mock-friendly version)
-func getWorkloadMetrics(w http.ResponseWriter, r *http.Request, promSupplier promClientSupplier, k8sSupplier k8sClientSupplier) {
-	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	workload := vars["workload"]
+func getWorkloadMetrics(request *restful.Request, response *restful.Response, promSupplier promClientSupplier, k8sSupplier k8sClientSupplier) {
+	namespace := request.PathParameter("namespace")
+	workload := request.PathParameter("workload")
 
-	prom, _, namespaceInfo := initClientsForMetrics(w, promSupplier, k8sSupplier, namespace)
+	prom, _, namespaceInfo := initClientsForMetrics(response.ResponseWriter, promSupplier, k8sSupplier, namespace)
 	if prom == nil {
 		// any returned value nil means error & response already written
 		return
 	}
 
 	params := prometheus.IstioMetricsQuery{Namespace: namespace, Workload: workload}
-	err := extractIstioMetricsQueryParams(r, &params, namespaceInfo)
+	err := extractIstioMetricsQueryParams(request.Request, &params, namespaceInfo)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	metrics := prom.GetMetrics(&params)
-	RespondWithJSON(w, http.StatusOK, metrics)
+	RespondWithJSON(response, http.StatusOK, metrics)
 }
 
 // WorkloadDashboard is the API handler to fetch Istio dashboard, related to a single workload
