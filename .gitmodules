@@ -1,3 +1,0 @@
-[submodule "vendor/github.com/knative/pkg"]
-	path = vendor/github.com/knative/pkg
-	url = https://github.com/knative/pkg.git
