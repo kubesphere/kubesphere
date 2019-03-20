@@ -32,6 +32,7 @@ import (
 	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
 )
 
 var output string
