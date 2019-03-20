@@ -95,7 +95,7 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
-	config.InCluster = false
+	config.InCluster = true
 
 	// Set default prometheus service url
 	config.ExternalServices.PrometheusServiceURL = "http://prometheus.kubesphere-monitoring-system.svc:9090"
