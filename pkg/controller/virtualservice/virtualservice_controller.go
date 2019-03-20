@@ -128,7 +128,7 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 }
 
 func (v *VirtualServiceController) Start(stopCh <-chan struct{}) error {
-	v.Run(5, stopCh)
+	v.Run(1, stopCh)
 	return nil
 }
 
@@ -146,10 +146,6 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
 	for i := 0; i < workers; i++ {
 		go wait.Until(v.worker, v.workerLoopPeriod, stopCh)
 	}
-
-	go func() {
-		defer utilruntime.HandleCrash()
-	}()
 
 	<-stopCh
 }
@@ -202,7 +198,6 @@ func (v *VirtualServiceController) syncService(key string) error {
 		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
-
 		return nil
 	}
 
@@ -278,9 +273,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 		if len(vs.Spec.Http) > 0 || len(vs.Spec.Tcp) > 0 {
 			_, err := v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(vs)
 			if err != nil {
-
 				v.eventRecorder.Eventf(vs, v1.EventTypeWarning, "FailedToCreateVirtualService", "Failed to create virtualservice for service %v/%v: %v", service.Namespace, service.Name, err)
-
 				log.Error(err, "create virtualservice for service failed.", "service", service)
 				return err
 			}
@@ -288,7 +281,6 @@ func (v *VirtualServiceController) syncService(key string) error {
 			log.Info("service doesn't have a tcp port.")
 			return nil
 		}
-
 	}
 
 	return nil
@@ -328,7 +320,6 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 
 func (v *VirtualServiceController) deleteStrategy(obj interface{}) {
 	// nothing to do right now
-
 }
 
 func (v *VirtualServiceController) handleErr(err error, key interface{}) {
@@ -343,7 +334,7 @@ func (v *VirtualServiceController) handleErr(err error, key interface{}) {
 		return
 	}
 
-	log.V(0).Info("Dropping service %q out of the queue: %v", "key", key, "error", err)
+	log.V(4).Info("Dropping service out of the queue.", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
 }

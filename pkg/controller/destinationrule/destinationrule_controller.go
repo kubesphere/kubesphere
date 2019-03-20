@@ -139,10 +139,6 @@ func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) {
 		go wait.Until(v.worker, v.workerLoopPeriod, stopCh)
 	}
 
-	go func() {
-		defer utilruntime.HandleCrash()
-	}()
-
 	<-stopCh
 }
 
@@ -222,9 +218,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 		}
 
 		subset := v1alpha3.Subset{
-			Name: util.NormalizeVersionName(name),
+			Name: util.NormalizeVersionName(version),
 			Labels: map[string]string{
-				util.VersionLabel: name,
+				util.VersionLabel: version,
 			},
 		}
 
@@ -239,10 +235,15 @@ func (v *DestinationRuleController) syncService(key string) error {
 					Name:   service.Name,
 					Labels: service.Labels,
 				},
+				Spec: v1alpha3.DestinationRuleSpec{
+					Host: name,
+				},
 			}
+		} else {
+			log.Error(err, "Couldn't get destinationrule for service", "key", key)
+			return err
 		}
-		log.Error(err, "Couldn't get destinationrule for service", "key", key)
-		return err
+
 	}
 
 	createDestinationRule := len(currentDestinationRule.Spec.Subsets) == 0

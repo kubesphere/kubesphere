@@ -19,9 +19,10 @@ package namespace
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"time"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +36,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
+
+var log = logf.Log.WithName("namespace-controller")
 
 const threadiness = 2
 
@@ -54,18 +57,18 @@ type NamespaceController struct {
 }
 
 func NewNamespaceController(
-	kubeclientset kubernetes.Interface,
+	clientset kubernetes.Interface,
 	namespaceInformer coreinformers.NamespaceInformer,
 	roleInformer rbacinformers.RoleInformer) *NamespaceController {
 
 	controller := &NamespaceController{
-		clientset:         kubeclientset,
+		clientset:         clientset,
 		namespaceInformer: namespaceInformer,
 		roleInformer:      roleInformer,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespaces"),
 	}
 
-	glog.Info("setting up event handlers")
+	log.V(3).Info("setting up event handlers")
 
 	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.handleObject,
@@ -86,29 +89,24 @@ func NewNamespaceController(
 }
 
 func (c *NamespaceController) Start(stopCh <-chan struct{}) error {
-	go func() {
-		defer utilruntime.HandleCrash()
-		defer c.workqueue.ShutDown()
+	defer utilruntime.HandleCrash()
+	defer c.workqueue.ShutDown()
 
-		// Start the informer factories to begin populating the informer caches
-		glog.Info("starting namespace controller")
+	log.V(3).Info("starting namespace controller")
+	defer glog.Info("shutting down namespace controller")
 
-		// Wait for the caches to be synced before starting workers
-		glog.Info("waiting for informer caches to sync")
-		if ok := cache.WaitForCacheSync(stopCh, c.namespaceInformer.Informer().HasSynced, c.roleInformer.Informer().HasSynced); !ok {
-			glog.Fatalf("controller exit with error: failed to wait for caches to sync")
-		}
+	// Wait for the caches to be synced before starting workers
+	log.Info("waiting for informer caches to sync")
+	if ok := cache.WaitForCacheSync(stopCh, c.namespaceInformer.Informer().HasSynced, c.roleInformer.Informer().HasSynced); !ok {
+		glog.Fatalf("controller exit with error: failed to wait for caches to sync")
+	}
 
-		glog.Info("starting workers")
+	log.V(3).Info("starting workers")
+	for i := 0; i < threadiness; i++ {
+		go wait.Until(c.runWorker, time.Second, stopCh)
+	}
 
-		for i := 0; i < threadiness; i++ {
-			go wait.Until(c.runWorker, time.Second, stopCh)
-		}
-
-		glog.Info("started workers")
-		<-stopCh
-		glog.Info("shutting down workers")
-	}()
+	<-stopCh
 
 	return nil
 }
@@ -142,7 +140,7 @@ func (c *NamespaceController) processNextWorkItem() bool {
 		}
 
 		c.workqueue.Forget(obj)
-		glog.Infof("successfully namespace synced '%s'", namespace)
+		log.V(4).Info("successfully namespace synced ", "namespace", namespace)
 		return nil
 	}(obj)
 

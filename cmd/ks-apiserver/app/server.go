@@ -122,11 +122,12 @@ func initializeESClientConfig() {
 	db := mysql.Client()
 	if !db.HasTable(&logging.OutputDBBinding{}) {
 		// Panic
-		log.Fatal("Flyway migration is not completed")
+		log.Print("Flyway migration is not completed")
 	}
 
 	err := db.Find(&outputs).Error
 	if err != nil {
+	    log.Printf("get logging config failed. Error: %v", err)
 		return
 	}
 
