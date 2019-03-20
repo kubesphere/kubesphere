@@ -30,10 +30,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/applications"
 	"kubesphere.io/kubesphere/pkg/signals"
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"log"
 	"net/http"
-	"net/url"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -99,20 +97,11 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
-	config.InCluster = false
+	config.InCluster = true
 
 	// Set default prometheus service url
-	config.ExternalServices.PrometheusServiceURL = "http://prometheus.kubesphere-monitoring-system.svc:9090"
-
-	// ugly hack to get prometheus service url
-	if pflag.Parsed() && pflag.Lookup("prometheus-endpoint") != nil {
-		// Set prometheus
-		endpoint, err := url.Parse(prometheus.PrometheusAPIEndpoint)
-		if err != nil {
-			config.ExternalServices.PrometheusServiceURL = endpoint.Path
-		}
-	}
-
+	// TODO: use kubesphere builtin p8s instead of istio p8s
+	config.ExternalServices.PrometheusServiceURL = "http://prometheus.istio-system.svc.cluster.local:9090"
 	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
 
 	// Set istio pilot discovery service url
