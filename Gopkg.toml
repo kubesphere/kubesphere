@@ -15,6 +15,9 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned",
+    "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions",
+    "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
 ]
 
 [[constraint]]
@@ -48,6 +51,10 @@ required = [
 [[constraint]]
   name="sigs.k8s.io/controller-tools"
   version="v0.1.7"
+
+[[constraint]]
+  name="github.com/kubesphere/s2ioperator"
+  version="v0.0.4"
 
 [[override]]
   name="github.com/bifurcation/mint"
