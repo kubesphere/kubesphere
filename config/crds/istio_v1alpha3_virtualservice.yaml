@@ -1,0 +1,695 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: virtualservices.istio.kubesphere.io
+spec:
+  group: istio.kubesphere.io
+  names:
+    kind: VirtualService
+    plural: virtualservices
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            gateways:
+              description: The names of gateways and sidecars that should apply these
+                routes. A single VirtualService is used for sidecars inside the mesh
+                as well as for one or more gateways. The selection condition imposed
+                by this field can be overridden using the source field in the match
+                conditions of HTTP/TCP routes. The reserved word "mesh" is used to
+                imply all the sidecars in the mesh. When this field is omitted, the
+                default gateway ("mesh") will be used, which would apply the rule
+                to all sidecars in the mesh. If a list of gateway names is provided,
+                the rules will apply only to the gateways. To apply the rules to both
+                gateways and sidecars, specify "mesh" as one of the gateway names.
+              items:
+                type: string
+              type: array
+            hosts:
+              description: REQUIRED. The destination address for traffic captured
+                by this virtual service. Could be a DNS name with wildcard prefix
+                or a CIDR prefix. Depending on the platform, short-names can also
+                be used instead of a FQDN (i.e. has no dots in the name). In such
+                a scenario, the FQDN of the host would be derived based on the underlying
+                platform.  For example on Kubernetes, when hosts contains a short
+                name, Istio will interpret the short name based on the namespace of
+                the rule. Thus, when a client namespace applies a rule in the "default"
+                namespace containing a name "reviews, Istio will setup routes to the
+                "reviews.default.svc.cluster.local" service. However, if a different
+                name such as "reviews.sales.svc.cluster.local" is used, it would be
+                treated as a FQDN during virtual host matching. In Consul, a plain
+                service name would be resolved to the FQDN "reviews.service.consul".  Note
+                that the hosts field applies to both HTTP and TCP services. Service
+                inside the mesh, i.e., those found in the service registry, must always
+                be referred to using their alphanumeric names. IP addresses or CIDR
+                prefixes are allowed only for services defined via the Gateway.
+              items:
+                type: string
+              type: array
+            http:
+              description: An ordered list of route rules for HTTP traffic. The first
+                rule matching an incoming request is used.
+              items:
+                properties:
+                  appendHeaders:
+                    description: Additional HTTP headers to add before forwarding
+                      a request to the destination service.
+                    type: object
+                  corsPolicy:
+                    description: Cross-Origin Resource Sharing policy
+                    properties:
+                      allowCredentials:
+                        description: Indicates whether the caller is allowed to send
+                          the actual request (not the preflight) using credentials.
+                          Translates to Access-Control-Allow-Credentials header.
+                        type: boolean
+                      allowHeaders:
+                        description: List of HTTP headers that can be used when requesting
+                          the resource. Serialized to Access-Control-Allow-Methods
+                          header.
+                        items:
+                          type: string
+                        type: array
+                      allowMethods:
+                        description: List of HTTP methods allowed to access the resource.
+                          The content will be serialized into the Access-Control-Allow-Methods
+                          header.
+                        items:
+                          type: string
+                        type: array
+                      allowOrigin:
+                        description: The list of origins that are allowed to perform
+                          CORS requests. The content will be serialized into the Access-Control-Allow-Origin
+                          header. Wildcard * will allow all origins.
+                        items:
+                          type: string
+                        type: array
+                      exposeHeaders:
+                        description: A white list of HTTP headers that the browsers
+                          are allowed to access. Serialized into Access-Control-Expose-Headers
+                          header.
+                        items:
+                          type: string
+                        type: array
+                      maxAge:
+                        description: Specifies how long the the results of a preflight
+                          request can be cached. Translates to the Access-Control-Max-Age
+                          header.
+                        type: string
+                    type: object
+                  fault:
+                    description: Fault injection policy to apply on HTTP traffic.
+                    properties:
+                      abort:
+                        description: Abort Http request attempts and return error
+                          codes back to downstream service, giving the impression
+                          that the upstream service is faulty.
+                        properties:
+                          httpStatus:
+                            description: REQUIRED. HTTP status code to use to abort
+                              the Http request.
+                            format: int64
+                            type: integer
+                          percent:
+                            description: Percentage of requests to be aborted with
+                              the error code provided (0-100).
+                            format: int64
+                            type: integer
+                        required:
+                        - httpStatus
+                        type: object
+                      delay:
+                        description: Delay requests before forwarding, emulating various
+                          failures such as network issues, overloaded upstream service,
+                          etc.
+                        properties:
+                          exponentialDelay:
+                            description: (-- Add a delay (based on an exponential
+                              function) before forwarding the request. mean delay
+                              needed to derive the exponential delay values --)
+                            type: string
+                          fixedDelay:
+                            description: 'REQUIRED. Add a fixed delay before forwarding
+                              the request. Format: 1h/1m/1s/1ms. MUST be >=1ms.'
+                            type: string
+                          percent:
+                            description: Percentage of requests on which the delay
+                              will be injected (0-100).
+                            format: int64
+                            type: integer
+                        required:
+                        - fixedDelay
+                        type: object
+                    type: object
+                  match:
+                    description: Match conditions to be satisfied for the rule to
+                      be activated. All conditions inside a single match block have
+                      AND semantics, while the list of match blocks have OR semantics.
+                      The rule is matched if any one of the match blocks succeed.
+                    items:
+                      properties:
+                        authority:
+                          description: 'HTTP Authority values are case-sensitive and
+                            formatted as follows:  - `exact: "value"` for exact string
+                            match  - `prefix: "value"` for prefix-based match  - `regex:
+                            "value"` for ECMAscript style regex-based match'
+                          properties:
+                            exact:
+                              description: exact string match
+                              type: string
+                            prefix:
+                              description: prefix-based match
+                              type: string
+                            regex:
+                              description: ECMAscript style regex-based match
+                              type: string
+                            suffix:
+                              description: suffix-based match.
+                              type: string
+                          type: object
+                        gateways:
+                          description: Names of gateways where the rule should be
+                            applied to. Gateway names at the top of the VirtualService
+                            (if any) are overridden. The gateway match is independent
+                            of sourceLabels.
+                          items:
+                            type: string
+                          type: array
+                        headers:
+                          description: 'The header keys must be lowercase and use
+                            hyphen as the separator, e.g. _x-request-id_.  Header
+                            values are case-sensitive and formatted as follows:  -
+                            `exact: "value"` for exact string match  - `prefix: "value"`
+                            for prefix-based match  - `regex: "value"` for ECMAscript
+                            style regex-based match  **Note:** The keys `uri`, `scheme`,
+                            `method`, and `authority` will be ignored.'
+                          type: object
+                        method:
+                          description: 'HTTP Method values are case-sensitive and
+                            formatted as follows:  - `exact: "value"` for exact string
+                            match  - `prefix: "value"` for prefix-based match  - `regex:
+                            "value"` for ECMAscript style regex-based match'
+                          properties:
+                            exact:
+                              description: exact string match
+                              type: string
+                            prefix:
+                              description: prefix-based match
+                              type: string
+                            regex:
+                              description: ECMAscript style regex-based match
+                              type: string
+                            suffix:
+                              description: suffix-based match.
+                              type: string
+                          type: object
+                        port:
+                          description: Specifies the ports on the host that is being
+                            addressed. Many services only expose a single port or
+                            label ports with the protocols they support, in these
+                            cases it is not required to explicitly select the port.
+                          format: int32
+                          type: integer
+                        scheme:
+                          description: 'URI Scheme values are case-sensitive and formatted
+                            as follows:  - `exact: "value"` for exact string match  -
+                            `prefix: "value"` for prefix-based match  - `regex: "value"`
+                            for ECMAscript style regex-based match'
+                          properties:
+                            exact:
+                              description: exact string match
+                              type: string
+                            prefix:
+                              description: prefix-based match
+                              type: string
+                            regex:
+                              description: ECMAscript style regex-based match
+                              type: string
+                            suffix:
+                              description: suffix-based match.
+                              type: string
+                          type: object
+                        sourceLabels:
+                          description: One or more labels that constrain the applicability
+                            of a rule to workloads with the given labels. If the VirtualService
+                            has a list of gateways specified at the top, it should
+                            include the reserved gateway `mesh` in order for this
+                            field to be applicable.
+                          type: object
+                        uri:
+                          description: 'URI to match values are case-sensitive and
+                            formatted as follows:  - `exact: "value"` for exact string
+                            match  - `prefix: "value"` for prefix-based match  - `regex:
+                            "value"` for ECMAscript style regex-based match'
+                          properties:
+                            exact:
+                              description: exact string match
+                              type: string
+                            prefix:
+                              description: prefix-based match
+                              type: string
+                            regex:
+                              description: ECMAscript style regex-based match
+                              type: string
+                            suffix:
+                              description: suffix-based match.
+                              type: string
+                          type: object
+                      type: object
+                    type: array
+                  mirror:
+                    description: Mirror HTTP traffic to a another destination in addition
+                      to forwarding the requests to the intended destination. Mirrored
+                      traffic is on a best effort basis where the sidecar/gateway
+                      will not wait for the mirrored cluster to respond before returning
+                      the response from the original destination.  Statistics will
+                      be generated for the mirrored destination.
+                    properties:
+                      host:
+                        description: 'REQUIRED. The name of a service from the service
+                          registry. Service names are looked up from the platform''s
+                          service registry (e.g., Kubernetes services, Consul services,
+                          etc.) and from the hosts declared by [ServiceEntry](#ServiceEntry).
+                          Traffic forwarded to destinations that are not found in
+                          either of the two, will be dropped.  *Note for Kubernetes
+                          users*: When short names are used (e.g. "reviews" instead
+                          of "reviews.default.svc.cluster.local"), Istio will interpret
+                          the short name based on the namespace of the rule, not the
+                          service. A rule in the "default" namespace containing a
+                          host "reviews will be interpreted as "reviews.default.svc.cluster.local",
+                          irrespective of the actual namespace associated with the
+                          reviews service. _To avoid potential misconfigurations,
+                          it is recommended to always use fully qualified domain names
+                          over short names._'
+                        type: string
+                      port:
+                        description: Specifies the port on the host that is being
+                          addressed. If a service exposes only a single port it is
+                          not required to explicitly select the port.
+                        properties:
+                          name:
+                            description: Valid port name
+                            type: string
+                          number:
+                            description: Valid port number
+                            format: int32
+                            type: integer
+                        type: object
+                      subset:
+                        description: The name of a subset within the service. Applicable
+                          only to services within the mesh. The subset must be defined
+                          in a corresponding DestinationRule.
+                        type: string
+                    required:
+                    - host
+                    type: object
+                  redirect:
+                    description: A http rule can either redirect or forward (default)
+                      traffic. If traffic passthrough option is specified in the rule,
+                      route/redirect will be ignored. The redirect primitive can be
+                      used to send a HTTP 302 redirect to a different URI or Authority.
+                    properties:
+                      authority:
+                        description: On a redirect, overwrite the Authority/Host portion
+                          of the URL with this value.
+                        type: string
+                      uri:
+                        description: On a redirect, overwrite the Path portion of
+                          the URL with this value. Note that the entire path will
+                          be replaced, irrespective of the request URI being matched
+                          as an exact path or prefix.
+                        type: string
+                    type: object
+                  removeResponseHeaders:
+                    description: Http headers to remove before returning the response
+                      to the caller
+                    type: object
+                  retries:
+                    description: Retry policy for HTTP requests.
+                    properties:
+                      attempts:
+                        description: REQUIRED. Number of retries for a given request.
+                          The interval between retries will be determined automatically
+                          (25ms+). Actual number of retries attempted depends on the
+                          httpReqTimeout.
+                        format: int64
+                        type: integer
+                      perTryTimeout:
+                        description: 'Timeout per retry attempt for a given request.
+                          format: 1h/1m/1s/1ms. MUST BE >=1ms.'
+                        type: string
+                    required:
+                    - attempts
+                    - perTryTimeout
+                    type: object
+                  rewrite:
+                    description: Rewrite HTTP URIs and Authority headers. Rewrite
+                      cannot be used with Redirect primitive. Rewrite will be performed
+                      before forwarding.
+                    properties:
+                      authority:
+                        description: rewrite the Authority/Host header with this value.
+                        type: string
+                      uri:
+                        description: rewrite the path (or the prefix) portion of the
+                          URI with this value. If the original URI was matched based
+                          on prefix, the value provided in this field will replace
+                          the corresponding matched prefix.
+                        type: string
+                    type: object
+                  route:
+                    description: A http rule can either redirect or forward (default)
+                      traffic. The forwarding target can be one of several versions
+                      of a service (see glossary in beginning of document). Weights
+                      associated with the service version determine the proportion
+                      of traffic it receives.
+                    items:
+                      properties:
+                        destination:
+                          description: REQUIRED. Destination uniquely identifies the
+                            instances of a service to which the request/connection
+                            should be forwarded to.
+                          properties:
+                            host:
+                              description: 'REQUIRED. The name of a service from the
+                                service registry. Service names are looked up from
+                                the platform''s service registry (e.g., Kubernetes
+                                services, Consul services, etc.) and from the hosts
+                                declared by [ServiceEntry](#ServiceEntry). Traffic
+                                forwarded to destinations that are not found in either
+                                of the two, will be dropped.  *Note for Kubernetes
+                                users*: When short names are used (e.g. "reviews"
+                                instead of "reviews.default.svc.cluster.local"), Istio
+                                will interpret the short name based on the namespace
+                                of the rule, not the service. A rule in the "default"
+                                namespace containing a host "reviews will be interpreted
+                                as "reviews.default.svc.cluster.local", irrespective
+                                of the actual namespace associated with the reviews
+                                service. _To avoid potential misconfigurations, it
+                                is recommended to always use fully qualified domain
+                                names over short names._'
+                              type: string
+                            port:
+                              description: Specifies the port on the host that is
+                                being addressed. If a service exposes only a single
+                                port it is not required to explicitly select the port.
+                              properties:
+                                name:
+                                  description: Valid port name
+                                  type: string
+                                number:
+                                  description: Valid port number
+                                  format: int32
+                                  type: integer
+                              type: object
+                            subset:
+                              description: The name of a subset within the service.
+                                Applicable only to services within the mesh. The subset
+                                must be defined in a corresponding DestinationRule.
+                              type: string
+                          required:
+                          - host
+                          type: object
+                        weight:
+                          description: REQUIRED. The proportion of traffic to be forwarded
+                            to the service version. (0-100). Sum of weights across
+                            destinations SHOULD BE == 100. If there is only destination
+                            in a rule, the weight value is assumed to be 100.
+                          format: int64
+                          type: integer
+                      required:
+                      - destination
+                      - weight
+                      type: object
+                    type: array
+                  timeout:
+                    description: Timeout for HTTP requests.
+                    type: string
+                  websocketUpgrade:
+                    description: Indicates that a HTTP/1.1 client connection to this
+                      particular route should be allowed (and expected) to upgrade
+                      to a WebSocket connection. The default is false. Istio's reference
+                      sidecar implementation (Envoy) expects the first request to
+                      this route to contain the WebSocket upgrade headers. Otherwise,
+                      the request will be rejected. Note that Websocket allows secondary
+                      protocol negotiation which may then be subject to further routing
+                      rules based on the protocol selected.
+                    type: boolean
+                type: object
+              type: array
+            tcp:
+              description: An ordered list of route rules for TCP traffic. The first
+                rule matching an incoming request is used.
+              items:
+                properties:
+                  match:
+                    description: Match conditions to be satisfied for the rule to
+                      be activated. All conditions inside a single match block have
+                      AND semantics, while the list of match blocks have OR semantics.
+                      The rule is matched if any one of the match blocks succeed.
+                    items:
+                      properties:
+                        destinationSubnets:
+                          description: IPv4 or IPv6 ip address of destination with
+                            optional subnet.  E.g., a.b.c.d/xx form or just a.b.c.d.
+                          items:
+                            type: string
+                          type: array
+                        gateways:
+                          description: Names of gateways where the rule should be
+                            applied to. Gateway names at the top of the VirtualService
+                            (if any) are overridden. The gateway match is independent
+                            of sourceLabels.
+                          items:
+                            type: string
+                          type: array
+                        port:
+                          description: Specifies the port on the host that is being
+                            addressed. Many services only expose a single port or
+                            label ports with the protocols they support, in these
+                            cases it is not required to explicitly select the port.
+                          format: int64
+                          type: integer
+                        sourceLabels:
+                          description: One or more labels that constrain the applicability
+                            of a rule to workloads with the given labels. If the VirtualService
+                            has a list of gateways specified at the top, it should
+                            include the reserved gateway `mesh` in order for this
+                            field to be applicable.
+                          type: object
+                      type: object
+                    type: array
+                  route:
+                    description: The destinations to which the connection should be
+                      forwarded to. Weights must add to 100%.
+                    items:
+                      properties:
+                        destination:
+                          description: REQUIRED. Destination uniquely identifies the
+                            instances of a service to which the request/connection
+                            should be forwarded to.
+                          properties:
+                            host:
+                              description: 'REQUIRED. The name of a service from the
+                                service registry. Service names are looked up from
+                                the platform''s service registry (e.g., Kubernetes
+                                services, Consul services, etc.) and from the hosts
+                                declared by [ServiceEntry](#ServiceEntry). Traffic
+                                forwarded to destinations that are not found in either
+                                of the two, will be dropped.  *Note for Kubernetes
+                                users*: When short names are used (e.g. "reviews"
+                                instead of "reviews.default.svc.cluster.local"), Istio
+                                will interpret the short name based on the namespace
+                                of the rule, not the service. A rule in the "default"
+                                namespace containing a host "reviews will be interpreted
+                                as "reviews.default.svc.cluster.local", irrespective
+                                of the actual namespace associated with the reviews
+                                service. _To avoid potential misconfigurations, it
+                                is recommended to always use fully qualified domain
+                                names over short names._'
+                              type: string
+                            port:
+                              description: Specifies the port on the host that is
+                                being addressed. If a service exposes only a single
+                                port it is not required to explicitly select the port.
+                              properties:
+                                name:
+                                  description: Valid port name
+                                  type: string
+                                number:
+                                  description: Valid port number
+                                  format: int32
+                                  type: integer
+                              type: object
+                            subset:
+                              description: The name of a subset within the service.
+                                Applicable only to services within the mesh. The subset
+                                must be defined in a corresponding DestinationRule.
+                              type: string
+                          required:
+                          - host
+                          type: object
+                        weight:
+                          description: REQUIRED. The proportion of traffic to be forwarded
+                            to the service version. (0-100). Sum of weights across
+                            destinations SHOULD BE == 100. If there is only destination
+                            in a rule, the weight value is assumed to be 100.
+                          format: int64
+                          type: integer
+                      required:
+                      - destination
+                      - weight
+                      type: object
+                    type: array
+                required:
+                - match
+                - route
+                type: object
+              type: array
+            tls:
+              items:
+                properties:
+                  match:
+                    description: REQUIRED. Match conditions to be satisfied for the
+                      rule to be activated. All conditions inside a single match block
+                      have AND semantics, while the list of match blocks have OR semantics.
+                      The rule is matched if any one of the match blocks succeed.
+                    items:
+                      properties:
+                        destinationSubnets:
+                          description: IPv4 or IPv6 ip addresses of destination with
+                            optional subnet.  E.g., a.b.c.d/xx form or just a.b.c.d.
+                          items:
+                            type: string
+                          type: array
+                        gateways:
+                          description: Names of gateways where the rule should be
+                            applied to. Gateway names at the top of the VirtualService
+                            (if any) are overridden. The gateway match is independent
+                            of sourceLabels.
+                          items:
+                            type: string
+                          type: array
+                        port:
+                          description: Specifies the port on the host that is being
+                            addressed. Many services only expose a single port or
+                            label ports with the protocols they support, in these
+                            cases it is not required to explicitly select the port.
+                          format: int64
+                          type: integer
+                        sniHosts:
+                          description: REQUIRED. SNI (server name indicator) to match
+                            on. Wildcard prefixes can be used in the SNI value, e.g.,
+                            *.com will match foo.example.com as well as example.com.
+                            An SNI value must be a subset (i.e., fall within the domain)
+                            of the corresponding virtual service's hosts
+                          items:
+                            type: string
+                          type: array
+                        sourceLabels:
+                          description: One or more labels that constrain the applicability
+                            of a rule to workloads with the given labels. If the VirtualService
+                            has a list of gateways specified at the top, it should
+                            include the reserved gateway `mesh` in order for this
+                            field to be applicable.
+                          type: object
+                      required:
+                      - sniHosts
+                      type: object
+                    type: array
+                  route:
+                    description: The destination to which the connection should be
+                      forwarded to.
+                    items:
+                      properties:
+                        destination:
+                          description: REQUIRED. Destination uniquely identifies the
+                            instances of a service to which the request/connection
+                            should be forwarded to.
+                          properties:
+                            host:
+                              description: 'REQUIRED. The name of a service from the
+                                service registry. Service names are looked up from
+                                the platform''s service registry (e.g., Kubernetes
+                                services, Consul services, etc.) and from the hosts
+                                declared by [ServiceEntry](#ServiceEntry). Traffic
+                                forwarded to destinations that are not found in either
+                                of the two, will be dropped.  *Note for Kubernetes
+                                users*: When short names are used (e.g. "reviews"
+                                instead of "reviews.default.svc.cluster.local"), Istio
+                                will interpret the short name based on the namespace
+                                of the rule, not the service. A rule in the "default"
+                                namespace containing a host "reviews will be interpreted
+                                as "reviews.default.svc.cluster.local", irrespective
+                                of the actual namespace associated with the reviews
+                                service. _To avoid potential misconfigurations, it
+                                is recommended to always use fully qualified domain
+                                names over short names._'
+                              type: string
+                            port:
+                              description: Specifies the port on the host that is
+                                being addressed. If a service exposes only a single
+                                port it is not required to explicitly select the port.
+                              properties:
+                                name:
+                                  description: Valid port name
+                                  type: string
+                                number:
+                                  description: Valid port number
+                                  format: int32
+                                  type: integer
+                              type: object
+                            subset:
+                              description: The name of a subset within the service.
+                                Applicable only to services within the mesh. The subset
+                                must be defined in a corresponding DestinationRule.
+                              type: string
+                          required:
+                          - host
+                          type: object
+                        weight:
+                          description: REQUIRED. The proportion of traffic to be forwarded
+                            to the service version. (0-100). Sum of weights across
+                            destinations SHOULD BE == 100. If there is only destination
+                            in a rule, the weight value is assumed to be 100.
+                          format: int64
+                          type: integer
+                      required:
+                      - destination
+                      - weight
+                      type: object
+                    type: array
+                required:
+                - match
+                - route
+                type: object
+              type: array
+          required:
+          - hosts
+          type: object
+      required:
+      - spec
+  version: v1alpha3
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
