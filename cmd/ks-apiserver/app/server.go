@@ -72,6 +72,7 @@ func Run(s *options.ServerRunOptions) error {
 
 	container := runtime.Container
 	container.Filter(filter.Logging)
+	container.Filter(filter.IdentityTransferEncoding)
 
 	log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
 
