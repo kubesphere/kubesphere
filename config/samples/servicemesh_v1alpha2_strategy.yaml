@@ -12,6 +12,8 @@ spec:
       "servicemesh.kubesphere.io/type": "canary"
   template:
     spec:
+      service: "details"
+      principal: "v1"
       hosts:
       - details
       http:

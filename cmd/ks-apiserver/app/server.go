@@ -174,5 +174,13 @@ func waitForResourceSync() {
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
+
+	s2iInformerFactory := informers.S2iSharedInformerFactory()
+	s2iInformerFactory.Devops().V1alpha1().S2iBuilderTemplates().Lister()
+	s2iInformerFactory.Devops().V1alpha1().S2iRuns().Lister()
+	s2iInformerFactory.Devops().V1alpha1().S2iBuilders().Lister()
+
+	s2iInformerFactory.Start(stopChan)
+	s2iInformerFactory.WaitForCacheSync(stopChan)
 	log.Println("resources sync success")
 }

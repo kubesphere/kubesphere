@@ -6,6 +6,23 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: strategies.servicemesh.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.type
+    description: type of strategy
+    name: Type
+    type: string
+  - JSONPath: .spec.template.spec.hosts
+    description: destination hosts
+    name: Hosts
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    description: 'CreationTimestamp is a timestamp representing the server time when
+      this object was created. It is not guaranteed to be set in happens-before order
+      across separate operations. Clients may not set this value. It is represented
+      in RFC3339 form and is in UTC. Populated by the system. Read-only. Null for
+      lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
+    name: Age
+    type: date
   group: servicemesh.kubesphere.io
   names:
     kind: Strategy
@@ -28,10 +45,18 @@ spec:
           type: object
         spec:
           properties:
+            governor:
+              description: Governor version, the version takes control of all incoming
+                traffic label version value
+              type: string
             paused:
               description: Indicates that the strategy is paused and will not be processed
                 by the strategy controller
               type: boolean
+            principal:
+              description: Principal version, the one as reference version label version
+                value
+              type: string
             selector:
               description: Label selector for virtual services.
               type: object

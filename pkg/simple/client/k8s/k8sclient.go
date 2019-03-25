@@ -25,12 +25,11 @@ import (
 	"os"
 	"sync"
 
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/mitchellh/go-homedir"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (

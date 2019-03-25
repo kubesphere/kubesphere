@@ -20,7 +20,7 @@ import (
 	"github.com/knative/pkg/apis/istio/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 
-	"sigs.k8s.io/application/pkg/apis/app/v1beta1"
+	"github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 )
 
 func init() {

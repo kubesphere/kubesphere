@@ -45,6 +45,16 @@ type StrategySpec struct {
 	// Strategy type
 	Type StrategyType `json:"type,omitempty"`
 
+	// Principal version, the one as reference version
+	// label version value
+	// +optional
+	PrincipalVersion string `json:"principal,omitempty"`
+
+	// Governor version, the version takes control of all incoming traffic
+	// label version value
+	// +optional
+	GovernorVersion string `json:"governor,omitempty"`
+
 	// Label selector for virtual services.
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
@@ -128,6 +138,9 @@ type StrategyCondition struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Strategy is the Schema for the strategies API
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type",description="type of strategy"
+// +kubebuilder:printcolumn:name="Hosts",type="string",JSONPath=".spec.template.spec.hosts",description="destination hosts"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC. Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
 // +k8s:openapi-gen=true
 type Strategy struct {
 	metav1.TypeMeta   `json:",inline"`

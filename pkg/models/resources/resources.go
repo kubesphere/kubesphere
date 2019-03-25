@@ -37,11 +37,14 @@ func init() {
 	namespacedResources[StatefulSets] = &statefulSetSearcher{}
 	namespacedResources[Pods] = &podSearcher{}
 	namespacedResources[Roles] = &roleSearcher{}
+	namespacedResources[S2iBuilders] = &s2iBuilderSearcher{}
+	namespacedResources[S2iRuns] = &s2iRunSearcher{}
 
 	clusterResources[Nodes] = &nodeSearcher{}
 	clusterResources[Namespaces] = &namespaceSearcher{}
 	clusterResources[ClusterRoles] = &clusterRoleSearcher{}
 	clusterResources[StorageClasses] = &storageClassesSearcher{}
+	clusterResources[S2iBuilderTemplates] = &s2iBuilderTemplateSearcher{}
 }
 
 var namespacedResources = make(map[string]namespacedSearcherInterface)
@@ -82,6 +85,9 @@ const (
 	Namespaces             = "namespaces"
 	StorageClasses         = "storageclasses"
 	ClusterRoles           = "clusterroles"
+	S2iBuilderTemplates    = "s2ibuildertemplates"
+	S2iBuilders            = "s2ibuilders"
+	S2iRuns                = "s2iruns"
 )
 
 type namespacedSearcherInterface interface {
