@@ -57,7 +57,7 @@ required = [
 
 [[constraint]]
   name="github.com/kubesphere/s2ioperator"
-  version="v0.0.4"
+  version="v0.0.7"
 
 [[override]]
   name="github.com/bifurcation/mint"
