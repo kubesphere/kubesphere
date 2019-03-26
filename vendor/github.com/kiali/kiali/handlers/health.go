@@ -154,10 +154,13 @@ type baseHealthParams struct {
 
 func (p *baseHealthParams) baseExtract(request *restful.Request) {
 	p.RateInterval = defaultHealthRateInterval
-	p.QueryTime = util.Clock.Now()
+	p.QueryTime = time.Now()
 
-	p.RateInterval = request.QueryParameter("rateInterval")
-	p.Namespace = request.PathParameters()["namespace"]
+	if len(request.QueryParameter("rateInterval")) > 0 {
+		p.RateInterval = request.QueryParameter("rateInterval")
+	}
+
+	p.Namespace = request.PathParameter("namespace")
 }
 
 // namespaceHealthParams holds the path and query parameters for NamespaceHealth
