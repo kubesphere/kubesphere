@@ -273,7 +273,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 		if len(vs.Spec.Http) > 0 || len(vs.Spec.Tcp) > 0 {
 			_, err := v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(vs)
 			if err != nil {
-				v.eventRecorder.Eventf(vs, v1.EventTypeWarning, "FailedToCreateVirtualService", "Failed to create virtualservice for service %v/%v: %v", service.Namespace, service.Name, err)
+				v.eventRecorder.Event(vs, v1.EventTypeWarning, "FailedToCreateVirtualService", fmt.Sprintf("Failed to create virtualservice for service %v/%v: %v", service.Namespace, service.Name, err))
 				log.Error(err, "create virtualservice for service failed.", "service", service)
 				return err
 			}

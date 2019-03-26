@@ -277,9 +277,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 		}
 
 		if createDestinationRule {
-			v.eventRecorder.Eventf(newDestinationRule, v1.EventTypeWarning, "FailedToCreateDestinationRule", "Failed to create destinationrule for service %v/%v: %v", service.Namespace, service.Name, err)
+			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToCreateDestinationRule", fmt.Sprintf("Failed to create destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
 		} else {
-			v.eventRecorder.Eventf(newDestinationRule, v1.EventTypeWarning, "FailedToUpdateDestinationRule", "Failed to update destinationrule for service %v/%v: %v", service.Namespace, service.Name, err)
+			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToUpdateDestinationRule", fmt.Sprintf("Failed to update destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
 		}
 
 		return err
