@@ -77,7 +77,9 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 	virtualServiceClient istioclient.Interface) *VirtualServiceController {
 
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(log.Info)
+	broadcaster.StartLogging(func(format string, args ...interface{}) {
+		log.Info(fmt.Sprintf(format, args))
+	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "virtualservice-controller"})
 
@@ -115,6 +117,9 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 
 	destinationRuleInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: v.addDestinationRule,
+		UpdateFunc: func(old, cur interface{}) {
+			v.addDestinationRule(cur)
+		},
 	})
 
 	v.virtualServiceLister = virtualServiceInformer.Lister()
@@ -128,7 +133,7 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 }
 
 func (v *VirtualServiceController) Start(stopCh <-chan struct{}) error {
-	v.Run(1, stopCh)
+	v.Run(5, stopCh)
 	return nil
 }
 
@@ -194,8 +199,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 	service, err := v.serviceLister.Services(namespace).Get(name)
 	if err != nil {
 		// Delete the corresponding virtualservice, as the service has been deleted.
-		err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(service.Name, nil)
+		err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(name, nil)
 		if err != nil && !errors.IsNotFound(err) {
+			log.Error(err, "delete orphan virtualservice failed", "namespace", service.Namespace, "name", service.Name)
 			return err
 		}
 		return nil
@@ -230,7 +236,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	if len(subsets) == 0 {
 		// destination rule with no subsets, not possibly
 		err = fmt.Errorf("find destinationrule with no subsets for service %s", name)
-		log.Error(err, "Find destinationrule with no subsets for service", "service", service.String())
+		log.Error(err, "Find destinationrule with no subsets for service", "namespace", service.Namespace, "name", name)
 		return err
 	} else {
 		vs = &v1alpha3.VirtualService{
@@ -293,7 +299,7 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 	service, err := v.serviceLister.Services(dr.Namespace).Get(dr.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.V(0).Info("service not created yet", "key", dr.Name)
+			log.V(0).Info("service not created yet", "namespace", dr.Namespace, "service", dr.Name)
 			return
 		}
 		utilruntime.HandleError(fmt.Errorf("unable to get service with name %s/%s", dr.Namespace, dr.Name))

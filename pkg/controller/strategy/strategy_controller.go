@@ -115,7 +115,7 @@ func (r *ReconcileStrategy) reconcileStrategy(strategy *servicemeshv1alpha2.Stra
 
 	err := r.Get(context.TODO(), types.NamespacedName{Namespace: strategy.Namespace, Name: appName}, service)
 	if err != nil {
-		log.Error(err, "couldn't find service %s/%s,", strategy.Namespace, appName)
+		log.Error(err, "couldn't find service", "namespace", strategy.Namespace, "name", appName)
 		return reconcile.Result{}, errors.NewBadRequest(fmt.Sprintf("service %s not found", appName))
 	}
 

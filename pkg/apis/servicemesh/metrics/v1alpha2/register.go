@@ -126,6 +126,17 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("namespaces", "names of namespaces")).
 		Writes(errors.Error{})).Produces(restful.MIME_JSON)
 
+	// Get namespace health
+	webservice.Route(webservice.GET("/namespaces/{namespace}/health").
+		To(metrics.GetNamespaceHealth).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get workload health").
+		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
+		Param(webservice.PathParameter("type", "the type of health, app/service/workload, default app").DefaultValue("app")).
+		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
+		Param(webservice.QueryParameter("queryTime", "the time to use for query")).
+		Writes(errors.Error{})).Produces(restful.MIME_JSON)
+
 	// Get workloads health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/workloads/{workload}/health").
 		To(metrics.GetWorkloadHealth).

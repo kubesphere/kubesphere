@@ -45,15 +45,7 @@ esac
 command_exists curl
 command_exists tar
 
-if [ "x${KUBEBUILDER_VERSION}" = "x" ] ; then
-  KUBEBUILDER_VERSION=$(curl -L -s https://api.github.com/repos/kubernetes-sigs/kubebuilder/releases/latest?access_token=$TOKEN | \
-                  grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
-  if [ -z "$KUBEBUILDER_VERSION" ]; then
-    echo "\nUnable to fetch the latest version tag. This may be due to network access problem"
-    exit 0
-  fi
-fi
-
+KUBEBUILDER_VERSION=v1.0.8
 KUBEBUILDER_VERSION=${KUBEBUILDER_VERSION#"v"}
 KUBEBUILDER_VERSION_NAME="kubebuilder_${KUBEBUILDER_VERSION}"
 KUBEBUILDER_DIR=/usr/local/kubebuilder
