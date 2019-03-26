@@ -20,7 +20,6 @@ package log
 
 import (
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-	"time"
 )
 
 type FluentbitCRDResult struct {
@@ -51,14 +50,4 @@ type FluentbitFiltersResult struct {
 type FluentbitOutputsResult struct {
 	Status  int               `json:"status"`
 	Outputs []fb.OutputPlugin `json:"outputs,omitempty"`
-}
-
-type OutputDBBinding struct {
-	Id         uint   `gorm:"primary_key;auto_increment;unique"`
-	Type       string `gorm:"not null"`
-	Name       string `gorm:"not null"`
-	Parameters string `gorm:"not null"`
-	Internal   bool
-	Enable     bool      `gorm:"not null"`
-	Updatetime time.Time `gorm:"not null"`
 }

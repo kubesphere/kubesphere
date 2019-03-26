@@ -91,6 +91,7 @@ func LoggingInsertFluentbitOutput(request *restful.Request, response *restful.Re
 
 	err := request.ReadEntity(&output)
 	if err != nil {
+		glog.Errorln(err)
 		res = &log.FluentbitOutputsResult{Status: http.StatusBadRequest}
 	} else {
 		res = log.FluentbitOutputInsert(output)
@@ -104,14 +105,10 @@ func LoggingUpdateFluentbitOutput(request *restful.Request, response *restful.Re
 	var output fb.OutputPlugin
 
 	id := request.PathParameter("output")
-	_, err := strconv.ParseUint(id, 10, 64)
+
+	err := request.ReadEntity(&output)
 	if err != nil {
-		res := &log.FluentbitOutputsResult{Status: http.StatusBadRequest}
-		response.WriteAsJson(res)
-		return
-	}
-	err = request.ReadEntity(&output)
-	if err != nil {
+		glog.Errorln(err)
 		res := &log.FluentbitOutputsResult{Status: http.StatusBadRequest}
 		response.WriteAsJson(res)
 		return
@@ -126,12 +123,7 @@ func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Re
 	var res *log.FluentbitOutputsResult
 
 	id := request.PathParameter("output")
-	_, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		res = &log.FluentbitOutputsResult{Status: http.StatusBadRequest}
-	} else {
-		res = log.FluentbitOutputDelete(id)
-	}
+	res = log.FluentbitOutputDelete(id)
 
 	response.WriteAsJson(res)
 }
