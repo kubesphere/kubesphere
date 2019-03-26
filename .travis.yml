@@ -19,11 +19,11 @@ before_script:
   - bash hack/install_kubebuilder.sh
 
 script:
-  - make all && bash hack/docker_build.sh
+  - make all 
 
 deploy:
   skip_cleanup: true
   provider: script
-  script: bash hack/docker_push.sh
+  script: bash hack/docker_build.sh && bash hack/docker_push.sh
   on:
     branch: master
