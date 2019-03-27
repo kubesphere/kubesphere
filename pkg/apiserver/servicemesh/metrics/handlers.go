@@ -49,6 +49,11 @@ func GetNamespacesGraph(request *restful.Request, response *restful.Response) {
 	handlers.GraphNamespaces(request, response)
 }
 
+// Get namespace health
+func GetNamespaceHealth(request *restful.Request, response *restful.Response) {
+	handlers.NamespaceHealth(request, response)
+}
+
 // Get workload health
 func GetWorkloadHealth(request *restful.Request, response *restful.Response) {
 	handlers.WorkloadHealth(request, response)

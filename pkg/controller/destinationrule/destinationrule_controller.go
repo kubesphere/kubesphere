@@ -74,7 +74,9 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 	destinationRuleClient istioclientset.Interface) *DestinationRuleController {
 
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(log.Info)
+	broadcaster.StartLogging(func(format string, args ...interface{}) {
+		log.Info(fmt.Sprintf(format, args))
+	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "destinationrule-controller"})
 
@@ -95,6 +97,9 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.addDeployment,
 		DeleteFunc: v.deleteDeployment,
+		UpdateFunc: func(old, cur interface{}) {
+			v.addDeployment(cur)
+		},
 	})
 
 	v.serviceLister = serviceInformer.Lister()
@@ -246,7 +251,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 
 	}
 
-	createDestinationRule := len(currentDestinationRule.Spec.Subsets) == 0
+	createDestinationRule := len(currentDestinationRule.ResourceVersion) == 0
 
 	if !createDestinationRule && reflect.DeepEqual(currentDestinationRule.Spec.Subsets, subsets) &&
 		reflect.DeepEqual(currentDestinationRule.Labels, service.Labels) {
@@ -277,9 +282,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 		}
 
 		if createDestinationRule {
-			v.eventRecorder.Eventf(newDestinationRule, v1.EventTypeWarning, "FailedToCreateDestinationRule", "Failed to create destinationrule for service %v/%v: %v", service.Namespace, service.Name, err)
+			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToCreateDestinationRule", fmt.Sprintf("Failed to create destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
 		} else {
-			v.eventRecorder.Eventf(newDestinationRule, v1.EventTypeWarning, "FailedToUpdateDestinationRule", "Failed to update destinationrule for service %v/%v: %v", service.Namespace, service.Name, err)
+			v.eventRecorder.Event(newDestinationRule, v1.EventTypeWarning, "FailedToUpdateDestinationRule", fmt.Sprintf("Failed to update destinationrule for service %v/%v: %v", service.Namespace, service.Name, err))
 		}
 
 		return err
@@ -288,10 +293,23 @@ func (v *DestinationRuleController) syncService(key string) error {
 	return nil
 }
 
+func (v *DestinationRuleController) isApplicationComponent(meta *metav1.ObjectMeta) bool {
+	if len(meta.Labels) >= len(util.ApplicationLabels) && util.IsApplicationComponent(meta) {
+		return true
+	}
+	return false
+}
+
 // When a destinationrule is added, figure out which service it will be used
 // and enqueue it. obj must have *appsv1.Deployment type
 func (v *DestinationRuleController) addDeployment(obj interface{}) {
 	deploy := obj.(*appsv1.Deployment)
+
+	// not a application component
+	if !v.isApplicationComponent(&deploy.ObjectMeta) {
+		return
+	}
+
 	services, err := v.getDeploymentServiceMemberShip(deploy)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to get deployment %s/%s's service memberships", deploy.Namespace, deploy.Name))
@@ -336,7 +354,7 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 
 	for i := range allServices {
 		service := allServices[i]
-		if service.Spec.Selector == nil {
+		if service.Spec.Selector == nil || !v.isApplicationComponent(&service.ObjectMeta) {
 			// services with nil selectors match nothing, not everything.
 			continue
 		}
