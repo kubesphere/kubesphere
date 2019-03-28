@@ -127,7 +127,7 @@ func initializeESClientConfig() {
 
 	err := db.Find(&outputs).Error
 	if err != nil {
-	    log.Printf("get logging config failed. Error: %v", err)
+		log.Printf("get logging config failed. Error: %v", err)
 		return
 	}
 
