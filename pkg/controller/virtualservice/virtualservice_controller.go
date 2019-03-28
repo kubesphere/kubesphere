@@ -6,14 +6,17 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
+	"reflect"
 	"strings"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -27,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 
@@ -98,6 +102,7 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 		AddFunc:    v.enqueueService,
 		DeleteFunc: v.enqueueService,
 		UpdateFunc: func(old, cur interface{}) {
+			// TODO(jeff): need a more robust mechanism, because user may change labels
 			v.enqueueService(cur)
 		},
 	})
@@ -109,7 +114,11 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 	v.strategySynced = strategyInformer.Informer().HasSynced
 
 	strategyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		DeleteFunc: v.deleteStrategy,
+		DeleteFunc: v.addStrategy,
+		AddFunc:    v.addStrategy,
+		UpdateFunc: func(old, cur interface{}) {
+			v.addStrategy(cur)
+		},
 	})
 
 	v.destinationRuleLister = destinationRuleInformer.Lister()
@@ -185,48 +194,63 @@ func (v *VirtualServiceController) processNextWorkItem() bool {
 	return true
 }
 
+// created virtualservice's name are same as the service name, same
+// as the destinationrule name
+// labels:
+//      servicemesh.kubernetes.io/enabled: ""
+//      app.kubernetes.io/name: bookinfo
+//      app: reviews
+// are used to bind them together.
+// syncService are the main part of reconcile function body, it takes
+// service, destinationrule, strategy as input to create a virtualservice
+// for service.
 func (v *VirtualServiceController) syncService(key string) error {
 	startTime := time.Now()
-	defer func() {
-		log.V(4).Info("Finished syncing service virtualservice. ", "service", key, "duration", time.Since(startTime))
-	}()
-
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
+		log.Error(err, "not a valid controller key", "key", key)
 		return err
 	}
 
+	// default component name to service name
+	appName := name
+
+	defer func() {
+		log.V(4).Info("Finished syncing service virtualservice.", "namespace", namespace, "name", name, "duration", time.Since(startTime))
+	}()
+
 	service, err := v.serviceLister.Services(namespace).Get(name)
 	if err != nil {
-		// Delete the corresponding virtualservice, as the service has been deleted.
-		err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(name, nil)
-		if err != nil && !errors.IsNotFound(err) {
-			log.Error(err, "delete orphan virtualservice failed", "namespace", service.Namespace, "name", service.Name)
-			return err
+		if errors.IsNotFound(err) {
+			// Delete the corresponding virtualservice, as the service has been deleted.
+			err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Delete(name, nil)
+			if err != nil && !errors.IsNotFound(err) {
+				log.Error(err, "delete orphan virtualservice failed", "namespace", namespace, "name", service.Name)
+				return err
+			}
+			return nil
 		}
-		return nil
+		log.Error(err, "get service failed", "namespace", namespace, "name", name)
+		return err
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(&service.ObjectMeta) ||
+	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(service.Labels) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a virtualservice
 		// or they don't have necessary labels
 		// or they don't have any ports defined
 		return nil
 	}
-
-	vs, err := v.virtualServiceLister.VirtualServices(namespace).Get(name)
-	if err == nil {
-		// there already is virtual service there, no need to create another one
-		return nil
-	}
+	// get real component name, i.e label app value
+	appName = util.GetComponentName(&service.ObjectMeta)
 
 	destinationRule, err := v.destinationRuleLister.DestinationRules(namespace).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// there is no destinationrule for this service
 			// maybe corresponding workloads are not created yet
-			return nil
+			log.Info("destination rules for service not found, retrying.", "namespace", namespace, "name", name)
+			return fmt.Errorf("destination rule for service %s/%s not found", namespace, name)
 		}
 		log.Error(err, "Couldn't get destinationrule for service.", "service", types.NamespacedName{Name: service.Name, Namespace: service.Namespace}.String())
 		return err
@@ -235,20 +259,47 @@ func (v *VirtualServiceController) syncService(key string) error {
 	subsets := destinationRule.Spec.Subsets
 	if len(subsets) == 0 {
 		// destination rule with no subsets, not possibly
-		err = fmt.Errorf("find destinationrule with no subsets for service %s", name)
-		log.Error(err, "Find destinationrule with no subsets for service", "namespace", service.Namespace, "name", name)
+		err = fmt.Errorf("found destinationrule with no subsets for service %s", name)
+		log.Error(err, "found destinationrule with no subsets", "namespace", namespace, "name", appName)
 		return err
-	} else {
-		vs = &v1alpha3.VirtualService{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-				Labels:    util.ExtractApplicationLabels(&service.ObjectMeta),
-			},
-			Spec: v1alpha3.VirtualServiceSpec{
-				Hosts: []string{name},
-			},
+	}
+
+	// fetch all strategies applied to service
+	strategies, err := v.strategyLister.Strategies(namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	if err != nil {
+		log.Error(err, "list strategies for service failed", "namespace", namespace, "name", appName)
+		return err
+	} else if len(strategies) > 1 {
+		// more than one strategies are not allowed, it will cause collision
+		err = fmt.Errorf("more than one strategies applied to service %s/%s is forbbiden", namespace, appName)
+		log.Error(err, "")
+		return err
+	}
+
+	// get current virtual service
+	currentVirtualService, err := v.virtualServiceLister.VirtualServices(namespace).Get(appName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			currentVirtualService = &v1alpha3.VirtualService{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      appName,
+					Namespace: namespace,
+					Labels:    util.ExtractApplicationLabels(&service.ObjectMeta),
+				},
+			}
 		}
+		return nil
+	}
+	vs := currentVirtualService.DeepCopy()
+
+	if len(strategies) > 0 {
+		// apply strategy spec to virtualservice
+		vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
+	} else {
+		// create a whole new virtualservice
+
+		// TODO(jeff): use FQDN to replace service name
+		vs.Spec.Hosts = []string{name}
 
 		// check if service has TCP protocol ports
 		for _, port := range service.Spec.Ports {
@@ -275,18 +326,45 @@ func (v *VirtualServiceController) syncService(key string) error {
 				vs.Spec.Tcp = []v1alpha3.TCPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
 			}
 		}
+	}
 
-		if len(vs.Spec.Http) > 0 || len(vs.Spec.Tcp) > 0 {
-			_, err := v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(vs)
-			if err != nil {
-				v.eventRecorder.Event(vs, v1.EventTypeWarning, "FailedToCreateVirtualService", fmt.Sprintf("Failed to create virtualservice for service %v/%v: %v", service.Namespace, service.Name, err))
-				log.Error(err, "create virtualservice for service failed.", "service", service)
-				return err
-			}
+	createVirtualService := len(currentVirtualService.ResourceVersion) == 0
+
+	if !createVirtualService &&
+		reflect.DeepEqual(vs.Spec, currentVirtualService.Spec) &&
+		reflect.DeepEqual(service.Labels, currentVirtualService.Labels) {
+		log.V(4).Info("virtual service are equal, skipping update ")
+		return nil
+	}
+
+	newVirtualService := currentVirtualService.DeepCopy()
+	newVirtualService.Labels = service.Labels
+	newVirtualService.Spec = vs.Spec
+	if newVirtualService.Annotations == nil {
+		newVirtualService.Annotations = make(map[string]string)
+	}
+
+	if len(newVirtualService.Spec.Http) == 0 && len(newVirtualService.Spec.Tcp) == 0 && len(newVirtualService.Spec.Tls) == 0 {
+		err = fmt.Errorf("service %s/%s doesn't have a valid port spec", namespace, name)
+		log.Error(err, "")
+		return err
+	}
+
+	if createVirtualService {
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
+	} else {
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
+	}
+
+	if err != nil {
+
+		if createVirtualService {
+			v.eventRecorder.Event(newVirtualService, v1.EventTypeWarning, "FailedToCreateVirtualService", fmt.Sprintf("Failed to create virtualservice for service %v/%v: %v", namespace, name, err))
 		} else {
-			log.Info("service doesn't have a tcp port.")
-			return nil
+			v.eventRecorder.Event(newVirtualService, v1.EventTypeWarning, "FailedToUpdateVirtualService", fmt.Sprintf("Failed to update virtualservice for service %v/%v: %v", namespace, name, err))
 		}
+
+		return err
 	}
 
 	return nil
@@ -299,7 +377,7 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 	service, err := v.serviceLister.Services(dr.Namespace).Get(dr.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.V(0).Info("service not created yet", "namespace", dr.Namespace, "service", dr.Name)
+			log.V(3).Info("service not created yet", "namespace", dr.Namespace, "service", dr.Name)
 			return
 		}
 		utilruntime.HandleError(fmt.Errorf("unable to get service with name %s/%s", dr.Namespace, dr.Name))
@@ -324,8 +402,46 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 	return
 }
 
-func (v *VirtualServiceController) deleteStrategy(obj interface{}) {
-	// nothing to do right now
+// when a strategy created
+func (v *VirtualServiceController) addStrategy(obj interface{}) {
+	strategy := obj.(*servicemeshv1alpha2.Strategy)
+
+	lbs := util.ExtractApplicationLabels(&strategy.ObjectMeta)
+	if len(lbs) == 0 {
+		err := fmt.Errorf("invalid strategy %s/%s labels %s, not have required labels", strategy.Namespace, strategy.Name, strategy.Labels)
+		log.Error(err, "")
+		utilruntime.HandleError(err)
+		return
+	}
+
+	allServices, err := v.serviceLister.Services(strategy.Namespace).List(labels.SelectorFromSet(lbs))
+	if err != nil {
+		log.Error(err, "list services failed")
+		utilruntime.HandleError(err)
+		return
+	}
+
+	// avoid insert a key multiple times
+	set := sets.String{}
+
+	for i := range allServices {
+		service := allServices[i]
+		if service.Spec.Selector == nil || len(service.Spec.Ports) == 0 {
+			// services with nil selectors match nothing, not everything.
+			continue
+		}
+
+		key, err := controller.KeyFunc(service)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+		set.Insert(key)
+	}
+
+	for key := range set {
+		v.queue.Add(key)
+	}
 }
 
 func (v *VirtualServiceController) handleErr(err error, key interface{}) {
@@ -343,4 +459,41 @@ func (v *VirtualServiceController) handleErr(err error, key interface{}) {
 	log.V(4).Info("Dropping service out of the queue.", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
+}
+
+func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicemeshv1alpha2.Strategy, service *v1.Service) *v1alpha3.VirtualService {
+
+	// Define VirtualService to be created
+	vs := &v1alpha3.VirtualService{
+		Spec: strategy.Spec.Template.Spec,
+	}
+
+	// one version rules them all
+	if len(strategy.Spec.GovernorVersion) > 0 {
+
+		governorDestinationWeight := v1alpha3.DestinationWeight{
+			Destination: v1alpha3.Destination{
+				Host:   service.Name,
+				Subset: strategy.Spec.GovernorVersion,
+			},
+			Weight: 100,
+		}
+
+		if len(strategy.Spec.Template.Spec.Http) > 0 {
+			governorRoute := v1alpha3.HTTPRoute{
+				Route: []v1alpha3.DestinationWeight{governorDestinationWeight},
+			}
+
+			vs.Spec.Http = []v1alpha3.HTTPRoute{governorRoute}
+		} else if len(strategy.Spec.Template.Spec.Tcp) > 0 {
+			governorRoute := v1alpha3.TCPRoute{
+				Route: []v1alpha3.DestinationWeight{governorDestinationWeight},
+			}
+			vs.Spec.Tcp = []v1alpha3.TCPRoute{governorRoute}
+		}
+
+	}
+
+	util.FillDestinationPort(vs, service)
+	return vs
 }
