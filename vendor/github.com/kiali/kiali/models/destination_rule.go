@@ -79,16 +79,17 @@ func (dRule *DestinationRule) HasCircuitBreaker(namespace string, serviceName st
 	return false
 }
 
+// change circuit breaker to true only connectionPool and outlierDetection
+// are both set
 func isCircuitBreakerTrafficPolicy(trafficPolicy interface{}) bool {
 	if trafficPolicy == nil {
 		return false
 	}
 	if dTrafficPolicy, ok := trafficPolicy.(map[string]interface{}); ok {
 		if _, ok := dTrafficPolicy["connectionPool"]; ok {
-			return true
-		}
-		if _, ok := dTrafficPolicy["outlierDetection"]; ok {
-			return true
+			if _, ok := dTrafficPolicy["outlierDetection"]; ok {
+				return true
+			}
 		}
 	}
 	return false

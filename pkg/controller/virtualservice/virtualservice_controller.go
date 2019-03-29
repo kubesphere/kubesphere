@@ -287,8 +287,10 @@ func (v *VirtualServiceController) syncService(key string) error {
 					Labels:    util.ExtractApplicationLabels(&service.ObjectMeta),
 				},
 			}
+		} else {
+			log.Error(err, "cannot get virtualservice ", "namespace", namespace, "name", appName)
+			return err
 		}
-		return nil
 	}
 	vs := currentVirtualService.DeepCopy()
 
