@@ -28,6 +28,10 @@ type FakeServicemeshV1alpha2 struct {
 	*testing.Fake
 }
 
+func (c *FakeServicemeshV1alpha2) ServicePolicies(namespace string) v1alpha2.ServicePolicyInterface {
+	return &FakeServicePolicies{c, namespace}
+}
+
 func (c *FakeServicemeshV1alpha2) Strategies(namespace string) v1alpha2.StrategyInterface {
 	return &FakeStrategies{c, namespace}
 }
