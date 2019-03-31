@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -608,7 +609,7 @@ func Query(param QueryParameters) *QueryResult {
 	url := fmt.Sprintf("http://%s:%s/%s*/_search", es.Host, es.Port, es.Index)
 	request, err := http.NewRequest("GET", url, bytes.NewBuffer(query))
 	if err != nil {
-		//fmt.Println("Create request error ", err.Error())
+		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
 		return queryResult
@@ -617,7 +618,7 @@ func Query(param QueryParameters) *QueryResult {
 
 	response, err := client.Do(request)
 	if err != nil {
-		//fmt.Println("Send request error ", err.Error())
+		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
 		return queryResult
@@ -626,7 +627,7 @@ func Query(param QueryParameters) *QueryResult {
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		//fmt.Println("Read response error ", err.Error())
+		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
 		return queryResult

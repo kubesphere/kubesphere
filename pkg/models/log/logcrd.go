@@ -17,21 +17,30 @@ limitations under the License.
 package log
 
 import (
-	"github.com/jinzhu/gorm"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"github.com/json-iterator/go"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"kubesphere.io/kubesphere/pkg/informers"
 	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"net/http"
 	"strings"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
+
+const (
+	ConfigMapName    = "fluent-bit-output-config"
+	ConfigMapData    = "outputs"
+	LoggingNamespace = "kubesphere-logging-system"
+)
 
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
 	config, err := fb.GetClientConfig("")
@@ -84,7 +93,7 @@ func FluentbitFiltersQuery() *FluentbitFiltersResult {
 	}
 
 	// Create a CRD client interface
-	crdclient := fb.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -193,7 +202,7 @@ func FluentbitFiltersUpdate(filters *[]FluentbitFilter) *FluentbitFiltersResult 
 	}
 
 	// Create a CRD client interface
-	crdclient := fb.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	var item *fb.FluentBit
 	var err_read error
@@ -221,34 +230,13 @@ func FluentbitFiltersUpdate(filters *[]FluentbitFilter) *FluentbitFiltersResult 
 func FluentbitOutputsQuery() *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	// Retrieve outputs from DB
-	db := mysql.Client()
-
-	var outputs []OutputDBBinding
-
-	err := db.Find(&outputs).Error
+	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
-		result.Status = http.StatusInternalServerError
+		result.Status = http.StatusNotFound
 		return &result
 	}
 
-	var unmarshaledOutputs []fb.OutputPlugin
-
-	for _, output := range outputs {
-		var params []fb.Parameter
-
-		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
-		if err != nil {
-			result.Status = http.StatusInternalServerError
-			return &result
-		}
-
-		unmarshaledOutputs = append(unmarshaledOutputs,
-			fb.OutputPlugin{Plugin: fb.Plugin{Type: output.Type, Name: output.Name, Parameters: params},
-				Id: output.Id, Enable: output.Enable, Updatetime: output.Updatetime})
-	}
-
-	result.Outputs = unmarshaledOutputs
+	result.Outputs = outputs
 	result.Status = http.StatusOK
 
 	return &result
@@ -257,25 +245,29 @@ func FluentbitOutputsQuery() *FluentbitOutputsResult {
 func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	params, err := jsoniter.MarshalToString(output.Parameters)
-	if err != nil {
-		result.Status = http.StatusBadRequest
-		return &result
+	// 1. Update ConfigMap
+	var outputs []fb.OutputPlugin
+	outputs, err := GetFluentbitOutputFromConfigMap()
+    if err != nil {
+		// If the ConfigMap doesn't exist, a new one will be created later
+		glog.Errorln(err)
 	}
 
-	// 1. Update DB
-	db := mysql.Client()
+	// When adding a new output for the first time, one should always set it disabled
+	output.Enable = false
+	output.Id = uuid.New().String()
+	output.Updatetime = time.Now()
 
-	marshaledOutput := OutputDBBinding{Type: output.Type, Name: output.Name,
-		Parameters: params, Enable: output.Enable, Updatetime: time.Now()}
-	err = db.Create(&marshaledOutput).Error
+	outputs = append(outputs, output)
+
+	err = updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
-	// 2. Keep CRD in inline with DB
-	err = syncFluentbitCRDOutputWithDB(db)
+	// 2. Keep CRD in inline with ConfigMap
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
 		return &result
@@ -294,37 +286,40 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	// 1. Update DB
-	db := mysql.Client()
-
-	params, err := jsoniter.MarshalToString(output.Parameters)
+	// 1. Update ConfigMap
+	var outputs []fb.OutputPlugin
+	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
-		result.Status = http.StatusBadRequest
+		// If the ConfigMap doesn't exist, a new one will be created later
+		glog.Errorln(err)
+	}
+
+	index := 0
+	for _, output := range outputs {
+		if output.Id == id {
+			break
+		}
+		index++
+	}
+
+	if index >= len(outputs) {
+		result.Status = http.StatusNotFound
 		return &result
 	}
 
-	var marshaledOutput OutputDBBinding
-	err = db.Where("id = ?", id).First(&marshaledOutput).Error
+	output.Updatetime = time.Now()
+	outputs = append(append(outputs[:index], outputs[index+1:]...), output)
+
+	err = updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
-	marshaledOutput.Name = output.Name
-	marshaledOutput.Type = output.Type
-	marshaledOutput.Parameters = params
-	marshaledOutput.Enable = output.Enable
-
-	err = db.Save(&marshaledOutput).Error
+	// 2. Keep CRD in inline with ConfigMap
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
-		return &result
-	}
-
-	// 2. Keep CRD in inline with DB
-	err = syncFluentbitCRDOutputWithDB(db)
-	if err != nil {
-		result.Status = http.StatusBadRequest
 		return &result
 	}
 
@@ -341,19 +336,35 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	// 1. Remove the record from DB
-	db := mysql.Client()
+	// 1. Update ConfigMap
+	// If the ConfigMap doesn't exist, a new one will be created
+	outputs, _ := GetFluentbitOutputFromConfigMap()
 
-	err := db.Where("id = ?", id).Delete(&OutputDBBinding{}).Error
+	index := 0
+	for _, output := range outputs {
+		if output.Id == id {
+			break
+		}
+		index++
+	}
+
+	if index >= len(outputs) {
+		result.Status = http.StatusNotFound
+		return &result
+	}
+
+	outputs = append(outputs[:index], outputs[index+1:]...)
+
+	err := updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
 	// 2. Keep CRD in inline with DB
-	err = syncFluentbitCRDOutputWithDB(db)
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
-		result.Status = http.StatusBadRequest
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
@@ -361,29 +372,89 @@ func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	return &result
 }
 
-func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
-	var outputs []OutputDBBinding
-
-	err := db.Where("enable is true").Find(&outputs).Error
+func GetFluentbitOutputFromConfigMap() ([]fb.OutputPlugin, error) {
+	configMap, err := informers.SharedInformerFactory().Core().V1().ConfigMaps().Lister().ConfigMaps(LoggingNamespace).Get(ConfigMapName)
 	if err != nil {
+		return nil, err
+	}
+
+	data := configMap.Data[ConfigMapData]
+
+	var outputs []fb.OutputPlugin
+	if err = jsonIter.UnmarshalFromString(data, &outputs); err != nil {
+		return nil, err
+	}
+
+	return outputs, nil
+}
+
+func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
+
+	var data string
+	data, err := jsonIter.MarshalToString(outputs)
+	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
-	var unmarshaledOutputs []fb.Plugin
+	// Update the ConfigMap
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		glog.Errorln(err)
+		return err
+	}
 
-	for _, output := range outputs {
-		var params []fb.Parameter
+	// Creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		glog.Errorln(err)
+		return err
+	}
 
-		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
-		if err != nil {
-			return err
+	configMapClient := clientset.CoreV1().ConfigMaps(LoggingNamespace)
+
+	configMap, err := configMapClient.Get(ConfigMapName, metav1.GetOptions{})
+	if err != nil {
+
+		// If the ConfigMap doesn't exist, create a new one
+		newConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ConfigMapName,
+			},
+			Data: map[string]string{ConfigMapData: data},
 		}
 
-		unmarshaledOutputs = append(unmarshaledOutputs, fb.Plugin{Type: output.Type, Name: output.Name, Parameters: params})
+		_, err = configMapClient.Create(newConfigMap)
+		if err != nil {
+			glog.Errorln(err)
+			return err
+		}
+	} else {
+
+		// update
+		configMap.Data = map[string]string{ConfigMapData: data}
+		_, err = configMapClient.Update(configMap)
+		if err != nil {
+			glog.Errorln(err)
+			return err
+		}
 	}
+
+	return nil
+}
+
+func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
+
+	var enabledOutputs []fb.Plugin
+	for _, output := range outputs {
+		if output.Enable {
+			enabledOutputs = append(enabledOutputs, fb.Plugin{Type: output.Type, Name: output.Name, Parameters: output.Parameters})
+		}
+	}
+
 	// Empty output is not allowed, must specify a null-type output
-	if len(unmarshaledOutputs) == 0 {
-		unmarshaledOutputs = []fb.Plugin{
+	if len(enabledOutputs) == 0 {
+		enabledOutputs = []fb.Plugin{
 			{
 				Type: "fluentbit_output",
 				Name: "fluentbit-output-null",
@@ -407,14 +478,14 @@ func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
 	}
 
 	// Create a CRD client interface
-	crdclient := fb.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	fluentbit, err := crdclient.Get("fluent-bit")
 	if err != nil {
 		return err
 	}
 
-	fluentbit.Spec.Output = unmarshaledOutputs
+	fluentbit.Spec.Output = enabledOutputs
 	_, err = crdclient.Update("fluent-bit", fluentbit)
 	if err != nil {
 		return err

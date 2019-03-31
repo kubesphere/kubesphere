@@ -72,9 +72,9 @@ type Plugin struct {
 // Fluent-bit output plugins
 type OutputPlugin struct {
 	Plugin
-	Id         uint      `json:"id"`
+	Id         string    `json:"id"`
 	Enable     bool      `json:"enable"`
-	Updatetime time.Time `json:"updatetime"`
+	Updatetime time.Time `json:"updatetime,omitempty"`
 }
 
 // Parameter generic parameter type to handle values from different sources

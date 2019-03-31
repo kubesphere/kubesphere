@@ -31,9 +31,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
-	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
-	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"log"
 	"net/http"
 )
@@ -116,30 +113,18 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 
 func initializeESClientConfig() {
 
-	var outputs []logging.OutputDBBinding
-	var configs *es.ESConfigs
-
-	db := mysql.Client()
-	if !db.HasTable(&logging.OutputDBBinding{}) {
-		// Panic
-		log.Print("Flyway migration is not completed")
-	}
-
-	err := db.Find(&outputs).Error
+	// List all outputs
+	outputs,err := logging.GetFluentbitOutputFromConfigMap()
 	if err != nil {
-		log.Printf("get logging config failed. Error: %v", err)
+		glog.Errorln(err)
 		return
 	}
 
-	// Retrieve es-type output from db
-	var params []fb.Parameter
+	// Iterate the outputs to get elasticsearch configs
 	for _, output := range outputs {
-		err := jsonIter.UnmarshalFromString(output.Parameters, &params)
-		if err == nil {
-			if configs = logging.ParseEsOutputParams(params); configs != nil {
-				configs.WriteESConfigs()
-				return
-			}
+		if configs := logging.ParseEsOutputParams(output.Parameters); configs != nil {
+			configs.WriteESConfigs()
+			return
 		}
 	}
 }
