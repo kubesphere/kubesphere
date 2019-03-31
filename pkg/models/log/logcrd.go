@@ -253,8 +253,8 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 		glog.Errorln(err)
 	}
 
-	// When adding a new output for the first time, one should always set it disabled
-	output.Enable = false
+	// When adding a new output for the first time, one should always set it enabled
+	output.Enable = true
 	output.Id = uuid.New().String()
 	output.Updatetime = time.Now()
 
