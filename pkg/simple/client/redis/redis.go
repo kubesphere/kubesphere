@@ -20,7 +20,10 @@ package redis
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/go-redis/redis"
 )
@@ -50,6 +53,12 @@ func Client() *redis.Client {
 		if err := redisClient.Ping().Err(); err != nil {
 			log.Fatalln(err)
 		}
+		c := make(chan os.Signal, 0)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			redisClient.Close()
+		}()
 	})
 
 	return redisClient

@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/signals"
+	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"log"
 	"net/http"
 	"time"
@@ -54,13 +55,11 @@ cluster's shared state through which all other components interact.`,
 }
 
 func Run(s *options.ServerRunOptions) error {
-
 	pflag.VisitAll(func(flag *pflag.Flag) {
 		log.Printf("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
 
 	var err error
-
 
 	expireTime, err := time.ParseDuration(s.TokenExpireTime)
 
@@ -69,6 +68,7 @@ func Run(s *options.ServerRunOptions) error {
 	}
 
 	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime)
+	jwtutil.Setup(s.JWTSecret)
 
 	if err != nil {
 		return err
@@ -79,11 +79,19 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.Filter(filter.Logging)
 
+	for _, webservice := range container.RegisteredWebServices() {
+		for _, route := range webservice.Routes() {
+			log.Println(route.Method, route.Path)
+		}
+	}
+
 	if s.GenericServerRunOptions.InsecurePort != 0 {
+		log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
 		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
 	}
 
 	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
+		log.Printf("Server listening on %d.", s.GenericServerRunOptions.SecurePort)
 		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
 	}
 
@@ -103,5 +111,11 @@ func waitForResourceSync() {
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
+
+	ksInformerFactory := informers.KsSharedInformerFactory()
+	ksInformerFactory.Tenant().V1alpha1().Workspaces().Lister()
+
+	ksInformerFactory.Start(stopChan)
+	ksInformerFactory.WaitForCacheSync(stopChan)
 	log.Println("resources sync success")
 }

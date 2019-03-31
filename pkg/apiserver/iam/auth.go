@@ -18,17 +18,14 @@
 package iam
 
 import (
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
+	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/iam"
-	"kubesphere.io/kubesphere/pkg/utils"
-	jwtutils "kubesphere.io/kubesphere/pkg/utils/jwt"
 )
 
 type Spec struct {
@@ -63,11 +60,11 @@ func LoginHandler(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&loginRequest)
 
 	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
-		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.Wrap(fmt.Errorf("incorrect username or password")))
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.New("incorrect username or password"))
 		return
 	}
 
-	ip := utils.RemoteIp(req.Request)
+	ip := iputil.RemoteIp(req.Request)
 
 	token, err := iam.Login(loginRequest.Username, loginRequest.Password, ip)
 
@@ -76,7 +73,7 @@ func LoginHandler(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.WriteAsJson(models.Token{Token: token})
+	resp.WriteAsJson(token)
 }
 
 // k8s token review
@@ -91,13 +88,13 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 	}
 
 	if tokenReview.Spec == nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("token must not be null")))
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New("token must not be null"))
 		return
 	}
 
 	uToken := tokenReview.Spec.Token
 
-	token, err := jwtutils.ValidateToken(uToken)
+	token, err := jwtutil.ValidateToken(uToken)
 
 	if err != nil {
 		failed := TokenReview{APIVersion: APIVersion,
@@ -112,23 +109,28 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 
 	claims := token.Claims.(jwt.MapClaims)
 
-	username := claims["username"].(string)
+	username, ok := claims["username"].(string)
 
-	conn, err := ldap.Client()
+	if !ok {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New("username not found"))
+		return
+	}
+
+	user, err := iam.GetUserInfo(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	defer conn.Close()
-
-	user, err := iam.UserDetail(username, conn)
+	groups, err := iam.GetUserGroups(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
+
+	user.Groups = groups
 
 	success := TokenReview{APIVersion: APIVersion,
 		Kind: KindTokenReview,

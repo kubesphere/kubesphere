@@ -30,6 +30,10 @@ import (
 type roleSearcher struct {
 }
 
+func (*roleSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Rbac().V1().Roles().Lister().Roles(namespace).Get(name)
+}
+
 // exactly Match
 func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -62,10 +72,6 @@ func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
 				return false
 			}
 			return false
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -77,7 +83,7 @@ func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
 
 func (*roleSearcher) compare(a, b *rbac.Role, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

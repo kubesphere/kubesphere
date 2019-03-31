@@ -30,6 +30,10 @@ import (
 type statefulSetSearcher struct {
 }
 
+func (*statefulSetSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
+}
+
 func statefulSetStatus(item *v1.StatefulSet) string {
 	if item.Spec.Replicas != nil {
 		if item.Status.ReadyReplicas == 0 && *item.Spec.Replicas == 0 {
@@ -52,7 +56,9 @@ func (*statefulSetSearcher) match(match map[string]string, item *v1.StatefulSet)
 				return false
 			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -95,7 +101,7 @@ func (*statefulSetSearcher) fuzzy(fuzzy map[string]string, item *v1.StatefulSet)
 
 func (*statefulSetSearcher) compare(a, b *v1.StatefulSet, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

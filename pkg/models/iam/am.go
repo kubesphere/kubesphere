@@ -23,53 +23,84 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"log"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
-	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/go-ldap/ldap"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/slice"
-
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 )
 
-func GetNamespaces(username string) ([]*corev1.Namespace, error) {
+const ClusterRoleKind = "ClusterRole"
 
-	roles, err := GetRoles(username, "")
+func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
+	role, err := GetUserDevopsRole(projectId, username)
 
 	if err != nil {
 		return nil, err
 	}
 
-	namespaces := make([]*corev1.Namespace, 0)
-	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
-	for _, role := range roles {
-		namespace, err := namespaceLister.Get(role.Name)
-		if err != nil {
-			return nil, err
+	return GetDevopsRoleSimpleRules(role), nil
+}
+
+func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
+	var rules []models.SimpleRule
+
+	switch role {
+	case "developer":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"view", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"view"}},
 		}
-		namespaces = append(namespaces, namespace)
+		break
+	case "owner":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "devops", Actions: []string{"edit", "view", "delete"}},
+		}
+		break
+	case "maintainer":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "devops", Actions: []string{"view"}},
+		}
+		break
+	case "reporter":
+		fallthrough
+	default:
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"view"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"view"}},
+		}
+		break
 	}
-
-	return namespaces, nil
+	return rules
 }
 
-func GetNamespacesByWorkspace(workspace string) ([]*corev1.Namespace, error) {
-	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
-	return namespaceLister.List(labels.SelectorFromSet(labels.Set{"kubesphere.io/workspace": workspace}))
-}
-
-func GetDevopsRole(projectId string, username string) (string, error) {
+func GetUserDevopsRole(projectId string, username string) (string, error) {
 
 	//Hard fix
 	if username == "admin" {
@@ -116,12 +147,8 @@ func GetDevopsRole(projectId string, username string) (string, error) {
 	return "", nil
 }
 
-func GetNamespace(namespaceName string) (*corev1.Namespace, error) {
-	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
-	return namespaceLister.Get(namespaceName)
-}
-
-func GetRoles(username string, namespace string) ([]*v1.Role, error) {
+// Get user roles in namespace
+func GetUserRoles(namespace, username string) ([]*v1.Role, error) {
 	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
 	roleBindingLister := informers.SharedInformerFactory().Rbac().V1().RoleBindings().Lister()
 	roleLister := informers.SharedInformerFactory().Rbac().V1().Roles().Lister()
@@ -134,37 +161,35 @@ func GetRoles(username string, namespace string) ([]*v1.Role, error) {
 	roles := make([]*v1.Role, 0)
 
 	for _, roleBinding := range roleBindings {
-
-		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && subject.Name == username {
-				if roleBinding.RoleRef.Kind == ClusterRoleKind {
-					clusterRole, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
-					if err == nil {
-						var role = v1.Role{TypeMeta: (*clusterRole).TypeMeta, ObjectMeta: (*clusterRole).ObjectMeta, Rules: (*clusterRole).Rules}
-						role.Namespace = roleBinding.Namespace
-						roles = append(roles, &role)
-						break
-					} else if apierrors.IsNotFound(err) {
-						log.Println(err)
-						break
+		if k8sutil.ContainsUser(roleBinding.Subjects, username) {
+			if roleBinding.RoleRef.Kind == ClusterRoleKind {
+				clusterRole, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						glog.Warningf("cluster role %s not found but bind user %s in namespace %s", roleBinding.RoleRef.Name, username, namespace)
+						continue
 					} else {
 						return nil, err
 					}
-				} else {
-					if subject.Kind == v1.UserKind && subject.Name == username {
-						rule, err := roleLister.Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name)
-						if err == nil {
-							roles = append(roles, rule)
-							break
-						} else if apierrors.IsNotFound(err) {
-							log.Println(err)
-							break
-						} else {
-							return nil, err
-						}
+				}
+				role := v1.Role{}
+				role.TypeMeta = clusterRole.TypeMeta
+				role.ObjectMeta = clusterRole.ObjectMeta
+				role.Rules = clusterRole.Rules
+				role.Namespace = roleBinding.Namespace
+				roles = append(roles, &role)
+			} else {
+				role, err := roleLister.Roles(roleBinding.Namespace).Get(roleBinding.RoleRef.Name)
 
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						glog.Warningf("role %s not found but bind user %s in namespace %s", roleBinding.RoleRef.Name, username, namespace)
+						continue
+					} else {
+						return nil, err
 					}
 				}
+				roles = append(roles, role)
 			}
 		}
 	}
@@ -172,55 +197,147 @@ func GetRoles(username string, namespace string) ([]*v1.Role, error) {
 	return roles, nil
 }
 
-func GetClusterRoles(username string) ([]*v1.ClusterRole, error) {
+func GetUserClusterRoles(username string) (*v1.ClusterRole, []*v1.ClusterRole, error) {
 	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
 	clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
-	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.SelectorFromSet(labels.Set{"": ""}))
+	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clusterRoles := make([]*v1.ClusterRole, 0)
+	userFacingClusterRole := &v1.ClusterRole{}
+	for _, clusterRoleBinding := range clusterRoleBindings {
+		if k8sutil.ContainsUser(clusterRoleBinding.Subjects, username) {
+			clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					glog.Warningf("cluster role %s not found but bind user %s", clusterRoleBinding.RoleRef.Name, username)
+					continue
+				} else {
+					return nil, nil, err
+				}
+			}
+			if clusterRoleBinding.Name == username {
+				userFacingClusterRole = clusterRole
+			}
+			clusterRoles = append(clusterRoles, clusterRole)
+		}
+	}
+
+	return userFacingClusterRole, clusterRoles, nil
+}
+
+func GetUserClusterRole(username string) (*v1.ClusterRole, error) {
+	userFacingClusterRole, _, err := GetUserClusterRoles(username)
+	if err != nil {
+		return nil, err
+	}
+	return userFacingClusterRole, nil
+}
+
+func GetUserClusterRules(username string) ([]v1.PolicyRule, error) {
+	_, clusterRoles, err := GetUserClusterRoles(username)
 
 	if err != nil {
 		return nil, err
 	}
 
-	roles := make([]*v1.ClusterRole, 0)
+	rules := make([]v1.PolicyRule, 0)
+	for _, clusterRole := range clusterRoles {
+		rules = append(rules, clusterRole.Rules...)
+	}
 
-	for _, rb := range clusterRoleBindings {
-		if rb.RoleRef.Kind == ClusterRoleKind {
-			for _, subject := range rb.Subjects {
-				if subject.Kind == v1.UserKind && subject.Name == username {
+	return rules, nil
+}
 
-					role, err := clusterRoleLister.Get(rb.RoleRef.Name)
-					role = role.DeepCopy()
-					if err == nil {
-						if role.Annotations == nil {
-							role.Annotations = make(map[string]string, 0)
-						}
+func GetUserRules(namespace, username string) ([]v1.PolicyRule, error) {
+	roles, err := GetUserRoles(namespace, username)
 
-						role.Annotations["rbac.authorization.k8s.io/clusterrolebinding"] = rb.Name
+	if err != nil {
+		return nil, err
+	}
 
-						if rb.Annotations != nil &&
-							rb.Annotations["rbac.authorization.k8s.io/clusterrole"] == rb.RoleRef.Name {
-							role.Annotations["rbac.authorization.k8s.io/clusterrole"] = "true"
-						}
+	rules := make([]v1.PolicyRule, 0)
+	for _, role := range roles {
+		rules = append(rules, role.Rules...)
+	}
 
-						roles = append(roles, role)
-						break
-					} else if apierrors.IsNotFound(err) {
-						glog.Warningln(err)
-						break
-					} else {
-						return nil, err
-					}
-				}
-			}
+	return rules, nil
+}
+
+func isUserFacingClusterRole(role *v1.ClusterRole) bool {
+	if role.Labels[constants.CreatorLabelKey] != "" {
+		return true
+	}
+	return false
+}
+
+func GetWorkspaceRoleBindings(workspace string) ([]*v1.ClusterRoleBinding, error) {
+
+	clusterRoleBindings, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().List(labels.Everything())
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*v1.ClusterRoleBinding, 0)
+
+	for _, roleBinding := range clusterRoleBindings {
+		if k8sutil.IsControlledBy(roleBinding.OwnerReferences, "Workspace", workspace) {
+			result = append(result, roleBinding)
 		}
 	}
 
-	return roles, nil
+	return result, nil
+}
+
+func GetWorkspaceRole(workspace, role string) (*v1.ClusterRole, error) {
+	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
+		return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
+	}
+	role = fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
+	return informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister().Get(role)
+}
+
+func GetUserWorkspaceRoleMap(username string) (map[string]string, error) {
+
+	clusterRoleBindings, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().List(labels.Everything())
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]string, 0)
+
+	for _, roleBinding := range clusterRoleBindings {
+		if workspace := k8sutil.GetControlledWorkspace(roleBinding.OwnerReferences); workspace != "" &&
+			k8sutil.ContainsUser(roleBinding.Subjects, username) {
+			result[workspace] = roleBinding.RoleRef.Name
+		}
+	}
+
+	return result, nil
+}
+
+func GetUserWorkspaceRole(workspace, username string) (*v1.ClusterRole, error) {
+	workspaceRoleMap, err := GetUserWorkspaceRoleMap(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if workspaceRole := workspaceRoleMap[workspace]; workspaceRole != "" {
+		return informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister().Get(workspaceRole)
+	}
+
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "workspace user"}, username)
 }
 
 func GetRoleBindings(namespace string, roleName string) ([]*v1.RoleBinding, error) {
 	roleBindingLister := informers.SharedInformerFactory().Rbac().V1().RoleBindings().Lister()
-	roleBindingList, err := roleBindingLister.List(labels.Everything())
+	roleBindings, err := roleBindingLister.RoleBindings(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -228,7 +345,7 @@ func GetRoleBindings(namespace string, roleName string) ([]*v1.RoleBinding, erro
 
 	items := make([]*v1.RoleBinding, 0)
 
-	for _, roleBinding := range roleBindingList {
+	for _, roleBinding := range roleBindings {
 		if roleName == "" {
 			items = append(items, roleBinding)
 		} else if roleBinding.RoleRef.Name == roleName {
@@ -241,7 +358,7 @@ func GetRoleBindings(namespace string, roleName string) ([]*v1.RoleBinding, erro
 
 func GetClusterRoleBindings(clusterRoleName string) ([]*v1.ClusterRoleBinding, error) {
 	clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
-	roleBindingList, err := clusterRoleBindingLister.List(labels.Everything())
+	roleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	if err != nil {
 		return nil, err
@@ -249,7 +366,7 @@ func GetClusterRoleBindings(clusterRoleName string) ([]*v1.ClusterRoleBinding, e
 
 	items := make([]*v1.ClusterRoleBinding, 0)
 
-	for _, roleBinding := range roleBindingList {
+	for _, roleBinding := range roleBindings {
 		if roleBinding.RoleRef.Name == clusterRoleName {
 			items = append(items, roleBinding)
 		}
@@ -258,46 +375,53 @@ func GetClusterRoleBindings(clusterRoleName string) ([]*v1.ClusterRoleBinding, e
 	return items, nil
 }
 
-func ClusterRoleUsers(clusterRoleName string) ([]*models.User, error) {
+func ListClusterRoleUsers(clusterRoleName string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
 	roleBindings, err := GetClusterRoleBindings(clusterRoleName)
 
 	if err != nil {
 		return nil, err
 	}
-
-	conn, err := ldapclient.Client()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer conn.Close()
-
-	names := make([]string, 0)
 	users := make([]*models.User, 0)
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && !strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(names, subject.Name, nil) {
-				names = append(names, subject.Name)
-
-				user, err := UserDetail(subject.Name, conn)
-
-				if ldap.IsErrorWithCode(err, 32) {
+			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+				user, err := DescribeUser(subject.Name)
+				if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 					continue
 				}
-
 				if err != nil {
 					return nil, err
 				}
-
 				users = append(users, user)
 			}
 		}
 	}
 
-	return users, nil
+	// order & reverse
+	sort.Slice(users, func(i, j int) bool {
+		if reverse {
+			tmp := i
+			i = j
+			j = tmp
+		}
+		switch orderBy {
+		default:
+			fallthrough
+		case "name":
+			return strings.Compare(users[i].Username, users[j].Username) <= 0
+		}
+	})
+
+	result := make([]interface{}, 0)
+
+	for i, d := range users {
+		if i >= offset && (limit == -1 || len(result) < limit) {
+			result = append(result, d)
+		}
+	}
+
+	return &models.PageableResponse{Items: result, TotalCount: len(users)}, nil
 
 }
 
@@ -308,30 +432,20 @@ func RoleUsers(namespace string, roleName string) ([]*models.User, error) {
 		return nil, err
 	}
 
-	conn, err := ldapclient.Client()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer conn.Close()
-
-	names := make([]string, 0)
 	users := make([]*models.User, 0)
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind &&
-				!strings.HasPrefix(subject.Name, "system") &&
-				!slice.ContainsString(names, subject.Name, nil) {
-				names = append(names, subject.Name)
-				user, err := UserDetail(subject.Name, conn)
-				if ldap.IsErrorWithCode(err, 32) {
-					continue
-				}
+			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+				user, err := DescribeUser(subject.Name)
 
 				if err != nil {
+					if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+						continue
+					}
 					return nil, err
 				}
+
+				user.Role = roleBinding.RoleRef.Name
 
 				users = append(users, user)
 			}
@@ -340,43 +454,57 @@ func RoleUsers(namespace string, roleName string) ([]*models.User, error) {
 	return users, nil
 }
 
+func ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+	return resources.ListResources(namespace, resources.Roles, conditions, orderBy, reverse, limit, offset)
+}
+
+func ListWorkspaceRoles(workspace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+	conditions.Match["ownerName"] = workspace
+	conditions.Match["ownerKind"] = "Workspace"
+	result, err := resources.ListResources("", resources.ClusterRoles, conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i, item := range result.Items {
+		if role, ok := item.(*v1.ClusterRole); ok {
+			role = role.DeepCopy()
+			role.Name = role.Labels[constants.DisplayNameLabelKey]
+			result.Items[i] = role
+		}
+	}
+	return result, nil
+}
+
+func ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+	return resources.ListResources("", resources.ClusterRoles, conditions, orderBy, reverse, limit, offset)
+}
+
 func NamespaceUsers(namespaceName string) ([]*models.User, error) {
 	roleBindings, err := GetRoleBindings(namespaceName, "")
-	if err != nil {
-		return nil, err
-	}
-	conn, err := ldapclient.Client()
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer conn.Close()
-
-	names := make([]string, 0)
 	users := make([]*models.User, 0)
 
 	for _, roleBinding := range roleBindings {
-
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind &&
-				!slice.ContainsString(names, subject.Name, nil) &&
-				!strings.HasPrefix(subject.Name, "system") {
-				if roleBinding.Name == "viewer" {
-					continue
-				}
-				if roleBinding.Name == "admin" {
-					continue
-				}
-				names = append(names, subject.Name)
-				user, err := UserDetail(subject.Name, conn)
-				if ldap.IsErrorWithCode(err, 32) {
-					continue
-				}
+			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+
+				user, err := DescribeUser(subject.Name)
+
 				if err != nil {
+					if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+						continue
+					}
 					return nil, err
 				}
+
 				user.Role = roleBinding.RoleRef.Name
+				user.RoleBindTime = &roleBinding.CreationTimestamp.Time
 				user.RoleBinding = roleBinding.Name
 				users = append(users, user)
 			}
@@ -386,135 +514,116 @@ func NamespaceUsers(namespaceName string) ([]*models.User, error) {
 	return users, nil
 }
 
-func GetWorkspaceRoles(clusterRoles []*v1.ClusterRole) map[string]string {
-
-	workspaceRoles := make(map[string]string, 0)
-
-	for _, v := range clusterRoles {
-		if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(v.Name); len(groups) == 3 {
-			workspaceRoles[groups[1]] = groups[2]
+func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRule, error) {
+	clusterRules, err := GetUserClusterRules(username)
+	if err != nil {
+		return nil, err
+	}
+	if workspacesManager, err := policy.GetClusterAction("workspaces", "edit"); err == nil {
+		if rulesMatchesAction(clusterRules, workspacesManager) {
+			return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
 		}
 	}
 
-	return workspaceRoles
+	workspaceRole, err := GetUserWorkspaceRole(workspace, username)
+
+	if err != nil {
+		return nil, err
+	}
+	return GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Labels[constants.DisplayNameLabelKey]), nil
 }
 
-func GetWorkspaceRole(clusterRoles []*v1.ClusterRole, workspace string) string {
+func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule {
 
-	for _, v := range clusterRoles {
-		if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(v.Name); len(groups) == 3 {
-			if groups[1] == workspace {
-				return groups[2]
-			}
+	workspaceRules := make([]models.SimpleRule, 0)
+
+	switch roleName {
+	case constants.WorkspaceAdmin:
+		workspaceRules = []models.SimpleRule{
+			{Name: "workspaces", Actions: []string{"edit", "delete", "view"}},
+			{Name: "members", Actions: []string{"edit", "delete", "create", "view"}},
+			{Name: "devops", Actions: []string{"edit", "delete", "create", "view"}},
+			{Name: "projects", Actions: []string{"edit", "delete", "create", "view"}},
+			{Name: "organizations", Actions: []string{"edit", "delete", "create", "view"}},
+			{Name: "roles", Actions: []string{"view"}},
 		}
-	}
-
-	return ""
-}
-
-func GetWorkspaceSimpleRules(clusterRoles []*v1.ClusterRole, workspace string) map[string][]models.SimpleRule {
-
-	workspaceRules := make(map[string][]models.SimpleRule, 0)
-
-	clusterSimpleRules := make([]models.SimpleRule, 0)
-	clusterRules := make([]v1.PolicyRule, 0)
-	for _, clusterRole := range clusterRoles {
-		clusterRules = append(clusterRules, clusterRole.Rules...)
-	}
-
-	for i := 0; i < len(policy.WorkspaceRoleRuleMapping); i++ {
-		rule := models.SimpleRule{Name: policy.WorkspaceRoleRuleMapping[i].Name}
-		rule.Actions = make([]string, 0)
-		for j := 0; j < (len(policy.WorkspaceRoleRuleMapping[i].Actions)); j++ {
-			if RulesMatchesAction(clusterRules, policy.WorkspaceRoleRuleMapping[i].Actions[j]) {
-				rule.Actions = append(rule.Actions, policy.WorkspaceRoleRuleMapping[i].Actions[j].Name)
-			}
+	case constants.WorkspaceRegular:
+		workspaceRules = []models.SimpleRule{
+			{Name: "workspaces", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"create"}},
+			{Name: "projects", Actions: []string{"create"}},
+			{Name: "organizations", Actions: []string{"view"}},
 		}
-		if len(rule.Actions) > 0 {
-			clusterSimpleRules = append(clusterSimpleRules, rule)
-		}
-	}
-
-	if len(clusterRules) > 0 {
-		workspaceRules["*"] = clusterSimpleRules
-	}
-
-	for _, v := range clusterRoles {
-
-		if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(v.Name); len(groups) == 3 {
-
-			if workspace != "" && groups[1] != workspace {
-				continue
-			}
-
-			policyRules := make([]v1.PolicyRule, 0)
-
-			for _, rule := range v.Rules {
-				rule.ResourceNames = nil
-				policyRules = append(policyRules, rule)
-			}
-
-			rules := make([]models.SimpleRule, 0)
-
-			for i := 0; i < len(policy.WorkspaceRoleRuleMapping); i++ {
-				rule := models.SimpleRule{Name: policy.WorkspaceRoleRuleMapping[i].Name}
-				rule.Actions = make([]string, 0)
-				for j := 0; j < (len(policy.WorkspaceRoleRuleMapping[i].Actions)); j++ {
-					action := policy.WorkspaceRoleRuleMapping[i].Actions[j]
-					if RulesMatchesAction(policyRules, action) {
-						rule.Actions = append(rule.Actions, action.Name)
-					}
-				}
-				if len(rule.Actions) > 0 {
-					rules = append(rules, rule)
-				}
-			}
-
-			workspaceRules[groups[1]] = merge(rules, clusterSimpleRules)
+	case constants.WorkspaceViewer:
+		workspaceRules = []models.SimpleRule{
+			{Name: "workspaces", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"view"}},
+			{Name: "projects", Actions: []string{"view"}},
+			{Name: "organizations", Actions: []string{"view"}},
+			{Name: "roles", Actions: []string{"view"}},
 		}
 	}
 
 	return workspaceRules
 }
 
-func merge(clusterRules, rules []models.SimpleRule) []models.SimpleRule {
-	for _, clusterRule := range clusterRules {
-		exist := false
+// Convert cluster role to rules
+func GetClusterRoleSimpleRules(clusterRoleName string) ([]models.SimpleRule, error) {
 
-		for i := 0; i < len(rules); i++ {
-			if rules[i].Name == clusterRule.Name {
-				exist = true
+	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+	clusterRole, err := clusterRoleLister.Get(clusterRoleName)
 
-				for _, action := range clusterRule.Actions {
-					if !slice.ContainsString(rules[i].Actions, action, nil) {
-						rules[i].Actions = append(rules[i].Actions, action)
-					}
-				}
-			}
-		}
-
-		if !exist {
-			rules = append(rules, clusterRule)
-		}
+	if err != nil {
+		return nil, err
 	}
-	return rules
+
+	return getClusterSimpleRule(clusterRole.Rules), nil
 }
 
-// Convert cluster roles to rules
-func GetClusterRoleSimpleRules(clusterRoles []*v1.ClusterRole) ([]models.SimpleRule, error) {
+func GetUserClusterSimpleRules(username string) ([]models.SimpleRule, error) {
+	clusterRules, err := GetUserClusterRules(username)
+	if err != nil {
+		return nil, err
+	}
+	return getClusterSimpleRule(clusterRules), nil
+}
 
-	clusterRules := make([]v1.PolicyRule, 0)
+func GetUserNamespaceSimpleRules(namespace, username string) ([]models.SimpleRule, error) {
+	clusterRules, err := GetUserClusterRules(username)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := GetUserRules(namespace, username)
+	if err != nil {
+		return nil, err
+	}
+	rules = append(rules, clusterRules...)
 
-	for _, v := range clusterRoles {
-		clusterRules = append(clusterRules, v.Rules...)
+	return getSimpleRule(rules), nil
+}
+
+// Convert roles to rules
+func GetRoleSimpleRules(namespace string, roleName string) ([]models.SimpleRule, error) {
+
+	roleLister := informers.SharedInformerFactory().Rbac().V1().Roles().Lister()
+	role, err := roleLister.Roles(namespace).Get(roleName)
+
+	if err != nil {
+		return nil, err
 	}
 
+	return getSimpleRule(role.Rules), nil
+}
+
+func getClusterSimpleRule(policyRules []v1.PolicyRule) []models.SimpleRule {
 	rules := make([]models.SimpleRule, 0)
 
 	for i := 0; i < len(policy.ClusterRoleRuleMapping); i++ {
 		validActions := make([]string, 0)
 		for j := 0; j < (len(policy.ClusterRoleRuleMapping[i].Actions)); j++ {
-			if RulesMatchesAction(clusterRules, policy.ClusterRoleRuleMapping[i].Actions[j]) {
+			if rulesMatchesAction(policyRules, policy.ClusterRoleRuleMapping[i].Actions[j]) {
 				validActions = append(validActions, policy.ClusterRoleRuleMapping[i].Actions[j].Name)
 			}
 		}
@@ -523,57 +632,26 @@ func GetClusterRoleSimpleRules(clusterRoles []*v1.ClusterRole) ([]models.SimpleR
 		}
 	}
 
-	return rules, nil
+	return rules
 }
 
-// Convert roles to rules
-func GetRoleSimpleRules(roles []*v1.Role, namespace string) (map[string][]models.SimpleRule, error) {
-
-	rulesMapping := make(map[string][]models.SimpleRule, 0)
-
-	policyRulesMapping := make(map[string][]v1.PolicyRule, 0)
-
-	for _, v := range roles {
-
-		if namespace != "" && v.Namespace != namespace {
-			continue
-		}
-
-		policyRules := policyRulesMapping[v.Namespace]
-
-		if policyRules == nil {
-			policyRules = make([]v1.PolicyRule, 0)
-		}
-
-		policyRules = append(policyRules, v.Rules...)
-
-		policyRulesMapping[v.Namespace] = policyRules
-	}
-
-	for namespace, policyRules := range policyRulesMapping {
-
-		rules := make([]models.SimpleRule, 0)
-
-		for i := 0; i < len(policy.RoleRuleMapping); i++ {
-			rule := models.SimpleRule{Name: policy.RoleRuleMapping[i].Name}
-			rule.Actions = make([]string, 0)
-			for j := 0; j < len(policy.RoleRuleMapping[i].Actions); j++ {
-				if RulesMatchesAction(policyRules, policy.RoleRuleMapping[i].Actions[j]) {
-					rule.Actions = append(rule.Actions, policy.RoleRuleMapping[i].Actions[j].Name)
-				}
-			}
-			if len(rule.Actions) > 0 {
-				rules = append(rules, rule)
+func getSimpleRule(policyRules []v1.PolicyRule) []models.SimpleRule {
+	simpleRules := make([]models.SimpleRule, 0)
+	for i := 0; i < len(policy.RoleRuleMapping); i++ {
+		rule := models.SimpleRule{Name: policy.RoleRuleMapping[i].Name}
+		rule.Actions = make([]string, 0)
+		for j := 0; j < len(policy.RoleRuleMapping[i].Actions); j++ {
+			if rulesMatchesAction(policyRules, policy.RoleRuleMapping[i].Actions[j]) {
+				rule.Actions = append(rule.Actions, policy.RoleRuleMapping[i].Actions[j].Name)
 			}
 		}
-
-		rulesMapping[namespace] = rules
+		if len(rule.Actions) > 0 {
+			simpleRules = append(simpleRules, rule)
+		}
 	}
-
-	return rulesMapping, nil
+	return simpleRules
 }
 
-//
 func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
 
@@ -583,110 +661,60 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		return err
 	}
 
-	clusterRoles, err := GetClusterRoles(username)
+	clusterRoleBinding := &v1.ClusterRoleBinding{}
+	clusterRoleBinding.Name = username
+	clusterRoleBinding.RoleRef = v1.RoleRef{Name: clusterRoleName, Kind: ClusterRoleKind}
+	clusterRoleBinding.Subjects = []v1.Subject{{Kind: v1.UserKind, Name: username}}
 
-	if err != nil {
-		return err
-	}
-
-	for _, clusterRole := range clusterRoles {
-
-		if clusterRole.Annotations["rbac.authorization.k8s.io/clusterrole"] == "true" {
-
-			if clusterRole.Name == clusterRoleName {
-				return nil
-			}
-
-			clusterRoleBindingName := clusterRole.Annotations["rbac.authorization.k8s.io/clusterrolebinding"]
-			clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
-			clusterRoleBinding, err := clusterRoleBindingLister.Get(clusterRoleBindingName)
-
-			if err != nil {
-				return err
-			}
-
-			for i, v := range clusterRoleBinding.Subjects {
-				if v.Kind == v1.UserKind && v.Name == username {
-					clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects[:i], clusterRoleBinding.Subjects[i+1:]...)
-					break
-				}
-			}
-
-			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
-
-			if err != nil {
-				return err
-			}
-
-			break
-		}
-	}
 	clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
-	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
+	found, err := clusterRoleBindingLister.Get(username)
 
-	if err != nil {
+	if apierrors.IsNotFound(err) {
+		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		return err
+	} else if err != nil {
 		return err
 	}
 
-	var clusterRoleBinding *v1.ClusterRoleBinding
-
-	for _, roleBinding := range clusterRoleBindings {
-		if roleBinding.Annotations != nil && roleBinding.Annotations["rbac.authorization.k8s.io/clusterrole"] == clusterRoleName &&
-			roleBinding.RoleRef.Name == clusterRoleName {
-			clusterRoleBinding = roleBinding
-			break
+	// cluster role changed
+	if found.RoleRef.Name != clusterRoleBinding.RoleRef.Name {
+		deletePolicy := metav1.DeletePropagationForeground
+		deleteOption := &metav1.DeleteOptions{PropagationPolicy: &deletePolicy}
+		err := k8s.Client().RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, deleteOption)
+		if err != nil {
+			return err
 		}
+		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		return err
 	}
 
-	if clusterRoleBinding != nil {
-		clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
-		_, err := k8s.Client().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
-		if err != nil {
-			return err
-		}
-	} else {
-		clusterRoleBinding = new(v1.ClusterRoleBinding)
-		clusterRoleBinding.Annotations = map[string]string{"rbac.authorization.k8s.io/clusterrole": clusterRoleName}
-		clusterRoleBinding.Name = clusterRoleName
-		clusterRoleBinding.RoleRef = v1.RoleRef{Name: clusterRoleName, Kind: ClusterRoleKind}
-		clusterRoleBinding.Subjects = []v1.Subject{{Kind: v1.UserKind, Name: username}}
-
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
-
-		if err != nil {
-			return err
-		}
+	if !k8sutil.ContainsUser(found.Subjects, username) {
+		found.Subjects = clusterRoleBinding.Subjects
+		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(found)
+		return err
 	}
 
 	return nil
 }
 
-func GetRole(namespace string, roleName string) (*v1.Role, error) {
-	return informers.SharedInformerFactory().Rbac().V1().Roles().Lister().Roles(namespace).Get(roleName)
-}
-func GetClusterRole(clusterRoleName string) (*v1.ClusterRole, error) {
-	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
-	return clusterRoleLister.Get(clusterRoleName)
-}
-
-func RulesMatchesAction(rules []v1.PolicyRule, action models.Action) bool {
-
-	for _, required := range action.Rules {
-		if !rulesMatchesRequired(rules, required) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func rulesMatchesRequired(rules []v1.PolicyRule, required v1.PolicyRule) bool {
+func RulesMatchesRequired(rules []v1.PolicyRule, required v1.PolicyRule) bool {
 	for _, rule := range rules {
 		if ruleMatchesRequired(rule, required) {
 			return true
 		}
 	}
 	return false
+}
+
+func rulesMatchesAction(rules []v1.PolicyRule, action models.Action) bool {
+
+	for _, required := range action.Rules {
+		if !RulesMatchesRequired(rules, required) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func ruleMatchesRequired(rule v1.PolicyRule, required v1.PolicyRule) bool {

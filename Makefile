@@ -64,7 +64,7 @@ deploy: manifests
 
 # Generate DeepCopy to implement runtime.Object
 deepcopy:
-	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy,lister,informer,client kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
+	./vendor/k8s.io/code-generator/generate-groups.sh all kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2 tenant:v1alpha1"
 
 # Generate code
 generate:
@@ -79,7 +79,7 @@ docker-build: all
 
 # Run tests
 test: generate fmt vet
-	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out
+	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
 clean:

@@ -36,15 +36,6 @@ type Workspace struct {
 	DevopsProjects []string `json:"devops_projects"`
 }
 
-type UserInvite struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-}
-
-func (g Group) GetCreateTime() (time.Time, error) {
-	return time.Parse("2006-01-02T15:04:05Z", g.CreateTime)
-}
-
 type WorkspaceDPBinding struct {
 	Workspace     string `gorm:"primary_key"`
 	DevOpsProject string `gorm:"primary_key"`
@@ -76,27 +67,23 @@ type SimpleRule struct {
 }
 
 type User struct {
-	Username string `json:"username"`
-	//UID      string   `json:"uid"`
-	Groups          []string `json:"groups,omitempty"`
-	Password        string   `json:"password,omitempty"`
-	CurrentPassword string   `json:"current_password,omitempty"`
-	//Extra    map[string]interface{} `json:"extra"`
-	AvatarUrl      string                  `json:"avatar_url"`
-	Description    string                  `json:"description"`
-	Email          string                  `json:"email"`
-	LastLoginTime  string                  `json:"last_login_time"`
-	Status         int                     `json:"status"`
-	ClusterRole    string                  `json:"cluster_role"`
-	ClusterRules   []SimpleRule            `json:"cluster_rules"`
-	Roles          map[string]string       `json:"roles,omitempty"`
-	Rules          map[string][]SimpleRule `json:"rules,omitempty"`
-	Role           string                  `json:"role,omitempty"`
-	RoleBinding    string                  `json:"role_binding,omitempty"`
-	Lang           string                  `json:"lang,omitempty"`
-	WorkspaceRoles map[string]string       `json:"workspace_roles,omitempty"`
-	WorkspaceRole  string                  `json:"workspace_role,omitempty"`
-	WorkspaceRules map[string][]SimpleRule `json:"workspace_rules,omitempty"`
+	Username        string            `json:"username"`
+	Email           string            `json:"email"`
+	Lang            string            `json:"lang,omitempty"`
+	Description     string            `json:"description"`
+	CreateTime      time.Time         `json:"create_time"`
+	Groups          []string          `json:"groups,omitempty"`
+	Password        string            `json:"password,omitempty"`
+	CurrentPassword string            `json:"current_password,omitempty"`
+	AvatarUrl       string            `json:"avatar_url"`
+	LastLoginTime   string            `json:"last_login_time"`
+	Status          int               `json:"status"`
+	ClusterRole     string            `json:"cluster_role"`
+	Roles           map[string]string `json:"roles,omitempty"`
+	Role            string            `json:"role,omitempty"`
+	RoleBinding     string            `json:"role_binding,omitempty"`
+	RoleBindTime    *time.Time        `json:"role_bind_time,omitempty"`
+	WorkspaceRole   string            `json:"workspace_role,omitempty"`
 }
 
 type Group struct {
@@ -105,8 +92,6 @@ type Group struct {
 	Gid         string   `json:"gid"`
 	Members     []string `json:"members"`
 	Logo        string   `json:"logo"`
-	Creator     string   `json:"creator"`
-	CreateTime  string   `json:"create_time"`
 	ChildGroups []string `json:"child_groups"`
 	Description string   `json:"description"`
 }

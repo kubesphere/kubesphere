@@ -22,9 +22,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -32,22 +38,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 
-	"log"
 	"strings"
 
 	"github.com/jinzhu/gorm"
 	core "k8s.io/api/core/v1"
 
 	"errors"
-	"regexp"
-
+	"github.com/golang/glog"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/slice"
-
-	"github.com/golang/glog"
 
 	"sort"
 
@@ -128,54 +129,19 @@ func CreateDevopsProject(username string, workspace string, devops models.Devops
 }
 
 func createDefaultDevopsRoleBinding(workspace string, project models.DevopsProject) error {
-	admins, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceAdmin)
-
-	if err != nil {
-		return err
-	}
+	admins := []string{""}
 
 	for _, admin := range admins {
 		createDevopsRoleBinding(workspace, *project.ProjectId, admin, constants.DevopsOwner)
 	}
 
-	viewers, err := iam.GetWorkspaceUsers(workspace, constants.WorkspaceViewer)
-
-	if err != nil {
-		return err
-	}
+	viewers := []string{""}
 
 	for _, viewer := range viewers {
 		createDevopsRoleBinding(workspace, *project.ProjectId, viewer, constants.DevopsReporter)
 	}
 
 	return nil
-}
-
-func deleteDevopsRoleBinding(workspace string, projectId string, user string) {
-	projects := make([]string, 0)
-
-	if projectId != "" {
-		projects = append(projects, projectId)
-	} else {
-		p, err := GetDevOpsProjects(workspace)
-		if err != nil {
-			glog.Warning("delete  devops role binding failed", workspace, projectId, user)
-			return
-		}
-		projects = append(projects, p...)
-	}
-
-	for _, project := range projects {
-		request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://%s/api/v1alpha/projects/%s/members/%s", constants.DevopsAPIServer, project, user), nil)
-		request.Header.Add("X-Token-Username", "admin")
-		resp, err := http.DefaultClient.Do(request)
-		if err != nil || resp.StatusCode > 200 {
-			glog.Warning("delete  devops role binding failed", workspace, project, user)
-		}
-		if resp != nil {
-			resp.Body.Close()
-		}
-	}
 }
 
 func createDevopsRoleBinding(workspace string, projectId string, user string, role string) {
@@ -242,23 +208,17 @@ func ListNamespaceByUser(workspaceName string, username string, keyword string, 
 		}
 	})
 
-	clusterRoles, err := iam.GetClusterRoles(username)
+	rules, err := iam.GetUserClusterRules(username)
 
 	if err != nil {
 		return 0, nil, err
-	}
-
-	rules := make([]v1.PolicyRule, 0)
-
-	for _, clusterRole := range clusterRoles {
-		rules = append(rules, clusterRole.Rules...)
 	}
 
 	namespacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, ResourceNames: []string{workspaceName}, Verbs: []string{"get"}, Resources: []string{"workspaces/namespaces"}}
 
 	if !iam.RulesMatchesRequired(rules, namespacesManager) {
 		for i := 0; i < len(namespaces); i++ {
-			roles, err := iam.GetRoles(namespaces[i].Name, username)
+			roles, err := iam.GetUserRoles(namespaces[i].Name, username)
 			if err != nil {
 				return 0, nil, err
 			}
@@ -313,13 +273,12 @@ func DeleteNamespace(workspace string, namespaceName string) error {
 	if err != nil {
 		return err
 	}
-	if namespace.Labels != nil && namespace.Labels["kubesphere.io/workspace"] == workspace {
+	if namespace.Labels[constants.WorkspaceLabelKey] == workspace {
 		deletePolicy := meta_v1.DeletePropagationForeground
 		return k8s.Client().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	} else {
 		return errors.New("resource not found")
 	}
-
 }
 
 func Delete(workspace *models.Workspace) error {
@@ -339,6 +298,7 @@ func Delete(workspace *models.Workspace) error {
 	return nil
 }
 
+// TODO
 func release(workspace *models.Workspace) error {
 	for _, namespace := range workspace.Namespaces {
 		err := DeleteNamespace(workspace.Name, namespace)
@@ -348,7 +308,7 @@ func release(workspace *models.Workspace) error {
 	}
 
 	for _, devops := range workspace.DevopsProjects {
-		err := DeleteDevopsProject(workspace.Creator, devops)
+		err := DeleteDevopsProject("admin", devops)
 		if err != nil && !strings.Contains(err.Error(), "not found") {
 			return err
 		}
@@ -381,30 +341,6 @@ func workspaceRoleRelease(workspace string) error {
 	return nil
 }
 
-func Create(workspace *models.Workspace) (*models.Workspace, error) {
-
-	group, err := iam.CreateGroup(workspace.Group)
-	if err != nil {
-		return nil, err
-	}
-
-	created := models.Workspace{
-		Group: *group,
-	}
-
-	created.Members = make([]string, 0)
-	created.Namespaces = make([]string, 0)
-	created.DevopsProjects = make([]string, 0)
-
-	err = WorkspaceRoleInit(workspace)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &created, nil
-}
-
 func Edit(workspace *models.Workspace) (*models.Workspace, error) {
 
 	group, err := iam.UpdateGroup(&workspace.Group)
@@ -418,72 +354,14 @@ func Edit(workspace *models.Workspace) (*models.Workspace, error) {
 	return workspace, nil
 }
 
-func Detail(name string) (*models.Workspace, error) {
-
-	conn, err := ldap.Client()
-	if err != nil {
-		return nil, err
-	}
-
-	defer conn.Close()
-
-	group, err := iam.GroupDetail(name, conn)
-
-	if err != nil {
-		return nil, err
-	}
-
-	db := mysql.Client()
-
-	workspace, err := convertGroupToWorkspace(db, *group)
+func DescribeWorkspace(workspaceName string) (*v1alpha1.Workspace, error) {
+	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return workspace, nil
-}
-
-// List all workspaces for the current user
-func ListWorkspaceByUser(username string, keyword string) ([]*models.Workspace, error) {
-	clusterRoles, err := iam.GetClusterRoles(username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	rules := make([]v1.PolicyRule, 0)
-
-	for _, clusterRole := range clusterRoles {
-		rules = append(rules, clusterRole.Rules...)
-	}
-
-	workspacesManager := v1.PolicyRule{APIGroups: []string{"kubesphere.io"}, Verbs: []string{"list", "get"}, Resources: []string{"workspaces"}}
-
-	var workspaces []*models.Workspace
-	if iam.RulesMatchesRequired(rules, workspacesManager) {
-		workspaces, err = fetch(nil)
-	} else {
-		workspaceNames := make([]string, 0)
-		for _, clusterRole := range clusterRoles {
-			if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(clusterRole.Name); len(groups) == 3 {
-				if !slice.ContainsString(workspaceNames, groups[1], nil) {
-					workspaceNames = append(workspaceNames, groups[1])
-				}
-			}
-		}
-		workspaces, err = fetch(workspaceNames)
-	}
-
-	if keyword != "" {
-		for i := 0; i < len(workspaces); i++ {
-			if !strings.Contains(workspaces[i].Name, keyword) {
-				workspaces = append(workspaces[:i], workspaces[i+1:]...)
-				i--
-			}
-		}
-	}
-	return workspaces, err
 }
 
 func fetch(names []string) ([]*models.Workspace, error) {
@@ -505,7 +383,7 @@ func fetch(names []string) ([]*models.Workspace, error) {
 		}
 		defer conn.Close()
 		for _, name := range names {
-			group, err := iam.GroupDetail(name, conn)
+			group, err := iam.DescribeGroup(name)
 			if err != nil {
 				return nil, err
 			}
@@ -527,90 +405,6 @@ func fetch(names []string) ([]*models.Workspace, error) {
 	return workspaces, nil
 }
 
-func ListDevopsProjectsByUser(username string, workspace string, keyword string, orderBy string, reverse bool, limit int, offset int) (int, []models.DevopsProject, error) {
-
-	db := mysql.Client()
-
-	var workspaceDOPBindings []models.WorkspaceDPBinding
-
-	if err := db.Where("workspace = ?", workspace).Find(&workspaceDOPBindings).Error; err != nil {
-		return 0, nil, err
-	}
-
-	devOpsProjects := make([]models.DevopsProject, 0)
-
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects", constants.DevopsAPIServer), nil)
-	request.Header.Add(constants.UserNameHeader, username)
-
-	result, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer result.Body.Close()
-	data, err := ioutil.ReadAll(result.Body)
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if result.StatusCode > 200 {
-		return 0, nil, kserr.Parse(data)
-	}
-
-	err = json.Unmarshal(data, &devOpsProjects)
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if keyword != "" {
-		for i := 0; i < len(devOpsProjects); i++ {
-			if !strings.Contains(devOpsProjects[i].Name, keyword) {
-				devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
-				i--
-			}
-		}
-	}
-
-	sort.Slice(devOpsProjects, func(i, j int) bool {
-		switch orderBy {
-		case "name":
-			if reverse {
-				return devOpsProjects[i].Name < devOpsProjects[j].Name
-			} else {
-				return devOpsProjects[i].Name > devOpsProjects[j].Name
-			}
-		default:
-			if reverse {
-				return devOpsProjects[i].CreateTime.After(*devOpsProjects[j].CreateTime)
-			} else {
-				return devOpsProjects[i].CreateTime.Before(*devOpsProjects[j].CreateTime)
-			}
-		}
-	})
-
-	for i := 0; i < len(devOpsProjects); i++ {
-		inWorkspace := false
-
-		for _, binding := range workspaceDOPBindings {
-			if binding.DevOpsProject == *devOpsProjects[i].ProjectId {
-				inWorkspace = true
-			}
-		}
-		if !inWorkspace {
-			devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
-			i--
-		}
-	}
-
-	if len(devOpsProjects) < offset {
-		return len(devOpsProjects), make([]models.DevopsProject, 0), nil
-	} else if len(devOpsProjects) < limit+offset {
-		return len(devOpsProjects), devOpsProjects[offset:], nil
-	} else {
-		return len(devOpsProjects), devOpsProjects[offset : limit+offset], nil
-	}
-}
 func convertGroupToWorkspace(db *gorm.DB, group models.Group) (*models.Workspace, error) {
 	namespaces, err := Namespaces(group.Name)
 
@@ -642,449 +436,73 @@ func convertGroupToWorkspace(db *gorm.DB, group models.Group) (*models.Workspace
 	return &workspace, nil
 }
 
-func CreateNamespace(namespace *core.Namespace) (*core.Namespace, error) {
+func InviteUser(workspaceName string, user *models.User) error {
 
-	ns, err := k8s.Client().CoreV1().Namespaces().Create(namespace)
+	workspaceRole, err := iam.GetUserWorkspaceRole(workspaceName, user.Username)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return ns, nil
-}
-
-func Invite(workspaceName string, users []models.UserInvite) error {
-	for _, user := range users {
-		if !slice.ContainsString(constants.WorkSpaceRoles, user.Role, nil) {
-			return fmt.Errorf("role %s not exist", user.Role)
-		}
-	}
-
-	workspace, err := Detail(workspaceName)
-
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
-	for _, user := range users {
-		if !slice.ContainsString(workspace.Members, user.Username, nil) {
-			workspace.Members = append(workspace.Members, user.Username)
-		}
-	}
+	workspaceRoleName := fmt.Sprintf("workspace:%s:%s", workspaceName, strings.TrimPrefix(user.WorkspaceRole, "workspace-"))
 
-	workspace, err = Edit(workspace)
-
-	if err != nil {
-		return err
-	}
-
-	for _, user := range users {
-		err := CreateWorkspaceRoleBinding(workspace, user.Username, user.Role)
+	if workspaceRole != nil && workspaceRole.Name != workspaceRoleName {
+		err := DeleteWorkspaceRoleBinding(workspaceName, user.Username, user.WorkspaceRole)
 		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return CreateWorkspaceRoleBinding(workspaceName, user.Username, user.WorkspaceRole)
 }
 
-func NamespaceExistCheck(namespaceName string) (bool, error) {
+func CreateWorkspaceRoleBinding(workspace, username string, role string) error {
 
-	_, err := k8s.Client().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
-
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
+	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
+		return apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
 	}
-	return true, nil
+
+	roleBindingName := fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
+
+	workspaceRoleBinding, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().Get(roleBindingName)
+	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
+	if err != nil {
+		return err
+	}
+
+	if !k8sutil.ContainsUser(workspaceRoleBinding.Subjects, username) {
+		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
+		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+	}
+
+	return err
 }
 
-func RemoveMembers(workspaceName string, users []string) error {
+func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
 
-	workspace, err := Detail(workspaceName)
+	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
+		return apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
+	}
+
+	roleBindingName := fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
+
+	workspaceRoleBinding, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().Get(roleBindingName)
+	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 
 	if err != nil {
 		return err
 	}
 
-	err = UnbindWorkspace(workspace, users)
-
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < len(workspace.Members); i++ {
-		if slice.ContainsString(users, workspace.Members[i], nil) {
-			workspace.Members = append(workspace.Members[:i], workspace.Members[i+1:]...)
+	for i, v := range workspaceRoleBinding.Subjects {
+		if v.Kind == v1.UserKind && v.Name == username {
+			workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects[:i], workspaceRoleBinding.Subjects[i+1:]...)
 			i--
 		}
 	}
 
-	workspace, err = Edit(workspace)
+	workspaceRoleBinding, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Roles(workspace *models.Workspace) ([]*v1.ClusterRole, error) {
-	roles := make([]*v1.ClusterRole, 0)
-	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
-	for _, name := range constants.WorkSpaceRoles {
-
-		clusterRole, err := clusterRoleLister.Get(fmt.Sprintf("system:%s:%s", workspace.Name, name))
-
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				go WorkspaceRoleInit(workspace)
-			}
-			return nil, err
-		}
-
-		clusterRole = clusterRole.DeepCopy()
-
-		clusterRole.Name = name
-		roles = append(roles, clusterRole)
-	}
-
-	return roles, nil
-}
-
-func WorkspaceRoleInit(workspace *models.Workspace) error {
-	k8sClient := k8s.Client()
-
-	admin := new(v1.ClusterRole)
-	admin.Name = fmt.Sprintf("system:%s:%s", workspace.Name, constants.WorkspaceAdmin)
-	admin.Kind = iam.ClusterRoleKind
-	admin.Rules = []v1.PolicyRule{
-		{
-			Verbs:         []string{"*"},
-			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces", "workspaces/*"},
-		},
-		{
-			Verbs:     []string{"*"},
-			APIGroups: []string{"devops.kubesphere.io", "jenkins.kubesphere.io"},
-			Resources: []string{"*"},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"status/*", "monitoring/*", "quota/*"},
-		},
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"resources"},
-		},
-		{
-			Verbs:     []string{"list"},
-			APIGroups: []string{"account.kubesphere.io"},
-			Resources: []string{"users"},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"workspaces"},
-			Resources:     []string{"monitoring/" + workspace.Name},
-		},
-	}
-
-	admin.Labels = map[string]string{"creator": "system"}
-
-	regular := new(v1.ClusterRole)
-	regular.Name = fmt.Sprintf("system:%s:%s", workspace.Name, constants.WorkspaceRegular)
-	regular.Kind = iam.ClusterRoleKind
-	regular.Rules = []v1.PolicyRule{
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces"},
-			ResourceNames: []string{workspace.Name},
-		}, {
-			Verbs:         []string{"create"},
-			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces/namespaces", "workspaces/devops"},
-			ResourceNames: []string{workspace.Name},
-		},
-		{
-			Verbs:         []string{"delete"},
-			APIGroups:     []string{"kubesphere.io"},
-			Resources:     []string{"workspaces/namespaces", "workspaces/devops"},
-			ResourceNames: []string{workspace.Name},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"quota/*", "status/*", "monitoring/*"},
-		},
-		{
-			Verbs:     []string{"*"},
-			APIGroups: []string{"devops.kubesphere.io"},
-			Resources: []string{"*"},
-		}, {
-			Verbs:     []string{"*"},
-			APIGroups: []string{"jenkins.kubesphere.io"},
-			Resources: []string{"*"},
-		},
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"resources"},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces/members"},
-		},
-	}
-
-	regular.Labels = map[string]string{"creator": "system"}
-
-	viewer := new(v1.ClusterRole)
-	viewer.Name = fmt.Sprintf("system:%s:%s", workspace.Name, constants.WorkspaceViewer)
-	viewer.Kind = iam.ClusterRoleKind
-	viewer.Rules = []v1.PolicyRule{
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io", "account.kubesphere.io"},
-			ResourceNames: []string{workspace.Name},
-			Resources:     []string{"workspaces", "workspaces/*"},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"namespaces"},
-			Resources:     []string{"quota/*", "status/*", "monitoring/*"},
-		},
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{"kubesphere.io"},
-			Resources: []string{"resources"},
-		},
-		{
-			Verbs:         []string{"get"},
-			APIGroups:     []string{"kubesphere.io"},
-			ResourceNames: []string{"workspaces"},
-			Resources:     []string{"monitoring/" + workspace.Name},
-		},
-		{
-			Verbs:     []string{"get", "list"},
-			APIGroups: []string{"devops.kubesphere.io"},
-			Resources: []string{"*"},
-		}, {
-			Verbs:     []string{"get", "list"},
-			APIGroups: []string{"jenkins.kubesphere.io"},
-			Resources: []string{"*"},
-		},
-	}
-
-	viewer.Labels = map[string]string{"creator": "system"}
-
-	_, err := k8sClient.RbacV1().ClusterRoles().Create(admin)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster role create failed", admin.Name, err)
-			return err
-		}
-	}
-
-	adminRoleBinding := new(v1.ClusterRoleBinding)
-	adminRoleBinding.Name = admin.Name
-	adminRoleBinding.RoleRef = v1.RoleRef{Kind: "ClusterRole", Name: admin.Name}
-	adminRoleBinding.Subjects = []v1.Subject{{Kind: v1.UserKind, Name: workspace.Creator}}
-
-	_, err = k8sClient.RbacV1().ClusterRoleBindings().Create(adminRoleBinding)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster rolebinding create failed", adminRoleBinding.Name, err)
-			return err
-		}
-	}
-
-	_, err = k8sClient.RbacV1().ClusterRoles().Create(regular)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster role create failed", viewer.Name, err)
-			return err
-		}
-	}
-
-	regularRoleBinding := new(v1.ClusterRoleBinding)
-	regularRoleBinding.Name = regular.Name
-	regularRoleBinding.RoleRef = v1.RoleRef{Kind: "ClusterRole", Name: regular.Name}
-	regularRoleBinding.Subjects = make([]v1.Subject, 0)
-	_, err = k8sClient.RbacV1().ClusterRoleBindings().Create(regularRoleBinding)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster rolebinding create failed", regularRoleBinding.Name, err)
-			return err
-		}
-	}
-
-	_, err = k8sClient.RbacV1().ClusterRoles().Create(viewer)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster role create failed", viewer.Name, err)
-			return err
-		}
-	}
-
-	viewerRoleBinding := new(v1.ClusterRoleBinding)
-	viewerRoleBinding.Name = viewer.Name
-	viewerRoleBinding.RoleRef = v1.RoleRef{Kind: "ClusterRole", Name: viewer.Name}
-	viewerRoleBinding.Subjects = make([]v1.Subject, 0)
-	_, err = k8sClient.RbacV1().ClusterRoleBindings().Create(viewerRoleBinding)
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			log.Println("cluster rolebinding create failed", viewerRoleBinding.Name, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func unbindWorkspaceRole(workspace string, users []string) error {
-	k8sClient := k8s.Client()
-
-	for _, name := range constants.WorkSpaceRoles {
-		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace, name), meta_v1.GetOptions{})
-
-		if err != nil {
-			return err
-		}
-
-		modify := false
-
-		for i := 0; i < len(roleBinding.Subjects); i++ {
-			if roleBinding.Subjects[i].Kind == v1.UserKind && slice.ContainsString(users, roleBinding.Subjects[i].Name, nil) {
-				roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-				i--
-				modify = true
-			}
-		}
-
-		if modify {
-			roleBinding, err = k8sClient.RbacV1().ClusterRoleBindings().Update(roleBinding)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func unbindNamespacesRole(namespaces []string, users []string) error {
-
-	k8sClient := k8s.Client()
-	for _, namespace := range namespaces {
-
-		roleBindings, err := k8sClient.RbacV1().RoleBindings(namespace).List(meta_v1.ListOptions{})
-
-		if err != nil {
-			return err
-		}
-		for _, roleBinding := range roleBindings.Items {
-
-			modify := false
-			for i := 0; i < len(roleBinding.Subjects); i++ {
-				if roleBinding.Subjects[i].Kind == v1.UserKind && slice.ContainsString(users, roleBinding.Subjects[i].Name, nil) {
-					roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-					modify = true
-				}
-			}
-			if modify {
-				_, err := k8sClient.RbacV1().RoleBindings(namespace).Update(&roleBinding)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func UnbindWorkspace(workspace *models.Workspace, users []string) error {
-
-	err := unbindNamespacesRole(workspace.Namespaces, users)
-
-	if err != nil {
-		return err
-	}
-
-	err = unbindWorkspaceRole(workspace.Name, users)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func CreateWorkspaceRoleBinding(workspace *models.Workspace, username string, role string) error {
-
-	k8sClient := k8s.Client()
-
-	for _, roleName := range constants.WorkSpaceRoles {
-		roleBinding, err := k8sClient.RbacV1().ClusterRoleBindings().Get(fmt.Sprintf("system:%s:%s", workspace.Name, roleName), meta_v1.GetOptions{})
-
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				go WorkspaceRoleInit(workspace)
-			}
-			return err
-		}
-
-		modify := false
-
-		for i, v := range roleBinding.Subjects {
-			if v.Kind == v1.UserKind && v.Name == username {
-				if roleName == role {
-					return nil
-				} else {
-					modify = true
-					roleBinding.Subjects = append(roleBinding.Subjects[:i], roleBinding.Subjects[i+1:]...)
-					if roleName == constants.WorkspaceAdmin || roleName == constants.WorkspaceViewer {
-						go deleteDevopsRoleBinding(workspace.Name, "", username)
-					}
-					break
-				}
-			}
-		}
-
-		if roleName == role {
-			modify = true
-			roleBinding.Subjects = append(roleBinding.Subjects, v1.Subject{Kind: v1.UserKind, Name: username})
-			if roleName == constants.WorkspaceAdmin {
-				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsOwner)
-			} else if roleName == constants.WorkspaceViewer {
-				go createDevopsRoleBinding(workspace.Name, "", username, constants.DevopsReporter)
-			}
-		}
-
-		if !modify {
-			continue
-		}
-
-		_, err = k8sClient.RbacV1().ClusterRoleBindings().Update(roleBinding)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return err
 }
 
 func GetDevOpsProjects(workspaceName string) ([]string, error) {
@@ -1105,12 +523,12 @@ func GetDevOpsProjects(workspaceName string) ([]string, error) {
 	return devOpsProjects, nil
 }
 
-func GetOrgMembers(workspace string) ([]string, error) {
-	ws, err := Detail(workspace)
+func WorkspaceUserCount(workspace string) (int, error) {
+	count, err := iam.WorkspaceUsersTotalCount(workspace)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return ws.Members, nil
+	return count, nil
 }
 
 func GetOrgRoles(name string) ([]string, error) {
@@ -1135,13 +553,13 @@ func WorkspaceNamespaces(workspaceName string) ([]string, error) {
 
 func WorkspaceCount() (int, error) {
 
-	workspaces, err := iam.ChildList("")
+	ws, err := resources.ListResources("", resources.Workspaces, &params.Conditions{}, "", false, 1, 0)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return len(workspaces), nil
+	return ws.TotalCount, nil
 }
 
 func GetAllProjectNums() (int, error) {
@@ -1155,7 +573,6 @@ func GetAllProjectNums() (int, error) {
 
 func GetAllDevOpsProjectsNums() (int, error) {
 	db := mysql.Client()
-
 	var count int
 	if err := db.Model(&models.WorkspaceDPBinding{}).Count(&count).Error; err != nil {
 		return 0, err
@@ -1164,11 +581,9 @@ func GetAllDevOpsProjectsNums() (int, error) {
 }
 
 func GetAllAccountNums() (int, error) {
-	totalCount, _, err := iam.UserList(1, 0)
-
+	users, err := iam.ListUsers(&params.Conditions{}, "", false, 1, 0)
 	if err != nil {
 		return 0, err
 	}
-
-	return totalCount, nil
+	return users.TotalCount, nil
 }

@@ -20,7 +20,6 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -46,6 +45,7 @@ func addWebService(c *restful.Container) error {
 		Doc("Token review").
 		Reads(iam.TokenReview{}).
 		Writes(iam.TokenReview{}).
+		Doc("k8s token review").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/login").
 		To(iam.LoginHandler).
@@ -53,10 +53,10 @@ func addWebService(c *restful.Container) error {
 		Reads(iam.LoginRequest{}).
 		Writes(models.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	ws.Route(ws.GET("/users/{name}").
-		To(iam.UserDetail).
+	ws.Route(ws.GET("/users/{username}").
+		To(iam.DescribeUser).
 		Doc("User detail").
+		Param(ws.PathParameter("username", "username")).
 		Writes(models.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/users").
@@ -67,11 +67,13 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.DELETE("/users/{name}").
 		To(iam.DeleteUser).
+		Param(ws.PathParameter("name", "username")).
 		Doc("Delete user").
 		Writes(errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.PUT("/users/{name}").
 		To(iam.UpdateUser).
+		Param(ws.PathParameter("name", "username")).
 		Reads(models.User{}).
 		Writes(errors.Error{}).
 		Doc("Update user").
@@ -79,26 +81,29 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/users/{name}/log").
 		To(iam.UserLoginLog).
+		Param(ws.PathParameter("name", "username")).
 		Doc("User login log").
 		Writes([]map[string]string{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/users").
-		To(iam.UserList).
+		To(iam.ListUsers).
 		Doc("User list").
 		Writes(models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/groups").
-		To(iam.RootGroupList).
+		To(iam.ListGroups).
 		Writes([]models.Group{}).
 		Doc("User group list").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 
 	ws.Route(ws.GET("/groups/{path}").
-		To(iam.GroupDetail).
+		To(iam.DescribeGroup).
+		Param(ws.PathParameter("path", "group path")).
 		Doc("User group detail").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/groups/{path}/users").
-		To(iam.GroupUsers).
+		To(iam.ListGroupUsers).
+		Param(ws.PathParameter("path", "group path")).
 		Doc("Group user list").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/groups").
@@ -108,139 +113,108 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.DELETE("/groups/{path}").
 		To(iam.DeleteGroup).
+		Param(ws.PathParameter("path", "group path")).
 		Doc("Delete user group").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.PUT("/groups/{path}").
 		To(iam.UpdateGroup).
+		Param(ws.PathParameter("path", "group path")).
 		Doc("Update user group").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/users/{username}/roles").
-		To(iam.UserRoles).
+		To(iam.ListUserRoles).
+		Param(ws.PathParameter("username", "username")).
 		Doc("Get user role list").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/namespaces/{namespace}/roles").
+		To(iam.ListRoles).
+		Param(ws.PathParameter("namespace", "namespace")).
+		Doc("Get role list").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/clusterroles").
+		To(iam.ListClusterRoles).
+		Doc("Get cluster role list").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users").
-		To(iam.RoleUsers).
+		To(iam.ListRoleUsers).
+		Param(ws.PathParameter("namespace", "namespace")).
+		Param(ws.PathParameter("role", "role name")).
 		Doc("Get user list by role").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/rules").
-		To(iam.RoleRules).
-		Doc("Get role detail").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/namespaces/{namespace}/users").
-		To(iam.NamespaceUsers).
+		To(iam.ListNamespaceUsers).
+		Param(ws.PathParameter("namespace", "namespace")).
 		Doc("Get user list by namespace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
-		To(iam.ClusterRoleUsers).
+		To(iam.ListClusterRoleUsers).
+		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Doc("Get user list by cluster role").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/rules").
-		To(iam.ClusterRoleRules).
+		To(iam.ListClusterRoleRules).
+		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Doc("Get cluster role detail").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/rulesmapping/clusterroles").
-		To(iam.ClusterRulesMappingHandler).
+		To(iam.ClusterRulesMapping).
 		Doc("Get cluster role policy rules mapping").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/rulesmapping/roles").
-		To(iam.RulesMappingHandler).
+		To(iam.RulesMapping).
 		Doc("Get role policy rules mapping").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 
-	ws.Route(ws.GET("/workspaces/{workspace}/rules").
-		To(iam.WorkspaceRulesHandler).
-		Doc("Get workspace level policy rules").
+	ws.Route(ws.GET("/workspaces/{workspace}/roles").
+		To(iam.ListWorkspaceRoles).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("List workspace role").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}").
+		To(iam.DescribeWorkspaceRole).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("role", "workspace role name")).
+		Doc("Describe workspace role").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}/rules").
+		To(iam.ListWorkspaceRoleRules).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("role", "workspace role name")).
+		Doc("Get workspace role policy rules").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members").
-		To(iam.WorkspaceMemberList).
+		To(iam.ListWorkspaceUsers).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Get workspace member list").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/namespaces/{namespace}/rules").
-		To(iam.NamespacesRulesHandler).
-		Doc("Get namespace level policy rules").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/devops/{devops}/rules").
-		To(iam.DevopsRulesHandler).
-		Doc("Get devops project level policy rules").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	tags = []string{"Workspace"}
-
-	ws.Route(ws.GET("/workspaces").
-		To(iam.UserWorkspaceListHandler).
-		Doc("Get workspace list").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]models.Workspace{}))
-	ws.Route(ws.POST("/workspaces").
-		To(iam.WorkspaceCreateHandler).
-		Doc("Create workspace").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(models.Workspace{}))
-	ws.Route(ws.DELETE("/workspaces/{name}").
-		To(iam.DeleteWorkspaceHandler).
-		Doc("Delete workspace").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(errors.Error{}))
-	ws.Route(ws.GET("/workspaces/{name}").
-		To(iam.WorkspaceDetailHandler).
-		Doc("Get workspace detail").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(models.Workspace{}))
-	ws.Route(ws.PUT("/workspaces/{name}").
-		To(iam.WorkspaceEditHandler).
-		Doc("Update workspace").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(models.Workspace{}))
-
-	ws.Route(ws.GET("/workspaces/{name}/members/{member}").
-		To(iam.WorkspaceMemberDetail).
-		Doc("Get workspace member detail").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/workspaces/{name}/roles").
-		To(iam.WorkspaceRoles).
-		Doc("Get workspace roles").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	ws.Route(ws.POST("/workspaces/{name}/members").
-		To(iam.WorkspaceMemberInvite).
+	ws.Route(ws.POST("/workspaces/{workspace}/members").
+		To(iam.InviteUser).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Add user to workspace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/workspaces/{name}/members").
-		To(iam.WorkspaceMemberRemove).
-		Doc("Delete user from workspace").
+	ws.Route(ws.POST("/workspaces/{workspace}/members").
+		To(iam.RemoveUser).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("Remove user from workspace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	tags = []string{"unstable"}
-
-	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
-		To(iam.UserNamespaceListHandler).
-		Doc("Get namespace list").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(models.PageableResponse{}))
-	ws.Route(ws.POST("/workspaces/{name}/namespaces").
-		To(iam.NamespaceCreateHandler).
-		Doc("Create namespace").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.Namespace{}))
-	ws.Route(ws.DELETE("/workspaces/{name}/namespaces/{namespace}").To(iam.NamespaceDeleteHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/workspaces/{name}/namespaces/{namespace}").To(iam.NamespaceCheckHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/namespaces/{namespace}").To(iam.NamespaceCheckHandler))
-
-	// TODO move to /apis/resources.kubesphere.io/workspaces/{workspace}/members/{username}
-	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/namespaces").To(iam.NamespacesListHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/workspaces/{name}/members/{username}/devops").To(iam.DevOpsProjectHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	// TODO /workspaces/{name}/roles/{role}
-	ws.Route(ws.GET("/workspaces/{name}/roles/{role}").To(iam.WorkspaceRoles).Metadata(restfulspec.KeyOpenAPITags, tags))
-	// TODO move to /apis/resources.kubesphere.io/devops
-	ws.Route(ws.GET("/workspaces/{name}/devops").To(iam.DevOpsProjectHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.POST("/workspaces/{name}/devops").To(iam.DevOpsProjectCreateHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/workspaces/{name}/devops/{id}").To(iam.DevOpsProjectDeleteHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	// TODO  merge into /groups
-	ws.Route(ws.GET("/groups/count").To(iam.CountHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-
-	ws.Route(ws.GET("/users/{name}/namespaces").To(iam.NamespacesListHandler).Metadata(restfulspec.KeyOpenAPITags, tags))
-
+	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}").
+		To(iam.DescribeWorkspaceUser).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("username", "username")).
+		Doc("Describe user in workspace").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/rules").
+		To(iam.ListRoleRules).
+		Param(ws.PathParameter("namespace", "namespace")).
+		Param(ws.PathParameter("role", "role name")).
+		Doc("Get namespace role policy rules").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/devops/{devops}/roles/{role}/rules").
+		To(iam.ListDevopsRoleRules).
+		Param(ws.PathParameter("devops", "devops project id")).
+		Param(ws.PathParameter("role", "devops role name")).
+		Doc("Get devops role policy rules").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
 	c.Add(ws)
 	return nil
 }

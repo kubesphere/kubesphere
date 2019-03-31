@@ -19,10 +19,11 @@ limitations under the License.
 package versioned
 
 import (
-	discovery "k8s.io/client-go/discovery"
-	rest "k8s.io/client-go/rest"
-	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 )
 
 type Interface interface {
@@ -30,6 +31,9 @@ type Interface interface {
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	// Deprecated: please explicitly pick a version if possible.
 	Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface
+	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
+	// Deprecated: please explicitly pick a version if possible.
+	Tenant() tenantv1alpha1.TenantV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -37,6 +41,7 @@ type Interface interface {
 type Clientset struct {
 	*discovery.DiscoveryClient
 	servicemeshV1alpha2 *servicemeshv1alpha2.ServicemeshV1alpha2Client
+	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
 }
 
 // ServicemeshV1alpha2 retrieves the ServicemeshV1alpha2Client
@@ -48,6 +53,17 @@ func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha
 // Please explicitly pick a version.
 func (c *Clientset) Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface {
 	return c.servicemeshV1alpha2
+}
+
+// TenantV1alpha1 retrieves the TenantV1alpha1Client
+func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
+	return c.tenantV1alpha1
+}
+
+// Deprecated: Tenant retrieves the default version of TenantClient.
+// Please explicitly pick a version.
+func (c *Clientset) Tenant() tenantv1alpha1.TenantV1alpha1Interface {
+	return c.tenantV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -70,6 +86,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.tenantV1alpha1, err = tenantv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -83,6 +103,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.NewForConfigOrDie(c)
+	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -92,6 +113,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.New(c)
+	cs.tenantV1alpha1 = tenantv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

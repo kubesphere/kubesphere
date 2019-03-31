@@ -55,9 +55,9 @@ func getUsage(namespace, resource string) (int, error) {
 	var result *models.PageableResponse
 	var err error
 	if resource == resources.Namespaces || resource == resources.StorageClasses {
-		result, err = resources.ListClusterResource(resource, &params.Conditions{}, "", false, 1, 0)
+		result, err = resources.ListResources("", resource, &params.Conditions{}, "", false, 1, 0)
 	} else {
-		result, err = resources.ListNamespaceResource(namespace, resource, &params.Conditions{}, "", false, 1, 0)
+		result, err = resources.ListResources(namespace, resource, &params.Conditions{}, "", false, 1, 0)
 	}
 
 	if err != nil {

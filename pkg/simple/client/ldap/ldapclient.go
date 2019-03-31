@@ -32,6 +32,7 @@ var (
 	ManagerPassword string
 	UserSearchBase  string
 	GroupSearchBase string
+	poolSize        int
 )
 
 func init() {
@@ -40,13 +41,14 @@ func init() {
 	flag.StringVar(&ManagerPassword, "ldap-manager-password", "admin", "ldap manager password")
 	flag.StringVar(&UserSearchBase, "ldap-user-search-base", "ou=Users,dc=example,dc=org", "ldap user search base")
 	flag.StringVar(&GroupSearchBase, "ldap-group-search-base", "ou=Groups,dc=example,dc=org", "ldap group search base")
+	flag.IntVar(&poolSize, "ldap-pool-size", 64, "ldap connection pool size")
 }
 
 func ldapClientPool() Pool {
 
 	once.Do(func() {
 		var err error
-		pool, err = NewChannelPool(8, 96, "kubesphere", func(s string) (ldap.Client, error) {
+		pool, err = NewChannelPool(8, poolSize, "kubesphere", func(s string) (ldap.Client, error) {
 			conn, err := ldap.Dial("tcp", ldapHost)
 			if err != nil {
 				return nil, err

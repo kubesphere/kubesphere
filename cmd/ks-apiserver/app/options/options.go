@@ -29,6 +29,4 @@ func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	s.GenericServerRunOptions.AddFlags(fs)
 
 	fs.StringVar(&s.IstioPilotServiceURL, "istio-pilot-service-url", "http://istio-pilot.istio-system.svc:8080/version", "istio pilot discovery service url")
-	fs.StringVar(&s.OpenPitrixServer, "openpitrix-server", "http://openpitrix-api-gateway.openpitrix-system.svc", "openpitrix server")
-	fs.StringVar(&s.OpenPitrixProxyToken, "openpitrix-proxy-token", "", "openpitrix proxy token")
 }

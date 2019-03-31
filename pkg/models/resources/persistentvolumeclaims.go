@@ -30,6 +30,10 @@ import (
 type persistentVolumeClaimSearcher struct {
 }
 
+func (*persistentVolumeClaimSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).Get(name)
+}
+
 // exactly Match
 func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.PersistentVolumeClaim) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -66,10 +76,6 @@ func (*persistentVolumeClaimSearcher) fuzzy(fuzzy map[string]string, item *v1.Pe
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -81,7 +87,7 @@ func (*persistentVolumeClaimSearcher) fuzzy(fuzzy map[string]string, item *v1.Pe
 
 func (*persistentVolumeClaimSearcher) compare(a, b *v1.PersistentVolumeClaim, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

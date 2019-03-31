@@ -30,6 +30,10 @@ import (
 type daemonSetSearcher struct {
 }
 
+func (*daemonSetSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
+}
+
 func daemonSetStatus(item *v1.DaemonSet) string {
 	if item.Status.NumberAvailable == 0 {
 		return stopped
@@ -48,8 +52,18 @@ func (*daemonSetSearcher) match(match map[string]string, item *v1.DaemonSet) boo
 			if daemonSetStatus(item) != v {
 				return false
 			}
+		case name:
+			if item.Name != v && item.Labels[displayName] != v {
+				return false
+			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -76,10 +90,6 @@ func (*daemonSetSearcher) fuzzy(fuzzy map[string]string, item *v1.DaemonSet) boo
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -92,7 +102,7 @@ func (*daemonSetSearcher) fuzzy(fuzzy map[string]string, item *v1.DaemonSet) boo
 
 func (*daemonSetSearcher) compare(a, b *v1.DaemonSet, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

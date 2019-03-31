@@ -21,39 +21,45 @@ import (
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"strings"
 )
 
 func init() {
-	namespacedResources[ConfigMaps] = &configMapSearcher{}
-	namespacedResources[CronJobs] = &cronJobSearcher{}
-	namespacedResources[DaemonSets] = &daemonSetSearcher{}
-	namespacedResources[Deployments] = &deploymentSearcher{}
-	namespacedResources[Ingresses] = &ingressSearcher{}
-	namespacedResources[Jobs] = &jobSearcher{}
-	namespacedResources[PersistentVolumeClaims] = &persistentVolumeClaimSearcher{}
-	namespacedResources[Secrets] = &secretSearcher{}
-	namespacedResources[Services] = &serviceSearcher{}
-	namespacedResources[StatefulSets] = &statefulSetSearcher{}
-	namespacedResources[Pods] = &podSearcher{}
-	namespacedResources[Roles] = &roleSearcher{}
-	namespacedResources[S2iBuilders] = &s2iBuilderSearcher{}
-	namespacedResources[S2iRuns] = &s2iRunSearcher{}
+	resources[ConfigMaps] = &configMapSearcher{}
+	resources[CronJobs] = &cronJobSearcher{}
+	resources[DaemonSets] = &daemonSetSearcher{}
+	resources[Deployments] = &deploymentSearcher{}
+	resources[Ingresses] = &ingressSearcher{}
+	resources[Jobs] = &jobSearcher{}
+	resources[PersistentVolumeClaims] = &persistentVolumeClaimSearcher{}
+	resources[Secrets] = &secretSearcher{}
+	resources[Services] = &serviceSearcher{}
+	resources[StatefulSets] = &statefulSetSearcher{}
+	resources[Pods] = &podSearcher{}
+	resources[Roles] = &roleSearcher{}
+	resources[S2iBuilders] = &s2iBuilderSearcher{}
+	resources[S2iRuns] = &s2iRunSearcher{}
 
-	clusterResources[Nodes] = &nodeSearcher{}
-	clusterResources[Namespaces] = &namespaceSearcher{}
-	clusterResources[ClusterRoles] = &clusterRoleSearcher{}
-	clusterResources[StorageClasses] = &storageClassesSearcher{}
-	clusterResources[S2iBuilderTemplates] = &s2iBuilderTemplateSearcher{}
+	resources[Nodes] = &nodeSearcher{}
+	resources[Namespaces] = &namespaceSearcher{}
+	resources[ClusterRoles] = &clusterRoleSearcher{}
+	resources[StorageClasses] = &storageClassesSearcher{}
+	resources[S2iBuilderTemplates] = &s2iBuilderTemplateSearcher{}
+	resources[Workspaces] = &workspaceSearcher{}
 }
 
-var namespacedResources = make(map[string]namespacedSearcherInterface)
-var clusterResources = make(map[string]clusterSearcherInterface)
+var (
+	resources        = make(map[string]resourceSearchInterface)
+	clusterResources = []string{Nodes, Workspaces, Namespaces, ClusterRoles, StorageClasses, S2iBuilderTemplates}
+)
 
 const (
 	name                   = "name"
 	label                  = "label"
-	createTime             = "createTime"
+	ownerKind              = "ownerKind"
+	ownerName              = "ownerName"
+	CreateTime             = "CreateTime"
 	updateTime             = "updateTime"
 	lastScheduleTime       = "lastScheduleTime"
 	displayName            = "displayName"
@@ -72,6 +78,8 @@ const (
 	Deployments            = "deployments"
 	DaemonSets             = "daemonsets"
 	Roles                  = "roles"
+	Workspaces             = "workspaces"
+	WorkspaceRoles         = "workspaceroles"
 	CronJobs               = "cronjobs"
 	ConfigMaps             = "configmaps"
 	Ingresses              = "ingresses"
@@ -90,30 +98,50 @@ const (
 	S2iRuns                = "s2iruns"
 )
 
-type namespacedSearcherInterface interface {
+type resourceSearchInterface interface {
+	get(namespace, name string) (interface{}, error)
 	search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
 }
-type clusterSearcherInterface interface {
-	search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
+
+func ListResourcesByName(namespace, resource string, names []string) (*models.PageableResponse, error) {
+	items := make([]interface{}, 0)
+	if searcher, ok := resources[resource]; ok {
+		for _, name := range names {
+			item, err := searcher.get(namespace, name)
+
+			if err != nil {
+				return nil, err
+			}
+
+			items = append(items, item)
+		}
+
+	} else {
+		return nil, fmt.Errorf("not found")
+	}
+
+	return &models.PageableResponse{TotalCount: len(items), Items: items}, nil
 }
 
-func ListNamespaceResource(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+func ListResources(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	items := make([]interface{}, 0)
-	total := 0
 	var err error
 	var result []interface{}
 
-	if searcher, ok := namespacedResources[resource]; ok {
+	// none namespace resource
+	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
+		return nil, fmt.Errorf("not found")
+	}
+
+	if searcher, ok := resources[resource]; ok {
 		result, err = searcher.search(namespace, conditions, orderBy, reverse)
 	} else {
-		return nil, fmt.Errorf("not support")
+		return nil, fmt.Errorf("not found")
 	}
 
 	if err != nil {
 		return nil, err
 	}
-
-	total = len(result)
 
 	for i, d := range result {
 		if i >= offset && (limit == -1 || len(items) < limit) {
@@ -121,41 +149,7 @@ func ListNamespaceResource(namespace, resource string, conditions *params.Condit
 		}
 	}
 
-	return &models.PageableResponse{TotalCount: total, Items: items}, nil
-}
-
-func ListClusterResource(resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	items := make([]interface{}, 0)
-	total := 0
-	var err error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var result []interface{}
-
-	if searcher, ok := clusterResources[resource]; ok {
-		result, err = searcher.search(conditions, orderBy, reverse)
-	} else if searcher, ok := namespacedResources[resource]; ok {
-		result, err = searcher.search("", conditions, orderBy, reverse)
-	} else {
-		return nil, fmt.Errorf("not support")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	total = len(result)
-
-	for i, d := range result {
-		if i >= offset && len(items) < limit {
-			items = append(items, d)
-		}
-	}
-
-	return &models.PageableResponse{TotalCount: total, Items: items}, nil
+	return &models.PageableResponse{TotalCount: len(result), Items: items}, nil
 }
 
 func searchFuzzy(m map[string]string, key, value string) bool {

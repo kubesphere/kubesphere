@@ -27,6 +27,7 @@ import (
 	"github.com/go-openapi/spec"
 	"io/ioutil"
 	_ "kubesphere.io/kubesphere/pkg/apis/iam/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"log"
 	// Install apis
@@ -35,6 +36,7 @@ import (
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/tenant/install"
 )
 
 var output string

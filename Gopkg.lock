@@ -143,6 +143,15 @@
   revision = "aabc10ec26b754e797f9028f4589c5b7bd90dc20"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/docker/spdystream"
+  packages = [
+    ".",
+    "spdy",
+  ]
+  revision = "6480d4af844c189cf5dd913db24ddd339d3a4f85"
+
+[[projects]]
   name = "github.com/dustin/go-humanize"
   packages = ["."]
   revision = "9f541cc9db5d55bce703bd99987c9d5cb8eea45e"
@@ -740,7 +749,7 @@
     "api/prometheus/v1",
     "prometheus",
     "prometheus/internal",
-    "prometheus/promhttp"
+    "prometheus/promhttp",
   ]
   revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
   version = "v0.9.2"
@@ -756,7 +765,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model"
+    "model",
   ]
   revision = "cfeb6f9992ffa54aaa4f2170ade4067ee478b250"
   version = "v0.2.0"
@@ -769,7 +778,7 @@
     "internal/util",
     "iostats",
     "nfs",
-    "xfs"
+    "xfs",
   ]
   revision = "e56f2e22fc761e82a34aca553f6725e2aff4fe6c"
 
@@ -778,7 +787,7 @@
   packages = [
     "modfile",
     "module",
-    "semver"
+    "semver",
   ]
   revision = "1cf9852c553c5b7da2d5a4a091129a7822fed0c9"
   version = "v1.2.2"
@@ -793,7 +802,7 @@
   name = "github.com/spf13/afero"
   packages = [
     ".",
-    "mem"
+    "mem",
   ]
   revision = "f4711e4db9e9a1d3887343acb72b2bbfc2f686f5"
   version = "v1.2.1"
@@ -820,7 +829,7 @@
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
-    "mock"
+    "mock",
   ]
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
   version = "v1.3.0"
@@ -843,7 +852,7 @@
     "lego",
     "log",
     "platform/wait",
-    "registration"
+    "registration",
   ]
   revision = "2952cdaebd4da7cd560e195343bdd3cb78a67643"
   version = "v2.3.0"
@@ -868,7 +877,7 @@
     "internal/bufferpool",
     "internal/color",
     "internal/exit",
-    "zapcore"
+    "zapcore",
   ]
   revision = "ff33455a0e382e8a81d14dd7c922020b6b5e7982"
   version = "v1.9.1"
@@ -883,7 +892,7 @@
     "hkdf",
     "ocsp",
     "pbkdf2",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
   revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
 
@@ -906,7 +915,7 @@
     "internal/socks",
     "ipv4",
     "ipv6",
-    "proxy"
+    "proxy",
   ]
   revision = "9f648a60d9775ef5c977e7669d1673a7a67bef33"
 
@@ -918,7 +927,7 @@
     "google",
     "internal",
     "jws",
-    "jwt"
+    "jwt",
   ]
   revision = "e64efc72b421e893cbf63f17ba2221e7d6d0b0f3"
 
@@ -928,8 +937,9 @@
   packages = [
     "cpu",
     "unix",
-    "windows"
+    "windows",
   ]
+  
   revision = "fead79001313d15903fb4605b4a1b781532cd93e"
 
 [[projects]]
@@ -961,7 +971,7 @@
     "unicode/cldr",
     "unicode/norm",
     "unicode/rangetable",
-    "width"
+    "width",
   ]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
@@ -976,7 +986,6 @@
   branch = "master"
   name = "golang.org/x/tools"
   packages = [
-    "container/intsets",
     "go/ast/astutil",
     "go/gcexportdata",
     "go/internal/cgo",
@@ -988,7 +997,7 @@
     "internal/fastwalk",
     "internal/gopathwalk",
     "internal/module",
-    "internal/semver"
+    "internal/semver",
   ]
   revision = "8b67d361bba210f5fbb3c1a0fc121e0847b10b57"
 
@@ -1005,7 +1014,7 @@
     "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch"
+    "urlfetch",
   ]
   revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
   version = "v1.4.0"
@@ -1022,6 +1031,12 @@
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
   source = "https://github.com/fsnotify/fsnotify.git"
   version = "v1.4.7"
+
+[[projects]]
+  name = "gopkg.in/igm/sockjs-go.v2"
+  packages = ["sockjs"]
+  revision = "d276e9ffe5cc5c271b81198cc77a2adf6c4482d2"
+  version = "v2.0.0"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
@@ -1041,7 +1056,7 @@
     ".",
     "cipher",
     "json",
-    "jwt"
+    "jwt",
   ]
   revision = "628223f44a71f715d2881ea69afc795a1e9c01be"
   version = "v2.3.0"
@@ -1093,7 +1108,7 @@
     "settings/v1alpha1",
     "storage/v1",
     "storage/v1alpha1",
-    "storage/v1beta1"
+    "storage/v1beta1",
   ]
   revision = "05914d821849570fba9eacfb29466f2d8d3cd229"
   version = "kubernetes-1.13.1"
@@ -1106,7 +1121,7 @@
     "pkg/client/clientset/clientset",
     "pkg/client/clientset/clientset/scheme",
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
-    "pkg/features"
+    "pkg/features",
   ]
   revision = "0fe22c71c47604641d9aa352c785b7912c200562"
   version = "kubernetes-1.13.1"
@@ -1144,12 +1159,15 @@
     "pkg/util/diff",
     "pkg/util/errors",
     "pkg/util/framer",
+    "pkg/util/httpstream",
+    "pkg/util/httpstream/spdy",
     "pkg/util/intstr",
     "pkg/util/json",
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
     "pkg/util/rand",
+    "pkg/util/remotecommand",
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/strategicpatch",
@@ -1161,7 +1179,8 @@
     "pkg/version",
     "pkg/watch",
     "third_party/forked/golang/json",
-    "third_party/forked/golang/reflect"
+    "third_party/forked/golang/netutil",
+    "third_party/forked/golang/reflect",
   ]
   revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
   version = "kubernetes-1.13.1"
@@ -1176,7 +1195,7 @@
     "pkg/authorization/authorizer",
     "pkg/endpoints/request",
     "pkg/features",
-    "pkg/util/feature"
+    "pkg/util/feature",
   ]
   revision = "3ccfe8365421eb08e334b195786a2973460741d8"
   version = "kubernetes-1.13.1"
@@ -1318,17 +1337,20 @@
     "tools/pager",
     "tools/record",
     "tools/reference",
+    "tools/remotecommand",
     "tools/watch",
     "transport",
+    "transport/spdy",
     "util/buffer",
     "util/cert",
     "util/connrotation",
+    "util/exec",
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
     "util/jsonpath",
     "util/retry",
-    "util/workqueue"
+    "util/workqueue",
   ]
   revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
   version = "kubernetes-1.13.1"
@@ -1344,8 +1366,9 @@
     "cmd/client-gen/generators/util",
     "cmd/client-gen/path",
     "cmd/client-gen/types",
-    "pkg/util"
+    "pkg/util",
   ]
+  pruneopts = "T"
   revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
   version = "kubernetes-1.13.1"
 
@@ -1360,7 +1383,7 @@
     "generator",
     "namer",
     "parser",
-    "types"
+    "types",
   ]
   revision = "b90029ef6cd877cb3f422d75b3a07707e3aac6b7"
 
@@ -1407,7 +1430,7 @@
     "pkg/util/net/sets",
     "pkg/util/parsers",
     "pkg/util/slice",
-    "pkg/util/taints"
+    "pkg/util/taints",
   ]
   revision = "c27b913fddd1a6c480c229191a087698aa92f0b1"
   version = "v1.13.4"
@@ -1433,6 +1456,7 @@
     "pkg/client/apiutil",
     "pkg/client/config",
     "pkg/controller",
+    "pkg/controller/controllerutil",
     "pkg/envtest",
     "pkg/envtest/printer",
     "pkg/event",
@@ -1461,7 +1485,7 @@
     "pkg/webhook/internal/cert/writer",
     "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/internal/metrics",
-    "pkg/webhook/types"
+    "pkg/webhook/types",
   ]
   revision = "12d98582e72927b6cd0123e2b4e819f9341ce62c"
   version = "v0.1.10"
@@ -1478,7 +1502,7 @@
     "pkg/rbac",
     "pkg/util",
     "pkg/webhook",
-    "pkg/webhook/internal"
+    "pkg/webhook/internal",
   ]
   revision = "fbf141159251d035089e7acdd5a343f8cec91b94"
   version = "v0.1.9"
@@ -1488,7 +1512,7 @@
   packages = [
     "integration",
     "integration/addr",
-    "integration/internal"
+    "integration/internal",
   ]
   revision = "d348cb12705b516376e0c323bacca72b00a78425"
   version = "v0.1.1"
@@ -1502,6 +1526,111 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "662b6da91343ff0a611e4487b8eef803b103b676f5b2a5db7ed8351846218fc5"
+  input-imports = [
+    "github.com/dgrijalva/jwt-go",
+    "github.com/docker/docker/api/types",
+    "github.com/docker/docker/client",
+    "github.com/emicklei/go-restful",
+    "github.com/emicklei/go-restful-openapi",
+    "github.com/go-ldap/ldap",
+    "github.com/go-openapi/spec",
+    "github.com/go-redis/redis",
+    "github.com/go-sql-driver/mysql",
+    "github.com/golang/glog",
+    "github.com/google/uuid",
+    "github.com/jinzhu/gorm",
+    "github.com/json-iterator/go",
+    "github.com/kiali/kiali/config",
+    "github.com/kiali/kiali/handlers",
+    "github.com/knative/pkg/apis/istio/v1alpha3",
+    "github.com/knative/pkg/client/clientset/versioned",
+    "github.com/knative/pkg/client/informers/externalversions",
+    "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3",
+    "github.com/knative/pkg/client/listers/istio/v1alpha3",
+    "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1",
+    "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1",
+    "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned",
+    "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions",
+    "github.com/mholt/caddy",
+    "github.com/mholt/caddy/caddy/caddymain",
+    "github.com/mholt/caddy/caddyhttp/httpserver",
+    "github.com/onsi/ginkgo",
+    "github.com/onsi/gomega",
+    "github.com/spf13/cobra",
+    "github.com/spf13/pflag",
+    "golang.org/x/net/context",
+    "gopkg.in/igm/sockjs-go.v2/sockjs",
+    "gopkg.in/yaml.v2",
+    "k8s.io/api/apps/v1",
+    "k8s.io/api/apps/v1beta2",
+    "k8s.io/api/batch/v1",
+    "k8s.io/api/batch/v1beta1",
+    "k8s.io/api/core/v1",
+    "k8s.io/api/extensions/v1beta1",
+    "k8s.io/api/policy/v1beta1",
+    "k8s.io/api/rbac/v1",
+    "k8s.io/api/storage/v1",
+    "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions",
+    "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
+    "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/api/resource",
+    "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/fields",
+    "k8s.io/apimachinery/pkg/labels",
+    "k8s.io/apimachinery/pkg/runtime",
+    "k8s.io/apimachinery/pkg/runtime/schema",
+    "k8s.io/apimachinery/pkg/runtime/serializer",
+    "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/json",
+    "k8s.io/apimachinery/pkg/util/runtime",
+    "k8s.io/apimachinery/pkg/util/sets",
+    "k8s.io/apimachinery/pkg/util/wait",
+    "k8s.io/apimachinery/pkg/watch",
+    "k8s.io/apiserver/pkg/authentication/user",
+    "k8s.io/apiserver/pkg/authorization/authorizer",
+    "k8s.io/apiserver/pkg/endpoints/request",
+    "k8s.io/client-go/discovery",
+    "k8s.io/client-go/discovery/fake",
+    "k8s.io/client-go/informers",
+    "k8s.io/client-go/informers/apps/v1",
+    "k8s.io/client-go/informers/core/v1",
+    "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/scheme",
+    "k8s.io/client-go/kubernetes/typed/core/v1",
+    "k8s.io/client-go/listers/apps/v1",
+    "k8s.io/client-go/listers/core/v1",
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/rest",
+    "k8s.io/client-go/testing",
+    "k8s.io/client-go/tools/cache",
+    "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/tools/remotecommand",
+    "k8s.io/client-go/util/flowcontrol",
+    "k8s.io/client-go/util/workqueue",
+    "k8s.io/code-generator/cmd/client-gen",
+    "k8s.io/gengo/examples/deepcopy-gen/generators",
+    "k8s.io/gengo/examples/defaulter-gen/generators",
+    "k8s.io/klog",
+    "k8s.io/kubernetes/pkg/apis/core",
+    "k8s.io/kubernetes/pkg/controller",
+    "k8s.io/kubernetes/pkg/util/metrics",
+    "k8s.io/kubernetes/pkg/util/slice",
+    "sigs.k8s.io/application/pkg/controller/application",
+    "sigs.k8s.io/controller-runtime/pkg/client",
+    "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
+    "sigs.k8s.io/controller-runtime/pkg/envtest",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
+    "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/reconcile",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/log",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/controller-tools/cmd/controller-gen",
+    "sigs.k8s.io/testing_frameworks/integration",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

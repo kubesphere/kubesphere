@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/util/slice"
 	"kubesphere.io/kubesphere/pkg/informers"
-	sliceutils "kubesphere.io/kubesphere/pkg/utils"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type Authentication struct {
@@ -86,6 +86,10 @@ func handleForbidden(w http.ResponseWriter, err error) int {
 }
 
 func permissionValidate(attrs authorizer.Attributes) (bool, error) {
+
+	if attrs.GetResource() == "users" && attrs.GetUser().GetName() == attrs.GetName() {
+		return true, nil
+	}
 
 	permitted, err := clusterRoleValidate(attrs)
 
@@ -164,7 +168,7 @@ func clusterRoleValidate(attrs authorizer.Attributes) (bool, error) {
 		for _, subject := range clusterRoleBinding.Subjects {
 
 			if (subject.Kind == v1.UserKind && subject.Name == attrs.GetUser().GetName()) ||
-				(subject.Kind == v1.GroupKind && sliceutils.HasString(attrs.GetUser().GetGroups(), subject.Name)) {
+				(subject.Kind == v1.GroupKind && sliceutil.HasString(attrs.GetUser().GetGroups(), subject.Name)) {
 
 				clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
 
@@ -198,11 +202,11 @@ func ruleMatchesResources(rule v1.PolicyRule, apiGroup string, resource string, 
 		return false
 	}
 
-	if !sliceutils.HasString(rule.APIGroups, apiGroup) && !sliceutils.HasString(rule.APIGroups, v1.ResourceAll) {
+	if !sliceutil.HasString(rule.APIGroups, apiGroup) && !sliceutil.HasString(rule.APIGroups, v1.ResourceAll) {
 		return false
 	}
 
-	if len(rule.ResourceNames) > 0 && !sliceutils.HasString(rule.ResourceNames, resourceName) {
+	if len(rule.ResourceNames) > 0 && !sliceutil.HasString(rule.ResourceNames, resourceName) {
 		return false
 	}
 
@@ -234,7 +238,7 @@ func ruleMatchesResources(rule v1.PolicyRule, apiGroup string, resource string, 
 
 func ruleMatchesRequest(rule v1.PolicyRule, apiGroup string, nonResourceURL string, resource string, subresource string, resourceName string, verb string) bool {
 
-	if !sliceutils.HasString(rule.Verbs, verb) && !sliceutils.HasString(rule.Verbs, v1.VerbAll) {
+	if !sliceutil.HasString(rule.Verbs, verb) && !sliceutil.HasString(rule.Verbs, v1.VerbAll) {
 		return false
 	}
 

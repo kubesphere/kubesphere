@@ -5,5 +5,5 @@
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker push kubespheredev/ks-apigateway:latest
 docker push kubespheredev/ks-apiserver:latest
-docker push kubespheredev/ks-iam:latest
+docker push kubespheredev/ks-account:latest
 docker push kubespheredev/ks-controller-manager:latest

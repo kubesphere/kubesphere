@@ -32,6 +32,10 @@ import (
 type jobSearcher struct {
 }
 
+func (*jobSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Batch().V1().Jobs().Lister().Jobs(namespace).Get(name)
+}
+
 func jobStatus(item *batchv1.Job) string {
 	status := ""
 
@@ -54,8 +58,18 @@ func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 			if jobStatus(item) != v {
 				return false
 			}
+		case name:
+			if item.Name != v && item.Labels[displayName] != v {
+				return false
+			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -80,10 +94,6 @@ func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchv1.Job) bool {
 			return false
 		case app:
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
 		default:
@@ -111,6 +121,8 @@ func jobUpdateTime(item *batchv1.Job) time.Time {
 
 func (*jobSearcher) compare(a, b *batchv1.Job, orderBy string) bool {
 	switch orderBy {
+	case CreateTime:
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case updateTime:
 		return jobUpdateTime(a).Before(jobUpdateTime(b))
 	case name:

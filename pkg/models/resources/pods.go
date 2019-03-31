@@ -31,25 +31,29 @@ import (
 type podSearcher struct {
 }
 
-func podBelongTo(item *v1.Pod, kind string, name string) bool {
+func (*podSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Core().V1().Pods().Lister().Pods(namespace).Get(name)
+}
 
-	if strings.EqualFold(kind, "Deployment") {
+func podBelongTo(item *v1.Pod, kind string, name string) bool {
+	switch kind {
+	case "Deployment":
 		if podBelongToDeployment(item, name) {
 			return true
 		}
-	} else if strings.EqualFold(kind, "ReplicaSet") {
+	case "ReplicaSet":
 		if podBelongToReplicaSet(item, name) {
 			return true
 		}
-	} else if strings.EqualFold(kind, "DaemonSet") {
+	case "DaemonSet":
 		if podBelongToDaemonSet(item, name) {
 			return true
 		}
-	} else if strings.EqualFold(kind, "StatefulSet") {
+	case "StatefulSet":
 		if podBelongToStatefulSet(item, name) {
 			return true
 		}
-	} else if strings.EqualFold(kind, "Job") {
+	case "Job":
 		if podBelongToJob(item, name) {
 			return true
 		}
@@ -57,9 +61,9 @@ func podBelongTo(item *v1.Pod, kind string, name string) bool {
 	return false
 }
 
-func replicaSetBelongToDeployment(replicaSet *v12.ReplicaSet, name string) bool {
+func replicaSetBelongToDeployment(replicaSet *v12.ReplicaSet, deploymentName string) bool {
 	for _, owner := range replicaSet.OwnerReferences {
-		if owner.Kind == "Deployment" && owner.Name == name {
+		if owner.Kind == "Deployment" && owner.Name == deploymentName {
 			return true
 		}
 	}
@@ -84,38 +88,36 @@ func podBelongToJob(item *v1.Pod, name string) bool {
 	return false
 }
 
-func podBelongToReplicaSet(item *v1.Pod, name string) bool {
+func podBelongToReplicaSet(item *v1.Pod, replicaSetName string) bool {
 	for _, owner := range item.OwnerReferences {
-		if owner.Kind == "ReplicaSet" && owner.Name == name {
+		if owner.Kind == "ReplicaSet" && owner.Name == replicaSetName {
 			return true
 		}
 	}
 	return false
 }
 
-func podBelongToStatefulSet(item *v1.Pod, name string) bool {
-	replicas, err := informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister().ReplicaSets(item.Namespace).List(labels.Everything())
-	if err != nil {
-		return false
-	}
-	for _, r := range replicas {
-		if replicaSetBelongToDeployment(r, name) {
-			return podBelongToReplicaSet(item, r.Name)
+func podBelongToStatefulSet(item *v1.Pod, statefulSetName string) bool {
+	for _, owner := range item.OwnerReferences {
+		if owner.Kind == "StatefulSet" && owner.Name == statefulSetName {
+			return true
 		}
 	}
 	return false
 }
 
-func podBelongToDeployment(item *v1.Pod, name string) bool {
+func podBelongToDeployment(item *v1.Pod, deploymentName string) bool {
 	replicas, err := informers.SharedInformerFactory().Apps().V1().ReplicaSets().Lister().ReplicaSets(item.Namespace).List(labels.Everything())
 	if err != nil {
 		return false
 	}
+
 	for _, r := range replicas {
-		if replicaSetBelongToDeployment(r, name) {
-			return podBelongToReplicaSet(item, r.Name)
+		if replicaSetBelongToDeployment(r, deploymentName) && podBelongToReplicaSet(item, r.Name) {
+			return true
 		}
 	}
+
 	return false
 }
 
@@ -134,10 +136,10 @@ func podBelongToService(item *v1.Pod, serviceName string) bool {
 	if err != nil {
 		return false
 	}
-	for k, v := range service.Spec.Selector {
-		if item.Labels[k] != v {
-			return false
-		}
+
+	selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
+	if !selector.Matches(labels.Set(item.Labels)) {
+		return false
 	}
 	return true
 }
@@ -146,11 +148,11 @@ func podBelongToService(item *v1.Pod, serviceName string) bool {
 func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 	for k, v := range match {
 		switch k {
-		case "ownerKind":
+		case ownerKind:
 			fallthrough
-		case "ownerName":
-			kind := match["ownerKind"]
-			name := match["ownerName"]
+		case ownerName:
+			kind := match[ownerKind]
+			name := match[ownerName]
 			if !podBelongTo(item, kind, name) {
 				return false
 			}
@@ -168,6 +170,10 @@ func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 			}
 		case name:
 			if item.Name != v && item.Labels[displayName] != v {
+				return false
+			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
 		default:
@@ -200,10 +206,6 @@ func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -215,7 +217,7 @@ func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 
 func (*podSearcher) compare(a, b *v1.Pod, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

@@ -30,6 +30,10 @@ import (
 type s2iBuilderTemplateSearcher struct {
 }
 
+func (*s2iBuilderTemplateSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.S2iSharedInformerFactory().Devops().V1alpha1().S2iBuilderTemplates().Lister().Get(name)
+}
+
 // exactly Match
 func (*s2iBuilderTemplateSearcher) match(match map[string]string, item *v1alpha1.S2iBuilderTemplate) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*s2iBuilderTemplateSearcher) match(match map[string]string, item *v1alpha1
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -62,10 +72,6 @@ func (*s2iBuilderTemplateSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1
 				return false
 			}
 			return false
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -77,7 +83,7 @@ func (*s2iBuilderTemplateSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1
 
 func (*s2iBuilderTemplateSearcher) compare(a, b *v1alpha1.S2iBuilderTemplate, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
@@ -86,7 +92,7 @@ func (*s2iBuilderTemplateSearcher) compare(a, b *v1alpha1.S2iBuilderTemplate, or
 	}
 }
 
-func (s *s2iBuilderTemplateSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+func (s *s2iBuilderTemplateSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 	builderTemplates, err := informers.S2iSharedInformerFactory().Devops().V1alpha1().S2iBuilderTemplates().Lister().List(labels.Everything())
 
 	if err != nil {

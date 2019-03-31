@@ -50,21 +50,6 @@ func GetAllRouters(request *restful.Request, response *restful.Response) {
 	response.WriteAsJson(routers)
 }
 
-// Get all namespace ingress controller services for user
-func GetAllRoutersOfUser(request *restful.Request, response *restful.Response) {
-
-	username := request.PathParameter("username")
-
-	routers, err := routers.GetAllRoutersOfUser(username)
-
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	response.WriteAsJson(routers)
-}
-
 // Get ingress controller service for specified namespace
 func GetRouter(request *restful.Request, response *restful.Response) {
 

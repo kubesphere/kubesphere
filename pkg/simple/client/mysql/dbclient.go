@@ -44,7 +44,6 @@ func Client() *gorm.DB {
 	dbClientOnce.Do(func() {
 		var err error
 		dbClient, err = gorm.Open("mysql", dsn)
-
 		if err != nil {
 			log.Fatalln(err)
 		}

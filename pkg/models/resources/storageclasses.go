@@ -30,6 +30,10 @@ import (
 type storageClassesSearcher struct {
 }
 
+func (*storageClassesSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister().Get(name)
+}
+
 // exactly Match
 func (*storageClassesSearcher) match(match map[string]string, item *v1.StorageClass) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*storageClassesSearcher) match(match map[string]string, item *v1.StorageCl
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -62,10 +72,6 @@ func (*storageClassesSearcher) fuzzy(fuzzy map[string]string, item *v1.StorageCl
 				return false
 			}
 			return false
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -77,7 +83,7 @@ func (*storageClassesSearcher) fuzzy(fuzzy map[string]string, item *v1.StorageCl
 
 func (*storageClassesSearcher) compare(a, b *v1.StorageClass, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
@@ -86,7 +92,7 @@ func (*storageClassesSearcher) compare(a, b *v1.StorageClass, orderBy string) bo
 	}
 }
 
-func (s *storageClassesSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+func (s *storageClassesSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 	storageClasses, err := informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister().List(labels.Everything())
 
 	if err != nil {

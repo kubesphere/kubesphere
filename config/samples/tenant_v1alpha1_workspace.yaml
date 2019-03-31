@@ -1,0 +1,8 @@
+apiVersion: tenant.kubesphere.io/v1alpha1
+kind: Workspace
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: workspace-sample
+  spec:
+    manager: admin

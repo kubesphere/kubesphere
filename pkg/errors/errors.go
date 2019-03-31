@@ -36,6 +36,10 @@ func Wrap(err error) Error {
 	return Error{Message: err.Error()}
 }
 
+func New(message string) Error {
+	return Error{Message: message}
+}
+
 func Parse(data []byte) error {
 	var j map[string]string
 	err := json.Unmarshal(data, &j)

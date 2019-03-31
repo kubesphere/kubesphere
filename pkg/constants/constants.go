@@ -31,13 +31,16 @@ const (
 	IngressControllerFolder    = DataHome + "/ingress-controller"
 	IngressControllerPrefix    = "kubesphere-router-"
 
-	WorkspaceLabelKey = "kubesphere.io/workspace"
-	WorkspaceAdmin    = "workspace-admin"
-	ClusterAdmin      = "cluster-admin"
-	WorkspaceRegular  = "workspace-regular"
-	WorkspaceViewer   = "workspace-viewer"
-	DevopsOwner       = "owner"
-	DevopsReporter    = "reporter"
+	WorkspaceLabelKey              = "kubesphere.io/workspace"
+	DisplayNameLabelKey            = "displayName"
+	CreatorLabelKey                = "creator"
+	OpenPitrixRuntimeAnnotationKey = "openpitrix_runtime"
+	WorkspaceAdmin                 = "workspace-admin"
+	ClusterAdmin                   = "cluster-admin"
+	WorkspaceRegular               = "workspace-regular"
+	WorkspaceViewer                = "workspace-viewer"
+	DevopsOwner                    = "owner"
+	DevopsReporter                 = "reporter"
 
 	UserNameHeader = "X-Token-Username"
 )

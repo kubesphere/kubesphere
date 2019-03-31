@@ -31,6 +31,10 @@ import (
 type ingressSearcher struct {
 }
 
+func (*ingressSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).Get(name)
+}
+
 // exactly Match
 func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress) bool {
 	for k, v := range match {
@@ -39,8 +43,14 @@ func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress)
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -67,10 +77,6 @@ func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress)
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -82,7 +88,7 @@ func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress)
 
 func (*ingressSearcher) compare(a, b *extensions.Ingress, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

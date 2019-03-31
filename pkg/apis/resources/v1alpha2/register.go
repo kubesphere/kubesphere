@@ -52,7 +52,7 @@ func addWebService(c *restful.Container) error {
 	tags := []string{"Namespace resources"}
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
-		To(resources.NamespaceResourceHandler).
+		To(resources.ListResources).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Namespace level resource query").
 		Param(webservice.PathParameter("namespace", "which namespace")).
@@ -69,7 +69,7 @@ func addWebService(c *restful.Container) error {
 	tags = []string{"Cluster resources"}
 
 	webservice.Route(webservice.GET("/{resources}").
-		To(resources.ClusterResourceHandler).
+		To(resources.ListResources).
 		Writes(models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Cluster level resource query").
@@ -196,26 +196,19 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/routers").
 		To(routers.GetAllRouters).
-		Doc("Get all routers").
+		Doc("List all routers").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(corev1.Service{}))
-
-	webservice.Route(webservice.GET("/users/{username}/routers").
-		To(routers.GetAllRoutersOfUser).
-		Doc("Get routers for user").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("username", "")).
 		Writes(corev1.Service{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/router").
 		To(routers.GetRouter).
-		Doc("Get router of a specified project").
+		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("namespace", "name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/router").
 		To(routers.DeleteRouter).
-		Doc("Get router of a specified project").
+		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("namespace", "name of the project")))
 

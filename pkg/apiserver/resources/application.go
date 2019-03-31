@@ -21,15 +21,17 @@ import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/applications"
+
+	//"kubesphere.io/kubesphere/pkg/models/applications"
 	"kubesphere.io/kubesphere/pkg/params"
 	"net/http"
 )
 
 func ApplicationHandler(req *restful.Request, resp *restful.Response) {
-	limit, offset := params.ParsePaging(req)
+	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	clusterId := req.QueryParameter("cluster_id")
 	runtimeId := req.QueryParameter("runtime_id")
-	conditions, err := params.ParseConditions(req)
+	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 	if err != nil {
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

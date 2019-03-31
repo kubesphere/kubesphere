@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -50,7 +51,7 @@ type User struct {
 }
 
 var requestInfoFactory = request.RequestInfoFactory{
-	APIPrefixes:          sets.NewString("api", "apis"),
+	APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 	GrouplessAPIPrefixes: sets.NewString("api")}
 
 func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error) {
@@ -71,6 +72,7 @@ func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error
 		token, err := h.Validate(uToken)
 
 		if err != nil {
+			log.Println(uToken)
 			return h.HandleUnauthorized(resp, err), nil
 		}
 
@@ -166,6 +168,7 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 func (h Auth) HandleUnauthorized(w http.ResponseWriter, err error) int {
 	message := fmt.Sprintf("Unauthorized,%v", err)
 	w.Header().Add("WWW-Authenticate", message)
+	log.Println(message)
 	return http.StatusUnauthorized
 }
 

@@ -20,42 +20,22 @@ package iam
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/rbac/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"kubesphere.io/kubesphere/pkg/params"
 	"net/http"
 	"sort"
 
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 )
 
 type roleList struct {
-	ClusterRoles []*v1.ClusterRole `json:"clusterRoles" protobuf:"bytes,2,rep,name=clusterRoles"`
+	ClusterRoles []*v1.ClusterRole `json:"clusterRole" protobuf:"bytes,2,rep,name=clusterRoles"`
 	Roles        []*v1.Role        `json:"roles" protobuf:"bytes,2,rep,name=roles"`
 }
 
-func RoleRules(req *restful.Request, resp *restful.Response) {
-	namespace := req.PathParameter("namespace")
-	roleName := req.PathParameter("role")
-
-	role, err := iam.GetRole(namespace, roleName)
-
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	rules, err := iam.GetRoleSimpleRules([]*v1.Role{role}, namespace)
-
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	resp.WriteAsJson(rules[namespace])
-}
-
-func RoleUsers(req *restful.Request, resp *restful.Response) {
+func ListRoleUsers(req *restful.Request, resp *restful.Response) {
 	roleName := req.PathParameter("role")
 	namespace := req.PathParameter("namespace")
 
@@ -69,7 +49,53 @@ func RoleUsers(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(users)
 }
 
-func NamespaceUsers(req *restful.Request, resp *restful.Response) {
+func ListClusterRoles(req *restful.Request, resp *restful.Response) {
+	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	orderBy := req.QueryParameter(params.OrderByParam)
+	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	reverse := params.ParseReverse(req)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+
+	result, err := iam.ListClusterRoles(conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteAsJson(result)
+
+}
+
+func ListRoles(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	orderBy := req.QueryParameter(params.OrderByParam)
+	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	reverse := params.ParseReverse(req)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+
+	result, err := iam.ListRoles(namespace, conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteAsJson(result)
+
+}
+
+// List users by namespace
+func ListNamespaceUsers(req *restful.Request, resp *restful.Response) {
 
 	namespace := req.PathParameter("namespace")
 
@@ -80,25 +106,26 @@ func NamespaceUsers(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
+	// sort by time by default
 	sort.Slice(users, func(i, j int) bool {
-		return users[i].Username < users[j].Username
+		return users[i].RoleBindTime.After(*users[j].RoleBindTime)
 	})
 
 	resp.WriteAsJson(users)
 }
 
-func UserRoles(req *restful.Request, resp *restful.Response) {
+func ListUserRoles(req *restful.Request, resp *restful.Response) {
 
 	username := req.PathParameter("username")
 
-	roles, err := iam.GetRoles(username, "")
+	roles, err := iam.GetUserRoles("", username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	clusterRoles, err := iam.GetClusterRoles(username)
+	_, clusterRoles, err := iam.GetUserClusterRoles(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -112,79 +139,62 @@ func UserRoles(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(roleList)
 }
 
-func NamespaceRulesHandler(req *restful.Request, resp *restful.Response) {
-	namespace := req.PathParameter("namespace")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	clusterRoles, err := iam.GetClusterRoles(username)
-
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	roles, err := iam.GetRoles(username, namespace)
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, clusterRole := range clusterRoles {
-		role := new(v1.Role)
-		role.Name = clusterRole.Name
-		role.Labels = clusterRole.Labels
-		role.Namespace = namespace
-		role.Annotations = clusterRole.Annotations
-		role.Kind = "Role"
-		role.Rules = clusterRole.Rules
-		roles = append(roles, role)
-	}
-
-	rules, err := iam.GetRoleSimpleRules(roles, namespace)
-
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	resp.WriteAsJson(rules[namespace])
-}
-
-func RulesMappingHandler(req *restful.Request, resp *restful.Response) {
+func RulesMapping(req *restful.Request, resp *restful.Response) {
 	rules := policy.RoleRuleMapping
 	resp.WriteAsJson(rules)
 }
 
-func ClusterRulesMappingHandler(req *restful.Request, resp *restful.Response) {
+func ClusterRulesMapping(req *restful.Request, resp *restful.Response) {
 	rules := policy.ClusterRoleRuleMapping
 	resp.WriteAsJson(rules)
 }
 
-func ClusterRoleRules(req *restful.Request, resp *restful.Response) {
+func ListClusterRoleRules(req *restful.Request, resp *restful.Response) {
 	clusterRoleName := req.PathParameter("clusterrole")
-	clusterRole, err := iam.GetClusterRole(clusterRoleName)
+	rules, err := iam.GetClusterRoleSimpleRules(clusterRoleName)
 	if err != nil {
 		resp.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	rules, err := iam.GetClusterRoleSimpleRules([]*v1.ClusterRole{clusterRole})
+	resp.WriteAsJson(rules)
+}
+
+func ListClusterRoleUsers(req *restful.Request, resp *restful.Response) {
+	clusterRoleName := req.PathParameter("clusterrole")
+	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	orderBy := req.QueryParameter(params.OrderByParam)
+	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	reverse := params.ParseReverse(req)
+
 	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+
+	result, err := iam.ListClusterRoleUsers(clusterRoleName, conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		if k8serr.IsNotFound(err) {
+			resp.WriteError(http.StatusNotFound, err)
+		} else {
+			resp.WriteError(http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	resp.WriteAsJson(result)
+}
+
+func ListRoleRules(req *restful.Request, resp *restful.Response) {
+	namespaceName := req.PathParameter("namespace")
+	roleName := req.PathParameter("role")
+
+	rules, err := iam.GetRoleSimpleRules(namespaceName, roleName)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	resp.WriteAsJson(rules)
-}
-
-func ClusterRoleUsers(req *restful.Request, resp *restful.Response) {
-	clusterRoleName := req.PathParameter("clusterrole")
-
-	users, err := iam.ClusterRoleUsers(clusterRoleName)
-
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	resp.WriteAsJson(users)
 }

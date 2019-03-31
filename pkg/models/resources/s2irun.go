@@ -33,6 +33,10 @@ import (
 type s2iRunSearcher struct {
 }
 
+func (*s2iRunSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.S2iSharedInformerFactory().Devops().V1alpha1().S2iRuns().Lister().S2iRuns(namespace).Get(name)
+}
+
 // exactly Match
 func (*s2iRunSearcher) match(match map[string]string, item *v1alpha1.S2iRun) bool {
 	for k, v := range match {
@@ -42,11 +46,17 @@ func (*s2iRunSearcher) match(match map[string]string, item *v1alpha1.S2iRun) boo
 				return false
 			}
 		case status:
-			if string(item.Status.RunState) != v{
+			if string(item.Status.RunState) != v {
+				return false
+			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -73,10 +83,6 @@ func (*s2iRunSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1.S2iRun) boo
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -88,7 +94,7 @@ func (*s2iRunSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1.S2iRun) boo
 
 func (*s2iRunSearcher) compare(a, b *v1alpha1.S2iRun, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
