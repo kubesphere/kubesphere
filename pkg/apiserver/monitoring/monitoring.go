@@ -20,11 +20,11 @@ package monitoring
 import (
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
-	prom "kubesphere.io/kubesphere/pkg/simple/client/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
 func MonitorPod(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	podName := requestParams.PodName
 	metricName := requestParams.MetricsName
 	if podName != "" {
@@ -32,7 +32,7 @@ func MonitorPod(request *restful.Request, response *restful.Response) {
 		queryType, params, nullRule := metrics.AssemblePodMetricRequestInfo(requestParams, metricName)
 		var res *metrics.FormatedMetric
 		if !nullRule {
-			metricsStr := prom.SendMonitoringRequest(queryType, params)
+			metricsStr := prometheus.SendMonitoringRequest(queryType, params)
 			res = metrics.ReformatJson(metricsStr, metricName, map[string]string{"pod_name": ""})
 		}
 		response.WriteAsJson(res)
@@ -49,7 +49,7 @@ func MonitorPod(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorContainer(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	metricName := requestParams.MetricsName
 	if requestParams.MetricsFilter != "" {
 		rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelContainer)
@@ -68,7 +68,7 @@ func MonitorContainer(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorWorkload(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkload)
 
@@ -89,13 +89,14 @@ func MonitorWorkload(request *restful.Request, response *restful.Response) {
 	// paging
 	pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
 
+
 	response.WriteAsJson(pagedMetrics)
 
 }
 
 func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) {
 
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
 	if tp == "statistics" {
@@ -112,13 +113,15 @@ func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) 
 
 		response.WriteAsJson(pagedMetrics)
 	} else {
-		res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkspace)
-		response.WriteAsJson(res)
+		//res := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelWorkspace)
+		rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
+		response.WriteAsJson(rawMetrics)
 	}
 }
 
+// /workspaces/{workspace}
 func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
 	if tp == "rank" {
@@ -143,13 +146,13 @@ func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorNamespace(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	metricName := requestParams.MetricsName
 	nsName := requestParams.NsName
 	if nsName != "" {
 		// single
 		queryType, params := metrics.AssembleNamespaceMetricRequestInfo(requestParams, metricName)
-		metricsStr := prom.SendMonitoringRequest(queryType, params)
+		metricsStr := prometheus.SendMonitoringRequest(queryType, params)
 		res := metrics.ReformatJson(metricsStr, metricName, map[string]string{"namespace": ""})
 		response.WriteAsJson(res)
 	} else {
@@ -164,13 +167,13 @@ func MonitorNamespace(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorCluster(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	metricName := requestParams.MetricsName
 	if metricName != "" {
 		// single
 		queryType, params := metrics.AssembleClusterMetricRequestInfo(requestParams, metricName)
-		metricsStr := prom.SendMonitoringRequest(queryType, params)
+		metricsStr := prometheus.SendMonitoringRequest(queryType, params)
 		res := metrics.ReformatJson(metricsStr, metricName, map[string]string{"cluster": "local"})
 
 		response.WriteAsJson(res)
@@ -182,14 +185,16 @@ func MonitorCluster(request *restful.Request, response *restful.Response) {
 }
 
 func MonitorNode(request *restful.Request, response *restful.Response) {
-	requestParams := prom.ParseMonitoringRequestParams(request)
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	metricName := requestParams.MetricsName
 	if metricName != "" {
 		// single
 		queryType, params := metrics.AssembleNodeMetricRequestInfo(requestParams, metricName)
-		metricsStr := prom.SendMonitoringRequest(queryType, params)
+		metricsStr := prometheus.SendMonitoringRequest(queryType, params)
 		res := metrics.ReformatJson(metricsStr, metricName, map[string]string{"node": ""})
+		// The raw node-exporter result doesn't include ip address information
+		// Thereby, append node ip address to .data.result[].metric
 		nodeAddress := metrics.GetNodeAddressInfo()
 		metrics.AddNodeAddressMetric(res, nodeAddress)
 

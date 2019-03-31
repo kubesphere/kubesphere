@@ -19,16 +19,15 @@ limitations under the License.
 package metrics
 
 import (
+	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"net/url"
 	"regexp"
+	"runtime/debug"
+	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/golang/glog"
-	"runtime/debug"
-	"sort"
 
 	"github.com/json-iterator/go"
 
@@ -119,6 +118,7 @@ func getAllWorkspaceNames(formatedMetric *FormatedMetric) map[string]int {
 	var wsMap = make(map[string]int)
 
 	for i := 0; i < len(formatedMetric.Data.Result); i++ {
+		// metricDesc needs clear naming
 		metricDesc := formatedMetric.Data.Result[i][ResultItemMetric]
 		metricDescMap, ensure := metricDesc.(map[string]interface{})
 		if ensure {
@@ -293,7 +293,7 @@ func AddNodeAddressMetric(nodeMetric *FormatedMetric, nodeAddress *map[string][]
 		metricDesc := nodeMetric.Data.Result[i][ResultItemMetric]
 		metricDescMap, ensure := metricDesc.(map[string]interface{})
 		if ensure {
-			if nodeId, exist := metricDescMap["node"]; exist {
+			if nodeId, exist := metricDescMap["resource_name"]; exist {
 				addr, exist := (*nodeAddress)[nodeId.(string)]
 				if exist {
 					metricDescMap["address"] = addr
@@ -329,6 +329,18 @@ func AssembleNamespaceMetricRequestInfo(monitoringRequest *client.MonitoringRequ
 
 	return queryType, params
 }
+
+func AssembleNamespaceMetricRequestInfoByNamesapce(monitoringRequest *client.MonitoringRequestParams, namespace string, metricName string) (string, string) {
+	queryType := monitoringRequest.QueryType
+
+	paramValues := monitoringRequest.Params
+	rule := MakeNamespacePromQL(namespace, monitoringRequest.ResourcesFilter, metricName)
+
+	params := makeRequestParamString(rule, paramValues)
+
+	return queryType, params
+}
+
 
 func AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
 
@@ -412,8 +424,9 @@ func MonitorAllWorkspaces(monitoringRequest *client.MonitoringRequestParams) *Fo
 	var wsAllch = make(chan *[]FormatedMetric, ChannelMaxCapacityWorkspaceMetric)
 
 	wsMap := getAllWorkspaces()
-
+	
 	for ws := range wsMap {
+		// Only execute Prometheus queries for specific metrics on specific workspaces
 		bol, err := regexp.MatchString(monitoringRequest.ResourcesFilter, ws)
 		if err == nil && bol {
 			// a workspace
@@ -429,6 +442,7 @@ func MonitorAllWorkspaces(monitoringRequest *client.MonitoringRequestParams) *Fo
 	for oneWsMetric := range wsAllch {
 		if oneWsMetric != nil {
 			// aggregate workspace metric
+
 			for _, metric := range *oneWsMetric {
 				fm, exist := fmtMetricMap[metric.MetricName]
 				if exist {
@@ -461,8 +475,9 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
 	namespaceArray, err := workspaces.WorkspaceNamespaces(ws)
 	if err != nil {
-		glog.Errorln(err.Error())
+		glog.Errorln(err)
 	}
+
 	// add by namespace
 	for _, metricName := range filterMetricsName {
 		wg.Add(1)
@@ -470,7 +485,9 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 
 			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
 			metricsStr := client.SendMonitoringRequest(queryType, params)
-			ch <- ReformatJson(metricsStr, metricName, map[string]string{"namespace": ""})
+			// refactor the calling function. We add workspace info here, no need to repeat it in the following code snippet
+			// resource_name is also used by the Sort func in model/metrics/util.go
+			ch <- ReformatJson(metricsStr, metricName, map[string]string{"resource_name": ws}) // It's adding "resource_name" field
 
 			wg.Done()
 		}(metricName)
@@ -479,6 +496,7 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 	wg.Wait()
 	close(ch)
 
+	// to be deleted
 	var metricsArray []FormatedMetric
 	for oneMetric := range ch {
 		if oneMetric != nil {
@@ -531,6 +549,8 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					go func(metricName string) {
 						queryType, params := AssembleNodeMetricRequestInfo(monitoringRequest, metricName)
 						metricsStr := client.SendMonitoringRequest(queryType, params)
+						// it's not adding but changing key name. "node" -> "resource_name", refactor the calling function
+						// We actually change the key of "node" in original Prometheus results to "resource_name"
 						ch <- ReformatJson(metricsStr, metricName, map[string]string{"node": ""})
 						wg.Done()
 					}(metricName)
@@ -554,17 +574,59 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 						}
 
 						bol, err := regexp.MatchString(metricsFilter, metricName)
-						ns := "^(" + strings.Join(namespaceArray, "|") + ")$"
-						monitoringRequest.ResourcesFilter = ns
-						if err == nil && bol {
-							wg.Add(1)
-							go func(metricName string) {
-								queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
-								metricsStr := client.SendMonitoringRequest(queryType, params)
-								ch <- ReformatJson(metricsStr, metricName, map[string]string{"workspace": "workspace"})
-								wg.Done()
-							}(metricName)
+						//ns := "^(" + strings.Join(namespaceArray, "|") + ")$"
+						//monitoringRequest.ResourcesFilter = ns
+						//if err == nil && bol {
+						//	wg.Add(1)
+						//	go func(metricName string) {
+						//		queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
+						//		metricsStr := client.SendMonitoringRequest(queryType, params)
+						//		ch <- ReformatJson(metricsStr, metricName, map[string]string{"resource_name": monitoringRequest.WsName})
+						//		wg.Done()
+						//	}(metricName)
+						//}
+						if err != nil || !bol {
+							continue
 						}
+
+						wg.Add(1)
+						go func(metricName string) {
+
+							var chForOneMetric = make(chan *FormatedMetric, ChannelMaxCapacity)
+							var wgForOneMetric sync.WaitGroup
+
+							for _, ns := range namespaceArray {
+								//monitoringRequest.NsName = ns
+								wgForOneMetric.Add(1)
+								go func(metricName string, namespace string) {
+
+									queryType, params := AssembleNamespaceMetricRequestInfoByNamesapce(monitoringRequest, namespace, metricName)
+									metricsStr := client.SendMonitoringRequest(queryType, params)
+									chForOneMetric <- ReformatJson(metricsStr, metricName, map[string]string{"resource_name": namespace})
+									wgForOneMetric.Done()
+								}(metricName, ns)
+							}
+
+							wgForOneMetric.Wait()
+							close(chForOneMetric)
+
+
+							aggregatedResult := FormatedMetric{MetricName:metricName, Status: "success", Data: FormatedMetricData{Result:[]map[string]interface{}{}, ResultType:""}}
+
+							for oneMetric := range chForOneMetric {
+
+								if oneMetric != nil {
+
+									if len(oneMetric.Data.Result) > 0 {
+										aggregatedResult.Data.Result = append(aggregatedResult.Data.Result, oneMetric.Data.Result[0])
+									}
+								}
+							}
+
+							ch <- &aggregatedResult
+							wg.Done()
+						}(metricName)
+
 					}
 
 				} else {
@@ -599,6 +661,7 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 							queryType, params := AssembleAllWorkspaceMetricRequestInfo(monitoringRequest, nil, metricName)
 							metricsStr := client.SendMonitoringRequest(queryType, params)
 							ch <- ReformatJson(metricsStr, metricName, map[string]string{"workspace": "workspaces"})
+
 							wg.Done()
 						}(metricName)
 					}
@@ -630,7 +693,9 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 						go func(metricName string) {
 							queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
 							metricsStr := client.SendMonitoringRequest(queryType, params)
-							ch <- ReformatJson(metricsStr, metricName, map[string]string{"workload": ""})
+							reformattedResult := ReformatJson(metricsStr, metricName, map[string]string{"workload": ""})
+							// no need to append a null result
+							ch <- reformattedResult
 							wg.Done()
 						}(metricName)
 					}

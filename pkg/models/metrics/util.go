@@ -251,6 +251,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 }
 
 // maybe this function is time consuming
+// The metric param is the result from Prometheus HTTP query
 func ReformatJson(metric string, metricsName string, needAddParams map[string]string, needDelParams ...string) *FormatedMetric {
 	var formatMetric FormatedMetric
 
@@ -268,6 +269,8 @@ func ReformatJson(metric string, metricsName string, needAddParams map[string]st
 		result := formatMetric.Data.Result
 		for _, res := range result {
 			metric, exist := res[ResultItemMetric]
+			// Prometheus query result format: .data.result[].metric
+			// metricMap is the value of .data.result[].metric
 			metricMap, sure := metric.(map[string]interface{})
 			if exist && sure {
 				delete(metricMap, "__name__")
