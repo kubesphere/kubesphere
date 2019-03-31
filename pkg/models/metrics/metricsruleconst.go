@@ -140,6 +140,10 @@ var ClusterMetricsNames = []string{
 	"cluster_load1",
 	"cluster_load5",
 	"cluster_load15",
+
+	// New in ks 2.0
+	"cluster_pod_abnormal_ratio",
+	"cluster_node_offline_ratio",
 }
 var NodeMetricsNames = []string{
 	"node_cpu_utilisation",
@@ -176,6 +180,9 @@ var NodeMetricsNames = []string{
 	"node_load1",
 	"node_load5",
 	"node_load15",
+
+	// New in ks 2.0
+	" node_pod_abnormal_ratio",
 }
 var WorkspaceMetricsNames = []string{
 	"workspace_cpu_usage",
@@ -267,6 +274,10 @@ var NamespaceMetricsNames = []string{
 	"namespace_secret_count",
 
 	"namespace_ingresses_extensions_count",
+
+	// New in ks 2.0
+	"namespace_pod_abnormal_ratio",
+	"namespace_resourcequota_used_ratio",
 }
 
 var PodMetricsNames = []string{
@@ -290,6 +301,16 @@ var WorkloadMetricsNames = []string{
 	"workload_statefulset_replica_available",
 	"workload_daemonset_replica",
 	"workload_daemonset_replica_available",
+
+	// New in ks 2.0
+	"workload_cpu_usage",
+	"workload_memory_usage",
+	"workload_memory_usage_wo_cache",
+	"workload_net_bytes_transmitted",
+	"workload_net_bytes_received",
+	"workload_deployment_unavailable_replicas_ratio",
+	"workload_daemonset_unavailable_replicas_ratio",
+	"workload_statefulset_unavailable_replicas_ratio",
 }
 
 var ContainerMetricsNames = []string{
@@ -319,26 +340,32 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_disk_write_throughput": "sum(node:data_volume_throughput_bytes_written:sum)",
 
 	"cluster_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
-	"cluster_disk_size_utilisation": `1 - sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node)) / sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	//"cluster_disk_size_utilisation": `1 - sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node)) / sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_utilisation": `cluster:disk_utilization:ratio`,
 	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
 	"cluster_disk_size_available":   `sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
 
 	"cluster_disk_inode_total":       `sum(node:node_inodes_total:)`,
 	"cluster_disk_inode_usage":       `sum(node:node_inodes_total:) - sum(node:node_inodes_free:)`,
-	"cluster_disk_inode_utilisation": `1 - sum(node:node_inodes_free:) / sum(node:node_inodes_total:)`,
+	//"cluster_disk_inode_utilisation": `1 - sum(node:node_inodes_free:) / sum(node:node_inodes_total:)`,
+	"cluster_disk_inode_utilisation": `cluster:disk_inode_utilization:ratio`,
 
 	"cluster_namespace_count": `count(kube_namespace_annotations)`,
 
 	// cluster_pod_count = cluster_pod_running_count + cluster_pod_succeeded_count + cluster_pod_abnormal_count
-	"cluster_pod_count":           `sum((kube_pod_status_scheduled{condition="true"} > 0)  * on (namespace, pod) group_left(node) (sum by (node, namespace, pod) (kube_pod_info)) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	//"cluster_pod_count":           `sum((kube_pod_status_scheduled{condition="true"} > 0)  * on (namespace, pod) group_left(node) (sum by (node, namespace, pod) (kube_pod_info)) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"cluster_pod_count": `cluster:pod:sum`,
 	"cluster_pod_quota":           `sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
-	"cluster_pod_utilisation":     `sum(kube_pod_info unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)) / sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	//"cluster_pod_utilisation":     `sum(kube_pod_info unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)) / sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"cluster_pod_utilisation": `cluster:pod_utilization:ratio`,
 	"cluster_pod_running_count":   `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Succeeded"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_succeeded_count": `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Running"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
-	"cluster_pod_abnormal_count":  `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Succeeded|Running"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	//"cluster_pod_abnormal_count":  `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Succeeded|Running"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+    "cluster_pod_abnormal_count": `cluster:pod_abnormal:sum`,
 
 	"cluster_node_online":  `sum(kube_node_status_condition{condition="Ready",status="true"})`,
-	"cluster_node_offline": `sum(kube_node_status_condition{condition="Ready",status=~"unknown|false"})`,
+	//"cluster_node_offline": `sum(kube_node_status_condition{condition="Ready",status=~"unknown|false"})`,
+	"cluster_node_offline": `cluster:node_offline:sum`,
 	"cluster_node_total":   `sum(kube_node_status_condition{condition="Ready"})`,
 
 	"cluster_ingresses_extensions_count": `sum(kube_ingress_labels)`,
@@ -380,6 +407,10 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_load5":  `sum(node_load5{job="node-exporter"}) / sum(node:node_num_cpu:sum)`,
 	"cluster_load15": `sum(node_load15{job="node-exporter"}) / sum(node:node_num_cpu:sum)`,
 
+	// cluster: New added in ks 2.0
+	"cluster_pod_abnormal_ratio": `cluster:pod_abnormal:ratio`,
+	"cluster_node_offline_ratio": `cluster:node_offline:ratio`,
+
 	//node
 	"node_cpu_utilisation":       "node:node_cpu_utilisation:avg1m",
 	"node_cpu_total":             "node:node_num_cpu:sum",
@@ -397,27 +428,42 @@ var RulePromQLTmplMap = MetricMap{
 	"node_disk_write_throughput": "node:data_volume_throughput_bytes_written:sum",
 
 	"node_disk_size_capacity":    `max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
-	"node_disk_size_available":   `max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	//"node_disk_size_available":   `max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_available": `node:disk_space_available:$1`,
 	"node_disk_size_usage":       `max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
-	"node_disk_size_utilisation": `max(((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) / node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	//"node_disk_size_utilisation": `max(((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) / node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_utilisation": `node:disk_space_utilization:ratio$1`,
 
 	"node_disk_inode_total":       `node:node_inodes_total:$1`,
 	"node_disk_inode_usage":       `node:node_inodes_total:$1 - node:node_inodes_free:$1`,
-	"node_disk_inode_utilisation": `(1 - (node:node_inodes_free:$1 / node:node_inodes_total:$1))`,
+	//"node_disk_inode_utilisation": `(1 - (node:node_inodes_free:$1 / node:node_inodes_total:$1))`,
+	"node_disk_inode_utilisation": `node:disk_inode_utilization:ratio$1`,
 
-	"node_pod_count":           `sum by (node) ((kube_pod_status_scheduled{condition="true"} > 0)  * on (namespace, pod) group_left(node) kube_pod_info$1 unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	//"node_pod_count":           `sum by (node) ((kube_pod_status_scheduled{condition="true"} > 0)  * on (namespace, pod) group_left(node) kube_pod_info$1 unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"node_pod_count": `node:pod_count:sum$1`,
 	"node_pod_quota":           `sum(kube_node_status_capacity_pods$1) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
-	"node_pod_utilisation":     `(sum(kube_pod_info$1) by (node) / sum(kube_node_status_capacity_pods$1) by (node)) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
-	"node_pod_running_count":   `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Succeeded"} > 0))  by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
-	"node_pod_succeeded_count": `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Running"} > 0))  by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
-	"node_pod_abnormal_count":  `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Succeeded|Running"} > 0)) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	//"node_pod_utilisation":     `(sum(kube_pod_info$1) by (node) / sum(kube_node_status_capacity_pods$1) by (node)) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	"node_pod_utilisation": `node:pod_utilization:ratio$1`,
+	//"node_pod_running_count":   `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Succeeded"} > 0))  by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	"node_pod_running_count": `node:pod_running:count$1`,
+	//"node_pod_succeeded_count": `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Running"} > 0))  by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	"node_pod_succeeded_count": `node:pod_succeeded:count$1`,
+	//"node_pod_abnormal_count":  `count(kube_pod_info$1 unless on (pod) (kube_pod_status_phase{phase=~"Succeeded|Running"} > 0)) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	"node_pod_abnormal_count": `node:pod_abnormal:count$1`,
 
 	// without log node: unless on(node) kube_node_labels{label_role="log"}
 	"node_cpu_usage": `node:node_cpu_utilisation:avg1m$1 * node:node_num_cpu:sum$1`,
 
-	"node_load1":  `sum by (node) (node_load1{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
-	"node_load5":  `sum by (node) (node_load5{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
-	"node_load15": `sum by (node) (node_load15{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
+	// $1 = {node="xxxx"}
+	//"node_load1":  `sum by (node) (node_load1{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
+	"node_load1": `node:load1:ratio$1`,
+	//"node_load5":  `sum by (node) (node_load5{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
+	"node_load5": `node:load5:ratio$1`,
+	//"node_load15": `sum by (node) (node_load15{job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) / node:node_num_cpu:sum`,
+	"node_load15": `node:load15:ratio$1`,
+
+	// New in ks 2.0
+	"node_pod_abnormal_ratio": `node:pod_abnormal:ratio$1`,
 
 	//namespace
 	"namespace_cpu_usage":             `namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
@@ -430,45 +476,45 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_pod_succeeded_count":   `sum(kube_pod_status_phase{phase="Succeeded", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_pod_abnormal_count":    `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 
-	"namespace_configmap_count_used":            `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_jobs_batch_count_used":           `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_roles_count_used":                `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/roles.rbac.authorization.k8s.io"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_limit_used":               `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="limits.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pvc_used":                        `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_request_used":             `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pvc_count_used":                  `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cronjobs_batch_count_used":       `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/cronjobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_ingresses_extensions_count_used": `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/ingresses.extensions"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cpu_limit_used":                  `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="limits.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_storage_request_used":            `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.storage"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_deployment_count_used":           `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/deployments.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pod_count_used":                  `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/pods"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_statefulset_count_used":          `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/statefulsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_daemonset_count_used":            `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/daemonsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_secret_count_used":               `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/secrets"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_service_count_used":              `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/services"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cpu_request_used":                `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_service_loadbalancer_used":       `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="services.loadbalancers"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_configmap_count_used":            `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_jobs_batch_count_used":           `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_roles_count_used":                `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/roles.rbac.authorization.k8s.io"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_memory_limit_used":               `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="limits.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pvc_used":                        `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_memory_request_used":             `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pvc_count_used":                  `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cronjobs_batch_count_used":       `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/cronjobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_ingresses_extensions_count_used": `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/ingresses.extensions"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_limit_used":                  `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="limits.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_storage_request_used":            `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.storage"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_deployment_count_used":           `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/deployments.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pod_count_used":                  `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/pods"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_statefulset_count_used":          `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/statefulsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_daemonset_count_used":            `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/daemonsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_secret_count_used":               `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/secrets"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_service_count_used":              `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/services"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_request_used":                `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="requests.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_service_loadbalancer_used":       `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="services.loadbalancers"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 
-	"namespace_configmap_count_hard":            `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_jobs_batch_count_hard":           `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_roles_count_hard":                `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/roles.rbac.authorization.k8s.io"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_limit_hard":               `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="limits.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pvc_hard":                        `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_request_hard":             `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pvc_count_hard":                  `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cronjobs_batch_count_hard":       `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/cronjobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_ingresses_extensions_count_hard": `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/ingresses.extensions"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cpu_limit_hard":                  `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="limits.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_storage_request_hard":            `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.storage"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_deployment_count_hard":           `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/deployments.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pod_count_hard":                  `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/pods"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_statefulset_count_hard":          `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/statefulsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_daemonset_count_hard":            `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/daemonsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_secret_count_hard":               `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/secrets"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_service_count_hard":              `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/services"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_cpu_request_hard":                `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_service_loadbalancer_hard":       `sum(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="services.loadbalancers"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_configmap_count_hard":            `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_jobs_batch_count_hard":           `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_roles_count_hard":                `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/roles.rbac.authorization.k8s.io"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_memory_limit_hard":               `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="limits.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pvc_hard":                        `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_memory_request_hard":             `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.memory"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pvc_count_hard":                  `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/persistentvolumeclaims"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cronjobs_batch_count_hard":       `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/cronjobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_ingresses_extensions_count_hard": `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/ingresses.extensions"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_limit_hard":                  `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="limits.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_storage_request_hard":            `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.storage"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_deployment_count_hard":           `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/deployments.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pod_count_hard":                  `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/pods"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_statefulset_count_hard":          `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/statefulsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_daemonset_count_hard":            `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/daemonsets.apps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_secret_count_hard":               `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/secrets"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_service_count_hard":              `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/services"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_request_hard":                `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="requests.cpu"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_service_loadbalancer_hard":       `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="services.loadbalancers"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 
 	"namespace_cronjob_count":     `sum(kube_cronjob_labels{namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_pvc_count":         `sum(kube_persistentvolumeclaim_info{namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
@@ -483,6 +529,10 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_secret_count":      `sum(kube_secret_info{namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 
 	"namespace_ingresses_extensions_count": `sum(kube_ingress_labels{namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+
+	// New in ks 2.0
+	"namespace_pod_abnormal_ratio": `namespace:pod_abnormal:ratio{namespace!="", namespace=~"$1"}`,
+	"namespace_resourcequota_used_ratio": `namespace:resourcequota_used:ratio{namespace!="", namespace=~"$1"}`,
 
 	// pod
 	"pod_cpu_usage":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name!="", pod_name="$2", image!=""}[5m])) by (namespace, pod_name)`,
@@ -516,6 +566,16 @@ var RulePromQLTmplMap = MetricMap{
 	"workload_statefulset_replica_available": `label_join(sum (label_join(label_replace(kube_statefulset_status_replicas_current{namespace="$2", statefulset=~"$3"}, "owner_kind", "StatefulSet", "", ""), "workload", "", "statefulset")) by (namespace, owner_kind, workload), "workload", ":", "owner_kind", "workload")`,
 	"workload_daemonset_replica":             `label_join(sum (label_join(label_replace(kube_daemonset_status_desired_number_scheduled{namespace="$2", daemonset=~"$3"}, "owner_kind", "DaemonSet", "", ""), "workload", "", "daemonset")) by (namespace, owner_kind, workload), "workload", ":", "owner_kind", "workload")`,
 	"workload_daemonset_replica_available":   `label_join(sum (label_join(label_replace(kube_daemonset_status_number_available{namespace="$2", daemonset=~"$3"}, "owner_kind", "DaemonSet", "", ""), "workload", "", "daemonset")) by (namespace, owner_kind, workload), "workload", ":", "owner_kind", "workload")`,
+
+	// New in ks 2.0
+	"workload_cpu_usage": `namespace:workload_cpu_usage:sum{namespace="$2"}`,
+	"workload_memory_usage": `namespace:workload_memory_usage:sum{namespace="$2"}`,
+	"workload_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{namespace="$2"}`,
+	"workload_net_bytes_transmitted": `namespace:workload_net_bytes_transmitted:sum_irate{namespace="$2"}`,
+	"workload_net_bytes_received": `namespace:workload_net_bytes_received:sum_irate{namespace="$2"}`,
+	"workload_deployment_unavailable_replicas_ratio": `namespace:deployment_unavailable_replicas:ratio{namespace="$2", deployment=~"$3"}`,
+    "workload_daemonset_unavailable_replicas_ratio": `namespace:daemonset_unavailable_replicas:ratio{namespace="$2", daemonset=~"$3"}`,
+    "workload_statefulset_unavailable_replicas_ratio": `namespace:statefulset_unavailable_replicas:ratio{namespace="$2", statefulset=~"$3"}`,
 
 	// container
 	"container_cpu_usage":             `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name!="POD", container_name=~"$3"}[5m])) by (namespace, pod_name, container_name)`,
