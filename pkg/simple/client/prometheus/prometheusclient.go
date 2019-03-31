@@ -74,9 +74,10 @@ func SendMonitoringRequest(queryType string, params string) string {
 	epurl := MainPrometheusEndpoint + queryType + params
 
 	response, err := client.Get(epurl)
-	defer response.Body.Close()
 	if err != nil {
 		glog.Error(err)
+	} else {
+		defer response.Body.Close()
 		return ""
 	}
 
