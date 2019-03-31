@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	ApiRootPath = "/apis"
+	ApiRootPath = "/kapis"
 )
 
 // container holds all webservice of apiserver

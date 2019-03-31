@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"github.com/emicklei/go-restful"
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/kiali/kiali/business"
@@ -15,25 +15,25 @@ import (
 const defaultHealthRateInterval = "10m"
 
 // NamespaceHealth is the API handler to get app-based health of every services in the given namespace
-func NamespaceHealth(w http.ResponseWriter, r *http.Request) {
+func NamespaceHealth(request *restful.Request, response *restful.Response) {
 	// Get business layer
 	business, err := business.Get()
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
 
 	p := namespaceHealthParams{}
-	if ok, err := p.extract(r); !ok {
+	if ok, err := p.extract(request); !ok {
 		// Bad request
-		RespondWithError(w, http.StatusBadRequest, err)
+		RespondWithError(response.ResponseWriter, http.StatusBadRequest, err)
 		return
 	}
 
 	// Adjust rate interval
 	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
 		return
 	}
 
@@ -41,86 +41,86 @@ func NamespaceHealth(w http.ResponseWriter, r *http.Request) {
 	case "app":
 		health, err := business.Health.GetNamespaceAppHealth(p.Namespace, rateInterval, p.QueryTime)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Error while fetching app health: "+err.Error())
+			RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Error while fetching app health: "+err.Error())
 			return
 		}
-		RespondWithJSON(w, http.StatusOK, health)
+		RespondWithJSON(response.ResponseWriter, http.StatusOK, health)
 	case "service":
 		health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Error while fetching service health: "+err.Error())
+			RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Error while fetching service health: "+err.Error())
 			return
 		}
-		RespondWithJSON(w, http.StatusOK, health)
+		RespondWithJSON(response.ResponseWriter, http.StatusOK, health)
 	case "workload":
 		health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Error while fetching workload health: "+err.Error())
+			RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Error while fetching workload health: "+err.Error())
 			return
 		}
-		RespondWithJSON(w, http.StatusOK, health)
+		RespondWithJSON(response.ResponseWriter, http.StatusOK, health)
 	}
 }
 
 // AppHealth is the API handler to get health of a single app
-func AppHealth(w http.ResponseWriter, r *http.Request) {
+func AppHealth(request *restful.Request, response *restful.Response) {
 	business, err := business.Get()
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
 
 	p := appHealthParams{}
-	p.extract(r)
+	p.extract(request)
 	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
 		return
 	}
 
 	health, err := business.Health.GetAppHealth(p.Namespace, p.App, rateInterval, p.QueryTime)
-	handleHealthResponse(w, health, err)
+	handleHealthResponse(response.ResponseWriter, health, err)
 }
 
 // WorkloadHealth is the API handler to get health of a single workload
-func WorkloadHealth(w http.ResponseWriter, r *http.Request) {
+func WorkloadHealth(request *restful.Request, response *restful.Response) {
 	business, err := business.Get()
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
 
 	p := workloadHealthParams{}
-	p.extract(r)
+	p.extract(request)
 	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
 		return
 	}
 	p.RateInterval = rateInterval
 
 	health, err := business.Health.GetWorkloadHealth(p.Namespace, p.Workload, rateInterval, p.QueryTime)
-	handleHealthResponse(w, health, err)
+	handleHealthResponse(response.ResponseWriter, health, err)
 }
 
 // ServiceHealth is the API handler to get health of a single service
-func ServiceHealth(w http.ResponseWriter, r *http.Request) {
+func ServiceHealth(request *restful.Request, response *restful.Response) {
 	business, err := business.Get()
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
 
 	p := serviceHealthParams{}
-	p.extract(r)
+	p.extract(request)
 	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
+		RespondWithError(response.ResponseWriter, http.StatusInternalServerError, "Adjust rate interval error: "+err.Error())
 		return
 	}
 
 	health, err := business.Health.GetServiceHealth(p.Namespace, p.Service, rateInterval, p.QueryTime)
-	handleHealthResponse(w, health, err)
+	handleHealthResponse(response.ResponseWriter, health, err)
 }
 
 func handleHealthResponse(w http.ResponseWriter, health interface{}, err error) {
@@ -152,14 +152,15 @@ type baseHealthParams struct {
 	QueryTime time.Time
 }
 
-func (p *baseHealthParams) baseExtract(r *http.Request, vars map[string]string) {
+func (p *baseHealthParams) baseExtract(request *restful.Request) {
 	p.RateInterval = defaultHealthRateInterval
-	p.QueryTime = util.Clock.Now()
-	queryParams := r.URL.Query()
-	if rateIntervals, ok := queryParams["rateInterval"]; ok && len(rateIntervals) > 0 {
-		p.RateInterval = rateIntervals[0]
+	p.QueryTime = time.Now()
+
+	if len(request.QueryParameter("rateInterval")) > 0 {
+		p.RateInterval = request.QueryParameter("rateInterval")
 	}
-	p.Namespace = vars["namespace"]
+
+	p.Namespace = request.PathParameter("namespace")
 }
 
 // namespaceHealthParams holds the path and query parameters for NamespaceHealth
@@ -175,19 +176,17 @@ type namespaceHealthParams struct {
 	Type string `json:"type"`
 }
 
-func (p *namespaceHealthParams) extract(r *http.Request) (bool, string) {
-	vars := mux.Vars(r)
-	p.baseExtract(r, vars)
+func (p *namespaceHealthParams) extract(request *restful.Request) (bool, string) {
+	p.baseExtract(request)
 	p.Type = "app"
-	queryParams := r.URL.Query()
-	if healthTypes, ok := queryParams["type"]; ok && len(healthTypes) > 0 {
-		if healthTypes[0] != "app" && healthTypes[0] != "service" && healthTypes[0] != "workload" {
-			// Bad request
-			return false, "Bad request, query parameter 'type' must be one of ['app','service','workload']"
-		}
-		p.Type = healthTypes[0]
+	tp := request.QueryParameter("type")
+	switch tp {
+	case "app", "service", "workload":
+		p.Type = tp
+		return true, ""
 	}
-	return true, ""
+
+	return false, "Bad request, query parameter 'type' must be one of ['app','service','workload']"
 }
 
 // appHealthParams holds the path and query parameters for AppHealth
@@ -201,10 +200,9 @@ type appHealthParams struct {
 	App string `json:"app"`
 }
 
-func (p *appHealthParams) extract(r *http.Request) {
-	vars := mux.Vars(r)
-	p.baseExtract(r, vars)
-	p.App = vars["app"]
+func (p *appHealthParams) extract(request *restful.Request) {
+	p.baseExtract(request)
+	p.App = request.PathParameter("app")
 }
 
 // serviceHealthParams holds the path and query parameters for ServiceHealth
@@ -218,10 +216,9 @@ type serviceHealthParams struct {
 	Service string `json:"service"`
 }
 
-func (p *serviceHealthParams) extract(r *http.Request) {
-	vars := mux.Vars(r)
-	p.baseExtract(r, vars)
-	p.Service = vars["service"]
+func (p *serviceHealthParams) extract(request *restful.Request) {
+	p.baseExtract(request)
+	p.Service = request.PathParameter("service")
 }
 
 // workloadHealthParams holds the path and query parameters for WorkloadHealth
@@ -235,10 +232,9 @@ type workloadHealthParams struct {
 	Workload string `json:"workload"`
 }
 
-func (p *workloadHealthParams) extract(r *http.Request) {
-	vars := mux.Vars(r)
-	p.baseExtract(r, vars)
-	p.Workload = vars["workload"]
+func (p *workloadHealthParams) extract(request *restful.Request) {
+	p.baseExtract(request)
+	p.Workload = request.PathParameter("workload")
 }
 
 func adjustRateInterval(business *business.Layer, namespace, rateInterval string, queryTime time.Time) (string, error) {

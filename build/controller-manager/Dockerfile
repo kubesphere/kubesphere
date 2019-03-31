@@ -5,7 +5,7 @@
 # Copyright 2018 The KubeSphere Authors. All rights reserved.
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
-FROM golang:1.10.3 as controller-manager-builder
+FROM golang:1.12 as controller-manager-builder
 
 COPY / /go/src/kubesphere.io/kubesphere
 WORKDIR /go/src/kubesphere.io/kubesphere

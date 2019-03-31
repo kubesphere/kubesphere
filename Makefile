@@ -28,7 +28,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam
+all: test ks-apiserver ks-apigateway ks-iam controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: test
@@ -41,6 +41,10 @@ ks-apigateway: test
 # Build ks-iam binary
 ks-iam: test
 	hack/gobuild.sh cmd/ks-iam
+
+# Build controller-manager binary
+controller-manager: test
+	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
 fmt:
@@ -60,7 +64,7 @@ deploy: manifests
 
 # Generate DeepCopy to implement runtime.Object
 deepcopy:
-	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
+	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy,lister,informer,client kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
 
 # Generate code
 generate:

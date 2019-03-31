@@ -21,6 +21,7 @@ import (
 	goflag "flag"
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/json-iterator/go"
 	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,11 +29,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models/applications"
+	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
 	"log"
 	"net/http"
 )
+
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func NewAPIServerCommand() *cobra.Command {
 	s := options.NewServerRunOptions()
@@ -60,9 +63,6 @@ func Run(s *options.ServerRunOptions) error {
 		log.Printf("FLAG: --%s=%q", flag.Name, flag.Value)
 	})
 
-	applications.OpenPitrixServer = s.OpenPitrixServer
-	applications.OpenPitrixProxyToken = s.OpenPitrixProxyToken
-
 	var err error
 
 	waitForResourceSync()
@@ -78,6 +78,7 @@ func Run(s *options.ServerRunOptions) error {
 		}
 	}
 
+	initializeESClientConfig()
 	initializeKialiConfig(s)
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
@@ -110,6 +111,24 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 	kconfig.Set(config)
 }
 
+func initializeESClientConfig() {
+
+	// List all outputs
+	outputs,err := logging.GetFluentbitOutputFromConfigMap()
+	if err != nil {
+		glog.Errorln(err)
+		return
+	}
+
+	// Iterate the outputs to get elasticsearch configs
+	for _, output := range outputs {
+		if configs := logging.ParseEsOutputParams(output.Parameters); configs != nil {
+			configs.WriteESConfigs()
+			return
+		}
+	}
+}
+
 func waitForResourceSync() {
 	stopChan := signals.SetupSignalHandler()
 
@@ -134,12 +153,19 @@ func waitForResourceSync() {
 	informerFactory.Apps().V1().StatefulSets().Lister()
 	informerFactory.Apps().V1().Deployments().Lister()
 	informerFactory.Apps().V1().DaemonSets().Lister()
-	informerFactory.Apps().V1().ReplicaSets().Lister()
 
 	informerFactory.Batch().V1().Jobs().Lister()
 	informerFactory.Batch().V1beta1().CronJobs().Lister()
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
+
+	s2iInformerFactory := informers.S2iSharedInformerFactory()
+	s2iInformerFactory.Devops().V1alpha1().S2iBuilderTemplates().Lister()
+	s2iInformerFactory.Devops().V1alpha1().S2iRuns().Lister()
+	s2iInformerFactory.Devops().V1alpha1().S2iBuilders().Lister()
+
+	s2iInformerFactory.Start(stopChan)
+	s2iInformerFactory.WaitForCacheSync(stopChan)
 	log.Println("resources sync success")
 }

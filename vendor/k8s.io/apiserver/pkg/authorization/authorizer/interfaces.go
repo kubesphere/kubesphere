@@ -56,7 +56,7 @@ type Attributes interface {
 	GetAPIVersion() string
 
 	// IsResourceRequest returns true for requests to API resources, like /api/v1/nodes,
-	// and false for non-resource endpoints like /api, /healthz
+	// and false for non-resource endpoints like /api, /healthz, and /swaggerapi
 	IsResourceRequest() bool
 
 	// GetPath returns the path of the request
