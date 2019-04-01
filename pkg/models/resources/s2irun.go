@@ -42,7 +42,7 @@ func (*s2iRunSearcher) match(match map[string]string, item *v1alpha1.S2iRun) boo
 				return false
 			}
 		case status:
-			if string(item.Status.RunState) != v{
+			if string(item.Status.RunState) != v {
 				return false
 			}
 		default:
