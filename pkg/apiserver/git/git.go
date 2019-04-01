@@ -14,13 +14,12 @@ func GitReadVerify(request *restful.Request, response *restful.Response) {
 
 	err := request.ReadEntity(&authInfo)
 	ns := request.PathParameter("namespace")
-	name := request.PathParameter("name")
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	err = git.GitReadVerify(ns, name, authInfo)
+	err = git.GitReadVerify(ns, authInfo)
 
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

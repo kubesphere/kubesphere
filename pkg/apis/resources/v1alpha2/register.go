@@ -152,13 +152,11 @@ func addWebService(c *restful.Container) error {
 		Writes(errors.Error{}))
 
 	tags = []string{"Git"}
-	webservice.Route(webservice.POST("/namespaces/{namespace}/secrets/{secret}/gitreadverify").
+	webservice.Route(webservice.POST("/git/readverify").
 		To(
 			git.GitReadVerify).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("secret git read verify").
-		Param(webservice.PathParameter("namespace", "secret's namespace")).
-		Param(webservice.PathParameter("secret", "secret's name")).
 		Reads(gitmodel.AuthInfo{}).
 		Writes(errors.Error{}),
 	)
