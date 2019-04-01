@@ -28,13 +28,13 @@ KubeSphere installation supports following 2 kinds of installation:
 
 ### Minimum Requirements
 
-- perating Systems
+- Operating Systems
    - CentOS 7.5 (64 bit)
    - Ubuntu 16.04/18.04 LTS (64 bit)
    - Red Hat Enterprise Linux Server 7.4 (64 bit)
    - Debian Stretch 9.5 (64 bit)
 - Hardware
-   -CPU：4 Core,  Memory：8 G, Disk Space：100 G
+   - CPU：4 Core,  Memory：8 G, Disk Space：100 G
 
 ## Quick Start
 
