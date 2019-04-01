@@ -51,6 +51,8 @@ type S2iRunStatus struct {
 	LogURL string `json:"logURL,omitempty"`
 	//KubernetesJobName is the job name in k8s
 	KubernetesJobName string `json:"kubernetesJobName,omitempty"`
+	//ImageName is the name of artifact
+	ImageName string `json:"imageName,omitempty"`
 }
 
 // +genclient
@@ -64,7 +66,7 @@ type S2iRunStatus struct {
 // +kubebuilder:printcolumn:name="K8sJobName",type="string",JSONPath=".status.kubernetesJobName"
 // +kubebuilder:printcolumn:name="StartTime",type="date",JSONPath=".status.startTime"
 // +kubebuilder:printcolumn:name="CompletionTime",type="date",JSONPath=".status.completionTime"
-// +kubebuilder:printcolumn:name="LogURL",type="string",JSONPath=".status.logURL"
+// +kubebuilder:printcolumn:name="ImageName",type="string",JSONPath=".status.imageName"
 type S2iRun struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
