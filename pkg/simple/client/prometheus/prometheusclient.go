@@ -31,21 +31,21 @@ import (
 )
 
 const (
-	DefaultScheme          = "http"
-	DefaultPrometheusPort  = "9090"
-	PrometheusApiPath      = "/api/v1/"
 	DefaultQueryStep       = "10m"
 	DefaultQueryTimeout    = "10s"
 	RangeQueryType         = "query_range?"
 	DefaultQueryType       = "query?"
-	PrometheusAPIServerEnv = "PROMETHEUS_API_SERVER"
 )
 
-var PrometheusAPIServer = "prometheus-k8s.kubesphere-monitoring-system.svc"
-var PrometheusAPIEndpoint string
+// Kubesphere sets up two Prometheus servers to balance monitoring workloads
+var (
+	MainPrometheusEndpoint      string // For monitoring node, namespace, pod ... level resources
+	SecondaryPrometheusEndpoint string // For monitoring components including etcd, apiserver, coredns, etc.
+)
 
 func init() {
-	flag.StringVar(&PrometheusAPIEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1", "")
+	flag.StringVar(&MainPrometheusEndpoint, "main-prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "")
+	flag.StringVar(&SecondaryPrometheusEndpoint, "secondary-prometheus-endpoint", "http://prometheus-k8s-system.kubesphere-monitoring-system.svc:9090/api/v1/", "")
 }
 
 type MonitoringRequestParams struct {
@@ -71,7 +71,7 @@ type MonitoringRequestParams struct {
 var client = &http.Client{}
 
 func SendMonitoringRequest(queryType string, params string) string {
-	epurl := PrometheusAPIEndpoint + queryType + params
+	epurl := MainPrometheusEndpoint + queryType + params
 	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
@@ -157,7 +157,6 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 		requestParams.Params = u
 		return &requestParams
 	} else {
-		//u.Set("time", strconv.FormatInt(int64(time.Now().Unix()), 10))
 		u.Set("timeout", timeout)
 		requestParams.QueryType = DefaultQueryType
 		requestParams.Params = u
