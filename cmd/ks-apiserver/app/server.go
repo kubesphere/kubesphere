@@ -114,7 +114,7 @@ func initializeKialiConfig(s *options.ServerRunOptions) {
 func initializeESClientConfig() {
 
 	// List all outputs
-	outputs,err := logging.GetFluentbitOutputFromConfigMap()
+	outputs, err := logging.GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		glog.Errorln(err)
 		return
