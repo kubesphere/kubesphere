@@ -16,6 +16,7 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
+	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 	"reflect"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -32,6 +33,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"time"
+
+	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
+	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 )
 
 const (
@@ -59,6 +63,9 @@ type DestinationRuleController struct {
 	deploymentLister listersv1.DeploymentLister
 	deploymentSynced cache.InformerSynced
 
+	servicePolicyLister servicemeshlisters.ServicePolicyLister
+	servicePolicySynced cache.InformerSynced
+
 	destinationRuleLister istiolisters.DestinationRuleLister
 	destinationRuleSynced cache.InformerSynced
 
@@ -70,6 +77,7 @@ type DestinationRuleController struct {
 func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInformer,
 	destinationRuleInformer istioinformers.DestinationRuleInformer,
 	serviceInformer coreinformers.ServiceInformer,
+	servicePolicyInformer servicemeshinformers.ServicePolicyInformer,
 	client clientset.Interface,
 	destinationRuleClient istioclientset.Interface) *DestinationRuleController {
 
@@ -116,6 +124,17 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 	v.destinationRuleLister = destinationRuleInformer.Lister()
 	v.destinationRuleSynced = destinationRuleInformer.Informer().HasSynced
 
+	v.servicePolicyLister = servicePolicyInformer.Lister()
+	v.servicePolicySynced = servicePolicyInformer.Informer().HasSynced
+
+	servicePolicyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: v.addServicePolicy,
+		UpdateFunc: func(old, cur interface{}) {
+			v.addServicePolicy(cur)
+		},
+		DeleteFunc: v.addServicePolicy,
+	})
+
 	v.eventBroadcaster = broadcaster
 	v.eventRecorder = recorder
 
@@ -136,7 +155,7 @@ func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) {
 	log.Info("starting destinationrule controller")
 	defer log.Info("shutting down destinationrule controller")
 
-	if !controller.WaitForCacheSync("destinationrule-controller", stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced) {
+	if !controller.WaitForCacheSync("destinationrule-controller", stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced, v.servicePolicySynced) {
 		return
 	}
 
@@ -177,6 +196,8 @@ func (v *DestinationRuleController) processNextWorkItem() bool {
 	return true
 }
 
+// main function of the reconcile for destinationrule
+// destinationrule's name is same with the service that created it
 func (v *DestinationRuleController) syncService(key string) error {
 	startTime := time.Now()
 	defer func() {
@@ -192,14 +213,14 @@ func (v *DestinationRuleController) syncService(key string) error {
 	if err != nil {
 		// Delete the corresponding destinationrule, as the service has been deleted.
 		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(name, nil)
-		if err != nil && !errors.IsNotFound(err) {
+		if !errors.IsNotFound(err) {
+			log.Error(err, "delete destination rule failed", "namespace", namespace, "name", name)
 			return err
 		}
-
 		return nil
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(&service.ObjectMeta) ||
+	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(service.Labels) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a virtualservice
 		// or they don't have necessary labels
@@ -207,13 +228,21 @@ func (v *DestinationRuleController) syncService(key string) error {
 		return nil
 	}
 
+	appName := util.GetComponentName(&service.ObjectMeta)
+
+	// fetch all deployments that match with service selector
 	deployments, err := v.deploymentLister.Deployments(namespace).List(labels.Set(service.Spec.Selector).AsSelectorPreValidated())
 	if err != nil {
 		return err
 	}
 
-	subsets := []v1alpha3.Subset{}
+	subsets := make([]v1alpha3.Subset, 0)
 	for _, deployment := range deployments {
+
+		// not a valid deployment we required
+		if !util.IsApplicationComponent(deployment.Labels) || !util.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) {
+			continue
+		}
 
 		version := util.GetComponentVersion(&deployment.ObjectMeta)
 
@@ -248,19 +277,49 @@ func (v *DestinationRuleController) syncService(key string) error {
 			log.Error(err, "Couldn't get destinationrule for service", "key", key)
 			return err
 		}
+	}
 
+	// fetch all servicepolicies associated to this service
+	servicePolicies, err := v.servicePolicyLister.ServicePolicies(namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	if err != nil {
+		log.Error(err, "could not list service policies is namespace with component name", "namespace", namespace, "name", appName)
+		return err
+	}
+
+	dr := currentDestinationRule.DeepCopy()
+	dr.Spec.Subsets = subsets
+	//
+	if len(servicePolicies) > 0 {
+		if len(servicePolicies) > 1 {
+			err = fmt.Errorf("more than one service policy associated with service %s/%s is forbidden", namespace, name)
+			log.Error(err, "")
+			return err
+		}
+
+		sp := servicePolicies[0]
+		if sp.Spec.Template.Spec.TrafficPolicy != nil {
+			dr.Spec.TrafficPolicy = sp.Spec.Template.Spec.TrafficPolicy
+		}
+
+		for _, subset := range sp.Spec.Template.Spec.Subsets {
+			for i := range dr.Spec.Subsets {
+				if subset.Name == dr.Spec.Subsets[i].Name && subset.TrafficPolicy != nil {
+					dr.Spec.Subsets[i].TrafficPolicy = subset.TrafficPolicy
+				}
+			}
+		}
 	}
 
 	createDestinationRule := len(currentDestinationRule.ResourceVersion) == 0
 
-	if !createDestinationRule && reflect.DeepEqual(currentDestinationRule.Spec.Subsets, subsets) &&
+	if !createDestinationRule && reflect.DeepEqual(currentDestinationRule.Spec, dr.Spec) &&
 		reflect.DeepEqual(currentDestinationRule.Labels, service.Labels) {
 		log.V(5).Info("destinationrule are equal, skipping update", "key", types.NamespacedName{Namespace: service.Namespace, Name: service.Name}.String())
 		return nil
 	}
 
 	newDestinationRule := currentDestinationRule.DeepCopy()
-	newDestinationRule.Spec.Subsets = subsets
+	newDestinationRule.Spec = dr.Spec
 	newDestinationRule.Labels = service.Labels
 	if newDestinationRule.Annotations == nil {
 		newDestinationRule.Annotations = make(map[string]string)
@@ -293,20 +352,13 @@ func (v *DestinationRuleController) syncService(key string) error {
 	return nil
 }
 
-func (v *DestinationRuleController) isApplicationComponent(meta *metav1.ObjectMeta) bool {
-	if len(meta.Labels) >= len(util.ApplicationLabels) && util.IsApplicationComponent(meta) {
-		return true
-	}
-	return false
-}
-
 // When a destinationrule is added, figure out which service it will be used
 // and enqueue it. obj must have *appsv1.Deployment type
 func (v *DestinationRuleController) addDeployment(obj interface{}) {
 	deploy := obj.(*appsv1.Deployment)
 
 	// not a application component
-	if !v.isApplicationComponent(&deploy.ObjectMeta) {
+	if !util.IsApplicationComponent(deploy.Labels) || !util.IsApplicationComponent(deploy.Spec.Selector.MatchLabels) {
 		return
 	}
 
@@ -354,7 +406,7 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 
 	for i := range allServices {
 		service := allServices[i]
-		if service.Spec.Selector == nil || !v.isApplicationComponent(&service.ObjectMeta) {
+		if service.Spec.Selector == nil || !util.IsApplicationComponent(service.Labels) {
 			// services with nil selectors match nothing, not everything.
 			continue
 		}
@@ -371,6 +423,34 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 	return set, nil
 }
 
+func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
+	servicePolicy := obj.(*servicemeshv1alpha2.ServicePolicy)
+
+	appName := servicePolicy.Labels[util.AppLabel]
+
+	services, err := v.serviceLister.Services(servicePolicy.Namespace).List(labels.SelectorFromSet(map[string]string{util.AppLabel: appName}))
+	if err != nil {
+		log.Error(err, "cannot list services", "namespace", servicePolicy.Namespace, "name", appName)
+		utilruntime.HandleError(fmt.Errorf("cannot list services in namespace %s, with component name %v", servicePolicy.Namespace, appName))
+		return
+	}
+
+	set := sets.String{}
+	for _, service := range services {
+		key, err := controller.KeyFunc(service)
+		if err != nil {
+			utilruntime.HandleError(err)
+			continue
+		}
+		set.Insert(key)
+	}
+
+	// avoid enqueue a key multiple times
+	for key := range set {
+		v.queue.Add(key)
+	}
+}
+
 func (v *DestinationRuleController) handleErr(err error, key interface{}) {
 	if err != nil {
 		v.queue.Forget(key)
@@ -383,7 +463,7 @@ func (v *DestinationRuleController) handleErr(err error, key interface{}) {
 		return
 	}
 
-	log.V(0).Info("Dropping service out of the queue", "key", key, "error", err)
+	log.V(4).Info("Dropping service out of the queue", "key", key, "error", err)
 	v.queue.Forget(key)
 	utilruntime.HandleError(err)
 }
