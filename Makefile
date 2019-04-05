@@ -64,7 +64,7 @@ deploy: manifests
 
 # Generate DeepCopy to implement runtime.Object
 deepcopy:
-	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
+	./vendor/k8s.io/code-generator/generate-groups.sh deepcopy,lister,informer,client kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2"
 
 # Generate code
 generate:
