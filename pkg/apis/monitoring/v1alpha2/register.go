@@ -172,6 +172,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	// Only use this api to monitor status of pods under the {workload}
+	// To monitor a specific workload, try the next two apis with "resources_filter"
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload_kind}/{workload}").To(monitoring.MonitorWorkload).
 		Doc("monitor specific workload level metrics").
 		Param(ws.PathParameter("namespace", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
@@ -188,6 +190,23 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload_kind}").To(monitoring.MonitorWorkload).
+		Doc("monitor specific workload level metrics").
+		Param(ws.PathParameter("namespace", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
+		Param(ws.PathParameter("workload_kind", "workload kind").DataType("string").Required(true).DefaultValue("daemonset")).
+		Param(ws.PathParameter("workload", "workload name").DataType("string").Required(true).DefaultValue("")).
+		Param(ws.QueryParameter("metrics_filter", "metrics name cpu memory...").DataType("string").Required(false)).
+		Param(ws.QueryParameter("resources_filter", "pod re2 expression filter").DataType("string").Required(false).DefaultValue("openpitrix.*")).
+		Param(ws.QueryParameter("sort_metric", "sort metric").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort_type", "ascending descending order").DataType("string").Required(false)).
+		Param(ws.QueryParameter("page", "page number").DataType("string").Required(false).DefaultValue("1")).
+		Param(ws.QueryParameter("limit", "max metric items in a page").DataType("string").Required(false).DefaultValue("4")).
+		Param(ws.QueryParameter("type", "rank, statistic").DataType("string").Required(false).DefaultValue("rank")).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
+	// metrics_filter is required for this api
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads").To(monitoring.MonitorWorkload).
 		Doc("monitor all workload level metrics").
 		Param(ws.PathParameter("namespace", "namespace").DataType("string").Required(true).DefaultValue("kube-system")).
