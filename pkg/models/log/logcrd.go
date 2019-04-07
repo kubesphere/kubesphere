@@ -248,7 +248,7 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	// 1. Update ConfigMap
 	var outputs []fb.OutputPlugin
 	outputs, err := GetFluentbitOutputFromConfigMap()
-    if err != nil {
+	if err != nil {
 		// If the ConfigMap doesn't exist, a new one will be created later
 		glog.Errorln(err)
 	}

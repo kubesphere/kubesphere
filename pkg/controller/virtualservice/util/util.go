@@ -8,17 +8,16 @@ import (
 )
 
 const (
-	AppLabel                = "app"
-	VersionLabel            = "version"
-	ApplicationNameLabel    = "app.kubernetes.io/name"
-	ApplicationVersionLabel = "app.kubernetes.io/version"
-	ServiceMeshEnabledLabel = "servicemesh.kubesphere.io/enabled"
+	AppLabel                     = "app"
+	VersionLabel                 = "version"
+	ApplicationNameLabel         = "app.kubernetes.io/name"
+	ApplicationVersionLabel      = "app.kubernetes.io/version"
+	ServiceMeshEnabledAnnotation = "servicemesh.kubesphere.io/enabled"
 )
 
 // resource with these following labels considered as part of servicemesh
 var ApplicationLabels = [...]string{
 	ApplicationNameLabel,
-	ServiceMeshEnabledLabel,
 	AppLabel,
 }
 
@@ -38,6 +37,15 @@ func GetComponentName(meta *metav1.ObjectMeta) string {
 		return meta.Labels[AppLabel]
 	}
 	return ""
+}
+
+func IsServicemeshEnabled(annotations map[string]string) bool {
+	if enabled, ok := annotations[ServiceMeshEnabledAnnotation]; ok {
+		if enabled == "true" {
+			return true
+		}
+	}
+	return false
 }
 
 func GetComponentVersion(meta *metav1.ObjectMeta) string {
