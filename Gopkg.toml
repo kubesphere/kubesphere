@@ -107,7 +107,8 @@ required = [
 
 [[constraint]]
   name = "github.com/kiali/kiali"
-  version = "0.15.0"
+  source = "https://github.com/kubesphere/kiali"
+  branch = "kubesphere"
 
 [[constraint]]
   name = "github.com/gorilla/mux"
