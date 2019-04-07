@@ -17,9 +17,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 	"reflect"
-	"strings"
-
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"strings"
 
 	istioclient "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 
@@ -52,6 +52,7 @@ type VirtualServiceController struct {
 	client clientset.Interface
 
 	virtualServiceClient istioclient.Interface
+	servicemeshClient    servicemeshclient.Interface
 
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
@@ -78,7 +79,8 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 	destinationRuleInformer istioinformers.DestinationRuleInformer,
 	strategyInformer servicemeshinformers.StrategyInformer,
 	client clientset.Interface,
-	virtualServiceClient istioclient.Interface) *VirtualServiceController {
+	virtualServiceClient istioclient.Interface,
+	servicemeshClient servicemeshclient.Interface) *VirtualServiceController {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -94,6 +96,7 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 	v := &VirtualServiceController{
 		client:               client,
 		virtualServiceClient: virtualServiceClient,
+		servicemeshClient:    servicemeshClient,
 		queue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "virtualservice"),
 		workerLoopPeriod:     time.Second,
 	}
@@ -234,7 +237,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 		return err
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(service.Labels) ||
+	if len(service.Labels) < len(util.ApplicationLabels) ||
+		!util.IsApplicationComponent(service.Labels) ||
+		!util.IsServicemeshEnabled(service.Annotations) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a virtualservice
 		// or they don't have necessary labels
@@ -294,40 +299,69 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 	vs := currentVirtualService.DeepCopy()
 
+	// create a whole new virtualservice
+
+	// TODO(jeff): use FQDN to replace service name
+	vs.Spec.Hosts = []string{name}
+
+	// check if service has TCP protocol ports
+	for _, port := range service.Spec.Ports {
+		var route v1alpha3.DestinationWeight
+		if port.Protocol == v1.ProtocolTCP {
+			route = v1alpha3.DestinationWeight{
+				Destination: v1alpha3.Destination{
+					Host:   name,
+					Subset: subsets[0].Name,
+					Port: v1alpha3.PortSelector{
+						Number: uint32(port.Port),
+					},
+				},
+				Weight: 100,
+			}
+
+			// a http port, add to HTTPRoute
+			if len(port.Name) > 0 && (port.Name == "http" || strings.HasPrefix(port.Name, "http-")) {
+				vs.Spec.Http = []v1alpha3.HTTPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
+				break
+			}
+
+			// everything else treated as TCPRoute
+			vs.Spec.Tcp = []v1alpha3.TCPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
+		}
+	}
+
 	if len(strategies) > 0 {
 		// apply strategy spec to virtualservice
-		vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
-	} else {
-		// create a whole new virtualservice
 
-		// TODO(jeff): use FQDN to replace service name
-		vs.Spec.Hosts = []string{name}
+		switch strategies[0].Spec.StrategyPolicy {
+		case servicemeshv1alpha2.PolicyPause:
+			break
+		case servicemeshv1alpha2.PolicyWaitForWorkloadReady:
+			set := v.getSubsets(strategies[0])
 
-		// check if service has TCP protocol ports
-		for _, port := range service.Spec.Ports {
-			var route v1alpha3.DestinationWeight
-			if port.Protocol == v1.ProtocolTCP {
-				route = v1alpha3.DestinationWeight{
-					Destination: v1alpha3.Destination{
-						Host:   name,
-						Subset: subsets[0].Name,
-						Port: v1alpha3.PortSelector{
-							Number: uint32(port.Port),
-						},
-					},
-					Weight: 100,
-				}
-
-				// a http port, add to HTTPRoute
-				if len(port.Name) > 0 && (port.Name == "http" || strings.HasPrefix(port.Name, "http-")) {
-					vs.Spec.Http = []v1alpha3.HTTPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
-					break
-				}
-
-				// everything else treated as TCPRoute
-				vs.Spec.Tcp = []v1alpha3.TCPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
+			setNames := sets.String{}
+			for i := range subsets {
+				setNames.Insert(subsets[i].Name)
 			}
+
+			nonExist := false
+			for k := range set {
+				if !setNames.Has(k) {
+					nonExist = true
+				}
+			}
+			// strategy has subset that are not ready
+			if nonExist {
+				break
+			} else {
+				vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
+			}
+		case servicemeshv1alpha2.PolicyImmediately:
+			vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
+		default:
+			vs.Spec = v.generateVirtualServiceSpec(strategies[0], service).Spec
 		}
+
 	}
 
 	createVirtualService := len(currentVirtualService.ResourceVersion) == 0
@@ -359,7 +393,6 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	if err != nil {
-
 		if createVirtualService {
 			v.eventRecorder.Event(newVirtualService, v1.EventTypeWarning, "FailedToCreateVirtualService", fmt.Sprintf("Failed to create virtualservice for service %v/%v: %v", namespace, name, err))
 		} else {
@@ -463,6 +496,34 @@ func (v *VirtualServiceController) handleErr(err error, key interface{}) {
 	utilruntime.HandleError(err)
 }
 
+func (v *VirtualServiceController) getSubsets(strategy *servicemeshv1alpha2.Strategy) sets.String {
+	set := sets.String{}
+
+	for _, httpRoute := range strategy.Spec.Template.Spec.Http {
+		for _, dw := range httpRoute.Route {
+			set.Insert(dw.Destination.Subset)
+		}
+
+		if httpRoute.Mirror != nil {
+			set.Insert(httpRoute.Mirror.Subset)
+		}
+	}
+
+	for _, tcpRoute := range strategy.Spec.Template.Spec.Tcp {
+		for _, dw := range tcpRoute.Route {
+			set.Insert(dw.Destination.Subset)
+		}
+	}
+
+	for _, tlsRoute := range strategy.Spec.Template.Spec.Tls {
+		for _, dw := range tlsRoute.Route {
+			set.Insert(dw.Destination.Subset)
+		}
+	}
+
+	return set
+}
+
 func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicemeshv1alpha2.Strategy, service *v1.Service) *v1alpha3.VirtualService {
 
 	// Define VirtualService to be created
@@ -472,7 +533,6 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 
 	// one version rules them all
 	if len(strategy.Spec.GovernorVersion) > 0 {
-
 		governorDestinationWeight := v1alpha3.DestinationWeight{
 			Destination: v1alpha3.Destination{
 				Host:   service.Name,
