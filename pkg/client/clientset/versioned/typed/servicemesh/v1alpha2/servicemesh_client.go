@@ -27,12 +27,17 @@ import (
 
 type ServicemeshV1alpha2Interface interface {
 	RESTClient() rest.Interface
+	ServicePoliciesGetter
 	StrategiesGetter
 }
 
 // ServicemeshV1alpha2Client is used to interact with features provided by the servicemesh.kubesphere.io group.
 type ServicemeshV1alpha2Client struct {
 	restClient rest.Interface
+}
+
+func (c *ServicemeshV1alpha2Client) ServicePolicies(namespace string) ServicePolicyInterface {
+	return newServicePolicies(c, namespace)
 }
 
 func (c *ServicemeshV1alpha2Client) Strategies(namespace string) StrategyInterface {

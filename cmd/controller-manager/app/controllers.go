@@ -51,11 +51,13 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		istioInformer.Networking().V1alpha3().DestinationRules(),
 		servicemeshinformer.Servicemesh().V1alpha2().Strategies(),
 		kubeClient,
-		istioclient)
+		istioclient,
+		servicemeshclient)
 
 	drController := destinationrule.NewDestinationRuleController(informerFactory.Apps().V1().Deployments(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
 		informerFactory.Core().V1().Services(),
+		servicemeshinformer.Servicemesh().V1alpha2().ServicePolicies(),
 		kubeClient,
 		istioclient)
 
