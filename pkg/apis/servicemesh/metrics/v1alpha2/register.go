@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/metrics"
+	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/errors"
 )
 
@@ -169,6 +170,23 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
 		Param(webservice.QueryParameter("queryTime", "the time to use for query")).
 		Writes(errors.Error{})).Produces(restful.MIME_JSON)
+
+	// Get service tracing
+	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/traces").
+		To(tracing.GetServiceTracing).
+		Doc("Get tracing of a service, should have servicemesh enabled first").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(webservice.PathParameter("namespace", "namespace of service").Required(true)).
+		Param(webservice.PathParameter("service", "name of service queried").Required(true)).
+		Param(webservice.QueryParameter("start", "start of time range want to query, in unix timestamp")).
+		Param(webservice.QueryParameter("end", "end of time range want to query, in unix timestamp")).
+		Param(webservice.QueryParameter("limit", "maximum tracing entries returned at one query, default 10").DefaultValue("10")).
+		Param(webservice.QueryParameter("loopback", "loopback of duration want to query, e.g. 30m/1h/2d")).
+		Param(webservice.QueryParameter("maxDuration", "maximum duration of tracing")).
+		Param(webservice.QueryParameter("minDuration", "minimum duration of tracing")).
+		Writes(errors.Error{}).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON))
 
 	c.Add(webservice)
 
