@@ -21,9 +21,10 @@ package externalversions
 import (
 	"fmt"
 
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
-	cache "k8s.io/client-go/tools/cache"
-	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
+	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -57,6 +58,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicemesh().V1alpha2().ServicePolicies().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("strategies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicemesh().V1alpha2().Strategies().Informer()}, nil
+
+		// Group=tenant.kubesphere.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("workspaces"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Tenant().V1alpha1().Workspaces().Informer()}, nil
 
 	}
 

@@ -117,3 +117,7 @@ required = [
 [[constraint]]
   branch = "master"
   name = "github.com/knative/pkg"
+
+[[constraint]]
+  name = "gopkg.in/igm/sockjs-go.v2"
+  version = "2.0.0"

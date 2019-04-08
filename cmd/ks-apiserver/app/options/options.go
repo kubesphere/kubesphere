@@ -10,6 +10,8 @@ type ServerRunOptions struct {
 
 	// istio pilot discovery service url
 	IstioPilotServiceURL string
+	OpenPitrixServer     string
+	OpenPitrixProxyToken string
 }
 
 func NewServerRunOptions() *ServerRunOptions {

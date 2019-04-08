@@ -24,6 +24,7 @@ import (
 	s2iInformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 
 	"k8s.io/client-go/informers"
+	ksInformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
@@ -33,8 +34,10 @@ const defaultResync = 600 * time.Second
 var (
 	k8sOnce            sync.Once
 	s2iOnce            sync.Once
+	ksOnce             sync.Once
 	informerFactory    informers.SharedInformerFactory
 	s2iInformerFactory s2iInformers.SharedInformerFactory
+	ksInformerFactory  ksInformers.SharedInformerFactory
 )
 
 func SharedInformerFactory() informers.SharedInformerFactory {
@@ -51,4 +54,12 @@ func S2iSharedInformerFactory() s2iInformers.SharedInformerFactory {
 		s2iInformerFactory = s2iInformers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return s2iInformerFactory
+}
+
+func KsSharedInformerFactory() ksInformers.SharedInformerFactory {
+	ksOnce.Do(func() {
+		k8sClient := k8s.KsClient()
+		ksInformerFactory = ksInformers.NewSharedInformerFactory(k8sClient, defaultResync)
+	})
+	return ksInformerFactory
 }

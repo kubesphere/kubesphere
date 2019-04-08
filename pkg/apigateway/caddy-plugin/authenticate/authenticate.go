@@ -20,6 +20,10 @@ package authenticate
 import (
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/endpoints/request"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -46,6 +50,10 @@ type User struct {
 	Extra    *map[string]interface{} `json:"extra,omitempty"`
 }
 
+var requestInfoFactory = request.RequestInfoFactory{
+	APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
+	GrouplessAPIPrefixes: sets.NewString("api")}
+
 func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error) {
 	for _, path := range h.Rule.ExceptedPath {
 		if httpserver.Path(req.URL.Path).Matches(path) {
@@ -64,6 +72,7 @@ func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error
 		token, err := h.Validate(uToken)
 
 		if err != nil {
+			log.Println(uToken)
 			return h.HandleUnauthorized(resp, err), nil
 		}
 
@@ -91,10 +100,13 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 		}
 	}
 
+	usr := &user.DefaultInfo{}
+
 	username, ok := payLoad["username"].(string)
 
 	if ok && username != "" {
 		req.Header.Set("X-Token-Username", username)
+		usr.Name = username
 	}
 
 	uid := payLoad["uid"]
@@ -103,18 +115,37 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 		switch uid.(type) {
 		case int:
 			req.Header.Set("X-Token-UID", strconv.Itoa(uid.(int)))
+			usr.UID = strconv.Itoa(uid.(int))
 			break
 		case string:
 			req.Header.Set("X-Token-UID", uid.(string))
+			usr.UID = uid.(string)
 			break
 		}
 	}
 
 	groups, ok := payLoad["groups"].([]string)
-
 	if ok && len(groups) > 0 {
 		req.Header.Set("X-Token-Groups", strings.Join(groups, ","))
+		usr.Groups = groups
 	}
+
+	// hard code, support jenkins auth plugin
+	if httpserver.Path(req.URL.Path).Matches("/apis/jenkins.kubesphere.io") || httpserver.Path(req.URL.Path).Matches("job") {
+		req.SetBasicAuth(username, token.Raw)
+	}
+
+	context := request.WithUser(req.Context(), usr)
+
+	requestInfo, err := requestInfoFactory.NewRequestInfo(req)
+
+	if err == nil {
+		context = request.WithRequestInfo(context, requestInfo)
+	} else {
+		return nil, err
+	}
+
+	req = req.WithContext(context)
 
 	return req, nil
 }
@@ -137,6 +168,7 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 func (h Auth) HandleUnauthorized(w http.ResponseWriter, err error) int {
 	message := fmt.Sprintf("Unauthorized,%v", err)
 	w.Header().Add("WWW-Authenticate", message)
+	log.Println(message)
 	return http.StatusUnauthorized
 }
 

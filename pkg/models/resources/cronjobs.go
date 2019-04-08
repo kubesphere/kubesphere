@@ -31,6 +31,10 @@ import (
 type cronJobSearcher struct {
 }
 
+func (*cronJobSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Batch().V1beta1().CronJobs().Lister().CronJobs(namespace).Get(name)
+}
+
 func cronJobStatus(item *v1beta1.CronJob) string {
 	if item.Spec.Suspend != nil && *item.Spec.Suspend {
 		return paused
@@ -42,12 +46,22 @@ func cronJobStatus(item *v1beta1.CronJob) string {
 func (*cronJobSearcher) match(match map[string]string, item *v1beta1.CronJob) bool {
 	for k, v := range match {
 		switch k {
+		case name:
+			if item.Name != v && item.Labels[displayName] != v {
+				return false
+			}
 		case status:
 			if cronJobStatus(item) != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -74,10 +88,6 @@ func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.CronJob) bo
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -98,7 +108,7 @@ func (*cronJobSearcher) compare(a, b *v1beta1.CronJob, orderBy string) bool {
 			return false
 		}
 		return a.Status.LastScheduleTime.Before(b.Status.LastScheduleTime)
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	default:
 		fallthrough

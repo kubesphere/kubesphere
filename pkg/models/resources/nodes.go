@@ -30,6 +30,10 @@ import (
 type nodeSearcher struct {
 }
 
+func (*nodeSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Core().V1().Nodes().Lister().Get(name)
+}
+
 // exactly Match
 func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -66,10 +76,6 @@ func (*nodeSearcher) fuzzy(fuzzy map[string]string, item *v1.Node) bool {
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -81,7 +87,7 @@ func (*nodeSearcher) fuzzy(fuzzy map[string]string, item *v1.Node) bool {
 
 func (*nodeSearcher) compare(a, b *v1.Node, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
@@ -90,7 +96,7 @@ func (*nodeSearcher) compare(a, b *v1.Node, orderBy string) bool {
 	}
 }
 
-func (s *nodeSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+func (s *nodeSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 	nodes, err := informers.SharedInformerFactory().Core().V1().Nodes().Lister().List(labels.Everything())
 
 	if err != nil {

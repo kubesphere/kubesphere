@@ -25,7 +25,6 @@ import (
 	"github.com/mholt/caddy/caddyhttp/httpserver"
 
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/signals"
 )
 
 func init() {
@@ -43,13 +42,8 @@ func Setup(c *caddy.Controller) error {
 	if err != nil {
 		return err
 	}
-
-	if err != nil {
-		return err
-	}
-
+	stopChan := make(chan struct{}, 0)
 	c.OnStartup(func() error {
-		stopChan := signals.SetupSignalHandler()
 		informerFactory := informers.SharedInformerFactory()
 		informerFactory.Rbac().V1().Roles().Lister()
 		informerFactory.Rbac().V1().RoleBindings().Lister()
@@ -58,6 +52,11 @@ func Setup(c *caddy.Controller) error {
 		informerFactory.Start(stopChan)
 		informerFactory.WaitForCacheSync(stopChan)
 		fmt.Println("Authentication middleware is initiated")
+		return nil
+	})
+
+	c.OnShutdown(func() error {
+		close(stopChan)
 		return nil
 	})
 

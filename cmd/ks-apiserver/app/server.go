@@ -29,8 +29,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"log"
 	"net/http"
 )
@@ -70,26 +72,41 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.Filter(filter.Logging)
 
-	log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
-
 	for _, webservice := range container.RegisteredWebServices() {
 		for _, route := range webservice.Routes() {
-			log.Printf(route.Path)
+			log.Println(route.Method, route.Path)
 		}
 	}
 
 	initializeESClientConfig()
 	initializeKialiConfig(s)
+	err = initializeDatabase()
+
+	if err != nil {
+		return err
+	}
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
+		log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
 		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
 	}
 
 	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
+		log.Printf("Server listening on %d.", s.GenericServerRunOptions.SecurePort)
 		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
 	}
 
 	return err
+}
+
+func initializeDatabase() error {
+	db := mysql.Client()
+	if !db.HasTable(&models.WorkspaceDPBinding{}) {
+		if err := db.CreateTable(&models.WorkspaceDPBinding{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func initializeKialiConfig(s *options.ServerRunOptions) {
@@ -153,9 +170,11 @@ func waitForResourceSync() {
 	informerFactory.Apps().V1().StatefulSets().Lister()
 	informerFactory.Apps().V1().Deployments().Lister()
 	informerFactory.Apps().V1().DaemonSets().Lister()
+	informerFactory.Apps().V1().ReplicaSets().Lister()
 
 	informerFactory.Batch().V1().Jobs().Lister()
 	informerFactory.Batch().V1beta1().CronJobs().Lister()
+	informerFactory.Extensions().V1beta1().Ingresses().Lister()
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
@@ -167,5 +186,12 @@ func waitForResourceSync() {
 
 	s2iInformerFactory.Start(stopChan)
 	s2iInformerFactory.WaitForCacheSync(stopChan)
+
+	ksInformerFactory := informers.KsSharedInformerFactory()
+	ksInformerFactory.Tenant().V1alpha1().Workspaces().Lister()
+
+	ksInformerFactory.Start(stopChan)
+	ksInformerFactory.WaitForCacheSync(stopChan)
+
 	log.Println("resources sync success")
 }

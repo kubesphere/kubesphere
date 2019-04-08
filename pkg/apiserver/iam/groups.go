@@ -19,7 +19,6 @@ package iam
 
 import (
 	"fmt"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
 	"regexp"
 	"strings"
@@ -33,8 +32,6 @@ import (
 )
 
 func CreateGroup(req *restful.Request, resp *restful.Response) {
-	//var json map[string]interface{}
-
 	var group models.Group
 
 	err := req.ReadEntity(&group)
@@ -45,19 +42,18 @@ func CreateGroup(req *restful.Request, resp *restful.Response) {
 	}
 
 	if !regexp.MustCompile("[a-z0-9]([-a-z0-9]*[a-z0-9])?").MatchString(group.Name) {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, fmt.Errorf("incalid group name %s", group))
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New(fmt.Sprintf("incalid group name %s", group)))
 		return
 	}
 
-	if group.Creator == "" {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, fmt.Errorf("creator should not be null"))
-		return
-	}
-
-	created, err := iam.CreateGroup(group)
+	created, err := iam.CreateGroup(&group)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
+		} else {
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		}
 		return
 	}
 
@@ -75,6 +71,10 @@ func DeleteGroup(req *restful.Request, resp *restful.Response) {
 	err := iam.DeleteGroup(path)
 
 	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+			return
+		}
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -106,23 +106,18 @@ func UpdateGroup(req *restful.Request, resp *restful.Response) {
 
 }
 
-func GroupDetail(req *restful.Request, resp *restful.Response) {
+func DescribeGroup(req *restful.Request, resp *restful.Response) {
 
 	path := req.PathParameter("path")
 
-	conn, err := ldapclient.Client()
+	group, err := iam.DescribeGroup(path)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	defer conn.Close()
-
-	group, err := iam.GroupDetail(path, conn)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+		} else {
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		}
 		return
 	}
 
@@ -130,20 +125,11 @@ func GroupDetail(req *restful.Request, resp *restful.Response) {
 
 }
 
-func GroupUsers(req *restful.Request, resp *restful.Response) {
+func ListGroupUsers(req *restful.Request, resp *restful.Response) {
 
 	path := req.PathParameter("path")
 
-	conn, err := ldapclient.Client()
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	defer conn.Close()
-
-	group, err := iam.GroupDetail(path, conn)
+	group, err := iam.DescribeGroup(path)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -156,10 +142,10 @@ func GroupUsers(req *restful.Request, resp *restful.Response) {
 
 	for i := 0; i < len(group.Members); i++ {
 		name := group.Members[i]
-		user, err := iam.UserDetail(name, conn)
+		user, err := iam.DescribeUser(name)
 
 		if err != nil {
-			if ldap.IsErrorWithCode(err, 32) {
+			if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 				group.Members = append(group.Members[:i], group.Members[i+1:]...)
 				i--
 				modify = true
@@ -168,25 +154,6 @@ func GroupUsers(req *restful.Request, resp *restful.Response) {
 				resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 				return
 			}
-		}
-
-		clusterRoles, err := iam.GetClusterRoles(name)
-
-		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-			return
-		}
-
-		for i := 0; i < len(clusterRoles); i++ {
-			if clusterRoles[i].Annotations["rbac.authorization.k8s.io/clusterrole"] == "true" {
-				user.ClusterRole = clusterRoles[i].Name
-				break
-			}
-		}
-
-		if group.Path == group.Name {
-			workspaceRole := iam.GetWorkspaceRole(clusterRoles, group.Name)
-			user.WorkspaceRole = workspaceRole
 		}
 
 		users = append(users, user)
@@ -200,18 +167,7 @@ func GroupUsers(req *restful.Request, resp *restful.Response) {
 
 }
 
-func CountHandler(req *restful.Request, resp *restful.Response) {
-	count, err := iam.CountChild("")
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	resp.WriteAsJson(map[string]int{"total_count": count})
-}
-
-func RootGroupList(req *restful.Request, resp *restful.Response) {
+func ListGroups(req *restful.Request, resp *restful.Response) {
 
 	array := req.QueryParameter("path")
 
@@ -229,18 +185,9 @@ func RootGroupList(req *restful.Request, resp *restful.Response) {
 
 		groups := make([]*models.Group, 0)
 
-		conn, err := ldapclient.Client()
-
-		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-			return
-		}
-
-		defer conn.Close()
-
 		for _, v := range paths {
 			path := strings.TrimSpace(v)
-			group, err := iam.GroupDetail(path, conn)
+			group, err := iam.DescribeGroup(path)
 			if err != nil {
 				resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 				return

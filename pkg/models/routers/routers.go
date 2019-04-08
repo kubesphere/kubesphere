@@ -33,12 +33,9 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"k8s.io/api/rbac/v1"
-
 	"strings"
 
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
 // choose router node ip by labels, currently select master node
@@ -109,40 +106,6 @@ func GetAllRouters() ([]*corev1.Service, error) {
 	}
 
 	return services, nil
-}
-
-func GetAllRoutersOfUser(username string) ([]*corev1.Service, error) {
-	allNamespace, namespaces, err := iam.GetUserNamespaces(username, v1.PolicyRule{
-		Verbs:     []string{"get", "list"},
-		APIGroups: []string{""},
-		Resources: []string{"services"},
-	})
-
-	// return by cluster role
-	if err != nil {
-		glog.Error(err)
-		return nil, err
-	}
-
-	if allNamespace {
-		return GetAllRouters()
-	}
-
-	routers := make([]*corev1.Service, 0)
-
-	for _, namespace := range namespaces {
-		router, err := GetRouter(namespace)
-		if err != nil {
-			glog.Error(err)
-			return routers, err
-		} else if router != nil {
-			addLoadBalancerIp(router)
-			routers = append(routers, router)
-		}
-	}
-
-	return routers, nil
-
 }
 
 // Get router from a namespace

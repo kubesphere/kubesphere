@@ -40,7 +40,7 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 			notReadyStatus = "pending"
 		}
 
-		notReadyList, err = resources.ListNamespaceResource(namespace, resource, &params.Conditions{Match: map[string]string{"status": notReadyStatus}}, "", false, -1, 0)
+		notReadyList, err = resources.ListResources(namespace, resource, &params.Conditions{Match: map[string]string{"status": notReadyStatus}}, "", false, -1, 0)
 
 		if err != nil {
 			return nil, err

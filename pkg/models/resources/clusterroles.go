@@ -20,6 +20,7 @@ package resources
 import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"sort"
 	"strings"
 
@@ -30,16 +31,34 @@ import (
 type clusterRoleSearcher struct {
 }
 
+func (*clusterRoleSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister().Get(name)
+}
+
 // exactly Match
 func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRole) bool {
 	for k, v := range match {
 		switch k {
+		case ownerKind:
+			fallthrough
+		case ownerName:
+			kind := match[ownerKind]
+			name := match[ownerName]
+			if !k8sutil.IsControlledBy(item.OwnerReferences, kind, name) {
+				return false
+			}
 		case name:
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -62,10 +81,6 @@ func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRol
 				return false
 			}
 			return false
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -77,7 +92,7 @@ func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRol
 
 func (*clusterRoleSearcher) compare(a, b *rbac.ClusterRole, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough
@@ -86,7 +101,7 @@ func (*clusterRoleSearcher) compare(a, b *rbac.ClusterRole, orderBy string) bool
 	}
 }
 
-func (s *clusterRoleSearcher) search(conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
+func (s *clusterRoleSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
 	clusterRoles, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister().List(labels.Everything())
 
 	if err != nil {

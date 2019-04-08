@@ -23,8 +23,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"golang.org/x/tools/container/intsets"
 )
 
 const (
@@ -32,11 +30,12 @@ const (
 	OrderByParam    = "orderBy"
 	ConditionsParam = "conditions"
 	ReverseParam    = "reverse"
+	NameParam       = "name"
 )
 
-func ParsePaging(req *restful.Request) (limit, offset int) {
-	paging := req.QueryParameter(PagingParam)
-	limit = intsets.MaxInt
+func ParsePaging(paging string) (limit, offset int) {
+
+	limit = 10
 	offset = 0
 	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
 		limit, _ = strconv.Atoi(groups[1])
@@ -49,8 +48,8 @@ func ParsePaging(req *restful.Request) (limit, offset int) {
 	return
 }
 
-func ParseConditions(req *restful.Request) (*Conditions, error) {
-	conditionsStr := req.QueryParameter(ConditionsParam)
+func ParseConditions(conditionsStr string) (*Conditions, error) {
+
 	conditions := &Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
 
 	if conditionsStr == "" {
@@ -81,6 +80,18 @@ func ParseReverse(req *restful.Request) bool {
 		return false
 	}
 	return b
+}
+
+func ParseArray(str string) []string {
+	arr := make([]string, 0)
+
+	for _, item := range strings.Split(str, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			arr = append(arr, item)
+		}
+	}
+
+	return arr
 }
 
 type Conditions struct {

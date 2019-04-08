@@ -19,17 +19,18 @@ limitations under the License.
 package externalversions
 
 import (
-	reflect "reflect"
-	sync "sync"
-	time "time"
+	"reflect"
+	"sync"
+	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
-	cache "k8s.io/client-go/tools/cache"
-	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
-	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -173,8 +174,13 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Servicemesh() servicemesh.Interface
+	Tenant() tenant.Interface
 }
 
 func (f *sharedInformerFactory) Servicemesh() servicemesh.Interface {
 	return servicemesh.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Tenant() tenant.Interface {
+	return tenant.New(f, f.namespace, f.tweakListOptions)
 }

@@ -30,6 +30,10 @@ import (
 type serviceSearcher struct {
 }
 
+func (*serviceSearcher) get(namespace, name string) (interface{}, error) {
+	return informers.SharedInformerFactory().Core().V1().Services().Lister().Services(namespace).Get(name)
+}
+
 // exactly Match
 func (*serviceSearcher) match(match map[string]string, item *v1.Service) bool {
 	for k, v := range match {
@@ -38,8 +42,14 @@ func (*serviceSearcher) match(match map[string]string, item *v1.Service) bool {
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		default:
-			return false
+			if item.Labels[k] != v {
+				return false
+			}
 		}
 	}
 	return true
@@ -66,10 +76,6 @@ func (*serviceSearcher) fuzzy(fuzzy map[string]string, item *v1.Service) bool {
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
 				return false
 			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
 			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
 				return false
@@ -81,7 +87,7 @@ func (*serviceSearcher) fuzzy(fuzzy map[string]string, item *v1.Service) bool {
 
 func (*serviceSearcher) compare(a, b *v1.Service, orderBy string) bool {
 	switch orderBy {
-	case createTime:
+	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case name:
 		fallthrough

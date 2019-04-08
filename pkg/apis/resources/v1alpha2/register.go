@@ -54,7 +54,7 @@ func addWebService(c *restful.Container) error {
 	tags := []string{"Namespace resources"}
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
-		To(resources.NamespaceResourceHandler).
+		To(resources.ListResources).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Namespace level resource query").
 		Param(webservice.PathParameter("namespace", "which namespace")).
@@ -71,7 +71,7 @@ func addWebService(c *restful.Container) error {
 	tags = []string{"Cluster resources"}
 
 	webservice.Route(webservice.GET("/{resources}").
-		To(resources.ClusterResourceHandler).
+		To(resources.ListResources).
 		Writes(models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Cluster level resource query").
@@ -85,13 +85,29 @@ func addWebService(c *restful.Container) error {
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1"))
 
+	tags = []string{"Applications"}
+
+	webservice.Route(webservice.GET("/applications").
+		To(resources.ApplicationHandler).
+		Writes(models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Cluster level resource query").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
+			Required(false).
+			DataFormat("key=value,key~value").
+			DefaultValue("")).
+		Param(webservice.QueryParameter("cluster_id", "cluster id")).
+		Param(webservice.QueryParameter("runtime_id", "runtime id")).
+		Param(webservice.QueryParameter(params.PagingParam, "page").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")))
+
 	webservice.Route(webservice.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
 		To(resources.GetPvcListBySc).
 		Doc("get user's kubectl pod").
 		Param(webservice.PathParameter("username", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	webservice.Route(webservice.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}/pods").
-		To(resources.GetPodListByPvc))
 
 	tags = []string{"User resources"}
 
@@ -191,26 +207,19 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/routers").
 		To(routers.GetAllRouters).
-		Doc("Get all routers").
+		Doc("List all routers").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(corev1.Service{}))
-
-	webservice.Route(webservice.GET("/users/{username}/routers").
-		To(routers.GetAllRoutersOfUser).
-		Doc("Get routers for user").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("username", "")).
 		Writes(corev1.Service{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/router").
 		To(routers.GetRouter).
-		Doc("Get router of a specified project").
+		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("namespace", "name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/router").
 		To(routers.DeleteRouter).
-		Doc("Get router of a specified project").
+		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("namespace", "name of the project")))
 

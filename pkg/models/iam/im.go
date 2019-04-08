@@ -22,10 +22,12 @@ import (
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"os"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -39,30 +41,20 @@ import (
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 
 	"kubesphere.io/kubesphere/pkg/models"
-	jwtutils "kubesphere.io/kubesphere/pkg/utils/jwt"
-)
-
-const (
-	envAdminEmail = "ADMIN_EMAIL"
-	envAdminPWD   = "ADMIN_PWD"
+	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 )
 
 var (
-	counter    Counter
-	AdminEmail = "admin@kubesphere.io"
-	AdminPWD   = "passw0rd"
+	adminEmail      string
+	adminPassword   string
+	tokenExpireTime time.Duration
 )
 
-func init() {
-	if env := os.Getenv(envAdminEmail); env != "" {
-		AdminEmail = env
-	}
-	if env := os.Getenv(envAdminPWD); env != "" {
-		AdminPWD = env
-	}
-}
+func Init(email, password string, t time.Duration) error {
+	adminEmail = email
+	adminPassword = password
+	tokenExpireTime = t
 
-func DatabaseInit() error {
 	conn, err := ldapclient.Client()
 
 	if err != nil {
@@ -92,22 +84,17 @@ func checkAndCreateDefaultGroup(conn ldap.Client) error {
 		nil,
 	)
 
-	groups, err := conn.Search(groupSearchRequest)
+	_, err := conn.Search(groupSearchRequest)
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 		err = createGroupsBaseDN(conn)
+		if err != nil {
+			return fmt.Errorf("GroupBaseDN %s create failed: %s\n", ldapclient.GroupSearchBase, err)
+		}
 	}
 
 	if err != nil {
-		return fmt.Errorf("GroupBaseDN %s not exist: %s\n", ldapclient.GroupSearchBase, err)
-	}
-
-	if len(groups.Entries) == 0 {
-		_, err = CreateGroup(models.Group{Path: constants.SystemWorkspace, Name: constants.SystemWorkspace, Creator: constants.AdminUserName, Description: "system workspace"})
-
-		if err != nil {
-			return fmt.Errorf("system-workspace create failed: %s\n", err)
-		}
+		return fmt.Errorf("iam database init failed: %s\n", err)
 	}
 
 	return nil
@@ -127,21 +114,21 @@ func checkAndCreateDefaultUser(conn ldap.Client) error {
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 		err = createUserBaseDN(conn)
+		if err != nil {
+			return fmt.Errorf("UserBaseDN %s create failed: %s\n", ldapclient.UserSearchBase, err)
+		}
 	}
 
 	if err != nil {
-		return fmt.Errorf("UserBaseDN %s not exist: %s\n", ldapclient.UserSearchBase, err)
+		return fmt.Errorf("iam database init failed: %s\n", err)
 	}
 
-	if len(users.Entries) == 0 {
-		err := CreateUser(models.User{Username: constants.AdminUserName, Email: AdminEmail, Password: AdminPWD, Description: "Administrator account that was always created by default."})
-
+	if users == nil || len(users.Entries) == 0 {
+		_, err := CreateUser(&models.User{Username: constants.AdminUserName, Email: adminEmail, Password: adminPassword, Description: "Administrator account that was always created by default."})
 		if err != nil {
 			return fmt.Errorf("admin create failed: %s\n", err)
 		}
 	}
-
-	counter = NewCounter(len(users.Entries))
 
 	return nil
 }
@@ -168,12 +155,12 @@ func createGroupsBaseDN(conn ldap.Client) error {
 }
 
 // User login
-func Login(username string, password string, ip string) (string, error) {
+func Login(username string, password string, ip string) (*models.Token, error) {
 
 	conn, err := ldapclient.Client()
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	defer conn.Close()
@@ -189,136 +176,43 @@ func Login(username string, password string, ip string) (string, error) {
 	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(result.Entries) != 1 {
-		return "", ldap.NewError(ldap.LDAPResultInvalidCredentials, errors.New("incorrect password"))
+		return nil, ldap.NewError(ldap.LDAPResultInvalidCredentials, errors.New("incorrect password"))
 	}
 
 	uid := result.Entries[0].GetAttributeValue("uid")
 	email := result.Entries[0].GetAttributeValue("mail")
 	dn := result.Entries[0].DN
 
-	user := models.User{Username: uid, Email: email}
-
 	// bind as the user to verify their password
 	err = conn.Bind(dn, password)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
+	claims := jwt.MapClaims{}
+
+	claims["exp"] = time.Now().Add(tokenExpireTime).Unix()
+	claims["username"] = uid
+	claims["email"] = email
+
+	token := jwtutil.MustSigned(claims)
+
+	loginLog(uid, ip)
+
+	return &models.Token{Token: token}, nil
+}
+
+func loginLog(uid, ip string) {
 	if ip != "" {
 		redisClient := redis.Client()
 		redisClient.RPush(fmt.Sprintf("kubesphere:users:%s:login-log", uid), fmt.Sprintf("%s,%s", time.Now().UTC().Format("2006-01-02T15:04:05Z"), ip))
 		redisClient.LTrim(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -10, -1)
 	}
-
-	claims := jwt.MapClaims{}
-
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
-	claims["username"] = user.Username
-	claims["email"] = user.Email
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	uToken, _ := token.SignedString(jwtutils.Secret)
-
-	return uToken, nil
-}
-
-func UserList(limit int, offset int) (int, []models.User, error) {
-
-	conn, err := ldapclient.Client()
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	defer conn.Close()
-
-	users := make([]models.User, 0)
-
-	pageControl := ldap.NewControlPaging(1000)
-
-	entries := make([]*ldap.Entry, 0)
-
-	cursor := 0
-l1:
-	for {
-
-		userSearchRequest := ldap.NewSearchRequest(
-			ldapclient.UserSearchBase,
-			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-			"(&(objectClass=inetOrgPerson))",
-			[]string{"uid", "mail", "description"},
-			[]ldap.Control{pageControl},
-		)
-
-		response, err := conn.Search(userSearchRequest)
-
-		if err != nil {
-			return 0, nil, err
-		}
-
-		for _, entry := range response.Entries {
-			cursor++
-			if cursor > offset {
-				if len(entries) < limit {
-					entries = append(entries, entry)
-				} else {
-					break l1
-				}
-			}
-		}
-
-		updatedControl := ldap.FindControl(response.Controls, ldap.ControlTypePaging)
-		if ctrl, ok := updatedControl.(*ldap.ControlPaging); ctrl != nil && ok && len(ctrl.Cookie) != 0 {
-			pageControl.SetCookie(ctrl.Cookie)
-			continue
-		}
-
-		break
-	}
-
-	redisClient := redis.Client()
-
-	for _, v := range entries {
-
-		uid := v.GetAttributeValue("uid")
-		email := v.GetAttributeValue("mail")
-		description := v.GetAttributeValue("description")
-		user := models.User{Username: uid, Email: email, Description: description}
-
-		avatar, err := redisClient.HMGet("kubesphere:users:avatar", uid).Result()
-
-		if err != nil {
-			return 0, nil, err
-		}
-
-		if len(avatar) > 0 {
-			if url, ok := avatar[0].(string); ok {
-				user.AvatarUrl = url
-			}
-		}
-
-		lastLogin, err := redisClient.LRange(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -1, -1).Result()
-
-		if err != nil {
-			return 0, nil, err
-		}
-
-		if len(lastLogin) > 0 {
-			user.LastLoginTime = strings.Split(lastLogin[0], ",")[0]
-		}
-
-		user.ClusterRules = make([]models.SimpleRule, 0)
-
-		users = append(users, user)
-	}
-
-	return counter.Get(), users, nil
 }
 
 func LoginLog(username string) ([]string, error) {
@@ -333,48 +227,77 @@ func LoginLog(username string) ([]string, error) {
 	return data, nil
 }
 
-func Search(keyword string, limit int, offset int) (int, []models.User, error) {
+func ListUsersByName(names []string) (*models.PageableResponse, error) {
+	users := make([]*models.User, 0)
+
+	for _, name := range names {
+		if !k8sutil.ContainsUser(users, name) {
+			user, err := DescribeUser(name)
+			if err != nil {
+				if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+					continue
+				}
+				return nil, err
+			}
+			users = append(users, user)
+		}
+	}
+
+	items := make([]interface{}, 0)
+
+	for _, u := range users {
+		items = append(items, u)
+	}
+
+	return &models.PageableResponse{Items: items, TotalCount: len(items)}, nil
+}
+
+func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
 	conn, err := ldapclient.Client()
 
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 
 	defer conn.Close()
 
-	users := make([]models.User, 0)
-
 	pageControl := ldap.NewControlPaging(80)
 
-	entries := make([]*ldap.Entry, 0)
+	users := make([]models.User, 0)
 
-	cursor := 0
-l1:
+	filter := "(&(objectClass=inetOrgPerson))"
+
+	if keyword := conditions.Match["keyword"]; keyword != "" {
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=*%s*)(mail=*%s*)(description=*%s*)))", keyword, keyword, keyword)
+	}
+
 	for {
 		userSearchRequest := ldap.NewSearchRequest(
 			ldapclient.UserSearchBase,
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-			fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=*%s*)(mail=*%s*)(description=*%s*)))", keyword, keyword, keyword),
-			[]string{"uid", "mail", "description"},
+			filter,
+			[]string{"uid", "mail", "description", "preferredLanguage", "createTimestamp"},
 			[]ldap.Control{pageControl},
 		)
 
 		response, err := conn.Search(userSearchRequest)
 
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 
 		for _, entry := range response.Entries {
-			cursor++
-			if cursor > offset {
-				if len(entries) < limit {
-					entries = append(entries, entry)
-				} else {
-					break l1
-				}
-			}
+
+			uid := entry.GetAttributeValue("uid")
+			email := entry.GetAttributeValue("mail")
+			description := entry.GetAttributeValue("description")
+			lang := entry.GetAttributeValue("preferredLanguage")
+			createTimestamp, _ := time.Parse("20060102150405Z", entry.GetAttributeValue("createTimestamp"))
+
+			user := models.User{Username: uid, Email: email, Description: description, Lang: lang, CreateTime: createTimestamp}
+
+			users = append(users, user)
 		}
 
 		updatedControl := ldap.FindControl(response.Controls, ldap.ControlTypePaging)
@@ -386,52 +309,104 @@ l1:
 		break
 	}
 
-	redisClient := redis.Client()
-
-	for _, v := range entries {
-
-		uid := v.GetAttributeValue("uid")
-		email := v.GetAttributeValue("mail")
-		description := v.GetAttributeValue("description")
-		user := models.User{Username: uid, Email: email, Description: description}
-
-		avatar, err := redisClient.HMGet("kubesphere:users:avatar", uid).Result()
-
-		if err != nil {
-			return 0, nil, err
+	sort.Slice(users, func(i, j int) bool {
+		if reverse {
+			tmp := i
+			i = j
+			j = tmp
 		}
+		switch orderBy {
+		case "username":
+			fallthrough
+		case "createTime":
+			return users[i].CreateTime.Before(users[j].CreateTime)
+		default:
+			return strings.Compare(users[i].Username, users[j].Username) <= 0
+		}
+	})
 
-		if len(avatar) > 0 {
-			if url, ok := avatar[0].(string); ok {
-				user.AvatarUrl = url
+	items := make([]interface{}, 0)
+
+	for i, user := range users {
+
+		if i >= offset && len(items) < limit {
+
+			avatar, err := getAvatar(user.Username)
+			if err != nil {
+				return nil, err
 			}
+			user.AvatarUrl = avatar
+
+			lastLoginTime, err := getLastLoginTime(user.Username)
+			if err != nil {
+				return nil, err
+			}
+			user.LastLoginTime = lastLoginTime
+
+			clusterRole, err := GetUserClusterRole(user.Username)
+
+			if err != nil {
+				return nil, err
+			}
+
+			user.ClusterRole = clusterRole.Name
+
+			items = append(items, user)
 		}
-
-		lastLogin, err := redisClient.LRange(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -1, -1).Result()
-
-		if err != nil {
-			return 0, nil, err
-		}
-
-		if len(lastLogin) > 0 {
-			user.LastLoginTime = strings.Split(lastLogin[0], ",")[0]
-		}
-
-		user.ClusterRules = make([]models.SimpleRule, 0)
-
-		users = append(users, user)
 	}
 
-	return counter.Get(), users, nil
+	return &models.PageableResponse{Items: items, TotalCount: len(users)}, nil
 }
 
-func UserDetail(username string, conn ldap.Client) (*models.User, error) {
+func DescribeUser(username string) (*models.User, error) {
+
+	user, err := GetUserInfo(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	groups, err := GetUserGroups(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	user.Groups = groups
+
+	avatar, err := getAvatar(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	user.AvatarUrl = avatar
+
+	lastLoginTime, err := getLastLoginTime(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	user.LastLoginTime = lastLoginTime
+
+	return user, nil
+}
+
+// Get user info only included email description & lang
+func GetUserInfo(username string) (*models.User, error) {
+
+	conn, err := ldapclient.Client()
+
+	if err != nil {
+		return nil, err
+	}
 
 	userSearchRequest := ldap.NewSearchRequest(
 		ldapclient.UserSearchBase,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(uid=%s))", username),
-		[]string{"mail", "description", "preferredLanguage"},
+		[]string{"mail", "description", "preferredLanguage", "createTimestamp"},
 		nil,
 	)
 
@@ -448,7 +423,20 @@ func UserDetail(username string, conn ldap.Client) (*models.User, error) {
 	email := result.Entries[0].GetAttributeValue("mail")
 	description := result.Entries[0].GetAttributeValue("description")
 	lang := result.Entries[0].GetAttributeValue("preferredLanguage")
-	user := models.User{Username: username, Email: email, Description: description, Lang: lang}
+	createTimestamp, _ := time.Parse("20060102150405Z", result.Entries[0].GetAttributeValue("createTimestamp"))
+	user := &models.User{Username: username, Email: email, Description: description, Lang: lang, CreateTime: createTimestamp}
+
+	return user, nil
+}
+
+func GetUserGroups(username string) ([]string, error) {
+	conn, err := ldapclient.Client()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
 
 	groupSearchRequest := ldap.NewSearchRequest(
 		ldapclient.GroupSearchBase,
@@ -458,11 +446,10 @@ func UserDetail(username string, conn ldap.Client) (*models.User, error) {
 		nil,
 	)
 
-	result, err = conn.Search(groupSearchRequest)
+	result, err := conn.Search(groupSearchRequest)
 
 	if err != nil {
 		return nil, err
-
 	}
 
 	groups := make([]string, 0)
@@ -472,41 +459,47 @@ func UserDetail(username string, conn ldap.Client) (*models.User, error) {
 		groups = append(groups, groupName)
 	}
 
-	user.Groups = groups
+	return groups, nil
+}
 
-	redisClient := redis.Client()
-
-	avatar, err := redisClient.HMGet("kubesphere:users:avatar", username).Result()
+func getLastLoginTime(username string) (string, error) {
+	lastLogin, err := redis.Client().LRange(fmt.Sprintf("kubesphere:users:%s:login-log", username), -1, -1).Result()
 
 	if err != nil {
-		return nil, err
+		return "", err
+	}
+
+	if len(lastLogin) > 0 {
+		return strings.Split(lastLogin[0], ",")[0], nil
+	}
+	return "", nil
+}
+
+func setAvatar(username, avatar string) error {
+	_, err := redis.Client().HMSet("kubesphere:users:avatar", map[string]interface{}{"username": avatar}).Result()
+	return err
+}
+
+func getAvatar(username string) (string, error) {
+
+	avatar, err := redis.Client().HMGet("kubesphere:users:avatar", username).Result()
+
+	if err != nil {
+		return "", err
 	}
 
 	if len(avatar) > 0 {
 		if url, ok := avatar[0].(string); ok {
-			user.AvatarUrl = url
+			return url, nil
 		}
 	}
-
-	user.Status = 0
-
-	lastLogin, err := redisClient.LRange(fmt.Sprintf("kubesphere:users:%s:login-log", username), -1, -1).Result()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(lastLogin) > 0 {
-		user.LastLoginTime = strings.Split(lastLogin[0], ",")[0]
-	}
-
-	return &user, nil
+	return "", nil
 }
 
 func DeleteUser(username string) error {
 
-	// bind root DN
 	conn, err := ldapclient.Client()
+
 	if err != nil {
 		return err
 	}
@@ -523,13 +516,7 @@ func DeleteUser(username string) error {
 
 	err = deleteRoleBindings(username)
 
-	if err != nil {
-		return err
-	}
-
-	counter.Sub(1)
-
-	return nil
+	return err
 }
 
 func deleteRoleBindings(username string) error {
@@ -541,7 +528,7 @@ func deleteRoleBindings(username string) error {
 	}
 
 	for _, roleBinding := range roleBindings {
-
+		roleBinding = roleBinding.DeepCopy()
 		length1 := len(roleBinding.Subjects)
 
 		for index, subject := range roleBinding.Subjects {
@@ -573,6 +560,7 @@ func deleteRoleBindings(username string) error {
 	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
 
 	for _, clusterRoleBinding := range clusterRoleBindings {
+		clusterRoleBinding = clusterRoleBinding.DeepCopy()
 		length1 := len(clusterRoleBinding.Subjects)
 
 		for index, subject := range clusterRoleBinding.Subjects {
@@ -639,7 +627,7 @@ func UserCreateCheck(check string) (exist bool, err error) {
 	}
 }
 
-func CreateUser(user models.User) error {
+func CreateUser(user *models.User) (*models.User, error) {
 	user.Username = strings.TrimSpace(user.Username)
 	user.Email = strings.TrimSpace(user.Email)
 	user.Password = strings.TrimSpace(user.Password)
@@ -648,7 +636,7 @@ func CreateUser(user models.User) error {
 	conn, err := ldapclient.Client()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer conn.Close()
@@ -664,17 +652,17 @@ func CreateUser(user models.User) error {
 	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(result.Entries) > 0 {
-		return errors.New("username or email already exists")
+		return nil, ldap.NewError(ldap.LDAPResultEntryAlreadyExists, fmt.Errorf("username or email already exists"))
 	}
 
 	maxUid, err := getMaxUid(conn)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	maxUid += 1
@@ -690,7 +678,7 @@ func CreateUser(user models.User) error {
 	userCreateRequest.Attribute("mail", []string{user.Email})                        // RFC1274: RFC822 Mailbox
 	userCreateRequest.Attribute("userPassword", []string{user.Password})             // RFC4519/2307: password of user
 	if user.Lang != "" {
-		userCreateRequest.Attribute("preferredLanguage", []string{user.Lang}) // RFC4519/2307: password of user
+		userCreateRequest.Attribute("preferredLanguage", []string{user.Lang})
 	}
 	if user.Description != "" {
 		userCreateRequest.Attribute("description", []string{user.Description}) // RFC4519: descriptive information
@@ -699,16 +687,22 @@ func CreateUser(user models.User) error {
 	err = conn.Add(userCreateRequest)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	counter.Add(1)
+	if user.AvatarUrl != "" {
+		setAvatar(user.Username, user.AvatarUrl)
+	}
 
 	if user.ClusterRole != "" {
-		CreateClusterRoleBinding(user.Username, user.ClusterRole)
+		err := CreateClusterRoleBinding(user.Username, user.ClusterRole)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	return DescribeUser(user.Username)
 }
 
 func getMaxUid(conn ldap.Client) (int, error) {
@@ -770,11 +764,12 @@ func getMaxGid(conn ldap.Client) (int, error) {
 	return maxGid, nil
 }
 
-func UpdateUser(user models.User) error {
+func UpdateUser(user *models.User) (*models.User, error) {
 
 	conn, err := ldapclient.Client()
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer conn.Close()
@@ -796,19 +791,27 @@ func UpdateUser(user models.User) error {
 		userModifyRequest.Replace("userPassword", []string{user.Password})
 	}
 
+	if user.AvatarUrl != "" {
+		err = setAvatar(user.Username, user.AvatarUrl)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	err = conn.Modify(userModifyRequest)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = CreateClusterRoleBinding(user.Username, user.ClusterRole)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return DescribeUser(user.Username)
 }
 func DeleteGroup(path string) error {
 
@@ -831,13 +834,14 @@ func DeleteGroup(path string) error {
 	return nil
 }
 
-func CreateGroup(group models.Group) (*models.Group, error) {
+func CreateGroup(group *models.Group) (*models.Group, error) {
 
-	// bind root DN
 	conn, err := ldapclient.Client()
+
 	if err != nil {
 		return nil, err
 	}
+
 	defer conn.Close()
 
 	maxGid, err := getMaxGid(conn)
@@ -863,7 +867,9 @@ func CreateGroup(group models.Group) (*models.Group, error) {
 		groupCreateRequest.Attribute("description", []string{group.Description})
 	}
 
-	groupCreateRequest.Attribute("memberUid", []string{group.Creator})
+	if group.Members != nil {
+		groupCreateRequest.Attribute("memberUid", group.Members)
+	}
 
 	err = conn.Add(groupCreateRequest)
 
@@ -873,18 +879,7 @@ func CreateGroup(group models.Group) (*models.Group, error) {
 
 	group.Gid = strconv.Itoa(maxGid)
 
-	group.CreateTime = time.Now().UTC().Format("2006-01-02T15:04:05Z")
-
-	redisClient := redis.Client()
-
-	if err := redisClient.HMSet("kubesphere:groups:create-time", map[string]interface{}{group.Name: group.CreateTime}).Err(); err != nil {
-		return nil, err
-	}
-	if err := redisClient.HMSet("kubesphere:groups:creator", map[string]interface{}{group.Name: group.Creator}).Err(); err != nil {
-		return nil, err
-	}
-
-	return &group, nil
+	return DescribeGroup(group.Path)
 }
 
 func UpdateGroup(group *models.Group) (*models.Group, error) {
@@ -896,7 +891,7 @@ func UpdateGroup(group *models.Group) (*models.Group, error) {
 	}
 	defer conn.Close()
 
-	old, err := GroupDetail(group.Path, conn)
+	old, err := DescribeGroup(group.Path)
 
 	if err != nil {
 		return nil, err
@@ -1029,33 +1024,21 @@ func ChildList(path string) ([]models.Group, error) {
 
 		group.ChildGroups = childGroups
 
-		redisClient := redis.Client()
-
-		createTime, _ := redisClient.HMGet("kubesphere:groups:create-time", group.Name).Result()
-
-		if len(createTime) > 0 {
-			if t, ok := createTime[0].(string); ok {
-				group.CreateTime = t
-			}
-		}
-
-		creator, _ := redisClient.HMGet("kubesphere:groups:creator", group.Name).Result()
-
-		if len(creator) > 0 {
-			if t, ok := creator[0].(string); ok {
-				group.Creator = t
-			}
-		}
-
 		groups = append(groups, group)
 	}
 
 	return groups, nil
 }
 
-func GroupDetail(path string, conn ldap.Client) (*models.Group, error) {
+func DescribeGroup(path string) (*models.Group, error) {
 
 	searchBase, cn := splitPath(path)
+
+	conn, err := ldapclient.Client()
+
+	if err != nil {
+		return nil, err
+	}
 
 	groupSearchRequest := ldap.NewSearchRequest(searchBase,
 		ldap.ScopeSingleLevel, ldap.NeverDerefAliases, 0, 0, false,
@@ -1085,24 +1068,76 @@ func GroupDetail(path string, conn ldap.Client) (*models.Group, error) {
 
 	group.ChildGroups = childGroups
 
-	redisClient := redis.Client()
-
-	createTime, _ := redisClient.HMGet("kubesphere:groups:create-time", group.Name).Result()
-
-	if len(createTime) > 0 {
-		if t, ok := createTime[0].(string); ok {
-			group.CreateTime = t
-		}
-	}
-
-	creator, _ := redisClient.HMGet("kubesphere:groups:creator", group.Name).Result()
-
-	if len(creator) > 0 {
-		if t, ok := creator[0].(string); ok {
-			group.Creator = t
-		}
-	}
-
 	return &group, nil
 
+}
+
+func WorkspaceUsersTotalCount(workspace string) (int, error) {
+	workspaceRoleBindings, err := GetWorkspaceRoleBindings(workspace)
+
+	if err != nil {
+		return 0, err
+	}
+
+	users := make([]string, 0)
+
+	for _, roleBinding := range workspaceRoleBindings {
+		for _, subject := range roleBinding.Subjects {
+			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+				users = append(users, subject.Name)
+			}
+		}
+	}
+
+	return len(users), nil
+}
+
+func ListWorkspaceUsers(workspace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+
+	workspaceRoleBindings, err := GetWorkspaceRoleBindings(workspace)
+
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*models.User, 0)
+
+	for _, roleBinding := range workspaceRoleBindings {
+		for _, subject := range roleBinding.Subjects {
+			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+				user, err := DescribeUser(subject.Name)
+				if err != nil {
+					return nil, err
+				}
+				prefix := fmt.Sprintf("workspace:%s:", workspace)
+				user.WorkspaceRole = fmt.Sprintf("workspace-%s", strings.TrimPrefix(roleBinding.Name, prefix))
+				users = append(users, user)
+			}
+		}
+	}
+
+	// order & reverse
+	sort.Slice(users, func(i, j int) bool {
+		if reverse {
+			tmp := i
+			i = j
+			j = tmp
+		}
+		switch orderBy {
+		default:
+			fallthrough
+		case "name":
+			return strings.Compare(users[i].Username, users[j].Username) <= 0
+		}
+	})
+
+	result := make([]interface{}, 0)
+
+	for i, d := range users {
+		if i >= offset && (limit == -1 || len(result) < limit) {
+			result = append(result, d)
+		}
+	}
+
+	return &models.PageableResponse{Items: result, TotalCount: len(users)}, nil
 }
