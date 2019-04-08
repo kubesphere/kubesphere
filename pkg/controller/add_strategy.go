@@ -17,13 +17,12 @@ limitations under the License.
 package controller
 
 import (
-	"kubesphere.io/kubesphere/pkg/controller/strategy"
 	"sigs.k8s.io/application/pkg/controller/application"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, strategy.Add)
+	//AddToManagerFuncs = append(AddToManagerFuncs, strategy.Add)
 
 	// Add application to manager functions
 	AddToManagerFuncs = append(AddToManagerFuncs, application.Add)

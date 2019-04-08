@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// ServicePolicies returns a ServicePolicyInformer.
+	ServicePolicies() ServicePolicyInformer
 	// Strategies returns a StrategyInformer.
 	Strategies() StrategyInformer
 }
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// ServicePolicies returns a ServicePolicyInformer.
+func (v *version) ServicePolicies() ServicePolicyInformer {
+	return &servicePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Strategies returns a StrategyInformer.

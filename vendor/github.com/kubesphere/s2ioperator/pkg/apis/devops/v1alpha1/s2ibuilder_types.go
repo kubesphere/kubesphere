@@ -36,10 +36,11 @@ const (
 	Unknown             = "Unknown"
 )
 const (
-	AutoScaleAnnotations              = "devops.kubesphere.io/autoscale"
-	WorkloadLatestS2iRunTemplateLabel = "devops.kubesphere.io/s2ir"
-	S2irCompletedScaleAnnotations     = "devops.kubesphere.io/completedscale"
-	WorkLoadCompletedInitAnnotations  = "devops.kubesphere.io/inithasbeencomplted"
+	AutoScaleAnnotations             = "devops.kubesphere.io/autoscale"
+	S2iRunLabel                      = "devops.kubesphere.io/s2ir"
+	S2irCompletedScaleAnnotations    = "devops.kubesphere.io/completedscale"
+	WorkLoadCompletedInitAnnotations = "devops.kubesphere.io/inithasbeencomplted"
+	DescriptionAnnotations           = "desc"
 )
 const (
 	KindDeployment  = "Deployment"
@@ -48,14 +49,14 @@ const (
 
 // EnvironmentSpec specifies a single environment variable.
 type EnvironmentSpec struct {
-	Name  string
-	Value string
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 // ProxyConfig holds proxy configuration.
 type ProxyConfig struct {
-	HTTPProxy  string
-	HTTPSProxy string
+	HTTPProxy  string `json:"httpProxy,omitempty"`
+	HTTPSProxy string `json:"httpsProxy,omitempty"`
 }
 
 // CGroupLimits holds limits used to constrain container resources.
@@ -423,6 +424,8 @@ type S2iBuilderStatus struct {
 	LastRunState RunState `json:"lastRunState,omitempty"`
 	//LastRunState return the name of the newest run of this builder
 	LastRunName *string `json:"lastRunName,omitempty"`
+	//LastRunStartTime return the startTime of the newest run of this builder
+	LastRunStartTime *metav1.Time `json:"lastRunStartTime,omitempty"`
 }
 
 // +genclient
@@ -434,6 +437,7 @@ type S2iBuilderStatus struct {
 // +kubebuilder:printcolumn:name="RunCount",type="integer",JSONPath=".status.runCount"
 // +kubebuilder:printcolumn:name="LastRunState",type="string",JSONPath=".status.lastRunState"
 // +kubebuilder:printcolumn:name="LastRunName",type="string",JSONPath=".status.lastRunName"
+// +kubebuilder:printcolumn:name="LastRunStartTime",type="date",JSONPath=".status.lastRunStartTime"
 // +kubebuilder:resource:shortName=s2ib
 type S2iBuilder struct {
 	metav1.TypeMeta   `json:",inline"`

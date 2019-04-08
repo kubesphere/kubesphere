@@ -1,0 +1,9 @@
+apiVersion: servicemesh.kubesphere.io/v1alpha2
+kind: ServicePolicy
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: servicepolicy-sample
+spec:
+  # Add fields here
+  foo: bar

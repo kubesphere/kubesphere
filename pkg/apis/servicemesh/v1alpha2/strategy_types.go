@@ -28,7 +28,6 @@ import (
 type StrategyType string
 
 const (
-
 	// Canary strategy type
 	CanaryType StrategyType = "Canary"
 
@@ -39,9 +38,21 @@ const (
 	Mirror StrategyType = "Mirror"
 )
 
+type StrategyPolicy string
+
+const (
+	// apply strategy only until workload is ready
+	PolicyWaitForWorkloadReady StrategyPolicy = "WaitForWorkloadReady"
+
+	// apply strategy immediately no matter workload status is
+	PolicyImmediately StrategyPolicy = "Immediately"
+
+	// pause strategy
+	PolicyPause StrategyPolicy = "Paused"
+)
+
 // StrategySpec defines the desired state of Strategy
 type StrategySpec struct {
-
 	// Strategy type
 	Type StrategyType `json:"type,omitempty"`
 
@@ -62,9 +73,9 @@ type StrategySpec struct {
 	// Template describes the virtual service that will be created.
 	Template VirtualServiceTemplateSpec `json:"template,omitempty"`
 
-	// Indicates that the strategy is paused and will not be processed
+	// strategy policy, how the strategy will be applied
 	// by the strategy controller
-	Paused bool `json:"paused,omitempty"`
+	StrategyPolicy StrategyPolicy `json:"strategyPolicy,omitempty"`
 }
 
 // VirtualServiceTemplateSpec
