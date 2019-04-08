@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -79,7 +80,7 @@ func Run(s *options.ServerRunOptions) error {
 	}
 
 	initializeESClientConfig()
-	initializeKialiConfig(s)
+	initializeServicemeshConfig(s)
 	err = initializeDatabase()
 
 	if err != nil {
@@ -109,9 +110,11 @@ func initializeDatabase() error {
 	return nil
 }
 
-func initializeKialiConfig(s *options.ServerRunOptions) {
+func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	// Initialize kiali config
 	config := kconfig.NewConfig()
+
+	tracing.JaegerQueryUrl = s.JaegerQueryServiceUrl
 
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
