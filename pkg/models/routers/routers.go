@@ -20,13 +20,14 @@ package routers
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"sort"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,11 +38,67 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
+// choose router node ip by labels, currently select master node
+var RouterNodeIPLabelSelector = map[string]string{
+	"node-role.kubernetes.io/master": "",
+}
+
+// get master node ip, if there are multiple master nodes,
+// choose first one according by their names alphabetically
+func getMasterNodeIp() string {
+
+	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
+	selector := labels.SelectorFromSet(RouterNodeIPLabelSelector)
+
+	masters, err := nodeLister.List(selector)
+	sort.Slice(masters, func(i, j int) bool {
+		return strings.Compare(masters[i].Name, masters[j].Name) > 0
+	})
+	if err != nil {
+		glog.Error(err)
+		return ""
+	}
+
+	if len(masters) == 0 {
+		return ""
+	} else {
+		for _, address := range masters[0].Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				return address.Address
+			}
+		}
+	}
+
+	return ""
+}
+
+func addLoadBalancerIp(service *corev1.Service) {
+
+	// append selected node ip as loadbalancer ingress ip
+	if service.Spec.Type != corev1.ServiceTypeLoadBalancer && len(service.Status.LoadBalancer.Ingress) == 0 {
+		rip := getMasterNodeIp()
+		if len(rip) == 0 {
+			glog.Info("can not get node ip")
+			return
+		}
+
+		gIngress := corev1.LoadBalancerIngress{
+			IP: rip,
+		}
+
+		service.Status.LoadBalancer.Ingress = append(service.Status.LoadBalancer.Ingress, gIngress)
+	}
+}
+
 func GetAllRouters() ([]*corev1.Service, error) {
 
 	selector := labels.SelectorFromSet(labels.Set{"app": "kubesphere", "component": "ks-router", "tier": "backend"})
 	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
 	services, err := serviceLister.Services(constants.IngressControllerNamespace).List(selector)
+
+	for i := range services {
+		addLoadBalancerIp(services[i])
+	}
 
 	if err != nil {
 		glog.Error(err)
@@ -63,9 +120,10 @@ func GetRouter(namespace string) (*corev1.Service, error) {
 		glog.Error(err)
 		return nil, err
 	}
-	for _, s := range services {
-		if s.Name == serviceName {
-			return s, nil
+	for i := range services {
+		if services[i].Name == serviceName {
+			addLoadBalancerIp(services[i])
+			return services[i], nil
 		}
 	}
 
@@ -172,6 +230,7 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 		}
 	}
 
+	addLoadBalancerIp(router)
 	return router, nil
 }
 
@@ -276,5 +335,6 @@ func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations m
 		}
 	}
 
+	addLoadBalancerIp(router)
 	return router, nil
 }

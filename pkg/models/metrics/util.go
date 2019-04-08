@@ -52,7 +52,7 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 }
 
 // sorted metric by ascending or descending order
-func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelMetric) (*FormatedLevelMetric, int) {
+func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetric) (*FormatedLevelMetric, int) {
 	defer func() {
 		if err := recover(); err != nil {
 			glog.Errorln(err)
@@ -61,7 +61,7 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 	}()
 
 	if sortMetricName == "" {
-		return fmtLevelMetric, -1
+		return rawMetrics, -1
 	}
 
 	// default sort type is descending order
@@ -71,14 +71,18 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 
 	var currentResourceMap = make(map[string]int)
 
-	// indexMap store sorted index for each node/namespace/pod
+	// {<Resource Name>: <Ordering>}
 	var indexMap = make(map[string]int)
 	i := 0
-	for _, metricItem := range fmtLevelMetric.Results {
+
+	// each metricItem is the result for a specific metric name
+	// so we find the metricItem with sortMetricName, and sort it
+	for _, metricItem := range rawMetrics.Results {
+		// only vector type result can be sorted
 		if metricItem.Data.ResultType == ResultTypeVector && metricItem.Status == MetricStatusSuccess {
 			if metricItem.MetricName == sortMetricName {
 				if sortType == ResultSortTypeAsc {
-					// desc
+					// asc
 					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *map[string]interface{}) bool {
 						value1 := (*p)[ResultItemValue].([]interface{})
 						value2 := (*q)[ResultItemValue].([]interface{})
@@ -111,16 +115,14 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 				}
 
 				for _, r := range metricItem.Data.Result {
-					// for some reasons, 'metric' may not contain `resourceType` field
-					// example: {"metric":{},"value":[1541142931.731,"3"]}
-					k, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
-					key := k.(string)
+					// record the ordering of resource_name to indexMap
+					// example: {"metric":{"resource_name": "Deployment:xxx"},"value":[1541142931.731,"3"]}
+					resourceName, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
 					if exist {
-						if _, exist := indexMap[key]; !exist {
-							indexMap[key] = i
+						if _, exist := indexMap[resourceName.(string)]; !exist {
+							indexMap[resourceName.(string)] = i
 							i = i + 1
 						}
-
 					}
 				}
 			}
@@ -150,8 +152,8 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 	}
 
 	// sort other metric
-	for i := 0; i < len(fmtLevelMetric.Results); i++ {
-		re := fmtLevelMetric.Results[i]
+	for i := 0; i < len(rawMetrics.Results); i++ {
+		re := rawMetrics.Results[i]
 		if re.Data.ResultType == ResultTypeVector && re.Status == MetricStatusSuccess {
 			sortedMetric := make([]map[string]interface{}, len(indexMap))
 			for j := 0; j < len(re.Data.Result); j++ {
@@ -165,11 +167,11 @@ func Sort(sortMetricName string, sortType string, fmtLevelMetric *FormatedLevelM
 				}
 			}
 
-			fmtLevelMetric.Results[i].Data.Result = sortedMetric
+			rawMetrics.Results[i].Data.Result = sortedMetric
 		}
 	}
 
-	return fmtLevelMetric, len(indexMap)
+	return rawMetrics, len(indexMap)
 }
 
 func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, maxLength int) interface{} {
@@ -253,6 +255,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 }
 
 // maybe this function is time consuming
+// The metric param is the result from Prometheus HTTP query
 func ReformatJson(metric string, metricsName string, needAddParams map[string]string, needDelParams ...string) *FormatedMetric {
 	var formatMetric FormatedMetric
 
@@ -271,6 +274,8 @@ func ReformatJson(metric string, metricsName string, needAddParams map[string]st
 		result := formatMetric.Data.Result
 		for _, res := range result {
 			metric, exist := res[ResultItemMetric]
+			// Prometheus query result format: .data.result[].metric
+			// metricMap is the value of .data.result[].metric
 			metricMap, sure := metric.(map[string]interface{})
 			if exist && sure {
 				delete(metricMap, "__name__")

@@ -49,10 +49,6 @@ spec:
               description: Governor version, the version takes control of all incoming
                 traffic label version value
               type: string
-            paused:
-              description: Indicates that the strategy is paused and will not be processed
-                by the strategy controller
-              type: boolean
             principal:
               description: Principal version, the one as reference version label version
                 value
@@ -60,6 +56,10 @@ spec:
             selector:
               description: Label selector for virtual services.
               type: object
+            strategyPolicy:
+              description: strategy policy, how the strategy will be applied by the
+                strategy controller
+              type: string
             template:
               description: Template describes the virtual service that will be created.
               properties:

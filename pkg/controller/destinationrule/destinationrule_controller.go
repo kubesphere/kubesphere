@@ -220,10 +220,13 @@ func (v *DestinationRuleController) syncService(key string) error {
 		return nil
 	}
 
-	if len(service.Labels) < len(util.ApplicationLabels) || !util.IsApplicationComponent(service.Labels) ||
+	if len(service.Labels) < len(util.ApplicationLabels) ||
+		!util.IsApplicationComponent(service.Labels) ||
+		!util.IsServicemeshEnabled(service.Annotations) ||
 		len(service.Spec.Ports) == 0 {
 		// services don't have enough labels to create a virtualservice
 		// or they don't have necessary labels
+		// or they don't have servicemesh enabled
 		// or they don't have any ports defined
 		return nil
 	}
@@ -240,7 +243,10 @@ func (v *DestinationRuleController) syncService(key string) error {
 	for _, deployment := range deployments {
 
 		// not a valid deployment we required
-		if !util.IsApplicationComponent(deployment.Labels) || !util.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) {
+		if !util.IsApplicationComponent(deployment.Labels) ||
+			!util.IsApplicationComponent(deployment.Spec.Selector.MatchLabels) ||
+			deployment.Status.ReadyReplicas == 0 ||
+			!util.IsServicemeshEnabled(deployment.Annotations) {
 			continue
 		}
 
@@ -406,7 +412,9 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 
 	for i := range allServices {
 		service := allServices[i]
-		if service.Spec.Selector == nil || !util.IsApplicationComponent(service.Labels) {
+		if service.Spec.Selector == nil ||
+			!util.IsApplicationComponent(service.Labels) ||
+			!util.IsServicemeshEnabled(service.Annotations) {
 			// services with nil selectors match nothing, not everything.
 			continue
 		}
