@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha2
 
+// ServicePolicyListerExpansion allows custom methods to be added to
+// ServicePolicyLister.
+type ServicePolicyListerExpansion interface{}
+
+// ServicePolicyNamespaceListerExpansion allows custom methods to be added to
+// ServicePolicyNamespaceLister.
+type ServicePolicyNamespaceListerExpansion interface{}
+
 // StrategyListerExpansion allows custom methods to be added to
 // StrategyLister.
 type StrategyListerExpansion interface{}

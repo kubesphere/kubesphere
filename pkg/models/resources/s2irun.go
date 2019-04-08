@@ -41,6 +41,10 @@ func (*s2iRunSearcher) match(match map[string]string, item *v1alpha1.S2iRun) boo
 			if item.Name != v && item.Labels[displayName] != v {
 				return false
 			}
+		case status:
+			if string(item.Status.RunState) != v {
+				return false
+			}
 		default:
 			return false
 		}
