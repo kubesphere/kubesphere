@@ -411,9 +411,6 @@ func MonitorAllWorkspaces(monitoringRequest *client.MonitoringRequestParams) *Fo
 	}
 	var filterMetricsName []string
 	for _, metricName := range WorkspaceMetricsNames {
-		if metricName == MetricNameWorkspaceAllProjectCount {
-			continue
-		}
 		bol, err := regexp.MatchString(metricsFilter, metricName)
 		if err == nil && bol {
 			filterMetricsName = append(filterMetricsName, metricName)
