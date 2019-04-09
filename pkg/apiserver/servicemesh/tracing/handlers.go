@@ -35,6 +35,8 @@ func GetServiceTracing(request *restful.Request, response *restful.Response) {
 		return
 	}
 
+	// need to set header for proper response
+	response.Header().Set("Content-Type", "application/json")
 	_, err = response.Write(body)
 
 	if err != nil {
