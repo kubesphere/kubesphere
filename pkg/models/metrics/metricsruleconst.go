@@ -65,6 +65,7 @@ const (
 	MetricLevelContainer        = "container"
 	MetricLevelContainerName    = "container_name"
 	MetricLevelWorkload         = "workload"
+	MetricLevelComponent        = "component"
 )
 
 const (
@@ -317,6 +318,58 @@ var ContainerMetricsNames = []string{
 	"container_memory_usage_wo_cache",
 	//"container_net_bytes_transmitted",
 	//"container_net_bytes_received",
+}
+
+var ComponentMetricsNames = []string{
+	"etcd_server_deployed_sum",
+	"etcd_server_up_sum",
+	"etcd_server_has_leader",
+	"etcd_server_leader_changes",
+	"etcd_server_proposals_failed_rate",
+	"etcd_server_proposals_applied_rate",
+	"etcd_server_proposals_committed_rate",
+	"etcd_server_proposals_pending_count",
+	"etcd_mvcc_db_size",
+	"etcd_network_client_grpc_received_bytes",
+	"etcd_network_client_grpc_sent_bytes",
+	"etcd_grpc_call_rate",
+	"etcd_grpc_call_failed_rate",
+	"etcd_grpc_server_msg_received_rate",
+	"etcd_grpc_server_msg_sent_rate",
+	"etcd_disk_wal_fsync_duration",
+	"etcd_disk_wal_fsync_duration_quantile",
+	"etcd_disk_backend_commit_duration",
+	"etcd_disk_backend_commit_duration_quantile",
+
+	"apiserver_up_sum",
+	"apiserver_request_rate",
+	"apiserver_request_by_verb_rate",
+	"apiserver_request_latencies",
+	"apiserver_request_by_verb_latencies",
+
+	"scheduler_up_sum",
+	"scheduler_schedule_attempts",
+	"scheduler_schedule_attempt_rate",
+	"scheduler_e2e_scheduling_latency",
+	"scheduler_e2e_scheduling_latency_quantile",
+
+	"controller_manager_up_sum",
+
+	"coredns_up_sum",
+	"coredns_cache_hits",
+	"coredns_cache_misses",
+	"coredns_dns_request_rate",
+	"coredns_dns_request_duration",
+	"coredns_dns_request_duration_quantile",
+	"coredns_dns_request_by_type_rate",
+	"coredns_dns_request_by_rcode_rate",
+	"coredns_panic_rate",
+	"coredns_proxy_request_rate",
+	"coredns_proxy_request_duration",
+	"coredns_proxy_request_duration_quantile",
+
+	"prometheus_up_sum",
+	"prometheus_tsdb_head_samples_appended_rate",
 }
 
 var RulePromQLTmplMap = MetricMap{
@@ -614,4 +667,55 @@ var RulePromQLTmplMap = MetricMap{
 
 	// New in ks 2.0
 	"workspace_pod_abnormal_ratio": `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1}) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
+
+	// component
+	"etcd_server_deployed_sum":                   `count(up{job="etcd"})`,
+	"etcd_server_up_sum":                         `etcd:up:sum`,
+	"etcd_server_has_leader":                     `etcd_server_has_leader`,
+	"etcd_server_leader_changes":                 `etcd:etcd_server_leader_changes_seen:sum_changes`,
+	"etcd_server_proposals_failed_rate":          `etcd:etcd_server_proposals_failed:sum_irate`,
+	"etcd_server_proposals_applied_rate":         `etcd:etcd_server_proposals_applied:sum_irate`,
+	"etcd_server_proposals_committed_rate":       `etcd:etcd_server_proposals_committed:sum_irate`,
+	"etcd_server_proposals_pending_count":        `etcd:etcd_server_proposals_pending:sum`,
+	"etcd_mvcc_db_size":                          `etcd:etcd_debugging_mvcc_db_total_size:sum`,
+	"etcd_network_client_grpc_received_bytes":    `etcd:etcd_network_client_grpc_received_bytes:sum_irate`,
+	"etcd_network_client_grpc_sent_bytes":        `etcd:etcd_network_client_grpc_sent_bytes:sum_irate`,
+	"etcd_grpc_call_rate":                        `etcd:grpc_server_started:sum_irate`,
+	"etcd_grpc_call_failed_rate":                 `etcd:grpc_server_handled:sum_irate`,
+	"etcd_grpc_server_msg_received_rate":         `etcd:grpc_server_msg_received:sum_irate`,
+	"etcd_grpc_server_msg_sent_rate":             `etcd:grpc_server_msg_sent:sum_irate`,
+	"etcd_disk_wal_fsync_duration":               `etcd:etcd_disk_wal_fsync_duration:avg`,
+	"etcd_disk_wal_fsync_duration_quantile":      `etcd:etcd_disk_wal_fsync_duration:histogram_quantile`,
+	"etcd_disk_backend_commit_duration":          `etcd:etcd_disk_backend_commit_duration:avg`,
+	"etcd_disk_backend_commit_duration_quantile": `etcd:etcd_disk_backend_commit_duration:histogram_quantile`,
+
+	"apiserver_up_sum":                    `apiserver:up:sum`,
+	"apiserver_request_rate":              `apiserver:apiserver_request_count:sum_irate`,
+	"apiserver_request_by_verb_rate":      `apiserver:apiserver_request_count:sum_verb_irate`,
+	"apiserver_request_latencies":         `apiserver:apiserver_request_latencies:avg`,
+	"apiserver_request_by_verb_latencies": `apiserver:apiserver_request_latencies:avg_by_verb`,
+
+	"scheduler_up_sum":                          `scheduler:up:sum`,
+	"scheduler_schedule_attempts":               `scheduler:scheduler_schedule_attempts:sum`,
+	"scheduler_schedule_attempt_rate":           `scheduler:scheduler_schedule_attempts:sum_rate`,
+	"scheduler_e2e_scheduling_latency":          `scheduler:scheduler_e2e_scheduling_latency:avg`,
+	"scheduler_e2e_scheduling_latency_quantile": `scheduler:scheduler_e2e_scheduling_latency:histogram_quantile`,
+
+	"controller_manager_up_sum": `controller_manager:up:sum`,
+
+	"coredns_up_sum":                          `coredns:up:sum`,
+	"coredns_cache_hits":                      `coredns:coredns_cache_hits_total:sum_irate`,
+	"coredns_cache_misses":                    `coredns:coredns_cache_misses:sum_irate`,
+	"coredns_dns_request_rate":                `coredns:coredns_dns_request_count:sum_irate`,
+	"coredns_dns_request_duration":            `coredns:coredns_dns_request_duration:avg`,
+	"coredns_dns_request_duration_quantile":   `coredns:coredns_dns_request_duration:histogram_quantile`,
+	"coredns_dns_request_by_type_rate":        `coredns:coredns_dns_request_type_count:sum_irate`,
+	"coredns_dns_request_by_rcode_rate":       `coredns:coredns_dns_response_rcode_count:sum_irate`,
+	"coredns_panic_rate":                      `coredns:coredns_panic_count:sum_irate`,
+	"coredns_proxy_request_rate":              `coredns:coredns_proxy_request_count:sum_irate`,
+	"coredns_proxy_request_duration":          `coredns:coredns_proxy_request_duration:avg`,
+	"coredns_proxy_request_duration_quantile": `coredns:coredns_proxy_request_duration:histogram_quantile`,
+
+	"prometheus_up_sum":                          `prometheus:up:sum`,
+	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
 }

@@ -247,6 +247,13 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/components/{component}").To(monitoring.MonitorComponent).
+		Doc("monitor component level metrics").
+		Param(ws.QueryParameter("metrics_filter", "metrics names in re2 regex").DataType("string").Required(false).DefaultValue("")).
+		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
+
 	c.Add(ws)
 	return nil
 }
