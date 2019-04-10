@@ -42,7 +42,7 @@ type WorkspaceDPBinding struct {
 }
 
 type DevopsProject struct {
-	ProjectId   *string    `json:"project_id,omitempty"`
+	ProjectId   string     `json:"project_id,omitempty"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Creator     string     `json:"creator"`

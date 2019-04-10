@@ -41,7 +41,7 @@ func addWebService(c *restful.Container) error {
 
 	tags := []string{"Terminal"}
 
-	webservice.Route(webservice.GET("/namespace/{namespace}/pods/{pods}").
+	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pods}").
 		To(terminal.CreateTerminalSession).
 		Doc("create terminal session").
 		Metadata(restfulspec.KeyOpenAPITags, tags).

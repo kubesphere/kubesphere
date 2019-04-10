@@ -47,7 +47,5 @@ const (
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
-	SystemWorkspace  = "system-workspace"
-	DevopsAPIServer  = "ks-devops.kubesphere-devops-system.svc"
 	SystemNamespaces = []string{KubeSphereNamespace, OpenPitrixNamespace, KubeSystemNamespace}
 )

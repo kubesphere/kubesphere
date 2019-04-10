@@ -19,6 +19,7 @@ package tenant
 
 import (
 	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
@@ -26,10 +27,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
-	"log"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"net/http"
 )
 
@@ -54,12 +56,31 @@ func ListWorkspaces(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	reverse := params.ParseReverse(req)
 
+	if orderBy == "" {
+		orderBy = resources.CreateTime
+		reverse = true
+	}
+
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	result, err := tenant.ListWorkspaces(username, conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteAsJson(result)
+}
+
+func DescribeWorkspace(req *restful.Request, resp *restful.Response) {
+	username := req.HeaderParameter(constants.UserNameHeader)
+	workspaceName := req.PathParameter("workspace")
+
+	result, err := tenant.DescribeWorkspace(username, workspaceName)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -88,7 +109,7 @@ func ListNamespaces(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	conditions.Match["kubesphere.io/workspace"] = workspace
+	conditions.Match[constants.WorkspaceLabelKey] = workspace
 
 	result, err := tenant.ListNamespaces(username, conditions, orderBy, reverse, limit, offset)
 
@@ -188,18 +209,24 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 
 func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	devops := req.PathParameter("id")
-	workspace := req.PathParameter("workspace")
-	force := req.QueryParameter("force")
+	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	err := workspaces.UnBindDevopsProject(workspace, devops)
+	_, err := tenant.GetWorkspace(workspaceName)
 
-	if err != nil && force != "true" {
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+
+	err = kubesphere.Client().DeleteDevopsProject(username, devops)
+
+	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	err = workspaces.DeleteDevopsProject(username, devops)
+	err = workspaces.UnBindDevopsProject(workspaceName, devops)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -211,7 +238,7 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 
 func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 
-	workspace := req.PathParameter("workspace")
+	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
 	var devops models.DevopsProject
@@ -223,8 +250,8 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	log.Println("create workspace", username, workspace, devops)
-	project, err := workspaces.CreateDevopsProject(username, workspace, devops)
+	glog.Infoln("create workspace", username, workspaceName, devops)
+	project, err := workspaces.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -232,7 +259,6 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteAsJson(project)
-
 }
 
 func ListNamespaceRules(req *restful.Request, resp *restful.Response) {

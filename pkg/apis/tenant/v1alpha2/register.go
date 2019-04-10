@@ -42,6 +42,10 @@ func addWebService(c *restful.Container) error {
 		To(tenant.ListWorkspaces).
 		Doc("List workspace by user").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/workspaces/{workspace}").
+		To(tenant.DescribeWorkspace).
+		Doc("Get workspace detail").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/rules").
 		To(tenant.ListWorkspaceRules).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -96,7 +100,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create devops project").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/workspaces/{workspace}/devops").
+	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{id}").
 		To(tenant.DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Delete devops project").

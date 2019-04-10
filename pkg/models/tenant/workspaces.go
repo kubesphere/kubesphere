@@ -40,6 +40,10 @@ func (*workspaceSearcher) match(match map[string]string, item *v1alpha1.Workspac
 			if item.Name != v && item.Labels[constants.DisplayNameLabelKey] != v {
 				return false
 			}
+		case "keyword":
+			if !strings.Contains(item.Name, v) && !contains(item.Labels, "", v) && !contains(item.Annotations, "", v) {
+				return false
+			}
 		default:
 			if item.Labels[k] != v {
 				return false
@@ -127,4 +131,17 @@ func (s *workspaceSearcher) search(username string, conditions *params.Condition
 
 func GetWorkspace(workspaceName string) (*v1alpha1.Workspace, error) {
 	return informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
+}
+
+func contains(m map[string]string, key, value string) bool {
+	for k, v := range m {
+		if key == "" {
+			if strings.Contains(k, value) || strings.Contains(v, value) {
+				return true
+			}
+		} else if k == key && strings.Contains(v, value) {
+			return true
+		}
+	}
+	return false
 }

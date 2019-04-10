@@ -21,6 +21,7 @@ package routers
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
@@ -57,7 +58,11 @@ func GetRouter(request *restful.Request, response *restful.Response) {
 	router, err := routers.GetRouter(namespace)
 
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		if k8serr.IsNotFound(err) {
+			response.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+		} else {
+			response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		}
 		return
 	}
 

@@ -82,18 +82,6 @@ func ParseReverse(req *restful.Request) bool {
 	return b
 }
 
-func ParseArray(str string) []string {
-	arr := make([]string, 0)
-
-	for _, item := range strings.Split(str, ",") {
-		if item = strings.TrimSpace(item); item != "" {
-			arr = append(arr, item)
-		}
-	}
-
-	return arr
-}
-
 type Conditions struct {
 	Match map[string]string
 	Fuzzy map[string]string

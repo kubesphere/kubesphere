@@ -153,9 +153,9 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	if err = r.createGroup(instance); err != nil {
-		return reconcile.Result{}, err
-	}
+	//if err = r.createGroup(instance); err != nil {
+	//	return reconcile.Result{}, err
+	//}
 
 	if err = r.createWorkspaceRoleBindings(instance); err != nil {
 		return reconcile.Result{}, err
@@ -369,7 +369,7 @@ func (r *ReconcileWorkspace) createWorkspaceRoleBindings(instance *tenantv1alpha
 	regularRoleBinding := &rbac.ClusterRoleBinding{}
 	regularRoleBinding.Name = getWorkspaceRegularRoleBindingName(instance.Name)
 	regularRoleBinding.Labels = map[string]string{constants.WorkspaceLabelKey: instance.Name}
-	regularRoleBinding.RoleRef = rbac.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: getWorkspaceViewerRoleName(instance.Name)}
+	regularRoleBinding.RoleRef = rbac.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: getWorkspaceRegularRoleName(instance.Name)}
 	regularRoleBinding.Subjects = []rbac.Subject{}
 
 	if err = controllerutil.SetControllerReference(instance, regularRoleBinding, r.scheme); err != nil {

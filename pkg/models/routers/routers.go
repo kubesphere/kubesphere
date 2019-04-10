@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"sort"
 
@@ -127,7 +128,7 @@ func GetRouter(namespace string) (*corev1.Service, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("resources not found %s", serviceName)
+	return nil, errors.NewNotFound(corev1.Resource("service"), serviceName)
 }
 
 // Load all resource yamls

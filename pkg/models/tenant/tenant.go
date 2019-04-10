@@ -19,7 +19,9 @@ package tenant
 
 import (
 	"k8s.io/api/core/v1"
+	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -45,6 +47,18 @@ func CreateNamespace(workspaceName string, namespace *v1.Namespace, username str
 	return k8s.Client().CoreV1().Namespaces().Create(namespace)
 }
 
+func DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
+	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	workspace = appendAnnotations(username, workspace)
+
+	return workspace, nil
+}
+
 func ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
 	workspaces, err := workspaces.search(username, conditions, orderBy, reverse)
@@ -57,30 +71,38 @@ func ListWorkspaces(username string, conditions *params.Conditions, orderBy stri
 	result := make([]interface{}, 0)
 	for i, workspace := range workspaces {
 		if len(result) < limit && i >= offset {
-			workspace := workspace.DeepCopy()
-			ns, err := ListNamespaces(username, &params.Conditions{Match: map[string]string{"kubesphere.io/workspace": workspace.Name}}, "", false, 1, 0)
-			if err != nil {
-				return nil, err
-			}
-			if workspace.Annotations == nil {
-				workspace.Annotations = make(map[string]string)
-			}
-			workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
-			devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
-			if err != nil {
-				return nil, err
-			}
-			workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
-			userCount, err := ws.WorkspaceUserCount(workspace.Name)
-			if err != nil {
-				return nil, err
-			}
-			workspace.Annotations["kubesphere.io/member-count"] = strconv.Itoa(userCount)
+			workspace := appendAnnotations(username, workspace)
 			result = append(result, workspace)
 		}
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: len(workspaces)}, nil
+}
+
+func appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
+	workspace = workspace.DeepCopy()
+	if workspace.Annotations == nil {
+		workspace.Annotations = make(map[string]string)
+	}
+	ns, err := ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
+	if err == nil {
+		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
+	} else {
+		workspace.Annotations["kubesphere.io/namespace-count"] = "-1"
+	}
+	devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
+	if err == nil {
+		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
+	} else {
+		workspace.Annotations["kubesphere.io/devops-count"] = "-1"
+	}
+	userCount, err := ws.WorkspaceUserCount(workspace.Name)
+	if err == nil {
+		workspace.Annotations["kubesphere.io/member-count"] = strconv.Itoa(userCount)
+	} else {
+		workspace.Annotations["kubesphere.io/member-count"] = "-1"
+	}
+	return workspace
 }
 
 func ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {

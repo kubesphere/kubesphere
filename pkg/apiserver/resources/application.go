@@ -19,10 +19,11 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	"k8s.io/api/core/v1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/applications"
-
-	//"kubesphere.io/kubesphere/pkg/models/applications"
+	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
 	"net/http"
 )
@@ -57,4 +58,43 @@ func ApplicationHandler(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteAsJson(result)
 
+}
+
+func NamespacedApplicationHandler(req *restful.Request, resp *restful.Response) {
+	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	namespaceName := req.PathParameter("namespace")
+	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	if err != nil {
+		if err != nil {
+			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+			return
+		}
+	}
+
+	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	var runtimeId string
+
+	if ns, ok := namespace.(*v1.Namespace); ok {
+		runtimeId = ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+	}
+
+	if runtimeId == "" {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.New("openpitrix runtime not init"))
+		return
+	}
+
+	result, err := applications.ListApplication(runtimeId, conditions, limit, offset)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteAsJson(result)
 }

@@ -142,7 +142,7 @@ func ListGroupUsers(req *restful.Request, resp *restful.Response) {
 
 	for i := 0; i < len(group.Members); i++ {
 		name := group.Members[i]
-		user, err := iam.DescribeUser(name)
+		user, err := iam.GetUserInfo(name)
 
 		if err != nil {
 			if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {

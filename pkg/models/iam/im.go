@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"regexp"
 	"sort"
 	"strconv"
@@ -232,13 +233,37 @@ func ListUsersByName(names []string) (*models.PageableResponse, error) {
 
 	for _, name := range names {
 		if !k8sutil.ContainsUser(users, name) {
-			user, err := DescribeUser(name)
+			user, err := GetUserInfo(name)
 			if err != nil {
 				if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 					continue
 				}
 				return nil, err
 			}
+			users = append(users, user)
+		}
+	}
+
+	items := make([]interface{}, 0)
+
+	for _, u := range users {
+		items = append(items, u)
+	}
+
+	return &models.PageableResponse{Items: items, TotalCount: len(items)}, nil
+}
+
+func ListUserByEmail(email []string) (*models.PageableResponse, error) {
+	users := make([]*models.User, 0)
+	for _, mail := range email {
+		user, err := GetUserInfoByEmail(mail)
+		if err != nil {
+			if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+				continue
+			}
+			return nil, err
+		}
+		if !k8sutil.ContainsUser(users, user.Username) {
 			users = append(users, user)
 		}
 	}
@@ -270,6 +295,22 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 	if keyword := conditions.Match["keyword"]; keyword != "" {
 		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=*%s*)(mail=*%s*)(description=*%s*)))", keyword, keyword, keyword)
+	}
+
+	if username := conditions.Match["username"]; username != "" {
+		uidFilter := ""
+		for _, username := range strings.Split(username, "|") {
+			uidFilter += fmt.Sprintf("(uid=%s)", username)
+		}
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", uidFilter)
+	}
+
+	if email := conditions.Match["email"]; email != "" {
+		emailFilter := ""
+		for _, username := range strings.Split(email, "|") {
+			emailFilter += fmt.Sprintf("(mail=%s)", username)
+		}
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", emailFilter)
 	}
 
 	for {
@@ -331,26 +372,13 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 		if i >= offset && len(items) < limit {
 
-			avatar, err := getAvatar(user.Username)
-			if err != nil {
-				return nil, err
-			}
-			user.AvatarUrl = avatar
-
-			lastLoginTime, err := getLastLoginTime(user.Username)
-			if err != nil {
-				return nil, err
-			}
-			user.LastLoginTime = lastLoginTime
-
+			user.AvatarUrl = getAvatar(user.Username)
+			user.LastLoginTime = getLastLoginTime(user.Username)
 			clusterRole, err := GetUserClusterRole(user.Username)
-
 			if err != nil {
 				return nil, err
 			}
-
 			user.ClusterRole = clusterRole.Name
-
 			items = append(items, user)
 		}
 	}
@@ -373,23 +401,47 @@ func DescribeUser(username string) (*models.User, error) {
 	}
 
 	user.Groups = groups
+	user.AvatarUrl = getAvatar(username)
 
-	avatar, err := getAvatar(username)
+	return user, nil
+}
 
-	if err != nil {
-		return nil, err
-	}
-
-	user.AvatarUrl = avatar
-
-	lastLoginTime, err := getLastLoginTime(username)
+func GetUserInfoByEmail(mail string) (*models.User, error) {
+	conn, err := ldapclient.Client()
 
 	if err != nil {
 		return nil, err
 	}
 
-	user.LastLoginTime = lastLoginTime
+	userSearchRequest := ldap.NewSearchRequest(
+		ldapclient.UserSearchBase,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(&(objectClass=inetOrgPerson)(mail=%s))", mail),
+		[]string{"uid", "description", "preferredLanguage", "createTimestamp"},
+		nil,
+	)
 
+	result, err := conn.Search(userSearchRequest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Entries) != 1 {
+		return nil, ldap.NewError(ldap.LDAPResultNoSuchObject, fmt.Errorf("user %s does not exist", mail))
+	}
+
+	username := result.Entries[0].GetAttributeValue("uid")
+	description := result.Entries[0].GetAttributeValue("description")
+	lang := result.Entries[0].GetAttributeValue("preferredLanguage")
+	createTimestamp, _ := time.Parse("20060102150405Z", result.Entries[0].GetAttributeValue("createTimestamp"))
+	user := &models.User{Username: username, Email: mail, Description: description, Lang: lang, CreateTime: createTimestamp}
+	user.LastLoginTime = getLastLoginTime(username)
+	clusterRole, err := GetUserClusterRole(user.Username)
+	if err != nil {
+		return nil, err
+	}
+	user.ClusterRole = clusterRole.Name
 	return user, nil
 }
 
@@ -425,6 +477,8 @@ func GetUserInfo(username string) (*models.User, error) {
 	lang := result.Entries[0].GetAttributeValue("preferredLanguage")
 	createTimestamp, _ := time.Parse("20060102150405Z", result.Entries[0].GetAttributeValue("createTimestamp"))
 	user := &models.User{Username: username, Email: email, Description: description, Lang: lang, CreateTime: createTimestamp}
+
+	user.LastLoginTime = getLastLoginTime(username)
 
 	return user, nil
 }
@@ -462,17 +516,18 @@ func GetUserGroups(username string) ([]string, error) {
 	return groups, nil
 }
 
-func getLastLoginTime(username string) (string, error) {
+func getLastLoginTime(username string) string {
 	lastLogin, err := redis.Client().LRange(fmt.Sprintf("kubesphere:users:%s:login-log", username), -1, -1).Result()
 
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	if len(lastLogin) > 0 {
-		return strings.Split(lastLogin[0], ",")[0], nil
+		return strings.Split(lastLogin[0], ",")[0]
 	}
-	return "", nil
+
+	return ""
 }
 
 func setAvatar(username, avatar string) error {
@@ -480,20 +535,21 @@ func setAvatar(username, avatar string) error {
 	return err
 }
 
-func getAvatar(username string) (string, error) {
+func getAvatar(username string) string {
 
 	avatar, err := redis.Client().HMGet("kubesphere:users:avatar", username).Result()
 
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	if len(avatar) > 0 {
 		if url, ok := avatar[0].(string); ok {
-			return url, nil
+			return url
 		}
 	}
-	return "", nil
+
+	return ""
 }
 
 func DeleteUser(username string) error {
@@ -811,7 +867,7 @@ func UpdateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 
-	return DescribeUser(user.Username)
+	return GetUserInfo(user.Username)
 }
 func DeleteGroup(path string) error {
 
@@ -1105,13 +1161,15 @@ func ListWorkspaceUsers(workspace string, conditions *params.Conditions, orderBy
 	for _, roleBinding := range workspaceRoleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
-				user, err := DescribeUser(subject.Name)
+				user, err := GetUserInfo(subject.Name)
 				if err != nil {
 					return nil, err
 				}
 				prefix := fmt.Sprintf("workspace:%s:", workspace)
 				user.WorkspaceRole = fmt.Sprintf("workspace-%s", strings.TrimPrefix(roleBinding.Name, prefix))
-				users = append(users, user)
+				if matchConditions(conditions, user) {
+					users = append(users, user)
+				}
 			}
 		}
 	}
@@ -1140,4 +1198,32 @@ func ListWorkspaceUsers(workspace string, conditions *params.Conditions, orderBy
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: len(users)}, nil
+}
+
+func matchConditions(conditions *params.Conditions, user *models.User) bool {
+	for k, v := range conditions.Match {
+		switch k {
+		case "keyword":
+			if !strings.Contains(user.Username, v) &&
+				!strings.Contains(user.Email, v) &&
+				!strings.Contains(user.Description, v) {
+				return false
+			}
+		case "name":
+			names := strings.Split(v, "|")
+			if !sliceutil.HasString(names, user.Username) {
+				return false
+			}
+		case "email":
+			email := strings.Split(v, "|")
+			if !sliceutil.HasString(email, user.Email) {
+				return false
+			}
+		case "role":
+			if user.WorkspaceRole != v {
+				return false
+			}
+		}
+	}
+	return true
 }
