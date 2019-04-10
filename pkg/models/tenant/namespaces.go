@@ -21,6 +21,7 @@ import (
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -35,6 +36,14 @@ type namespaceSearcher struct {
 func (*namespaceSearcher) match(match map[string]string, item *v1.Namespace) bool {
 	for k, v := range match {
 		switch k {
+		case "name":
+			if item.Name != v && item.Labels[constants.DisplayNameLabelKey] != v {
+				return false
+			}
+		case "keyword":
+			if !strings.Contains(item.Name, v) && !contains(item.Labels, "", v) && !contains(item.Annotations, "", v) {
+				return false
+			}
 		default:
 			if item.Labels[k] != v {
 				return false

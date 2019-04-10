@@ -273,11 +273,10 @@ func makeHttpRequest(method, url, data string) ([]byte, error) {
 		return nil, err
 	}
 
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
-		err := fmt.Errorf("Request to %s failed, method: %s, reason: %s ", url, method, err)
+		err := fmt.Errorf("Request to %s failed, method: %s,token: %s, reason: %s ", url, method, openpitrixProxyToken, err)
 		glog.Error(err)
 		return nil, err
 	}

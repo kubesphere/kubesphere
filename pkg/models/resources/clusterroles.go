@@ -18,6 +18,7 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
@@ -54,6 +55,12 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 		case keyword:
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
+			}
+		case "userfacing":
+			if v == "true" {
+				if !isUserFacingClusterRole(item) {
+					return false
+				}
 			}
 		default:
 			if item.Labels[k] != v {
@@ -133,4 +140,11 @@ func (s *clusterRoleSearcher) search(namespace string, conditions *params.Condit
 		r = append(r, i)
 	}
 	return r, nil
+}
+
+func isUserFacingClusterRole(role *rbac.ClusterRole) bool {
+	if role.Labels[constants.CreatorLabelKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
+		return true
+	}
+	return false
 }

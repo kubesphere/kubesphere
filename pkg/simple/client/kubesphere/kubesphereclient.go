@@ -32,6 +32,7 @@ import (
 
 var (
 	accountAPIServer string
+	devopsAPIServer  string
 	once             sync.Once
 	c                client
 )
@@ -41,6 +42,11 @@ type Interface interface {
 	UpdateGroup(group *models.Group) (*models.Group, error)
 	DescribeGroup(name string) (*models.Group, error)
 	DeleteGroup(name string) error
+	DeleteDevopsProject(username string, projectId string) error
+	GetUserDevopsRole(username string, projectId string) (string, error)
+	CreateDevopsProject(username string, project *models.DevopsProject) (*models.DevopsProject, error)
+	CreateDevopsRoleBinding(projectId string, user string, role string)
+	ListDevopsProjects(username string) ([]models.DevopsProject, error)
 }
 
 type client struct {
@@ -49,6 +55,7 @@ type client struct {
 
 func init() {
 	flag.StringVar(&accountAPIServer, "ks-account-api-server", "http://ks-account.kubesphere-system.svc", "kubesphere account api server")
+	flag.StringVar(&devopsAPIServer, "ks-devops-api-server", "http://ks-devops.kubesphere-devops-system.svc", "kubesphere devops api server")
 }
 
 func Client() Interface {

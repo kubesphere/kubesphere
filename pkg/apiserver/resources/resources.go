@@ -19,7 +19,6 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"net/http"
 
@@ -34,7 +33,6 @@ func ListResources(req *restful.Request, resp *restful.Response) {
 	orderBy := req.QueryParameter(params.OrderByParam)
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	reverse := params.ParseReverse(req)
-	names := params.ParseArray(req.QueryParameter(params.NameParam))
 
 	if orderBy == "" {
 		orderBy = resources.CreateTime
@@ -46,12 +44,7 @@ func ListResources(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	var result *models.PageableResponse
-	if len(names) > 0 {
-		result, err = resources.ListResourcesByName(namespace, resourceName, names)
-	} else {
-		result, err = resources.ListResources(namespace, resourceName, conditions, orderBy, reverse, limit, offset)
-	}
+	result, err := resources.ListResources(namespace, resourceName, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

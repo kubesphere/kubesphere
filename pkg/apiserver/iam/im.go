@@ -234,20 +234,9 @@ func ListUsers(req *restful.Request, resp *restful.Response) {
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 	orderBy := req.QueryParameter(params.OrderByParam)
 	reverse := params.ParseReverse(req)
-	names := params.ParseArray(req.QueryParameter(params.NameParam))
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-	if len(names) > 0 {
-		users, err := iam.ListUsersByName(names)
-
-		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-			return
-		}
-		resp.WriteAsJson(users)
 		return
 	}
 

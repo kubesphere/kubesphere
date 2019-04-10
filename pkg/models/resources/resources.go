@@ -103,24 +103,15 @@ type resourceSearchInterface interface {
 	search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
 }
 
-func ListResourcesByName(namespace, resource string, names []string) (*models.PageableResponse, error) {
-	items := make([]interface{}, 0)
+func GetResource(namespace, resource, name string) (interface{}, error) {
 	if searcher, ok := resources[resource]; ok {
-		for _, name := range names {
-			item, err := searcher.get(namespace, name)
-
-			if err != nil {
-				return nil, err
-			}
-
-			items = append(items, item)
+		resource, err := searcher.get(namespace, name)
+		if err != nil {
+			return nil, err
 		}
-
-	} else {
-		return nil, fmt.Errorf("not found")
+		return resource, nil
 	}
-
-	return &models.PageableResponse{TotalCount: len(items), Items: items}, nil
+	return nil, fmt.Errorf("resource %s not found", resource)
 }
 
 func ListResources(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {

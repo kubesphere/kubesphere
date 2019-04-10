@@ -192,9 +192,10 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Add user to workspace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.POST("/workspaces/{workspace}/members").
+	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{username}").
 		To(iam.RemoveUser).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("name", "username")).
 		Doc("Remove user from workspace").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}").

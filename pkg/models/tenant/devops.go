@@ -18,15 +18,10 @@
 package tenant
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/constants"
-	kserr "kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
-	"net/http"
 	"sort"
 	"strings"
 )
@@ -41,79 +36,55 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 		return nil, err
 	}
 
-	devOpsProjects := make([]models.DevopsProject, 0)
-
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects", constants.DevopsAPIServer), nil)
-	request.Header.Add(constants.UserNameHeader, username)
-
-	resp, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode > 200 {
-		return nil, kserr.Parse(data)
-	}
-
-	err = json.Unmarshal(data, &devOpsProjects)
-
+	projects, err := kubesphere.Client().ListDevopsProjects(username)
 	if err != nil {
 		return nil, err
 	}
 
 	if keyword := conditions.Match["keyword"]; keyword != "" {
-		for i := 0; i < len(devOpsProjects); i++ {
-			if !strings.Contains(devOpsProjects[i].Name, keyword) {
-				devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
+		for i := 0; i < len(projects); i++ {
+			if !strings.Contains(projects[i].Name, keyword) {
+				projects = append(projects[:i], projects[i+1:]...)
 				i--
 			}
 		}
 	}
 
-	sort.Slice(devOpsProjects, func(i, j int) bool {
+	sort.Slice(projects, func(i, j int) bool {
+		if reverse {
+			tmp := i
+			i = j
+			j = tmp
+		}
 		switch orderBy {
 		case "name":
-			if reverse {
-				return devOpsProjects[i].Name < devOpsProjects[j].Name
-			} else {
-				return devOpsProjects[i].Name > devOpsProjects[j].Name
-			}
+			return projects[i].Name > projects[j].Name
 		default:
-			if reverse {
-				return devOpsProjects[i].CreateTime.After(*devOpsProjects[j].CreateTime)
-			} else {
-				return devOpsProjects[i].CreateTime.Before(*devOpsProjects[j].CreateTime)
-			}
+			return projects[i].CreateTime.Before(*projects[j].CreateTime)
 		}
 	})
 
-	for i := 0; i < len(devOpsProjects); i++ {
+	for i := 0; i < len(projects); i++ {
 		inWorkspace := false
 
 		for _, binding := range workspaceDOPBindings {
-			if binding.DevOpsProject == *devOpsProjects[i].ProjectId {
+			if binding.DevOpsProject == projects[i].ProjectId {
 				inWorkspace = true
 			}
 		}
 		if !inWorkspace {
-			devOpsProjects = append(devOpsProjects[:i], devOpsProjects[i+1:]...)
+			projects = append(projects[:i], projects[i+1:]...)
 			i--
 		}
 	}
 
 	// limit offset
 	result := make([]interface{}, 0)
-	for i, v := range devOpsProjects {
+	for i, v := range projects {
 		if len(result) < limit && i >= offset {
 			result = append(result, v)
 		}
 	}
 
-	return &models.PageableResponse{Items: result, TotalCount: len(devOpsProjects)}, nil
+	return &models.PageableResponse{Items: result, TotalCount: len(projects)}, nil
 }

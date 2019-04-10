@@ -127,6 +127,18 @@ var (
 			},
 		},
 		{
+			Name: "logging",
+			Actions: []models.Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"logging.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+			},
+		},
+		{
 			Name: "accounts",
 			Actions: []models.Action{
 				{Name: "view",
@@ -683,8 +695,8 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"get"},
-							APIGroups: []string{"resources.kubesphere.io"},
-							Resources: []string{"pod/terminal"},
+							APIGroups: []string{"terminal.kubesphere.io"},
+							Resources: []string{"pods"},
 						},
 					},
 				},

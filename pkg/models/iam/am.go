@@ -18,20 +18,17 @@
 package iam
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/golang/glog"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"net/http"
 	"sort"
 	"strings"
 
@@ -47,7 +44,7 @@ import (
 const ClusterRoleKind = "ClusterRole"
 
 func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
-	role, err := GetUserDevopsRole(projectId, username)
+	role, err := kubesphere.Client().GetUserDevopsRole(username, projectId)
 
 	if err != nil {
 		return nil, err
@@ -98,53 +95,6 @@ func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 		break
 	}
 	return rules
-}
-
-func GetUserDevopsRole(projectId string, username string) (string, error) {
-
-	//Hard fix
-	if username == "admin" {
-		return "owner", nil
-	}
-
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/api/v1alpha/projects/%s/members", constants.DevopsAPIServer, projectId), nil)
-
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set(constants.UserNameHeader, username)
-	resp, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode > 200 {
-		return "", errors.New(string(data))
-	}
-
-	var result []map[string]string
-
-	err = json.Unmarshal(data, &result)
-
-	if err != nil {
-		return "", err
-	}
-
-	for _, item := range result {
-		if item["username"] == username {
-			return item["role"], nil
-		}
-	}
-
-	return "", nil
 }
 
 // Get user roles in namespace
@@ -267,13 +217,6 @@ func GetUserRules(namespace, username string) ([]v1.PolicyRule, error) {
 	return rules, nil
 }
 
-func isUserFacingClusterRole(role *v1.ClusterRole) bool {
-	if role.Labels[constants.CreatorLabelKey] != "" {
-		return true
-	}
-	return false
-}
-
 func GetWorkspaceRoleBindings(workspace string) ([]*v1.ClusterRoleBinding, error) {
 
 	clusterRoleBindings, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().List(labels.Everything())
@@ -386,7 +329,7 @@ func ListClusterRoleUsers(clusterRoleName string, conditions *params.Conditions,
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
-				user, err := DescribeUser(subject.Name)
+				user, err := GetUserInfo(subject.Name)
 				if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 					continue
 				}
@@ -436,7 +379,7 @@ func RoleUsers(namespace string, roleName string) ([]*models.User, error) {
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
-				user, err := DescribeUser(subject.Name)
+				user, err := GetUserInfo(subject.Name)
 
 				if err != nil {
 					if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
@@ -491,10 +434,14 @@ func NamespaceUsers(namespaceName string) ([]*models.User, error) {
 	users := make([]*models.User, 0)
 
 	for _, roleBinding := range roleBindings {
+		// controlled by ks-controller-manager
+		if roleBinding.Name == "admin" || roleBinding.Name == "viewer" {
+			continue
+		}
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
 
-				user, err := DescribeUser(subject.Name)
+				user, err := GetUserInfo(subject.Name)
 
 				if err != nil {
 					if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {

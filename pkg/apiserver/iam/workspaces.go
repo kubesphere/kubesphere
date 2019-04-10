@@ -91,7 +91,7 @@ func DescribeWorkspaceUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	user, err := iam.DescribeUser(username)
+	user, err := iam.GetUserInfo(username)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -132,15 +132,9 @@ func InviteUser(req *restful.Request, resp *restful.Response) {
 
 func RemoveUser(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	var user models.User
-	err := req.ReadEntity(&user)
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
+	username := req.PathParameter("username")
 
-	err = workspaces.InviteUser(workspace, &user)
-
+	err := workspaces.RemoveUser(workspace, username)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
