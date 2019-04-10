@@ -66,12 +66,13 @@ type MonitoringRequestParams struct {
 	PodName         string
 	ContainerName   string
 	WorkloadKind    string
+	ComponentName   string
 }
 
 var client = &http.Client{}
 
-func SendMonitoringRequest(queryType string, params string) string {
-	epurl := PrometheusEndpoint + queryType + params
+func SendMonitoringRequest(prometheusEndpoint string, queryType string, params string) string {
+	epurl := prometheusEndpoint + queryType + params
 	response, err := client.Get(epurl)
 	if err != nil {
 		glog.Error(err)
@@ -113,6 +114,7 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	podName := strings.Trim(request.PathParameter("pod"), " ")
 	containerName := strings.Trim(request.PathParameter("container"), " ")
 	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
+	componentName := strings.Trim(request.PathParameter("component"), " ")
 
 	var requestParams = MonitoringRequestParams{
 		SortMetricName:  sortMetricName,
@@ -130,6 +132,7 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 		PodName:         podName,
 		ContainerName:   containerName,
 		WorkloadKind:    workloadKind,
+		ComponentName:   componentName,
 	}
 
 	if timeout == "" {

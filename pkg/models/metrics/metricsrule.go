@@ -238,3 +238,8 @@ func MakeNodeRule(nodeID string, nodesFilter string, metricsName string) string 
 
 	return rule
 }
+
+func MakeComponentRule(metricsName string) string {
+	var rule = RulePromQLTmplMap[metricsName]
+	return rule
+}

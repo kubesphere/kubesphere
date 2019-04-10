@@ -32,7 +32,7 @@ func MonitorPod(request *restful.Request, response *restful.Response) {
 		queryType, params, nullRule := metrics.AssemblePodMetricRequestInfo(requestParams, metricName)
 		var res *metrics.FormatedMetric
 		if !nullRule {
-			metricsStr := prometheus.SendMonitoringRequest(queryType, params)
+			metricsStr := prometheus.SendMonitoringRequest(prometheus.PrometheusEndpoint, queryType, params)
 			res = metrics.ReformatJson(metricsStr, metricName, map[string]string{"pod_name": ""})
 		}
 		response.WriteAsJson(res)
@@ -154,7 +154,7 @@ func MonitorCluster(request *restful.Request, response *restful.Response) {
 	if metricName != "" {
 		// single
 		queryType, params := metrics.AssembleClusterMetricRequestInfo(requestParams, metricName)
-		metricsStr := prometheus.SendMonitoringRequest(queryType, params)
+		metricsStr := prometheus.SendMonitoringRequest(prometheus.PrometheusEndpoint, queryType, params)
 		res := metrics.ReformatJson(metricsStr, metricName, map[string]string{"cluster": "local"})
 
 		response.WriteAsJson(res)
@@ -172,7 +172,7 @@ func MonitorNode(request *restful.Request, response *restful.Response) {
 	if metricName != "" {
 		// single
 		queryType, params := metrics.AssembleNodeMetricRequestInfo(requestParams, metricName)
-		metricsStr := prometheus.SendMonitoringRequest(queryType, params)
+		metricsStr := prometheus.SendMonitoringRequest(prometheus.PrometheusEndpoint, queryType, params)
 		res := metrics.ReformatJson(metricsStr, metricName, map[string]string{"node": ""})
 		// The raw node-exporter result doesn't include ip address information
 		// Thereby, append node ip address to .data.result[].metric
@@ -197,4 +197,16 @@ func MonitorNode(request *restful.Request, response *restful.Response) {
 
 		response.WriteAsJson(pagedMetrics)
 	}
+}
+
+func MonitorComponent(request *restful.Request, response *restful.Response) {
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
+
+	if requestParams.MetricsFilter == "" {
+		requestParams.MetricsFilter = requestParams.ComponentName + "_.*"
+	}
+
+	rawMetrics := metrics.MonitorAllMetrics(requestParams, metrics.MetricLevelComponent)
+
+	response.WriteAsJson(rawMetrics)
 }
