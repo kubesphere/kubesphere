@@ -14,6 +14,9 @@ type ServerRunOptions struct {
 	// jaeger query service url
 	JaegerQueryServiceUrl string
 
+	// prometheus service url for servicemesh metrics
+	ServicemeshPrometheusServiceUrl string
+
 	// openpitrix api gateway service url
 	OpenPitrixServer string
 
@@ -38,5 +41,5 @@ func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.IstioPilotServiceURL, "istio-pilot-service-url", "http://istio-pilot.istio-system.svc:8080/version", "istio pilot discovery service url")
 	fs.StringVar(&s.JaegerQueryServiceUrl, "jaeger-query-service-url", "http://jaeger-query.istio-system.svc:16686/jaeger", "jaeger query service url")
-
+	fs.StringVar(&s.ServicemeshPrometheusServiceUrl, "servicemesh-prometheus-service-url", "http://prometheus-k8s-system.kubesphere-monitoring-system.svc:9090", "prometheus service for servicemesh")
 }

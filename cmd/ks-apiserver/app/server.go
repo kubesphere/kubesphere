@@ -121,8 +121,7 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	config.InCluster = true
 
 	// Set default prometheus service url
-	// TODO: use kubesphere builtin p8s instead of istio p8s
-	config.ExternalServices.PrometheusServiceURL = "http://prometheus.istio-system.svc.cluster.local:9090"
+	config.ExternalServices.PrometheusServiceURL = s.ServicemeshPrometheusServiceUrl
 	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
 
 	// Set istio pilot discovery service url
