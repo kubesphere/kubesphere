@@ -321,8 +321,9 @@ var ContainerMetricsNames = []string{
 }
 
 var ComponentMetricsNames = []string{
-	"etcd_server_deployed_sum",
-	"etcd_server_up_sum",
+	"etcd_server_list",
+	"etcd_server_total",
+	"etcd_server_up_total",
 	"etcd_server_has_leader",
 	"etcd_server_leader_changes",
 	"etcd_server_proposals_failed_rate",
@@ -669,8 +670,9 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_pod_abnormal_ratio": `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1}) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
 
 	// component
-	"etcd_server_deployed_sum":                   `count(up{job="etcd"})`,
-	"etcd_server_up_sum":                         `etcd:up:sum`,
+	"etcd_server_list":                           `label_replace(up{job="etcd"}, "ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_total":                          `count(up{job="etcd"})`,
+	"etcd_server_up_total":                       `etcd:up:sum`,
 	"etcd_server_has_leader":                     `etcd_server_has_leader`,
 	"etcd_server_leader_changes":                 `etcd:etcd_server_leader_changes_seen:sum_changes`,
 	"etcd_server_proposals_failed_rate":          `etcd:etcd_server_proposals_failed:sum_irate`,
