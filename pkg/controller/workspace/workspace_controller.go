@@ -473,7 +473,8 @@ func getWorkspaceViewerRoleBindingName(workspaceName string) string {
 func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 	admin := &rbac.ClusterRole{}
 	admin.Name = getWorkspaceAdminRoleName(workspaceName)
-	admin.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName, constants.DisplayNameLabelKey: constants.WorkspaceAdmin}
+	admin.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
+	admin.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceAdmin}
 	admin.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"*"},
@@ -494,7 +495,8 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 	regular := &rbac.ClusterRole{}
 	regular.Name = getWorkspaceRegularRoleName(workspaceName)
-	regular.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName, constants.DisplayNameLabelKey: constants.WorkspaceRegular}
+	regular.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
+	regular.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceRegular}
 	regular.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get"},
@@ -521,7 +523,8 @@ func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 	viewer := &rbac.ClusterRole{}
 	viewer.Name = getWorkspaceViewerRoleName(workspaceName)
-	viewer.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName, constants.DisplayNameLabelKey: constants.WorkspaceViewer}
+	viewer.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
+	viewer.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceViewer}
 	viewer.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get", "list"},

@@ -22,6 +22,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
 
@@ -48,11 +49,12 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 			if !k8sutil.IsControlledBy(item.OwnerReferences, kind, name) {
 				return false
 			}
-		case name:
-			if item.Name != v && item.Labels[displayName] != v {
+		case Name:
+			names := strings.Split(v, "|")
+			if !sliceutil.HasString(names, item.Name) {
 				return false
 			}
-		case keyword:
+		case Keyword:
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
@@ -75,8 +77,8 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRole) bool {
 	for k, v := range fuzzy {
 		switch k {
-		case name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Labels[displayName], v) {
+		case Name:
+			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
 		case label:
@@ -101,7 +103,7 @@ func (*clusterRoleSearcher) compare(a, b *rbac.ClusterRole, orderBy string) bool
 	switch orderBy {
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case name:
+	case Name:
 		fallthrough
 	default:
 		return strings.Compare(a.Name, b.Name) <= 0
@@ -143,7 +145,7 @@ func (s *clusterRoleSearcher) search(namespace string, conditions *params.Condit
 }
 
 func isUserFacingClusterRole(role *rbac.ClusterRole) bool {
-	if role.Labels[constants.CreatorLabelKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
+	if role.Annotations[constants.CreatorLabelAnnotationKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
 		return true
 	}
 	return false

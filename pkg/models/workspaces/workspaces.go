@@ -109,7 +109,7 @@ func RemoveUser(workspaceName string, username string) error {
 	if err != nil {
 		return err
 	}
-	err = DeleteWorkspaceRoleBinding(workspaceName, username, workspaceRole.Labels[constants.DisplayNameLabelKey])
+	err = DeleteWorkspaceRoleBinding(workspaceName, username, workspaceRole.Annotations[constants.DisplayNameAnnotationKey])
 	if err != nil {
 		return err
 	}

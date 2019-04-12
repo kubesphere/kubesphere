@@ -248,34 +248,33 @@ func isValidShell(validShells []string, shell string) bool {
 // Waits for the SockJS connection to be opened by the client the session to be bound in handleTerminalSession
 func WaitingForConnection(shell string, namespace, podName, containerName string, sessionId string) {
 	glog.Infof("WaitingForConnection, ID:%s", sessionId)
-	session := terminalSessions[sessionId]
 	select {
-	case <-session.bound:
-		close(session.bound)
+	case <-terminalSessions[sessionId].bound:
+		close(terminalSessions[sessionId].bound)
 		defer delete(terminalSessions, sessionId)
 		var err error
 		validShells := []string{"sh", "bash"}
 
 		if isValidShell(validShells, shell) {
 			cmd := []string{shell}
-			err = startProcess(namespace, podName, containerName, cmd, session)
+			err = startProcess(namespace, podName, containerName, cmd, terminalSessions[sessionId])
 		} else {
 			// No shell given or it was not valid: try some shells until one succeeds or all fail
 			// FIXME: if the first shell fails then the first keyboard event is lost
 			for _, testShell := range validShells {
 				cmd := []string{testShell}
-				if err = startProcess(namespace, podName, containerName, cmd, session); err == nil {
+				if err = startProcess(namespace, podName, containerName, cmd, terminalSessions[sessionId]); err == nil {
 					break
 				}
 			}
 		}
 
 		if err != nil {
-			session.Close(2, err.Error())
+			terminalSessions[sessionId].Close(2, err.Error())
 			return
 		}
 
-		session.Close(1, "Process exited")
+		terminalSessions[sessionId].Close(1, "Process exited")
 	}
 }
 
