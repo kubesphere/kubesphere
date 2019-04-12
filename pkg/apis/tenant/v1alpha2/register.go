@@ -105,6 +105,10 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Delete devops project").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
+	ws.Route(ws.GET("/logging").
+		To(tenant.LogQuery).
+		Doc("Query cluster-level logs in a multi-tenants environment").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
 
 	c.Add(ws)
 	return nil
