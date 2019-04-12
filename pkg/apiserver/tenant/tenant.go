@@ -18,11 +18,15 @@
 package tenant
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/net"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -33,6 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"net/http"
+	"strings"
 )
 
 func ListWorkspaceRules(req *restful.Request, resp *restful.Response) {
@@ -287,4 +292,43 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteAsJson(rules)
+}
+
+func LogQuery(req *restful.Request, resp *restful.Response) {
+
+	username := req.HeaderParameter(constants.UserNameHeader)
+
+	mapping, err := iam.GetUserWorkspaceRoleMap(username)
+	if err != nil {
+		resp.WriteError(http.StatusInternalServerError, err)
+		glog.Errorln(err)
+		return
+	}
+
+	workspaces := make([]string, 0)
+	for workspaceName, role := range mapping {
+		if role == fmt.Sprintf("workspace:%s:admin", workspaceName) {
+			workspaces = append(workspaces, workspaceName)
+		}
+	}
+
+	// regenerate the request for log query
+	newUrl := net.FormatURL("http", "127.0.0.1", 80, "/kapis/logging.kubesphere.io/v1alpha2/cluster")
+	values := req.Request.URL.Query()
+
+	rules, err := iam.GetUserClusterRules(username)
+	if err != nil {
+		resp.WriteError(http.StatusInternalServerError, err)
+		glog.Errorln(err)
+		return
+	}
+
+	if !iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
+		values.Set("workspaces", strings.Join(workspaces, ","))
+	}
+	newUrl.RawQuery = values.Encode()
+
+	// forward the request to logging model
+	newHttpRequest, _ := http.NewRequest(http.MethodGet, newUrl.String(), nil)
+	logging.LoggingQueryCluster(restful.NewRequest(newHttpRequest), resp)
 }
