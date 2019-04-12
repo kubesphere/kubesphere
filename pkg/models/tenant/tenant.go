@@ -39,7 +39,7 @@ func CreateNamespace(workspaceName string, namespace *v1.Namespace, username str
 		namespace.Labels = make(map[string]string, 0)
 	}
 	if username != "" {
-		namespace.Labels[constants.CreatorLabelKey] = username
+		namespace.Annotations[constants.CreatorLabelAnnotationKey] = username
 	}
 
 	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName

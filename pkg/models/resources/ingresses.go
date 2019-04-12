@@ -18,8 +18,10 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
 
@@ -39,11 +41,12 @@ func (*ingressSearcher) get(namespace, name string) (interface{}, error) {
 func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress) bool {
 	for k, v := range match {
 		switch k {
-		case name:
-			if item.Name != v && item.Labels[displayName] != v {
+		case Name:
+			names := strings.Split(v, "|")
+			if !sliceutil.HasString(names, item.Name) {
 				return false
 			}
-		case keyword:
+		case Keyword:
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
@@ -60,8 +63,8 @@ func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress)
 func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress) bool {
 	for k, v := range fuzzy {
 		switch k {
-		case name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Labels[displayName], v) {
+		case Name:
+			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
 		case label:
@@ -90,7 +93,7 @@ func (*ingressSearcher) compare(a, b *extensions.Ingress, orderBy string) bool {
 	switch orderBy {
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case name:
+	case Name:
 		fallthrough
 	default:
 		return strings.Compare(a.Name, b.Name) <= 0

@@ -18,8 +18,10 @@
 package resources
 
 import (
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
 
@@ -51,6 +53,15 @@ func statefulSetStatus(item *v1.StatefulSet) string {
 func (*statefulSetSearcher) match(match map[string]string, item *v1.StatefulSet) bool {
 	for k, v := range match {
 		switch k {
+		case Name:
+			names := strings.Split(v, "|")
+			if !sliceutil.HasString(names, item.Name) {
+				return false
+			}
+		case Keyword:
+			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
+				return false
+			}
 		case status:
 			if statefulSetStatus(item) != v {
 				return false
@@ -68,8 +79,8 @@ func (*statefulSetSearcher) fuzzy(fuzzy map[string]string, item *v1.StatefulSet)
 
 	for k, v := range fuzzy {
 		switch k {
-		case name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Labels[displayName], v) {
+		case Name:
+			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
 		case label:
@@ -83,10 +94,6 @@ func (*statefulSetSearcher) fuzzy(fuzzy map[string]string, item *v1.StatefulSet)
 			return false
 		case app:
 			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		case keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
 		default:
@@ -103,7 +110,7 @@ func (*statefulSetSearcher) compare(a, b *v1.StatefulSet, orderBy string) bool {
 	switch orderBy {
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case name:
+	case Name:
 		fallthrough
 	default:
 		return strings.Compare(a.Name, b.Name) <= 0

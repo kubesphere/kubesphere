@@ -98,7 +98,7 @@ func DescribeWorkspaceUser(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	user.WorkspaceRole = workspaceRole.Labels[constants.DisplayNameLabelKey]
+	user.WorkspaceRole = workspaceRole.Annotations[constants.DisplayNameAnnotationKey]
 
 	resp.WriteAsJson(user)
 }

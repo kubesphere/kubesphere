@@ -413,7 +413,7 @@ func ListWorkspaceRoles(workspace string, conditions *params.Conditions, orderBy
 	for i, item := range result.Items {
 		if role, ok := item.(*v1.ClusterRole); ok {
 			role = role.DeepCopy()
-			role.Name = role.Labels[constants.DisplayNameLabelKey]
+			role.Name = role.Annotations[constants.DisplayNameAnnotationKey]
 			result.Items[i] = role
 		}
 	}
@@ -477,7 +477,7 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 	if err != nil {
 		return nil, err
 	}
-	return GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Labels[constants.DisplayNameLabelKey]), nil
+	return GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Annotations[constants.DisplayNameAnnotationKey]), nil
 }
 
 func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule {

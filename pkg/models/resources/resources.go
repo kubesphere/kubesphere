@@ -55,18 +55,17 @@ var (
 )
 
 const (
-	name                   = "name"
+	Name                   = "name"
 	label                  = "label"
 	ownerKind              = "ownerKind"
 	ownerName              = "ownerName"
-	CreateTime             = "CreateTime"
+	CreateTime             = "createTime"
 	updateTime             = "updateTime"
 	lastScheduleTime       = "lastScheduleTime"
-	displayName            = "displayName"
 	chart                  = "chart"
 	release                = "release"
 	annotation             = "annotation"
-	keyword                = "keyword"
+	Keyword                = "keyword"
 	status                 = "status"
 	running                = "running"
 	paused                 = "paused"

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"net/http"
 	"strings"
 
@@ -31,7 +32,6 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/util/slice"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
@@ -132,21 +132,19 @@ func roleValidate(attrs authorizer.Attributes) (bool, error) {
 	}
 
 	for _, roleBinding := range roleBindings {
+		if k8sutil.ContainsUser(roleBinding.Subjects, attrs.GetUser().GetName()) {
+			role, err := roleLister.Roles(attrs.GetNamespace()).Get(roleBinding.RoleRef.Name)
 
-		for _, subj := range roleBinding.Subjects {
-
-			if (subj.Kind == v1.UserKind && subj.Name == attrs.GetUser().GetName()) ||
-				(subj.Kind == v1.GroupKind && slice.ContainsString(attrs.GetUser().GetGroups(), subj.Name, nil)) {
-				role, err := roleLister.Roles(attrs.GetNamespace()).Get(roleBinding.RoleRef.Name)
-
-				if err != nil {
-					return false, err
+			if err != nil {
+				if k8serr.IsNotFound(err) {
+					continue
 				}
+				return false, err
+			}
 
-				for _, rule := range role.Rules {
-					if ruleMatchesRequest(rule, attrs.GetAPIGroup(), "", attrs.GetResource(), attrs.GetSubresource(), attrs.GetName(), attrs.GetVerb()) {
-						return true, nil
-					}
+			for _, rule := range role.Rules {
+				if ruleMatchesRequest(rule, attrs.GetAPIGroup(), "", attrs.GetResource(), attrs.GetSubresource(), attrs.GetName(), attrs.GetVerb()) {
+					return true, nil
 				}
 			}
 		}
@@ -165,31 +163,28 @@ func clusterRoleValidate(attrs authorizer.Attributes) (bool, error) {
 
 	for _, clusterRoleBinding := range clusterRoleBindings {
 
-		for _, subject := range clusterRoleBinding.Subjects {
+		if k8sutil.ContainsUser(clusterRoleBinding.Subjects, attrs.GetUser().GetName()) {
+			clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
 
-			if (subject.Kind == v1.UserKind && subject.Name == attrs.GetUser().GetName()) ||
-				(subject.Kind == v1.GroupKind && sliceutil.HasString(attrs.GetUser().GetGroups(), subject.Name)) {
-
-				clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
-
-				if err != nil {
-					return false, err
+			if err != nil {
+				if k8serr.IsNotFound(err) {
+					continue
 				}
-
-				for _, rule := range clusterRole.Rules {
-					if attrs.IsResourceRequest() {
-						if ruleMatchesRequest(rule, attrs.GetAPIGroup(), "", attrs.GetResource(), attrs.GetSubresource(), attrs.GetName(), attrs.GetVerb()) {
-							return true, nil
-						}
-					} else {
-						if ruleMatchesRequest(rule, "", attrs.GetPath(), "", "", "", attrs.GetVerb()) {
-							return true, nil
-						}
-					}
-
-				}
-
+				return false, err
 			}
+
+			for _, rule := range clusterRole.Rules {
+				if attrs.IsResourceRequest() {
+					if ruleMatchesRequest(rule, attrs.GetAPIGroup(), "", attrs.GetResource(), attrs.GetSubresource(), attrs.GetName(), attrs.GetVerb()) {
+						return true, nil
+					}
+				} else {
+					if ruleMatchesRequest(rule, "", attrs.GetPath(), "", "", "", attrs.GetVerb()) {
+						return true, nil
+					}
+				}
+			}
+
 		}
 	}
 
