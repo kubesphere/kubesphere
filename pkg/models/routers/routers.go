@@ -44,6 +44,11 @@ var RouterNodeIPLabelSelector = map[string]string{
 	"node-role.kubernetes.io/master": "",
 }
 
+const (
+	SERVICEMESH_ENABLED = "servicemesh.kubesphere.io/enabled"
+	SIDECAR_INJECT      = "sidecar.istio.io/inject"
+)
+
 // get master node ip, if there are multiple master nodes,
 // choose first one according by their names alphabetically
 func getMasterNodeIp() string {
@@ -168,6 +173,13 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 
 	yamls, err := LoadYamls()
 
+	injectSidecar := false
+	if enabled, ok := annotations[SERVICEMESH_ENABLED]; ok {
+		if enabled == "true" {
+			injectSidecar = true
+		}
+	}
+
 	if err != nil {
 		glog.Error(err)
 	}
@@ -209,6 +221,13 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 			// Add project label
 			deployment.Spec.Selector.MatchLabels["project"] = namespace
 			deployment.Spec.Template.Labels["project"] = namespace
+
+			if injectSidecar {
+				if deployment.Spec.Template.Annotations == nil {
+					deployment.Spec.Template.Annotations = make(map[string]string, 0)
+				}
+				deployment.Spec.Template.Annotations[SIDECAR_INJECT] = "true"
+			}
 
 			// Isolate namespace
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
@@ -293,8 +312,6 @@ func DeleteRouter(namespace string) (*corev1.Service, error) {
 
 // Update Ingress Controller Service, change type from NodePort to Loadbalancer or vice versa.
 func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
-	k8sClient := k8s.Client()
-
 	var router *corev1.Service
 
 	router, err := GetRouter(namespace)
@@ -309,31 +326,16 @@ func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations m
 		return nil, fmt.Errorf("router not created yet")
 	}
 
-	// from LoadBalancer to NodePort, or vice-versa
-	if router.Spec.Type != routerType {
-		router, err = DeleteRouter(namespace)
+	router, err = DeleteRouter(namespace)
 
-		if err != nil {
-			glog.Error(err)
-		}
+	if err != nil {
+		glog.Error(err)
+	}
 
-		router, err = CreateRouter(namespace, routerType, annotations)
+	router, err = CreateRouter(namespace, routerType, annotations)
 
-		if err != nil {
-			glog.Error(err)
-		}
-
-		return router, err
-
-	} else {
-		router.SetAnnotations(annotations)
-
-		router, err = k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Update(router)
-
-		if err != nil {
-			glog.Error(err)
-			return router, err
-		}
+	if err != nil {
+		glog.Error(err)
 	}
 
 	addLoadBalancerIp(router)
