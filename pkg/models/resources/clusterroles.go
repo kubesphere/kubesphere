@@ -41,11 +41,11 @@ func (*clusterRoleSearcher) get(namespace, name string) (interface{}, error) {
 func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRole) bool {
 	for k, v := range match {
 		switch k {
-		case ownerKind:
+		case OwnerKind:
 			fallthrough
-		case ownerName:
-			kind := match[ownerKind]
-			name := match[ownerName]
+		case OwnerName:
+			kind := match[OwnerKind]
+			name := match[OwnerName]
 			if !k8sutil.IsControlledBy(item.OwnerReferences, kind, name) {
 				return false
 			}
@@ -81,7 +81,7 @@ func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRol
 			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
-		case label:
+		case Label:
 			if !searchFuzzy(item.Labels, "", v) {
 				return false
 			}

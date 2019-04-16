@@ -26,6 +26,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"math/big"
@@ -208,7 +209,7 @@ func generateCaAndKey(user, caPath, keyPath string) (string, string, error) {
 	return base64Cert, base64Key, nil
 }
 
-func createKubeConfig(userName string) (string, error) {
+func createKubeConfig(username string) (string, error) {
 	tmpKubeConfig := kubeConfig{ApiVersion: "v1", Kind: "Config"}
 	serverCa, err := ioutil.ReadFile(caPath)
 	if err != nil {
@@ -220,17 +221,17 @@ func createKubeConfig(userName string) (string, error) {
 	tmpCluster := cluster{Cluster: tmpClusterInfo, Name: clusterName}
 	tmpKubeConfig.Clusters = append(tmpKubeConfig.Clusters, tmpCluster)
 
-	contextName := userName + "@" + clusterName
-	tmpContext := contextObject{Context: contextInfo{User: userName, Cluster: clusterName, NameSpace: defaultNamespace}, Name: contextName}
+	contextName := username + "@" + clusterName
+	tmpContext := contextObject{Context: contextInfo{User: username, Cluster: clusterName, NameSpace: defaultNamespace}, Name: contextName}
 	tmpKubeConfig.Contexts = append(tmpKubeConfig.Contexts, tmpContext)
 
-	cert, key, err := generateCaAndKey(userName, caPath, keyPath)
+	cert, key, err := generateCaAndKey(username, caPath, keyPath)
 
 	if err != nil {
 		return "", err
 	}
 
-	tmpUser := user{User: userInfo{CaData: cert, KeyData: key}, Name: userName}
+	tmpUser := user{User: userInfo{CaData: cert, KeyData: key}, Name: username}
 	tmpKubeConfig.Users = append(tmpKubeConfig.Users, tmpUser)
 	tmpKubeConfig.CurrentContext = contextName
 
@@ -242,23 +243,23 @@ func createKubeConfig(userName string) (string, error) {
 	return string(config), nil
 }
 
-func CreateKubeConfig(user string) error {
+func CreateKubeConfig(username string) error {
 	k8sClient := k8s.Client()
-
-	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
+	configName := fmt.Sprintf("kubeconfig-%s", username)
+	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 
 	if errors.IsNotFound(err) {
-		config, err := createKubeConfig(user)
+		config, err := createKubeConfig(username)
 		if err != nil {
 			glog.Errorln(err)
 			return err
 		}
 
 		data := map[string]string{"config": string(config)}
-		configMap := v1.ConfigMap{TypeMeta: metaV1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metaV1.ObjectMeta{Name: user}, Data: data}
+		configMap := v1.ConfigMap{TypeMeta: metaV1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metaV1.ObjectMeta{Name: configName}, Data: data}
 		_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(&configMap)
 		if err != nil && !errors.IsAlreadyExists(err) {
-			glog.Errorf("create user %s's kubeConfig failed, reason: %v", user, err)
+			glog.Errorf("create username %s's kubeConfig failed, reason: %v", username, err)
 			return err
 		}
 	}
@@ -267,27 +268,29 @@ func CreateKubeConfig(user string) error {
 
 }
 
-func GetKubeConfig(user string) (string, error) {
+func GetKubeConfig(username string) (string, error) {
 	k8sClient := k8s.Client()
-	configMap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
+	configName := fmt.Sprintf("kubeconfig-%s", username)
+	configMap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 	if err != nil {
-		glog.Errorf("cannot get user %s's kubeConfig, reason: %v", user, err)
+		glog.Errorf("cannot get username %s's kubeConfig, reason: %v", username, err)
 		return "", err
 	}
 	return configMap.Data[kubectlConfigKey], nil
 }
 
-func DelKubeConfig(user string) error {
+func DelKubeConfig(username string) error {
 	k8sClient := k8s.Client()
-	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(user, metaV1.GetOptions{})
+	configName := fmt.Sprintf("kubeconfig-%s", username)
+	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 
 	deletePolicy := metaV1.DeletePropagationBackground
-	err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(user, &metaV1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(configName, &metaV1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		glog.Errorf("delete user %s's kubeConfig failed, reason: %v", user, err)
+		glog.Errorf("delete username %s's kubeConfig failed, reason: %v", username, err)
 		return err
 	}
 	return nil

@@ -232,6 +232,7 @@ func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namesp
 		if err != nil {
 			return err
 		}
+		found = adminBinding
 	} else if err != nil {
 		return err
 	}
@@ -276,6 +277,7 @@ func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namesp
 		if err != nil {
 			return err
 		}
+		found = viewerBinding
 	} else if err != nil {
 		return err
 	}
@@ -309,7 +311,8 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 	}
 
 	cm := &corev1.ConfigMap{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.KubeSphereControlNamespace, Name: constants.AdminUserName}, cm)
+	configName := fmt.Sprintf("kubeconfig-%s", constants.AdminUserName)
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.KubeSphereControlNamespace, Name: configName}, cm)
 
 	if err != nil {
 		return err
@@ -353,12 +356,8 @@ func (r *ReconcileNamespace) checkAndBindWorkspace(namespace *corev1.Namespace) 
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Error(err, "namespace", namespace.Name)
-			delete(namespace.Labels, constants.WorkspaceLabelKey)
-			err = r.Update(context.TODO(), namespace)
-			if err != nil {
-				return err
-			}
+			log.Error(err, fmt.Sprintf("namespace %s bind workspace %s but not found", namespace.Name, workspaceName))
+			return nil
 		}
 		return err
 	}

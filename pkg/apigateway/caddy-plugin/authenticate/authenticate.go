@@ -72,7 +72,6 @@ func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error
 		token, err := h.Validate(uToken)
 
 		if err != nil {
-			log.Println(uToken)
 			return h.HandleUnauthorized(resp, err), nil
 		}
 

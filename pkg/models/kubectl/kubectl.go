@@ -23,9 +23,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"math/rand"
+	"os"
 
 	"github.com/golang/glog"
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -39,9 +40,18 @@ const (
 	namespace = constants.KubeSphereControlNamespace
 )
 
+var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
+
+func init() {
+	if env := os.Getenv("KUBECTL_IMAGE"); env != "" {
+		DefaultImage = env
+	}
+}
+
 func GetKubectlPod(username string) (models.PodInfo, error) {
 	k8sClient := k8s.Client()
-	deploy, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(username, metav1.GetOptions{})
+	deployName := fmt.Sprintf("kubectl-%s", username)
+	deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorln(err)
 		return models.PodInfo{}, err
@@ -86,33 +96,35 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 	return kubectlPodList[random], nil
 }
 
-func CreateKubectlDeploy(user string) error {
+func CreateKubectlDeploy(username string) error {
 	k8sClient := k8s.Client()
-	_, err := k8sClient.AppsV1().Deployments(namespace).Get(user, metav1.GetOptions{})
+	deployName := fmt.Sprintf("kubectl-%s", username)
+	configName := fmt.Sprintf("kubeconfig-%s", username)
+	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err == nil {
 		return nil
 	}
 
 	replica := int32(1)
-	selector := metav1.LabelSelector{MatchLabels: map[string]string{"user": user}}
-	config := v1.ConfigMapVolumeSource{Items: []v1.KeyToPath{{Key: "config", Path: "config"}}, LocalObjectReference: v1.LocalObjectReference{Name: user}}
-	deployment := v1beta2.Deployment{
+	selector := metav1.LabelSelector{MatchLabels: map[string]string{"username": username}}
+	config := v1.ConfigMapVolumeSource{Items: []v1.KeyToPath{{Key: "config", Path: "config"}}, LocalObjectReference: v1.LocalObjectReference{Name: configName}}
+	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: user,
+			Name: deployName,
 		},
-		Spec: v1beta2.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &replica,
 			Selector: &selector,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"user": user,
+						"username": username,
 					},
 				},
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{Name: "kubectl",
-							Image:        "",
+							Image:        DefaultImage,
 							VolumeMounts: []v1.VolumeMount{{Name: "kubeconfig", MountPath: "/root/.kube"}},
 						},
 					},
@@ -122,28 +134,29 @@ func CreateKubectlDeploy(user string) error {
 		},
 	}
 
-	_, err = k8sClient.AppsV1beta2().Deployments(namespace).Create(&deployment)
+	_, err = k8sClient.AppsV1().Deployments(namespace).Create(&deployment)
 
 	return err
 }
 
-func DelKubectlDeploy(user string) error {
+func DelKubectlDeploy(username string) error {
 	k8sClient := k8s.Client()
-	_, err := k8sClient.AppsV1beta2().Deployments(namespace).Get(user, metav1.GetOptions{})
+	deployName := fmt.Sprintf("kubectl-%s", username)
+	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 
 	if err != nil {
-		err := fmt.Errorf("delete user %s failed, reason:%v", user, err)
+		err := fmt.Errorf("delete username %s failed, reason:%v", username, err)
 		return err
 	}
 
 	deletePolicy := metav1.DeletePropagationBackground
 
-	err = k8sClient.AppsV1beta2().Deployments(namespace).Delete(user, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	err = k8sClient.AppsV1().Deployments(namespace).Delete(deployName, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		err := fmt.Errorf("delete user %s failed, reason:%v", user, err)
+		err := fmt.Errorf("delete username %s failed, reason:%v", username, err)
 		return err
 	}
 

@@ -18,7 +18,7 @@
 package models
 
 import (
-	v12 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"k8s.io/api/rbac/v1"
@@ -117,6 +117,6 @@ type Token struct {
 }
 
 type ResourceQuota struct {
-	Namespace string                  `json:"namespace"`
-	Data      v12.ResourceQuotaStatus `json:"data"`
+	Namespace string                     `json:"namespace"`
+	Data      corev1.ResourceQuotaStatus `json:"data"`
 }

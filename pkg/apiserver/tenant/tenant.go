@@ -18,7 +18,6 @@
 package tenant
 
 import (
-	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
@@ -31,11 +30,14 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
 )
@@ -122,6 +124,22 @@ func ListNamespaces(req *restful.Request, resp *restful.Response) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
+
+	namespaces := make([]*v1.Namespace, 0)
+
+	for _, item := range result.Items {
+		namespaces = append(namespaces, item.(*v1.Namespace).DeepCopy())
+	}
+
+	namespaces = metrics.GetNamespacesWithMetrics(namespaces)
+
+	items := make([]interface{}, 0)
+
+	for _, item := range namespaces {
+		items = append(items, item)
+	}
+
+	result.Items = items
 
 	resp.WriteAsJson(result)
 }
@@ -298,37 +316,84 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	mapping, err := iam.GetUserWorkspaceRoleMap(username)
-	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
-		glog.Errorln(err)
-		return
-	}
-
-	workspaces := make([]string, 0)
-	for workspaceName, role := range mapping {
-		if role == fmt.Sprintf("workspace:%s:admin", workspaceName) {
-			workspaces = append(workspaces, workspaceName)
-		}
-	}
-
 	// regenerate the request for log query
 	newUrl := net.FormatURL("http", "127.0.0.1", 80, "/kapis/logging.kubesphere.io/v1alpha2/cluster")
 	values := req.Request.URL.Query()
 
-	rules, err := iam.GetUserClusterRules(username)
+	clusterRules, err := iam.GetUserClusterRules(username)
 	if err != nil {
 		resp.WriteError(http.StatusInternalServerError, err)
 		glog.Errorln(err)
 		return
 	}
 
-	if !iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
-		values.Set("workspaces", strings.Join(workspaces, ","))
+	hasClusterLogAccess := iam.RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}})
+	// if the user is not a cluster admin
+	if !hasClusterLogAccess {
+		queryNamespaces := strings.Split(req.QueryParameter("namespaces"), ",")
+		// then the user can only view logs of namespaces he belongs to
+		namespaces := make([]string, 0)
+		roles, err := iam.GetUserRoles("", username)
+		if err != nil {
+			resp.WriteError(http.StatusInternalServerError, err)
+			glog.Errorln(err)
+		}
+		for _, role := range roles {
+			if !sliceutil.HasString(namespaces, role.Namespace) && iam.RulesMatchesRequired(role.Rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
+				namespaces = append(namespaces, role.Namespace)
+			}
+		}
+
+		// if the user belongs to no namespace
+		// then no log visible
+		if len(namespaces) == 0 {
+			res := esclient.QueryResult{Status: http.StatusOK}
+			resp.WriteAsJson(res)
+			return
+		} else if len(queryNamespaces) == 1 && queryNamespaces[0] == "" {
+			values.Set("namespaces", strings.Join(namespaces, ","))
+		} else {
+			inter := intersection(queryNamespaces, namespaces)
+			if len(inter) == 0 {
+				res := esclient.QueryResult{Status: http.StatusOK}
+				resp.WriteAsJson(res)
+				return
+			}
+			values.Set("namespaces", strings.Join(inter, ","))
+		}
 	}
+
 	newUrl.RawQuery = values.Encode()
 
 	// forward the request to logging model
 	newHttpRequest, _ := http.NewRequest(http.MethodGet, newUrl.String(), nil)
 	logging.LoggingQueryCluster(restful.NewRequest(newHttpRequest), resp)
+}
+
+func intersection(s1, s2 []string) (inter []string) {
+	hash := make(map[string]bool)
+	for _, e := range s1 {
+		hash[e] = true
+	}
+	for _, e := range s2 {
+		// If elements present in the hashmap then append intersection list.
+		if hash[e] {
+			inter = append(inter, e)
+		}
+	}
+	//Remove dups from slice.
+	inter = removeDups(inter)
+	return
+}
+
+//Remove dups from slice.
+func removeDups(elements []string) (nodups []string) {
+	encountered := make(map[string]bool)
+	for _, element := range elements {
+		if !encountered[element] {
+			nodups = append(nodups, element)
+			encountered[element] = true
+		}
+	}
+	return
 }

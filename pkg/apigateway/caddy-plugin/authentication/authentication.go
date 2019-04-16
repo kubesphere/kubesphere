@@ -24,6 +24,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -82,6 +83,7 @@ func (c Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, 
 func handleForbidden(w http.ResponseWriter, err error) int {
 	message := fmt.Sprintf("Forbidden,%s", err.Error())
 	w.Header().Add("WWW-Authenticate", message)
+	log.Println(message)
 	return http.StatusForbidden
 }
 
@@ -94,6 +96,7 @@ func permissionValidate(attrs authorizer.Attributes) (bool, error) {
 	permitted, err := clusterRoleValidate(attrs)
 
 	if err != nil {
+		log.Println("lister error", err)
 		return false, err
 	}
 
@@ -105,6 +108,7 @@ func permissionValidate(attrs authorizer.Attributes) (bool, error) {
 		permitted, err = roleValidate(attrs)
 
 		if err != nil {
+			log.Println("lister error", err)
 			return false, err
 		}
 

@@ -144,11 +144,10 @@ func CreateWorkspaceRoleBinding(workspace, username string, role string) error {
 
 	roleBindingName := fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
 	workspaceRoleBinding, err := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister().Get(roleBindingName)
-	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 	if err != nil {
 		return err
 	}
-
+	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 	if !k8sutil.ContainsUser(workspaceRoleBinding.Subjects, username) {
 		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
 		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
