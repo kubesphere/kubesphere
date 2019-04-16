@@ -26,7 +26,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/go-ldap/ldap"
-
+	rbacv1 "k8s.io/api/rbac/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -126,7 +126,14 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 
 	// change password by self
 	if usernameInHeader == user.Username && user.Password != "" {
-		_, err = iam.Login(usernameInHeader, user.CurrentPassword, "")
+		isUserManager, err := isUserManager(usernameInHeader)
+		if err != nil {
+			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+			return
+		}
+		if !isUserManager {
+			_, err = iam.Login(usernameInHeader, user.CurrentPassword, "")
+		}
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("incorrect current password")))
 			return
@@ -141,6 +148,17 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.WriteAsJson(result)
+}
+
+func isUserManager(username string) (bool, error) {
+	rules, err := iam.GetUserClusterRules(username)
+	if err != nil {
+		return false, err
+	}
+	if iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"update"}, Resources: []string{"users"}, APIGroups: []string{"iam.kubesphere.io"}}) {
+		return true, nil
+	}
+	return false, nil
 }
 
 func UserLoginLog(req *restful.Request, resp *restful.Response) {

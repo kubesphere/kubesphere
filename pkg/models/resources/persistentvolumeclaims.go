@@ -66,7 +66,7 @@ func (*persistentVolumeClaimSearcher) fuzzy(fuzzy map[string]string, item *v1.Pe
 			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
-		case label:
+		case Label:
 			if !searchFuzzy(item.Labels, "", v) {
 				return false
 			}

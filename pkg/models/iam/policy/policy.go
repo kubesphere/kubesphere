@@ -101,11 +101,6 @@ var (
 							APIGroups: []string{"rbac.authorization.k8s.io"},
 							Resources: []string{"rolebindings", "roles"},
 						},
-						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{"jenkins.kubesphere.io", "devops.kubesphere.io"},
-							Resources: []string{"*"},
-						},
 					},
 				},
 			},

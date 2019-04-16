@@ -188,9 +188,10 @@ func (r *ReconcileWorkspace) createWorkspaceAdmin(instance *tenantv1alpha1.Works
 	}
 
 	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(admin.Rules, found.Rules) || !reflect.DeepEqual(admin.Labels, found.Labels) {
+	if !reflect.DeepEqual(admin.Rules, found.Rules) || !reflect.DeepEqual(admin.Labels, found.Labels) || !reflect.DeepEqual(admin.Annotations, found.Annotations) {
 		found.Rules = admin.Rules
 		found.Labels = admin.Labels
+		found.Annotations = admin.Annotations
 		log.Info("Updating workspace role", "workspace", instance.Name, "name", admin.Name)
 		err = r.Update(context.TODO(), found)
 		if err != nil {
@@ -226,9 +227,10 @@ func (r *ReconcileWorkspace) createWorkspaceRegular(instance *tenantv1alpha1.Wor
 	}
 
 	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(regular.Rules, found.Rules) || !reflect.DeepEqual(regular.Labels, found.Labels) {
+	if !reflect.DeepEqual(regular.Rules, found.Rules) || !reflect.DeepEqual(regular.Labels, found.Labels) || !reflect.DeepEqual(regular.Annotations, found.Annotations) {
 		found.Rules = regular.Rules
 		found.Labels = regular.Labels
+		found.Annotations = regular.Annotations
 		log.Info("Updating workspace role", "workspace", instance.Name, "name", regular.Name)
 		err = r.Update(context.TODO(), found)
 		if err != nil {
@@ -264,9 +266,10 @@ func (r *ReconcileWorkspace) createWorkspaceViewer(instance *tenantv1alpha1.Work
 	}
 
 	// Update the found object and write the result back if there are any changes
-	if !reflect.DeepEqual(viewer.Rules, found.Rules) || !reflect.DeepEqual(viewer.Labels, found.Labels) {
+	if !reflect.DeepEqual(viewer.Rules, found.Rules) || !reflect.DeepEqual(viewer.Labels, found.Labels) || !reflect.DeepEqual(viewer.Annotations, found.Annotations) {
 		found.Rules = viewer.Rules
 		found.Labels = viewer.Labels
+		found.Annotations = viewer.Annotations
 		log.Info("Updating workspace role", "workspace", instance.Name, "name", viewer.Name)
 		err = r.Update(context.TODO(), found)
 		if err != nil {

@@ -67,14 +67,14 @@ func Run(s *options.ServerRunOptions) error {
 		return err
 	}
 
+	waitForResourceSync()
+
 	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime)
 	jwtutil.Setup(s.JWTSecret)
 
 	if err != nil {
 		return err
 	}
-
-	waitForResourceSync()
 
 	container := runtime.Container
 	container.Filter(filter.Logging)

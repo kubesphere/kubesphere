@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,7 +78,7 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 		errch <- err
 	}
 	options.FieldSelector = ""
-	daemonsetList, err := k8sclient.AppsV1beta2().DaemonSets("").List(options)
+	daemonsetList, err := k8sclient.AppsV1().DaemonSets("").List(options)
 
 	if err != nil {
 
@@ -142,7 +142,7 @@ func isMirrorPod(pod *v1.Pod) bool {
 	return ok
 }
 
-func containDaemonset(pod v1.Pod, daemonsetList v1beta2.DaemonSetList) bool {
+func containDaemonset(pod v1.Pod, daemonsetList appsv1.DaemonSetList) bool {
 
 	flag := false
 	for _, daemonset := range daemonsetList.Items {

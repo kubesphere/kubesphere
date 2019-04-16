@@ -142,9 +142,11 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 			log.Info("Creating default role binding", "namespace", namespace.Name, "name", adminBinding.Name)
 			err = r.Create(context.TODO(), adminBinding)
 			if err != nil {
-				return err
+				log.Error(err, "default role binding create failed", "namespace", namespace.Name, "name", adminBinding.Name)
 			}
+			return err
 		} else if err != nil {
+			log.Error(err, "default role binding not found", "namespace", namespace.Name, "name", adminBinding.Name)
 			return err
 		}
 
@@ -182,9 +184,7 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 		if errors.IsNotFound(err) {
 			log.Info("Creating default role binding", "namespace", namespace.Name, "name", viewerBinding.Name)
 			err = r.Create(context.TODO(), viewerBinding)
-			if err != nil {
-				return err
-			}
+			return err
 		} else if err != nil {
 			return err
 		}

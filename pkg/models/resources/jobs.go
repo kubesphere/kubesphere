@@ -86,7 +86,7 @@ func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchv1.Job) bool {
 			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
-		case label:
+		case Label:
 			if !searchFuzzy(item.Labels, "", v) {
 				return false
 			}
@@ -126,7 +126,7 @@ func (*jobSearcher) compare(a, b *batchv1.Job, orderBy string) bool {
 	switch orderBy {
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case updateTime:
+	case UpdateTime:
 		return jobUpdateTime(a).Before(jobUpdateTime(b))
 	case Name:
 		fallthrough

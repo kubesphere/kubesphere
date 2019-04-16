@@ -18,7 +18,7 @@
 package resources
 
 import (
-	v12 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -63,7 +63,7 @@ func podBelongTo(item *v1.Pod, kind string, name string) bool {
 	return false
 }
 
-func replicaSetBelongToDeployment(replicaSet *v12.ReplicaSet, deploymentName string) bool {
+func replicaSetBelongToDeployment(replicaSet *appsv1.ReplicaSet, deploymentName string) bool {
 	for _, owner := range replicaSet.OwnerReferences {
 		if owner.Kind == "Deployment" && owner.Name == deploymentName {
 			return true
@@ -150,11 +150,11 @@ func podBelongToService(item *v1.Pod, serviceName string) bool {
 func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 	for k, v := range match {
 		switch k {
-		case ownerKind:
+		case OwnerKind:
 			fallthrough
-		case ownerName:
-			kind := match[ownerKind]
-			name := match[ownerName]
+		case OwnerName:
+			kind := match[OwnerKind]
+			name := match[OwnerName]
 			if !podBelongTo(item, kind, name) {
 				return false
 			}
@@ -196,7 +196,7 @@ func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}
-		case label:
+		case Label:
 			if !searchFuzzy(item.Labels, "", v) {
 				return false
 			}

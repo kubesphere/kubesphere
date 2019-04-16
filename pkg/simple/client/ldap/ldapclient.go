@@ -20,6 +20,7 @@ package ldap
 import (
 	"flag"
 	"github.com/go-ldap/ldap"
+	"github.com/golang/glog"
 	"log"
 	"sync"
 )
@@ -67,6 +68,7 @@ func Client() (ldap.Client, error) {
 	conn, err := ldapClientPool().Get()
 
 	if err != nil {
+		glog.Errorln("get ldap connection from pool", err)
 		return nil, err
 	}
 
@@ -74,6 +76,7 @@ func Client() (ldap.Client, error) {
 
 	if err != nil {
 		conn.Close()
+		glog.Errorln("bind manager dn", err)
 		return nil, err
 	}
 

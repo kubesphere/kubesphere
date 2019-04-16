@@ -47,7 +47,7 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 		for _, data := range result.Data.Result {
 			metricDescMap, ok := data["metric"].(map[string]interface{})
 			if ok {
-				if ns, exist := metricDescMap["namespace"]; exist {
+				if ns, exist := metricDescMap["resource_name"]; exist {
 					timeAndValue, ok := data["value"].([]interface{})
 					if ok && len(timeAndValue) == 2 {
 						for i := 0; i < len(namespaces); i++ {
