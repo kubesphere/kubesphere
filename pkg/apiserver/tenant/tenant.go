@@ -35,6 +35,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"net/http"
 	"strings"
@@ -323,9 +324,22 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	if !iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
+	// if the user is not an admin
+	hasClusterLogAccess := iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}})
+
+	if !hasClusterLogAccess {
+		// then the user can only view logs of workspaces he belongs to
 		values.Set("workspaces", strings.Join(workspaces, ","))
+
+		// if the user is not an admin, and belongs to no workspace
+		// then no log visible
+		if len(workspaces) == 0 {
+			res := esclient.QueryResult{Status: http.StatusOK}
+			resp.WriteAsJson(res)
+			return
+		}
 	}
+
 	newUrl.RawQuery = values.Encode()
 
 	// forward the request to logging model
