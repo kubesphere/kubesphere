@@ -121,3 +121,11 @@ required = [
 [[constraint]]
   name = "gopkg.in/igm/sockjs-go.v2"
   version = "2.0.0"
+
+[[constraint]]
+  name = "github.com/gocraft/dbr"
+  revision = "a0fd650918f6287ffe111d1c7b66bb755ff3be4a"
+
+[[constraint]]
+  name = "github.com/kubesphere/sonargo"
+  version = "0.0.2"

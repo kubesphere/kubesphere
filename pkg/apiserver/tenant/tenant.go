@@ -28,15 +28,15 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
@@ -242,17 +242,10 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = kubesphere.Client().DeleteDevopsProject(username, devops)
+	err, code := tenant.DeleteDevOpsProject(devops, username)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	err = workspaces.UnBindDevopsProject(workspaceName, devops)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
 
@@ -264,7 +257,7 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	var devops models.DevopsProject
+	var devops devops.DevOpsProject
 
 	err := req.ReadEntity(&devops)
 
@@ -274,10 +267,10 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	}
 
 	glog.Infoln("create workspace", username, workspaceName, devops)
-	project, err := workspaces.CreateDevopsProject(username, workspaceName, &devops)
+	project, err, code := tenant.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
 
