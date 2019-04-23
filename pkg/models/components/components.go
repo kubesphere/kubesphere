@@ -18,6 +18,7 @@
 package components
 
 import (
+	"fmt"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -47,6 +48,10 @@ func GetComponentStatus(name string) (interface{}, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if len(service.Spec.Selector) == 0 {
+		return nil, fmt.Errorf("component %s has no selector", name)
 	}
 
 	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
@@ -148,6 +153,12 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 		}
 
 		for _, service := range services {
+
+			// skip services without a selector
+			if len(service.Spec.Selector) == 0 {
+				continue
+			}
+
 			component := models.Component{
 				Name:            service.Name,
 				Namespace:       service.Namespace,

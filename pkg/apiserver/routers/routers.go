@@ -144,9 +144,8 @@ func parseParameter(router Router) (routerType v1.ServiceType, annotationMap map
 	routerType = v1.ServiceTypeNodePort
 
 	if strings.Compare(strings.ToLower(router.RouterType), "loadbalancer") == 0 {
-		return v1.ServiceTypeLoadBalancer, router.Annotations, nil
-	} else {
-		return v1.ServiceTypeNodePort, make(map[string]string, 0), nil
+		routerType = v1.ServiceTypeLoadBalancer
 	}
 
+	return routerType, router.Annotations, nil
 }

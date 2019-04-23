@@ -20,16 +20,18 @@ package constants
 const (
 	APIVersion = "v1alpha1"
 
-	KubeSystemNamespace        = "kube-system"
-	OpenPitrixNamespace        = "openpitrix-system"
-	IstioNamespace             = "istio-system"
-	KubeSphereNamespace        = "kubesphere-system"
-	KubeSphereControlNamespace = "kubesphere-controls-system"
-	IngressControllerNamespace = KubeSphereControlNamespace
-	AdminUserName              = "admin"
-	DataHome                   = "/etc/kubesphere"
-	IngressControllerFolder    = DataHome + "/ingress-controller"
-	IngressControllerPrefix    = "kubesphere-router-"
+	KubeSystemNamespace           = "kube-system"
+	OpenPitrixNamespace           = "openpitrix-system"
+	IstioNamespace                = "istio-system"
+	KubeSphereMonitoringNamespace = "kubesphere-monitoring-system"
+	KubeSphereLoggingNamespace    = "kubesphere-logging-system"
+	KubeSphereNamespace           = "kubesphere-system"
+	KubeSphereControlNamespace    = "kubesphere-controls-system"
+	IngressControllerNamespace    = KubeSphereControlNamespace
+	AdminUserName                 = "admin"
+	DataHome                      = "/etc/kubesphere"
+	IngressControllerFolder       = DataHome + "/ingress-controller"
+	IngressControllerPrefix       = "kubesphere-router-"
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
 	DisplayNameAnnotationKey       = "displayName"
@@ -47,5 +49,5 @@ const (
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
-	SystemNamespaces = []string{KubeSphereNamespace, OpenPitrixNamespace, KubeSystemNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace}
 )
