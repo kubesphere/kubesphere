@@ -292,13 +292,14 @@ func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 }
 
 func ListDevopsRules(req *restful.Request, resp *restful.Response) {
+
 	devops := req.PathParameter("devops")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err := iam.GetUserDevopsSimpleRules(username, devops)
+	rules, err, code := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
+		resp.WriteError(code, err)
 		return
 	}
 

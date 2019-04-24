@@ -484,3 +484,70 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 	}
 	return project, nil, http.StatusOK
 }
+
+func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error, int) {
+	err := CheckProjectUserInRole(username, projectId, AllRoleSlice)
+	if err != nil {
+		glog.Errorf("%+v", err)
+		return nil, err, http.StatusForbidden
+	}
+	dbconn := devops_mysql.OpenDatabase()
+	memberships := &devops.DevOpsProjectMembership{}
+	err = dbconn.Select(devops.DevOpsProjectMembershipColumns...).
+		From(devops.DevOpsProjectMembershipTableName).
+		Where(db.And(
+			db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId),
+			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))).
+		LoadOne(&memberships)
+	if err != nil {
+		glog.Errorf("%+v", err)
+
+		return nil, err, http.StatusInternalServerError
+	}
+
+	return GetDevopsRoleSimpleRules(memberships.Role), nil, http.StatusOK
+}
+
+func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
+	var rules []models.SimpleRule
+
+	switch role {
+	case "developer":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"view", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"view"}},
+		}
+		break
+	case "owner":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "devops", Actions: []string{"edit", "view", "delete"}},
+		}
+		break
+	case "maintainer":
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
+			{Name: "devops", Actions: []string{"view"}},
+		}
+		break
+	case "reporter":
+		fallthrough
+	default:
+		rules = []models.SimpleRule{
+			{Name: "pipelines", Actions: []string{"view"}},
+			{Name: "roles", Actions: []string{"view"}},
+			{Name: "members", Actions: []string{"view"}},
+			{Name: "devops", Actions: []string{"view"}},
+		}
+		break
+	}
+	return rules
+}

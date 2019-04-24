@@ -35,7 +35,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
@@ -47,17 +46,6 @@ const (
 	NamespaceAdminRoleBindName  = "admin"
 	NamespaceViewerRoleBindName = "viewer"
 )
-
-func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
-	role, err := kubesphere.Client().GetUserDevopsRole(username, projectId)
-
-	if err != nil {
-		glog.Errorln("get user devops role", username, projectId, err)
-		return nil, err
-	}
-
-	return GetDevopsRoleSimpleRules(role), nil
-}
 
 func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 	var rules []models.SimpleRule
