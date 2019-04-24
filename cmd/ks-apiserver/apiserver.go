@@ -21,6 +21,7 @@ import (
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 	"log"
 	// Install apis
+	_ "kubesphere.io/kubesphere/pkg/apis/devops/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
