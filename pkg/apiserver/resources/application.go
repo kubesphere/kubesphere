@@ -63,12 +63,22 @@ func ApplicationHandler(req *restful.Request, resp *restful.Response) {
 func NamespacedApplicationHandler(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	namespaceName := req.PathParameter("namespace")
+	clusterId := req.QueryParameter("cluster_id")
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 	if err != nil {
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 			return
 		}
+	}
+	if len(clusterId) > 0 {
+		app, err := applications.GetApp(clusterId)
+		if err != nil {
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+			return
+		}
+		resp.WriteEntity(app)
+		return
 	}
 
 	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)

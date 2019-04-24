@@ -643,10 +643,10 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			glog.Errorln("create cluster role binding", err)
 			return err
 		}
+		if err := kubeconfig.CreateKubeConfig(username); err != nil {
+			glog.Errorln("create user kubeconfig failed", username, err)
+		}
 		if clusterRoleName == constants.ClusterAdmin {
-			if err := kubeconfig.CreateKubeConfig(username); err != nil {
-				glog.Errorln("create user kubeconfig failed", username, err)
-			}
 			if err := kubectl.CreateKubectlDeploy(username); err != nil {
 				glog.Errorln("create user terminal pod failed", username, err)
 			}
