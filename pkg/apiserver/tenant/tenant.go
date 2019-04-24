@@ -216,6 +216,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -223,6 +224,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -238,6 +240,7 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	_, err := tenant.GetWorkspace(workspaceName)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -245,6 +248,7 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	err, code := tenant.DeleteDevOpsProject(devops, username)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
@@ -301,6 +305,7 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 	rules, err, code := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteError(code, err)
 		return
 	}
