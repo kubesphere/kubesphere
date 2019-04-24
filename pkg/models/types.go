@@ -36,21 +36,6 @@ type Workspace struct {
 	DevopsProjects []string `json:"devops_projects"`
 }
 
-type WorkspaceDPBinding struct {
-	Workspace     string `gorm:"primary_key"`
-	DevOpsProject string `gorm:"primary_key"`
-}
-
-type DevopsProject struct {
-	ProjectId   string     `json:"project_id,omitempty"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Creator     string     `json:"creator"`
-	CreateTime  *time.Time `json:"create_time,omitempty"`
-	Status      *string    `json:"status"`
-	Visibility  *string    `json:"visibility,omitempty"`
-}
-
 type Action struct {
 	Name  string          `json:"name"`
 	Rules []v1.PolicyRule `json:"rules"`
