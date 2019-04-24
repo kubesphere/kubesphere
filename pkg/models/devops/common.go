@@ -1,7 +1,12 @@
 package devops
 
 import (
+	"fmt"
 	"github.com/fatih/structs"
+	"kubesphere.io/kubesphere/pkg/db"
+	"kubesphere.io/kubesphere/pkg/gojenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -59,3 +64,252 @@ const (
 const (
 	JenkinsAllUserRoleName = "kubesphere-user"
 )
+
+type Role struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+var DefaultRoles = []*Role{
+	{
+		Name:        ProjectOwner,
+		Description: "Owner have access to do all the operations of a DevOps project and own the highest permissions as well.",
+	},
+	{
+		Name:        ProjectMaintainer,
+		Description: "Maintainer have access to manage pipeline and credential configuration in a DevOps project.",
+	},
+	{
+		Name:        ProjectDeveloper,
+		Description: "Developer is able to view and trigger the pipeline.",
+	},
+	{
+		Name:        ProjectReporter,
+		Description: "Reporter is only allowed to view the status of the pipeline.",
+	},
+}
+
+var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
+
+var JenkinsOwnerProjectPermissionIds = &gojenkins.ProjectPermissionIds{
+	CredentialCreate:        true,
+	CredentialDelete:        true,
+	CredentialManageDomains: true,
+	CredentialUpdate:        true,
+	CredentialView:          true,
+	ItemBuild:               true,
+	ItemCancel:              true,
+	ItemConfigure:           true,
+	ItemCreate:              true,
+	ItemDelete:              true,
+	ItemDiscover:            true,
+	ItemMove:                true,
+	ItemRead:                true,
+	ItemWorkspace:           true,
+	RunDelete:               true,
+	RunReplay:               true,
+	RunUpdate:               true,
+	SCMTag:                  true,
+}
+
+var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
+	ProjectOwner: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        true,
+		CredentialDelete:        true,
+		CredentialManageDomains: true,
+		CredentialUpdate:        true,
+		CredentialView:          true,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           true,
+		ItemCreate:              true,
+		ItemDelete:              true,
+		ItemDiscover:            true,
+		ItemMove:                true,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  true,
+	},
+	ProjectMaintainer: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        true,
+		CredentialDelete:        true,
+		CredentialManageDomains: true,
+		CredentialUpdate:        true,
+		CredentialView:          true,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           false,
+		ItemCreate:              true,
+		ItemDelete:              false,
+		ItemDiscover:            true,
+		ItemMove:                false,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  true,
+	},
+	ProjectDeveloper: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        false,
+		CredentialDelete:        false,
+		CredentialManageDomains: false,
+		CredentialUpdate:        false,
+		CredentialView:          false,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           false,
+		ItemCreate:              false,
+		ItemDelete:              false,
+		ItemDiscover:            true,
+		ItemMove:                false,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  false,
+	},
+	ProjectReporter: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        false,
+		CredentialDelete:        false,
+		CredentialManageDomains: false,
+		CredentialUpdate:        false,
+		CredentialView:          false,
+		ItemBuild:               false,
+		ItemCancel:              false,
+		ItemConfigure:           false,
+		ItemCreate:              false,
+		ItemDelete:              false,
+		ItemDiscover:            true,
+		ItemMove:                false,
+		ItemRead:                true,
+		ItemWorkspace:           false,
+		RunDelete:               false,
+		RunReplay:               false,
+		RunUpdate:               false,
+		SCMTag:                  false,
+	},
+}
+
+var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
+	ProjectOwner: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        true,
+		CredentialDelete:        true,
+		CredentialManageDomains: true,
+		CredentialUpdate:        true,
+		CredentialView:          true,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           true,
+		ItemCreate:              true,
+		ItemDelete:              true,
+		ItemDiscover:            true,
+		ItemMove:                true,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  true,
+	},
+	ProjectMaintainer: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        true,
+		CredentialDelete:        true,
+		CredentialManageDomains: true,
+		CredentialUpdate:        true,
+		CredentialView:          true,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           true,
+		ItemCreate:              true,
+		ItemDelete:              true,
+		ItemDiscover:            true,
+		ItemMove:                true,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  true,
+	},
+	ProjectDeveloper: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        false,
+		CredentialDelete:        false,
+		CredentialManageDomains: false,
+		CredentialUpdate:        false,
+		CredentialView:          false,
+		ItemBuild:               true,
+		ItemCancel:              true,
+		ItemConfigure:           false,
+		ItemCreate:              false,
+		ItemDelete:              false,
+		ItemDiscover:            true,
+		ItemMove:                false,
+		ItemRead:                true,
+		ItemWorkspace:           true,
+		RunDelete:               true,
+		RunReplay:               true,
+		RunUpdate:               true,
+		SCMTag:                  false,
+	},
+	ProjectReporter: gojenkins.ProjectPermissionIds{
+		CredentialCreate:        false,
+		CredentialDelete:        false,
+		CredentialManageDomains: false,
+		CredentialUpdate:        false,
+		CredentialView:          false,
+		ItemBuild:               false,
+		ItemCancel:              false,
+		ItemConfigure:           false,
+		ItemCreate:              false,
+		ItemDelete:              false,
+		ItemDiscover:            true,
+		ItemMove:                false,
+		ItemRead:                true,
+		ItemWorkspace:           false,
+		RunDelete:               false,
+		RunReplay:               false,
+		RunUpdate:               false,
+		SCMTag:                  false,
+	},
+}
+
+func GetProjectRoleName(projectId, role string) string {
+	return fmt.Sprintf("%s-%s-project", projectId, role)
+}
+
+func GetPipelineRoleName(projectId, role string) string {
+	return fmt.Sprintf("%s-%s-pipeline", projectId, role)
+}
+
+func GetProjectRolePattern(projectId string) string {
+	return fmt.Sprintf("^%s$", projectId)
+}
+
+func GetPipelineRolePattern(projectId string) string {
+	return fmt.Sprintf("^%s/.*", projectId)
+}
+
+func CheckProjectUserInRole(username, projectId string, roles []string) error {
+	if username == KS_ADMIN {
+		return nil
+	}
+	dbconn := devops_mysql.OpenDatabase()
+	membership := &DevOpsProjectMembership{}
+	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+		From(DevOpsProjectMembershipTableName).
+		Where(db.And(
+			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
+			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+	if err != nil {
+		return err
+	}
+	if !reflectutils.In(membership.Role, roles) {
+		return fmt.Errorf("user [%s] in project [%s] role is not in %s", username, projectId, roles)
+	}
+	return nil
+}

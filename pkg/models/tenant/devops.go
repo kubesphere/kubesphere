@@ -19,6 +19,7 @@ package tenant
 
 import (
 	"fmt"
+	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/db"
@@ -29,246 +30,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"net/http"
 	"sync"
 )
 
-const (
-	ProjectOwner      = "owner"
-	ProjectMaintainer = "maintainer"
-	ProjectDeveloper  = "developer"
-	ProjectReporter   = "reporter"
-)
-
-var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
-
-var JenkinsOwnerProjectPermissionIds = &gojenkins.ProjectPermissionIds{
-	CredentialCreate:        true,
-	CredentialDelete:        true,
-	CredentialManageDomains: true,
-	CredentialUpdate:        true,
-	CredentialView:          true,
-	ItemBuild:               true,
-	ItemCancel:              true,
-	ItemConfigure:           true,
-	ItemCreate:              true,
-	ItemDelete:              true,
-	ItemDiscover:            true,
-	ItemMove:                true,
-	ItemRead:                true,
-	ItemWorkspace:           true,
-	RunDelete:               true,
-	RunReplay:               true,
-	RunUpdate:               true,
-	SCMTag:                  true,
-}
-
-var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
-	ProjectOwner: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              true,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}
-
-var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
-	ProjectOwner: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: gojenkins.ProjectPermissionIds{
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}
-
-func GetProjectRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-project", projectId, role)
-}
-
-func GetPipelineRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-pipeline", projectId, role)
-}
-
-func GetProjectRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s$", projectId)
-}
-
-func GetPipelineRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s/.*", projectId)
-}
-
 type DevOpsProjectRoleResponse struct {
 	ProjectRole *gojenkins.ProjectRole
 	Err         error
-}
-
-func CheckProjectUserInRole(username, projectId string, roles []string) error {
-	if username == devops.KS_ADMIN {
-		return nil
-	}
-	dbconn := devops_mysql.OpenDatabase()
-	membership := &devops.DevOpsProjectMembership{}
-	err := dbconn.Select(devops.DevOpsProjectMembershipColumns...).
-		From(devops.DevOpsProjectMembershipTableName).
-		Where(db.And(
-			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
-	if err != nil {
-		return err
-	}
-	if !reflectutils.In(membership.Role, roles) {
-		return fmt.Errorf("user [%s] in project [%s] role is not in %s", username, projectId, roles)
-	}
-	return nil
 }
 
 func ListDevopsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
@@ -321,12 +89,12 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	_, err := query.Load(&projects)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	count, err := query.Count()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	result := make([]interface{}, 0)
@@ -337,11 +105,11 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	return &models.PageableResponse{Items: result, TotalCount: int(count)}, nil
 }
 
-func DeleteDevOpsProject(projectId, username string) (error, int) {
-	err := CheckProjectUserInRole(username, projectId, []string{ProjectOwner})
+func DeleteDevOpsProject(projectId, username string) error {
+	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return err, http.StatusForbidden
+		return restful.NewError(http.StatusForbidden, err.Error())
 	}
 	gojenkins := admin_jenkins.Client()
 	devopsdb := devops_mysql.OpenDatabase()
@@ -349,31 +117,31 @@ func DeleteDevOpsProject(projectId, username string) (error, int) {
 
 	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 		glog.Errorf("%+v", err)
-		return err, utils.GetJenkinsStatusCode(err)
+		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	roleNames := make([]string, 0)
-	for role := range JenkinsProjectPermissionMap {
-		roleNames = append(roleNames, GetProjectRoleName(projectId, role))
-		roleNames = append(roleNames, GetPipelineRoleName(projectId, role))
+	for role := range devops.JenkinsProjectPermissionMap {
+		roleNames = append(roleNames, devops.GetProjectRoleName(projectId, role))
+		roleNames = append(roleNames, devops.GetPipelineRoleName(projectId, role))
 	}
 	err = gojenkins.DeleteProjectRoles(roleNames...)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return err, utils.GetJenkinsStatusCode(err)
+		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
 		Where(db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId)).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return err, http.StatusInternalServerError
+		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.Update(devops.DevOpsProjectTableName).
 		Set(devops.StatusColumn, devops.StatusDeleted).
 		Where(db.Eq(devops.DevOpsProjectIdColumn, projectId)).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return err, http.StatusInternalServerError
+		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	project := &devops.DevOpsProject{}
 	err = devopsdb.Select(devops.DevOpsProjectColumns...).
@@ -382,12 +150,12 @@ func DeleteDevOpsProject(projectId, username string) (error, int) {
 		LoadOne(project)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return err, http.StatusInternalServerError
+		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	return nil, http.StatusOK
+	return nil
 }
 
-func CreateDevopsProject(username string, workspace string, req *devops.DevOpsProject) (*devops.DevOpsProject, error, int) {
+func CreateDevopsProject(username string, workspace string, req *devops.DevOpsProject) (*devops.DevOpsProject, error) {
 
 	jenkinsClient := admin_jenkins.Client()
 	devopsdb := devops_mysql.OpenDatabase()
@@ -395,25 +163,25 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 	_, err := jenkinsClient.CreateFolder(project.ProjectId, project.Description)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	var addRoleCh = make(chan *DevOpsProjectRoleResponse, 8)
 	var addRoleWg sync.WaitGroup
-	for role, permission := range JenkinsProjectPermissionMap {
+	for role, permission := range devops.JenkinsProjectPermissionMap {
 		addRoleWg.Add(1)
 		go func(role string, permission gojenkins.ProjectPermissionIds) {
-			_, err := jenkinsClient.AddProjectRole(GetProjectRoleName(project.ProjectId, role),
-				GetProjectRolePattern(project.ProjectId), permission, true)
+			_, err := jenkinsClient.AddProjectRole(devops.GetProjectRoleName(project.ProjectId, role),
+				devops.GetProjectRolePattern(project.ProjectId), permission, true)
 			addRoleCh <- &DevOpsProjectRoleResponse{nil, err}
 			addRoleWg.Done()
 		}(role, permission)
 	}
-	for role, permission := range JenkinsPipelinePermissionMap {
+	for role, permission := range devops.JenkinsPipelinePermissionMap {
 		addRoleWg.Add(1)
 		go func(role string, permission gojenkins.ProjectPermissionIds) {
-			_, err := jenkinsClient.AddProjectRole(GetPipelineRoleName(project.ProjectId, role),
-				GetPipelineRolePattern(project.ProjectId), permission, true)
+			_, err := jenkinsClient.AddProjectRole(devops.GetPipelineRoleName(project.ProjectId, role),
+				devops.GetPipelineRolePattern(project.ProjectId), permission, true)
 			addRoleCh <- &DevOpsProjectRoleResponse{nil, err}
 			addRoleWg.Done()
 		}(role, permission)
@@ -423,14 +191,14 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 	for addRoleResponse := range addRoleCh {
 		if addRoleResponse.Err != nil {
 			glog.Errorf("%+v", addRoleResponse.Err)
-			return nil, addRoleResponse.Err, utils.GetJenkinsStatusCode(addRoleResponse.Err)
+			return nil, restful.NewError(utils.GetJenkinsStatusCode(addRoleResponse.Err), addRoleResponse.Err.Error())
 		}
 	}
 
 	globalRole, err := jenkinsClient.GetGlobalRole(devops.JenkinsAllUserRoleName)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
 		_, err := jenkinsClient.AddGlobalRole(devops.JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
@@ -438,58 +206,58 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 		}, true)
 		if err != nil {
 			glog.Error("failed to create jenkins global role")
-			return nil, err, utils.GetJenkinsStatusCode(err)
+			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 	}
 	err = globalRole.AssignRole(username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	projectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(project.ProjectId, ProjectOwner))
+	projectRole, err := jenkinsClient.GetProjectRole(devops.GetProjectRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	pipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(project.ProjectId, ProjectOwner))
+	pipelineRole, err := jenkinsClient.GetProjectRole(devops.GetPipelineRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, utils.GetJenkinsStatusCode(err)
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.InsertInto(devops.DevOpsProjectTableName).
 		Columns(devops.DevOpsProjectColumns...).Record(project).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, http.StatusInternalServerError
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	projectMembership := devops.NewDevOpsProjectMemberShip(username, project.ProjectId, ProjectOwner, username)
+	projectMembership := devops.NewDevOpsProjectMemberShip(username, project.ProjectId, devops.ProjectOwner, username)
 	_, err = devopsdb.InsertInto(devops.DevOpsProjectMembershipTableName).
 		Columns(devops.DevOpsProjectMembershipColumns...).Record(projectMembership).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, http.StatusInternalServerError
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
-	return project, nil, http.StatusOK
+	return project, nil
 }
 
-func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error, int) {
-	err := CheckProjectUserInRole(username, projectId, AllRoleSlice)
+func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
+	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, err, http.StatusForbidden
+		return nil, restful.NewError(http.StatusForbidden, err.Error())
 	}
 	dbconn := devops_mysql.OpenDatabase()
 	memberships := &devops.DevOpsProjectMembership{}
@@ -502,10 +270,10 @@ func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, 
 	if err != nil {
 		glog.Errorf("%+v", err)
 
-		return nil, err, http.StatusInternalServerError
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	return GetDevopsRoleSimpleRules(memberships.Role), nil, http.StatusOK
+	return GetDevopsRoleSimpleRules(memberships.Role), nil
 }
 
 func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
