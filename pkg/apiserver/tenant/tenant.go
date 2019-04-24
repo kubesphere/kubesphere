@@ -262,6 +262,7 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&devops)
 
 	if err != nil {
+		glog.Infof("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -270,6 +271,7 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	project, err, code := tenant.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
