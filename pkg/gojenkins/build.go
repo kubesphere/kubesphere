@@ -24,6 +24,12 @@ import (
 	"time"
 )
 
+const (
+	Git = "git"
+	Hg  = "hg"
+	Svn = "svc"
+)
+
 type Build struct {
 	Raw     *BuildResponse
 	Job     *Job
@@ -392,7 +398,7 @@ func (b *Build) GetDuration() int64 {
 func (b *Build) GetRevision() string {
 	vcs := b.Raw.ChangeSet.Kind
 
-	if vcs == "git" || vcs == "hg" {
+	if vcs == Git || vcs == Hg {
 		for _, a := range b.Raw.Actions {
 			if a.LastBuiltRevision.SHA1 != "" {
 				return a.LastBuiltRevision.SHA1
@@ -401,7 +407,7 @@ func (b *Build) GetRevision() string {
 				return a.MercurialRevisionNumber
 			}
 		}
-	} else if vcs == "svn" {
+	} else if vcs == Svn {
 		return strconv.Itoa(b.Raw.ChangeSet.Revisions[0].Revision)
 	}
 	return ""
@@ -409,7 +415,7 @@ func (b *Build) GetRevision() string {
 
 func (b *Build) GetRevisionBranch() string {
 	vcs := b.Raw.ChangeSet.Kind
-	if vcs == "git" {
+	if vcs == Git {
 		for _, a := range b.Raw.Actions {
 			if len(a.LastBuiltRevision.Branch) > 0 && a.LastBuiltRevision.Branch[0].SHA1 != "" {
 				return a.LastBuiltRevision.Branch[0].SHA1
