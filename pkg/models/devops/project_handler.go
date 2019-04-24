@@ -4,7 +4,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
-	"k8s.io/klog/glog"
+	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"net/http"

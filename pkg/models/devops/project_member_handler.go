@@ -7,7 +7,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"github.com/golang/glog"
-	"kubesphere.io/devops/pkg/utils/stringutils"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
@@ -121,7 +120,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 	globalRole, err := jenkinsClinet.GetGlobalRole(JenkinsAllUserRoleName)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
 		_, err := jenkinsClinet.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
@@ -129,33 +128,33 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		}, true)
 		if err != nil {
 			glog.Errorf("failed to create jenkins global role %+v", err)
-			return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 	}
 	err = globalRole.AssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	projectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	pipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	projectMembership := NewDevOpsProjectMemberShip(member.Username, projectId, member.Role, operator)
 	_, err = dbconn.
@@ -187,43 +186,43 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 	oldProjectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, oldMembership.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = oldProjectRole.UnAssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	oldPipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, oldMembership.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = oldPipelineRole.UnAssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	projectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	pipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(member.Username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return nil, restful.NewError(stringutils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = dbconn.Update(DevOpsProjectMembershipTableName).
 		Set(DevOpsProjectMembershipRoleColumn, member.Role).
