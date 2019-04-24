@@ -42,6 +42,7 @@ func GetPipeline(projectName, pipelineName string, req *http.Request) (*Pipeline
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -61,6 +62,7 @@ func SearchPipelines(req *http.Request) ([]interface{}, error) {
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -80,6 +82,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -99,6 +102,7 @@ func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *ht
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -118,6 +122,7 @@ func GetPipelineRunNodes(projectName, pipelineName, branchName, runId string, re
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -137,10 +142,44 @@ func GetStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId str
 
 	resBody, err := jenkinsClient(baseUrl, req)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
 	return resBody, err
+}
+
+func Validate(scmId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+ValidateUrl, scmId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+func GetOrgSCM(scmId string, req *http.Request) ([]interface{}, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetOrgSCMUrl+req.URL.RawQuery, scmId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res []interface{}
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
 }
 
 // create jenkins request
@@ -168,10 +207,14 @@ func jenkinsClient(baseUrl string, req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 
 	resBody, _ := getRespBody(resp)
+	log.Info(string(resBody))
 	if resp.StatusCode >= http.StatusBadRequest {
 		jkerr := new(JkError)
-		_ = json.Unmarshal(resBody, jkerr)
-		log.Error(nil, jkerr)
+		err = json.Unmarshal(resBody, jkerr)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
 		return nil, jkerr
 	}
 

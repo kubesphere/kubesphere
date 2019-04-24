@@ -19,6 +19,7 @@ package devops
 
 import (
 	"github.com/emicklei/go-restful"
+	log "github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
@@ -59,7 +60,6 @@ func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
 	}
 
 	_ = resp.WriteAsJson(res)
-
 }
 
 func GetPipelineRun(req *restful.Request, resp *restful.Response) {
@@ -90,7 +90,6 @@ func GetPipelineRunNodes(req *restful.Request, resp *restful.Response) {
 	}
 
 	_ = resp.WriteAsJson(res)
-
 }
 
 func GetStepLog(req *restful.Request, resp *restful.Response) {
@@ -107,10 +106,34 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	_, _ = resp.Write(res)
+}
 
+func Validate(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scmId")
+
+	res, err := devops.Validate(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_, _ = resp.Write(res)
+}
+
+func GetOrgSCM(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scmId")
+
+	res, err := devops.GetOrgSCM(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
 }
 
 func parseErr(err error, resp *restful.Response) {
+	log.Error(err)
 	if jErr, ok := err.(*devops.JkError); ok {
 		_ = resp.WriteHeaderAndEntity(jErr.Code, err)
 	} else {

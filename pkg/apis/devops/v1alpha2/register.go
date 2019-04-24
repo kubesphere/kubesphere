@@ -53,13 +53,17 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Search DevOps resource.").
 		Param(webservice.QueryParameter("q", "query pipelines").
-			Required(false)).
+			Required(false).
+			DataFormat("q=%s")).
 		Param(webservice.QueryParameter("filter", "filter resource").
-			Required(false)).
+			Required(false).
+			DataFormat("filter=%s")).
 		Param(webservice.QueryParameter("start", "start page").
-			Required(false)).
+			Required(false).
+			DataFormat("start=%d")).
 		Param(webservice.QueryParameter("limit", "limit count").
-			Required(false)))
+			Required(false).
+			DataFormat("limit=%d")))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/runs/"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/runs").
@@ -69,9 +73,11 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.QueryParameter("start", "start page").
-			Required(false)).
+			Required(false).
+			DataFormat("start=%d")).
 		Param(webservice.QueryParameter("limit", "limit count").
-			Required(false)))
+			Required(false).
+			DataFormat("limit=%d")))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}").
@@ -112,6 +118,23 @@ func addWebService(c *restful.Container) error {
 			Required(true).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
+
+	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
+	webservice.Route(webservice.PUT("/devops/scm/{scmId}/validate").
+		To(devops.Validate).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Validate Github personal access token.").
+		Param(webservice.PathParameter("scmId", "SCM id")))
+
+	// match "/blue/rest/organizations/jenkins/scm/{scmId}/organizations/?credentialId=github"
+	webservice.Route(webservice.GET("/devops/scm/{scmId}/organizations").
+		To(devops.GetOrgSCM).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("List organizations of SCM").
+		Param(webservice.PathParameter("scmId", "SCM id")).
+		Param(webservice.QueryParameter("credentialId", "credentialId for SCM").
+			Required(true).
+			DataFormat("credentialId=%s")))
 
 	c.Add(webservice)
 
