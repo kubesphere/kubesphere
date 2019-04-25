@@ -19,18 +19,18 @@ limitations under the License.
 package externalversions
 
 import (
-	"reflect"
-	"sync"
-	"time"
+	reflect "reflect"
+	sync "sync"
+	time "time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/cache"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	cache "k8s.io/client-go/tools/cache"
+	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
+	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
+	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

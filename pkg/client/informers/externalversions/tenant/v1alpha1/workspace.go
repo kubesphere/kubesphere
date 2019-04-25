@@ -19,16 +19,16 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"time"
+	time "time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	watch "k8s.io/apimachinery/pkg/watch"
+	cache "k8s.io/client-go/tools/cache"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
-	"kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
+	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
 )
 
 // WorkspaceInformer provides access to a shared informer and lister for

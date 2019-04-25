@@ -21,12 +21,12 @@ package v1alpha1
 import (
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/rest"
-	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
+	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	scheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 )
 
 // WorkspacesGetter has a method to return a WorkspaceInterface.

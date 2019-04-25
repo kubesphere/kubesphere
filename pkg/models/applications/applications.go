@@ -96,6 +96,7 @@ func GetApp(clusterId string) (*Application, error) {
 	item, err := openpitrix.GetCluster(clusterId)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
