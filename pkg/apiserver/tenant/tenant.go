@@ -28,15 +28,15 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
@@ -216,6 +216,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -223,6 +224,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -238,21 +240,16 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	_, err := tenant.GetWorkspace(workspaceName)
 
 	if err != nil {
+		glog.Errorf("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
-	err = kubesphere.Client().DeleteDevopsProject(username, devops)
+	err, code := tenant.DeleteDevOpsProject(devops, username)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	err = workspaces.UnBindDevopsProject(workspaceName, devops)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		glog.Errorf("%+v", err)
+		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
 
@@ -264,20 +261,22 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	var devops models.DevopsProject
+	var devops devops.DevOpsProject
 
 	err := req.ReadEntity(&devops)
 
 	if err != nil {
+		glog.Infof("%+v", err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	glog.Infoln("create workspace", username, workspaceName, devops)
-	project, err := workspaces.CreateDevopsProject(username, workspaceName, &devops)
+	project, err, code := tenant.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		glog.Errorf("%+v", err)
+		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
 		return
 	}
 
@@ -299,13 +298,15 @@ func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 }
 
 func ListDevopsRules(req *restful.Request, resp *restful.Response) {
+
 	devops := req.PathParameter("devops")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err := iam.GetUserDevopsSimpleRules(username, devops)
+	rules, err, code := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
+		glog.Errorf("%+v", err)
+		resp.WriteError(code, err)
 		return
 	}
 

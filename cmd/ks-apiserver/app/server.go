@@ -30,10 +30,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"log"
 	"net/http"
 )
@@ -79,13 +79,10 @@ func Run(s *options.ServerRunOptions) error {
 		}
 	}
 
+	initializeAdminJenkins()
+	initializeDevOpsDatabase()
 	initializeESClientConfig()
 	initializeServicemeshConfig(s)
-	err = initializeDatabase()
-
-	if err != nil {
-		return err
-	}
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
 		log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
@@ -100,14 +97,12 @@ func Run(s *options.ServerRunOptions) error {
 	return err
 }
 
-func initializeDatabase() error {
-	db := mysql.Client()
-	if !db.HasTable(&models.WorkspaceDPBinding{}) {
-		if err := db.CreateTable(&models.WorkspaceDPBinding{}).Error; err != nil {
-			return err
-		}
-	}
-	return nil
+func initializeAdminJenkins() {
+	admin_jenkins.Client()
+}
+
+func initializeDevOpsDatabase() {
+	devops_mysql.OpenDatabase()
 }
 
 func initializeServicemeshConfig(s *options.ServerRunOptions) {
