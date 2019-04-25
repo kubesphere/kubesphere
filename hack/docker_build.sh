@@ -16,10 +16,10 @@ elif [ $TRAVIS_EVENT_TYPE == "cron" ]; then
 fi
 
 
-docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG.
-docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG.
-docker build -f build/ks-iam/Dockerfile -t $REPO/ks-account:$TAG.
-docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG.
+docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG .
+docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
+docker build -f build/ks-iam/Dockerfile -t $REPO/ks-account:$TAG .
+docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
 docker build -f ./pkg/db/Dockerfile -t $REPO/ks-devops:flyway-$TAG ./pkg/db/
 
 # Push image to dockerhub, need to support multiple push
