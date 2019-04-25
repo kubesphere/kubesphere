@@ -314,9 +314,9 @@ func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	return nil
 }
 
-func GetProjectUserRole(username, projectId string) (string ,error) {
+func GetProjectUserRole(username, projectId string) (string, error) {
 	if username == KS_ADMIN {
-		return ProjectOwner,nil
+		return ProjectOwner, nil
 	}
 	dbconn := devops_mysql.OpenDatabase()
 	membership := &DevOpsProjectMembership{}
@@ -326,8 +326,8 @@ func GetProjectUserRole(username, projectId string) (string ,error) {
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
 			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
-	return membership.Role,nil
+	return membership.Role, nil
 }

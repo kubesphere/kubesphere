@@ -254,7 +254,7 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 }
 
 func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
-	role,err := devops.GetProjectUserRole(username,projectId)
+	role, err := devops.GetProjectUserRole(username, projectId)
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusForbidden, err.Error())
