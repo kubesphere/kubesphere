@@ -254,26 +254,12 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 }
 
 func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	role,err := devops.GetProjectUserRole(username,projectId)
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusForbidden, err.Error())
 	}
-	dbconn := devops_mysql.OpenDatabase()
-	memberships := &devops.DevOpsProjectMembership{}
-	err = dbconn.Select(devops.DevOpsProjectMembershipColumns...).
-		From(devops.DevOpsProjectMembershipTableName).
-		Where(db.And(
-			db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId),
-			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))).
-		LoadOne(&memberships)
-	if err != nil {
-		glog.Errorf("%+v", err)
-
-		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
-	}
-
-	return GetDevopsRoleSimpleRules(memberships.Role), nil
+	return GetDevopsRoleSimpleRules(role), nil
 }
 
 func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
