@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	"kubesphere.io/devops/pkg/utils/stringutils"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"net/http"
@@ -211,7 +210,7 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 	}
 	if len(sonarStatus) == 0 {
 		build, err := job.GetLastCompletedBuild()
-		if err != nil && stringutils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 			glog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
@@ -244,7 +243,7 @@ func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*Son
 	}
 	if len(sonarStatus) == 0 {
 		build, err := job.GetLastCompletedBuild()
-		if err != nil && stringutils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 			glog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
