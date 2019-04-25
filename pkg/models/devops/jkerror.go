@@ -14,12 +14,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
- */
+*/
 package devops
 
 type JkError struct {
-	Message string   `json:"message"`
-	Code    int      `json:"code"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
 
 func (err *JkError) Error() string {

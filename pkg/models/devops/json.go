@@ -260,7 +260,7 @@ type SCMOrg struct {
 	Name                        string `json:"name"`
 }
 
-// GetSCMOrgRepo
+// GetOrgRepo
 type OrgRepo struct {
 	Class string `json:"_class"`
 	Links struct {

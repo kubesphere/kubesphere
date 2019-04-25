@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
- */
+*/
 package devops
 
 import (
@@ -130,11 +130,11 @@ func GetSCMOrg(req *restful.Request, resp *restful.Response) {
 	_ = resp.WriteAsJson(res)
 }
 
-func GetSCMOrgRepo(req *restful.Request, resp *restful.Response) {
+func GetOrgRepo(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scmId")
 	organizationId := req.PathParameter("organizationId")
 
-	res, err := devops.GetSCMOrgRepo(scmId, organizationId, req.Request)
+	res, err := devops.GetOrgRepo(scmId, organizationId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -143,7 +143,7 @@ func GetSCMOrgRepo(req *restful.Request, resp *restful.Response) {
 	_ = resp.WriteAsJson(res)
 }
 
-func StopPipeline(req *restful.Request, resp *restful.Response) () {
+func StopPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -158,7 +158,7 @@ func StopPipeline(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func ReplayPipeline(req *restful.Request, resp *restful.Response) () {
+func ReplayPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -173,7 +173,7 @@ func ReplayPipeline(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func GetRunLog(req *restful.Request, resp *restful.Response) () {
+func GetRunLog(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -188,7 +188,7 @@ func GetRunLog(req *restful.Request, resp *restful.Response) () {
 	_, _ = resp.Write(res)
 }
 
-func GetArtifacts(req *restful.Request, resp *restful.Response) () {
+func GetArtifacts(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -203,7 +203,7 @@ func GetArtifacts(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func GetPipeBranch(req *restful.Request, resp *restful.Response) () {
+func GetPipeBranch(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 
@@ -216,7 +216,7 @@ func GetPipeBranch(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func CheckPipeline(req *restful.Request, resp *restful.Response) () {
+func CheckPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -233,7 +233,7 @@ func CheckPipeline(req *restful.Request, resp *restful.Response) () {
 	_, _ = resp.Write(res)
 }
 
-func GetConsoleLog(req *restful.Request, resp *restful.Response) () {
+func GetConsoleLog(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 
@@ -246,7 +246,7 @@ func GetConsoleLog(req *restful.Request, resp *restful.Response) () {
 	_, _ = resp.Write(res)
 }
 
-func ScanBranch(req *restful.Request, resp *restful.Response) () {
+func ScanBranch(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 
@@ -259,7 +259,7 @@ func ScanBranch(req *restful.Request, resp *restful.Response) () {
 	_, _ = resp.Write(res)
 }
 
-func RunPipeline(req *restful.Request, resp *restful.Response) () {
+func RunPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -273,7 +273,7 @@ func RunPipeline(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func GetStepsStatus(req *restful.Request, resp *restful.Response) () {
+func GetStepsStatus(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
@@ -289,7 +289,7 @@ func GetStepsStatus(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
-func GetCrumb(req *restful.Request, resp *restful.Response) () {
+func GetCrumb(req *restful.Request, resp *restful.Response) {
 
 	res, err := devops.GetCrumb(req.Request)
 	if err != nil {

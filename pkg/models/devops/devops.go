@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
- */
+*/
 package devops
 
 import (
@@ -146,8 +146,8 @@ func GetSCMOrg(scmId string, req *http.Request) ([]interface{}, error) {
 	return res, err
 }
 
-func GetSCMOrgRepo(scmId, organizationId string, req *http.Request) (*OrgRepo, error) {
-	baseUrl := fmt.Sprintf(JenkinsUrl+GetSCMOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
+func GetOrgRepo(scmId, organizationId string, req *http.Request) (*OrgRepo, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
 	log.Infof("Jenkins-url: " + baseUrl)
 	var res = new(OrgRepo)
 
@@ -311,7 +311,7 @@ func GetCrumb(req *http.Request) (*Crumb, error) {
 }
 
 // jenkins request and parse response
-func jenkinsClient(baseUrl string, req *http.Request, res interface{}) (error) {
+func jenkinsClient(baseUrl string, req *http.Request, res interface{}) error {
 	resBody, err := Client(baseUrl, req)
 	if err != nil {
 		log.Error(err)

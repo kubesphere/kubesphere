@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
- */
+*/
 package v1alpha2
 
 import (
@@ -45,7 +45,6 @@ func addWebService(c *restful.Container) error {
 	tags := []string{"devops"}
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}"
-	// Check
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}").
 		To(devops.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -158,7 +157,7 @@ func addWebService(c *restful.Container) error {
 
 	// match "/blue/rest/organizations/jenkins/scm/{scmId}/organizations/{organizationId}/repositories/?credentialId=&pageNumber&pageSize="
 	webservice.Route(webservice.GET("/devops/scm/{scmId}/organizations/{organizationId}/repositories").
-		To(devops.GetSCMOrgRepo).
+		To(devops.GetOrgRepo).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get SCM repositories in an organization").
 		Param(webservice.PathParameter("scmId", "SCM id")).

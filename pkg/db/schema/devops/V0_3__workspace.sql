@@ -1,8 +1,8 @@
-CREATE TABLE IF NOT EXISTS `kubesphere.workspace_dp_bindings`  (
+CREATE TABLE IF NOT EXISTS `kubesphere`.`workspace_dp_bindings`  (
   `workspace` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `dev_ops_project` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`workspace`,`dev_ops_project`)
-) ENGINE=InnoDB
+) ENGINE=InnoDB;
 
 ALTER TABLE kubesphere.workspace_dp_bindings
 CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

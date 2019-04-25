@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
- */
+*/
 package devops
 
 // Some apis for Jenkins.
@@ -27,7 +27,7 @@ const (
 	GetStepLogUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/%s/log/?"
 	ValidateUrl            = "/blue/rest/organizations/jenkins/scm/%s/validate"
 	GetSCMOrgUrl           = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
-	GetSCMOrgRepoUrl       = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
+	GetOrgRepoUrl          = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
 	StopPipelineUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/stop/?"
 	ReplayPipelineUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/replay/"
 	GetRunLogUrl           = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/log/?"
