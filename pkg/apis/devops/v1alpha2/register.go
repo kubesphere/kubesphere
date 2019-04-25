@@ -25,6 +25,7 @@ import (
 	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"net/http"
 )
 
 const GroupName = "devops.kubesphere.io"
@@ -79,6 +80,43 @@ func addWebService(c *restful.Container) error {
 		Doc("add devops project members").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(&devops.DevOpsProjectMembership{}))
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
+		To(devopsapi.CreateDevOpsProjectPipelineHandler).
+		Doc("add devops project pipeline").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(devops.ProjectPipeline{}))
+	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipelines}").
+		To(devopsapi.UpdateDevOpsProjectPipelineHandler).
+		Doc("add devops project pipeline").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(devops.ProjectPipeline{}))
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/config").
+		To(devopsapi.GetDevOpsProjectPipelineHandler).
+		Doc("get devops project pipeline config").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "ok", devops.ProjectPipeline{}).
+		Writes(devops.ProjectPipeline{}))
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/sonarStatus").
+		To(devopsapi.GetPipelineSonarStatusHandler).
+		Doc("get devops project pipeline sonarStatus").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "ok", []devops.SonarStatus{}).
+		Writes([]devops.SonarStatus{}))
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branches}/sonarStatus").
+		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
+		Doc("get devops project pipeline sonarStatus").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "ok", []devops.SonarStatus{}).
+		Writes([]devops.SonarStatus{}))
+	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipelines}").
+		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
+		Doc("delete devops project pipeline").
+		Metadata(restfulspec.KeyOpenAPITags, tags))
+	webservice.Route(webservice.PUT("/devops/{devops}/pipelines").
+		To(devopsapi.CreateDevOpsProjectPipelineHandler).
+		Doc("add devops project pipeline").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}/members/{members}").
 		To(devopsapi.UpdateDevOpsProjectMemberHandler).
