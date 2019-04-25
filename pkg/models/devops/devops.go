@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-*/
+ */
 package devops
 
 import (
@@ -96,7 +96,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 	return res, err
 }
 
-func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) (*Pipeline, error) {
+func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) (*PipelineRun, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetPipelineRunUrl, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -106,7 +106,7 @@ func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *ht
 		return nil, err
 	}
 
-	var res = new(Pipeline)
+	var res = new(PipelineRun)
 	err = json.Unmarshal(resBody, &res)
 	if err != nil {
 		log.Error(err)
@@ -162,8 +162,101 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 	return resBody, err
 }
 
-func GetOrgSCM(scmId string, req *http.Request) ([]interface{}, error) {
-	baseUrl := fmt.Sprintf(JenkinsUrl+GetOrgSCMUrl+req.URL.RawQuery, scmId)
+func GetSCMOrg(scmId string, req *http.Request) ([]interface{}, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetSCMOrgUrl+req.URL.RawQuery, scmId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res []interface{}
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetSCMOrgRepo(scmId, organizationId string, req *http.Request) (*OrgRepo, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetSCMOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res = new(OrgRepo)
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func StopPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) (*StopPipe, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res = new(StopPipe)
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func ReplayPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) (*ReplayPipe, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res = new(ReplayPipe)
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetRunLog(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetRunLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+func GetArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]interface{}, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	resBody, err := jenkinsClient(baseUrl, req)

@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-*/
+ */
 package v1alpha2
 
 import (
@@ -23,9 +23,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	jktype "kubesphere.io/kubesphere/pkg/models/devops"
+	"net/http"
 )
 
-const GroupName = "devops.kubesphere.io"
+const (
+	GroupName = "devops.kubesphere.io"
+	RespMessage = "ok"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
@@ -40,12 +45,14 @@ func addWebService(c *restful.Container) error {
 	tags := []string{"devops"}
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}"
+	// Check
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}").
 		To(devops.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get DevOps Pipelines.").
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")))
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Returns(http.StatusOK, RespMessage, jktype.Pipeline{}))
 
 	// match Jenkisn api: "jenkins_api/blue/rest/search"
 	webservice.Route(webservice.GET("/devops/search").
@@ -63,7 +70,8 @@ func addWebService(c *restful.Container) error {
 			DataFormat("start=%d")).
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(false).
-			DataFormat("limit=%d")))
+			DataFormat("limit=%d")).
+		Returns(http.StatusOK, RespMessage, []jktype.Pipeline{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/runs/"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/runs").
@@ -77,7 +85,11 @@ func addWebService(c *restful.Container) error {
 			DataFormat("start=%d")).
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(false).
-			DataFormat("limit=%d")))
+			DataFormat("limit=%d")).
+		Param(webservice.QueryParameter("branch", "branch ").
+			Required(false).
+			DataFormat("branch=%s")).
+		Returns(http.StatusOK, RespMessage, []jktype.PipelineRun{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}").
@@ -87,7 +99,11 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")))
+		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.QueryParameter("start", "start").
+			Required(false).
+			DataFormat("start=%d")).
+		Returns(http.StatusOK, RespMessage, jktype.PipelineRun{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes").
@@ -101,13 +117,15 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit").
 			Required(false).
 			DataFormat("limit=%d").
-			DefaultValue("limit=10000")))
+			DefaultValue("limit=10000")).
+		Returns(http.StatusOK, RespMessage, []jktype.Nodes{}))
 
 	// match "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}/log/?start=0"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}/log").
 		To(devops.GetStepLog).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Pipelines step log.").
+		Doc("Get pipelines step log.").
+		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.PathParameter("branchName", "pipeline branch name")).
@@ -124,17 +142,99 @@ func addWebService(c *restful.Container) error {
 		To(devops.Validate).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Validate Github personal access token.").
-		Param(webservice.PathParameter("scmId", "SCM id")))
+		Param(webservice.PathParameter("scmId", "SCM id")).
+		Returns(http.StatusOK, RespMessage, jktype.Validates{}))
 
 	// match "/blue/rest/organizations/jenkins/scm/{scmId}/organizations/?credentialId=github"
 	webservice.Route(webservice.GET("/devops/scm/{scmId}/organizations").
-		To(devops.GetOrgSCM).
+		To(devops.GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List organizations of SCM").
 		Param(webservice.PathParameter("scmId", "SCM id")).
-		Param(webservice.QueryParameter("credentialId", "credentialId for SCM").
+		Param(webservice.QueryParameter("credentialId", "credential id for SCM").
 			Required(true).
-			DataFormat("credentialId=%s")))
+			DataFormat("credentialId=%s")).
+		Returns(http.StatusOK, RespMessage, []jktype.SCMOrg{}))
+
+	// match "/blue/rest/organizations/jenkins/scm/{scmId}/organizations/{organizationId}/repositories/?credentialId=&pageNumber&pageSize="
+	webservice.Route(webservice.GET("/devops/scm/{scmId}/organizations/{organizationId}/repositories").
+		To(devops.GetSCMOrgRepo).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get SCM repositories in an organization").
+		Param(webservice.PathParameter("scmId", "SCM id")).
+		Param(webservice.PathParameter("organizationId", "organization Id, such as github username")).
+		Param(webservice.QueryParameter("credentialId", "credential id for SCM").
+			Required(true).
+			DataFormat("credentialId=%s")).
+		Param(webservice.QueryParameter("pageNumber", "page number").
+			Required(true).
+			DataFormat("pageNumber=%d")).
+		Param(webservice.QueryParameter("pageSize", "page size").
+			Required(true).
+			DataFormat("pageSize=%d")).
+		Returns(http.StatusOK, RespMessage, []jktype.OrgRepo{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/stop/
+	webservice.Route(webservice.PUT("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/stop").
+		To(devops.StopPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Stop pipeline in running").
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep").
+			Required(false).
+			DataFormat("blocking=%t").
+			DefaultValue("blocking=false")).
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep").
+			Required(false).
+			DataFormat("timeOutInSecs=%d").
+			DefaultValue("timeOutInSecs=10")).
+		Returns(http.StatusOK, RespMessage, jktype.StopPipe{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/replay/
+	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/replay").
+		To(devops.ReplayPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Replay pipeline").
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Returns(http.StatusOK, RespMessage, jktype.ReplayPipe{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/log/?start=0
+	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/log").
+		To(devops.GetRunLog).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get Pipelines run log.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.QueryParameter("start", "start").
+			Required(true).
+			DataFormat("start=%d").
+			DefaultValue("start=0")))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/artifacts
+	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/artifacts").
+		To(devops.GetArtifacts).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get pipeline artifacts.").
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.QueryParameter("start", "start page").
+			Required(false).
+			DataFormat("start=%d")).
+		Param(webservice.QueryParameter("limit", "limit count").
+			Required(false).
+			DataFormat("limit=%d")).
+		Returns(http.StatusOK,"The filed of \"Url\" in response can download artifacts",[]jktype.Artifacts{}))
 
 	c.Add(webservice)
 

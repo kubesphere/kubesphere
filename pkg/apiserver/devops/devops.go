@@ -14,7 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-*/
+ */
 package devops
 
 import (
@@ -39,7 +39,6 @@ func GetPipeline(req *restful.Request, resp *restful.Response) {
 }
 
 func SearchPipelines(req *restful.Request, resp *restful.Response) {
-
 	res, err := devops.SearchPipelines(req.Request)
 	if err != nil {
 		parseErr(err, resp)
@@ -120,10 +119,10 @@ func Validate(req *restful.Request, resp *restful.Response) {
 	_, _ = resp.Write(res)
 }
 
-func GetOrgSCM(req *restful.Request, resp *restful.Response) {
+func GetSCMOrg(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scmId")
 
-	res, err := devops.GetOrgSCM(scmId, req.Request)
+	res, err := devops.GetSCMOrg(scmId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -131,6 +130,81 @@ func GetOrgSCM(req *restful.Request, resp *restful.Response) {
 
 	_ = resp.WriteAsJson(res)
 }
+
+func GetSCMOrgRepo(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scmId")
+	organizationId := req.PathParameter("organizationId")
+
+	res, err := devops.GetSCMOrgRepo(scmId, organizationId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func StopPipeline(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.StopPipeline(projectName, pipelineName, branchName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func ReplayPipeline(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.ReplayPipeline(projectName, pipelineName, branchName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func GetRunLog(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.GetRunLog(projectName, pipelineName, branchName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_, _ = resp.Write(res)
+}
+
+func GetArtifacts(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.GetArtifacts(projectName, pipelineName, branchName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+
 
 func parseErr(err error, resp *restful.Response) {
 	log.Error(err)
