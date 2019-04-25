@@ -750,7 +750,39 @@ func MonitorAllMetrics(monitoringRequest *client.MonitoringRequestParams, resour
 					go func(metricName string) {
 						queryType, params := AssembleComponentRequestInfo(monitoringRequest, metricName)
 						metricsStr := client.SendMonitoringRequest(client.SecondaryPrometheusEndpoint, queryType, params)
-						ch <- ReformatJson(metricsStr, metricName, map[string]string{"resource_name": monitoringRequest.ComponentName})
+						formattedJson := ReformatJson(metricsStr, metricName, map[string]string{"resource_name": monitoringRequest.ComponentName})
+
+						if metricName == "etcd_server_list" {
+
+							nodeMap := make(map[string]string, 0)
+
+							nodeAddress := GetNodeAddressInfo()
+							for nodeName, nodeInfo := range *nodeAddress {
+
+								var nodeIp string
+								for _, item := range nodeInfo {
+									if item.Type == v1.NodeInternalIP {
+										nodeIp = item.Address
+										break
+									}
+								}
+
+								nodeMap[nodeIp] = nodeName
+							}
+
+							// add node_name label to metrics
+							for i := 0; i < len(formattedJson.Data.Result); i++ {
+								metricDesc := formattedJson.Data.Result[i][ResultItemMetric]
+								metricDescMap, ensure := metricDesc.(map[string]interface{})
+								if ensure {
+									if nodeIp, exist := metricDescMap[ResultItemMetricNodeIp]; exist {
+										metricDescMap[ResultItemMetricNodeName] = nodeMap[nodeIp.(string)]
+									}
+								}
+							}
+						}
+
+						ch <- formattedJson
 						wg.Done()
 					}(metricName)
 				}
