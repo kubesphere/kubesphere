@@ -21,6 +21,8 @@ const (
 	MetricStatusSuccess      = "success"
 	ResultItemMetric         = "metric"
 	ResultItemMetricResource = "resource"
+	ResultItemMetricNodeIp   = "node_ip"
+	ResultItemMetricNodeName = "node_name"
 	ResultItemValue          = "value"
 	ResultItemValues         = "values"
 	ResultSortTypeDesc       = "desc"
@@ -670,26 +672,26 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_pod_abnormal_ratio": `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1}) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
 
 	// component
-	"etcd_server_list":                           `label_replace(up{job="etcd"}, "ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_list":                           `label_replace(up{job="etcd"}, "node_ip", "$1", "instance", "(.*):.*")`,
 	"etcd_server_total":                          `count(up{job="etcd"})`,
 	"etcd_server_up_total":                       `etcd:up:sum`,
-	"etcd_server_has_leader":                     `etcd_server_has_leader`,
-	"etcd_server_leader_changes":                 `etcd:etcd_server_leader_changes_seen:sum_changes`,
-	"etcd_server_proposals_failed_rate":          `etcd:etcd_server_proposals_failed:sum_irate`,
-	"etcd_server_proposals_applied_rate":         `etcd:etcd_server_proposals_applied:sum_irate`,
-	"etcd_server_proposals_committed_rate":       `etcd:etcd_server_proposals_committed:sum_irate`,
-	"etcd_server_proposals_pending_count":        `etcd:etcd_server_proposals_pending:sum`,
-	"etcd_mvcc_db_size":                          `etcd:etcd_debugging_mvcc_db_total_size:sum`,
-	"etcd_network_client_grpc_received_bytes":    `etcd:etcd_network_client_grpc_received_bytes:sum_irate`,
-	"etcd_network_client_grpc_sent_bytes":        `etcd:etcd_network_client_grpc_sent_bytes:sum_irate`,
-	"etcd_grpc_call_rate":                        `etcd:grpc_server_started:sum_irate`,
-	"etcd_grpc_call_failed_rate":                 `etcd:grpc_server_handled:sum_irate`,
-	"etcd_grpc_server_msg_received_rate":         `etcd:grpc_server_msg_received:sum_irate`,
-	"etcd_grpc_server_msg_sent_rate":             `etcd:grpc_server_msg_sent:sum_irate`,
-	"etcd_disk_wal_fsync_duration":               `etcd:etcd_disk_wal_fsync_duration:avg`,
-	"etcd_disk_wal_fsync_duration_quantile":      `etcd:etcd_disk_wal_fsync_duration:histogram_quantile`,
-	"etcd_disk_backend_commit_duration":          `etcd:etcd_disk_backend_commit_duration:avg`,
-	"etcd_disk_backend_commit_duration_quantile": `etcd:etcd_disk_backend_commit_duration:histogram_quantile`,
+	"etcd_server_has_leader":                     `label_replace(etcd_server_has_leader, "node_ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_leader_changes":                 `label_replace(etcd:etcd_server_leader_changes_seen:sum_changes, "node_ip", "$1", "node", "(.*)")`,
+	"etcd_server_proposals_failed_rate":          `avg(etcd:etcd_server_proposals_failed:sum_irate)`,
+	"etcd_server_proposals_applied_rate":         `avg(etcd:etcd_server_proposals_applied:sum_irate)`,
+	"etcd_server_proposals_committed_rate":       `avg(etcd:etcd_server_proposals_committed:sum_irate)`,
+	"etcd_server_proposals_pending_count":        `avg(etcd:etcd_server_proposals_pending:sum)`,
+	"etcd_mvcc_db_size":                          `avg(etcd:etcd_debugging_mvcc_db_total_size:sum)`,
+	"etcd_network_client_grpc_received_bytes":    `sum(etcd:etcd_network_client_grpc_received_bytes:sum_irate)`,
+	"etcd_network_client_grpc_sent_bytes":        `sum(etcd:etcd_network_client_grpc_sent_bytes:sum_irate)`,
+	"etcd_grpc_call_rate":                        `sum(etcd:grpc_server_started:sum_irate)`,
+	"etcd_grpc_call_failed_rate":                 `sum(etcd:grpc_server_handled:sum_irate)`,
+	"etcd_grpc_server_msg_received_rate":         `sum(etcd:grpc_server_msg_received:sum_irate)`,
+	"etcd_grpc_server_msg_sent_rate":             `sum(etcd:grpc_server_msg_sent:sum_irate)`,
+	"etcd_disk_wal_fsync_duration":               `avg(etcd:etcd_disk_wal_fsync_duration:avg)`,
+	"etcd_disk_wal_fsync_duration_quantile":      `avg(etcd:etcd_disk_wal_fsync_duration:histogram_quantile) by (quantile)`,
+	"etcd_disk_backend_commit_duration":          `avg(etcd:etcd_disk_backend_commit_duration:avg)`,
+	"etcd_disk_backend_commit_duration_quantile": `avg(etcd:etcd_disk_backend_commit_duration:histogram_quantile) by (quantile)`,
 
 	"apiserver_up_sum":                    `apiserver:up:sum`,
 	"apiserver_request_rate":              `apiserver:apiserver_request_count:sum_irate`,
