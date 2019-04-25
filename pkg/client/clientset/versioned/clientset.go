@@ -19,9 +19,9 @@ limitations under the License.
 package versioned
 
 import (
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/flowcontrol"
+	discovery "k8s.io/client-go/discovery"
+	rest "k8s.io/client-go/rest"
+	flowcontrol "k8s.io/client-go/util/flowcontrol"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 )

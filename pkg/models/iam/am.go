@@ -30,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
-	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -39,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
+	"time"
 )
 
 const (
@@ -643,9 +643,6 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			glog.Errorln("create cluster role binding", err)
 			return err
 		}
-		if err := kubeconfig.CreateKubeConfig(username); err != nil {
-			glog.Errorln("create user kubeconfig failed", username, err)
-		}
 		if clusterRoleName == constants.ClusterAdmin {
 			if err := kubectl.CreateKubectlDeploy(username); err != nil {
 				glog.Errorln("create user terminal pod failed", username, err)
@@ -667,17 +664,21 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			return err
 		}
 		if found.RoleRef.Name == constants.ClusterAdmin {
-			if err := kubeconfig.DelKubeConfig(username); err != nil {
-				glog.Error("delete user kubeconfig failed", username, err)
-			}
 			if err := kubectl.DelKubectlDeploy(username); err != nil {
 				glog.Error("delete user terminal pod failed", username, err)
 			}
 		}
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
-		if err != nil {
-			glog.Errorln("create cluster role binding", err)
-			return err
+		maxRetries := 3
+		for i := 0; i < maxRetries; i++ {
+			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+			if apierrors.IsAlreadyExists(err) {
+				time.Sleep(300 * time.Millisecond)
+				continue
+			}
+			if err != nil {
+				glog.Errorln("create cluster role binding", err)
+				return err
+			}
 		}
 		return nil
 	}

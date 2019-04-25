@@ -24,6 +24,8 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
@@ -499,16 +501,24 @@ func DeleteUser(username string) error {
 
 	deleteRequest := ldap.NewDelRequest(fmt.Sprintf("uid=%s,%s", username, ldapclient.UserSearchBase), nil)
 
-	err = conn.Del(deleteRequest)
-
-	if err != nil {
+	if err = conn.Del(deleteRequest); err != nil {
 		glog.Errorln("delete user", err)
 		return err
 	}
 
-	err = deleteRoleBindings(username)
+	if err = deleteRoleBindings(username); err != nil {
+		glog.Errorln("delete user role bindings failed", username, err)
+	}
 
-	return err
+	if err := kubeconfig.DelKubeConfig(username); err != nil {
+		glog.Errorln("delete user kubeconfig failed", username, err)
+	}
+
+	if err := kubectl.DelKubectlDeploy(username); err != nil {
+		glog.Errorln("delete user terminal pod failed", username, err)
+	}
+
+	return nil
 }
 
 func deleteRoleBindings(username string) error {
@@ -684,6 +694,10 @@ func CreateUser(user *models.User) (*models.User, error) {
 
 	if user.AvatarUrl != "" {
 		setAvatar(user.Username, user.AvatarUrl)
+	}
+
+	if err := kubeconfig.CreateKubeConfig(user.Username); err != nil {
+		glog.Errorln("create user kubeconfig failed", user.Username, err)
 	}
 
 	if user.ClusterRole != "" {

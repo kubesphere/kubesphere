@@ -30,16 +30,8 @@ spec:
           properties:
             manager:
               type: string
-            quotas:
-              type: object
           type: object
         status:
-          properties:
-            quotas:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "make" to regenerate code after modifying
-                this file'
-              type: object
           type: object
   version: v1alpha1
 status:
