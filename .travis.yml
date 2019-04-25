@@ -24,6 +24,6 @@ script:
 deploy:
   skip_cleanup: true
   provider: script
-  script: bash hack/docker_build.sh && bash hack/docker_push.sh
+  script: bash hack/docker_build.sh 
   on:
     branch: master
