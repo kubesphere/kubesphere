@@ -17,148 +17,287 @@
 */
 package devops
 
-type Pipeline struct {
-	Class                          string        `json:"_class,omitempty"`
-	Links                          Links         `json:"_links,omitempty"`
-	Actions                        []interface{} `json:"actions,omitempty"`
-	DisplayName                    string        `json:"displayName,omitempty"`
-	FullDisplayName                string        `json:"fullDisplayName,omitempty"`
-	FullName                       string        `json:"fullName,omitempty"`
-	Name                           interface{}   `json:"name,omitempty"`
-	Organization                   string        `json:"organization,omitempty"`
-	Parameters                     interface{}   `json:"parameters,omitempty"`
-	Permissions                    Permissions   `json:"permissions,omitempty"`
-	EstimatedDurationInMillis      int           `json:"estimatedDurationInMillis,omitempty"`
-	NumberOfFolders                int           `json:"numberOfFolders,omitempty"`
-	NumberOfPipelines              int           `json:"numberOfPipelines,omitempty"`
-	PipelineFolderNames            []interface{} `json:"pipelineFolderNames,omitempty"`
-	WeatherScore                   int           `json:"weatherScore,omitempty"`
-	BranchNames                    []string      `json:"branchNames,omitempty"`
-	NumberOfFailingBranches        int           `json:"numberOfFailingBranches,omitempty"`
-	NumberOfFailingPullRequests    int           `json:"numberOfFailingPullRequests,omitempty"`
-	NumberOfSuccessfulBranches     int           `json:"numberOfSuccessfulBranches,omitempty"`
-	NumberOfSuccessfulPullRequests int           `json:"numberOfSuccessfulPullRequests,omitempty"`
-	ScmSource                      ScmSource     `json:"scmSource,omitempty"`
-	TotalNumberOfBranches          int           `json:"totalNumberOfBranches,omitempty"`
-	TotalNumberOfPullRequests      int           `json:"totalNumberOfPullRequests,omitempty"`
-	ArtifactsZipFile               interface{}   `json:"artifactsZipFile,omitempty"`
-	CauseOfBlockage                interface{}   `json:"causeOfBlockage,omitempty"`
-	Causes                         []Causes      `json:"causes,omitempty"`
-	ChangeSet                      []interface{} `json:"changeSet,omitempty"`
-	Description                    interface{}   `json:"description,omitempty"`
-	DurationInMillis               int           `json:"durationInMillis,omitempty"`
-	EnQueueTime                    string        `json:"enQueueTime,omitempty"`
-	EndTime                        string        `json:"endTime,omitempty"`
-	ID                             string        `json:"id,omitempty"`
-	Pipeline                       string        `json:"pipeline,omitempty"`
-	Replayable                     bool          `json:"replayable,omitempty"`
-	Result                         string        `json:"result,omitempty"`
-	RunSummary                     string        `json:"runSummary,omitempty"`
-	StartTime                      string        `json:"startTime,omitempty"`
-	State                          string        `json:"state,omitempty"`
-	Type                           string        `json:"type,omitempty"`
-	Branch                         Branch        `json:"branch,omitempty"`
-	CommitID                       string        `json:"commitId,omitempty"`
-	CommitURL                      interface{}   `json:"commitUrl,omitempty"`
-	PullRequest                    interface{}   `json:"pullRequest,omitempty"`
-}
-type Self struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Scm struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Branches struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Actions struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Runs struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Trends struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Queue struct {
-	Class string `json:"_class,omitempty"`
-	Href  string `json:"href,omitempty"`
-}
-type Links struct {
-	Self            Self            `json:"self,omitempty"`
-	Scm             Scm             `json:"scm,omitempty"`
-	Branches        Branches        `json:"branches,omitempty"`
-	Actions         Actions         `json:"actions,omitempty"`
-	Runs            Runs            `json:"runs,omitempty"`
-	Trends          Trends          `json:"trends,omitempty"`
-	Queue           Queue           `json:"queue,omitempty"`
-	PrevRun         PrevRun         `json:"prevRun"`
-	Parent          Parent          `json:"parent"`
-	Tests           Tests           `json:"tests"`
-	Nodes           Nodes           `json:"nodes"`
-	Log             Log             `json:"log"`
-	BlueTestSummary BlueTestSummary `json:"blueTestSummary"`
-	Steps           Steps           `json:"steps"`
-	Artifacts       Artifacts       `json:"artifacts"`
-}
-type Permissions struct {
-	Create    bool `json:"create,omitempty"`
-	Configure bool `json:"configure,omitempty"`
-	Read      bool `json:"read,omitempty"`
-	Start     bool `json:"start,omitempty"`
-	Stop      bool `json:"stop,omitempty"`
-}
-type ScmSource struct {
-	Class  string      `json:"_class,omitempty"`
-	APIURL interface{} `json:"apiUrl,omitempty"`
-	ID     string      `json:"id,omitempty"`
-}
-type PrevRun struct {
+// GetPipeline & SearchPipelines
+type TypePipeline struct {
 	Class string `json:"_class"`
-	Href  string `json:"href"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		Scm struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"scm"`
+		Branches struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"branches"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Runs struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"runs"`
+		Trends struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"trends"`
+		Queue struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"queue"`
+	} `json:"_links"`
+	Actions         []interface{} `json:"actions"`
+	Disabled        interface{}   `json:"disabled"`
+	DisplayName     string        `json:"displayName"`
+	FullDisplayName string        `json:"fullDisplayName"`
+	FullName        string        `json:"fullName"`
+	Name            string        `json:"name"`
+	Organization    string        `json:"organization"`
+	Parameters      interface{}   `json:"parameters"`
+	Permissions     struct {
+		Create    bool `json:"create"`
+		Configure bool `json:"configure"`
+		Read      bool `json:"read"`
+		Start     bool `json:"start"`
+		Stop      bool `json:"stop"`
+	} `json:"permissions"`
+	EstimatedDurationInMillis      int           `json:"estimatedDurationInMillis"`
+	NumberOfFolders                int           `json:"numberOfFolders"`
+	NumberOfPipelines              int           `json:"numberOfPipelines"`
+	PipelineFolderNames            []interface{} `json:"pipelineFolderNames"`
+	WeatherScore                   int           `json:"weatherScore"`
+	BranchNames                    []string      `json:"branchNames"`
+	NumberOfFailingBranches        int           `json:"numberOfFailingBranches"`
+	NumberOfFailingPullRequests    int           `json:"numberOfFailingPullRequests"`
+	NumberOfSuccessfulBranches     int           `json:"numberOfSuccessfulBranches"`
+	NumberOfSuccessfulPullRequests int           `json:"numberOfSuccessfulPullRequests"`
+	ScmSource                      struct {
+		Class  string      `json:"_class"`
+		APIURL interface{} `json:"apiUrl"`
+		ID     string      `json:"id"`
+	} `json:"scmSource"`
+	TotalNumberOfBranches     int `json:"totalNumberOfBranches"`
+	TotalNumberOfPullRequests int `json:"totalNumberOfPullRequests"`
 }
-type Parent struct {
+
+// GetPipelineRun & SearchPipelineRuns
+type RunPipeline struct {
 	Class string `json:"_class"`
-	Href  string `json:"href"`
+	Links struct {
+		PrevRun struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"prevRun"`
+		Parent struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"parent"`
+		Tests struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"tests"`
+		Nodes struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"nodes"`
+		Log struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"log"`
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		BlueTestSummary struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"blueTestSummary"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Steps struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"steps"`
+		Artifacts struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"artifacts"`
+		NextRun struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"nextRun"`
+	} `json:"_links"`
+	Actions          []interface{} `json:"actions"`
+	ArtifactsZipFile interface{}   `json:"artifactsZipFile"`
+	CauseOfBlockage  interface{}   `json:"causeOfBlockage"`
+	Causes           []struct {
+		Class            string `json:"_class"`
+		ShortDescription string `json:"shortDescription"`
+		UserID           string `json:"userId"`
+		UserName         string `json:"userName"`
+	} `json:"causes"`
+	ChangeSet                 []interface{} `json:"changeSet"`
+	Description               interface{}   `json:"description"`
+	DurationInMillis          int           `json:"durationInMillis"`
+	EnQueueTime               string        `json:"enQueueTime"`
+	EndTime                   string        `json:"endTime"`
+	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis"`
+	ID                        string        `json:"id"`
+	Name                      interface{}   `json:"name"`
+	Organization              string        `json:"organization"`
+	Pipeline                  string        `json:"pipeline"`
+	Replayable                bool          `json:"replayable"`
+	Result                    string        `json:"result"`
+	RunSummary                string        `json:"runSummary"`
+	StartTime                 string        `json:"startTime"`
+	State                     string        `json:"state"`
+	Type                      string        `json:"type"`
+	Branch                    struct {
+		IsPrimary bool          `json:"isPrimary"`
+		Issues    []interface{} `json:"issues"`
+		URL       string        `json:"url"`
+	} `json:"branch"`
+	CommitID    string      `json:"commitId"`
+	CommitURL   interface{} `json:"commitUrl"`
+	PullRequest interface{} `json:"pullRequest"`
 }
-type Tests struct {
+
+// GetPipelineRunNodes
+type TypeNodes []struct {
 	Class string `json:"_class"`
-	Href  string `json:"href"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Steps struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"steps"`
+	} `json:"_links"`
+	Actions            []interface{} `json:"actions"`
+	DisplayDescription interface{}   `json:"displayDescription"`
+	DisplayName        string        `json:"displayName"`
+	DurationInMillis   int           `json:"durationInMillis"`
+	ID                 string        `json:"id"`
+	Input              interface{}   `json:"input"`
+	Result             string        `json:"result"`
+	StartTime          string        `json:"startTime"`
+	State              string        `json:"state"`
+	Type               string        `json:"type"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage"`
+	Edges              []struct {
+		Class string `json:"_class"`
+		ID    string `json:"id"`
+		Type  string `json:"type"`
+	} `json:"edges"`
+	FirstParent interface{} `json:"firstParent"`
+	Restartable bool        `json:"restartable"`
+	Steps       []struct {
+		Class string `json:"_class"`
+		Links struct {
+			Self struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"self"`
+			Actions struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"actions"`
+		} `json:"_links"`
+		Actions []struct {
+			Class string `json:"_class"`
+			Links struct {
+				Self struct {
+					Class string `json:"_class"`
+					Href  string `json:"href"`
+				} `json:"self"`
+			} `json:"_links"`
+			URLName string `json:"urlName"`
+		} `json:"actions"`
+		DisplayDescription interface{} `json:"displayDescription"`
+		DisplayName        string      `json:"displayName"`
+		DurationInMillis   int         `json:"durationInMillis"`
+		ID                 string      `json:"id"`
+		Input              interface{} `json:"input"`
+		Result             string      `json:"result"`
+		StartTime          string      `json:"startTime"`
+		State              string      `json:"state"`
+		Type               string      `json:"type"`
+	} `json:"steps"`
 }
-type Nodes struct {
+
+// Validate
+type Validates struct {
+	CredentialID string `json:"credentialId,omitempty"`
+}
+
+// GetSCMOrg
+type TypeGetSCMOrg struct {
 	Class string `json:"_class"`
-	Href  string `json:"href"`
+	Links struct {
+		Repositories struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"repositories"`
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+	} `json:"_links"`
+	Avatar                      string `json:"avatar"`
+	JenkinsOrganizationPipeline bool   `json:"jenkinsOrganizationPipeline"`
+	Name                        string `json:"name"`
 }
-type Log struct {
+
+// GetSCMOrgRepo
+type TypeSCMOrgRepo struct {
 	Class string `json:"_class"`
-	Href  string `json:"href"`
-}
-type BlueTestSummary struct {
-	Class string `json:"_class"`
-	Href  string `json:"href"`
-}
-type Steps struct {
-	Class string `json:"_class"`
-	Href  string `json:"href"`
-}
-type Artifacts struct {
-	Class string `json:"_class"`
-	Href  string `json:"href"`
-}
-type Causes struct {
-	Class            string `json:"_class"`
-	ShortDescription string `json:"shortDescription"`
-	UserID           string `json:"userId,omitempty"`
-	UserName         string `json:"userName,omitempty"`
-}
-type Branch struct {
-	IsPrimary bool          `json:"isPrimary"`
-	Issues    []interface{} `json:"issues"`
-	URL       string        `json:"url"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+	} `json:"_links"`
+	Repositories struct {
+		Class string `json:"_class"`
+		Links struct {
+			Self struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"self"`
+		} `json:"_links"`
+		Items []struct {
+			Class string `json:"_class"`
+			Links struct {
+				Self struct {
+					Class string `json:"_class"`
+					Href  string `json:"href"`
+				} `json:"self"`
+			} `json:"_links"`
+			DefaultBranch string `json:"defaultBranch"`
+			Description   string `json:"description"`
+			Name          string `json:"name"`
+			Permissions   struct {
+				Admin bool `json:"admin"`
+				Push  bool `json:"push"`
+				Pull  bool `json:"pull"`
+			} `json:"permissions"`
+			Private  bool   `json:"private"`
+			FullName string `json:"fullName"`
+		} `json:"items"`
+		LastPage interface{} `json:"lastPage"`
+		NextPage interface{} `json:"nextPage"`
+		PageSize int         `json:"pageSize"`
+	} `json:"repositories"`
 }

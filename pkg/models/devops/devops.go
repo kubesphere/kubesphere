@@ -36,7 +36,7 @@ func init() {
 	flag.StringVar(&JenkinsUrl, "jenkins-url", "http://ks-jenkins.kubesphere-devops-system.svc.cluster.local:80", "jenkins server host")
 }
 
-func GetPipeline(projectName, pipelineName string, req *http.Request) (*Pipeline, error) {
+func GetPipeline(projectName, pipelineName string, req *http.Request) (*TypePipeline, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetPipelineUrl, projectName, pipelineName)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -46,7 +46,7 @@ func GetPipeline(projectName, pipelineName string, req *http.Request) (*Pipeline
 		return nil, err
 	}
 
-	var res = new(Pipeline)
+	var res = new(TypePipeline)
 	err = json.Unmarshal(resBody, &res)
 	if err != nil {
 		log.Error(err)
@@ -96,7 +96,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 	return res, err
 }
 
-func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) (*Pipeline, error) {
+func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) (*RunPipeline, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetPipelineRunUrl, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -106,7 +106,7 @@ func GetPipelineRun(projectName, pipelineName, branchName, runId string, req *ht
 		return nil, err
 	}
 
-	var res = new(Pipeline)
+	var res = new(RunPipeline)
 	err = json.Unmarshal(resBody, &res)
 	if err != nil {
 		log.Error(err)
@@ -162,8 +162,8 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 	return resBody, err
 }
 
-func GetOrgSCM(scmId string, req *http.Request) ([]interface{}, error) {
-	baseUrl := fmt.Sprintf(JenkinsUrl+GetOrgSCMUrl+req.URL.RawQuery, scmId)
+func GetSCMOrg(scmId string, req *http.Request) ([]interface{}, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetSCMOrgUrl+req.URL.RawQuery, scmId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	resBody, err := jenkinsClient(baseUrl, req)
@@ -173,6 +173,26 @@ func GetOrgSCM(scmId string, req *http.Request) ([]interface{}, error) {
 	}
 
 	var res []interface{}
+	err = json.Unmarshal(resBody, &res)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetSCMOrgRepo(scmId, organizationId string, req *http.Request) (*TypeSCMOrgRepo, error) {
+	baseUrl := fmt.Sprintf(JenkinsUrl+GetSCMOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := jenkinsClient(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var res = new(TypeSCMOrgRepo)
 	err = json.Unmarshal(resBody, &res)
 	if err != nil {
 		log.Error(err)

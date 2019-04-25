@@ -39,7 +39,6 @@ func GetPipeline(req *restful.Request, resp *restful.Response) {
 }
 
 func SearchPipelines(req *restful.Request, resp *restful.Response) {
-
 	res, err := devops.SearchPipelines(req.Request)
 	if err != nil {
 		parseErr(err, resp)
@@ -120,10 +119,23 @@ func Validate(req *restful.Request, resp *restful.Response) {
 	_, _ = resp.Write(res)
 }
 
-func GetOrgSCM(req *restful.Request, resp *restful.Response) {
+func GetSCMOrg(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scmId")
 
-	res, err := devops.GetOrgSCM(scmId, req.Request)
+	res, err := devops.GetSCMOrg(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func GetSCMOrgRepo(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scmId")
+	organizationId := req.PathParameter("organizationId")
+
+	res, err := devops.GetSCMOrgRepo(scmId, organizationId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return

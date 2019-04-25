@@ -26,5 +26,6 @@ const (
 	GetPipelineRunNodesUrl = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/?"
 	GetStepLogUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/%s/log/?"
 	ValidateUrl            = "/blue/rest/organizations/jenkins/scm/%s/validate"
-	GetOrgSCMUrl           = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
+	GetSCMOrgUrl           = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
+	GetSCMOrgRepoUrl       = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
 )
