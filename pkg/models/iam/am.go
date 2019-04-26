@@ -671,16 +671,13 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		maxRetries := 3
 		for i := 0; i < maxRetries; i++ {
 			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
-			if apierrors.IsAlreadyExists(err) {
-				time.Sleep(300 * time.Millisecond)
-				continue
+			if err == nil {
+				return nil
 			}
-			if err != nil {
-				glog.Errorln("create cluster role binding", err)
-				return err
-			}
+			time.Sleep(300 * time.Millisecond)
 		}
-		return nil
+		glog.Errorln("create cluster role binding", err)
+		return err
 	}
 
 	if !k8sutil.ContainsUser(found.Subjects, username) {
