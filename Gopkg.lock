@@ -18,6 +18,14 @@
   version = "v0.4.12"
 
 [[projects]]
+  digest = "1:d043e5ae59276188d876090c261c311e146792c0908e08e67e766b1020a72d00"
+  name = "github.com/PuerkitoBio/goquery"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2d2796f41742ece03e8086188fa4db16a3a0b458"
+  version = "v1.5.0"
+
+[[projects]]
   digest = "1:0a111edd8693fd977f42a0c4f199a0efb13c20aec9da99ad8830c7bb6a87e8d6"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -51,6 +59,14 @@
   ]
   pruneopts = "NUT"
   revision = "8b13a72661dae6e9e5dea04f344f0dc95ea29547"
+
+[[projects]]
+  digest = "1:fc86904a62ac4bfff8cfbe94f42231ce3d8cea8fe2506d5293eaef468f8eaecf"
+  name = "github.com/andybalholm/cascadia"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "901648c87902174f774fac311d7f176f8647bdaa"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:680b63a131506e668818d630d3ca36123ff290afa0afc9f4be21940adca3f27d"
@@ -2002,6 +2018,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/PuerkitoBio/goquery",
     "github.com/asaskevich/govalidator",
     "github.com/beevik/etree",
     "github.com/dgrijalva/jwt-go",
