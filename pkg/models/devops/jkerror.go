@@ -18,15 +18,8 @@
 package devops
 
 type JkError struct {
-	Message string   `json:"message"`
-	Code    int      `json:"code"`
-	Errors  []Errors `json:"errors"`
-}
-
-type Errors struct {
 	Message string `json:"message"`
-	Code    string `json:"code"`
-	Field   string `json:"field"`
+	Code    int    `json:"code"`
 }
 
 func (err *JkError) Error() string {
