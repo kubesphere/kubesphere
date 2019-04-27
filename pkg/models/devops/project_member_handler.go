@@ -28,8 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 )
 
-
-
 func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 	dbconn := devops_mysql.OpenDatabase()
 	memberships := make([]*DevOpsProjectMembership, 0)

@@ -11,7 +11,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package devops
 
 import (
@@ -26,7 +25,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"net/http"
 )
-
 
 func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {
 
