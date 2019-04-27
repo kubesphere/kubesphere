@@ -1,3 +1,15 @@
+/*
+Copyright 2018 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package devops
 
 import (
@@ -16,18 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 )
 
-/*
-Copyright 2018 The KubeSphere Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+
 
 func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 	dbconn := devops_mysql.OpenDatabase()
@@ -111,6 +112,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
+	// if user could be founded in db, user have been added to project
 	if err != db.ErrNotFound {
 		err = fmt.Errorf("user [%s] have been added to project", member.Username)
 		glog.Errorf("%+v", err)
@@ -163,6 +165,16 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		Record(projectMembership).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
+		err = projectRole.UnAssignRole(member.Username)
+		if err != nil {
+			glog.Errorf("%+v", err)
+			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		}
+		err = pipelineRole.UnAssignRole(member.Username)
+		if err != nil {
+			glog.Errorf("%+v", err)
+			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		}
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return projectMembership, nil
