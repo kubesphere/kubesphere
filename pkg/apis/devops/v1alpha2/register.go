@@ -25,6 +25,7 @@ import (
 	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/params"
 	"net/http"
 )
 
@@ -47,7 +48,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectHandler).
 		Doc("get devops project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, "success", devops.DevOpsProject{}).
 		Writes(devops.DevOpsProject{}))
 
@@ -55,7 +56,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.UpdateProjectHandler).
 		Doc("get devops project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, "success", devops.DevOpsProject{}).
 		Writes(devops.DevOpsProject{}))
 
@@ -63,7 +64,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectDefaultRoles).
 		Doc("get devops project defaultroles").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, "success", []devops.Role{}).
 		Writes([]devops.Role{}))
 
@@ -71,7 +72,14 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectMembersHandler).
 		Doc("get devops project members").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.QueryParameter(params.PagingParam, "page").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")).
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, "success", []devops.DevOpsProjectMembership{}).
 		Writes([]devops.DevOpsProjectMembership{}))
 
@@ -79,8 +87,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectMemberHandler).
 		Doc("get devops project member").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("members", "username")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("members", "member's username")).
 		Returns(http.StatusOK, "success", devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
@@ -88,7 +96,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.AddDevOpsProjectMemberHandler).
 		Doc("add devops project members").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, "success", devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
@@ -96,8 +104,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.UpdateDevOpsProjectMemberHandler).
 		Doc("update devops project members").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("members", "username")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("members", "member's username")).
 		Reads(devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
@@ -105,14 +113,14 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.DeleteDevOpsProjectMemberHandler).
 		Doc("delete devops project members").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("members", "username")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("members", "member's username")).
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
 		To(devopsapi.CreateDevOpsProjectPipelineHandler).
 		Doc("add devops project pipeline").
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "success", devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
@@ -121,8 +129,8 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipelines}").
 		To(devopsapi.UpdateDevOpsProjectPipelineHandler).
 		Doc("update devops project pipeline").
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("pipelines", "pipelineId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("pipelines", "pipeline name")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "success", devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
@@ -132,8 +140,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectPipelineHandler).
 		Doc("get devops project pipeline config").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("pipelines", "pipelineId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("pipelines", "pipeline name")).
 		Returns(http.StatusOK, "ok", devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}))
 
@@ -141,8 +149,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipelineSonarStatusHandler).
 		Doc("get devops project pipeline sonarStatus").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("pipelines", "pipelineId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("pipelines", "pipeline name")).
 		Returns(http.StatusOK, "ok", []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
@@ -150,9 +158,9 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
 		Doc("get devops project pipeline sonarStatus").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("pipelines", "pipelineId")).
-		Param(webservice.PathParameter("branches", "branchName")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("pipelines", "pipeline name")).
+		Param(webservice.PathParameter("branches", "branch name")).
 		Returns(http.StatusOK, "ok", []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
@@ -160,13 +168,13 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
 		Doc("delete devops project pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("pipelines", "pipelineId")))
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("pipelines", "pipeline name")))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/pipelines").
 		To(devopsapi.CreateDevOpsProjectPipelineHandler).
 		Doc("update devops project pipeline").
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(devops.ProjectPipeline{}))
 
@@ -174,32 +182,32 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
 		Doc("add project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credentials}").
 		To(devopsapi.UpdateDevOpsProjectCredentialHandler).
 		Doc("update project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("credentials", "credentialId")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("credentials", "credential's Id")).
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credentials}").
 		To(devopsapi.DeleteDevOpsProjectCredentialHandler).
 		Doc("delete project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("credentials", "credentialId")))
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("credentials", "credential's Id")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials/{credentials}").
 		To(devopsapi.GetDevOpsProjectCredentialHandler).
 		Doc("get project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("credentials", "credentialId")).
-		Param(webservice.QueryParameter("content", "getContent")).
-		Param(webservice.QueryParameter("domain", "credentialDomain")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("credentials", "credential's Id")).
+		Param(webservice.QueryParameter("domain", "credential's domain")).
+		Param(webservice.QueryParameter("content", "get additional content")).
 		Returns(http.StatusOK, "success", devops.JenkinsCredential{}).
 		Reads(devops.JenkinsCredential{}))
 
@@ -207,9 +215,9 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectCredentialsHandler).
 		Doc("get project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "projectId")).
-		Param(webservice.PathParameter("credentials", "credentialId")).
-		Param(webservice.QueryParameter("domain", "credentialDomain")).
+		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("credentials", "credential's Id")).
+		Param(webservice.QueryParameter("domain", "credential's domain")).
 		Returns(http.StatusOK, "success", []devops.JenkinsCredential{}).
 		Reads([]devops.JenkinsCredential{}))
 
