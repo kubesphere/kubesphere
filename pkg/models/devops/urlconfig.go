@@ -32,4 +32,11 @@ const (
 	ReplayPipelineUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/replay/"
 	GetRunLogUrl           = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/log/?"
 	GetArtifactsUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/artifacts/?"
+	GetPipeBranchUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/?"
+	GetConsoleLogUrl       = "/job/%s/job/%s/indexing/consoleText"
+	ScanBranchUrl          = "/job/%s/job/%s/build?"
+	RunPipelineUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/"
+	GetStepsStatusUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?"
+	CheckPipelineUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
+	GetCrumbUrl            = "/crumbIssuer/api/json/"
 )

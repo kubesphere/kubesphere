@@ -20,7 +20,6 @@ package devops
 import (
 	"github.com/emicklei/go-restful"
 	log "github.com/golang/glog"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
 )
@@ -204,14 +203,109 @@ func GetArtifacts(req *restful.Request, resp *restful.Response) () {
 	_ = resp.WriteAsJson(res)
 }
 
+func GetPipeBranch(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
 
+	res, err := devops.GetPipeBranch(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func CheckPipeline(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+	nodeId := req.PathParameter("nodeId")
+	stepId := req.PathParameter("stepId")
+
+	res, err := devops.CheckPipeline(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_, _ = resp.Write(res)
+}
+
+func GetConsoleLog(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+
+	res, err := devops.GetConsoleLog(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_, _ = resp.Write(res)
+}
+
+func ScanBranch(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+
+	res, err := devops.ScanBranch(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_, _ = resp.Write(res)
+}
+
+func RunPipeline(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+
+	res, err := devops.RunPipeline(projectName, pipelineName, branchName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func GetStepsStatus(req *restful.Request, resp *restful.Response) () {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+	nodeId := req.PathParameter("nodeId")
+
+	res, err := devops.GetStepsStatus(projectName, pipelineName, branchName, runId, nodeId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
+
+func GetCrumb(req *restful.Request, resp *restful.Response) () {
+
+	res, err := devops.GetCrumb(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	_ = resp.WriteAsJson(res)
+}
 
 func parseErr(err error, resp *restful.Response) {
 	log.Error(err)
 	if jErr, ok := err.(*devops.JkError); ok {
-		_ = resp.WriteHeaderAndEntity(jErr.Code, err)
+		_ = resp.WriteError(jErr.Code, err)
 	} else {
-		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		_ = resp.WriteError(http.StatusInternalServerError, err)
 	}
 	return
 }
