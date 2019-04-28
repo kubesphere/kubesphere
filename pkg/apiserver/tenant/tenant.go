@@ -217,7 +217,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 
@@ -225,7 +225,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		errors.ParseSvcErr(err, resp)
 		return
 	}
 
@@ -233,7 +233,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 }
 
 func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
-	devops := req.PathParameter("id")
+	projectId := req.PathParameter("id")
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
@@ -241,15 +241,15 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 
-	err, code := tenant.DeleteDevOpsProject(devops, username)
+	err = tenant.DeleteDevOpsProject(projectId, username)
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
+		errors.ParseSvcErr(err, resp)
 		return
 	}
 
@@ -267,16 +267,16 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		glog.Infof("%+v", err)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 
 	glog.Infoln("create workspace", username, workspaceName, devops)
-	project, err, code := tenant.CreateDevopsProject(username, workspaceName, &devops)
+	project, err := tenant.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteHeaderAndEntity(code, errors.Wrap(err))
+		errors.ParseSvcErr(err, resp)
 		return
 	}
 
@@ -302,11 +302,11 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 	devops := req.PathParameter("devops")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err, code := tenant.GetUserDevopsSimpleRules(username, devops)
+	rules, err := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
 		glog.Errorf("%+v", err)
-		resp.WriteError(code, err)
+		errors.ParseSvcErr(err, resp)
 		return
 	}
 

@@ -1,3 +1,16 @@
+/*
+Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package devops
 
 import (
@@ -21,12 +34,12 @@ const (
 type DevOpsProject struct {
 	ProjectId   string    `json:"project_id" db:"project_id"`
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	Description string    `json:"description,omitempty"`
 	Creator     string    `json:"creator"`
 	CreateTime  time.Time `json:"create_time"`
 	Status      string    `json:"status"`
-	Visibility  string    `json:"visibility"`
-	Extra       string    `json:"extra"`
+	Visibility  string    `json:"visibility,omitempty"`
+	Extra       string    `json:"extra,omitempty"`
 	Workspace   string    `json:"workspace"`
 }
 

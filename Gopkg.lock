@@ -18,6 +18,14 @@
   version = "v0.4.12"
 
 [[projects]]
+  digest = "1:d043e5ae59276188d876090c261c311e146792c0908e08e67e766b1020a72d00"
+  name = "github.com/PuerkitoBio/goquery"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2d2796f41742ece03e8086188fa4db16a3a0b458"
+  version = "v1.5.0"
+
+[[projects]]
   digest = "1:0a111edd8693fd977f42a0c4f199a0efb13c20aec9da99ad8830c7bb6a87e8d6"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -53,6 +61,14 @@
   revision = "8b13a72661dae6e9e5dea04f344f0dc95ea29547"
 
 [[projects]]
+  digest = "1:fc86904a62ac4bfff8cfbe94f42231ce3d8cea8fe2506d5293eaef468f8eaecf"
+  name = "github.com/andybalholm/cascadia"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "901648c87902174f774fac311d7f176f8647bdaa"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:680b63a131506e668818d630d3ca36123ff290afa0afc9f4be21940adca3f27d"
   name = "github.com/appscode/jsonpatch"
   packages = ["."]
@@ -67,6 +83,14 @@
   pruneopts = "NUT"
   revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
   version = "v9"
+
+[[projects]]
+  digest = "1:15e3271f463f2f40d98bf426aabb86941fc66b10272ccfdfebe548683e37acb1"
+  name = "github.com/beevik/etree"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "8aee6516be3b1163bb6450c35c50e4969e3a3aa8"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -561,22 +585,6 @@
   packages = ["basic"]
   pruneopts = "NUT"
   revision = "3eca13d6893afd7ecabe15f4445f5d2872a1b012"
-
-[[projects]]
-  digest = "1:2ddfc1382a659966038282873c9e33e7694fa503130d445e97c4fdc3b8c5db66"
-  name = "github.com/jinzhu/gorm"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "472c70caa40267cb89fd8facb07fe6454b578626"
-  version = "v1.9.2"
-
-[[projects]]
-  branch = "master"
-  digest = "1:802f75230c29108e787d40679f9bf5da1a5673eaf5c10eb89afd993e18972909"
-  name = "github.com/jinzhu/inflection"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
   digest = "1:da62aa6632d04e080b8a8b85a59ed9ed1550842a0099a55f3ae3a20d02a3745a"
@@ -2010,7 +2018,9 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/PuerkitoBio/goquery",
     "github.com/asaskevich/govalidator",
+    "github.com/beevik/etree",
     "github.com/dgrijalva/jwt-go",
     "github.com/docker/docker/api/types",
     "github.com/docker/docker/client",
@@ -2026,7 +2036,6 @@
     "github.com/golang/example/stringutil",
     "github.com/golang/glog",
     "github.com/google/uuid",
-    "github.com/jinzhu/gorm",
     "github.com/json-iterator/go",
     "github.com/kiali/kiali/config",
     "github.com/kiali/kiali/handlers",
@@ -2059,7 +2068,6 @@
     "gopkg.in/src-d/go-git.v4/storage/memory",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",
-    "k8s.io/api/apps/v1beta2",
     "k8s.io/api/batch/v1",
     "k8s.io/api/batch/v1beta1",
     "k8s.io/api/core/v1",

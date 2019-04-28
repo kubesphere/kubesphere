@@ -20,6 +20,8 @@ package errors
 import (
 	"encoding/json"
 	"errors"
+	"github.com/emicklei/go-restful"
+	"net/http"
 )
 
 type Error struct {
@@ -51,5 +53,13 @@ func Parse(data []byte) error {
 		return errors.New(message)
 	} else {
 		return errors.New(string(data))
+	}
+}
+
+func ParseSvcErr(err error, resp *restful.Response) {
+	if svcErr, ok := err.(restful.ServiceError); ok {
+		resp.WriteServiceError(svcErr.Code, svcErr)
+	} else {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, Wrap(err))
 	}
 }
