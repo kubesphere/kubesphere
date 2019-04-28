@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	log = logf.Log.WithName("controller")
+	log = logf.Log.WithName("clusterrolebinding-controller")
 )
 
 /**

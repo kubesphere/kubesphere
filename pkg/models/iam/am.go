@@ -30,7 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
-	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -39,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
+	"time"
 )
 
 const (
@@ -509,16 +509,13 @@ func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule
 			{Name: "members", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "devops", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "projects", Actions: []string{"edit", "delete", "create", "view"}},
-			{Name: "organizations", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "roles", Actions: []string{"view"}},
 		}
 	case constants.WorkspaceRegular:
 		workspaceRules = []models.SimpleRule{
-			{Name: "workspaces", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
 			{Name: "devops", Actions: []string{"create"}},
 			{Name: "projects", Actions: []string{"create"}},
-			{Name: "organizations", Actions: []string{"view"}},
 		}
 	case constants.WorkspaceViewer:
 		workspaceRules = []models.SimpleRule{
@@ -526,7 +523,6 @@ func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule
 			{Name: "members", Actions: []string{"view"}},
 			{Name: "devops", Actions: []string{"view"}},
 			{Name: "projects", Actions: []string{"view"}},
-			{Name: "organizations", Actions: []string{"view"}},
 			{Name: "roles", Actions: []string{"view"}},
 		}
 	}
@@ -644,9 +640,6 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			return err
 		}
 		if clusterRoleName == constants.ClusterAdmin {
-			if err := kubeconfig.CreateKubeConfig(username); err != nil {
-				glog.Errorln("create user kubeconfig failed", username, err)
-			}
 			if err := kubectl.CreateKubectlDeploy(username); err != nil {
 				glog.Errorln("create user terminal pod failed", username, err)
 			}
@@ -667,19 +660,20 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			return err
 		}
 		if found.RoleRef.Name == constants.ClusterAdmin {
-			if err := kubeconfig.DelKubeConfig(username); err != nil {
-				glog.Error("delete user kubeconfig failed", username, err)
-			}
 			if err := kubectl.DelKubectlDeploy(username); err != nil {
 				glog.Error("delete user terminal pod failed", username, err)
 			}
 		}
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
-		if err != nil {
-			glog.Errorln("create cluster role binding", err)
-			return err
+		maxRetries := 3
+		for i := 0; i < maxRetries; i++ {
+			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+			if err == nil {
+				return nil
+			}
+			time.Sleep(300 * time.Millisecond)
 		}
-		return nil
+		glog.Errorln("create cluster role binding", err)
+		return err
 	}
 
 	if !k8sutil.ContainsUser(found.Subjects, username) {

@@ -19,6 +19,7 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
@@ -47,7 +48,14 @@ func GetKubeconfig(req *restful.Request, resp *restful.Response) {
 	kubectlConfig, err := kubeconfig.GetKubeConfig(user)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		if k8serr.IsNotFound(err) {
+			// recreate
+			kubeconfig.CreateKubeConfig(user)
+			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+		} else {
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		}
+
 		return
 	}
 

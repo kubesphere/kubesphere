@@ -24,6 +24,8 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
@@ -51,10 +53,16 @@ var (
 	adminEmail      string
 	adminPassword   string
 	tokenExpireTime time.Duration
+	initUsers       []initUser
 )
 
+type initUser struct {
+	models.User
+	Hidden bool `json:"hidden"`
+}
+
 const (
-	userInitFile = "/etc/ks-iam/users.json"
+	userInitFile = "/Users/hongming/users.json"
 )
 
 func Init(email, password string, t time.Duration) error {
@@ -119,11 +127,11 @@ func checkAndCreateDefaultUser(conn ldap.Client) error {
 		ldapclient.UserSearchBase,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(&(objectClass=inetOrgPerson))",
-		nil,
+		[]string{"uid"},
 		nil,
 	)
 
-	users, err := conn.Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
 		err = createUserBaseDN(conn)
@@ -137,22 +145,32 @@ func checkAndCreateDefaultUser(conn ldap.Client) error {
 	}
 
 	data, err := ioutil.ReadFile(userInitFile)
-	var initUsers []models.User
 	if err == nil {
 		json.Unmarshal(data, &initUsers)
 	}
-	initUsers = append(initUsers, models.User{Username: constants.AdminUserName, Email: adminEmail, Password: adminPassword, Description: "Administrator account that was always created by default.", ClusterRole: constants.ClusterAdmin})
+	initUsers = append(initUsers, initUser{User: models.User{Username: constants.AdminUserName, Email: adminEmail, Password: adminPassword, Description: "Administrator account that was always created by default.", ClusterRole: constants.ClusterAdmin}})
 
-	if users == nil || len(users.Entries) < len(initUsers) {
-		for _, user := range initUsers {
-			_, err = CreateUser(&user)
+	for _, user := range initUsers {
+		if result == nil || !containsUser(result.Entries, user) {
+			_, err = CreateUser(&user.User)
 			if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+				glog.Errorln("user init failed", user.Username, err)
 				return fmt.Errorf("user %s init failed: %s\n", user.Username, err)
 			}
 		}
 	}
 
 	return nil
+}
+
+func containsUser(entries []*ldap.Entry, user initUser) bool {
+	for _, entry := range entries {
+		uid := entry.GetAttributeValue("uid")
+		if uid == user.Username {
+			return true
+		}
+	}
+	return false
 }
 
 func createUserBaseDN(conn ldap.Client) error {
@@ -312,7 +330,9 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 			user := models.User{Username: uid, Email: email, Description: description, Lang: lang, CreateTime: createTimestamp}
 
-			users = append(users, user)
+			if !shouldHidden(user) {
+				users = append(users, user)
+			}
 		}
 
 		updatedControl := ldap.FindControl(response.Controls, ldap.ControlTypePaging)
@@ -358,6 +378,15 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: len(users)}, nil
+}
+
+func shouldHidden(user models.User) bool {
+	for _, initUser := range initUsers {
+		if initUser.Username == user.Username {
+			return initUser.Hidden
+		}
+	}
+	return false
 }
 
 func DescribeUser(username string) (*models.User, error) {
@@ -499,16 +528,24 @@ func DeleteUser(username string) error {
 
 	deleteRequest := ldap.NewDelRequest(fmt.Sprintf("uid=%s,%s", username, ldapclient.UserSearchBase), nil)
 
-	err = conn.Del(deleteRequest)
-
-	if err != nil {
+	if err = conn.Del(deleteRequest); err != nil {
 		glog.Errorln("delete user", err)
 		return err
 	}
 
-	err = deleteRoleBindings(username)
+	if err = deleteRoleBindings(username); err != nil {
+		glog.Errorln("delete user role bindings failed", username, err)
+	}
 
-	return err
+	if err := kubeconfig.DelKubeConfig(username); err != nil {
+		glog.Errorln("delete user kubeconfig failed", username, err)
+	}
+
+	if err := kubectl.DelKubectlDeploy(username); err != nil {
+		glog.Errorln("delete user terminal pod failed", username, err)
+	}
+
+	return nil
 }
 
 func deleteRoleBindings(username string) error {
@@ -684,6 +721,10 @@ func CreateUser(user *models.User) (*models.User, error) {
 
 	if user.AvatarUrl != "" {
 		setAvatar(user.Username, user.AvatarUrl)
+	}
+
+	if err := kubeconfig.CreateKubeConfig(user.Username); err != nil {
+		glog.Errorln("create user kubeconfig failed", user.Username, err)
 	}
 
 	if user.ClusterRole != "" {

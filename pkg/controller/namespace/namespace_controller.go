@@ -45,13 +45,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	adminDescription    = "Allows admin access to perform any action on any resource, it gives full control over every resource in the namespace."
+	operatorDescription = "The maintainer of the namespace who can manage resources other than users and roles in the namespace."
+	viewerDescription   = "Allows viewer access to view all resources in the namespace."
+)
+
 var (
-	log          = logf.Log.WithName("controller")
+	log          = logf.Log.WithName("namespace-controller")
 	defaultRoles = []rbac.Role{
-		{ObjectMeta: metav1.ObjectMeta{Name: "admin"}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "operator"}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
-			{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "resources.kubesphere.io", "autoscaling"}, Resources: []string{"*"}}}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "viewer"}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
+			{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "resources.kubesphere.io", "autoscaling", "alerting.kubesphere.io"}, Resources: []string{"*"}}}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
 	}
 )
 

@@ -22,6 +22,7 @@ const (
 
 	KubeSystemNamespace           = "kube-system"
 	OpenPitrixNamespace           = "openpitrix-system"
+	KubesphereDevOpsNamespace     = "kubesphere-devops-system"
 	IstioNamespace                = "istio-system"
 	KubeSphereMonitoringNamespace = "kubesphere-monitoring-system"
 	KubeSphereLoggingNamespace    = "kubesphere-logging-system"
@@ -35,6 +36,7 @@ const (
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
 	DisplayNameAnnotationKey       = "displayName"
+	DescriptionAnnotationKey       = "desc"
 	CreatorLabelAnnotationKey      = "creator"
 	OpenPitrixRuntimeAnnotationKey = "openpitrix_runtime"
 	WorkspaceAdmin                 = "workspace-admin"
@@ -49,5 +51,5 @@ const (
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
-	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace}
 )

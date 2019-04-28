@@ -19,7 +19,6 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,15 +27,13 @@ import (
 
 // WorkspaceSpec defines the desired state of Workspace
 type WorkspaceSpec struct {
-	Manager string               `json:"manager,omitempty"`
-	Quotas  v1.ResourceQuotaSpec `json:"quotas,omitempty"`
+	Manager string `json:"manager,omitempty"`
 }
 
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Quotas v1.ResourceQuotaStatus `json:"quotas,omitempty"`
 }
 
 // +genclient

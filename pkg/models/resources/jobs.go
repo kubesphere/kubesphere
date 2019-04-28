@@ -21,6 +21,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
@@ -58,6 +59,14 @@ func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 		switch k {
 		case status:
 			if jobStatus(item) != v {
+				return false
+			}
+		case includeCronJob:
+			if v == "false" && k8sutil.IsControlledBy(item.OwnerReferences, cronJobKind, "") {
+				return false
+			}
+		case includeS2iRun:
+			if v == "false" && k8sutil.IsControlledBy(item.OwnerReferences, s2iRunKind, "") {
 				return false
 			}
 		case Name:
