@@ -14,17 +14,20 @@ limitations under the License.
 package metrics
 
 const (
-	ResultTypeVector         = "vector"
-	ResultTypeMatrix         = "matrix"
-	MetricStatus             = "status"
-	MetricStatusError        = "error"
-	MetricStatusSuccess      = "success"
-	ResultItemMetric         = "metric"
-	ResultItemMetricResource = "resource"
-	ResultItemValue          = "value"
-	ResultItemValues         = "values"
-	ResultSortTypeDesc       = "desc"
-	ResultSortTypeAsc        = "asc"
+	ResultTypeVector             = "vector"
+	ResultTypeMatrix             = "matrix"
+	MetricStatus                 = "status"
+	MetricStatusError            = "error"
+	MetricStatusSuccess          = "success"
+	ResultItemMetric             = "metric"
+	ResultItemMetricResource     = "resource"
+	ResultItemMetricResourceName = "resource_name"
+	ResultItemMetricNodeIp       = "node_ip"
+	ResultItemMetricNodeName     = "node_name"
+	ResultItemValue              = "value"
+	ResultItemValues             = "values"
+	ResultSortTypeDesc           = "desc"
+	ResultSortTypeAsc            = "asc"
 )
 
 const (
@@ -86,6 +89,12 @@ const (
 
 const (
 	WorkspaceJoinedKey = "label_kubesphere_io_workspace"
+)
+
+// The metrics need to include extra info out of prometheus
+// eg. add node name info to the etcd_server_list metric
+const (
+	EtcdServerList = "etcd_server_list"
 )
 
 type MetricMap map[string]string
@@ -376,7 +385,7 @@ var ComponentMetricsNames = []string{
 var RulePromQLTmplMap = MetricMap{
 	//cluster
 	"cluster_cpu_utilisation":       ":node_cpu_utilisation:avg1m",
-	"cluster_cpu_usage":             `:node_cpu_utilisation:avg1m * sum(node:node_num_cpu:sum)`,
+	"cluster_cpu_usage":             `round(:node_cpu_utilisation:avg1m * sum(node:node_num_cpu:sum), 0.001)`,
 	"cluster_cpu_total":             "sum(node:node_num_cpu:sum)",
 	"cluster_memory_utilisation":    ":node_memory_utilisation:",
 	"cluster_memory_available":      "sum(node:node_memory_bytes_available:sum)",
@@ -489,7 +498,7 @@ var RulePromQLTmplMap = MetricMap{
 	"node_pod_abnormal_count":  `node:pod_abnormal:count$1`,
 
 	// without log node: unless on(node) kube_node_labels{label_role="log"}
-	"node_cpu_usage": `node:node_cpu_utilisation:avg1m$1 * node:node_num_cpu:sum$1`,
+	"node_cpu_usage": `round(node:node_cpu_utilisation:avg1m$1 * node:node_num_cpu:sum$1, 0.001)`,
 
 	"node_load1":  `node:load1:ratio$1`,
 	"node_load5":  `node:load5:ratio$1`,
@@ -499,7 +508,7 @@ var RulePromQLTmplMap = MetricMap{
 	"node_pod_abnormal_ratio": `node:pod_abnormal:ratio$1`,
 
 	//namespace
-	"namespace_cpu_usage":             `namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_usage":             `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels), 0.001)`,
 	"namespace_memory_usage":          `namespace:container_memory_usage_bytes:sum{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_memory_usage_wo_cache": `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}* on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_net_bytes_transmitted": `sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", namespace=~"$1", pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))* on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
@@ -568,19 +577,19 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_resourcequota_used_ratio": `namespace:resourcequota_used:ratio{namespace!="", namespace=~"$1"}`,
 
 	// pod
-	"pod_cpu_usage":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name!="", pod_name="$2", image!=""}[5m])) by (namespace, pod_name)`,
+	"pod_cpu_usage":             `round(sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name!="", pod_name="$2", image!=""}[5m])) by (namespace, pod_name), 0.001)`,
 	"pod_memory_usage":          `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name!="", pod_name="$2", image!=""}) by (namespace, pod_name)`,
 	"pod_memory_usage_wo_cache": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name!="", pod_name="$2", image!=""} - container_memory_cache{job="kubelet", namespace="$1", pod_name!="", pod_name="$2",image!=""}) by (namespace, pod_name)`,
 	"pod_net_bytes_transmitted": `sum by (namespace, pod_name) (irate(container_network_transmit_bytes_total{namespace="$1", pod_name!="", pod_name="$2", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))`,
 	"pod_net_bytes_received":    `sum by (namespace, pod_name) (irate(container_network_receive_bytes_total{namespace="$1", pod_name!="", pod_name="$2", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))`,
 
-	"pod_cpu_usage_all":             `sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name!="", pod_name=~"$2", image!=""}[5m])) by (namespace, pod_name)`,
+	"pod_cpu_usage_all":             `round(sum(irate(container_cpu_usage_seconds_total{job="kubelet", namespace="$1", pod_name!="", pod_name=~"$2", image!=""}[5m])) by (namespace, pod_name), 0.001)`,
 	"pod_memory_usage_all":          `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name!="", pod_name=~"$2",  image!=""}) by (namespace, pod_name)`,
 	"pod_memory_usage_wo_cache_all": `sum(container_memory_usage_bytes{job="kubelet", namespace="$1", pod_name!="", pod_name=~"$2", image!=""} - container_memory_cache{job="kubelet", namespace="$1", pod_name!="", pod_name=~"$2", image!=""}) by (namespace, pod_name)`,
 	"pod_net_bytes_transmitted_all": `sum by (namespace, pod_name) (irate(container_network_transmit_bytes_total{namespace="$1", pod_name!="", pod_name=~"$2", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))`,
 	"pod_net_bytes_received_all":    `sum by (namespace, pod_name) (irate(container_network_receive_bytes_total{namespace="$1", pod_name!="", pod_name=~"$2", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))`,
 
-	"pod_cpu_usage_node":             `sum by (node, pod_name) (irate(container_cpu_usage_seconds_total{job="kubelet",pod_name!="", pod_name=~"$2", image!=""}[5m]) * on (namespace, pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$3"}, "pod_name", "", "pod", "_name"))`,
+	"pod_cpu_usage_node":             `round(sum by (node, pod_name) (irate(container_cpu_usage_seconds_total{job="kubelet",pod_name!="", pod_name=~"$2", image!=""}[5m]) * on (namespace, pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$3"}, "pod_name", "", "pod", "_name")), 0.001)`,
 	"pod_memory_usage_node":          `sum by (node, pod_name) (container_memory_usage_bytes{job="kubelet",pod_name!="", pod_name=~"$2", image!=""} * on (namespace, pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$3"}, "pod_name", "", "pod", "_name"))`,
 	"pod_memory_usage_wo_cache_node": `sum by (node, pod_name) ((container_memory_usage_bytes{job="kubelet",pod_name!="", pod_name=~"$2", image!=""} - container_memory_cache{job="kubelet",pod_name!="", pod_name=~"$2", image!=""}) * on (namespace, pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$3"}, "pod_name", "", "pod", "_name"))`,
 	"pod_net_bytes_transmitted_node": `sum by (node, pod_name) (irate(container_network_transmit_bytes_total{pod_name!="", pod_name=~"$2", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$3"}, "pod_name", "", "pod", "_name"))`,
@@ -588,7 +597,7 @@ var RulePromQLTmplMap = MetricMap{
 
 	// workload
 	// Join the "container_cpu_usage_seconds_total" metric with "kube_pod_owner" to calculate workload-level resource usage
-	"workload_pod_cpu_usage":             `namespace:workload_cpu_usage:sum{namespace="$2", workload=~"$3"}`,
+	"workload_pod_cpu_usage":             `round(namespace:workload_cpu_usage:sum{namespace="$2", workload=~"$3"}, 0.001)`,
 	"workload_pod_memory_usage":          `namespace:workload_memory_usage:sum{namespace="$2", workload=~"$3"}`,
 	"workload_pod_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{namespace="$2", workload=~"$3"}`,
 	"workload_pod_net_bytes_transmitted": `namespace:workload_net_bytes_transmitted:sum_irate{namespace="$2", workload=~"$3"}`,
@@ -607,20 +616,20 @@ var RulePromQLTmplMap = MetricMap{
 	"workload_statefulset_unavailable_replicas_ratio": `namespace:statefulset_unavailable_replicas:ratio{namespace="$2", statefulset=~"$3"}`,
 
 	// container
-	"container_cpu_usage":             `sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name!="POD", container_name=~"$3"}[5m])) by (namespace, pod_name, container_name)`,
+	"container_cpu_usage":             `round(sum(irate(container_cpu_usage_seconds_total{namespace="$1", pod_name="$2", container_name!="POD", container_name=~"$3"}[5m])) by (namespace, pod_name, container_name), 0.001)`,
 	"container_memory_usage":          `sum(container_memory_usage_bytes{namespace="$1", pod_name="$2",  container_name!="POD", container_name=~"$3"}) by (namespace, pod_name, container_name)`,
 	"container_memory_usage_wo_cache": `container_memory_usage_bytes{namespace="$1", pod_name="$2", container_name!="POD", container_name=~"$3"} - ignoring(id, image, endpoint, instance, job, name, service) container_memory_cache{namespace="$1", pod_name="$2", container_name!="POD", container_name=~"$3"}`,
 	"container_net_bytes_transmitted": `sum(irate(container_network_transmit_bytes_total{job="kubelet", namespace="$1", pod_name="$2", container_name="POD", ` + ExcludedVirtualNetworkInterfaces + `}[5m])) by (namespace, pod_name, container_name)`,
 	"container_net_bytes_received":    `sum(irate(container_network_receive_bytes_total{job="kubelet", namespace="$1", pod_name="$2", container_name="POD", ` + ExcludedVirtualNetworkInterfaces + `}[5m])) by (namespace, pod_name, container_name)`,
 
-	"container_cpu_usage_node":             `sum by (node, pod_name, container_name) (irate(container_cpu_usage_seconds_total{job="kubelet", pod_name="$2", container_name!="POD", container_name!="", container_name=~"$3", image!=""}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
+	"container_cpu_usage_node":             `round(sum by (node, pod_name, container_name) (irate(container_cpu_usage_seconds_total{job="kubelet", pod_name="$2", container_name!="POD", container_name!="", container_name=~"$3", image!=""}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name")), 0.001)`,
 	"container_memory_usage_node":          `sum by (node, pod_name, container_name) (container_memory_usage_bytes{job="kubelet", pod_name="$2", container_name!="POD", container_name!="", container_name=~"$3", image!=""} * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
 	"container_memory_usage_wo_cache_node": `sum by (node, pod_name, container_name) ((container_memory_usage_bytes{job="kubelet", pod_name="$2", container_name!="POD", container_name!="", container_name=~"$3", image!=""} - container_memory_cache{job="kubelet", pod_name="$2", container_name!="POD", container_name!="", container_name=~"$3", image!=""}) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
 	"container_net_bytes_transmitted_node": `sum by (node, pod_name, container_name) (irate(container_network_transmit_bytes_total{job="kubelet", ` + ExcludedVirtualNetworkInterfaces + `, pod_name="$2", container_name="POD", container_name!="", image!=""}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
 	"container_net_bytes_received_node":    `sum by (node, pod_name, container_name) (irate(container_network_receive_bytes_total{job="kubelet", ` + ExcludedVirtualNetworkInterfaces + `, pod_name="$2", container_name="POD", container_name!="", image!=""}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
 
 	// workspace
-	"workspace_cpu_usage":             `sum(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace$1})`,
+	"workspace_cpu_usage":             `round(sum(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace$1}), 0.001)`,
 	"workspace_memory_usage":          `sum(namespace:container_memory_usage_bytes:sum{namespace!="", namespace$1})`,
 	"workspace_memory_usage_wo_cache": `sum(namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace$1})`,
 	"workspace_net_bytes_transmitted": `sum(sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", namespace$1, pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m])))`,
@@ -670,26 +679,26 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_pod_abnormal_ratio": `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1}) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
 
 	// component
-	"etcd_server_list":                           `label_replace(up{job="etcd"}, "ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_list":                           `label_replace(up{job="etcd"}, "node_ip", "$1", "instance", "(.*):.*")`,
 	"etcd_server_total":                          `count(up{job="etcd"})`,
 	"etcd_server_up_total":                       `etcd:up:sum`,
-	"etcd_server_has_leader":                     `etcd_server_has_leader`,
-	"etcd_server_leader_changes":                 `etcd:etcd_server_leader_changes_seen:sum_changes`,
-	"etcd_server_proposals_failed_rate":          `etcd:etcd_server_proposals_failed:sum_irate`,
-	"etcd_server_proposals_applied_rate":         `etcd:etcd_server_proposals_applied:sum_irate`,
-	"etcd_server_proposals_committed_rate":       `etcd:etcd_server_proposals_committed:sum_irate`,
-	"etcd_server_proposals_pending_count":        `etcd:etcd_server_proposals_pending:sum`,
-	"etcd_mvcc_db_size":                          `etcd:etcd_debugging_mvcc_db_total_size:sum`,
-	"etcd_network_client_grpc_received_bytes":    `etcd:etcd_network_client_grpc_received_bytes:sum_irate`,
-	"etcd_network_client_grpc_sent_bytes":        `etcd:etcd_network_client_grpc_sent_bytes:sum_irate`,
-	"etcd_grpc_call_rate":                        `etcd:grpc_server_started:sum_irate`,
-	"etcd_grpc_call_failed_rate":                 `etcd:grpc_server_handled:sum_irate`,
-	"etcd_grpc_server_msg_received_rate":         `etcd:grpc_server_msg_received:sum_irate`,
-	"etcd_grpc_server_msg_sent_rate":             `etcd:grpc_server_msg_sent:sum_irate`,
-	"etcd_disk_wal_fsync_duration":               `etcd:etcd_disk_wal_fsync_duration:avg`,
-	"etcd_disk_wal_fsync_duration_quantile":      `etcd:etcd_disk_wal_fsync_duration:histogram_quantile`,
-	"etcd_disk_backend_commit_duration":          `etcd:etcd_disk_backend_commit_duration:avg`,
-	"etcd_disk_backend_commit_duration_quantile": `etcd:etcd_disk_backend_commit_duration:histogram_quantile`,
+	"etcd_server_has_leader":                     `label_replace(etcd_server_has_leader, "node_ip", "$1", "instance", "(.*):.*")`,
+	"etcd_server_leader_changes":                 `label_replace(etcd:etcd_server_leader_changes_seen:sum_changes, "node_ip", "$1", "node", "(.*)")`,
+	"etcd_server_proposals_failed_rate":          `avg(etcd:etcd_server_proposals_failed:sum_irate)`,
+	"etcd_server_proposals_applied_rate":         `avg(etcd:etcd_server_proposals_applied:sum_irate)`,
+	"etcd_server_proposals_committed_rate":       `avg(etcd:etcd_server_proposals_committed:sum_irate)`,
+	"etcd_server_proposals_pending_count":        `avg(etcd:etcd_server_proposals_pending:sum)`,
+	"etcd_mvcc_db_size":                          `avg(etcd:etcd_debugging_mvcc_db_total_size:sum)`,
+	"etcd_network_client_grpc_received_bytes":    `sum(etcd:etcd_network_client_grpc_received_bytes:sum_irate)`,
+	"etcd_network_client_grpc_sent_bytes":        `sum(etcd:etcd_network_client_grpc_sent_bytes:sum_irate)`,
+	"etcd_grpc_call_rate":                        `sum(etcd:grpc_server_started:sum_irate)`,
+	"etcd_grpc_call_failed_rate":                 `sum(etcd:grpc_server_handled:sum_irate)`,
+	"etcd_grpc_server_msg_received_rate":         `sum(etcd:grpc_server_msg_received:sum_irate)`,
+	"etcd_grpc_server_msg_sent_rate":             `sum(etcd:grpc_server_msg_sent:sum_irate)`,
+	"etcd_disk_wal_fsync_duration":               `avg(etcd:etcd_disk_wal_fsync_duration:avg)`,
+	"etcd_disk_wal_fsync_duration_quantile":      `avg(etcd:etcd_disk_wal_fsync_duration:histogram_quantile) by (quantile)`,
+	"etcd_disk_backend_commit_duration":          `avg(etcd:etcd_disk_backend_commit_duration:avg)`,
+	"etcd_disk_backend_commit_duration_quantile": `avg(etcd:etcd_disk_backend_commit_duration:histogram_quantile) by (quantile)`,
 
 	"apiserver_up_sum":                    `apiserver:up:sum`,
 	"apiserver_request_rate":              `apiserver:apiserver_request_count:sum_irate`,

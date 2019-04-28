@@ -41,14 +41,14 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 		MetricsFilter:   "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
 	}
 
-	rawMetrics := MonitorAllMetrics(&params, MetricLevelNamespace)
+	rawMetrics := GetNamespaceLevelMetrics(&params)
 
 	for _, result := range rawMetrics.Results {
 		for _, data := range result.Data.Result {
-			metricDescMap, ok := data["metric"].(map[string]interface{})
+			metricDescMap, ok := data[ResultItemMetric].(map[string]interface{})
 			if ok {
-				if ns, exist := metricDescMap["resource_name"]; exist {
-					timeAndValue, ok := data["value"].([]interface{})
+				if ns, exist := metricDescMap[ResultItemMetricResourceName]; exist {
+					timeAndValue, ok := data[ResultItemValue].([]interface{})
 					if ok && len(timeAndValue) == 2 {
 						for i := 0; i < len(namespaces); i++ {
 							if namespaces[i].Name == ns {

@@ -89,8 +89,8 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})["resource_name"]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})["resource_name"]
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
 							return resourceName1.(string) < resourceName2.(string)
 						}
 
@@ -105,8 +105,8 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})["resource_name"]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})["resource_name"]
+							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
+							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
 							return resourceName1.(string) > resourceName2.(string)
 						}
 
@@ -116,8 +116,8 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 
 				for _, r := range metricItem.Data.Result {
 					// record the ordering of resource_name to indexMap
-					// example: {"metric":{"resource_name": "Deployment:xxx"},"value":[1541142931.731,"3"]}
-					resourceName, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
+					// example: {"metric":{ResultItemMetricResourceName: "Deployment:xxx"},"value":[1541142931.731,"3"]}
+					resourceName, exist := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
 					if exist {
 						if _, exist := indexMap[resourceName.(string)]; !exist {
 							indexMap[resourceName.(string)] = i
@@ -129,7 +129,7 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 
 			// iterator all metric to find max metricItems length
 			for _, r := range metricItem.Data.Result {
-				k, ok := r[ResultItemMetric].(map[string]interface{})["resource_name"]
+				k, ok := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
 				if ok {
 					currentResourceMap[k.(string)] = 1
 				}
@@ -158,7 +158,7 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 			sortedMetric := make([]map[string]interface{}, len(indexMap))
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
-				k, exist := r[ResultItemMetric].(map[string]interface{})["resource_name"]
+				k, exist := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
 				if exist {
 					index, exist := indexMap[k.(string)]
 					if exist {
@@ -290,9 +290,9 @@ func ReformatJson(metric string, metricsName string, needAddParams map[string]st
 				for n := range needAddParams {
 					if v, ok := metricMap[n]; ok {
 						delete(metricMap, n)
-						metricMap["resource_name"] = v
+						metricMap[ResultItemMetricResourceName] = v
 					} else {
-						metricMap["resource_name"] = needAddParams[n]
+						metricMap[ResultItemMetricResourceName] = needAddParams[n]
 					}
 				}
 			}
