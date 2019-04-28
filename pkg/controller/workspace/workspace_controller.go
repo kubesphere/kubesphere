@@ -21,8 +21,11 @@ package workspace
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -42,7 +45,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller")
+const (
+	workspaceAdminDescription   = "Allows admin access to perform any action on any resource, it gives full control over every resource in the workspace."
+	workspaceRegularDescription = "Normal user in the workspace, can create namespace and DevOps project."
+	workspaceViewerDescription  = "Allows viewer access to view all resources in the workspace."
+)
+
+var log = logf.Log.WithName("workspace-controller")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -158,6 +167,10 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 	//}
 
 	if err = r.createWorkspaceRoleBindings(instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err = r.bindNamespaces(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -442,6 +455,33 @@ func (r *ReconcileWorkspace) createWorkspaceRoleBindings(instance *tenantv1alpha
 	return nil
 }
 
+func (r *ReconcileWorkspace) bindNamespaces(instance *tenantv1alpha1.Workspace) error {
+
+	nsList := &corev1.NamespaceList{}
+	options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: instance.Name})}
+	err := r.List(context.TODO(), &options, nsList)
+
+	if err != nil {
+		log.Error(err, fmt.Sprintf("list workspace %s namespace failed", instance.Name))
+		return err
+	}
+
+	for _, namespace := range nsList.Items {
+		if !metav1.IsControlledBy(&namespace, instance) {
+			if err := controllerutil.SetControllerReference(instance, &namespace, r.scheme); err != nil {
+				return err
+			}
+			log.Info("Bind workspace", "namespace", namespace.Name, "workspace", instance.Name)
+			err = r.Update(context.TODO(), &namespace)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func hasSubject(subjects []rbac.Subject, user rbac.Subject) bool {
 	for _, subject := range subjects {
 		if reflect.DeepEqual(subject, user) {
@@ -477,7 +517,7 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 	admin := &rbac.ClusterRole{}
 	admin.Name = getWorkspaceAdminRoleName(workspaceName)
 	admin.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	admin.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceAdmin}
+	admin.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceAdmin, constants.DescriptionAnnotationKey: workspaceAdminDescription}
 	admin.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"*"},
@@ -499,7 +539,7 @@ func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 	regular := &rbac.ClusterRole{}
 	regular.Name = getWorkspaceRegularRoleName(workspaceName)
 	regular.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	regular.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceRegular}
+	regular.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceRegular, constants.DescriptionAnnotationKey: workspaceRegularDescription}
 	regular.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get"},
@@ -527,7 +567,7 @@ func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 	viewer := &rbac.ClusterRole{}
 	viewer.Name = getWorkspaceViewerRoleName(workspaceName)
 	viewer.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	viewer.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceViewer}
+	viewer.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceViewer, constants.DescriptionAnnotationKey: workspaceViewerDescription}
 	viewer.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get", "list"},

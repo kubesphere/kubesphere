@@ -272,9 +272,7 @@ func (v *JobController) getCurrentRevision(item *batchv1.Job) JobRevision {
 			revision.Status = Failed
 			revision.Reasons = append(revision.Reasons, condition.Reason)
 			revision.Messages = append(revision.Messages, condition.Message)
-		}
-
-		if condition.Type == batchv1.JobComplete && condition.Status == v1.ConditionTrue {
+		} else if condition.Type == batchv1.JobComplete && condition.Status == v1.ConditionTrue {
 			revision.Status = Completed
 		}
 	}

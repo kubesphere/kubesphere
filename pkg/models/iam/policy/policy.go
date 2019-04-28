@@ -60,46 +60,12 @@ var (
 		{Name: "workspaces",
 			Actions: []models.Action{
 				{
-					Name: "create",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"create"},
-							APIGroups: []string{"tenant.kubesphere.io"},
-							Resources: []string{"workspaces"},
-						},
-					},
-				},
-				{
-					Name: "view",
-					Rules: []v1.PolicyRule{
-						{
-							Verbs:     []string{"get", "list"},
-							APIGroups: []string{"tenant.kubesphere.io"},
-							Resources: []string{"workspaces"},
-						},
-					},
-				},
-				{Name: "edit",
+					Name: "manager",
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"*"},
-							APIGroups: []string{"tenant.kubesphere.io", "monitoring.kubesphere.io"},
+							APIGroups: []string{"*"},
 							Resources: []string{"workspaces", "workspaces/*"},
-						},
-						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{""},
-							Resources: []string{"namespaces"},
-						},
-						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{"", "apps", "extensions", "batch", "resources.kubesphere.io"},
-							Resources: []string{"serviceaccounts", "limitranges", "deployments", "configmaps", "secrets", "jobs", "cronjobs", "persistentvolumeclaims", "statefulsets", "daemonsets", "ingresses", "services", "pods/*", "pods", "events", "deployments/scale"},
-						},
-						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{"rbac.authorization.k8s.io"},
-							Resources: []string{"rolebindings", "roles"},
 						},
 					},
 				},
@@ -117,6 +83,32 @@ var (
 						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"resources.kubesphere.io"},
 						Resources: []string{"health"},
+					}},
+				},
+			},
+		},
+		{
+			Name: "alerting",
+			Actions: []models.Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"delete"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
 					}},
 				},
 			},
@@ -209,12 +201,6 @@ var (
 							Verbs:     []string{"get", "watch", "list"},
 							APIGroups: []string{"rbac.authorization.k8s.io"},
 							Resources: []string{"clusterroles"},
-						},
-						{
-							Verbs:         []string{"get", "list"},
-							APIGroups:     []string{"kubesphere.io"},
-							ResourceNames: []string{"cluster-roles"},
-							Resources:     []string{"resources"},
 						},
 						{
 							Verbs:     []string{"get", "list"},
@@ -411,12 +397,12 @@ var (
 				Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get"},
-						APIGroups: []string{""},
+						APIGroups: []string{"*"},
 						Resources: []string{"namespaces"},
 					},
 					{
 						Verbs:     []string{"list"},
-						APIGroups: []string{""},
+						APIGroups: []string{"*"},
 						Resources: []string{"events"},
 					},
 				},
@@ -441,6 +427,49 @@ var (
 			},
 		},
 	},
+		{
+			Name: "monitoring",
+			Actions: []models.Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"monitoring.kubesphere.io"},
+						Resources: []string{"*"},
+					}, {
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"resources.kubesphere.io"},
+						Resources: []string{"health"},
+					}},
+				},
+			},
+		},
+
+		{
+			Name: "alerting",
+			Actions: []models.Action{
+				{Name: "view",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"get", "list"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+				{Name: "create",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+				{Name: "delete",
+					Rules: []v1.PolicyRule{{
+						Verbs:     []string{"delete"},
+						APIGroups: []string{"alerting.kubesphere.io"},
+						Resources: []string{"*"},
+					}},
+				},
+			},
+		},
 		{
 			Name: "members",
 			Actions: []models.Action{
