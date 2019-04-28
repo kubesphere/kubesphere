@@ -19,6 +19,8 @@ package workspaces
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	"github.com/kiali/kiali/log"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
@@ -94,16 +96,24 @@ func InviteUser(workspaceName string, user *models.User) error {
 	workspaceRole, err := iam.GetUserWorkspaceRole(workspaceName, user.Username)
 
 	if err != nil && !apierrors.IsNotFound(err) {
+		glog.Errorf("get workspace role failed: %+v", err)
 		return err
 	}
 
 	workspaceRoleName := fmt.Sprintf("workspace:%s:%s", workspaceName, strings.TrimPrefix(user.WorkspaceRole, "workspace-"))
+	var currentWorkspaceRoleName string
+	if workspaceRole != nil {
+		currentWorkspaceRoleName = workspaceRole.Name
+	}
 
-	if workspaceRole != nil && workspaceRole.Name != workspaceRoleName {
-		err := DeleteWorkspaceRoleBinding(workspaceName, user.Username, user.WorkspaceRole)
+	if currentWorkspaceRoleName != workspaceRoleName && currentWorkspaceRoleName != "" {
+		err := DeleteWorkspaceRoleBinding(workspaceName, user.Username, workspaceRole.Annotations[constants.DisplayNameAnnotationKey])
 		if err != nil {
+			glog.Errorf("delete workspace role binding failed: %+v", err)
 			return err
 		}
+	} else if currentWorkspaceRoleName != "" {
+		return nil
 	}
 
 	return CreateWorkspaceRoleBinding(workspaceName, user.Username, user.WorkspaceRole)
@@ -120,13 +130,18 @@ func CreateWorkspaceRoleBinding(workspace, username string, role string) error {
 	if err != nil {
 		return err
 	}
-	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
+
 	if !k8sutil.ContainsUser(workspaceRoleBinding.Subjects, username) {
+		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
 		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+		if err != nil {
+			log.Errorf("update workspace role binding failed: %+v", err)
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
