@@ -93,13 +93,13 @@ type CredentialResponse struct {
 			Name   string `json:"name,omitempty"`
 			Ranges struct {
 				Ranges []*struct {
-					Start int `json:"start"`
-					End   int `json:"end"`
-				} `json:"ranges"`
-			} `json:"ranges"`
+					Start int `json:"start,omitempty"`
+					End   int `json:"end,omitempty"`
+				} `json:"ranges,omitempty"`
+			} `json:"ranges,omitempty"`
 		} `json:"usage,omitempty"`
 	} `json:"fingerprint,omitempty"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	Domain      string `json:"domain"`
 }
 

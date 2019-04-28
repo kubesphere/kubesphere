@@ -436,10 +436,10 @@ func formatCredentialResponse(
 				Name   string `json:"name,omitempty"`
 				Ranges struct {
 					Ranges []*struct {
-						Start int `json:"start"`
-						End   int `json:"end"`
-					} `json:"ranges"`
-				} `json:"ranges"`
+						Start int `json:"start,omitempty"`
+						End   int `json:"end,omitempty"`
+					} `json:"ranges,omitempty"`
+				} `json:"ranges,omitempty"`
 			} `json:"usage,omitempty"`
 		}{}
 		response.Fingerprint.FileName = jenkinsCredentialResponse.Fingerprint.FileName
