@@ -14,19 +14,20 @@ limitations under the License.
 package metrics
 
 const (
-	ResultTypeVector         = "vector"
-	ResultTypeMatrix         = "matrix"
-	MetricStatus             = "status"
-	MetricStatusError        = "error"
-	MetricStatusSuccess      = "success"
-	ResultItemMetric         = "metric"
-	ResultItemMetricResource = "resource"
-	ResultItemMetricNodeIp   = "node_ip"
-	ResultItemMetricNodeName = "node_name"
-	ResultItemValue          = "value"
-	ResultItemValues         = "values"
-	ResultSortTypeDesc       = "desc"
-	ResultSortTypeAsc        = "asc"
+	ResultTypeVector             = "vector"
+	ResultTypeMatrix             = "matrix"
+	MetricStatus                 = "status"
+	MetricStatusError            = "error"
+	MetricStatusSuccess          = "success"
+	ResultItemMetric             = "metric"
+	ResultItemMetricResource     = "resource"
+	ResultItemMetricResourceName = "resource_name"
+	ResultItemMetricNodeIp       = "node_ip"
+	ResultItemMetricNodeName     = "node_name"
+	ResultItemValue              = "value"
+	ResultItemValues             = "values"
+	ResultSortTypeDesc           = "desc"
+	ResultSortTypeAsc            = "asc"
 )
 
 const (
@@ -88,6 +89,12 @@ const (
 
 const (
 	WorkspaceJoinedKey = "label_kubesphere_io_workspace"
+)
+
+// The metrics need to include extra info out of prometheus
+// eg. add node name info to the etcd_server_list metric
+const (
+	EtcdServerList = "etcd_server_list"
 )
 
 type MetricMap map[string]string
