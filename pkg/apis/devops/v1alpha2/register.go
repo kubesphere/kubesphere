@@ -329,7 +329,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.QueuedBlueRun{}))
 
 	// match /crumbIssuer/api/json/
-	webservice.Route(webservice.GET("/devops/crumbIssuer").
+	webservice.Route(webservice.GET("/devops/crumbissuer").
 		To(devopsapi.GetCrumb).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get crumb").
