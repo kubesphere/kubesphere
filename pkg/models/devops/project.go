@@ -34,12 +34,12 @@ const (
 type DevOpsProject struct {
 	ProjectId   string    `json:"project_id" db:"project_id"`
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	Description string    `json:"description,omitempty"`
 	Creator     string    `json:"creator"`
 	CreateTime  time.Time `json:"create_time"`
 	Status      string    `json:"status"`
-	Visibility  string    `json:"visibility"`
-	Extra       string    `json:"extra"`
+	Visibility  string    `json:"visibility,omitempty"`
+	Extra       string    `json:"extra,omitempty"`
 	Workspace   string    `json:"workspace"`
 }
 

@@ -54,31 +54,31 @@ type SonarStatus struct {
 
 type ProjectPipeline struct {
 	Type                string               `json:"type"`
-	Pipeline            *NoScmPipeline       `json:"pipeline"`
-	MultiBranchPipeline *MultiBranchPipeline `json:"multi_branch_pipeline"`
+	Pipeline            *NoScmPipeline       `json:"pipeline,omitempty"`
+	MultiBranchPipeline *MultiBranchPipeline `json:"multi_branch_pipeline,omitempty"`
 }
 
 type NoScmPipeline struct {
 	Name              string             `json:"name"`
-	Description       string             `json:"description"`
-	Discarder         *DiscarderProperty `json:"discarder"`
-	Parameters        []*Parameter       `json:"parameters"`
-	DisableConcurrent bool               `json:"disable_concurrent" mapstructure:"disable_concurrent"`
-	TimerTrigger      *TimerTrigger      `json:"timer_trigger" mapstructure:"timer_trigger"`
-	RemoteTrigger     *RemoteTrigger     `json:"remote_trigger" mapstructure:"remote_trigger"`
-	Jenkinsfile       string             `json:"jenkinsfile"`
+	Description       string             `json:"descriptio,omitempty"`
+	Discarder         *DiscarderProperty `json:"discarder,omitempty"`
+	Parameters        []*Parameter       `json:"parameters,omitempty"`
+	DisableConcurrent bool               `json:"disable_concurrent,omitempty" mapstructure:"disable_concurrent"`
+	TimerTrigger      *TimerTrigger      `json:"timer_trigger,omitempty" mapstructure:"timer_trigger"`
+	RemoteTrigger     *RemoteTrigger     `json:"remote_trigger,omitempty" mapstructure:"remote_trigger"`
+	Jenkinsfile       string             `json:"jenkinsfile,omitempty"`
 }
 
 type MultiBranchPipeline struct {
 	Name            string             `json:"name"`
-	Description     string             `json:"description"`
-	Discarder       *DiscarderProperty `json:"discarder"`
-	TimerTrigger    *TimerTrigger      `json:"timer_trigger" mapstructure:"timer_trigger"`
+	Description     string             `json:"description,omitempty"`
+	Discarder       *DiscarderProperty `json:"discarder,omitempty"`
+	TimerTrigger    *TimerTrigger      `json:"timer_trigger,omitempty" mapstructure:"timer_trigger"`
 	SourceType      string             `json:"source_type"`
-	GitSource       *GitSource         `json:"git_source"`
-	GitHubSource    *GithubSource      `json:"github_source"`
-	SvnSource       *SvnSource         `json:"svn_source"`
-	SingleSvnSource *SingleSvnSource   `json:"single_svn_source"`
+	GitSource       *GitSource         `json:"git_source,omitempty"`
+	GitHubSource    *GithubSource      `json:"github_source,omitempty"`
+	SvnSource       *SvnSource         `json:"svn_source,omitempty"`
+	SingleSvnSource *SingleSvnSource   `json:"single_svn_source,omitempty"`
 	ScriptPath      string             `json:"script_path" mapstructure:"script_path"`
 }
 
@@ -103,7 +103,7 @@ type GithubSource struct {
 }
 
 type GitCloneOption struct {
-	Shallow bool `json:"shallow" mapstructure:"shallow"`
+	Shallow bool `json:"shallow,omitempty" mapstructure:"shallow"`
 	Timeout int  `json:"timeout,omitempty" mapstructure:"timeout"`
 	Depth   int  `json:"depth,omitempty" mapstructure:"depth"`
 }
@@ -119,28 +119,21 @@ type SingleSvnSource struct {
 	CredentialId string `json:"credential_id,omitempty" mapstructure:"credential_id"`
 }
 
-type ScmInfo struct {
-	Type   string `json:"type"`
-	Repo   string `json:"repo"`
-	ApiUri string `json:"api_uri,omitempty"`
-	Path   string `json:"path"`
-}
-
 type GithubDiscoverPRFromForks struct {
-	Strategy int `json:"strategy" mapstructure:"strategy"`
-	Trust    int `json:"trust" mapstructure:"trust"`
+	Strategy int `json:"strategy,omitempty" mapstructure:"strategy"`
+	Trust    int `json:"trust,omitempty" mapstructure:"trust"`
 }
 
 type DiscarderProperty struct {
-	DaysToKeep string `json:"days_to_keep" mapstructure:"days_to_keep"`
-	NumToKeep  string `json:"num_to_keep" mapstructure:"num_to_keep"`
+	DaysToKeep string `json:"days_to_keep,omitempty" mapstructure:"days_to_keep"`
+	NumToKeep  string `json:"num_to_keep,omitempty" mapstructure:"num_to_keep"`
 }
 
 type Parameter struct {
 	Name         string `json:"name"`
 	DefaultValue string `json:"default_value,omitempty" mapstructure:"default_value"`
 	Type         string `json:"type"`
-	Description  string `json:"description"`
+	Description  string `json:"description,omitempty"`
 }
 
 type TimerTrigger struct {
@@ -152,7 +145,7 @@ type TimerTrigger struct {
 }
 
 type RemoteTrigger struct {
-	Token string `json:"token"`
+	Token string `json:"token,omitempty"`
 }
 
 func replaceXmlVersion(config, oldVersion, targetVersion string) string {

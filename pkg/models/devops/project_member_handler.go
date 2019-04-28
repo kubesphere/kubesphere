@@ -106,15 +106,16 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, member.Username),
 			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
-	if err != nil && err != db.ErrNotFound {
-		glog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
-	}
 	// if user could be founded in db, user have been added to project
-	if err != db.ErrNotFound {
+	if err == nil {
 		err = fmt.Errorf("user [%s] have been added to project", member.Username)
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	if err != nil && err != db.ErrNotFound {
+		glog.Errorf("%+v", err)
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	globalRole, err := jenkinsClinet.GetGlobalRole(JenkinsAllUserRoleName)
