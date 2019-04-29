@@ -62,7 +62,7 @@ type initUser struct {
 }
 
 const (
-	userInitFile = "/Users/hongming/users.json"
+	userInitFile = "/etc/ks-iam/users.json"
 )
 
 func Init(email, password string, t time.Duration) error {
