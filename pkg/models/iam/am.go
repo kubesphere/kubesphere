@@ -481,10 +481,13 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 		return nil, err
 	}
 
-	if workspacesManager, err := policy.GetClusterAction("workspaces", "edit"); err == nil {
-		if rulesMatchesAction(clusterRules, workspacesManager) {
-			return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
-		}
+	// workspace manager
+	if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
+		Verbs:     []string{"*"},
+		APIGroups: []string{"*"},
+		Resources: []string{"workspaces", "workspaces/*"},
+	}) {
+		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
 	}
 
 	workspaceRole, err := GetUserWorkspaceRole(workspace, username)

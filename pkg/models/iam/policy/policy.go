@@ -20,7 +20,6 @@ package policy
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 
 	"kubesphere.io/kubesphere/pkg/models"
@@ -60,7 +59,7 @@ var (
 		{Name: "workspaces",
 			Actions: []models.Action{
 				{
-					Name: "manager",
+					Name: "manage",
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"*"},
@@ -1084,16 +1083,3 @@ var (
 		},
 	}
 )
-
-func GetClusterAction(module, action string) (models.Action, error) {
-	for _, rule := range ClusterRoleRuleMapping {
-		if rule.Name == module {
-			for _, act := range rule.Actions {
-				if act.Name == action {
-					return act, nil
-				}
-			}
-		}
-	}
-	return models.Action{}, fmt.Errorf("not found")
-}
