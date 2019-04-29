@@ -132,7 +132,7 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 	// hard code, support jenkins auth plugin
 	if httpserver.Path(req.URL.Path).Matches("/kapis/jenkins.kubesphere.io") ||
 		httpserver.Path(req.URL.Path).Matches("job") ||
-		httpserver.Path(req.URL.Path).Matches("/kapi/devops.kubesphere.io/v1alpha2") {
+		httpserver.Path(req.URL.Path).Matches("/kapis/devops.kubesphere.io/v1alpha2") {
 		req.SetBasicAuth(username, token.Raw)
 	}
 
