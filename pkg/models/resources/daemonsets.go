@@ -38,11 +38,11 @@ func (*daemonSetSearcher) get(namespace, name string) (interface{}, error) {
 
 func daemonSetStatus(item *v1.DaemonSet) string {
 	if item.Status.NumberAvailable == 0 {
-		return stopped
+		return StatusStopped
 	} else if item.Status.DesiredNumberScheduled == item.Status.NumberAvailable {
-		return running
+		return StatusRunning
 	} else {
-		return updating
+		return StatusUpdating
 	}
 }
 
@@ -50,7 +50,7 @@ func daemonSetStatus(item *v1.DaemonSet) string {
 func (*daemonSetSearcher) match(match map[string]string, item *v1.DaemonSet) bool {
 	for k, v := range match {
 		switch k {
-		case status:
+		case Status:
 			if daemonSetStatus(item) != v {
 				return false
 			}

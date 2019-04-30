@@ -39,14 +39,14 @@ func (*statefulSetSearcher) get(namespace, name string) (interface{}, error) {
 func statefulSetStatus(item *v1.StatefulSet) string {
 	if item.Spec.Replicas != nil {
 		if item.Status.ReadyReplicas == 0 && *item.Spec.Replicas == 0 {
-			return stopped
+			return StatusStopped
 		} else if item.Status.ReadyReplicas == *item.Spec.Replicas {
-			return running
+			return StatusRunning
 		} else {
-			return updating
+			return StatusUpdating
 		}
 	}
-	return stopped
+	return StatusStopped
 }
 
 // Exactly Match
@@ -62,7 +62,7 @@ func (*statefulSetSearcher) match(match map[string]string, item *v1.StatefulSet)
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
-		case status:
+		case Status:
 			if statefulSetStatus(item) != v {
 				return false
 			}

@@ -28,7 +28,6 @@ import (
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -40,15 +39,13 @@ func (*jobSearcher) get(namespace, name string) (interface{}, error) {
 }
 
 func jobStatus(item *batchv1.Job) string {
-	status := ""
-
-	for _, condition := range item.Status.Conditions {
-		if condition.Type == batchv1.JobFailed && condition.Status == corev1.ConditionTrue {
-			status = failed
-		}
-		if condition.Type == batchv1.JobComplete && condition.Status == corev1.ConditionTrue {
-			status = complete
-		}
+	status := StatusFailed
+	if item.Status.Active > 0 {
+		status = StatusRunning
+	} else if item.Status.Failed > 0 {
+		status = StatusFailed
+	} else if item.Status.Succeeded > 0 {
+		status = StatusComplete
 	}
 	return status
 }
@@ -57,7 +54,7 @@ func jobStatus(item *batchv1.Job) string {
 func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 	for k, v := range match {
 		switch k {
-		case status:
+		case Status:
 			if jobStatus(item) != v {
 				return false
 			}
