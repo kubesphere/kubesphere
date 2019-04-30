@@ -18,6 +18,7 @@
 package devops
 
 import (
+	"encoding/json"
 	"github.com/emicklei/go-restful"
 	log "github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
@@ -34,7 +35,8 @@ func GetPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func SearchPipelines(req *restful.Request, resp *restful.Response) {
@@ -44,7 +46,8 @@ func SearchPipelines(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
@@ -57,37 +60,40 @@ func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
-func GetPipelineRun(req *restful.Request, resp *restful.Response) {
+func GetPipeBranchRun(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetPipelineRun(projectName, pipelineName, branchName, runId, req.Request)
+	res, err := devops.GetPipeBranchRun(projectName, pipelineName, branchName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
-func GetPipelineRunNodes(req *restful.Request, resp *restful.Response) {
+func GetBranchPipeRunNodes(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetPipelineRunNodes(projectName, pipelineName, branchName, runId, req.Request)
+	res, err := devops.GetBranchPipeRunNodes(projectName, pipelineName, branchName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetStepLog(req *restful.Request, resp *restful.Response) {
@@ -103,7 +109,7 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-	_, _ = resp.Write(res)
+	resp.Write(res)
 }
 
 func Validate(req *restful.Request, resp *restful.Response) {
@@ -115,7 +121,8 @@ func Validate(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_, _ = resp.Write(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetSCMOrg(req *restful.Request, resp *restful.Response) {
@@ -127,7 +134,8 @@ func GetSCMOrg(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetOrgRepo(req *restful.Request, resp *restful.Response) {
@@ -140,7 +148,8 @@ func GetOrgRepo(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func StopPipeline(req *restful.Request, resp *restful.Response) {
@@ -155,7 +164,8 @@ func StopPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func ReplayPipeline(req *restful.Request, resp *restful.Response) {
@@ -170,7 +180,8 @@ func ReplayPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetRunLog(req *restful.Request, resp *restful.Response) {
@@ -185,7 +196,7 @@ func GetRunLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_, _ = resp.Write(res)
+	resp.Write(res)
 }
 
 func GetArtifacts(req *restful.Request, resp *restful.Response) {
@@ -199,8 +210,8 @@ func GetArtifacts(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetPipeBranch(req *restful.Request, resp *restful.Response) {
@@ -212,8 +223,8 @@ func GetPipeBranch(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func CheckPipeline(req *restful.Request, resp *restful.Response) {
@@ -230,7 +241,7 @@ func CheckPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_, _ = resp.Write(res)
+	resp.Write(res)
 }
 
 func GetConsoleLog(req *restful.Request, resp *restful.Response) {
@@ -243,7 +254,7 @@ func GetConsoleLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_, _ = resp.Write(res)
+	resp.Write(res)
 }
 
 func ScanBranch(req *restful.Request, resp *restful.Response) {
@@ -256,7 +267,7 @@ func ScanBranch(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_, _ = resp.Write(res)
+	resp.Write(res)
 }
 
 func RunPipeline(req *restful.Request, resp *restful.Response) {
@@ -270,7 +281,8 @@ func RunPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetStepsStatus(req *restful.Request, resp *restful.Response) {
@@ -286,26 +298,144 @@ func GetStepsStatus(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func GetCrumb(req *restful.Request, resp *restful.Response) {
-
 	res, err := devops.GetCrumb(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
-	_ = resp.WriteAsJson(res)
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func CheckScriptCompile(req *restful.Request, resp *restful.Response) {
+	resBody, err := devops.CheckScriptCompile(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	// Jenkins will return different struct according to different results.
+	var resJson = new(devops.CheckScript)
+	if ok := json.Unmarshal(resBody, &resJson); ok != nil {
+		var resJson []interface{}
+		err := json.Unmarshal(resBody, &resJson)
+		if err != nil {
+			resp.WriteError(http.StatusInternalServerError, err)
+			return
+		}
+		resp.WriteAsJson(resJson[0])
+		return
+
+	}
+
+	resp.WriteAsJson(resJson)
+}
+
+func CheckCron(req *restful.Request, resp *restful.Response) {
+	res, err := devops.CheckCron(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.WriteAsJson(res)
+}
+
+func GetPipelineRun(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.GetPipelineRun(projectName, pipelineName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func GetBranchPipe(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+
+	res, err := devops.GetBranchPipe(projectName, pipelineName, branchName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func GetPipeRunNodes(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	runId := req.PathParameter("runId")
+
+	res, err := devops.GetPipeRunNodes(projectName, pipelineName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func GetNodeSteps(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+	branchName := req.PathParameter("branchName")
+	runId := req.PathParameter("runId")
+	nodeId := req.PathParameter("nodeId")
+
+	res, err := devops.GetNodeSteps(projectName, pipelineName, branchName, runId, nodeId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func ToJenkinsfile(req *restful.Request, resp *restful.Response) {
+
+	res, err := devops.ToJenkinsfile(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
+}
+
+func ToJson(req *restful.Request, resp *restful.Response) {
+
+	res, err := devops.ToJson(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Write(res)
 }
 
 func parseErr(err error, resp *restful.Response) {
 	log.Error(err)
 	if jErr, ok := err.(*devops.JkError); ok {
-		_ = resp.WriteError(jErr.Code, err)
+		resp.WriteError(jErr.Code, err)
 	} else {
-		_ = resp.WriteError(http.StatusInternalServerError, err)
+		resp.WriteError(http.StatusInternalServerError, err)
 	}
 	return
 }

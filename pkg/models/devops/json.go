@@ -84,8 +84,8 @@ type Pipeline struct {
 	TotalNumberOfPullRequests int `json:"totalNumberOfPullRequests"`
 }
 
-// GetPipelineRun & SearchPipelineRuns
-type PipelineRun struct {
+// GetPipeBranchRun & SearchPipelineRuns
+type PipeBranchRun struct {
 	Class string `json:"_class"`
 	Links struct {
 		PrevRun struct {
@@ -168,8 +168,8 @@ type PipelineRun struct {
 	PullRequest interface{} `json:"pullRequest"`
 }
 
-// GetPipelineRunNodes
-type Nodes []struct {
+// GetBranchPipeRunNodes
+type BranchPipeRunNodes struct {
 	Class string `json:"_class"`
 	Links struct {
 		Self struct {
@@ -716,11 +716,12 @@ type NodeStatus []struct {
 
 // CheckPipeline
 type CheckPlayload struct {
-	ID         string `json:"id"`
+	ID         string `json:"id,omitempty"`
 	Parameters []struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-	} `json:"parameters"`
+		Name  string `json:"name,omitempty"`
+		Value string `json:"value,omitempty"`
+	} `json:"parameters,omitempty"`
+	Abort bool `json:"abort,omitempty"`
 }
 
 // Getcrumb
@@ -728,4 +729,330 @@ type Crumb struct {
 	Class             string `json:"_class"`
 	Crumb             string `json:"crumb"`
 	CrumbRequestField string `json:"crumbRequestField"`
+}
+
+// CheckScriptCompile
+type CheckScript struct {
+	Column  int    `json:"column"`
+	Line    int    `json:"line"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
+// CheckCron
+type CheckCronRes struct {
+	Result  string `json:"result"`
+	Message string `json:"message"`
+}
+
+// GetPipelineRun
+type PipelineRun struct {
+	Class string `json:"_class"`
+	Links struct {
+		PrevRun struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"prevRun"`
+		Parent struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"parent"`
+		Tests struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"tests"`
+		Nodes struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"nodes"`
+		Log struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"log"`
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		BlueTestSummary struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"blueTestSummary"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Steps struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"steps"`
+		Artifacts struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"artifacts"`
+	} `json:"_links"`
+	Actions          []interface{} `json:"actions"`
+	ArtifactsZipFile interface{}   `json:"artifactsZipFile"`
+	CauseOfBlockage  interface{}   `json:"causeOfBlockage"`
+	Causes           []struct {
+		Class            string `json:"_class"`
+		ShortDescription string `json:"shortDescription"`
+		UserID           string `json:"userId"`
+		UserName         string `json:"userName"`
+	} `json:"causes"`
+	ChangeSet                 []interface{} `json:"changeSet"`
+	Description               interface{}   `json:"description"`
+	DurationInMillis          int           `json:"durationInMillis"`
+	EnQueueTime               string        `json:"enQueueTime"`
+	EndTime                   string        `json:"endTime"`
+	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis"`
+	ID                        string        `json:"id"`
+	Name                      interface{}   `json:"name"`
+	Organization              string        `json:"organization"`
+	Pipeline                  string        `json:"pipeline"`
+	Replayable                bool          `json:"replayable"`
+	Result                    string        `json:"result"`
+	RunSummary                string        `json:"runSummary"`
+	StartTime                 string        `json:"startTime"`
+	State                     string        `json:"state"`
+	Type                      string        `json:"type"`
+	Branch                    interface{}   `json:"branch"`
+	CommitID                  interface{}   `json:"commitId"`
+	CommitURL                 interface{}   `json:"commitUrl"`
+	PullRequest               interface{}   `json:"pullRequest"`
+}
+
+// GetBranchPipeRun
+type BranchPipe struct {
+	Class string `json:"_class"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		Scm struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"scm"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Runs struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"runs"`
+		Trends struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"trends"`
+		Queue struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"queue"`
+	} `json:"_links"`
+	Actions                   []interface{} `json:"actions"`
+	Disabled                  bool          `json:"disabled"`
+	DisplayName               string        `json:"displayName"`
+	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis"`
+	FullDisplayName           string        `json:"fullDisplayName"`
+	FullName                  string        `json:"fullName"`
+	LatestRun                 struct {
+		Class string `json:"_class"`
+		Links struct {
+			PrevRun struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"prevRun"`
+			Parent struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"parent"`
+			Tests struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"tests"`
+			Log struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"log"`
+			Self struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"self"`
+			BlueTestSummary struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"blueTestSummary"`
+			Actions struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"actions"`
+			Artifacts struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"artifacts"`
+		} `json:"_links"`
+		Actions          []interface{} `json:"actions"`
+		ArtifactsZipFile string        `json:"artifactsZipFile"`
+		CauseOfBlockage  interface{}   `json:"causeOfBlockage"`
+		Causes           []struct {
+			Class            string `json:"_class"`
+			ShortDescription string `json:"shortDescription"`
+			UserID           string `json:"userId"`
+			UserName         string `json:"userName"`
+		} `json:"causes"`
+		ChangeSet                 []interface{} `json:"changeSet"`
+		Description               interface{}   `json:"description"`
+		DurationInMillis          int           `json:"durationInMillis"`
+		EnQueueTime               string        `json:"enQueueTime"`
+		EndTime                   string        `json:"endTime"`
+		EstimatedDurationInMillis int           `json:"estimatedDurationInMillis"`
+		ID                        string        `json:"id"`
+		Name                      interface{}   `json:"name"`
+		Organization              string        `json:"organization"`
+		Pipeline                  string        `json:"pipeline"`
+		Replayable                bool          `json:"replayable"`
+		Result                    string        `json:"result"`
+		RunSummary                string        `json:"runSummary"`
+		StartTime                 string        `json:"startTime"`
+		State                     string        `json:"state"`
+		Type                      string        `json:"type"`
+	} `json:"latestRun"`
+	Name         string `json:"name"`
+	Organization string `json:"organization"`
+	Parameters   []struct {
+		Class                 string `json:"_class"`
+		DefaultParameterValue struct {
+			Class string `json:"_class"`
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		} `json:"defaultParameterValue"`
+		Description string `json:"description"`
+		Name        string `json:"name"`
+		Type        string `json:"type"`
+	} `json:"parameters"`
+	Permissions struct {
+		Create    bool `json:"create"`
+		Configure bool `json:"configure"`
+		Read      bool `json:"read"`
+		Start     bool `json:"start"`
+		Stop      bool `json:"stop"`
+	} `json:"permissions"`
+	WeatherScore int `json:"weatherScore"`
+	Branch       struct {
+		IsPrimary bool          `json:"isPrimary"`
+		Issues    []interface{} `json:"issues"`
+		URL       string        `json:"url"`
+	} `json:"branch"`
+}
+
+// GetPipeRunNodes
+type PipeRunNodes []struct {
+	Class string `json:"_class"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+		Steps struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"steps"`
+	} `json:"_links"`
+	Actions            []interface{} `json:"actions"`
+	DisplayDescription interface{}   `json:"displayDescription"`
+	DisplayName        string        `json:"displayName"`
+	DurationInMillis   int           `json:"durationInMillis"`
+	ID                 string        `json:"id"`
+	Input              interface{}   `json:"input"`
+	Result             string        `json:"result"`
+	StartTime          string        `json:"startTime"`
+	State              string        `json:"state"`
+	Type               string        `json:"type"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage"`
+	Edges              []interface{} `json:"edges"`
+	FirstParent        interface{}   `json:"firstParent"`
+	Restartable        bool          `json:"restartable"`
+}
+
+// GetNodeSteps
+type NodeSteps []struct {
+	Class string `json:"_class"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"self"`
+		Actions struct {
+			Class string `json:"_class"`
+			Href  string `json:"href"`
+		} `json:"actions"`
+	} `json:"_links"`
+	Actions []struct {
+		Class string `json:"_class"`
+		Links struct {
+			Self struct {
+				Class string `json:"_class"`
+				Href  string `json:"href"`
+			} `json:"self"`
+		} `json:"_links"`
+		URLName string `json:"urlName"`
+	} `json:"actions"`
+	DisplayDescription string      `json:"displayDescription"`
+	DisplayName        string      `json:"displayName"`
+	DurationInMillis   int         `json:"durationInMillis"`
+	ID                 string      `json:"id"`
+	Input              interface{} `json:"input"`
+	Result             string      `json:"result"`
+	StartTime          string      `json:"startTime"`
+	State              string      `json:"state"`
+	Type               string      `json:"type"`
+}
+
+// ToJenkinsfile requests
+type ReqJson struct {
+	Json string `json:"json"`
+}
+
+// ToJenkinsfile response
+type ResJenkinsfile struct {
+	Status string `json:"status,omitempty"`
+	Data   struct {
+		Result      string `json:"result,omitempty"`
+		Jenkinsfile string `json:"jenkinsfile,omitempty"`
+		Errors      []struct {
+			Location []string `json:"location,omitempty"`
+			Error    string   `json:"error,omitempty"`
+		} `json:"errors,omitempty"`
+	} `json:"data,omitempty"`
+}
+
+type ReqJenkinsfile struct {
+	Jenkinsfile string `json:"jenkinsfile"`
+}
+
+type ResJson struct {
+	Status string `json:"status,omitempty"`
+	Data   struct {
+		Result string `json:"result,omitempty"`
+		JSON   struct {
+			Pipeline struct {
+				Stages []interface{} `json:"stages,omitempty"`
+				Agent  struct {
+					Type      string `json:"type,omitempty"`
+					Arguments []struct {
+						Key   string `json:"key,omitempty"`
+						Value struct {
+							IsLiteral bool   `json:"isLiteral,omitempty"`
+							Value     string `json:"value,omitempty"`
+						} `json:"value,omitempty"`
+					} `json:"arguments,omitempty"`
+				} `json:"agent,omitempty"`
+			} `json:"pipeline,omitempty"`
+		} `json:"json,omitempty"`
+	} `json:"data,omitempty"`
 }
