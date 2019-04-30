@@ -51,6 +51,7 @@ func init() {
 }
 
 var (
+	injector         = extraAnnotationInjector{}
 	resources        = make(map[string]resourceSearchInterface)
 	clusterResources = []string{Nodes, Workspaces, Namespaces, ClusterRoles, StorageClasses, S2iBuilderTemplates}
 )
@@ -67,17 +68,20 @@ const (
 	release                = "release"
 	annotation             = "annotation"
 	Keyword                = "keyword"
-	status                 = "status"
+	Status                 = "status"
 	includeCronJob         = "includeCronJob"
 	cronJobKind            = "CronJob"
 	s2iRunKind             = "S2iRun"
 	includeS2iRun          = "includeS2iRun"
-	running                = "running"
-	paused                 = "paused"
-	updating               = "updating"
-	stopped                = "stopped"
-	failed                 = "failed"
-	complete               = "complete"
+	StatusRunning          = "running"
+	StatusPaused           = "paused"
+	StatusPending          = "pending"
+	StatusUpdating         = "updating"
+	StatusStopped          = "stopped"
+	StatusFailed           = "failed"
+	StatusBound            = "bound"
+	StatusLost             = "lost"
+	StatusComplete         = "complete"
 	app                    = "app"
 	Deployments            = "deployments"
 	DaemonSets             = "daemonsets"
@@ -142,9 +146,9 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 		return nil, err
 	}
 
-	for i, d := range result {
+	for i, item := range result {
 		if i >= offset && (limit == -1 || len(items) < limit) {
-			items = append(items, d)
+			items = append(items, injector.addExtraAnnotations(item))
 		}
 	}
 

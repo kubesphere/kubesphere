@@ -39,9 +39,9 @@ func (*cronJobSearcher) get(namespace, name string) (interface{}, error) {
 
 func cronJobStatus(item *v1beta1.CronJob) string {
 	if item.Spec.Suspend != nil && *item.Spec.Suspend {
-		return paused
+		return StatusPaused
 	}
-	return running
+	return StatusRunning
 }
 
 // Exactly Match
@@ -53,7 +53,7 @@ func (*cronJobSearcher) match(match map[string]string, item *v1beta1.CronJob) bo
 			if !sliceutil.HasString(names, item.Name) {
 				return false
 			}
-		case status:
+		case Status:
 			if cronJobStatus(item) != v {
 				return false
 			}

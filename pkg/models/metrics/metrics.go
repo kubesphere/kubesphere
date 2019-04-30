@@ -21,6 +21,7 @@ package metrics
 import (
 	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"net/url"
 	"regexp"
 	"runtime/debug"
@@ -1009,11 +1010,11 @@ func GetAllWorkspacesStatistics() *FormatedLevelMetric {
 	}()
 
 	go func() {
-		actNums, errAct := workspaces.GetAllAccountNums()
+		result, errAct := kubesphere.Client().ListUsers()
 		if errAct != nil {
 			glog.Errorln(errAct.Error())
 		}
-		accountResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllAccountCount, WorkspaceResourceKindAccount, actNums, errAct)
+		accountResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllAccountCount, WorkspaceResourceKindAccount, result.TotalCount, errAct)
 		wg.Done()
 	}()
 

@@ -48,7 +48,7 @@ func (*s2iRunSearcher) match(match map[string]string, item *v1alpha1.S2iRun) boo
 			if !sliceutil.HasString(names, item.Name) {
 				return false
 			}
-		case status:
+		case Status:
 			if string(item.Status.RunState) != v {
 				return false
 			}

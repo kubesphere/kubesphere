@@ -36,6 +36,18 @@ func (*persistentVolumeClaimSearcher) get(namespace, name string) (interface{}, 
 	return informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).Get(name)
 }
 
+func pvcStatus(item *v1.PersistentVolumeClaim) string {
+	status := StatusPending
+	if item.Status.Phase == v1.ClaimPending {
+		status = StatusPending
+	} else if item.Status.Phase == v1.ClaimBound {
+		status = StatusBound
+	} else if item.Status.Phase == v1.ClaimLost {
+		status = StatusLost
+	}
+	return status
+}
+
 // exactly Match
 func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.PersistentVolumeClaim) bool {
 	for k, v := range match {
@@ -43,6 +55,11 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 		case Name:
 			names := strings.Split(v, "|")
 			if !sliceutil.HasString(names, item.Name) {
+				return false
+			}
+		case Status:
+			statuses := strings.Split(v, "|")
+			if !sliceutil.HasString(statuses, pvcStatus(item)) {
 				return false
 			}
 		case Keyword:

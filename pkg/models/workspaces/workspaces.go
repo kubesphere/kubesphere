@@ -249,11 +249,3 @@ func GetAllDevOpsProjectsNums() (int, error) {
 	}
 	return len(devOpsProjects), nil
 }
-
-func GetAllAccountNums() (int, error) {
-	users, err := iam.ListUsers(&params.Conditions{}, "", false, 1, 0)
-	if err != nil {
-		return 0, err
-	}
-	return users.TotalCount, nil
-}
