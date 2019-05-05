@@ -64,13 +64,13 @@ func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func GetPipeBranchRun(req *restful.Request, resp *restful.Response) {
+func GetBranchPipelineRun(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetPipeBranchRun(projectName, pipelineName, branchName, runId, req.Request)
+	res, err := devops.GetBranchPipelineRun(projectName, pipelineName, branchName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -80,13 +80,13 @@ func GetPipeBranchRun(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func GetBranchPipeRunNodes(req *restful.Request, resp *restful.Response) {
+func GetBranchPipelineRunNodes(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetBranchPipeRunNodes(projectName, pipelineName, branchName, runId, req.Request)
+	res, err := devops.GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -363,12 +363,12 @@ func GetPipelineRun(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func GetBranchPipe(req *restful.Request, resp *restful.Response) {
+func GetBranchPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 
-	res, err := devops.GetBranchPipe(projectName, pipelineName, branchName, req.Request)
+	res, err := devops.GetBranchPipeline(projectName, pipelineName, branchName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -378,12 +378,12 @@ func GetBranchPipe(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func GetPipeRunNodes(req *restful.Request, resp *restful.Response) {
+func GetPipelineRunNodes(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetPipeRunNodes(projectName, pipelineName, runId, req.Request)
+	res, err := devops.GetPipelineRunNodes(projectName, pipelineName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return

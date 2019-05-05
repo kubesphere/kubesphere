@@ -75,7 +75,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 	return res, err
 }
 
-func GetPipeBranchRun(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+func GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetPipeBranchRunUrl, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -88,7 +88,7 @@ func GetPipeBranchRun(projectName, pipelineName, branchName, runId string, req *
 	return res, err
 }
 
-func GetBranchPipeRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+func GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetBranchPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -346,7 +346,7 @@ func GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) 
 	return res, err
 }
 
-func GetBranchPipe(projectName, pipelineName, branchName string, req *http.Request) ([]byte, error) {
+func GetBranchPipeline(projectName, pipelineName, branchName string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetBranchPipeUrl, projectName, pipelineName, branchName)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -359,7 +359,7 @@ func GetBranchPipe(projectName, pipelineName, branchName string, req *http.Reque
 	return res, err
 }
 
-func GetPipeRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
@@ -375,7 +375,6 @@ func GetPipeRunNodes(projectName, pipelineName, runId string, req *http.Request)
 func GetNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(JenkinsUrl+GetNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
 	log.Infof("Jenkins-url: " + baseUrl)
-	//var res = new(NodeSteps)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
