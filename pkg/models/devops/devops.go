@@ -19,16 +19,20 @@ package devops
 
 import (
 	"compress/gzip"
-	"flag"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/emicklei/go-restful"
 	log "github.com/golang/glog"
 	"io"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
+
+const MIME_FORM = "application/x-www-form-urlencoded"
 
 var (
 	jenkinsUrl           string
@@ -36,10 +40,26 @@ var (
 	jenkinsAdminPassword string
 )
 
-func init() {
-	flag.StringVar(&jenkinsUrl, "jenkins-url", "http://ks-jenkins.kubesphere-devops-system.svc.cluster.local:80", "jenkins server host")
-	flag.StringVar(&jenkinsAdminUsername, "jenkins-adminusername", "admin", "admin username of jenkins")
-	flag.StringVar(&jenkinsAdminPassword, "jenkins-adminpassword", "passw0rd", "admin password of jenkins")
+func PreCheckJenkins() {
+	jenkinsUrl, jenkinsAdminUsername, jenkinsAdminPassword = admin_jenkins.GetJenkinsFlag()
+	baseUrl := jenkinsUrl + LoginUrl
+
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	loginReq, _ := http.NewRequest(http.MethodPost, baseUrl, strings.NewReader(""))
+	loginReq.Header.Add(restful.HEADER_ContentType, MIME_FORM)
+	loginReq.SetBasicAuth(jenkinsAdminUsername, jenkinsAdminPassword)
+
+	resp, err := client.Do(loginReq)
+
+	if err != nil {
+		log.Error("Check Jenkins Error: ", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Error("Check Jenkins Error: ", resp.StatusCode, http.StatusText(resp.StatusCode))
+	} else {
+		log.Infof("Client Jenkins Success: " + baseUrl)
+	}
 }
 
 func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {

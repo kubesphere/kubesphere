@@ -40,6 +40,10 @@ func init() {
 	flag.IntVar(&jenkinsMaxConn, "jenkins-max-conn", 20, "max conn to jenkins")
 }
 
+func GetJenkinsFlag() (string,string,string){
+	return jenkinsAdminAddress, jenkinsAdminUsername, jenkinsAdminPassword
+}
+
 func Client() *gojenkins.Jenkins {
 	jenkinsClientOnce.Do(func() {
 		jenkins := gojenkins.CreateJenkins(nil, jenkinsAdminAddress, jenkinsMaxConn, jenkinsAdminUsername, jenkinsAdminPassword)

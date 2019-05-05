@@ -35,7 +35,7 @@ func GetPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
