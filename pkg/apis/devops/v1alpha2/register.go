@@ -291,7 +291,7 @@ func addWebService(c *restful.Container) error {
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes").
-		To(devopsapi.GetBranchPipelineRunNodes).
+		To(devopsapi.GetPipelineRunNodesbyBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get node on DevOps Pipelines run.").
 		Param(webservice.PathParameter("projectName", "devops project name")).
@@ -614,6 +614,32 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK,devops.ResJson{}).
 		Writes(devops.ResJson{}))
+
+	// match /git/notifyCommit/?url=
+	webservice.Route(webservice.GET("/devops/notifycommit").
+		To(devopsapi.GetNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get Notify Commit by GET HTTP method.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.QueryParameter("url", "the url for webhook to push.").
+			Required(true).
+			DataFormat("url=%s")))
+
+	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
+	webservice.Route(webservice.POST("/devops/notifycommit").
+		To(devopsapi.GetNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get Notify Commit by POST HTTP method.").
+		Consumes("application/json").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.QueryParameter("url", "the url for webhook to push.").
+			Required(true).
+			DataFormat("url=%s")))
+
+	webservice.Route(webservice.POST("/devops/github/webhook").
+		To(devopsapi.GithubWebhook).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("receive webhook request."))
 
 	c.Add(webservice)
 

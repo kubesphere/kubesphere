@@ -46,7 +46,7 @@ func SearchPipelines(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -60,7 +60,7 @@ func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -76,23 +76,23 @@ func GetBranchPipelineRun(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
-func GetBranchPipelineRunNodes(req *restful.Request, resp *restful.Response) {
+func GetPipelineRunNodesbyBranch(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 	runId := req.PathParameter("runId")
 
-	res, err := devops.GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId, req.Request)
+	res, err := devops.GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -121,7 +121,7 @@ func Validate(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -134,7 +134,7 @@ func GetSCMOrg(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -148,7 +148,7 @@ func GetOrgRepo(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -164,7 +164,7 @@ func StopPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -180,7 +180,7 @@ func ReplayPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -210,7 +210,7 @@ func GetArtifacts(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -223,7 +223,7 @@ func GetPipeBranch(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -281,7 +281,7 @@ func RunPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -298,7 +298,7 @@ func GetStepsStatus(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -309,7 +309,7 @@ func GetCrumb(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -344,7 +344,7 @@ func CheckCron(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
 
@@ -359,7 +359,7 @@ func GetPipelineRun(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -374,7 +374,7 @@ func GetBranchPipeline(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -388,7 +388,7 @@ func GetPipelineRunNodes(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
@@ -404,29 +404,45 @@ func GetNodeSteps(req *restful.Request, resp *restful.Response) {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
 func ToJenkinsfile(req *restful.Request, resp *restful.Response) {
-
 	res, err := devops.ToJenkinsfile(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.Write(res)
 }
 
 func ToJson(req *restful.Request, resp *restful.Response) {
-
 	res, err := devops.ToJson(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
-	resp.Header().Set(restful.HEADER_ContentType, "application/json")
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.Write(res)
+}
+
+func GetNotifyCommit(req *restful.Request, resp *restful.Response) {
+	res, err := devops.GetNotifyCommit(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Write(res)
+}
+
+func GithubWebhook(req *restful.Request, resp *restful.Response) {
+	res, err := devops.GithubWebhook(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
 	resp.Write(res)
 }
 
