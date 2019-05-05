@@ -30,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
@@ -98,6 +99,7 @@ func Run(s *options.ServerRunOptions) error {
 }
 
 func initializeAdminJenkins() {
+	devops.PreCheckJenkins()
 	admin_jenkins.Client()
 }
 
