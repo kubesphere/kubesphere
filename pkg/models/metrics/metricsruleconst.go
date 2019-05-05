@@ -415,7 +415,7 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_pod_count":           `cluster:pod:sum`,
 	"cluster_pod_quota":           `sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_utilisation":     `cluster:pod_utilization:ratio`,
-	"cluster_pod_running_count":   `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Succeeded"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"cluster_pod_running_count":   `cluster:pod_running:count`,
 	"cluster_pod_succeeded_count": `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Running"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_abnormal_count":  `cluster:pod_abnormal:sum`,
 
@@ -637,7 +637,7 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_pod_count":             `sum(kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!="", namespace$1})`,
 	"workspace_pod_running_count":     `sum(kube_pod_status_phase{phase="Running", namespace!="", namespace$1})`,
 	"workspace_pod_succeeded_count":   `sum(kube_pod_status_phase{phase="Succeeded", namespace!="", namespace$1})`,
-	"workspace_pod_abnormal_count":    `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1})`,
+	"workspace_pod_abnormal_count":    `count(kube_pod_info{node!="", namespace$1} unless on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Succeeded"}>0) unless on (pod, namespace) ((kube_pod_status_ready{job="kube-state-metrics", condition="true"}>0) and on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Running"}>0)) unless on (pod, namespace) (kube_pod_container_status_waiting_reason{job="kube-state-metrics", reason="ContainerCreating"}>0))`,
 
 	"workspace_configmap_count_used":            `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace$1, resource="count/configmaps"}) by (resource, type)`,
 	"workspace_jobs_batch_count_used":           `sum(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace$1, resource="count/jobs.batch"}) by (resource, type)`,
@@ -676,7 +676,7 @@ var RulePromQLTmplMap = MetricMap{
 	"workspace_all_project_count": `count(kube_namespace_annotations)`,
 
 	// New in ks 2.0
-	"workspace_pod_abnormal_ratio": `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace$1}) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
+	"workspace_pod_abnormal_ratio": `count(kube_pod_info{node!="", namespace$1} unless on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Succeeded"}>0) unless on (pod, namespace) ((kube_pod_status_ready{job="kube-state-metrics", condition="true"}>0) and on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Running"}>0)) unless on (pod, namespace) (kube_pod_container_status_waiting_reason{job="kube-state-metrics", reason="ContainerCreating"}>0)) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1})`,
 
 	// component
 	"etcd_server_list":                           `label_replace(up{job="etcd"}, "node_ip", "$1", "instance", "(.*):.*")`,
