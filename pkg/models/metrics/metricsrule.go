@@ -56,7 +56,7 @@ func MakeWorkloadPromQL(metricName, nsName, resources_filter, wkKind string) str
 			resources_filter += "^" + prefix + filter + "$" // eg. ^Deployment:xxx$
 
 			if i != len(filters)-1 {
-				resources_filter += resources_filter + "|"
+				resources_filter += "|"
 			}
 		}
 	}

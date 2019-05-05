@@ -516,7 +516,7 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_pod_count":             `sum(kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_pod_running_count":     `sum(kube_pod_status_phase{phase="Running", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_pod_succeeded_count":   `sum(kube_pod_status_phase{phase="Succeeded", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_pod_abnormal_count":    `sum(kube_pod_status_phase{phase=~"Failed|Pending|Unknown", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_pod_abnormal_count":    `namespace:pod_abnormal:count{namespace!="", namespace=~"$1"}`,
 
 	"namespace_configmap_count_used":            `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_jobs_batch_count_used":           `max(kube_resourcequota{resourcequota!="quota", type="used", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
