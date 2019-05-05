@@ -47,4 +47,6 @@ const (
 	GetNodeStepsUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?"
 	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
+	GetNotifyCommitUrl       = "/git/notifyCommit/?"
+	GithubWebhookUrl         = "/github-webhook/"
 )

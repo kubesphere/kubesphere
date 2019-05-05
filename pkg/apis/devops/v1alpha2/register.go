@@ -271,12 +271,12 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("branch", "branch ").
 			Required(false).
 			DataFormat("branch=%s")).
-		Returns(http.StatusOK, RespOK, []devops.PipeBranchRun{}).
-		Writes([]devops.PipeBranchRun{}))
+		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRun{}).
+		Writes([]devops.BranchPipelineRun{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}").
-		To(devopsapi.GetPipeBranchRun).
+		To(devopsapi.GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get DevOps Pipelines run in branch.").
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
@@ -286,12 +286,12 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("start", "start").
 			Required(false).
 			DataFormat("start=%d")).
-		Returns(http.StatusOK, RespOK, devops.PipeBranchRun{}).
-		Writes(devops.PipeBranchRun{}))
+		Returns(http.StatusOK, RespOK, devops.BranchPipelineRun{}).
+		Writes(devops.BranchPipelineRun{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes").
-		To(devopsapi.GetBranchPipeRunNodes).
+		To(devopsapi.GetPipelineRunNodesbyBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get node on DevOps Pipelines run.").
 		Param(webservice.PathParameter("projectName", "devops project name")).
@@ -302,8 +302,8 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d").
 			DefaultValue("limit=10000")).
-		Returns(http.StatusOK, RespOK, []devops.BranchPipeRunNodes{}).
-		Writes([]devops.BranchPipeRunNodes{}))
+		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRunNodes{}).
+		Writes([]devops.BranchPipelineRunNodes{}))
 
 	// match "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}/log/?start=0"
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}/log").
@@ -554,18 +554,18 @@ func addWebService(c *restful.Container) error {
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/pipelines/{pipelineName}/branches/{branchName}
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}").
-		To(devopsapi.GetBranchPipe).
+		To(devopsapi.GetBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get Pipeline run in branch.").
 		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Returns(http.StatusOK, RespOK, devops.BranchPipe{}).
-		Writes(devops.BranchPipe{}))
+		Returns(http.StatusOK, RespOK, devops.BranchPipeline{}).
+		Writes(devops.BranchPipeline{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/pipelines/{pipelineName}/runs/{runId}/nodes/?limit=10000
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/runs/{runId}/nodes").
-		To(devopsapi.GetPipeRunNodes).
+		To(devopsapi.GetPipelineRunNodes).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get Pipeline run nodes.").
 		Param(webservice.PathParameter("projectName", "devops project name")).
@@ -574,8 +574,8 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK, []devops.PipeRunNodes{}).
-		Writes([]devops.PipeRunNodes{}))
+		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
+		Writes([]devops.PipelineRunNodes{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?limit=
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps").
@@ -614,6 +614,32 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK,devops.ResJson{}).
 		Writes(devops.ResJson{}))
+
+	// match /git/notifyCommit/?url=
+	webservice.Route(webservice.GET("/devops/notifycommit").
+		To(devopsapi.GetNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get Notify Commit by GET HTTP method.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.QueryParameter("url", "the url for webhook to push.").
+			Required(true).
+			DataFormat("url=%s")))
+
+	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
+	webservice.Route(webservice.POST("/devops/notifycommit").
+		To(devopsapi.GetNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get Notify Commit by POST HTTP method.").
+		Consumes("application/json").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.QueryParameter("url", "the url for webhook to push.").
+			Required(true).
+			DataFormat("url=%s")))
+
+	webservice.Route(webservice.POST("/devops/github/webhook").
+		To(devopsapi.GithubWebhook).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("receive webhook request."))
 
 	c.Add(webservice)
 
