@@ -76,14 +76,6 @@ type MainQuery struct {
 }
 
 type MainBoolQuery struct {
-	MainFilter MainFilter `json:"filter"`
-}
-
-type MainFilter struct {
-	FilterBoolQuery FilterBoolQuery `json:"bool"`
-}
-
-type FilterBoolQuery struct {
 	Musts []interface{} `json:"must"`
 }
 
@@ -195,7 +187,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 			}
 		}
 		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
 	}
 	if param.PodFilled {
 		var shouldMatchPhrase ShouldMatchPhrase
@@ -209,7 +201,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 			}
 		}
 		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
 	}
 	if param.ContainerFilled {
 		var shouldMatchPhrase ShouldMatchPhrase
@@ -223,29 +215,29 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 			}
 		}
 		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
 	}
 
 	if param.NamespaceQuery != "" {
 		match := Match{map[string]interface{}{"kubernetes.namespace_name": QueryWord{param.NamespaceQuery}}}
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, match)
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
 	}
 	if param.PodQuery != "" {
 		match := Match{map[string]interface{}{"kubernetes.pod_name": QueryWord{param.PodQuery}}}
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, match)
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
 	}
 	if param.ContainerQuery != "" {
 		match := Match{map[string]interface{}{"kubernetes.container_name": QueryWord{param.ContainerQuery}}}
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, match)
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
 	}
 
 	if param.LogQuery != "" {
 		match := Match{map[string]interface{}{"log": QueryWord{param.LogQuery}}}
-		mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, match)
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
 	}
 
 	rangeQuery := RangeQuery{RangeSpec{TimeRange{param.StartTime, param.EndTime}}}
-	mainBoolQuery.MainFilter.FilterBoolQuery.Musts = append(mainBoolQuery.MainFilter.FilterBoolQuery.Musts, rangeQuery)
+	mainBoolQuery.Musts = append(mainBoolQuery.Musts, rangeQuery)
 
 	var operation int
 
