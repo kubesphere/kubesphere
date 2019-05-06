@@ -42,6 +42,7 @@ type Interface interface {
 	UpdateGroup(group *models.Group) (*models.Group, error)
 	DescribeGroup(name string) (*models.Group, error)
 	DeleteGroup(name string) error
+	ListUsers() (*models.PageableResponse, error)
 }
 
 type client struct {

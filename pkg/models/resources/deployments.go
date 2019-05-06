@@ -40,21 +40,21 @@ func (*deploymentSearcher) get(namespace, name string) (interface{}, error) {
 func deploymentStatus(item *v1.Deployment) string {
 	if item.Spec.Replicas != nil {
 		if item.Status.ReadyReplicas == 0 && *item.Spec.Replicas == 0 {
-			return stopped
+			return StatusStopped
 		} else if item.Status.ReadyReplicas == *item.Spec.Replicas {
-			return running
+			return StatusRunning
 		} else {
-			return updating
+			return StatusUpdating
 		}
 	}
-	return stopped
+	return StatusStopped
 }
 
 // Exactly Match
 func (*deploymentSearcher) match(match map[string]string, item *v1.Deployment) bool {
 	for k, v := range match {
 		switch k {
-		case status:
+		case Status:
 			if deploymentStatus(item) != v {
 				return false
 			}

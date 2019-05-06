@@ -90,7 +90,12 @@ func DescribeWorkspace(req *restful.Request, resp *restful.Response) {
 	result, err := tenant.DescribeWorkspace(username, workspaceName)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		glog.Errorf("describe workspace failed: %+v", err)
+		if k8serr.IsNotFound(err) {
+			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+		} else {
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		}
 		return
 	}
 

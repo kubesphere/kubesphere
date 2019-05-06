@@ -352,11 +352,11 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 		}
 		switch orderBy {
 		case "username":
-			fallthrough
-		case "createTime":
-			return users[i].CreateTime.Before(users[j].CreateTime)
-		default:
 			return strings.Compare(users[i].Username, users[j].Username) <= 0
+		case "createTime":
+			fallthrough
+		default:
+			return users[i].CreateTime.Before(users[j].CreateTime)
 		}
 	})
 

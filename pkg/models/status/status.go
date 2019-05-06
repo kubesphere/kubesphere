@@ -18,8 +18,10 @@
 package status
 
 import (
+	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/params"
+	"strings"
 
 	"kubesphere.io/kubesphere/pkg/models/resources"
 )
@@ -34,15 +36,22 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 	res := workLoadStatus{Count: make(map[string]int), Namespace: namespace, Items: make(map[string]interface{})}
 	var notReadyList *models.PageableResponse
 	var err error
-	for _, resource := range []string{resources.Deployments, resources.StatefulSets, resources.DaemonSets, resources.PersistentVolumeClaims} {
-		notReadyStatus := "updating"
-		if resource == resources.PersistentVolumeClaims {
-			notReadyStatus = "pending"
+	for _, resource := range []string{resources.Deployments, resources.StatefulSets, resources.DaemonSets, resources.PersistentVolumeClaims, resources.Jobs} {
+		var notReadyStatus string
+
+		switch resource {
+		case resources.PersistentVolumeClaims:
+			notReadyStatus = strings.Join([]string{resources.StatusPending, resources.StatusLost}, "|")
+		case resources.Jobs:
+			notReadyStatus = resources.StatusFailed
+		default:
+			notReadyStatus = resources.StatusUpdating
 		}
 
-		notReadyList, err = resources.ListResources(namespace, resource, &params.Conditions{Match: map[string]string{"status": notReadyStatus}}, "", false, -1, 0)
+		notReadyList, err = resources.ListResources(namespace, resource, &params.Conditions{Match: map[string]string{resources.Status: notReadyStatus}}, "", false, -1, 0)
 
 		if err != nil {
+			glog.Errorf("list resources failed: %+v", err)
 			return nil, err
 		}
 

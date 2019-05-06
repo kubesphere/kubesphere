@@ -189,10 +189,13 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 				log.Info("Creating default role", "namespace", namespace.Name, "role", role.Name)
 				err = r.Create(context.TODO(), role)
 				if err != nil {
+					log.Info("Creating default role failed", "namespace", namespace.Name, "role", role.Name)
 					return err
 				}
+			} else {
+				log.Info("Get default role failed", "namespace", namespace.Name, "role", role.Name)
+				return err
 			}
-			return err
 		}
 	}
 	return nil
