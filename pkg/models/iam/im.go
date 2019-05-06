@@ -23,10 +23,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
@@ -545,7 +549,27 @@ func DeleteUser(username string) error {
 		glog.Errorln("delete user terminal pod failed", username, err)
 	}
 
+	devopsDb := devops_mysql.OpenDatabase()
+
+	jenkinsClient := admin_jenkins.Client()
+
+	_, err = devopsDb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
+		Where(db.And(
+			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username),
+		)).Exec()
+	if err != nil {
+		glog.Errorf("%+v", err)
+		return  err
+	}
+
+	err = jenkinsClient.DeleteUserInProject(username)
+	if err != nil {
+		glog.Errorf("%+v", err)
+		return  err
+	}
+
 	return nil
+
 }
 
 func deleteRoleBindings(username string) error {

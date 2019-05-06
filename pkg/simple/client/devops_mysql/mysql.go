@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&dsn, "devops-database-connection", "root@tcp(127.0.0.1:3306)/devops", "data source name")
+	flag.StringVar(&dsn, "devops-database-connection", "root:password@tcp(openpitrix-db.openpitrix-system.svc:3306)/devops", "data source name")
 }
 
 var defaultEventReceiver = db.EventReceiver{}
