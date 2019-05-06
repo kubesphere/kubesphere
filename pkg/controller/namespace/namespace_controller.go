@@ -204,7 +204,7 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namespace) error {
 
 	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
-	creatorName := namespace.Annotations[constants.CreatorLabelAnnotationKey]
+	creatorName := namespace.Annotations[constants.CreatorAnnotationKey]
 
 	creator := rbac.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: creatorName}
 

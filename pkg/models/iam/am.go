@@ -451,7 +451,7 @@ func NamespaceUsers(namespaceName string) ([]*models.User, error) {
 			if subject.Kind == rbacv1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
 
 				// show creator
-				if roleBinding.Name == NamespaceAdminRoleBindName && subject.Name != namespace.Annotations[constants.CreatorLabelAnnotationKey] {
+				if roleBinding.Name == NamespaceAdminRoleBindName && subject.Name != namespace.Annotations[constants.CreatorAnnotationKey] {
 					continue
 				}
 

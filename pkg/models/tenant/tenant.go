@@ -39,7 +39,7 @@ func CreateNamespace(workspaceName string, namespace *v1.Namespace, username str
 		namespace.Labels = make(map[string]string, 0)
 	}
 	if username != "" {
-		namespace.Annotations[constants.CreatorLabelAnnotationKey] = username
+		namespace.Annotations[constants.CreatorAnnotationKey] = username
 	}
 
 	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName
@@ -87,20 +87,14 @@ func appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1
 	ns, err := ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
-	} else {
-		workspace.Annotations["kubesphere.io/namespace-count"] = "-1"
 	}
 	devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
-	} else {
-		workspace.Annotations["kubesphere.io/devops-count"] = "-1"
 	}
 	userCount, err := ws.WorkspaceUserCount(workspace.Name)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/member-count"] = strconv.Itoa(userCount)
-	} else {
-		workspace.Annotations["kubesphere.io/member-count"] = "-1"
 	}
 	return workspace
 }
