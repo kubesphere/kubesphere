@@ -559,13 +559,13 @@ func DeleteUser(username string) error {
 		)).Exec()
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return  err
+		return err
 	}
 
 	err = jenkinsClient.DeleteUserInProject(username)
 	if err != nil {
 		glog.Errorf("%+v", err)
-		return  err
+		return err
 	}
 
 	return nil
