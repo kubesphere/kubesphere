@@ -517,7 +517,7 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 	admin := &rbac.ClusterRole{}
 	admin.Name = getWorkspaceAdminRoleName(workspaceName)
 	admin.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	admin.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceAdmin, constants.DescriptionAnnotationKey: workspaceAdminDescription}
+	admin.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceAdmin, constants.DescriptionAnnotationKey: workspaceAdminDescription, constants.CreatorAnnotationKey: constants.System}
 	admin.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"*"},
@@ -539,7 +539,7 @@ func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 	regular := &rbac.ClusterRole{}
 	regular.Name = getWorkspaceRegularRoleName(workspaceName)
 	regular.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	regular.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceRegular, constants.DescriptionAnnotationKey: workspaceRegularDescription}
+	regular.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceRegular, constants.DescriptionAnnotationKey: workspaceRegularDescription, constants.CreatorAnnotationKey: constants.System}
 	regular.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get"},
@@ -567,7 +567,7 @@ func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 	viewer := &rbac.ClusterRole{}
 	viewer.Name = getWorkspaceViewerRoleName(workspaceName)
 	viewer.Labels = map[string]string{constants.WorkspaceLabelKey: workspaceName}
-	viewer.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceViewer, constants.DescriptionAnnotationKey: workspaceViewerDescription}
+	viewer.Annotations = map[string]string{constants.DisplayNameAnnotationKey: constants.WorkspaceViewer, constants.DescriptionAnnotationKey: workspaceViewerDescription, constants.CreatorAnnotationKey: constants.System}
 	viewer.Rules = []rbac.PolicyRule{
 		{
 			Verbs:         []string{"get", "list"},

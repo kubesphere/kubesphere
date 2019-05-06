@@ -145,7 +145,7 @@ func (s *clusterRoleSearcher) search(namespace string, conditions *params.Condit
 }
 
 func isUserFacingClusterRole(role *rbac.ClusterRole) bool {
-	if role.Annotations[constants.CreatorLabelAnnotationKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
+	if role.Annotations[constants.CreatorAnnotationKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
 		return true
 	}
 	return false
