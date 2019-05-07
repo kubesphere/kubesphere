@@ -49,5 +49,4 @@ const (
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
 	GetNotifyCommitUrl       = "/git/notifyCommit/?"
 	GithubWebhookUrl         = "/github-webhook/"
-	LoginUrl                 = "/j_acegi_security_check"
 )
