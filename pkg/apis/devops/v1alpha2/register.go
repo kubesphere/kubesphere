@@ -482,7 +482,7 @@ func addWebService(c *restful.Container) error {
 			DataFormat("delay=%d")))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{}/runs/
-	webservice.Route(webservice.POST("/devops/{projectName}/pipeline/{pipelineName}/branches/{branchName}/run").
+	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/run").
 		To(devopsapi.RunPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline artifacts.").
@@ -494,7 +494,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.QueuedBlueRun{}))
 
 	// match /pipeline_status/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/?limit=
-	webservice.Route(webservice.GET("/devops/{projectName}/pipeline/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/status").
+	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps/status").
 		To(devopsapi.GetStepsStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline steps status.").
