@@ -197,10 +197,8 @@ func GetNamespaceCreationTimeMap(namespaces []string) (bool, map[string]string) 
 		}
 
 		for _, ns := range nsList {
-			namespaceWithCreationTime[ns.Name] = strconv.FormatInt(ns.CreationTimestamp.UnixNano()/int64(time.Millisecond), 10)
+			namespaces = append(namespaces, ns.Name)
 		}
-
-		return true, namespaceWithCreationTime
 	}
 
 	for _, item := range namespaces {
