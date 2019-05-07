@@ -138,6 +138,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		{
 			param.NamespaceFilled, param.Namespaces = log.QueryWorkspace(request.QueryParameter("workspaces"), request.QueryParameter("workspace_query"))
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
 			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
@@ -149,6 +150,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		{
 			param.NamespaceFilled, param.Namespaces = log.QueryWorkspace(request.PathParameter("workspace"), "")
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
 			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
@@ -159,6 +161,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelNamespace:
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
@@ -168,6 +171,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelWorkload:
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.PodFilled, param.Pods = log.QueryWorkload(request.PathParameter("workload"), "", param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
@@ -177,6 +181,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelPod:
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.PathParameter("pod"), false, nil)
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
@@ -184,6 +189,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelContainer:
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
+			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.PodFilled, param.Pods = log.MatchPod(request.PathParameter("pod"), false, nil)
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.PathParameter("container"))
 		}
