@@ -54,10 +54,10 @@ const (
 var (
 	log          = logf.Log.WithName("namespace-controller")
 	defaultRoles = []rbac.Role{
-		{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
 			{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "resources.kubesphere.io", "autoscaling", "alerting.kubesphere.io"}, Resources: []string{"*"}}}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}},
 	}
 )
 
