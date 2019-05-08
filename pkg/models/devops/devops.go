@@ -340,8 +340,21 @@ func ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, er
 	return resBody, err
 }
 
-func RunPipeline(projectName, pipelineName, branchName string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName)
+func RunBranchPipeline(projectName, pipelineName, branchName string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+RunBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
