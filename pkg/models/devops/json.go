@@ -946,7 +946,7 @@ type BranchPipeline struct {
 	} `json:"branch,omitempty"`
 }
 
-// GetPipeRunNodes
+// GetPipelineRunNodes
 type PipelineRunNodes struct {
 	Class string `json:"_class,omitempty"`
 	Links struct {
@@ -1055,4 +1055,46 @@ type ResJson struct {
 			} `json:"pipeline,omitempty"`
 		} `json:"json,omitempty"`
 	} `json:"data,omitempty"`
+}
+
+type NodesDetail struct {
+	Class string `json:"_class,omitempty"`
+	Links struct {
+		Self struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"self,omitempty"`
+		Actions struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"actions,omitempty"`
+		Steps struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"steps,omitempty"`
+	} `json:"_links,omitempty"`
+	Actions            []interface{} `json:"actions,omitempty"`
+	DisplayDescription interface{}   `json:"displayDescription,omitempty"`
+	DisplayName        string        `json:"displayName,omitempty"`
+	DurationInMillis   int           `json:"durationInMillis,omitempty"`
+	ID                 string        `json:"id,omitempty"`
+	Input              interface{}   `json:"input,omitempty"`
+	Result             string        `json:"result,omitempty"`
+	StartTime          string        `json:"startTime,omitempty"`
+	State              string        `json:"state,omitempty"`
+	Type               string        `json:"type,omitempty"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty"`
+	Edges              []struct {
+		Class string `json:"_class,omitempty"`
+		ID    string `json:"id,omitempty"`
+		Type  string `json:"type,omitempty"`
+	} `json:"edges,omitempty"`
+	FirstParent interface{} `json:"firstParent,omitempty"`
+	Restartable bool        `json:"restartable,omitempty"`
+	Steps       []NodeSteps `json:"steps,omitempty"`
+}
+
+type NodesStepsIndex struct {
+	Id    int         `json:"id,omitempty"`
+	Steps []NodeSteps `json:"steps,omitempty"`
 }

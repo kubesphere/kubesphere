@@ -19,6 +19,7 @@ package devops
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/golang/glog"
@@ -28,8 +29,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
+
+const channelMaxCapacity = 100
 
 var jenkins *gojenkins.Jenkins
 
@@ -102,8 +106,21 @@ func GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId st
 	return res, err
 }
 
-func GetStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetStepLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchStepLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetStepLogUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
@@ -154,8 +171,8 @@ func GetOrgRepo(scmId, organizationId string, req *http.Request) ([]byte, error)
 	return res, err
 }
 
-func StopPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+func StopBranchPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+StopBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -167,8 +184,8 @@ func StopPipeline(projectName, pipelineName, branchName, runId string, req *http
 	return res, err
 }
 
-func ReplayPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+func StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -180,8 +197,8 @@ func ReplayPipeline(projectName, pipelineName, branchName, runId string, req *ht
 	return res, err
 }
 
-func GetRunLog(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetRunLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+func ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+ReplayBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -193,8 +210,60 @@ func GetRunLog(projectName, pipelineName, branchName, runId string, req *http.Re
 	return res, err
 }
 
-func GetArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+func ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetBranchRunLog(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchRunLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetRunLogUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetArtifacts(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -219,8 +288,21 @@ func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte,
 	return res, err
 }
 
-func CheckPipeline(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+CheckPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+func CheckBranchPipeline(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+CheckBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	resBody, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+func CheckPipeline(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+CheckPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
@@ -271,8 +353,21 @@ func RunPipeline(projectName, pipelineName, branchName string, req *http.Request
 	return res, err
 }
 
-func GetStepsStatus(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetStepsStatusUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
+func GetBranchStepsStatus(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchStepsStatusUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetStepsStatus(projectName, pipelineName, runId, nodeId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetStepsStatusUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -375,8 +470,21 @@ func GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Requ
 	return res, err
 }
 
-func GetNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
+func GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
+	log.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func GetNodeSteps(projectName, pipelineName, runId, nodeId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -439,6 +547,100 @@ func GithubWebhook(req *http.Request) ([]byte, error) {
 	}
 
 	return res, err
+}
+
+func GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error) {
+	getNodesUrl := fmt.Sprintf(jenkins.Server+GetBranchPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	log.Infof("getNodesUrl: " + getNodesUrl)
+	var wg sync.WaitGroup
+	var nodesDetails []NodesDetail
+	stepChan := make(chan *NodesStepsIndex, channelMaxCapacity)
+
+	respNodes, err := GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	err = json.Unmarshal(respNodes, &nodesDetails)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	// get all steps in nodes.
+	for i, v := range nodesDetails {
+		wg.Add(1)
+		go func(nodeId string, index int) {
+			var steps []NodeSteps
+			respSteps, err := GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId, req)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			err = json.Unmarshal(respSteps, &steps)
+
+			stepChan <- &NodesStepsIndex{index, steps}
+			wg.Done()
+		}(v.ID, i)
+	}
+
+	wg.Wait()
+	close(stepChan)
+
+	for oneNodeSteps := range stepChan {
+		if oneNodeSteps != nil {
+			nodesDetails[oneNodeSteps.Id].Steps = append(nodesDetails[oneNodeSteps.Id].Steps, oneNodeSteps.Steps...)
+		}
+	}
+
+	return nodesDetails, err
+}
+
+func GetNodesDetail(projectName, pipelineName, runId string, req *http.Request) ([]NodesDetail, error) {
+	getNodesUrl := fmt.Sprintf(jenkins.Server+GetPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	log.Infof("getNodesUrl: " + getNodesUrl)
+	var wg sync.WaitGroup
+	var nodesDetails []NodesDetail
+	stepChan := make(chan *NodesStepsIndex, channelMaxCapacity)
+
+	respNodes, err := GetPipelineRunNodes(projectName, pipelineName, runId, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	err = json.Unmarshal(respNodes, &nodesDetails)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	// get all steps in nodes.
+	for i, v := range nodesDetails {
+		wg.Add(1)
+		go func(nodeId string, index int) {
+			var steps []NodeSteps
+			respSteps, err := GetNodeSteps(projectName, pipelineName, runId, nodeId, req)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			err = json.Unmarshal(respSteps, &steps)
+
+			stepChan <- &NodesStepsIndex{index, steps}
+			wg.Done()
+		}(v.ID, i)
+	}
+
+	wg.Wait()
+	close(stepChan)
+
+	for oneNodeSteps := range stepChan {
+		if oneNodeSteps != nil {
+			nodesDetails[oneNodeSteps.Id].Steps = append(nodesDetails[oneNodeSteps.Id].Steps, oneNodeSteps.Steps...)
+		}
+	}
+
+	return nodesDetails, err
 }
 
 // create jenkins request
