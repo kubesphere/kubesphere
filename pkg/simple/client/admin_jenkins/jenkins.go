@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	jenkinsClientOnce    sync.Once
+	jenkinsInitMutex     sync.Mutex
 	jenkinsClient        *gojenkins.Jenkins
 	jenkinsAdminAddress  string
 	jenkinsAdminUsername string
@@ -41,35 +41,36 @@ func init() {
 }
 
 func Client() *gojenkins.Jenkins {
-	jenkinsClientOnce.Do(func() {
-		jenkins := gojenkins.CreateJenkins(nil, jenkinsAdminAddress, jenkinsMaxConn, jenkinsAdminUsername, jenkinsAdminPassword)
-		jenkins, err := jenkins.Init()
-		if err != nil {
-			glog.Error("failed to connect jenkins")
-			return
-		}
-		jenkinsClient = jenkins
-		globalRole, err := jenkins.GetGlobalRole(JenkinsAllUserRoleName)
-		if err != nil {
-			glog.Error("failed to get jenkins role")
-		}
-		if globalRole == nil {
-			_, err := jenkins.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
-				GlobalRead: true,
+	if jenkinsClient == nil {
+		jenkinsInitMutex.Lock()
+		defer jenkinsInitMutex.Unlock()
+		if jenkinsClient == nil {
+			jenkins := gojenkins.CreateJenkins(nil, jenkinsAdminAddress, jenkinsMaxConn, jenkinsAdminUsername, jenkinsAdminPassword)
+			jenkins, err := jenkins.Init()
+			if err != nil {
+				glog.Errorf("failed to connect jenkins, %+v", err)
+			}
+			globalRole, err := jenkins.GetGlobalRole(JenkinsAllUserRoleName)
+			if err != nil {
+				glog.Errorf("failed to get jenkins role, %+v", err)
+			}
+			if globalRole == nil {
+				_, err := jenkins.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
+					GlobalRead: true,
+				}, true)
+				if err != nil {
+					glog.Errorf("failed to create jenkins global role, %+v", err)
+				}
+			}
+			_, err = jenkins.AddProjectRole(JenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{
+				SCMTag: true,
 			}, true)
 			if err != nil {
-				glog.Error("failed to create jenkins global role")
-				return
+				glog.Errorf("failed to create jenkins project role, %+v", err)
 			}
+			jenkinsClient = jenkins
 		}
-		_, err = jenkins.AddProjectRole(JenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{
-			SCMTag: true,
-		}, true)
-		if err != nil {
-			glog.Error("failed to create jenkins project role")
-			return
-		}
-	})
+	}
 
 	return jenkinsClient
 
