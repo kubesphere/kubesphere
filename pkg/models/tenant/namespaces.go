@@ -18,6 +18,7 @@
 package tenant
 
 import (
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -90,18 +91,29 @@ func (*namespaceSearcher) GetNamespaces(username string) ([]*v1.Namespace, error
 	if err != nil {
 		return nil, err
 	}
-
 	namespaces := make([]*v1.Namespace, 0)
 	namespaceLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
 	for _, role := range roles {
 		namespace, err := namespaceLister.Get(role.Namespace)
 		if err != nil {
+			glog.Errorf("get namespace failed: %+v", err)
 			return nil, err
 		}
-		namespaces = append(namespaces, namespace)
+		if !containsNamespace(namespaces, namespace) {
+			namespaces = append(namespaces, namespace)
+		}
 	}
 
 	return namespaces, nil
+}
+
+func containsNamespace(namespaces []*v1.Namespace, namespace *v1.Namespace) bool {
+	for _, item := range namespaces {
+		if item.Name == namespace.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *namespaceSearcher) search(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1.Namespace, error) {

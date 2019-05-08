@@ -29,6 +29,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/signals"
+	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"log"
 	"net/http"
@@ -68,6 +70,9 @@ func Run(s *options.ServerRunOptions) error {
 	}
 
 	waitForResourceSync()
+
+	initializeAdminJenkins()
+	initializeDevOpsDatabase()
 
 	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime)
 	jwtutil.Setup(s.JWTSecret)
@@ -118,4 +123,12 @@ func waitForResourceSync() {
 	ksInformerFactory.Start(stopChan)
 	ksInformerFactory.WaitForCacheSync(stopChan)
 	log.Println("resources sync success")
+}
+
+func initializeAdminJenkins() {
+	admin_jenkins.Client()
+}
+
+func initializeDevOpsDatabase() {
+	devops_mysql.OpenDatabase()
 }

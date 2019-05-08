@@ -1034,6 +1034,22 @@ func (j *Jenkins) AddProjectRole(roleName string, pattern string, ids ProjectPer
 	return responseRole, nil
 }
 
+func (j *Jenkins) DeleteUserInProject(username string) error {
+	param := map[string]string{
+		"type": PROJECT_ROLE,
+		"sid":  username,
+	}
+	responseString := ""
+	response, err := j.Requester.Post("/role-strategy/strategy/deleteSid", nil, &responseString, param)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New(strconv.Itoa(response.StatusCode))
+	}
+	return nil
+}
+
 func (j *Jenkins) GetQueueItem(number int64) (*QueueItemResponse, error) {
 	responseItem := &QueueItemResponse{}
 	response, err := j.Requester.GetJSON(fmt.Sprintf("/queue/item/%s", strconv.FormatInt(number, 10)),
