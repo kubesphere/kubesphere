@@ -695,7 +695,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK,[]devops.NodeSteps{}).
+		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?limit=
@@ -721,7 +721,7 @@ func addWebService(c *restful.Container) error {
 		Produces("application/json", "charset=utf-8").
 		Doc("Json to Jenkinsfile.").
 		Reads(devops.ReqJson{}).
-		Returns(http.StatusOK, RespOK,devops.NodeSteps{}).
+		Returns(http.StatusOK, RespOK, devops.NodeSteps{}).
 		Writes(devops.ResJenkinsfile{}))
 
 	// match /pipeline-model-converter/toJson
@@ -732,7 +732,7 @@ func addWebService(c *restful.Container) error {
 		Produces("application/json", "charset=utf-8").
 		Doc("Jenkinsfile to Json.").
 		Reads(devops.ReqJenkinsfile{}).
-		Returns(http.StatusOK, RespOK,devops.ResJson{}).
+		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
 
 	// match /git/notifyCommit/?url=
