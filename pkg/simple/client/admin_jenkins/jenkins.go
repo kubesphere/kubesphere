@@ -49,10 +49,12 @@ func Client() *gojenkins.Jenkins {
 			jenkins, err := jenkins.Init()
 			if err != nil {
 				glog.Errorf("failed to connect jenkins, %+v", err)
+				return nil
 			}
 			globalRole, err := jenkins.GetGlobalRole(JenkinsAllUserRoleName)
 			if err != nil {
 				glog.Errorf("failed to get jenkins role, %+v", err)
+				return nil
 			}
 			if globalRole == nil {
 				_, err := jenkins.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
@@ -60,6 +62,7 @@ func Client() *gojenkins.Jenkins {
 				}, true)
 				if err != nil {
 					glog.Errorf("failed to create jenkins global role, %+v", err)
+					return nil
 				}
 			}
 			_, err = jenkins.AddProjectRole(JenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{
@@ -67,6 +70,7 @@ func Client() *gojenkins.Jenkins {
 			}, true)
 			if err != nil {
 				glog.Errorf("failed to create jenkins project role, %+v", err)
+				return nil
 			}
 			jenkinsClient = jenkins
 		}
