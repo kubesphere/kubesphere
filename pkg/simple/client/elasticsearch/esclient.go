@@ -58,7 +58,7 @@ type Request struct {
 	From          int64         `json:"from"`
 	Size          int64         `json:"size"`
 	Sorts         []Sort        `json:"sort,omitempty"`
-	MainQuery     MainQuery     `json:"query"`
+	MainQuery     BoolQuery     `json:"query"`
 	Aggs          interface{}   `json:"aggs,omitempty"`
 	MainHighLight MainHighLight `json:"highlight,omitempty"`
 }
@@ -71,11 +71,11 @@ type Order struct {
 	Order string `json:"order"`
 }
 
-type MainQuery struct {
-	MainBoolQuery MainBoolQuery `json:"bool"`
+type BoolQuery struct {
+	BoolMusts BoolMusts `json:"bool"`
 }
 
-type MainBoolQuery struct {
+type BoolMusts struct {
 	Musts []interface{} `json:"must"`
 }
 
@@ -173,17 +173,24 @@ type DateHistogram struct {
 
 func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	var request Request
-	var mainBoolQuery MainBoolQuery
+	var mainBoolQuery BoolMusts
 
 	if param.NamespaceFilled {
 		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.Namespaces) == 0 {
+		if len(param.NamespaceWithCreationTime) == 0 {
 			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.key_word": QueryWord{""}}}
 			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
 		} else {
-			for _, namespace := range param.Namespaces {
+			for namespace, creationTime := range param.NamespaceWithCreationTime {
+				var boolQuery BoolQuery
+
 				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.keyword": QueryWord{namespace}}}
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
+				rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
+
+				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, matchPhrase)
+				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, rangeQuery)
+
+				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, boolQuery)
 			}
 		}
 		shouldMatchPhrase.MinimumShouldMatch = 1
@@ -278,7 +285,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		request.MainHighLight = mainHighLight
 	}
 
-	request.MainQuery = MainQuery{mainBoolQuery}
+	request.MainQuery = BoolQuery{mainBoolQuery}
 
 	queryRequest, err := json.Marshal(request)
 
@@ -544,12 +551,13 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 }
 
 type QueryParameters struct {
-	NamespaceFilled bool
-	Namespaces      []string
-	PodFilled       bool
-	Pods            []string
-	ContainerFilled bool
-	Containers      []string
+	NamespaceFilled           bool
+	Namespaces                []string
+	NamespaceWithCreationTime map[string]string
+	PodFilled                 bool
+	Pods                      []string
+	ContainerFilled           bool
+	Containers                []string
 
 	NamespaceQuery string
 	PodQuery       string
