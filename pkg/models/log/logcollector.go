@@ -24,7 +24,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func intersection(s1, s2 []string) (inter []string) {
@@ -179,6 +181,37 @@ func MatchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []st
 	}
 
 	return true, namespacesMatch
+}
+
+func GetNamespaceCreationTimeMap(namespaces []string) (bool, map[string]string) {
+
+	namespaceWithCreationTime := make(map[string]string)
+
+	nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+
+	if len(namespaces) == 0 {
+		nsList, err := nsLister.List(labels.Everything())
+		if err != nil {
+			glog.Error("failed to list namespace, error: ", err)
+			return true, namespaceWithCreationTime
+		}
+
+		for _, ns := range nsList {
+			namespaces = append(namespaces, ns.Name)
+		}
+	}
+
+	for _, item := range namespaces {
+		ns, err := nsLister.Get(item)
+		if err != nil {
+			glog.Error("failed to get namespace, error: ", err)
+			continue
+		}
+
+		namespaceWithCreationTime[ns.Name] = strconv.FormatInt(ns.CreationTimestamp.UnixNano()/int64(time.Millisecond), 10)
+	}
+
+	return true, namespaceWithCreationTime
 }
 
 func QueryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
