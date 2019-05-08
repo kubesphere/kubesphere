@@ -573,13 +573,24 @@ func addWebService(c *restful.Container) error {
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{}/runs/
 	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/run").
-		To(devopsapi.RunPipeline).
+		To(devopsapi.RunBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get pipeline artifacts.").
+		Doc("Run pipeline.").
 		Reads(devops.RunPayload{}).
 		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
+		Writes(devops.QueuedBlueRun{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/runs/
+	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/run").
+		To(devopsapi.RunPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Run pipeline.").
+		Reads(devops.RunPayload{}).
+		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
 		Writes(devops.QueuedBlueRun{}))
 
