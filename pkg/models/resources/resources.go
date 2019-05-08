@@ -70,6 +70,7 @@ const (
 	Keyword                = "keyword"
 	Status                 = "status"
 	includeCronJob         = "includeCronJob"
+	storageClassName       = "storageClassName"
 	cronJobKind            = "CronJob"
 	s2iRunKind             = "S2iRun"
 	includeS2iRun          = "includeS2iRun"
