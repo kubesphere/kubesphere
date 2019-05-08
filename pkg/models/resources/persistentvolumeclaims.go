@@ -62,6 +62,10 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 			if !sliceutil.HasString(statuses, pvcStatus(item)) {
 				return false
 			}
+		case storageClassName:
+			if item.Spec.StorageClassName == nil || *item.Spec.StorageClassName != v {
+				return false
+			}
 		case Keyword:
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
