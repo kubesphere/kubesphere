@@ -528,7 +528,7 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_daemonset_count_used":            `count(kube_daemonset_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_jobs_batch_count_used":           `count(kube_job_info{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_cronjobs_batch_count_used":       `count(kube_cronjob_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
-	"namespace_pod_count_used":                  `count(kube_pod_created{namespace="$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
+	"namespace_pod_count_used":                  `sum(kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_service_count_used":              `count(kube_service_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_ingresses_extensions_count_used": `count(kube_ingress_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_pvc_count_used":                  `count(kube_persistentvolumeclaim_info{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
