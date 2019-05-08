@@ -44,8 +44,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&PrometheusEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "")
-	flag.StringVar(&SecondaryPrometheusEndpoint, "secondary-prometheus-endpoint", "http://prometheus-k8s-system.kubesphere-monitoring-system.svc:9090/api/v1/", "")
+	flag.StringVar(&PrometheusEndpoint, "prometheus-endpoint", "http://prometheus-k8s.kubesphere-monitoring-system.svc:9090/api/v1/", "For physical and k8s resource monitoring, including node, namespace, pod, etc.")
+	flag.StringVar(&SecondaryPrometheusEndpoint, "secondary-prometheus-endpoint", "http://prometheus-k8s-system.kubesphere-monitoring-system.svc:9090/api/v1/", "For k8s component monitoring, including etcd, apiserver, coredns, etc.")
 }
 
 type MonitoringRequestParams struct {
