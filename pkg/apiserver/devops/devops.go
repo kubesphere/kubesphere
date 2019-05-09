@@ -359,12 +359,26 @@ func ScanBranch(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func RunPipeline(req *restful.Request, resp *restful.Response) {
+func RunBranchPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
 	pipelineName := req.PathParameter("pipelineName")
 	branchName := req.PathParameter("branchName")
 
-	res, err := devops.RunPipeline(projectName, pipelineName, branchName, req.Request)
+	res, err := devops.RunBranchPipeline(projectName, pipelineName, branchName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.Write(res)
+}
+
+func RunPipeline(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("projectName")
+	pipelineName := req.PathParameter("pipelineName")
+
+	res, err := devops.RunPipeline(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
