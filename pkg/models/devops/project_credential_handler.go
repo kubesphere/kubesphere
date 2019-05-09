@@ -308,10 +308,6 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value, _ := selection.Attr("value")
 				response.Id = value
 			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				response.Description = value
-			})
 			response.KubeconfigCredential = content
 		case CredentialTypeUsernamePassword:
 			content := &UsernamePasswordCredential{}
@@ -324,10 +320,6 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value, _ := selection.Attr("value")
 				response.Id = value
 			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				response.Description = value
-			})
 			response.UsernamePasswordCredential = content
 		case CredentialTypeSsh:
 			content := &SshCredential{}
@@ -339,10 +331,6 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 			doc.Find("input[name*=id][type=text]").Each(func(i int, selection *goquery.Selection) {
 				value, _ := selection.Attr("value")
 				response.Id = value
-			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				response.Description = value
 			})
 			doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
 				value := selection.Text()
