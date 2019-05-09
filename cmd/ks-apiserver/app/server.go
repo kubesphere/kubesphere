@@ -71,6 +71,7 @@ func Run(s *options.ServerRunOptions) error {
 	waitForResourceSync()
 
 	container := runtime.Container
+	container.DoNotRecover(false)
 	container.Filter(filter.Logging)
 
 	for _, webservice := range container.RegisteredWebServices() {
