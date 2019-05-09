@@ -83,6 +83,7 @@ func Run(s *options.ServerRunOptions) error {
 
 	container := runtime.Container
 	container.Filter(filter.Logging)
+	container.DoNotRecover(false)
 
 	for _, webservice := range container.RegisteredWebServices() {
 		for _, route := range webservice.Routes() {
