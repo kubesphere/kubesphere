@@ -53,30 +53,23 @@ type JenkinsCredential struct {
 }
 
 type UsernamePasswordCredential struct {
-	Id          string `json:"id"`
-	Username    string `json:"username,omitempty"`
-	Password    string `json:"password,omitempty"`
-	Description string `json:"description,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type SshCredential struct {
-	Id          string `json:"id"`
-	Username    string `json:"username,omitempty"`
-	Passphrase  string `json:"passphrase,omitempty"`
-	PrivateKey  string `json:"private_key,omitempty" mapstructure:"private_key"`
-	Description string `json:"description,omitempty"`
+	Username   string `json:"username,omitempty"`
+	Passphrase string `json:"passphrase,omitempty"`
+	PrivateKey string `json:"private_key,omitempty" mapstructure:"private_key"`
 }
 
 type SecretTextCredential struct {
-	Id          string `json:"id"`
 	Secret      string `json:"secret,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
 type KubeconfigCredential struct {
-	Id          string `json:"id"`
-	Content     string `json:"content,omitempty"`
-	Description string `json:"description,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
 const (

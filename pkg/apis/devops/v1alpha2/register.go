@@ -721,7 +721,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK,[]devops.NodeSteps{}).
+		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
 	// match /pipeline-model-converter/toJenkinsfile
@@ -784,7 +784,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(true).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK,[]devops.NodesDetail{}).
+		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
 	// out of scm get all steps in nodes.
@@ -799,7 +799,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("limit", "limit count").
 			Required(true).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK,[]devops.NodesDetail{}).
+		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
 	c.Add(webservice)

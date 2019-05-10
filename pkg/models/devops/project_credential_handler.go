@@ -32,23 +32,23 @@ import (
 
 func CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.Id)
+	if err != nil {
+		glog.Errorf("%+v", err)
+		return "", err
+	}
 	switch credentialRequest.Type {
 	case CredentialTypeUsernamePassword:
-		err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.UsernamePasswordCredential.Id)
-		if err != nil {
-			glog.Errorf("%+v", err)
-			return "", err
-		}
 		if credentialRequest.UsernamePasswordCredential == nil {
 			err := fmt.Errorf("usename_password should not be nil")
 			glog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
 		credentialId, err := jenkinsClient.CreateUsernamePasswordCredentialInFolder(credentialRequest.Domain,
-			credentialRequest.UsernamePasswordCredential.Id,
+			credentialRequest.Id,
 			credentialRequest.UsernamePasswordCredential.Username,
 			credentialRequest.UsernamePasswordCredential.Password,
-			credentialRequest.UsernamePasswordCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -61,22 +61,17 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 		}
 		return *credentialId, nil
 	case CredentialTypeSsh:
-		err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.SshCredential.Id)
-		if err != nil {
-			glog.Errorf("%+v", err)
-			return "", err
-		}
 		if credentialRequest.SshCredential == nil {
 			err := fmt.Errorf("ssh should not be nil")
 			glog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
 		credentialId, err := jenkinsClient.CreateSshCredentialInFolder(credentialRequest.Domain,
-			credentialRequest.SshCredential.Id,
+			credentialRequest.Id,
 			credentialRequest.SshCredential.Username,
 			credentialRequest.SshCredential.Passphrase,
 			credentialRequest.SshCredential.PrivateKey,
-			credentialRequest.SshCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -90,11 +85,6 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 		}
 		return *credentialId, nil
 	case CredentialTypeSecretText:
-		err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.SecretTextCredential.Id)
-		if err != nil {
-			glog.Errorf("%+v", err)
-			return "", err
-		}
 		if credentialRequest.SecretTextCredential == nil {
 			err := fmt.Errorf("secret_text should not be nil")
 			glog.Error(err)
@@ -102,9 +92,9 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 		}
 
 		credentialId, err := jenkinsClient.CreateSecretTextCredentialInFolder(credentialRequest.Domain,
-			credentialRequest.SecretTextCredential.Id,
+			credentialRequest.Id,
 			credentialRequest.SecretTextCredential.Secret,
-			credentialRequest.SecretTextCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -118,20 +108,15 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 		}
 		return *credentialId, nil
 	case CredentialTypeKubeConfig:
-		err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.KubeconfigCredential.Id)
-		if err != nil {
-			glog.Errorf("%+v", err)
-			return "", err
-		}
 		if credentialRequest.KubeconfigCredential == nil {
 			err := fmt.Errorf("kubeconfig should not be nil")
 			glog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
 		credentialId, err := jenkinsClient.CreateKubeconfigCredentialInFolder(credentialRequest.Domain,
-			credentialRequest.KubeconfigCredential.Id,
+			credentialRequest.Id,
 			credentialRequest.KubeconfigCredential.Content,
-			credentialRequest.KubeconfigCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -173,7 +158,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			credentialId,
 			credentialRequest.UsernamePasswordCredential.Username,
 			credentialRequest.UsernamePasswordCredential.Password,
-			credentialRequest.UsernamePasswordCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -192,7 +177,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			credentialRequest.SshCredential.Username,
 			credentialRequest.SshCredential.Passphrase,
 			credentialRequest.SshCredential.PrivateKey,
-			credentialRequest.SshCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -225,7 +210,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 		credentialId, err := jenkinsClient.UpdateKubeconfigCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.KubeconfigCredential.Content,
-			credentialRequest.KubeconfigCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -318,15 +303,6 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value := selection.Text()
 				content.Content = value
 			})
-
-			doc.Find("input[name*=id][type=text]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Id = value
-			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Description = value
-			})
 			response.KubeconfigCredential = content
 		case CredentialTypeUsernamePassword:
 			content := &UsernamePasswordCredential{}
@@ -335,14 +311,6 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				content.Username = value
 			})
 
-			doc.Find("input[name*=id][type=text]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Id = value
-			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Description = value
-			})
 			response.UsernamePasswordCredential = content
 		case CredentialTypeSsh:
 			content := &SshCredential{}
@@ -350,15 +318,7 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value, _ := selection.Attr("value")
 				content.Username = value
 			})
-
-			doc.Find("input[name*=id][type=text]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Id = value
-			})
-			doc.Find("input[name*=description]").Each(func(i int, selection *goquery.Selection) {
-				value, _ := selection.Attr("value")
-				content.Description = value
-			})
+			
 			doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
 				value := selection.Text()
 				content.PrivateKey = value
