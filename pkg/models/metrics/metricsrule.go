@@ -116,11 +116,19 @@ func MakeAllWorkspacesPromQL(metricsName, nsFilter string) string {
 	return promql
 }
 
-func MakeSpecificWorkspacePromQL(metricsName, nsFilter string) string {
+func MakeSpecificWorkspacePromQL(metricsName, nsFilter string, workspace string) string {
 
 	var promql = RulePromQLTmplMap[metricsName]
 	nsFilter = "=~\"" + nsFilter + "\""
+
+	if workspace == "" {
+		workspace = "=~\".*\""
+	} else {
+		workspace = "=\"" + workspace + "\""
+	}
+
 	promql = strings.Replace(promql, "$1", nsFilter, -1)
+	promql = strings.Replace(promql, "$2", workspace, -1)
 	return promql
 }
 

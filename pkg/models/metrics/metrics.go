@@ -343,13 +343,13 @@ func AssembleNamespaceMetricRequestInfoByNamesapce(monitoringRequest *client.Mon
 	return queryType, params
 }
 
-func AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
+func AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, namespaceList []string, workspace string, metricName string) (string, string) {
 
 	nsFilter := "^(" + strings.Join(namespaceList, "|") + ")$"
 
 	queryType := monitoringRequest.QueryType
 
-	rule := MakeSpecificWorkspacePromQL(metricName, nsFilter)
+	rule := MakeSpecificWorkspacePromQL(metricName, nsFilter, workspace)
 	paramValues := monitoringRequest.Params
 	params := makeRequestParamString(rule, paramValues)
 	return queryType, params
@@ -480,7 +480,7 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 		wg.Add(1)
 		go func(metricName string) {
 
-			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
+			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, "", metricName)
 			metricsStr := client.SendMonitoringRequest(client.PrometheusEndpoint, queryType, params)
 			ch <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: ws})
 			wg.Done()
@@ -668,7 +668,7 @@ func GetWorkspaceLevelMetrics(monitoringRequest *client.MonitoringRequestParams)
 				if err == nil && matched {
 					wg.Add(1)
 					go func(metricName string, workspace string) {
-						queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, metricName)
+						queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, workspace, metricName)
 						metricsStr := client.SendMonitoringRequest(client.PrometheusEndpoint, queryType, params)
 						ch <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: workspace})
 						wg.Done()

@@ -20,6 +20,7 @@ package prometheus
 import (
 	"flag"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -145,12 +146,28 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	u := url.Values{}
 
 	if start != "" && end != "" {
+
 		u.Set("start", convertTimeGranularity(start))
 		u.Set("end", convertTimeGranularity(end))
 		u.Set("step", step)
 		u.Set("timeout", timeout)
+
+		// range query start time must be greater than the namespace creation time
+		if nsName != "" {
+			nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+			ns, err := nsLister.Get(nsName)
+			if err == nil {
+				queryStartTime := u.Get("start")
+				nsCreationTime := strconv.FormatInt(ns.CreationTimestamp.Unix(), 10)
+				if nsCreationTime > queryStartTime {
+					u.Set("start", nsCreationTime)
+				}
+			}
+		}
+
 		requestParams.QueryType = RangeQueryType
 		requestParams.Params = u
+
 		return &requestParams
 	}
 	if instantTime != "" {
