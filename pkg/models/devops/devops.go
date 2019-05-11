@@ -37,8 +37,8 @@ const channelMaxCapacity = 100
 
 var jenkins *gojenkins.Jenkins
 
-func PreCheckJenkins() {
-	jenkins = admin_jenkins.Client()
+func JenkinsInit() {
+	jenkins = admin_jenkins.GetJenkins()
 }
 
 func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {

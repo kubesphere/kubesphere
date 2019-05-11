@@ -33,6 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/signals"
+	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"log"
 	"net/http"
@@ -99,7 +100,8 @@ func Run(s *options.ServerRunOptions) error {
 }
 
 func initializeAdminJenkins() {
-	devops.PreCheckJenkins()
+	devops.JenkinsInit()
+	admin_jenkins.Client()
 }
 
 func initializeDevOpsDatabase() {

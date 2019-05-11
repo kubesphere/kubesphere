@@ -40,12 +40,17 @@ func init() {
 	flag.IntVar(&jenkinsMaxConn, "jenkins-max-conn", 20, "max conn to jenkins")
 }
 
+func GetJenkins() *gojenkins.Jenkins {
+	jenkins := gojenkins.CreateJenkins(nil, jenkinsAdminAddress, jenkinsMaxConn, jenkinsAdminUsername, jenkinsAdminPassword)
+	return jenkins
+}
+
 func Client() *gojenkins.Jenkins {
 	if jenkinsClient == nil {
 		jenkinsInitMutex.Lock()
 		defer jenkinsInitMutex.Unlock()
 		if jenkinsClient == nil {
-			jenkins := gojenkins.CreateJenkins(nil, jenkinsAdminAddress, jenkinsMaxConn, jenkinsAdminUsername, jenkinsAdminPassword)
+			jenkins := GetJenkins()
 			jenkins, err := jenkins.Init()
 			if err != nil {
 				glog.Errorf("failed to connect jenkins, %+v", err)
