@@ -175,13 +175,6 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Param(webservice.PathParameter("pipelines", "pipeline name")))
 
-	webservice.Route(webservice.PUT("/devops/{devops}/pipelines").
-		To(devopsapi.CreateDevOpsProjectPipelineHandler).
-		Doc("update devops project pipeline").
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(devops.ProjectPipeline{}))
-
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
 		Doc("add project credential pipeline").
@@ -565,7 +558,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Start a build.").
 		Produces("text/html; charset=utf-8").
-		Param(webservice.PathParameter("projecFtName", "devops project name")).
+		Param(webservice.PathParameter("projectName", "devops project name")).
 		Param(webservice.PathParameter("pipelineName", "pipeline name")).
 		Param(webservice.QueryParameter("delay", "delay time").
 			Required(true).

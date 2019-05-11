@@ -23,6 +23,7 @@ import (
 	"k8s.io/api/core/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/errors"
+	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/applications"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -98,7 +99,7 @@ func NamespacedApplicationHandler(req *restful.Request, resp *restful.Response) 
 
 	if runtimeId == "" {
 		glog.Errorln("runtime id not found")
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.New("openpitrix runtime not init"))
+		resp.WriteAsJson(models.PageableResponse{Items: []interface{}{}, TotalCount: 0})
 		return
 	}
 
