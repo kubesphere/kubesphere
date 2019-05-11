@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/emicklei/go-restful"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
@@ -35,6 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -552,7 +554,11 @@ func DeleteUser(username string) error {
 	devopsDb := devops_mysql.OpenDatabase()
 
 	jenkinsClient := admin_jenkins.Client()
-
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	_, err = devopsDb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username),
