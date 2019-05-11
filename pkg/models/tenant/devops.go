@@ -112,6 +112,11 @@ func DeleteDevOpsProject(projectId, username string) error {
 		return restful.NewError(http.StatusForbidden, err.Error())
 	}
 	gojenkins := admin_jenkins.Client()
+	if gojenkins == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	devopsdb := devops_mysql.OpenDatabase()
 	_, err = gojenkins.DeleteJob(projectId)
 
@@ -158,6 +163,11 @@ func DeleteDevOpsProject(projectId, username string) error {
 func CreateDevopsProject(username string, workspace string, req *devops.DevOpsProject) (*devops.DevOpsProject, error) {
 
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	devopsdb := devops_mysql.OpenDatabase()
 	project := devops.NewDevOpsProject(req.Name, req.Description, username, req.Extra, workspace)
 	_, err := jenkinsClient.CreateFolder(project.ProjectId, project.Description)
