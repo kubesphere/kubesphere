@@ -210,4 +210,3 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 	httpWriter.WriteHeader(http.StatusInternalServerError)
 	httpWriter.Write([]byte("recover from panic situation"))
 }
-

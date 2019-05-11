@@ -318,7 +318,7 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value, _ := selection.Attr("value")
 				content.Username = value
 			})
-			
+
 			doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
 				value := selection.Text()
 				content.PrivateKey = value
