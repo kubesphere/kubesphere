@@ -18,6 +18,7 @@
 package app
 
 import (
+	"bytes"
 	goflag "flag"
 	"fmt"
 	"github.com/golang/glog"
@@ -34,6 +35,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"log"
 	"net/http"
+	goRuntime "runtime"
 	"time"
 )
 
@@ -84,6 +86,7 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.Filter(filter.Logging)
 	container.DoNotRecover(false)
+	container.RecoverHandler(logStackOnRecover)
 
 	for _, webservice := range container.RegisteredWebServices() {
 		for _, route := range webservice.Routes() {
@@ -132,4 +135,19 @@ func initializeAdminJenkins() {
 
 func initializeDevOpsDatabase() {
 	devops_mysql.OpenDatabase()
+}
+
+func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) {
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("recover from panic situation: - %v\r\n", panicReason))
+	for i := 2; ; i += 1 {
+		_, file, line, ok := goRuntime.Caller(i)
+		if !ok {
+			break
+		}
+		buffer.WriteString(fmt.Sprintf("    %s:%d\r\n", file, line))
+	}
+	glog.Error(buffer.String())
+	httpWriter.WriteHeader(http.StatusInternalServerError)
+	httpWriter.Write([]byte("recover from panic situation"))
 }
