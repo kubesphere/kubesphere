@@ -32,6 +32,12 @@ import (
 
 func CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+
 	err := checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.Id)
 	if err != nil {
 		glog.Errorf("%+v", err)
@@ -139,6 +145,11 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 
 func UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	jenkinsCredential, err := jenkinsClient.GetCredentialInFolder(credentialRequest.Domain,
 		credentialId,
 		projectId)
@@ -228,6 +239,11 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 
 func DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	dbClient := devops_mysql.OpenDatabase()
 	_, err := jenkinsClient.GetCredentialInFolder(credentialRequest.Domain,
 		credentialId,
@@ -262,6 +278,11 @@ func DeleteProjectCredential(projectId, credentialId string, credentialRequest *
 
 func GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	dbClient := devops_mysql.OpenDatabase()
 	jenkinsResponse, err := jenkinsClient.GetCredentialInFolder(domain,
 		credentialId,
@@ -318,7 +339,7 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 				value, _ := selection.Attr("value")
 				content.Username = value
 			})
-			
+
 			doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
 				value := selection.Text()
 				content.PrivateKey = value
@@ -332,6 +353,11 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 
 func GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	dbClient := devops_mysql.OpenDatabase()
 	jenkinsCredentialResponses, err := jenkinsClient.GetCredentialsInFolder(domain, projectId)
 	if err != nil {
@@ -367,6 +393,11 @@ func insertCredentialToDb(projectId, credentialId, domain, username string) erro
 
 func checkJenkinsCredentialExists(projectId, domain, credentialId string) error {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	credential, err := jenkinsClient.GetCredentialInFolder(domain, credentialId, projectId)
 	if credential != nil {
 		err := fmt.Errorf("credential id [%s] has been used", credential.Id)

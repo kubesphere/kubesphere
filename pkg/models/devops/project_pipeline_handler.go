@@ -24,6 +24,11 @@ import (
 
 func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	switch pipeline.Type {
 	case NoScmPipelineType:
 
@@ -89,6 +94,11 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 
 func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	_, err := jenkinsClient.DeleteJob(pipelineId, projectId)
 	if err != nil {
 		glog.Errorf("%+v", err)
@@ -99,6 +109,11 @@ func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) 
 
 func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	switch pipeline.Type {
 	case NoScmPipelineType:
 
@@ -155,7 +170,11 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 
 func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) {
 	jenkinsClient := admin_jenkins.Client()
-
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	job, err := jenkinsClient.GetJob(pipelineId, projectId)
 	if err != nil {
 		glog.Errorf("%+v", err)
@@ -205,6 +224,11 @@ func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) 
 
 func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	job, err := jenkinsClient.GetJob(pipelineId, projectId)
 	if err != nil {
 		glog.Errorf("%+v", err)
@@ -238,6 +262,11 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 
 func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*SonarStatus, error) {
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	job, err := jenkinsClient.GetJob(branchId, projectId, pipelineId)
 	if err != nil {
 		glog.Errorf("%+v", err)
