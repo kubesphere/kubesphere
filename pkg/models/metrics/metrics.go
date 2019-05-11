@@ -480,7 +480,7 @@ func collectWorkspaceMetric(monitoringRequest *client.MonitoringRequestParams, w
 		wg.Add(1)
 		go func(metricName string) {
 
-			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, "", metricName)
+			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, ".*", metricName)
 			metricsStr := client.SendMonitoringRequest(client.PrometheusEndpoint, queryType, params)
 			ch <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: ws})
 			wg.Done()
