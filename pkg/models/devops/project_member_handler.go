@@ -142,7 +142,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	projectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, member.Role))
+	projectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -152,7 +152,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	pipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
+	pipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
