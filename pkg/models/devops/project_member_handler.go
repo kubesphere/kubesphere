@@ -98,7 +98,12 @@ func GetProjectMember(projectId, username string) (*DevOpsProjectMembership, err
 
 func AddProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
 	dbconn := devops_mysql.OpenDatabase()
-	jenkinsClinet := admin_jenkins.Client()
+	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 
 	membership := &DevOpsProjectMembership{}
 	err := dbconn.Select(DevOpsProjectMembershipColumns...).
@@ -118,13 +123,13 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	globalRole, err := jenkinsClinet.GetGlobalRole(JenkinsAllUserRoleName)
+	globalRole, err := jenkinsClient.GetGlobalRole(JenkinsAllUserRoleName)
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
-		_, err := jenkinsClinet.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
+		_, err := jenkinsClient.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
 			GlobalRead: true,
 		}, true)
 		if err != nil {
@@ -181,7 +186,12 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 
 func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
 	dbconn := devops_mysql.OpenDatabase()
-	jenkinsClinet := admin_jenkins.Client()
+	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	oldMembership := &DevOpsProjectMembership{}
 	err := dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
@@ -194,7 +204,7 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	oldProjectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, oldMembership.Role))
+	oldProjectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, oldMembership.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -204,7 +214,7 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	oldPipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, oldMembership.Role))
+	oldPipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, oldMembership.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -215,7 +225,7 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	projectRole, err := jenkinsClinet.GetProjectRole(GetProjectRoleName(projectId, member.Role))
+	projectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -225,7 +235,7 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	pipelineRole, err := jenkinsClinet.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
+	pipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -262,6 +272,11 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 func DeleteProjectMember(projectId, username string) (string, error) {
 	dbconn := devops_mysql.OpenDatabase()
 	jenkinsClient := admin_jenkins.Client()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		glog.Error(err)
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
 	oldMembership := &DevOpsProjectMembership{}
 	err := dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
