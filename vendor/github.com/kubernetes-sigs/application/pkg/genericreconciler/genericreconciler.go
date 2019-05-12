@@ -52,6 +52,7 @@ func (gr *Reconciler) observe(observables ...resource.Observable) (*resource.Obj
 		if obs.Labels != nil {
 			opts := client.MatchingLabels(obs.Labels)
 			opts.Raw = &metav1.ListOptions{TypeMeta: obs.Type}
+			opts.Namespace = obs.Namespace
 			err = gr.List(context.TODO(), opts, obs.ObjList.(runtime.Object))
 			if err == nil {
 				items, err := meta.ExtractList(obs.ObjList.(runtime.Object))
@@ -62,7 +63,7 @@ func (gr *Reconciler) observe(observables ...resource.Observable) (*resource.Obj
 				}
 			}
 		} else {
-			var obj metav1.Object = obs.Obj.(metav1.Object)
+			var obj = obs.Obj.(metav1.Object)
 			name := obj.GetName()
 			namespace := obj.GetNamespace()
 			otype := reflect.TypeOf(obj).String()
@@ -199,6 +200,11 @@ func (gr *Reconciler) ObserveAndMutate(crname string, c component.Component, sta
 
 	// Get observables
 	observables := c.Observables(gr.Scheme, c.CR, c.Labels(), expected)
+
+	// constraint observables only in component's namespace
+	for i := range observables {
+		observables[i].Namespace = c.CR.GetNamespace()
+	}
 
 	// Observe observables
 	observed, err = gr.observe(observables...)

@@ -111,12 +111,17 @@ required = [
   branch = "kubesphere"
 
 [[constraint]]
+  name = "github.com/kubernetes-sigs/application"
+  source = "https://github.com/kubesphere/application"
+  branch = "kubesphere"
+
+[[constraint]]
   name = "github.com/gorilla/mux"
   version = "1.7.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/knative/pkg"
+  revision = "cd278f2d3394c865fda66bca12459e879e0279b8"
 
 [[constraint]]
   name = "gopkg.in/igm/sockjs-go.v2"
