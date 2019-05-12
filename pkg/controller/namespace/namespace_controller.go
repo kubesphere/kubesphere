@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/glog"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/api/storage/v1"
@@ -122,6 +123,11 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is being deleted
+
+		if err := r.deleteRouter(instance.Name); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		if err := r.deleteRuntime(instance); err != nil {
 			// if fail to delete the external dependency here, return with error
 			// so that it can be retried
@@ -441,4 +447,44 @@ func (r *ReconcileNamespace) checkAndCreateCephSecret(namespace *corev1.Namespac
 	}
 
 	return nil
+}
+
+func (r *ReconcileNamespace) deleteRouter(namespace string) error {
+	routerName := constants.IngressControllerPrefix + namespace
+
+	// delete service first
+	found := corev1.Service{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		log.V(2).Info("get router service failed", err)
+	}
+
+	err = r.Delete(context.TODO(), &found)
+	if err != nil {
+		log.Error(err, "delete router failed")
+		return err
+	}
+
+	// delete deployment
+	deploy := appsv1.Deployment{}
+	err = r.Get(context.TODO(), types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &deploy)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		log.V(2).Info("get router deployment failed", err)
+		return err
+	}
+
+	err = r.Delete(context.TODO(), &deploy)
+	if err != nil {
+		log.Error(err, "delete router deployment failed")
+		return err
+	}
+
+	return nil
+
 }
