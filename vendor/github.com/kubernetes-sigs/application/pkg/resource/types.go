@@ -50,6 +50,8 @@ type Observable struct {
 	Labels map[string]string
 	// Typemeta - needed for go test fake client
 	Type metav1.TypeMeta
+	// Namespace - only observe resources in this namespace
+	Namespace string
 }
 
 // LocalObjectReference with validation
