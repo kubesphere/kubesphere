@@ -31,6 +31,11 @@ const (
 	DevOpsProjectCreateTimeColumn  = "project.create_time"
 )
 
+type PageableDevOpsProject struct {
+	Items      []*DevOpsProject `json:"items"`
+	TotalCount int              `json:"total_count"`
+}
+
 type DevOpsProject struct {
 	ProjectId   string    `json:"project_id" db:"project_id"`
 	Name        string    `json:"name"`

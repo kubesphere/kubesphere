@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sync"
 )
 
 const (
@@ -134,6 +135,10 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 			if err := r.deleteGroup(instance); err != nil {
 				// if fail to delete the external dependency here, return with error
 				// so that it can be retried
+				return reconcile.Result{}, err
+			}
+
+			if err := r.deleteDevOpsProjects(instance); err != nil {
 				return reconcile.Result{}, err
 			}
 
@@ -325,6 +330,40 @@ func (r *ReconcileWorkspace) deleteGroup(instance *tenantv1alpha1.Workspace) err
 		return err
 	}
 	return nil
+}
+
+func (r *ReconcileWorkspace) deleteDevOpsProjects(instance *tenantv1alpha1.Workspace) error {
+	var wg sync.WaitGroup
+
+	log.Info("Delete DevOps Projects")
+	for {
+		errChan := make(chan error, 10)
+		projects, err := r.ksclient.ListWorkspaceDevOpsProjects(instance.Name)
+		if err != nil {
+			log.Error(err, "Failed to Get Workspace's DevOps Projects", "ws", instance.Name)
+			return err
+		}
+		if projects.TotalCount == 0 {
+			return nil
+		}
+		for _, project := range projects.Items {
+			wg.Add(1)
+			go func(workspace, devops string) {
+				err := r.ksclient.DeleteWorkspaceDevOpsProjects(workspace, devops)
+				errChan <- err
+				wg.Done()
+			}(instance.Name, project.ProjectId)
+		}
+		wg.Wait()
+		close(errChan)
+		for err := range errChan {
+			if err != nil {
+				log.Error(err, "delete devops project error")
+				return err
+			}
+		}
+
+	}
 }
 
 func (r *ReconcileWorkspace) createWorkspaceRoleBindings(instance *tenantv1alpha1.Workspace) error {
