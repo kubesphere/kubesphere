@@ -23,6 +23,8 @@ import (
 	"k8s.io/client-go/rest"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
+	"kubesphere.io/kubesphere/pkg/controller/job"
+
 	//"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -97,7 +99,7 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		kubeClient,
 		applicationClient)
 
-	//jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
+	jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
 
 	servicemeshInformer.Start(stopCh)
 	istioInformer.Start(stopCh)
@@ -108,7 +110,7 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		"virtualservice-controller":  vsController,
 		"destinationrule-controller": drController,
 		"application-controller":     apController,
-		//"job-controller":             jobController,
+		"job-controller":             jobController,
 	}
 
 	for name, ctrl := range controllers {
