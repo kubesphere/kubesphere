@@ -10,7 +10,6 @@ type flowController interface {
 	// for receiving
 	AddBytesRead(protocol.ByteCount)
 	GetWindowUpdate() protocol.ByteCount // returns 0 if no update is necessary
-	MaybeQueueWindowUpdate()             //  queues a window update, if necessary
 	IsNewlyBlocked() (bool, protocol.ByteCount)
 }
 
@@ -19,8 +18,12 @@ type StreamFlowController interface {
 	flowController
 	// for receiving
 	// UpdateHighestReceived should be called when a new highest offset is received
-	// final has to be to true if this is the final offset of the stream, as contained in a STREAM frame with FIN bit, and the RST_STREAM frame
+	// final has to be to true if this is the final offset of the stream,
+	// as contained in a STREAM frame with FIN bit, and the RESET_STREAM frame
 	UpdateHighestReceived(offset protocol.ByteCount, final bool) error
+	// Abandon should be called when reading from the stream is aborted early,
+	// and there won't be any further calls to AddBytesRead.
+	Abandon()
 }
 
 // The ConnectionFlowController is the flow controller for the connection.

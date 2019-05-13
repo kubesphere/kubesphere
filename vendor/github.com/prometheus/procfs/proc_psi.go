@@ -64,7 +64,7 @@ func NewPSIStatsForResource(resource string) (PSIStats, error) {
 
 // NewPSIStatsForResource reads pressure stall information from /proc/pressure/<resource>
 func (fs FS) NewPSIStatsForResource(resource string) (PSIStats, error) {
-	file, err := os.Open(fs.Path(fmt.Sprintf("%s/%s", "pressure", resource)))
+	file, err := os.Open(fs.proc.Path(fmt.Sprintf("%s/%s", "pressure", resource)))
 	if err != nil {
 		return PSIStats{}, fmt.Errorf("psi_stats: unavailable for %s", resource)
 	}

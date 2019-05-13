@@ -21,8 +21,9 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
-	"kubesphere.io/kubesphere/pkg/controller/job"
+	//"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
@@ -31,6 +32,8 @@ import (
 
 	istioclientset "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions"
+	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
+	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	servicemeshclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )
@@ -52,8 +55,15 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		return err
 	}
 
+	applicationClient, err := applicationclientset.NewForConfig(cfg)
+	if err != nil {
+		log.Error(err, "create application client failed")
+		return err
+	}
+
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, defaultResync)
 	istioInformer := istioinformers.NewSharedInformerFactory(istioclient, defaultResync)
+	applicationInformer := applicationinformers.NewSharedInformerFactory(applicationClient, defaultResync)
 
 	servicemeshclient, err := servicemeshclientset.NewForConfig(cfg)
 	if err != nil {
@@ -61,12 +71,12 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		return err
 	}
 
-	servicemeshinformer := servicemeshinformers.NewSharedInformerFactory(servicemeshclient, defaultResync)
+	servicemeshInformer := servicemeshinformers.NewSharedInformerFactory(servicemeshclient, defaultResync)
 
 	vsController := virtualservice.NewVirtualServiceController(informerFactory.Core().V1().Services(),
 		istioInformer.Networking().V1alpha3().VirtualServices(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
-		servicemeshinformer.Servicemesh().V1alpha2().Strategies(),
+		servicemeshInformer.Servicemesh().V1alpha2().Strategies(),
 		kubeClient,
 		istioclient,
 		servicemeshclient)
@@ -74,20 +84,31 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 	drController := destinationrule.NewDestinationRuleController(informerFactory.Apps().V1().Deployments(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
 		informerFactory.Core().V1().Services(),
-		servicemeshinformer.Servicemesh().V1alpha2().ServicePolicies(),
+		servicemeshInformer.Servicemesh().V1alpha2().ServicePolicies(),
 		kubeClient,
 		istioclient)
 
-	jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
+	apController := application.NewApplicationController(informerFactory.Core().V1().Services(),
+		informerFactory.Apps().V1().Deployments(),
+		informerFactory.Apps().V1().StatefulSets(),
+		servicemeshInformer.Servicemesh().V1alpha2().Strategies(),
+		servicemeshInformer.Servicemesh().V1alpha2().ServicePolicies(),
+		applicationInformer.App().V1beta1().Applications(),
+		kubeClient,
+		applicationClient)
 
-	servicemeshinformer.Start(stopCh)
+	//jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
+
+	servicemeshInformer.Start(stopCh)
 	istioInformer.Start(stopCh)
 	informerFactory.Start(stopCh)
+	applicationInformer.Start(stopCh)
 
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":  vsController,
 		"destinationrule-controller": drController,
-		"job-controller":             jobController,
+		"application-controller":     apController,
+		//"job-controller":             jobController,
 	}
 
 	for name, ctrl := range controllers {

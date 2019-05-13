@@ -387,9 +387,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	if createVirtualService {
-		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
+		newVirtualService, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
 	} else {
-		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
+		newVirtualService, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
 	}
 
 	if err != nil {

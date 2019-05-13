@@ -201,11 +201,6 @@ func (gr *Reconciler) ObserveAndMutate(crname string, c component.Component, sta
 	// Get observables
 	observables := c.Observables(gr.Scheme, c.CR, c.Labels(), expected)
 
-	// constraint observables only in component's namespace
-	for i := range observables {
-		observables[i].Namespace = c.CR.GetNamespace()
-	}
-
 	// Observe observables
 	observed, err = gr.observe(observables...)
 	if err != nil {

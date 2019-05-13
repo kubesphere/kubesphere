@@ -18,11 +18,7 @@
 
 package controller
 
-import (
-	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
-)
-
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, clusterrolebinding.Add)
+	//AddToManagerFuncs = append(AddToManagerFuncs, clusterrolebinding.Add)
 }

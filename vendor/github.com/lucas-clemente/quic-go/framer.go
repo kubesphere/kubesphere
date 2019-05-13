@@ -7,39 +7,47 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/wire"
 )
 
-type framer struct {
+type framer interface {
+	QueueControlFrame(wire.Frame)
+	AppendControlFrames([]wire.Frame, protocol.ByteCount) ([]wire.Frame, protocol.ByteCount)
+
+	AddActiveStream(protocol.StreamID)
+	AppendStreamFrames([]wire.Frame, protocol.ByteCount) []wire.Frame
+}
+
+type framerI struct {
+	mutex sync.Mutex
+
 	streamGetter streamGetter
-	cryptoStream cryptoStream
 	version      protocol.VersionNumber
 
-	streamQueueMutex sync.Mutex
-	activeStreams    map[protocol.StreamID]struct{}
-	streamQueue      []protocol.StreamID
+	activeStreams map[protocol.StreamID]struct{}
+	streamQueue   []protocol.StreamID
 
 	controlFrameMutex sync.Mutex
 	controlFrames     []wire.Frame
 }
 
+var _ framer = &framerI{}
+
 func newFramer(
-	cryptoStream cryptoStream,
 	streamGetter streamGetter,
 	v protocol.VersionNumber,
-) *framer {
-	return &framer{
+) framer {
+	return &framerI{
 		streamGetter:  streamGetter,
-		cryptoStream:  cryptoStream,
 		activeStreams: make(map[protocol.StreamID]struct{}),
 		version:       v,
 	}
 }
 
-func (f *framer) QueueControlFrame(frame wire.Frame) {
+func (f *framerI) QueueControlFrame(frame wire.Frame) {
 	f.controlFrameMutex.Lock()
 	f.controlFrames = append(f.controlFrames, frame)
 	f.controlFrameMutex.Unlock()
 }
 
-func (f *framer) AppendControlFrames(frames []wire.Frame, maxLen protocol.ByteCount) ([]wire.Frame, protocol.ByteCount) {
+func (f *framerI) AppendControlFrames(frames []wire.Frame, maxLen protocol.ByteCount) ([]wire.Frame, protocol.ByteCount) {
 	var length protocol.ByteCount
 	f.controlFrameMutex.Lock()
 	for len(f.controlFrames) > 0 {
@@ -56,20 +64,18 @@ func (f *framer) AppendControlFrames(frames []wire.Frame, maxLen protocol.ByteCo
 	return frames, length
 }
 
-// AddActiveStream adds a stream that has data to write.
-// It should not be used for the crypto stream.
-func (f *framer) AddActiveStream(id protocol.StreamID) {
-	f.streamQueueMutex.Lock()
+func (f *framerI) AddActiveStream(id protocol.StreamID) {
+	f.mutex.Lock()
 	if _, ok := f.activeStreams[id]; !ok {
 		f.streamQueue = append(f.streamQueue, id)
 		f.activeStreams[id] = struct{}{}
 	}
-	f.streamQueueMutex.Unlock()
+	f.mutex.Unlock()
 }
 
-func (f *framer) AppendStreamFrames(frames []wire.Frame, maxLen protocol.ByteCount) []wire.Frame {
+func (f *framerI) AppendStreamFrames(frames []wire.Frame, maxLen protocol.ByteCount) []wire.Frame {
 	var length protocol.ByteCount
-	f.streamQueueMutex.Lock()
+	f.mutex.Lock()
 	// pop STREAM frames, until less than MinStreamFrameSize bytes are left in the packet
 	numActiveStreams := len(f.streamQueue)
 	for i := 0; i < numActiveStreams; i++ {
@@ -98,6 +104,6 @@ func (f *framer) AppendStreamFrames(frames []wire.Frame, maxLen protocol.ByteCou
 		frames = append(frames, frame)
 		length += frame.Length(f.version)
 	}
-	f.streamQueueMutex.Unlock()
+	f.mutex.Unlock()
 	return frames
 }
