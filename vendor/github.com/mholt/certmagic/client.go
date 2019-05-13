@@ -23,12 +23,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xenolf/lego/certificate"
-	"github.com/xenolf/lego/challenge"
-	"github.com/xenolf/lego/challenge/http01"
-	"github.com/xenolf/lego/challenge/tlsalpn01"
-	"github.com/xenolf/lego/lego"
-	"github.com/xenolf/lego/registration"
+	"github.com/go-acme/lego/certificate"
+	"github.com/go-acme/lego/challenge"
+	"github.com/go-acme/lego/challenge/http01"
+	"github.com/go-acme/lego/challenge/tlsalpn01"
+	"github.com/go-acme/lego/lego"
+	"github.com/go-acme/lego/registration"
 )
 
 // acmeMu ensures that only one ACME challenge occurs at a time.
@@ -52,6 +52,13 @@ func listenerAddressInUse(addr string) bool {
 	return err == nil
 }
 
+func (cfg *Config) newManager(interactive bool) (Manager, error) {
+	if cfg.NewManager != nil {
+		return cfg.NewManager(interactive)
+	}
+	return cfg.newACMEClient(interactive)
+}
+
 func (cfg *Config) newACMEClient(interactive bool) (*acmeClient, error) {
 	// look up or create the user account
 	leUser, err := cfg.getUser(cfg.Email)
@@ -62,15 +69,15 @@ func (cfg *Config) newACMEClient(interactive bool) (*acmeClient, error) {
 	// ensure key type and timeout are set
 	keyType := cfg.KeyType
 	if keyType == "" {
-		keyType = KeyType
+		keyType = Default.KeyType
 	}
 	certObtainTimeout := cfg.CertObtainTimeout
 	if certObtainTimeout == 0 {
-		certObtainTimeout = CertObtainTimeout
+		certObtainTimeout = Default.CertObtainTimeout
 	}
 
 	// ensure CA URL (directory endpoint) is set
-	caURL := CA
+	caURL := Default.CA
 	if cfg.CA != "" {
 		caURL = cfg.CA
 	}
@@ -91,6 +98,7 @@ func (cfg *Config) newACMEClient(interactive bool) (*acmeClient, error) {
 	clientKey := caURL + leUser.Email + string(keyType)
 
 	// if an underlying client with this configuration already exists, reuse it
+	// TODO: Could this be a global cache instead, perhaps?
 	cfg.acmeClientsMu.Lock()
 	client, ok := cfg.acmeClients[clientKey]
 	if !ok {
@@ -232,12 +240,12 @@ func (cfg *Config) lockKey(op, domainName string) string {
 func (c *acmeClient) Obtain(name string) error {
 	// ensure idempotency of the obtain operation for this name
 	lockKey := c.config.lockKey("cert_acme", name)
-	err := c.config.certCache.storage.Lock(lockKey)
+	err := c.config.Storage.Lock(lockKey)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := c.config.certCache.storage.Unlock(lockKey); err != nil {
+		if err := c.config.Storage.Unlock(lockKey); err != nil {
 			log.Printf("[ERROR][%s] Obtain: Unable to unlock '%s': %v", name, lockKey, err)
 		}
 	}()
@@ -292,12 +300,12 @@ func (c *acmeClient) Obtain(name string) error {
 func (c *acmeClient) Renew(name string) error {
 	// ensure idempotency of the renew operation for this name
 	lockKey := c.config.lockKey("cert_acme", name)
-	err := c.config.certCache.storage.Lock(lockKey)
+	err := c.config.Storage.Lock(lockKey)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := c.config.certCache.storage.Unlock(lockKey); err != nil {
+		if err := c.config.Storage.Unlock(lockKey); err != nil {
 			log.Printf("[ERROR][%s] Renew: Unable to unlock '%s': %v", name, lockKey, err)
 		}
 	}()
@@ -351,7 +359,7 @@ func (c *acmeClient) Renew(name string) error {
 // Revoke revokes the certificate for name and deletes
 // it from storage.
 func (c *acmeClient) Revoke(name string) error {
-	if !c.config.certCache.storage.Exists(StorageKeys.SitePrivateKey(c.config.CA, name)) {
+	if !c.config.Storage.Exists(StorageKeys.SitePrivateKey(c.config.CA, name)) {
 		return fmt.Errorf("private key not found for %s", name)
 	}
 
@@ -369,15 +377,15 @@ func (c *acmeClient) Revoke(name string) error {
 		c.config.OnEvent("acme_cert_revoked", name)
 	}
 
-	err = c.config.certCache.storage.Delete(StorageKeys.SiteCert(c.config.CA, name))
+	err = c.config.Storage.Delete(StorageKeys.SiteCert(c.config.CA, name))
 	if err != nil {
 		return fmt.Errorf("certificate revoked, but unable to delete certificate file: %v", err)
 	}
-	err = c.config.certCache.storage.Delete(StorageKeys.SitePrivateKey(c.config.CA, name))
+	err = c.config.Storage.Delete(StorageKeys.SitePrivateKey(c.config.CA, name))
 	if err != nil {
 		return fmt.Errorf("certificate revoked, but unable to delete private key: %v", err)
 	}
-	err = c.config.certCache.storage.Delete(StorageKeys.SiteMeta(c.config.CA, name))
+	err = c.config.Storage.Delete(StorageKeys.SiteMeta(c.config.CA, name))
 	if err != nil {
 		return fmt.Errorf("certificate revoked, but unable to delete certificate metadata: %v", err)
 	}
@@ -398,3 +406,6 @@ var (
 	UserAgent   string
 	HTTPTimeout = 30 * time.Second
 )
+
+// Interface guard
+var _ Manager = (*acmeClient)(nil)

@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/wire"
-	"github.com/lucas-clemente/quic-go/qerr"
 )
 
 type outgoingUniStreamsMap struct {
@@ -19,12 +19,13 @@ type outgoingUniStreamsMap struct {
 
 	streams map[protocol.StreamID]sendStreamI
 
-	nextStream     protocol.StreamID // stream ID of the stream returned by OpenStream(Sync)
-	maxStream      protocol.StreamID // the maximum stream ID we're allowed to open
-	highestBlocked protocol.StreamID // the highest stream ID that we queued a STREAM_ID_BLOCKED frame for
+	nextStream   protocol.StreamID // stream ID of the stream returned by OpenStream(Sync)
+	maxStream    protocol.StreamID // the maximum stream ID we're allowed to open
+	maxStreamSet bool              // was maxStream set. If not, it's not possible to any stream (also works for stream 0)
+	blockedSent  bool              // was a STREAMS_BLOCKED sent for the current maxStream
 
 	newStream            func(protocol.StreamID) sendStreamI
-	queueStreamIDBlocked func(*wire.StreamIDBlockedFrame)
+	queueStreamIDBlocked func(*wire.StreamsBlockedFrame)
 
 	closeErr error
 }
@@ -38,7 +39,7 @@ func newOutgoingUniStreamsMap(
 		streams:              make(map[protocol.StreamID]sendStreamI),
 		nextStream:           nextStream,
 		newStream:            newStream,
-		queueStreamIDBlocked: func(f *wire.StreamIDBlockedFrame) { queueControlFrame(f) },
+		queueStreamIDBlocked: func(f *wire.StreamsBlockedFrame) { queueControlFrame(f) },
 	}
 	m.cond.L = &m.mutex
 	return m
@@ -48,7 +49,15 @@ func (m *outgoingUniStreamsMap) OpenStream() (sendStreamI, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.openStreamImpl()
+	if m.closeErr != nil {
+		return nil, m.closeErr
+	}
+
+	str, err := m.openStreamImpl()
+	if err != nil {
+		return nil, streamOpenErr{err}
+	}
+	return str, nil
 }
 
 func (m *outgoingUniStreamsMap) OpenStreamSync() (sendStreamI, error) {
@@ -56,27 +65,37 @@ func (m *outgoingUniStreamsMap) OpenStreamSync() (sendStreamI, error) {
 	defer m.mutex.Unlock()
 
 	for {
+		if m.closeErr != nil {
+			return nil, m.closeErr
+		}
 		str, err := m.openStreamImpl()
 		if err == nil {
-			return str, err
+			return str, nil
 		}
-		if err != nil && err != qerr.TooManyOpenStreams {
-			return nil, err
+		if err != nil && err != errTooManyOpenStreams {
+			return nil, streamOpenErr{err}
 		}
 		m.cond.Wait()
 	}
 }
 
 func (m *outgoingUniStreamsMap) openStreamImpl() (sendStreamI, error) {
-	if m.closeErr != nil {
-		return nil, m.closeErr
-	}
-	if m.nextStream > m.maxStream {
-		if m.maxStream == 0 || m.highestBlocked < m.maxStream {
-			m.queueStreamIDBlocked(&wire.StreamIDBlockedFrame{StreamID: m.maxStream})
-			m.highestBlocked = m.maxStream
+	if !m.maxStreamSet || m.nextStream > m.maxStream {
+		if !m.blockedSent {
+			if m.maxStreamSet {
+				m.queueStreamIDBlocked(&wire.StreamsBlockedFrame{
+					Type:        protocol.StreamTypeUni,
+					StreamLimit: m.maxStream.StreamNum(),
+				})
+			} else {
+				m.queueStreamIDBlocked(&wire.StreamsBlockedFrame{
+					Type:        protocol.StreamTypeUni,
+					StreamLimit: 0,
+				})
+			}
+			m.blockedSent = true
 		}
-		return nil, qerr.TooManyOpenStreams
+		return nil, errTooManyOpenStreams
 	}
 	s := m.newStream(m.nextStream)
 	m.streams[m.nextStream] = s
@@ -88,7 +107,7 @@ func (m *outgoingUniStreamsMap) GetStream(id protocol.StreamID) (sendStreamI, er
 	m.mutex.RLock()
 	if id >= m.nextStream {
 		m.mutex.RUnlock()
-		return nil, qerr.Error(qerr.InvalidStreamID, fmt.Sprintf("peer attempted to open stream %d", id))
+		return nil, qerr.Error(qerr.StreamStateError, fmt.Sprintf("peer attempted to open stream %d", id))
 	}
 	s := m.streams[id]
 	m.mutex.RUnlock()
@@ -108,8 +127,10 @@ func (m *outgoingUniStreamsMap) DeleteStream(id protocol.StreamID) error {
 
 func (m *outgoingUniStreamsMap) SetMaxStream(id protocol.StreamID) {
 	m.mutex.Lock()
-	if id > m.maxStream {
+	if !m.maxStreamSet || id > m.maxStream {
 		m.maxStream = id
+		m.maxStreamSet = true
+		m.blockedSent = false
 		m.cond.Broadcast()
 	}
 	m.mutex.Unlock()

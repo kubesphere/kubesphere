@@ -14,6 +14,7 @@ type SentPacketHandler interface {
 	SentPacketsAsRetransmission(packets []*Packet, retransmissionOf protocol.PacketNumber)
 	ReceivedAck(ackFrame *wire.AckFrame, withPacketNumber protocol.PacketNumber, encLevel protocol.EncryptionLevel, recvTime time.Time) error
 	SetHandshakeComplete()
+	ResetForRetry() error
 
 	// The SendMode determines if and what kind of packets can be sent.
 	SendMode() SendMode
@@ -27,11 +28,13 @@ type SentPacketHandler interface {
 	// Before sending any packet, SendingAllowed() must be called to learn if we can actually send it.
 	ShouldSendNumPackets() int
 
-	GetStopWaitingFrame(force bool) *wire.StopWaitingFrame
+	// only to be called once the handshake is complete
 	GetLowestPacketNotConfirmedAcked() protocol.PacketNumber
 	DequeuePacketForRetransmission() *Packet
 	DequeueProbePacket() (*Packet, error)
-	GetPacketNumberLen(protocol.PacketNumber) protocol.PacketNumberLen
+
+	PeekPacketNumber(protocol.EncryptionLevel) (protocol.PacketNumber, protocol.PacketNumberLen)
+	PopPacketNumber(protocol.EncryptionLevel) protocol.PacketNumber
 
 	GetAlarmTimeout() time.Time
 	OnAlarm() error
@@ -39,9 +42,9 @@ type SentPacketHandler interface {
 
 // ReceivedPacketHandler handles ACKs needed to send for incoming packets
 type ReceivedPacketHandler interface {
-	ReceivedPacket(packetNumber protocol.PacketNumber, rcvTime time.Time, shouldInstigateAck bool) error
+	ReceivedPacket(pn protocol.PacketNumber, encLevel protocol.EncryptionLevel, rcvTime time.Time, shouldInstigateAck bool) error
 	IgnoreBelow(protocol.PacketNumber)
 
 	GetAlarmTimeout() time.Time
-	GetAckFrame() *wire.AckFrame
+	GetAckFrame(protocol.EncryptionLevel) *wire.AckFrame
 }

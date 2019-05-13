@@ -5,8 +5,8 @@ import (
 
 	"github.com/lucas-clemente/quic-go/internal/congestion"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
-	"github.com/lucas-clemente/quic-go/qerr"
 )
 
 type connectionFlowController struct {
@@ -49,12 +49,17 @@ func (c *connectionFlowController) IncrementHighestReceived(increment protocol.B
 
 	c.highestReceived += increment
 	if c.checkFlowControlViolation() {
-		return qerr.Error(qerr.FlowControlReceivedTooMuchData, fmt.Sprintf("Received %d bytes for the connection, allowed %d bytes", c.highestReceived, c.receiveWindow))
+		return qerr.Error(qerr.FlowControlError, fmt.Sprintf("Received %d bytes for the connection, allowed %d bytes", c.highestReceived, c.receiveWindow))
 	}
 	return nil
 }
 
-func (c *connectionFlowController) MaybeQueueWindowUpdate() {
+func (c *connectionFlowController) AddBytesRead(n protocol.ByteCount) {
+	c.baseFlowController.AddBytesRead(n)
+	c.maybeQueueWindowUpdate()
+}
+
+func (c *connectionFlowController) maybeQueueWindowUpdate() {
 	c.mutex.Lock()
 	hasWindowUpdate := c.hasWindowUpdate()
 	c.mutex.Unlock()

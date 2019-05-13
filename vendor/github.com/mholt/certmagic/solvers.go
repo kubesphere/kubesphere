@@ -20,8 +20,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/xenolf/lego/challenge"
-	"github.com/xenolf/lego/challenge/tlsalpn01"
+	"github.com/go-acme/lego/challenge"
+	"github.com/go-acme/lego/challenge/tlsalpn01"
 )
 
 // tlsALPNSolver is a type that can solve TLS-ALPN challenges using
@@ -117,7 +117,7 @@ func (dhs distributedSolver) Present(domain, token, keyAuth string) error {
 		return err
 	}
 
-	return dhs.config.certCache.storage.Store(dhs.challengeTokensKey(domain), infoBytes)
+	return dhs.config.Storage.Store(dhs.challengeTokensKey(domain), infoBytes)
 }
 
 // CleanUp invokes the underlying solver's CleanUp method
@@ -129,7 +129,7 @@ func (dhs distributedSolver) CleanUp(domain, token, keyAuth string) error {
 			log.Printf("[ERROR] Cleaning up standard provider server: %v", err)
 		}
 	}
-	return dhs.config.certCache.storage.Delete(dhs.challengeTokensKey(domain))
+	return dhs.config.Storage.Delete(dhs.challengeTokensKey(domain))
 }
 
 // challengeTokensPrefix returns the key prefix for challenge info.

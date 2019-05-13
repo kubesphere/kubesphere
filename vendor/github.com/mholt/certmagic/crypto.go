@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"hash/fnv"
 
+	"github.com/go-acme/lego/certificate"
 	"github.com/klauspost/cpuid"
-	"github.com/xenolf/lego/certificate"
 )
 
 // encodePrivateKey marshals a EC or RSA private key into a PEM-encoded array of bytes.
@@ -119,20 +119,20 @@ func (cfg *Config) saveCertResource(cert *certificate.Resource) error {
 		},
 	}
 
-	return storeTx(cfg.certCache.storage, all)
+	return storeTx(cfg.Storage, all)
 }
 
 func (cfg *Config) loadCertResource(domain string) (certificate.Resource, error) {
 	var certRes certificate.Resource
-	certBytes, err := cfg.certCache.storage.Load(StorageKeys.SiteCert(cfg.CA, domain))
+	certBytes, err := cfg.Storage.Load(StorageKeys.SiteCert(cfg.CA, domain))
 	if err != nil {
 		return certRes, err
 	}
-	keyBytes, err := cfg.certCache.storage.Load(StorageKeys.SitePrivateKey(cfg.CA, domain))
+	keyBytes, err := cfg.Storage.Load(StorageKeys.SitePrivateKey(cfg.CA, domain))
 	if err != nil {
 		return certRes, err
 	}
-	metaBytes, err := cfg.certCache.storage.Load(StorageKeys.SiteMeta(cfg.CA, domain))
+	metaBytes, err := cfg.Storage.Load(StorageKeys.SiteMeta(cfg.CA, domain))
 	if err != nil {
 		return certRes, err
 	}

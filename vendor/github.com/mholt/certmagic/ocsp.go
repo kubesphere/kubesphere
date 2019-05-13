@@ -35,7 +35,7 @@ import (
 //
 // Errors here are not necessarily fatal, it could just be that the
 // certificate doesn't have an issuer URL.
-func (certCache *Cache) stapleOCSP(cert *Certificate, pemBundle []byte) error {
+func stapleOCSP(storage Storage, cert *Certificate, pemBundle []byte) error {
 	if pemBundle == nil {
 		// we need a PEM encoding only for some function calls below
 		bundle := new(bytes.Buffer)
@@ -53,7 +53,7 @@ func (certCache *Cache) stapleOCSP(cert *Certificate, pemBundle []byte) error {
 	// First try to load OCSP staple from storage and see if
 	// we can still use it.
 	ocspStapleKey := StorageKeys.OCSPStaple(cert, pemBundle)
-	cachedOCSP, err := certCache.storage.Load(ocspStapleKey)
+	cachedOCSP, err := storage.Load(ocspStapleKey)
 	if err == nil {
 		resp, err := ocsp.ParseResponse(cachedOCSP, nil)
 		if err == nil {
@@ -69,7 +69,7 @@ func (certCache *Cache) stapleOCSP(cert *Certificate, pemBundle []byte) error {
 			// because we loaded it by name, whereas the maintenance routine
 			// just iterates the list of files, even if somehow a non-staple
 			// file gets in the folder. in this case we are sure it is corrupt.)
-			err := certCache.storage.Delete(ocspStapleKey)
+			err := storage.Delete(ocspStapleKey)
 			if err != nil {
 				log.Printf("[WARNING] Unable to delete invalid OCSP staple file: %v", err)
 			}
@@ -104,7 +104,7 @@ func (certCache *Cache) stapleOCSP(cert *Certificate, pemBundle []byte) error {
 		cert.Certificate.OCSPStaple = ocspBytes
 		cert.OCSP = ocspResp
 		if gotNewOCSP {
-			err := certCache.storage.Store(ocspStapleKey, ocspBytes)
+			err := storage.Store(ocspStapleKey, ocspBytes)
 			if err != nil {
 				return fmt.Errorf("unable to write OCSP staple file for %v: %v", cert.Names, err)
 			}
@@ -121,7 +121,7 @@ func (certCache *Cache) stapleOCSP(cert *Certificate, pemBundle []byte) error {
 // IssuingCertificateURL in the certificate. If the []byte and/or ocsp.Response return
 // values are nil, the OCSP status may be assumed OCSPUnknown.
 //
-// Borrowed from github.com/xenolf/lego
+// Borrowed from github.com/go-acme/lego
 func getOCSPForCert(bundle []byte) ([]byte, *ocsp.Response, error) {
 	// TODO: Perhaps this should be synchronized too, with a Locker?
 

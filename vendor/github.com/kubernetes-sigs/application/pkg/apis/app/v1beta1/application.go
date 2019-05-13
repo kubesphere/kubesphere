@@ -85,6 +85,7 @@ func (a *Application) Observables(scheme *runtime.Scheme, rsrc interface{}, rsrc
 				observable := resource.Observable{
 					ObjList: ol.(metav1.ListInterface),
 					Labels:  a.Spec.Selector.MatchLabels,
+					Namespace: rsrc.(metav1.Object).GetNamespace(),
 				}
 				observables = append(observables, observable)
 			}

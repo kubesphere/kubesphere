@@ -18,6 +18,7 @@ const (
 // resource with these following labels considered as part of servicemesh
 var ApplicationLabels = [...]string{
 	ApplicationNameLabel,
+	ApplicationVersionLabel,
 	AppLabel,
 }
 
@@ -30,6 +31,14 @@ func NormalizeVersionName(version string) string {
 		version = strings.ReplaceAll(version, char, "")
 	}
 	return version
+}
+
+func GetApplictionName(lbs map[string]string) string {
+	if name, ok := lbs[ApplicationNameLabel]; ok {
+		return name
+	}
+	return ""
+
 }
 
 func GetComponentName(meta *metav1.ObjectMeta) string {

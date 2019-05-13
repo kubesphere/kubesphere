@@ -10,8 +10,7 @@ type sentPacketHistory struct {
 	packetList *PacketList
 	packetMap  map[protocol.PacketNumber]*PacketElement
 
-	numOutstandingPackets          int
-	numOutstandingHandshakePackets int
+	numOutstandingPackets int
 
 	firstOutstanding *PacketElement
 }
@@ -35,9 +34,6 @@ func (h *sentPacketHistory) sentPacketImpl(p *Packet) *PacketElement {
 	}
 	if p.canBeRetransmitted {
 		h.numOutstandingPackets++
-		if p.EncryptionLevel < protocol.EncryptionForwardSecure {
-			h.numOutstandingHandshakePackets++
-		}
 	}
 	return el
 }
@@ -106,12 +102,6 @@ func (h *sentPacketHistory) MarkCannotBeRetransmitted(pn protocol.PacketNumber) 
 		if h.numOutstandingPackets < 0 {
 			panic("numOutstandingHandshakePackets negative")
 		}
-		if el.Value.EncryptionLevel < protocol.EncryptionForwardSecure {
-			h.numOutstandingHandshakePackets--
-			if h.numOutstandingHandshakePackets < 0 {
-				panic("numOutstandingHandshakePackets negative")
-			}
-		}
 	}
 	el.Value.canBeRetransmitted = false
 	if el == h.firstOutstanding {
@@ -147,12 +137,6 @@ func (h *sentPacketHistory) Remove(p protocol.PacketNumber) error {
 		if h.numOutstandingPackets < 0 {
 			panic("numOutstandingHandshakePackets negative")
 		}
-		if el.Value.EncryptionLevel < protocol.EncryptionForwardSecure {
-			h.numOutstandingHandshakePackets--
-			if h.numOutstandingHandshakePackets < 0 {
-				panic("numOutstandingHandshakePackets negative")
-			}
-		}
 	}
 	h.packetList.Remove(el)
 	delete(h.packetMap, p)
@@ -161,8 +145,4 @@ func (h *sentPacketHistory) Remove(p protocol.PacketNumber) error {
 
 func (h *sentPacketHistory) HasOutstandingPackets() bool {
 	return h.numOutstandingPackets > 0
-}
-
-func (h *sentPacketHistory) HasOutstandingHandshakePackets() bool {
-	return h.numOutstandingHandshakePackets > 0
 }
