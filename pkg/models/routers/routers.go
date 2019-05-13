@@ -327,39 +327,62 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 		return fmt.Errorf("deployment template file not loaded")
 	}
 
+	deployName := constants.IngressControllerPrefix + namespace
+
 	k8sClient := k8s.Client()
+	deployment, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Get(deployName, meta_v1.GetOptions{})
 
 	createDeployment := true
-	deployment := obj.(*extensionsv1beta1.Deployment)
-	deployment.Name = constants.IngressControllerPrefix + namespace
 
-	// Add project label
-	deployment.Spec.Selector.MatchLabels["project"] = namespace
-	deployment.Spec.Template.Labels["project"] = namespace
+	if err != nil {
+		if errors.IsNotFound(err) {
+			deployment = obj.(*extensionsv1beta1.Deployment)
 
-	if servicemeshEnabled {
-		if deployment.Spec.Template.Annotations == nil {
-			deployment.Spec.Template.Annotations = make(map[string]string, 0)
+			deployment.Name = constants.IngressControllerPrefix + namespace
+
+			// Add project label
+			deployment.Spec.Selector.MatchLabels["project"] = namespace
+			deployment.Spec.Template.Labels["project"] = namespace
+
+			// Isolate namespace
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
+
+			// Choose self as master
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
+
 		}
-		deployment.Spec.Template.Annotations[SIDECAR_INJECT] = "true"
+	} else {
+		createDeployment = false
+
+		for i := range deployment.Spec.Template.Spec.Containers {
+			if deployment.Spec.Template.Spec.Containers[i].Name == "nginx-ingress-controller" {
+				var args []string
+				for j := range deployment.Spec.Template.Spec.Containers[i].Args {
+					if strings.HasPrefix("--publish-service", deployment.Spec.Template.Spec.Containers[i].Args[j]) ||
+						strings.HasPrefix("--report-node-internal-ip-address", deployment.Spec.Template.Spec.Containers[i].Args[j]) {
+						continue
+					}
+					args = append(args, deployment.Spec.Template.Spec.Containers[i].Args[j])
+				}
+				deployment.Spec.Template.Spec.Containers[i].Args = args
+			}
+		}
 	}
 
-	// Isolate namespace
-	deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
 
-	// Choose self as master
-	deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--election-id="+deployment.Name)
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = make(map[string]string, 0)
+	}
+	if servicemeshEnabled {
+		deployment.Spec.Template.Annotations[SIDECAR_INJECT] = "true"
+	} else {
+		deployment.Spec.Template.Annotations[SIDECAR_INJECT] = "false"
+	}
 
 	if publishService {
 		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+constants.IngressControllerNamespace+"/"+constants.IngressControllerPrefix+namespace)
 	} else {
 		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
-	}
-
-	_, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Get(deployment.Name, meta_v1.GetOptions{})
-
-	if err == nil {
-		createDeployment = false
 	}
 
 	if createDeployment {
