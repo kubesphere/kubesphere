@@ -18,7 +18,6 @@
 package app
 
 import (
-	"bytes"
 	goflag "flag"
 	"fmt"
 	"github.com/golang/glog"
@@ -33,12 +32,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
+	"kubesphere.io/kubesphere/pkg/server"
 	"kubesphere.io/kubesphere/pkg/signals"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
 	"log"
 	"net/http"
-	goRuntime "runtime"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -76,7 +75,7 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.DoNotRecover(false)
 	container.Filter(filter.Logging)
-	container.RecoverHandler(logStackOnRecover)
+	container.RecoverHandler(server.LogStackOnRecover)
 	for _, webservice := range container.RegisteredWebServices() {
 		for _, route := range webservice.Routes() {
 			log.Println(route.Method, route.Path)
@@ -196,19 +195,4 @@ func waitForResourceSync() {
 	ksInformerFactory.WaitForCacheSync(stopChan)
 
 	log.Println("resources sync success")
-}
-
-func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) {
-	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("recover from panic situation: - %v\r\n", panicReason))
-	for i := 2; ; i += 1 {
-		_, file, line, ok := goRuntime.Caller(i)
-		if !ok {
-			break
-		}
-		buffer.WriteString(fmt.Sprintf("    %s:%d\r\n", file, line))
-	}
-	glog.Error(buffer.String())
-	httpWriter.WriteHeader(http.StatusInternalServerError)
-	httpWriter.Write([]byte("recover from panic situation"))
 }
