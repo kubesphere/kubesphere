@@ -21,13 +21,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,37 +65,16 @@ type staticUpstream struct {
 		Port          string
 		ContentString string
 	}
-	WithoutPathPrefix            string
-	IgnoredSubPaths              []string
-	insecureSkipVerify           bool
-	MaxFails                     int32
-	resolver                     srvResolver
-	CaCertPool                   *x509.CertPool
-	upstreamHeaderReplacements   headerReplacements
-	downstreamHeaderReplacements headerReplacements
+	WithoutPathPrefix  string
+	IgnoredSubPaths    []string
+	insecureSkipVerify bool
+	MaxFails           int32
+	resolver           srvResolver
+	CaCertPool         *x509.CertPool
 }
 
 type srvResolver interface {
 	LookupSRV(context.Context, string, string, string) (string, []*net.SRV, error)
-}
-
-// headerReplacement stores a compiled regex matcher and a string replacer, for replacement rules
-type headerReplacement struct {
-	regexp *regexp.Regexp
-	to     string
-}
-
-// headerReplacements stores a mapping of canonical MIME header to headerReplacement
-// Implements a subset of http.Header functions, to allow convenient addition and deletion of rules
-type headerReplacements map[string][]headerReplacement
-
-func (h headerReplacements) Add(key string, value headerReplacement) {
-	key = textproto.CanonicalMIMEHeaderKey(key)
-	h[key] = append(h[key], value)
-}
-
-func (h headerReplacements) Del(key string) {
-	delete(h, textproto.CanonicalMIMEHeaderKey(key))
 }
 
 // NewStaticUpstreams parses the configuration input and sets up
@@ -110,20 +86,18 @@ func NewStaticUpstreams(c caddyfile.Dispenser, host string) ([]Upstream, error) 
 	for c.Next() {
 
 		upstream := &staticUpstream{
-			from:                         "",
-			stop:                         make(chan struct{}),
-			upstreamHeaders:              make(http.Header),
-			downstreamHeaders:            make(http.Header),
-			Hosts:                        nil,
-			Policy:                       &Random{},
-			MaxFails:                     1,
-			TryInterval:                  250 * time.Millisecond,
-			MaxConns:                     0,
-			KeepAlive:                    http.DefaultMaxIdleConnsPerHost,
-			Timeout:                      30 * time.Second,
-			resolver:                     net.DefaultResolver,
-			upstreamHeaderReplacements:   make(headerReplacements),
-			downstreamHeaderReplacements: make(headerReplacements),
+			from:              "",
+			stop:              make(chan struct{}),
+			upstreamHeaders:   make(http.Header),
+			downstreamHeaders: make(http.Header),
+			Hosts:             nil,
+			Policy:            &Random{},
+			MaxFails:          1,
+			TryInterval:       250 * time.Millisecond,
+			MaxConns:          0,
+			KeepAlive:         http.DefaultMaxIdleConnsPerHost,
+			Timeout:           30 * time.Second,
+			resolver:          net.DefaultResolver,
 		}
 
 		if !c.Args(&upstream.from) {
@@ -246,11 +220,9 @@ func (u *staticUpstream) NewHost(host string) (*UpstreamHost, error) {
 				return false
 			}
 		}(u),
-		WithoutPathPrefix:            u.WithoutPathPrefix,
-		MaxConns:                     u.MaxConns,
-		HealthCheckResult:            atomic.Value{},
-		UpstreamHeaderReplacements:   u.upstreamHeaderReplacements,
-		DownstreamHeaderReplacements: u.downstreamHeaderReplacements,
+		WithoutPathPrefix: u.WithoutPathPrefix,
+		MaxConns:          u.MaxConns,
+		HealthCheckResult: atomic.Value{},
 	}
 
 	baseURL, err := url.Parse(uh.Name)
@@ -330,8 +302,6 @@ func parseUpstream(u string) ([]string, error) {
 }
 
 func parseBlock(c *caddyfile.Dispenser, u *staticUpstream, hasSrv bool) error {
-	var isUpstream bool
-
 	switch c.Val() {
 	case "policy":
 		if !c.NextArg() {
@@ -461,37 +431,23 @@ func parseBlock(c *caddyfile.Dispenser, u *staticUpstream, hasSrv bool) error {
 		}
 		u.HealthCheck.ContentString = c.Val()
 	case "header_upstream":
-		isUpstream = true
-		fallthrough
-	case "header_downstream":
-		var header, value, replaced string
-		if c.Args(&header, &value, &replaced) {
-			// Don't allow - or + in replacements
-			if strings.HasPrefix(header, "-") || strings.HasPrefix(header, "+") {
+		var header, value string
+		if !c.Args(&header, &value) {
+			// When removing a header, the value can be optional.
+			if !strings.HasPrefix(header, "-") {
 				return c.ArgErr()
 			}
-			r, err := regexp.Compile(value)
-			if err != nil {
-				return err
-			}
-			if isUpstream {
-				u.upstreamHeaderReplacements.Add(header, headerReplacement{r, replaced})
-			} else {
-				u.downstreamHeaderReplacements.Add(header, headerReplacement{r, replaced})
-			}
-		} else {
-			if len(value) == 0 {
-				// When removing a header, the value can be optional.
-				if !strings.HasPrefix(header, "-") {
-					return c.ArgErr()
-				}
-			}
-			if isUpstream {
-				u.upstreamHeaders.Add(header, value)
-			} else {
-				u.downstreamHeaders.Add(header, value)
+		}
+		u.upstreamHeaders.Add(header, value)
+	case "header_downstream":
+		var header, value string
+		if !c.Args(&header, &value) {
+			// When removing a header, the value can be optional.
+			if !strings.HasPrefix(header, "-") {
+				return c.ArgErr()
 			}
 		}
+		u.downstreamHeaders.Add(header, value)
 	case "transparent":
 		// Note: X-Forwarded-For header is always being appended for proxy connections
 		// See implementation of createUpstreamRequest in proxy.go
@@ -633,10 +589,8 @@ func (u *staticUpstream) healthCheck() {
 					return true
 				}
 				defer func() {
-					if _, err := io.Copy(ioutil.Discard, r.Body); err != nil {
-						log.Println("[ERROR] failed to copy: ", err)
-					}
-					_ = r.Body.Close()
+					io.Copy(ioutil.Discard, r.Body)
+					r.Body.Close()
 				}()
 				if r.StatusCode < 200 || r.StatusCode >= 400 {
 					return true

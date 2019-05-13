@@ -556,18 +556,19 @@ func (k *DNSKEY) publicKeyRSA() *rsa.PublicKey {
 	pubkey := new(rsa.PublicKey)
 
 	var expo uint64
-	// The exponent of length explen is between keyoff and modoff.
-	for _, v := range keybuf[keyoff:modoff] {
+	for i := 0; i < int(explen); i++ {
 		expo <<= 8
-		expo |= uint64(v)
+		expo |= uint64(keybuf[keyoff+i])
 	}
 	if expo > 1<<31-1 {
 		// Larger exponent than supported by the crypto package.
 		return nil
 	}
-
 	pubkey.E = int(expo)
-	pubkey.N = new(big.Int).SetBytes(keybuf[modoff:])
+
+	pubkey.N = big.NewInt(0)
+	pubkey.N.SetBytes(keybuf[modoff:])
+
 	return pubkey
 }
 
@@ -592,8 +593,10 @@ func (k *DNSKEY) publicKeyECDSA() *ecdsa.PublicKey {
 			return nil
 		}
 	}
-	pubkey.X = new(big.Int).SetBytes(keybuf[:len(keybuf)/2])
-	pubkey.Y = new(big.Int).SetBytes(keybuf[len(keybuf)/2:])
+	pubkey.X = big.NewInt(0)
+	pubkey.X.SetBytes(keybuf[:len(keybuf)/2])
+	pubkey.Y = big.NewInt(0)
+	pubkey.Y.SetBytes(keybuf[len(keybuf)/2:])
 	return pubkey
 }
 
@@ -614,10 +617,10 @@ func (k *DNSKEY) publicKeyDSA() *dsa.PublicKey {
 	p, keybuf := keybuf[:size], keybuf[size:]
 	g, y := keybuf[:size], keybuf[size:]
 	pubkey := new(dsa.PublicKey)
-	pubkey.Parameters.Q = new(big.Int).SetBytes(q)
-	pubkey.Parameters.P = new(big.Int).SetBytes(p)
-	pubkey.Parameters.G = new(big.Int).SetBytes(g)
-	pubkey.Y = new(big.Int).SetBytes(y)
+	pubkey.Parameters.Q = big.NewInt(0).SetBytes(q)
+	pubkey.Parameters.P = big.NewInt(0).SetBytes(p)
+	pubkey.Parameters.G = big.NewInt(0).SetBytes(g)
+	pubkey.Y = big.NewInt(0).SetBytes(y)
 	return pubkey
 }
 

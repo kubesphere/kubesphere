@@ -2,101 +2,126 @@ package quic
 
 import (
 	"bytes"
-	"fmt"
 
-	"github.com/lucas-clemente/quic-go/internal/handshake"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/internal/wire"
+	"github.com/lucas-clemente/quic-go/qerr"
 )
 
 type unpackedPacket struct {
-	packetNumber    protocol.PacketNumber // the decoded packet number
-	hdr             *wire.ExtendedHeader
 	encryptionLevel protocol.EncryptionLevel
-	data            []byte
+	frames          []wire.Frame
 }
 
-// The packetUnpacker unpacks QUIC packets.
-type packetUnpacker struct {
-	cs handshake.CryptoSetup
+type gQUICAEAD interface {
+	Open(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, protocol.EncryptionLevel, error)
+}
 
-	largestRcvdPacketNumber protocol.PacketNumber
+type quicAEAD interface {
+	OpenHandshake(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
+	Open1RTT(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
+}
 
+type packetUnpackerBase struct {
 	version protocol.VersionNumber
+}
+
+func (u *packetUnpackerBase) parseFrames(decrypted []byte, hdr *wire.Header) ([]wire.Frame, error) {
+	r := bytes.NewReader(decrypted)
+	if r.Len() == 0 {
+		return nil, qerr.MissingPayload
+	}
+
+	fs := make([]wire.Frame, 0, 2)
+	// Read all frames in the packet
+	for {
+		frame, err := wire.ParseNextFrame(r, hdr, u.version)
+		if err != nil {
+			return nil, err
+		}
+		if frame == nil {
+			break
+		}
+		fs = append(fs, frame)
+	}
+	return fs, nil
+}
+
+// The packetUnpackerGQUIC unpacks gQUIC packets.
+type packetUnpackerGQUIC struct {
+	packetUnpackerBase
+	aead gQUICAEAD
+}
+
+var _ unpacker = &packetUnpackerGQUIC{}
+
+func newPacketUnpackerGQUIC(aead gQUICAEAD, version protocol.VersionNumber) unpacker {
+	return &packetUnpackerGQUIC{
+		packetUnpackerBase: packetUnpackerBase{version: version},
+		aead:               aead,
+	}
+}
+
+func (u *packetUnpackerGQUIC) Unpack(headerBinary []byte, hdr *wire.Header, data []byte) (*unpackedPacket, error) {
+	decrypted, encryptionLevel, err := u.aead.Open(data[:0], data, hdr.PacketNumber, headerBinary)
+	if err != nil {
+		// Wrap err in quicError so that public reset is sent by session
+		return nil, qerr.Error(qerr.DecryptionFailure, err.Error())
+	}
+
+	fs, err := u.parseFrames(decrypted, hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &unpackedPacket{
+		encryptionLevel: encryptionLevel,
+		frames:          fs,
+	}, nil
+}
+
+// The packetUnpacker unpacks IETF QUIC packets.
+type packetUnpacker struct {
+	packetUnpackerBase
+	aead quicAEAD
 }
 
 var _ unpacker = &packetUnpacker{}
 
-func newPacketUnpacker(cs handshake.CryptoSetup, version protocol.VersionNumber) unpacker {
+func newPacketUnpacker(aead quicAEAD, version protocol.VersionNumber) unpacker {
 	return &packetUnpacker{
-		cs:      cs,
-		version: version,
+		packetUnpackerBase: packetUnpackerBase{version: version},
+		aead:               aead,
 	}
 }
 
-func (u *packetUnpacker) Unpack(hdr *wire.Header, data []byte) (*unpackedPacket, error) {
-	r := bytes.NewReader(data)
+func (u *packetUnpacker) Unpack(headerBinary []byte, hdr *wire.Header, data []byte) (*unpackedPacket, error) {
+	buf := *getPacketBuffer()
+	buf = buf[:0]
+	defer putPacketBuffer(&buf)
 
-	var encLevel protocol.EncryptionLevel
-	switch hdr.Type {
-	case protocol.PacketTypeInitial:
-		encLevel = protocol.EncryptionInitial
-	case protocol.PacketTypeHandshake:
-		encLevel = protocol.EncryptionHandshake
-	default:
-		if hdr.IsLongHeader {
-			return nil, fmt.Errorf("unknown packet type: %s", hdr.Type)
-		}
-		encLevel = protocol.Encryption1RTT
+	var decrypted []byte
+	var encryptionLevel protocol.EncryptionLevel
+	var err error
+	if hdr.IsLongHeader {
+		decrypted, err = u.aead.OpenHandshake(buf, data, hdr.PacketNumber, headerBinary)
+		encryptionLevel = protocol.EncryptionUnencrypted
+	} else {
+		decrypted, err = u.aead.Open1RTT(buf, data, hdr.PacketNumber, headerBinary)
+		encryptionLevel = protocol.EncryptionForwardSecure
 	}
-	opener, err := u.cs.GetOpener(encLevel)
+	if err != nil {
+		// Wrap err in quicError so that public reset is sent by session
+		return nil, qerr.Error(qerr.DecryptionFailure, err.Error())
+	}
+
+	fs, err := u.parseFrames(decrypted, hdr)
 	if err != nil {
 		return nil, err
 	}
-	hdrLen := int(hdr.ParsedLen())
-	if len(data) < hdrLen+4+16 {
-		return nil, fmt.Errorf("Packet too small. Expected at least 20 bytes after the header, got %d", len(data)-hdrLen)
-	}
-	// The packet number can be up to 4 bytes long, but we won't know the length until we decrypt it.
-	// 1. save a copy of the 4 bytes
-	origPNBytes := make([]byte, 4)
-	copy(origPNBytes, data[hdrLen:hdrLen+4])
-	// 2. decrypt the header, assuming a 4 byte packet number
-	opener.DecryptHeader(
-		data[hdrLen+4:hdrLen+4+16],
-		&data[0],
-		data[hdrLen:hdrLen+4],
-	)
-	// 3. parse the header (and learn the actual length of the packet number)
-	extHdr, err := hdr.ParseExtended(r, u.version)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing extended header: %s", err)
-	}
-	extHdrLen := hdrLen + int(extHdr.PacketNumberLen)
-	// 4. if the packet number is shorter than 4 bytes, replace the remaining bytes with the copy we saved earlier
-	if extHdr.PacketNumberLen != protocol.PacketNumberLen4 {
-		copy(data[extHdrLen:hdrLen+4], origPNBytes[int(extHdr.PacketNumberLen):])
-	}
-
-	pn := protocol.DecodePacketNumber(
-		extHdr.PacketNumberLen,
-		u.largestRcvdPacketNumber,
-		extHdr.PacketNumber,
-	)
-
-	decrypted, err := opener.Open(data[extHdrLen:extHdrLen], data[extHdrLen:], pn, data[:extHdrLen])
-	if err != nil {
-		return nil, err
-	}
-
-	// Only do this after decrypting, so we are sure the packet is not attacker-controlled
-	u.largestRcvdPacketNumber = utils.MaxPacketNumber(u.largestRcvdPacketNumber, pn)
 
 	return &unpackedPacket{
-		hdr:             extHdr,
-		packetNumber:    pn,
-		encryptionLevel: encLevel,
-		data:            decrypted,
+		encryptionLevel: encryptionLevel,
+		frames:          fs,
 	}, nil
 }

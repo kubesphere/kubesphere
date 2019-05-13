@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"time"
-
-	"github.com/lucas-clemente/quic-go/internal/protocol"
 )
 
 const (
@@ -16,17 +14,14 @@ const (
 
 // A Cookie is derived from the client address and can be used to verify the ownership of this address.
 type Cookie struct {
-	RemoteAddr               string
-	OriginalDestConnectionID protocol.ConnectionID
-	// The time that the Cookie was issued (resolution 1 second)
+	RemoteAddr string
+	// The time that the STK was issued (resolution 1 second)
 	SentTime time.Time
 }
 
 // token is the struct that is used for ASN1 serialization and deserialization
 type token struct {
-	RemoteAddr               []byte
-	OriginalDestConnectionID []byte
-
+	Data      []byte
 	Timestamp int64
 }
 
@@ -47,11 +42,10 @@ func NewCookieGenerator() (*CookieGenerator, error) {
 }
 
 // NewToken generates a new Cookie for a given source address
-func (g *CookieGenerator) NewToken(raddr net.Addr, origConnID protocol.ConnectionID) ([]byte, error) {
+func (g *CookieGenerator) NewToken(raddr net.Addr) ([]byte, error) {
 	data, err := asn1.Marshal(token{
-		RemoteAddr:               encodeRemoteAddr(raddr),
-		OriginalDestConnectionID: origConnID,
-		Timestamp:                time.Now().Unix(),
+		Data:      encodeRemoteAddr(raddr),
+		Timestamp: time.Now().Unix(),
 	})
 	if err != nil {
 		return nil, err
@@ -78,14 +72,10 @@ func (g *CookieGenerator) DecodeToken(encrypted []byte) (*Cookie, error) {
 	if len(rest) != 0 {
 		return nil, fmt.Errorf("rest when unpacking token: %d", len(rest))
 	}
-	cookie := &Cookie{
-		RemoteAddr: decodeRemoteAddr(t.RemoteAddr),
+	return &Cookie{
+		RemoteAddr: decodeRemoteAddr(t.Data),
 		SentTime:   time.Unix(t.Timestamp, 0),
-	}
-	if len(t.OriginalDestConnectionID) > 0 {
-		cookie.OriginalDestConnectionID = protocol.ConnectionID(t.OriginalDestConnectionID)
-	}
-	return cookie, nil
+	}, nil
 }
 
 // encodeRemoteAddr encodes a remote address such that it can be saved in the Cookie

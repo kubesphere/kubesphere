@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ResourceKindS2iBuilderTemplate     = "S2iBuilderTemplate"
+	ResourceSingularS2iBuilderTemplate = "s2ibuildertemplate"
+	ResourcePluralS2iBuilderTemplate   = "s2ibuildertemplates"
+)
+
 type Parameter struct {
 	Description  string   `json:"description,omitempty"`
 	Key          string   `json:"key,omitempty"`

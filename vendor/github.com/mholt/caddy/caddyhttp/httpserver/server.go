@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lucas-clemente/quic-go/h2quic"
@@ -42,6 +43,8 @@ import (
 type Server struct {
 	Server      *http.Server
 	quicServer  *h2quic.Server
+	listener    net.Listener
+	listenerMu  sync.Mutex
 	sites       []*SiteConfig
 	connTimeout time.Duration // max time to wait for a connection before force stop
 	tlsGovChan  chan struct{} // close to stop the TLS maintenance goroutine
@@ -234,9 +237,7 @@ func makeHTTPServerWithTimeouts(addr string, group []*SiteConfig) *http.Server {
 
 func (s *Server) wrapWithSvcHeaders(previousHandler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := s.quicServer.SetQuicHeaders(w.Header()); err != nil {
-			log.Println("[Error] failed to set proper headers for QUIC: ", err)
-		}
+		s.quicServer.SetQuicHeaders(w.Header())
 		previousHandler.ServeHTTP(w, r)
 	}
 }
@@ -245,7 +246,7 @@ func (s *Server) wrapWithSvcHeaders(previousHandler http.Handler) http.HandlerFu
 // used to serve requests.
 func (s *Server) Listen() (net.Listener, error) {
 	if s.Server == nil {
-		return nil, fmt.Errorf("server field is nil")
+		return nil, fmt.Errorf("Server field is nil")
 	}
 
 	ln, err := net.Listen("tcp", s.Server.Addr)
@@ -309,6 +310,10 @@ func (s *Server) ListenPacket() (net.PacketConn, error) {
 
 // Serve serves requests on ln. It blocks until ln is closed.
 func (s *Server) Serve(ln net.Listener) error {
+	s.listenerMu.Lock()
+	s.listener = ln
+	s.listenerMu.Unlock()
+
 	if s.Server.TLSConfig != nil {
 		// Create TLS listener - note that we do not replace s.listener
 		// with this TLS listener; tls.listener is unexported and does
@@ -324,19 +329,14 @@ func (s *Server) Serve(ln net.Listener) error {
 		s.tlsGovChan = caddytls.RotateSessionTicketKeys(s.Server.TLSConfig)
 	}
 
-	defer func() {
-		if s.quicServer != nil {
-			if err := s.quicServer.Close(); err != nil {
-				log.Println("[ERROR] failed to close QUIC server: ", err)
-			}
-		}
-	}()
-
 	err := s.Server.Serve(ln)
-	if err != nil && err != http.ErrServerClosed {
-		return err
+	if err == http.ErrServerClosed {
+		err = nil // not an error worth reporting since closing a server is intentional
 	}
-	return nil
+	if s.quicServer != nil {
+		s.quicServer.Close()
+	}
+	return err
 }
 
 // ServePacket serves QUIC requests on pc until it is closed.
@@ -559,12 +559,8 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	if err != nil {
 		return
 	}
-	if err = tc.SetKeepAlive(true); err != nil {
-		return
-	}
-	if err = tc.SetKeepAlivePeriod(3 * time.Minute); err != nil {
-		return
-	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
 	return tc, nil
 }
 
@@ -602,9 +598,7 @@ func WriteTextResponse(w http.ResponseWriter, status int, body string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
-	if _, err := w.Write([]byte(body)); err != nil {
-		log.Println("[Error] failed to write body: ", err)
-	}
+	w.Write([]byte(body))
 }
 
 // SafePath joins siteRoot and reqPath and converts it to a path that can

@@ -24,7 +24,6 @@ import (
 type moduleResolver struct {
 	env *fixEnv
 
-	initialized   bool
 	main          *moduleJSON
 	modsByModPath []*moduleJSON // All modules, ordered by # of path components in module Path...
 	modsByDir     []*moduleJSON // ...or Dir.
@@ -49,7 +48,7 @@ type moduleErrorJSON struct {
 }
 
 func (r *moduleResolver) init() error {
-	if r.initialized {
+	if r.main != nil {
 		return nil
 	}
 	stdout, err := r.env.invokeGo("list", "-m", "-json", "...")
@@ -88,7 +87,6 @@ func (r *moduleResolver) init() error {
 		return count(j) < count(i) // descending order
 	})
 
-	r.initialized = true
 	return nil
 }
 
@@ -204,9 +202,7 @@ func (r *moduleResolver) scan(_ references) ([]*pkg, error) {
 	// Walk GOROOT, GOPATH/pkg/mod, and the main module.
 	roots := []gopathwalk.Root{
 		{filepath.Join(r.env.GOROOT, "/src"), gopathwalk.RootGOROOT},
-	}
-	if r.main != nil {
-		roots = append(roots, gopathwalk.Root{r.main.Dir, gopathwalk.RootCurrentModule})
+		{r.main.Dir, gopathwalk.RootCurrentModule},
 	}
 	for _, p := range filepath.SplitList(r.env.GOPATH) {
 		roots = append(roots, gopathwalk.Root{filepath.Join(p, "/pkg/mod"), gopathwalk.RootModuleCache})

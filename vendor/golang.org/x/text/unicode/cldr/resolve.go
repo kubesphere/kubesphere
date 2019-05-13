@@ -5,7 +5,7 @@
 package cldr
 
 // This file implements the various inheritance constructs defined by LDML.
-// See https://www.unicode.org/reports/tr35/#Inheritance_and_Validity
+// See http://www.unicode.org/reports/tr35/#Inheritance_and_Validity
 // for more details.
 
 import (
@@ -309,7 +309,7 @@ func in(set []string, s string) bool {
 }
 
 // attrKey computes a key based on the distinguishable attributes of
-// an element and its values.
+// an element and it's values.
 func attrKey(v reflect.Value, exclude ...string) string {
 	parts := []string{}
 	ename := v.Interface().(Elem).GetCommon().name

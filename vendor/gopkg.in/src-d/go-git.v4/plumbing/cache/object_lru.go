@@ -61,11 +61,6 @@ func (c *ObjectLRU) Put(obj plumbing.EncodedObject) {
 	c.actualSize += objSize
 	for c.actualSize > c.MaxSize {
 		last := c.ll.Back()
-		if last == nil {
-			c.actualSize = 0
-			break
-		}
-
 		lastObj := last.Value.(plumbing.EncodedObject)
 		lastSize := FileSize(lastObj.Size())
 

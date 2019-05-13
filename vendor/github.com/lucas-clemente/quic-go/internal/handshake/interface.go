@@ -1,46 +1,55 @@
 package handshake
 
 import (
-	"crypto/tls"
 	"crypto/x509"
-	"io"
 
+	"github.com/bifurcation/mint"
+	"github.com/lucas-clemente/quic-go/internal/crypto"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/marten-seemann/qtls"
 )
-
-// Opener opens a packet
-type Opener interface {
-	Open(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
-	DecryptHeader(sample []byte, firstByte *byte, pnBytes []byte)
-}
 
 // Sealer seals a packet
 type Sealer interface {
 	Seal(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) []byte
-	EncryptHeader(sample []byte, firstByte *byte, pnBytes []byte)
 	Overhead() int
 }
 
-// A tlsExtensionHandler sends and received the QUIC TLS extension.
-type tlsExtensionHandler interface {
-	GetExtensions(msgType uint8) []qtls.Extension
-	ReceivedExtensions(msgType uint8, exts []qtls.Extension)
-	TransportParameters() <-chan []byte
+// mintTLS combines some methods needed to interact with mint.
+type mintTLS interface {
+	crypto.TLSExporter
+	Handshake() mint.Alert
 }
 
-// CryptoSetup handles the handshake and protecting / unprotecting packets
-type CryptoSetup interface {
-	RunHandshake() error
-	io.Closer
-	ChangeConnectionID(protocol.ConnectionID) error
+// A TLSExtensionHandler sends and received the QUIC TLS extension.
+// It provides the parameters sent by the peer on a channel.
+type TLSExtensionHandler interface {
+	Send(mint.HandshakeType, *mint.ExtensionList) error
+	Receive(mint.HandshakeType, *mint.ExtensionList) error
+	GetPeerParams() <-chan TransportParameters
+}
 
-	HandleMessage([]byte, protocol.EncryptionLevel) bool
-	ConnectionState() tls.ConnectionState
+type baseCryptoSetup interface {
+	HandleCryptoStream() error
+	ConnectionState() ConnectionState
 
 	GetSealer() (protocol.EncryptionLevel, Sealer)
 	GetSealerWithEncryptionLevel(protocol.EncryptionLevel) (Sealer, error)
-	GetOpener(protocol.EncryptionLevel) (Opener, error)
+	GetSealerForCryptoStream() (protocol.EncryptionLevel, Sealer)
+}
+
+// CryptoSetup is the crypto setup used by gQUIC
+type CryptoSetup interface {
+	baseCryptoSetup
+
+	Open(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, protocol.EncryptionLevel, error)
+}
+
+// CryptoSetupTLS is the crypto setup used by IETF QUIC
+type CryptoSetupTLS interface {
+	baseCryptoSetup
+
+	OpenHandshake(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
+	Open1RTT(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
 }
 
 // ConnectionState records basic details about the QUIC connection.

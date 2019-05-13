@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-acme/lego/certcrypto"
+	"github.com/xenolf/lego/certcrypto"
 )
 
 // newSelfSignedCertificate returns a new self-signed certificate.

@@ -2,13 +2,12 @@ package ackhandler
 
 import (
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/internal/wire"
+	"github.com/lucas-clemente/quic-go/qerr"
 )
 
 // The receivedPacketHistory stores if a packet number has already been received.
-// It generates ACK ranges which can be used to assemble an ACK frame.
 // It does not store packet contents.
 type receivedPacketHistory struct {
 	ranges *utils.PacketIntervalList
@@ -16,7 +15,7 @@ type receivedPacketHistory struct {
 	lowestInReceivedPacketNumbers protocol.PacketNumber
 }
 
-var errTooManyOutstandingReceivedAckRanges = qerr.Error(qerr.InternalError, "Too many outstanding received ACK ranges")
+var errTooManyOutstandingReceivedAckRanges = qerr.Error(qerr.TooManyOutstandingReceivedPackets, "Too many outstanding received ACK ranges")
 
 // newReceivedPacketHistory creates a new received packet history
 func newReceivedPacketHistory() *receivedPacketHistory {

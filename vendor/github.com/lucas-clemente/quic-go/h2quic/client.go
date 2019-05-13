@@ -16,8 +16,8 @@ import (
 
 	quic "github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
+	"github.com/lucas-clemente/quic-go/qerr"
 )
 
 type roundTripperOpts struct {
@@ -52,7 +52,10 @@ type client struct {
 
 var _ http.RoundTripper = &client{}
 
-var defaultQuicConfig = &quic.Config{KeepAlive: true}
+var defaultQuicConfig = &quic.Config{
+	RequestConnectionIDOmission: true,
+	KeepAlive:                   true,
+}
 
 // newClient creates a new client
 func newClient(
@@ -91,7 +94,7 @@ func (c *client) dial() error {
 	}
 
 	// once the version has been negotiated, open the header stream
-	c.headerStream, err = c.session.OpenStreamSync()
+	c.headerStream, err = c.session.OpenStream()
 	if err != nil {
 		return err
 	}
@@ -108,10 +111,10 @@ func (c *client) handleHeaderStream() {
 	for err == nil {
 		err = c.readResponse(h2framer, decoder)
 	}
-	if quicErr, ok := err.(*qerr.QuicError); !ok || quicErr.ErrorCode != qerr.NoError {
+	if quicErr, ok := err.(*qerr.QuicError); !ok || quicErr.ErrorCode != qerr.PeerGoingAway {
 		c.logger.Debugf("Error handling header stream: %s", err)
 	}
-	c.headerErr = qerr.Error(qerr.InternalError, err.Error())
+	c.headerErr = qerr.Error(qerr.InvalidHeadersStreamData, err.Error())
 	// stop all running request
 	close(c.headerErrored)
 }
@@ -241,7 +244,7 @@ func (c *client) RoundTrip(req *http.Request) (*http.Response, error) {
 	if streamEnded || isHead {
 		res.Body = noBody
 	} else {
-		res.Body = &responseBody{dataStream}
+		res.Body = dataStream
 		if requestedGzip && res.Header.Get("Content-Encoding") == "gzip" {
 			res.Header.Del("Content-Encoding")
 			res.Header.Del("Content-Length")

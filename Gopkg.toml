@@ -16,16 +16,18 @@ required = [
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
     "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned",
     "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions",
-    "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
+    "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1",
+    "k8s.io/kube-openapi/cmd/openapi-gen"
 ]
 
-[[constraint]]
-  name = "github.com/docker/docker"
-  version = "v17.05.0-ce"
 
 [[override]]
   name = "k8s.io/api"
   version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "k8s.io/kube-openapi"
+  revision = "fd29a9f2f42946ceb3fbd87518e0f2f4343da168"
 
 [[override]]
   name = "k8s.io/apimachinery"
@@ -57,7 +59,7 @@ required = [
 
 [[constraint]]
   name="github.com/kubesphere/s2ioperator"
-  version="v0.0.8"
+  version="v0.0.9"
 
 [[override]]
   name="github.com/bifurcation/mint"

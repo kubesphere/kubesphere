@@ -16,7 +16,6 @@ package proxy
 
 import (
 	"hash/fnv"
-	"log"
 	"math"
 	"math/rand"
 	"net"
@@ -140,9 +139,7 @@ func hostByHashing(pool HostPool, s string) *UpstreamHost {
 // hash calculates a hash based on string s
 func hash(s string) uint32 {
 	h := fnv.New32a()
-	if _, err := h.Write([]byte(s)); err != nil {
-		log.Println("[ERROR] failed to write bytes: ", err)
-	}
+	h.Write([]byte(s))
 	return h.Sum32()
 }
 

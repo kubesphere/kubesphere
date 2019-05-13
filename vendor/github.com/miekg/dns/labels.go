@@ -28,7 +28,9 @@ func SplitDomainName(s string) (labels []string) {
 	case 1:
 		// no-op
 	default:
-		for _, end := range idx[1:] {
+		end := 0
+		for i := 1; i < len(idx); i++ {
+			end = idx[i]
 			labels = append(labels, s[begin:end-1])
 			begin = end
 		}

@@ -10,7 +10,8 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
-var errInvalidAckRanges = errors.New("AckFrame: ACK frame contains invalid ACK ranges")
+// TODO: use the value sent in the transport parameters
+const ackDelayExponent = 3
 
 // An AckFrame is an ACK frame
 type AckFrame struct {
@@ -19,7 +20,11 @@ type AckFrame struct {
 }
 
 // parseAckFrame reads an ACK frame
-func parseAckFrame(r *bytes.Reader, ackDelayExponent uint8, version protocol.VersionNumber) (*AckFrame, error) {
+func parseAckFrame(r *bytes.Reader, version protocol.VersionNumber) (*AckFrame, error) {
+	if !version.UsesIETFFrameFormat() {
+		return parseAckFrameLegacy(r, version)
+	}
+
 	typeByte, err := r.ReadByte()
 	if err != nil {
 		return nil, err
@@ -99,7 +104,11 @@ func parseAckFrame(r *bytes.Reader, ackDelayExponent uint8, version protocol.Ver
 
 // Write writes an ACK frame.
 func (f *AckFrame) Write(b *bytes.Buffer, version protocol.VersionNumber) error {
-	b.WriteByte(0x2)
+	if !version.UsesIETFFrameFormat() {
+		return f.writeLegacy(b, version)
+	}
+
+	b.WriteByte(0x1a)
 	utils.WriteVarInt(b, uint64(f.LargestAcked()))
 	utils.WriteVarInt(b, encodeAckDelay(f.DelayTime))
 
@@ -121,6 +130,10 @@ func (f *AckFrame) Write(b *bytes.Buffer, version protocol.VersionNumber) error 
 
 // Length of a written frame
 func (f *AckFrame) Length(version protocol.VersionNumber) protocol.ByteCount {
+	if !version.UsesIETFFrameFormat() {
+		return f.lengthLegacy(version)
+	}
+
 	largestAcked := f.AckRanges[0].Largest
 	numRanges := f.numEncodableAckRanges()
 
@@ -222,5 +235,5 @@ func (f *AckFrame) AcksPacket(p protocol.PacketNumber) bool {
 }
 
 func encodeAckDelay(delay time.Duration) uint64 {
-	return uint64(delay.Nanoseconds() / (1000 * (1 << protocol.AckDelayExponent)))
+	return uint64(delay.Nanoseconds() / (1000 * (1 << ackDelayExponent)))
 }

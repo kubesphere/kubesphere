@@ -193,8 +193,9 @@ func (i *Instance) Restart(newCaddyfile Input) (*Instance, error) {
 		r := recover()
 		if err != nil || r != nil {
 			for _, fn := range i.OnRestartFailed {
-				if err := fn(); err != nil {
-					log.Printf("[ERROR] Restart failed callback returned error: %v", err)
+				err2 := fn()
+				if err2 != nil {
+					log.Printf("[ERROR] Restart failed callback returned error: %v", err2)
 				}
 			}
 			if err != nil {
@@ -780,10 +781,6 @@ func startServers(serverList []Server, inst *Instance, restartFds map[string]res
 			}
 		}
 
-		inst.servers = append(inst.servers, ServerListener{server: s, listener: ln, packet: pc})
-	}
-
-	for _, s := range inst.servers {
 		inst.wg.Add(2)
 		stopWg.Add(2)
 		func(s Server, ln net.Listener, pc net.PacketConn, inst *Instance) {
@@ -802,7 +799,9 @@ func startServers(serverList []Server, inst *Instance, restartFds map[string]res
 				}()
 				errChan <- s.ServePacket(pc)
 			}()
-		}(s.server, s.listener, s.packet, inst)
+		}(s, ln, pc, inst)
+
+		inst.servers = append(inst.servers, ServerListener{server: s, listener: ln, packet: pc})
 	}
 
 	// Log errors that may be returned from Serve() calls,

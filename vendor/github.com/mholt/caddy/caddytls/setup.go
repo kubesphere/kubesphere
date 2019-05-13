@@ -36,9 +36,7 @@ import (
 func init() {
 	// opt-in TLS 1.3 for Go1.12
 	// TODO: remove this line when Go1.13 is released.
-	if err := os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1"); err != nil {
-		log.Println("[ERROR] failed to set environment variable: ", err)
-	}
+	os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
 
 	caddy.RegisterPlugin("tls", caddy.Plugin{Action: setupTLS})
 
@@ -65,7 +63,7 @@ func setupTLS(c *caddy.Controller) error {
 			if err != nil {
 				return fmt.Errorf("constructing cluster plugin %s: %v", clusterPluginName, err)
 			}
-			certmagic.Default.Storage = storage
+			certmagic.DefaultStorage = storage
 		} else {
 			return fmt.Errorf("unrecognized cluster plugin (was it included in the Caddy build?): %s", clusterPluginName)
 		}
@@ -365,14 +363,6 @@ func setupTLS(c *caddy.Controller) error {
 		telemetry.Increment("tls_self_signed_count")
 	}
 
-	// store this as a custom config
-	cfgMap, ok := c.Get(configMapKey).(map[string]*Config)
-	if !ok || cfgMap == nil {
-		cfgMap = make(map[string]*Config)
-	}
-	cfgMap[config.Hostname] = config
-	c.Set(configMapKey, cfgMap)
-
 	return nil
 }
 
@@ -411,34 +401,26 @@ func loadCertsInDir(cfg *Config, c *caddy.Controller, dir string) error {
 
 				if derBlock.Type == "CERTIFICATE" {
 					// Re-encode certificate as PEM, appending to certificate chain
-					if err := pem.Encode(certBuilder, derBlock); err != nil {
-						log.Println("[ERROR] failed to write PEM encoding: ", err)
-					}
+					pem.Encode(certBuilder, derBlock)
 				} else if derBlock.Type == "EC PARAMETERS" {
 					// EC keys generated from openssl can be composed of two blocks:
 					// parameters and key (parameter block should come first)
 					if !foundKey {
 						// Encode parameters
-						if err := pem.Encode(keyBuilder, derBlock); err != nil {
-							log.Println("[ERROR] failed to write PEM encoding: ", err)
-						}
+						pem.Encode(keyBuilder, derBlock)
 
 						// Key must immediately follow
 						derBlock, bundle = pem.Decode(bundle)
 						if derBlock == nil || derBlock.Type != "EC PRIVATE KEY" {
 							return c.Errf("%s: expected elliptic private key to immediately follow EC parameters", path)
 						}
-						if err := pem.Encode(keyBuilder, derBlock); err != nil {
-							log.Println("[ERROR] failed to write PEM encoding: ", err)
-						}
+						pem.Encode(keyBuilder, derBlock)
 						foundKey = true
 					}
 				} else if derBlock.Type == "PRIVATE KEY" || strings.HasSuffix(derBlock.Type, " PRIVATE KEY") {
 					// RSA key
 					if !foundKey {
-						if err := pem.Encode(keyBuilder, derBlock); err != nil {
-							log.Println("[ERROR] failed to write PEM encoding: ", err)
-						}
+						pem.Encode(keyBuilder, derBlock)
 						foundKey = true
 					}
 				} else {
@@ -467,5 +449,3 @@ func loadCertsInDir(cfg *Config, c *caddy.Controller, dir string) error {
 func constructDefaultClusterPlugin() (certmagic.Storage, error) {
 	return &certmagic.FileStorage{Path: caddy.AssetsPath()}, nil
 }
-
-const configMapKey = "tls_custom_configs"

@@ -14,8 +14,8 @@ import (
 
 	quic "github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
-	"github.com/lucas-clemente/quic-go/internal/qerr"
 	"github.com/lucas-clemente/quic-go/internal/utils"
+	"github.com/lucas-clemente/quic-go/qerr"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 )
@@ -127,7 +127,7 @@ func (s *Server) serveImpl(tlsConfig *tls.Config, conn net.PacketConn) error {
 func (s *Server) handleHeaderStream(session streamCreator) {
 	stream, err := session.AcceptStream()
 	if err != nil {
-		session.CloseWithError(quic.ErrorCode(qerr.InternalError), err)
+		session.CloseWithError(quic.ErrorCode(qerr.InvalidHeadersStreamData), err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (s *Server) handleHeaderStream(session streamCreator) {
 func (s *Server) handleRequest(session streamCreator, headerStream quic.Stream, headerStreamMutex *sync.Mutex, hpackDecoder *hpack.Decoder, h2framer *http2.Framer) error {
 	h2frame, err := h2framer.ReadFrame()
 	if err != nil {
-		return qerr.Error(qerr.InternalError, "cannot read frame")
+		return qerr.Error(qerr.HeadersStreamDataDecompressFailure, "cannot read frame")
 	}
 	var h2headersFrame *http2.HeadersFrame
 	switch f := h2frame.(type) {
@@ -165,7 +165,7 @@ func (s *Server) handleRequest(session streamCreator, headerStream quic.Stream, 
 	case *http2.HeadersFrame:
 		h2headersFrame = f
 	default:
-		return qerr.Error(qerr.ProtocolViolation, "expected a header frame")
+		return qerr.Error(qerr.InvalidHeadersStreamData, "expected a header frame")
 	}
 
 	if !h2headersFrame.HeadersEnded() {

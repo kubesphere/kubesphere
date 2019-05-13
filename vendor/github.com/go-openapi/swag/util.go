@@ -159,20 +159,16 @@ func SplitByFormat(data, format string) []string {
 	return result
 }
 
-type byInitialism []string
+type byLength []string
 
-func (s byInitialism) Len() int {
+func (s byLength) Len() int {
 	return len(s)
 }
-func (s byInitialism) Swap(i, j int) {
+func (s byLength) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-func (s byInitialism) Less(i, j int) bool {
-	if len(s[i]) != len(s[j]) {
-		return len(s[i]) < len(s[j])
-	}
-
-	return strings.Compare(s[i], s[j]) > 0
+func (s byLength) Less(i, j int) bool {
+	return len(s[i]) < len(s[j])
 }
 
 // Prepares strings by splitting by caps, spaces, dashes, and underscore
@@ -226,7 +222,7 @@ func lower(str string) string {
 
 // Camelize an uppercased word
 func Camelize(word string) (camelized string) {
-	for pos, ru := range []rune(word) {
+	for pos, ru := range word {
 		if pos > 0 {
 			camelized += string(unicode.ToLower(ru))
 		} else {
@@ -282,7 +278,7 @@ func ToHumanNameTitle(name string) string {
 	for _, w := range in {
 		uw := upper(w)
 		if !isInitialism(uw) {
-			out = append(out, Camelize(w))
+			out = append(out, upper(w[:1])+lower(w[1:]))
 		} else {
 			out = append(out, w)
 		}
@@ -300,7 +296,7 @@ func ToJSONName(name string) string {
 			out = append(out, lower(w))
 			continue
 		}
-		out = append(out, Camelize(w))
+		out = append(out, upper(w[:1])+lower(w[1:]))
 	}
 	return strings.Join(out, "")
 }
@@ -326,15 +322,19 @@ func ToGoName(name string) string {
 		uw := upper(w)
 		mod := int(math.Min(float64(len(uw)), 2))
 		if !isInitialism(uw) && !isInitialism(uw[:len(uw)-mod]) {
-			uw = Camelize(w)
+			uw = upper(w[:1]) + lower(w[1:])
 		}
 		out = append(out, uw)
 	}
 
 	result := strings.Join(out, "")
 	if len(result) > 0 {
-		if !unicode.IsUpper([]rune(result)[0]) {
-			result = "X" + result
+		ud := upper(result[:1])
+		ru := []rune(ud)
+		if unicode.IsUpper(ru[0]) {
+			result = ud + result[1:]
+		} else {
+			result = "X" + ud + result[1:]
 		}
 	}
 	return result

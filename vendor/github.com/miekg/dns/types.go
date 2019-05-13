@@ -845,8 +845,8 @@ type NSEC struct {
 
 func (rr *NSEC) String() string {
 	s := rr.Hdr.String() + sprintName(rr.NextDomain)
-	for _, t := range rr.TypeBitMap {
-		s += " " + Type(t).String()
+	for i := 0; i < len(rr.TypeBitMap); i++ {
+		s += " " + Type(rr.TypeBitMap[i]).String()
 	}
 	return s
 }
@@ -1011,8 +1011,8 @@ func (rr *NSEC3) String() string {
 		" " + strconv.Itoa(int(rr.Iterations)) +
 		" " + saltToString(rr.Salt) +
 		" " + rr.NextDomain
-	for _, t := range rr.TypeBitMap {
-		s += " " + Type(t).String()
+	for i := 0; i < len(rr.TypeBitMap); i++ {
+		s += " " + Type(rr.TypeBitMap[i]).String()
 	}
 	return s
 }
@@ -1335,8 +1335,8 @@ type CSYNC struct {
 func (rr *CSYNC) String() string {
 	s := rr.Hdr.String() + strconv.FormatInt(int64(rr.Serial), 10) + " " + strconv.Itoa(int(rr.Flags))
 
-	for _, t := range rr.TypeBitMap {
-		s += " " + Type(t).String()
+	for i := 0; i < len(rr.TypeBitMap); i++ {
+		s += " " + Type(rr.TypeBitMap[i]).String()
 	}
 	return s
 }

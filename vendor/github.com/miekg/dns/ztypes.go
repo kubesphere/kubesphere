@@ -240,16 +240,12 @@ func (rr *X25) Header() *RR_Header        { return &rr.Hdr }
 // len() functions
 func (rr *A) len(off int, compression map[string]struct{}) int {
 	l := rr.Hdr.len(off, compression)
-	if len(rr.A) != 0 {
-		l += net.IPv4len
-	}
+	l += net.IPv4len // A
 	return l
 }
 func (rr *AAAA) len(off int, compression map[string]struct{}) int {
 	l := rr.Hdr.len(off, compression)
-	if len(rr.AAAA) != 0 {
-		l += net.IPv6len
-	}
+	l += net.IPv6len // AAAA
 	return l
 }
 func (rr *AFSDB) len(off int, compression map[string]struct{}) int {
@@ -368,10 +364,8 @@ func (rr *KX) len(off int, compression map[string]struct{}) int {
 }
 func (rr *L32) len(off int, compression map[string]struct{}) int {
 	l := rr.Hdr.len(off, compression)
-	l += 2 // Preference
-	if len(rr.Locator32) != 0 {
-		l += net.IPv4len
-	}
+	l += 2           // Preference
+	l += net.IPv4len // Locator32
 	return l
 }
 func (rr *L64) len(off int, compression map[string]struct{}) int {

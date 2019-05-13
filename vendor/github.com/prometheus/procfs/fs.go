@@ -14,24 +14,69 @@
 package procfs
 
 import (
-	"github.com/prometheus/procfs/internal/fs"
+	"fmt"
+	"os"
+	"path"
+
+	"github.com/prometheus/procfs/nfs"
+	"github.com/prometheus/procfs/xfs"
 )
 
-// FS represents the pseudo-filesystem sys, which provides an interface to
+// FS represents the pseudo-filesystem proc, which provides an interface to
 // kernel data structures.
-type FS struct {
-	proc fs.FS
-}
+type FS string
 
 // DefaultMountPoint is the common mount point of the proc filesystem.
-const DefaultMountPoint = fs.DefaultProcMountPoint
+const DefaultMountPoint = "/proc"
 
-// NewFS returns a new proc FS mounted under the given proc mountPoint. It will error
-// if the mount point dirctory can't be read or is a file.
+// NewFS returns a new FS mounted under the given mountPoint. It will error
+// if the mount point can't be read.
 func NewFS(mountPoint string) (FS, error) {
-	fs, err := fs.NewFS(mountPoint)
+	info, err := os.Stat(mountPoint)
 	if err != nil {
-		return FS{}, err
+		return "", fmt.Errorf("could not read %s: %s", mountPoint, err)
 	}
-	return FS{fs}, nil
+	if !info.IsDir() {
+		return "", fmt.Errorf("mount point %s is not a directory", mountPoint)
+	}
+
+	return FS(mountPoint), nil
+}
+
+// Path returns the path of the given subsystem relative to the procfs root.
+func (fs FS) Path(p ...string) string {
+	return path.Join(append([]string{string(fs)}, p...)...)
+}
+
+// XFSStats retrieves XFS filesystem runtime statistics.
+func (fs FS) XFSStats() (*xfs.Stats, error) {
+	f, err := os.Open(fs.Path("fs/xfs/stat"))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return xfs.ParseStats(f)
+}
+
+// NFSClientRPCStats retrieves NFS client RPC statistics.
+func (fs FS) NFSClientRPCStats() (*nfs.ClientRPCStats, error) {
+	f, err := os.Open(fs.Path("net/rpc/nfs"))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return nfs.ParseClientRPCStats(f)
+}
+
+// NFSdServerRPCStats retrieves NFS daemon RPC statistics.
+func (fs FS) NFSdServerRPCStats() (*nfs.ServerRPCStats, error) {
+	f, err := os.Open(fs.Path("net/rpc/nfsd"))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return nfs.ParseServerRPCStats(f)
 }

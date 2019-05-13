@@ -1020,12 +1020,7 @@ func pushHashes(
 	if err != nil {
 		return nil, err
 	}
-
-	// Set buffer size to 1 so the error message can be written when
-	// ReceivePack fails. Otherwise the goroutine will be blocked writing
-	// to the channel.
-	done := make(chan error, 1)
-
+	done := make(chan error)
 	go func() {
 		e := packfile.NewEncoder(wr, s, useRefDeltas)
 		if _, err := e.Encode(hs, config.Pack.Window); err != nil {
@@ -1038,8 +1033,6 @@ func pushHashes(
 
 	rs, err := sess.ReceivePack(ctx, req)
 	if err != nil {
-		// close the pipe to unlock encode write
-		_ = rd.Close()
 		return nil, err
 	}
 

@@ -29,8 +29,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-acme/lego/acme"
-	"github.com/go-acme/lego/registration"
+	"github.com/xenolf/lego/acme"
+	"github.com/xenolf/lego/registration"
 )
 
 // user represents a Let's Encrypt user account.
@@ -79,12 +79,10 @@ func (cfg *Config) newUser(email string) (user, error) {
 // will NOT be prompted and an empty email may be returned.
 func (cfg *Config) getEmail(allowPrompts bool) error {
 	leEmail := cfg.Email
-
 	// First try package default email
 	if leEmail == "" {
-		leEmail = Default.Email
+		leEmail = Email
 	}
-
 	// Then try to get most recent user email from storage
 	var gotRecentEmail bool
 	if leEmail == "" {
@@ -98,15 +96,13 @@ func (cfg *Config) getEmail(allowPrompts bool) error {
 		if err != nil {
 			return err
 		}
-
-		// User might have just signified their agreement
-		cfg.Agreed = Default.Agreed
 	}
 
 	// save the email for later and ensure it is consistent
-	// for repeated use; then update cfg with the email
-	Default.Email = strings.TrimSpace(strings.ToLower(leEmail))
-	cfg.Email = Default.Email
+	// for repeated use; then update cfg with our new defaults
+	Email = strings.TrimSpace(strings.ToLower(leEmail))
+	cfg.Email = Email
+	cfg.Agreed = Agreed
 
 	return nil
 }
@@ -115,7 +111,7 @@ func (cfg *Config) getAgreementURL() (string, error) {
 	if agreementTestURL != "" {
 		return agreementTestURL, nil
 	}
-	caURL := Default.CA
+	caURL := CA
 	if cfg.CA != "" {
 		caURL = cfg.CA
 	}
@@ -153,7 +149,7 @@ func (cfg *Config) promptUserForEmail() (string, error) {
 		return "", fmt.Errorf("reading email address: %v", err)
 	}
 	leEmail = strings.TrimSpace(leEmail)
-	Default.Agreed = true
+	Agreed = true
 	return leEmail, nil
 }
 
@@ -165,7 +161,7 @@ func (cfg *Config) promptUserForEmail() (string, error) {
 func (cfg *Config) getUser(email string) (user, error) {
 	var user user
 
-	regBytes, err := cfg.Storage.Load(StorageKeys.UserReg(cfg.CA, email))
+	regBytes, err := cfg.certCache.storage.Load(StorageKeys.UserReg(cfg.CA, email))
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			// create a new user
@@ -173,7 +169,7 @@ func (cfg *Config) getUser(email string) (user, error) {
 		}
 		return user, err
 	}
-	keyBytes, err := cfg.Storage.Load(StorageKeys.UserPrivateKey(cfg.CA, email))
+	keyBytes, err := cfg.certCache.storage.Load(StorageKeys.UserPrivateKey(cfg.CA, email))
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			// create a new user
@@ -216,7 +212,7 @@ func (cfg *Config) saveUser(user user) error {
 		},
 	}
 
-	return storeTx(cfg.Storage, all)
+	return storeTx(cfg.certCache.storage, all)
 }
 
 // promptUserAgreement simply outputs the standard user
@@ -250,13 +246,13 @@ func (cfg *Config) askUserAgreement(agreementURL string) bool {
 // account, errors here are discarded to simplify code flow in
 // the caller, and errors are not important here anyway.
 func (cfg *Config) mostRecentUserEmail() (string, bool) {
-	userList, err := cfg.Storage.List(StorageKeys.UsersPrefix(cfg.CA), false)
+	userList, err := cfg.certCache.storage.List(StorageKeys.UsersPrefix(cfg.CA), false)
 	if err != nil || len(userList) == 0 {
 		return "", false
 	}
 	sort.Slice(userList, func(i, j int) bool {
-		iInfo, _ := cfg.Storage.Stat(userList[i])
-		jInfo, _ := cfg.Storage.Stat(userList[j])
+		iInfo, _ := cfg.certCache.storage.Stat(userList[i])
+		jInfo, _ := cfg.certCache.storage.Stat(userList[j])
 		return jInfo.Modified.Before(iInfo.Modified)
 	})
 	user, err := cfg.getUser(path.Base(userList[0]))

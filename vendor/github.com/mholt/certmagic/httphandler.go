@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-acme/lego/challenge/http01"
+	"github.com/xenolf/lego/challenge/http01"
 )
 
 // HTTPChallengeHandler wraps h in a handler that can solve the ACME
@@ -57,7 +57,7 @@ func (cfg *Config) HandleHTTPChallenge(w http.ResponseWriter, r *http.Request) b
 	if cfg.DisableHTTPChallenge {
 		return false
 	}
-	if !LooksLikeHTTPChallenge(r) {
+	if !strings.HasPrefix(r.URL.Path, challengeBasePath) {
 		return false
 	}
 	return cfg.distributedHTTPChallengeSolver(w, r)
@@ -73,7 +73,7 @@ func (cfg *Config) distributedHTTPChallengeSolver(w http.ResponseWriter, r *http
 	}
 
 	tokenKey := distributedSolver{config: cfg}.challengeTokensKey(r.Host)
-	chalInfoBytes, err := cfg.Storage.Load(tokenKey)
+	chalInfoBytes, err := cfg.certCache.storage.Load(tokenKey)
 	if err != nil {
 		if _, ok := err.(ErrNotExist); !ok {
 			log.Printf("[ERROR][%s] Opening distributed HTTP challenge token file: %v", r.Host, err)
@@ -106,12 +106,6 @@ func answerHTTPChallenge(w http.ResponseWriter, r *http.Request, chalInfo challe
 		return true
 	}
 	return false
-}
-
-// LooksLikeHTTPChallenge returns true if r looks like an ACME
-// HTTP challenge request from an ACME server.
-func LooksLikeHTTPChallenge(r *http.Request) bool {
-	return r.Method == "GET" && strings.HasPrefix(r.URL.Path, challengeBasePath)
 }
 
 const challengeBasePath = "/.well-known/acme-challenge"

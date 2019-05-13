@@ -80,9 +80,9 @@ func (rr *OPT) String() string {
 
 func (rr *OPT) len(off int, compression map[string]struct{}) int {
 	l := rr.Hdr.len(off, compression)
-	for _, o := range rr.Option {
+	for i := 0; i < len(rr.Option); i++ {
 		l += 4 // Account for 2-byte option code and 2-byte option length.
-		lo, _ := o.pack()
+		lo, _ := rr.Option[i].pack()
 		l += len(lo)
 	}
 	return l
@@ -453,11 +453,11 @@ func (e *EDNS0_DAU) unpack(b []byte) error { e.AlgCode = b; return nil }
 
 func (e *EDNS0_DAU) String() string {
 	s := ""
-	for _, alg := range e.AlgCode {
-		if a, ok := AlgorithmToString[alg]; ok {
+	for i := 0; i < len(e.AlgCode); i++ {
+		if a, ok := AlgorithmToString[e.AlgCode[i]]; ok {
 			s += " " + a
 		} else {
-			s += " " + strconv.Itoa(int(alg))
+			s += " " + strconv.Itoa(int(e.AlgCode[i]))
 		}
 	}
 	return s
@@ -477,11 +477,11 @@ func (e *EDNS0_DHU) unpack(b []byte) error { e.AlgCode = b; return nil }
 
 func (e *EDNS0_DHU) String() string {
 	s := ""
-	for _, alg := range e.AlgCode {
-		if a, ok := HashToString[alg]; ok {
+	for i := 0; i < len(e.AlgCode); i++ {
+		if a, ok := HashToString[e.AlgCode[i]]; ok {
 			s += " " + a
 		} else {
-			s += " " + strconv.Itoa(int(alg))
+			s += " " + strconv.Itoa(int(e.AlgCode[i]))
 		}
 	}
 	return s
@@ -502,11 +502,11 @@ func (e *EDNS0_N3U) unpack(b []byte) error { e.AlgCode = b; return nil }
 func (e *EDNS0_N3U) String() string {
 	// Re-use the hash map
 	s := ""
-	for _, alg := range e.AlgCode {
-		if a, ok := HashToString[alg]; ok {
+	for i := 0; i < len(e.AlgCode); i++ {
+		if a, ok := HashToString[e.AlgCode[i]]; ok {
 			s += " " + a
 		} else {
-			s += " " + strconv.Itoa(int(alg))
+			s += " " + strconv.Itoa(int(e.AlgCode[i]))
 		}
 	}
 	return s

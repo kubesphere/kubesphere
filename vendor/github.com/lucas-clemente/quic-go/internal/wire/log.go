@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
@@ -18,11 +17,14 @@ func LogFrame(logger utils.Logger, frame Frame, sent bool) {
 		dir = "->"
 	}
 	switch f := frame.(type) {
-	case *CryptoFrame:
-		dataLen := protocol.ByteCount(len(f.Data))
-		logger.Debugf("\t%s &wire.CryptoFrame{Offset: 0x%x, Data length: 0x%x, Offset + Data length: 0x%x}", dir, f.Offset, dataLen, f.Offset+dataLen)
 	case *StreamFrame:
 		logger.Debugf("\t%s &wire.StreamFrame{StreamID: %d, FinBit: %t, Offset: 0x%x, Data length: 0x%x, Offset + Data length: 0x%x}", dir, f.StreamID, f.FinBit, f.Offset, f.DataLen(), f.Offset+f.DataLen())
+	case *StopWaitingFrame:
+		if sent {
+			logger.Debugf("\t%s &wire.StopWaitingFrame{LeastUnacked: 0x%x, PacketNumberLen: 0x%x}", dir, f.LeastUnacked, f.PacketNumberLen)
+		} else {
+			logger.Debugf("\t%s &wire.StopWaitingFrame{LeastUnacked: 0x%x}", dir, f.LeastUnacked)
+		}
 	case *AckFrame:
 		if len(f.AckRanges) > 1 {
 			ackRanges := make([]string, len(f.AckRanges))
@@ -33,10 +35,6 @@ func LogFrame(logger utils.Logger, frame Frame, sent bool) {
 		} else {
 			logger.Debugf("\t%s &wire.AckFrame{LargestAcked: %#x, LowestAcked: %#x, DelayTime: %s}", dir, f.LargestAcked(), f.LowestAcked(), f.DelayTime.String())
 		}
-	case *NewConnectionIDFrame:
-		logger.Debugf("\t%s &wire.NewConnectionIDFrame{SequenceNumber: %d, ConnectionID: %s, StatelessResetToken: %#x}", dir, f.SequenceNumber, f.ConnectionID, f.StatelessResetToken)
-	case *NewTokenFrame:
-		logger.Debugf("\t%s &wire.NewTokenFrame{Token: %#x}", dir, f.Token)
 	default:
 		logger.Debugf("\t%s %#v", dir, frame)
 	}

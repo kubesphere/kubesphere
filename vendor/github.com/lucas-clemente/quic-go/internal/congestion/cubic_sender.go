@@ -89,7 +89,11 @@ func (c *cubicSender) TimeUntilSend(bytesInFlight protocol.ByteCount) time.Durat
 			return 0
 		}
 	}
-	return c.rttStats.SmoothedRTT() * time.Duration(protocol.DefaultTCPMSS) / time.Duration(2*c.GetCongestionWindow())
+	delay := c.rttStats.SmoothedRTT() / time.Duration(2*c.GetCongestionWindow())
+	if !c.InSlowStart() { // adjust delay, such that it's 1.25*cwd/rtt
+		delay = delay * 8 / 5
+	}
+	return delay
 }
 
 func (c *cubicSender) OnPacketSent(
