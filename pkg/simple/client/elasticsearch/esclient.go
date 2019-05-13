@@ -136,26 +136,16 @@ type ContainerHighLightField struct {
 type EmptyField struct {
 }
 
-type StatisticsAggs struct {
-	NamespaceAgg NamespaceAgg `json:"Namespace"`
-}
-
-type NamespaceAgg struct {
-	Terms         StatisticsAggTerm `json:"terms"`
-	ContainerAggs ContainerAggs     `json:"aggs"`
-}
-
-type ContainerAggs struct {
-	ContainerAgg ContainerAgg `json:"Container"`
+type StatisticsAgg struct {
+	ContainerAgg ContainerAgg `json:"containers"`
 }
 
 type ContainerAgg struct {
-	Terms StatisticsAggTerm `json:"terms"`
+	Cardinality ContainerAggField `json:"cardinality"`
 }
 
-type StatisticsAggTerm struct {
+type ContainerAggField struct {
 	Field string `json:"field"`
-	Size  int64  `json:"size"`
 }
 
 type HistogramAggs struct {
@@ -250,9 +240,9 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 
 	if param.Operation == "statistics" {
 		operation = OperationStatistics
-		containerAggs := ContainerAggs{ContainerAgg{StatisticsAggTerm{"kubernetes.container_name.keyword", 2147483647}}}
-		namespaceAgg := NamespaceAgg{StatisticsAggTerm{"kubernetes.namespace_name.keyword", 2147483647}, containerAggs}
-		request.Aggs = StatisticsAggs{namespaceAgg}
+		containerAggTerms := ContainerAggField{"kubernetes.docker_id.keyword"}
+		statisticAgg := StatisticsAgg{ContainerAgg{containerAggTerms}}
+		request.Aggs = statisticAgg
 		request.Size = 0
 	} else if param.Operation == "histogram" {
 		operation = OperationHistogram
@@ -354,43 +344,16 @@ type ReadResult struct {
 	Records []LogRecord `json:"records,omitempty"`
 }
 
-type NamespaceAggregations struct {
-	NamespaceAggregation NamespaceAggregation `json:"Namespace"`
-}
-
-type NamespaceAggregation struct {
-	Namespaces []NamespaceStatistics `json:"buckets"`
-}
-
-type NamespaceStatistics struct {
-	Namespace            string               `json:"Key"`
-	Count                int64                `json:"doc_count"`
-	ContainerAggregation ContainerAggregation `json:"Container"`
-}
-
-type ContainerAggregation struct {
-	Containers []ContainerStatistics `json:"buckets"`
-}
-
-type ContainerStatistics struct {
-	Container string `json:"Key"`
-	Count     int64  `json:"doc_count"`
-}
-
-type NamespaceResult struct {
-	Namespace  string            `json:"namespace"`
-	Count      int64             `json:"count"`
-	Containers []ContainerResult `json:"containers"`
-}
-
-type ContainerResult struct {
-	Container string `json:"container"`
-	Count     int64  `json:"count"`
-}
-
 type StatisticsResult struct {
-	Total      int64             `json:"total"`
-	Namespaces []NamespaceResult `json:"namespaces"`
+	Total int64 `json:"total"`
+}
+
+type ContainerStatisticsResult struct {
+	ContainerCount ContainerCount `json:"containers"`
+}
+
+type ContainerCount struct {
+	Value int64 `json:"value"`
 }
 
 type HistogramAggregations struct {
@@ -501,28 +464,9 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		queryResult.Read = &readResult
 
 	case OperationStatistics:
-		var statisticsResult StatisticsResult
-		statisticsResult.Total = response.Hits.Total
-
-		var namespaceAggregations NamespaceAggregations
-		jsonIter.Unmarshal(response.Aggregations, &namespaceAggregations)
-
-		for _, namespace := range namespaceAggregations.NamespaceAggregation.Namespaces {
-			var namespaceResult NamespaceResult
-			namespaceResult.Namespace = namespace.Namespace
-			namespaceResult.Count = namespace.Count
-
-			for _, container := range namespace.ContainerAggregation.Containers {
-				var containerResult ContainerResult
-				containerResult.Container = container.Container
-				containerResult.Count = container.Count
-				namespaceResult.Containers = append(namespaceResult.Containers, containerResult)
-			}
-
-			statisticsResult.Namespaces = append(statisticsResult.Namespaces, namespaceResult)
-		}
-
-		queryResult.Statistics = &statisticsResult
+		var containerStatisticsResult ContainerStatisticsResult
+		jsonIter.Unmarshal(response.Aggregations, &containerStatisticsResult)
+		queryResult.Statistics = &StatisticsResult{Total: containerStatisticsResult.ContainerCount.Value}
 
 	case OperationHistogram:
 		var histogramResult HistogramResult
