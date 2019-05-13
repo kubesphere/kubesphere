@@ -207,7 +207,7 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 		}
 	}
 
-	err := createRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, injectSidecar)
+	err := createOrUpdateRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, injectSidecar)
 	if err != nil {
 		glog.Error(err)
 		return nil, err
@@ -320,7 +320,7 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 	return service, nil
 }
 
-func createRouterWorkload(namespace string, publishService bool, servicemeshEnabled bool) error {
+func createOrUpdateRouterWorkload(namespace string, publishService bool, servicemeshEnabled bool) error {
 	obj, ok := routerTemplates["DEPLOYMENT"]
 	if !ok {
 		glog.Error("Deployment template file not loaded")
@@ -329,6 +329,7 @@ func createRouterWorkload(namespace string, publishService bool, servicemeshEnab
 
 	k8sClient := k8s.Client()
 
+	createDeployment := true
 	deployment := obj.(*extensionsv1beta1.Deployment)
 	deployment.Name = constants.IngressControllerPrefix + namespace
 
@@ -355,7 +356,18 @@ func createRouterWorkload(namespace string, publishService bool, servicemeshEnab
 		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
 	}
 
-	deployment, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Create(deployment)
+	_, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Get(deployment.Name, meta_v1.GetOptions{})
+
+	if err == nil {
+		createDeployment = false
+	}
+
+	if createDeployment {
+		deployment, err = k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Create(deployment)
+	} else {
+		deployment, err = k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Update(deployment)
+	}
+
 	if err != nil {
 		glog.Error(err)
 		return err
@@ -411,22 +423,12 @@ func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations m
 		return router, err
 	}
 
-	routerAnnotations := router.GetAnnotations()
+	enableServicemesh := annotations[SERVICEMESH_ENABLED] == "true"
 
-	if routerAnnotations[SERVICEMESH_ENABLED] != annotations[SERVICEMESH_ENABLED] || routerType != router.Spec.Type {
-		err = deleteRouterWorkload(namespace)
-		if err != nil {
-			glog.Error(err)
-			return router, err
-		}
-
-		enableServicemesh := annotations[SERVICEMESH_ENABLED] == "true"
-
-		err := createRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, enableServicemesh)
-		if err != nil {
-			glog.Error(err)
-			return router, err
-		}
+	err = createOrUpdateRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, enableServicemesh)
+	if err != nil {
+		glog.Error(err)
+		return router, err
 	}
 
 	newRouter, err := updateRouterService(namespace, routerType, annotations)
