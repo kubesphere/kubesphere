@@ -1015,7 +1015,7 @@ type NodeSteps struct {
 
 // CheckScriptCompile
 type ReqScript struct {
-	value string `json:"value,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // ToJenkinsfile requests
