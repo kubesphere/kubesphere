@@ -216,7 +216,5 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		param.Size = 10
 	}
 
-	glog.Infof("LogQuery with %v", param)
-
 	return es.Query(param)
 }
