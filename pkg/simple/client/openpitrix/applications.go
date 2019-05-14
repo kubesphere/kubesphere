@@ -101,6 +101,17 @@ type repoList struct {
 	Repos []repo `json:"repo_set"`
 }
 
+type CreateClusterRequest struct {
+	AppId     string `json:"app_id"`
+	VersionId string `json:"version_id"`
+	RuntimeId string `json:"runtime_id"`
+	Conf      string `json:"conf"`
+}
+
+type DeleteClusterRequest struct {
+	ClusterId []string `json:"cluster_id"`
+}
+
 func GetAppInfo(appId string) (string, string, string, error) {
 	url := fmt.Sprintf("%s/v1/apps?app_id=%s", openpitrixAPIServer, appId)
 	resp, err := makeHttpRequest("GET", url, "")
@@ -254,6 +265,48 @@ func GetRuntime(runtimeId string) (string, error) {
 	}
 
 	return runtimes.Runtimes[0].Zone, nil
+}
+
+func CreateCluster(request CreateClusterRequest) error {
+
+	versionUrl := fmt.Sprintf("%s/v1/clusters/create", openpitrixAPIServer)
+
+	data, err := json.Marshal(request)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	data, err = makeHttpRequest("POST", versionUrl, string(data))
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func DeleteCluster(request DeleteClusterRequest) error {
+
+	versionUrl := fmt.Sprintf("%s/v1/clusters/delete", openpitrixAPIServer)
+
+	data, err := json.Marshal(request)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	data, err = makeHttpRequest("POST", versionUrl, string(data))
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	return nil
 }
 
 func makeHttpRequest(method, url, data string) ([]byte, error) {

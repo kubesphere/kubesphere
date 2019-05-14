@@ -18,6 +18,7 @@
 package resources
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
@@ -27,10 +28,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/applications"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"net/http"
 )
 
-func ApplicationHandler(req *restful.Request, resp *restful.Response) {
+func ListApplication(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	clusterId := req.QueryParameter("cluster_id")
 	runtimeId := req.QueryParameter("runtime_id")
@@ -63,7 +65,7 @@ func ApplicationHandler(req *restful.Request, resp *restful.Response) {
 
 }
 
-func NamespacedApplicationHandler(req *restful.Request, resp *restful.Response) {
+func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	namespaceName := req.PathParameter("namespace")
 	clusterId := req.QueryParameter("cluster_id")
@@ -112,4 +114,93 @@ func NamespacedApplicationHandler(req *restful.Request, resp *restful.Response) 
 	}
 
 	resp.WriteAsJson(result)
+}
+
+func DescribeApplication(req *restful.Request, resp *restful.Response) {
+	clusterId := req.PathParameter("cluster_id")
+	namespaceName := req.PathParameter("namespace")
+	app, err := applications.GetApp(clusterId)
+	if err != nil {
+		glog.Errorln("get app failed", err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+
+	if err != nil {
+		glog.Errorln("get namespace failed", err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	var runtimeId string
+
+	if ns, ok := namespace.(*v1.Namespace); ok {
+		runtimeId = ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+	}
+
+	if runtimeId != app.RuntimeId {
+		glog.Errorln("runtime not match", app.RuntimeId, runtimeId)
+		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.New(fmt.Sprintf("rumtime not match %s,%s", app.RuntimeId, runtimeId)))
+		return
+	}
+
+	resp.WriteEntity(app)
+	return
+}
+
+func DeployApplication(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	var app openpitrix.CreateClusterRequest
+	err := req.ReadEntity(&app)
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	err = applications.DeployApplication(namespace, app)
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+	resp.WriteEntity(errors.None)
+}
+
+func DeleteApplication(req *restful.Request, resp *restful.Response) {
+	clusterId := req.PathParameter("cluster_id")
+	namespaceName := req.PathParameter("namespace")
+	app, err := applications.GetApp(clusterId)
+	if err != nil {
+		glog.Errorln("get app failed", err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+
+	if err != nil {
+		glog.Errorln("get namespace failed", err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	var runtimeId string
+
+	if ns, ok := namespace.(*v1.Namespace); ok {
+		runtimeId = ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+	}
+
+	if runtimeId != app.RuntimeId {
+		glog.Errorln("runtime not match", app.RuntimeId, runtimeId)
+		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.New(fmt.Sprintf("rumtime not match %s,%s", app.RuntimeId, runtimeId)))
+		return
+	}
+
+	err = applications.DeleteApplication(clusterId)
+
+	if err != nil {
+		glog.Errorln("delete application failed", err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteEntity(errors.None)
 }

@@ -34,8 +34,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/workloadstatuses"
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/applications"
 	gitmodel "kubesphere.io/kubesphere/pkg/models/git"
 	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
 const GroupName = "resources.kubesphere.io"
@@ -88,7 +90,7 @@ func addWebService(c *restful.Container) error {
 	tags = []string{"Applications"}
 
 	webservice.Route(webservice.GET("/applications").
-		To(resources.ApplicationHandler).
+		To(resources.ListApplication).
 		Writes(models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List applications in cluster").
@@ -104,7 +106,7 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
-		To(resources.NamespacedApplicationHandler).
+		To(resources.ListNamespacedApplication).
 		Writes(models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List applications").
@@ -118,11 +120,26 @@ func addWebService(c *restful.Container) error {
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
-		To(resources.GetPvcListBySc).
-		Doc("query persistent volume claims by storageclass").
-		Param(webservice.PathParameter("username", "username")).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{cluster_id}").
+		To(resources.DescribeApplication).
+		Writes(applications.Application{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Describe application").
+		Param(webservice.PathParameter("namespace", "namespace name")).
+		Param(webservice.PathParameter("cluster_id", "openpitrix cluster id")))
+
+	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
+		To(resources.DeployApplication).
+		Doc("Deploy application").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(openpitrix.CreateClusterRequest{}).
+		Param(webservice.PathParameter("namespace", "namespace name")))
+
+	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{cluster_id}").
+		To(resources.DeleteApplication).
+		Doc("Delete application").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(webservice.PathParameter("namespace", "namespace name")))
 
 	tags = []string{"User resources"}
 

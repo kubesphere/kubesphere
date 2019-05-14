@@ -19,9 +19,11 @@ package resources
 
 import (
 	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"strconv"
 )
 
 type extraAnnotationInjector struct {
@@ -30,14 +32,36 @@ type extraAnnotationInjector struct {
 func (i extraAnnotationInjector) addExtraAnnotations(item interface{}) interface{} {
 
 	switch item.(type) {
-	case *v1.PersistentVolumeClaim:
-		return i.injectPersistentVolumeClaim(item.(*v1.PersistentVolumeClaim))
+	case *corev1.PersistentVolumeClaim:
+		return i.injectPersistentVolumeClaim(item.(*corev1.PersistentVolumeClaim))
+	case *storagev1.StorageClass:
+		return i.injectStorageClass(item.(*storagev1.StorageClass))
 	}
 
 	return item
 }
 
-func (i extraAnnotationInjector) injectPersistentVolumeClaim(item *v1.PersistentVolumeClaim) *v1.PersistentVolumeClaim {
+func (i extraAnnotationInjector) injectStorageClass(item *storagev1.StorageClass) *storagev1.StorageClass {
+
+	count, err := countPvcByStorageClass(item.Name)
+
+	if err != nil {
+		glog.Errorf("inject annotation failed %+v", err)
+		return item
+	}
+
+	item = item.DeepCopy()
+
+	if item.Annotations == nil {
+		item.Annotations = make(map[string]string, 0)
+	}
+
+	item.Annotations["kubesphere.io/pvc-count"] = strconv.Itoa(count)
+
+	return item
+}
+
+func (i extraAnnotationInjector) injectPersistentVolumeClaim(item *corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
 	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
 	pods, err := podLister.Pods(item.Namespace).List(labels.Everything())
 	if err != nil {
@@ -60,7 +84,7 @@ func (i extraAnnotationInjector) injectPersistentVolumeClaim(item *v1.Persistent
 	return item
 }
 
-func isPvcInUse(pods []*v1.Pod, pvcName string) bool {
+func isPvcInUse(pods []*corev1.Pod, pvcName string) bool {
 	for _, pod := range pods {
 		volumes := pod.Spec.Volumes
 		for _, volume := range volumes {
@@ -71,4 +95,26 @@ func isPvcInUse(pods []*v1.Pod, pvcName string) bool {
 		}
 	}
 	return false
+}
+
+func countPvcByStorageClass(scName string) (int, error) {
+	persistentVolumeClaimLister := informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister()
+	all, err := persistentVolumeClaimLister.List(labels.Everything())
+
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+
+	for _, item := range all {
+		if item.Spec.StorageClassName != nil {
+			if *item.Spec.StorageClassName == scName {
+				count++
+			}
+		} else if item.GetAnnotations()[corev1.BetaStorageClassAnnotation] == scName {
+			count++
+		}
+	}
+	return count, nil
 }

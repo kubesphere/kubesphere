@@ -358,18 +358,9 @@ var (
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"list"},
+							Verbs:     []string{"get", "list"},
 							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"repos", "app_versions"},
-						}, {
-							Verbs:     []string{"get"},
-							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"app_version/*"},
-						},
-						{
-							Verbs:     []string{"*"},
-							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"apps", "clusters"},
+							Resources: []string{"apps", "clusters", "repos", "app_versions", "app_version/*"},
 						},
 					},
 				},
@@ -916,6 +907,10 @@ var (
 							Verbs:     []string{"get", "list"},
 							APIGroups: []string{"resources.kubesphere.io"},
 							Resources: []string{"applications"},
+						}, {
+							Verbs:     []string{"get", "list"},
+							APIGroups: []string{"servicemesh.kubesphere.io"},
+							Resources: []string{"*"},
 						},
 						{
 							Verbs:     []string{"list"},
@@ -931,19 +926,27 @@ var (
 				{Name: "edit",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:     []string{"update", "patch"},
-							APIGroups: []string{"openpitrix.io"},
-							Resources: []string{"apps"},
+							Verbs:     []string{"create", "update", "patch"},
+							APIGroups: []string{"resources.kubesphere.io"},
+							Resources: []string{"applications"},
+						}, {
+							Verbs:     []string{"create", "update", "patch"},
+							APIGroups: []string{"servicemesh.kubesphere.io"},
+							Resources: []string{"*"},
 						},
 					},
 				},
 				{Name: "delete",
 					Rules: []v1.PolicyRule{
 						{
-							Verbs:         []string{"create"},
-							APIGroups:     []string{"openpitrix.io"},
-							ResourceNames: []string{"delete"},
-							Resources:     []string{"clusters"},
+							Verbs:     []string{"delete"},
+							APIGroups: []string{"resources.kubesphere.io"},
+							Resources: []string{"applications"},
+						},
+						{
+							Verbs:     []string{"delete"},
+							APIGroups: []string{"servicemesh.kubesphere.io"},
+							Resources: []string{"*"},
 						},
 					},
 				},
@@ -954,7 +957,7 @@ var (
 			Actions: []models.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"view", "list"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"batch", "resources.kubesphere.io"},
 						Resources: []string{"jobs"},
 					},
@@ -987,7 +990,7 @@ var (
 			Actions: []models.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"view", "list"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"batch", "resources.kubesphere.io"},
 						Resources: []string{"cronjobs"},
 					},
@@ -1020,7 +1023,7 @@ var (
 			Actions: []models.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"view", "list"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"", "resources.kubesphere.io"},
 						Resources: []string{"secrets"},
 					},
@@ -1053,7 +1056,7 @@ var (
 			Actions: []models.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
-						Verbs:     []string{"view", "list"},
+						Verbs:     []string{"get", "list"},
 						APIGroups: []string{"", "resources.kubesphere.io"},
 						Resources: []string{"configmaps"},
 					},
