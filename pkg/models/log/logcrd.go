@@ -474,6 +474,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
@@ -482,12 +483,14 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 
 	fluentbit, err := crdclient.Get("fluent-bit")
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
 	fluentbit.Spec.Output = enabledOutputs
 	_, err = crdclient.Update("fluent-bit", fluentbit)
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
