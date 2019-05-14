@@ -508,9 +508,9 @@ var RulePromQLTmplMap = MetricMap{
 	"node_pod_abnormal_ratio": `node:pod_abnormal:ratio$1`,
 
 	//namespace
-	"namespace_cpu_usage":             `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels), 0.001)`,
-	"namespace_memory_usage":          `namespace:container_memory_usage_bytes:sum{namespace!="", namespace=~"$1"} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_usage_wo_cache": `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}* on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_usage":             `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace=~"$1"}, 0.001)`,
+	"namespace_memory_usage":          `namespace:container_memory_usage_bytes:sum{namespace!="", namespace=~"$1"}`,
+	"namespace_memory_usage_wo_cache": `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}`,
 	"namespace_net_bytes_transmitted": `sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", namespace=~"$1", pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m]))* on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_net_bytes_received":    `sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", namespace=~"$1", pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_pod_count":             `sum(kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!="", namespace=~"$1"}) by (namespace) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
@@ -534,10 +534,10 @@ var RulePromQLTmplMap = MetricMap{
 	"namespace_pvc_count_used":                  `count(kube_persistentvolumeclaim_info{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_secret_count_used":               `count(kube_secret_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
 	"namespace_configmap_count_used":            `count(kube_configmap_created{namespace="$1"}) by (namespace) * on(namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels`,
-	"namespace_cpu_limit_used":                  `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace="$1"} * on(namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels), 0.001)`,
-	"namespace_cpu_request_used":                `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace="$1"} * on(namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels), 0.001)`,
-	"namespace_memory_limit_used":               `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}* on(namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
-	"namespace_memory_request_used":             `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}* on(namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
+	"namespace_cpu_limit_used":                  `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace="$1"}, 0.001)`,
+	"namespace_cpu_request_used":                `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace="$1"}, 0.001)`,
+	"namespace_memory_limit_used":               `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}`,
+	"namespace_memory_request_used":             `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace=~"$1"}`,
 
 	"namespace_configmap_count_hard":            `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/configmaps"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
 	"namespace_jobs_batch_count_hard":           `min(kube_resourcequota{resourcequota!="quota", type="hard", namespace!="", namespace=~"$1", resource="count/jobs.batch"}) by (namespace, resource, type) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels)`,
@@ -630,9 +630,9 @@ var RulePromQLTmplMap = MetricMap{
 	"container_net_bytes_received_node":    `sum by (node, pod_name, container_name) (irate(container_network_receive_bytes_total{job="kubelet", ` + ExcludedVirtualNetworkInterfaces + `, pod_name="$2", container_name="POD", container_name!="", image!=""}[5m]) * on (pod_name) group_left(node) label_join(node_namespace_pod:kube_pod_info:{node="$1"}, "pod_name", "", "pod", "_name"))`,
 
 	// workspace
-	"workspace_cpu_usage":             `round(sum(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace$1}), 0.001)`,
-	"workspace_memory_usage":          `sum(namespace:container_memory_usage_bytes:sum{namespace!="", namespace$1} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{label_kubesphere_io_workspace$2}))`,
-	"workspace_memory_usage_wo_cache": `sum(namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace$1})`,
+	"workspace_cpu_usage":             `round(sum(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", namespace$1, label_kubesphere_io_workspace$2}), 0.001)`,
+	"workspace_memory_usage":          `sum(namespace:container_memory_usage_bytes:sum{namespace!="", namespace$1, label_kubesphere_io_workspace$2})`,
+	"workspace_memory_usage_wo_cache": `sum(namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", namespace$1, label_kubesphere_io_workspace$2})`,
 	"workspace_net_bytes_transmitted": `sum(sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", namespace$1, pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m])))`,
 	"workspace_net_bytes_received":    `sum(sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", namespace$1, pod_name!="", ` + ExcludedVirtualNetworkInterfaces + `, job="kubelet"}[5m])))`,
 	"workspace_pod_count":             `sum(kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!="", namespace$1} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{label_kubesphere_io_workspace$2}))`,
