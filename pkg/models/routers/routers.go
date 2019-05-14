@@ -369,7 +369,6 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 		}
 	}
 
-
 	if deployment.Spec.Template.Annotations == nil {
 		deployment.Spec.Template.Annotations = make(map[string]string, 0)
 	}
