@@ -235,9 +235,12 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	build, err := job.GetLastBuild()
-	if err != nil {
+	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+	} else if err != nil {
+		glog.Error("%+v", err)
+		return nil, nil
 	}
 
 	sonarStatus, err := getBuildSonarResults(build)
@@ -250,6 +253,9 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 			glog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		} else if err != nil {
+			glog.Error("%+v", err)
+			return nil, nil
 		}
 		sonarStatus, err = getBuildSonarResults(build)
 		if err != nil {
