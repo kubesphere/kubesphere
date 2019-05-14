@@ -239,7 +239,7 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	} else if err != nil {
-		glog.Error("%+v", err)
+		glog.Errorf("%+v", err)
 		return nil, nil
 	}
 
@@ -254,7 +254,7 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 			glog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		} else if err != nil {
-			glog.Error("%+v", err)
+			glog.Errorf("%+v", err)
 			return nil, nil
 		}
 		sonarStatus, err = getBuildSonarResults(build)
@@ -283,7 +283,7 @@ func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*Son
 		glog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	} else if err != nil {
-		glog.Error("%+v", err)
+		glog.Errorf("%+v", err)
 		return nil, nil
 	}
 
@@ -298,7 +298,7 @@ func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*Son
 			glog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		} else if err != nil {
-			glog.Error("%+v", err)
+			glog.Errorf("%+v", err)
 			return nil, nil
 		}
 		sonarStatus, err = getBuildSonarResults(build)
