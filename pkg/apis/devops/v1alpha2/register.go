@@ -633,7 +633,7 @@ func addWebService(c *restful.Container) error {
 		Consumes("application/x-www-form-urlencoded", "charset=utf-8").
 		Produces("application/json", "charset=utf-8").
 		Doc("Check pipeline script compile.").
-		Reads("value=\"\"").
+		Reads(devops.ReqScript{}).
 		Returns(http.StatusOK, RespOK, devops.CheckScript{}).
 		Writes(devops.CheckScript{}))
 
@@ -642,7 +642,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.CheckCron).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Produces("application/json", "charset=utf-8").
-		Doc("Check pipeline script compile.").
+		Doc("Check cron script compile.").
 		Param(webservice.QueryParameter("value", "cpec value").
 			Required(true).
 			DataFormat("value=%s")).

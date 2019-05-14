@@ -1013,6 +1013,11 @@ type NodeSteps struct {
 	Type               string      `json:"type,omitempty"`
 }
 
+// CheckScriptCompile
+type ReqScript struct {
+	value string `json:"value,omitempty"`
+}
+
 // ToJenkinsfile requests
 type ReqJson struct {
 	Json string `json:"json,omitempty"`
