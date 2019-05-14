@@ -46,29 +46,21 @@ type Certificate struct {
 	// The hex-encoded hash of this cert's chain's bytes.
 	Hash string
 
-	// configs is the list of configs that use or refer to
-	// The first one is assumed to be the config that is
-	// "in charge" of this certificate (i.e. determines
-	// whether it is managed, how it is managed, etc).
-	// This field will be populated by cacheCertificate.
-	// Only meddle with it if you know what you're doing!
-	configs []*Config
-
-	// whether this certificate is under our management
+	// Whether this certificate is under our management
 	managed bool
 }
 
 // NeedsRenewal returns true if the certificate is
-// expiring soon or has expired.
-func (c Certificate) NeedsRenewal() bool {
-	if c.NotAfter.IsZero() {
+// expiring soon (according to cfg) or has expired.
+func (cert Certificate) NeedsRenewal(cfg *Config) bool {
+	if cert.NotAfter.IsZero() {
 		return false
 	}
 	renewDurationBefore := DefaultRenewDurationBefore
-	if len(c.configs) > 0 && c.configs[0].RenewDurationBefore > 0 {
-		renewDurationBefore = c.configs[0].RenewDurationBefore
+	if cfg.RenewDurationBefore > 0 {
+		renewDurationBefore = cfg.RenewDurationBefore
 	}
-	return time.Until(c.NotAfter) < renewDurationBefore
+	return time.Until(cert.NotAfter) < renewDurationBefore
 }
 
 // CacheManagedCertificate loads the certificate for domain into the
@@ -79,19 +71,30 @@ func (c Certificate) NeedsRenewal() bool {
 //
 // This method is safe for concurrent use.
 func (cfg *Config) CacheManagedCertificate(domain string) (Certificate, error) {
+	cert, err := cfg.loadManagedCertificate(domain)
+	if err != nil {
+		return cert, err
+	}
+	cfg.certCache.cacheCertificate(cert)
+	if cfg.OnEvent != nil {
+		cfg.OnEvent("cached_managed_cert", cert.Names)
+	}
+	return cert, nil
+}
+
+// loadManagedCertificate loads the managed certificate for domain,
+// but it does not add it to the cache. It just loads from storage.
+func (cfg *Config) loadManagedCertificate(domain string) (Certificate, error) {
 	certRes, err := cfg.loadCertResource(domain)
 	if err != nil {
 		return Certificate{}, err
 	}
-	cert, err := cfg.makeCertificateWithOCSP(certRes.Certificate, certRes.PrivateKey)
+	cert, err := makeCertificateWithOCSP(cfg.Storage, certRes.Certificate, certRes.PrivateKey)
 	if err != nil {
 		return cert, err
 	}
 	cert.managed = true
-	if cfg.OnEvent != nil {
-		cfg.OnEvent("cached_managed_cert", cert.Names)
-	}
-	return cfg.cacheCertificate(cert), nil
+	return cert, nil
 }
 
 // CacheUnmanagedCertificatePEMFile loads a certificate for host using certFile
@@ -100,11 +103,11 @@ func (cfg *Config) CacheManagedCertificate(domain string) (Certificate, error) {
 //
 // This method is safe for concurrent use.
 func (cfg *Config) CacheUnmanagedCertificatePEMFile(certFile, keyFile string) error {
-	cert, err := cfg.makeCertificateFromDiskWithOCSP(certFile, keyFile)
+	cert, err := makeCertificateFromDiskWithOCSP(cfg.Storage, certFile, keyFile)
 	if err != nil {
 		return err
 	}
-	cfg.cacheCertificate(cert)
+	cfg.certCache.cacheCertificate(cert)
 	if cfg.OnEvent != nil {
 		cfg.OnEvent("cached_unmanaged_cert", cert.Names)
 	}
@@ -121,14 +124,14 @@ func (cfg *Config) CacheUnmanagedTLSCertificate(tlsCert tls.Certificate) error {
 	if err != nil {
 		return err
 	}
-	err = cfg.certCache.stapleOCSP(&cert, nil)
+	err = stapleOCSP(cfg.Storage, &cert, nil)
 	if err != nil {
 		log.Printf("[WARNING] Stapling OCSP: %v", err)
 	}
 	if cfg.OnEvent != nil {
 		cfg.OnEvent("cached_unmanaged_cert", cert.Names)
 	}
-	cfg.cacheCertificate(cert)
+	cfg.certCache.cacheCertificate(cert)
 	return nil
 }
 
@@ -137,11 +140,11 @@ func (cfg *Config) CacheUnmanagedTLSCertificate(tlsCert tls.Certificate) error {
 //
 // This method is safe for concurrent use.
 func (cfg *Config) CacheUnmanagedCertificatePEMBytes(certBytes, keyBytes []byte) error {
-	cert, err := cfg.makeCertificateWithOCSP(certBytes, keyBytes)
+	cert, err := makeCertificateWithOCSP(cfg.Storage, certBytes, keyBytes)
 	if err != nil {
 		return err
 	}
-	cfg.cacheCertificate(cert)
+	cfg.certCache.cacheCertificate(cert)
 	if cfg.OnEvent != nil {
 		cfg.OnEvent("cached_unmanaged_cert", cert.Names)
 	}
@@ -152,7 +155,7 @@ func (cfg *Config) CacheUnmanagedCertificatePEMBytes(certBytes, keyBytes []byte)
 // certificate and key files. It fills out all the fields in
 // the certificate except for the Managed and OnDemand flags.
 // (It is up to the caller to set those.) It staples OCSP.
-func (cfg *Config) makeCertificateFromDiskWithOCSP(certFile, keyFile string) (Certificate, error) {
+func makeCertificateFromDiskWithOCSP(storage Storage, certFile, keyFile string) (Certificate, error) {
 	certPEMBlock, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		return Certificate{}, err
@@ -161,7 +164,21 @@ func (cfg *Config) makeCertificateFromDiskWithOCSP(certFile, keyFile string) (Ce
 	if err != nil {
 		return Certificate{}, err
 	}
-	return cfg.makeCertificateWithOCSP(certPEMBlock, keyPEMBlock)
+	return makeCertificateWithOCSP(storage, certPEMBlock, keyPEMBlock)
+}
+
+// makeCertificateWithOCSP is the same as makeCertificate except that it also
+// staples OCSP to the certificate.
+func makeCertificateWithOCSP(storage Storage, certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
+	cert, err := makeCertificate(certPEMBlock, keyPEMBlock)
+	if err != nil {
+		return cert, err
+	}
+	err = stapleOCSP(storage, &cert, certPEMBlock)
+	if err != nil {
+		log.Printf("[WARNING] Stapling OCSP: %v", err)
+	}
+	return cert, nil
 }
 
 // makeCertificate turns a certificate PEM bundle and a key PEM block into
@@ -169,7 +186,7 @@ func (cfg *Config) makeCertificateFromDiskWithOCSP(certFile, keyFile string) (Ce
 // its struct fields for convenience (except for the OnDemand and Managed
 // flags; it is up to the caller to set those properties!). This function
 // does NOT staple OCSP.
-func (*Config) makeCertificate(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
+func makeCertificate(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 	var cert Certificate
 
 	// Convert to a tls.Certificate
@@ -184,20 +201,6 @@ func (*Config) makeCertificate(certPEMBlock, keyPEMBlock []byte) (Certificate, e
 		return cert, err
 	}
 
-	return cert, nil
-}
-
-// makeCertificateWithOCSP is the same as makeCertificate except that it also
-// staples OCSP to the certificate.
-func (cfg *Config) makeCertificateWithOCSP(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
-	cert, err := cfg.makeCertificate(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		return cert, err
-	}
-	err = cfg.certCache.stapleOCSP(&cert, certPEMBlock)
-	if err != nil {
-		log.Printf("[WARNING] Stapling OCSP: %v", err)
-	}
 	return cert, nil
 }
 
@@ -253,11 +256,7 @@ func fillCertFromLeaf(cert *Certificate, tlsCert tls.Certificate) error {
 // means that another instance renewed the certificate in the
 // meantime, and it would be a good idea to simply load the cert
 // into our cache rather than repeating the renewal process again.
-func managedCertInStorageExpiresSoon(cert Certificate) (bool, error) {
-	if len(cert.configs) == 0 {
-		return false, fmt.Errorf("no configs for certificate")
-	}
-	cfg := cert.configs[0]
+func (cfg *Config) managedCertInStorageExpiresSoon(cert Certificate) (bool, error) {
 	certRes, err := cfg.loadCertResource(cert.Names[0])
 	if err != nil {
 		return false, err
@@ -274,54 +273,17 @@ func managedCertInStorageExpiresSoon(cert Certificate) (bool, error) {
 	return timeLeft < cfg.RenewDurationBefore, nil
 }
 
-// cacheCertificate adds cert to the in-memory cache. If a certificate
-// with the same hash is already cached, it is NOT overwritten; instead,
-// cfg is added to the existing certificate's list of configs if not
-// already in the list. Then all the names on cert are used to add
-// entries to cfg.certificates (the config's name lookup map).
-// Then the certificate is stored/updated in the cache. It returns
-// a copy of the certificate that ends up being stored in the cache.
-//
-// It is VERY important, even for some test cases, that the Hash field
-// of the cert be set properly.
-//
-// This function is safe for concurrent use.
-func (cfg *Config) cacheCertificate(cert Certificate) Certificate {
-	cfg.certCache.mu.Lock()
-	defer cfg.certCache.mu.Unlock()
-
-	// if this certificate already exists in the cache,
-	// use it instead of overwriting it -- very important!
-	if existingCert, ok := cfg.certCache.cache[cert.Hash]; ok {
-		cert = existingCert
+// reloadManagedCertificate reloads the certificate corresponding to the name(s)
+// on oldCert into the cache, from storage. This also replaces the old certificate
+// with the new one, so that all configurations that used the old cert now point
+// to the new cert.
+func (cfg *Config) reloadManagedCertificate(oldCert Certificate) error {
+	newCert, err := cfg.loadManagedCertificate(oldCert.Names[0])
+	if err != nil {
+		return fmt.Errorf("loading managed certificate for %v from storage: %v", oldCert.Names, err)
 	}
-
-	// attach this config to the certificate so we know which
-	// configs are referencing/using the certificate, but don't
-	// duplicate entries
-	var found bool
-	for _, c := range cert.configs {
-		if c == cfg {
-			found = true
-			break
-		}
-	}
-	if !found {
-		cert.configs = append(cert.configs, cfg)
-	}
-
-	// key the certificate by all its names for this config only,
-	// this is how we find the certificate during handshakes
-	// (yes, if certs overlap in the names they serve, one will
-	// overwrite another here, but that's just how it goes)
-	for _, name := range cert.Names {
-		cfg.certificates[NormalizedName(name)] = cert.Hash
-	}
-
-	// store the certificate
-	cfg.certCache.cache[cert.Hash] = cert
-
-	return cert
+	cfg.certCache.replaceCertificate(oldCert, newCert)
+	return nil
 }
 
 // HostQualifies returns true if the hostname alone

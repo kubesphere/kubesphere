@@ -32,6 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
+	"kubesphere.io/kubesphere/pkg/server"
 	"kubesphere.io/kubesphere/pkg/signals"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
@@ -74,7 +75,7 @@ func Run(s *options.ServerRunOptions) error {
 	container := runtime.Container
 	container.DoNotRecover(false)
 	container.Filter(filter.Logging)
-
+	container.RecoverHandler(server.LogStackOnRecover)
 	for _, webservice := range container.RegisteredWebServices() {
 		for _, route := range webservice.Routes() {
 			log.Println(route.Method, route.Path)

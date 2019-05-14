@@ -332,9 +332,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	if createDestinationRule {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(newDestinationRule)
+		newDestinationRule, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(newDestinationRule)
 	} else {
-		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(newDestinationRule)
+		newDestinationRule, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(newDestinationRule)
 	}
 
 	if err != nil {

@@ -89,7 +89,7 @@ required = [
 #   vendor/github.com/docker/docker/registry/service_v2.go:11: cannot call non-function tlsconfig.ServerDefault (type tls.Config)
 [[override]]
   name = "github.com/docker/go-connections"
-  branch = "master"
+  version = "0.4.0"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
@@ -101,9 +101,12 @@ required = [
   name = "github.com/russross/blackfriday"
   version = "v1.5.2"
 
+# offical application controller doesn't limit observe scope to namespace
+# use our own version instead
 [[constraint]]
-  branch = "master"
   name = "sigs.k8s.io/application"
+  source = "https://github.com/kubesphere/application"
+  branch = "kubesphere"
 
 [[constraint]]
   name = "github.com/kiali/kiali"
@@ -114,10 +117,6 @@ required = [
   name = "github.com/kubernetes-sigs/application"
   source = "https://github.com/kubesphere/application"
   branch = "kubesphere"
-
-[[constraint]]
-  name = "github.com/gorilla/mux"
-  version = "1.7.0"
 
 [[constraint]]
   name = "github.com/knative/pkg"

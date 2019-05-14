@@ -23,8 +23,9 @@
 // a ready-to-use tls.Config -- whatever layer you need TLS for, CertMagic
 // makes it easy. See the HTTPS, Listen, and TLS functions for that.
 //
-// If you need more control, create a Config using New() and then call
-// Manage() on the config; but you'll have to be sure to solve the HTTP
+// If you need more control, create a Cache using NewCache() and then make
+// a Config using New(). You can then call Manage() on the config. But if
+// you use this lower-level API, you'll have to be sure to solve the HTTP
 // and TLS-ALPN challenges yourself (unless you disabled them or use the
 // DNS challenge) by using the provided Config.GetCertificate function
 // in your tls.Config and/or Config.HTTPChallangeHandler in your HTTP
@@ -45,22 +46,22 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xenolf/lego/certcrypto"
-	"github.com/xenolf/lego/challenge"
+	"github.com/go-acme/lego/certcrypto"
 )
 
 // HTTPS serves mux for all domainNames using the HTTP
 // and HTTPS ports, redirecting all HTTP requests to HTTPS.
+// It uses the Default config.
 //
 // This high-level convenience function is opinionated and
 // applies sane defaults for production use, including
 // timeouts for HTTP requests and responses. To allow very
-// long-lived requests or connections, you should make your
-// own http.Server values and use this package's Listen(),
-// TLS(), or Config.TLSConfig() functions to customize to
-// your needs. For example, servers which need to support
-// large uploads or downloads with slow clients may need to
-// use longer timeouts, thus this function is not suitable.
+// long-lived connections, you should make your own
+// http.Server values and use this package's Listen(), TLS(),
+// or Config.TLSConfig() functions to customize to your needs.
+// For example, servers which need to support large uploads or
+// downloads with slow clients may need to use longer timeouts,
+// thus this function is not suitable.
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
@@ -69,7 +70,10 @@ func HTTPS(domainNames []string, mux http.Handler) error {
 		mux = http.DefaultServeMux
 	}
 
-	cfg, err := manageWithDefaultConfig(domainNames, false)
+	Default.Agreed = true
+	cfg := NewDefault()
+
+	err := cfg.Manage(domainNames)
 	if err != nil {
 		return err
 	}
@@ -154,31 +158,40 @@ func httpRedirectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // TLS enables management of certificates for domainNames
-// and returns a valid tls.Config.
+// and returns a valid tls.Config. It uses the Default
+// config.
 //
 // Because this is a convenience function that returns
 // only a tls.Config, it does not assume HTTP is being
 // served on the HTTP port, so the HTTP challenge is
-// disabled (no HTTPChallengeHandler is necessary).
+// disabled (no HTTPChallengeHandler is necessary). The
+// package variable Default is modified so that the
+// HTTP challenge is disabled.
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
 func TLS(domainNames []string) (*tls.Config, error) {
-	cfg, err := manageWithDefaultConfig(domainNames, true)
-	return cfg.TLSConfig(), err
+	Default.Agreed = true
+	Default.DisableHTTPChallenge = true
+	cfg := NewDefault()
+	return cfg.TLSConfig(), cfg.Manage(domainNames)
 }
 
 // Listen manages certificates for domainName and returns a
-// TLS listener.
+// TLS listener. It uses the Default config.
 //
 // Because this convenience function returns only a TLS-enabled
 // listener and does not presume HTTP is also being served,
-// the HTTP challenge will be disabled.
+// the HTTP challenge will be disabled. The package variable
+// Default is modified so that the HTTP challenge is disabled.
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
 func Listen(domainNames []string) (net.Listener, error) {
-	cfg, err := manageWithDefaultConfig(domainNames, true)
+	Default.Agreed = true
+	Default.DisableHTTPChallenge = true
+	cfg := NewDefault()
+	err := cfg.Manage(domainNames)
 	if err != nil {
 		return nil, err
 	}
@@ -186,36 +199,36 @@ func Listen(domainNames []string) (net.Listener, error) {
 }
 
 // Manage obtains certificates for domainNames and keeps them
-// renewed using the returned Config.
+// renewed using the Default config.
+//
+// This is a slightly lower-level function; you will need to
+// wire up support for the ACME challenges yourself. You can
+// obtain a Config to help you do that by calling NewDefault().
 //
 // You will need to ensure that you use a TLS config that gets
 // certificates from this Config and that the HTTP and TLS-ALPN
 // challenges can be solved. The easiest way to do this is to
-// use cfg.TLSConfig() as your TLS config and to wrap your
-// HTTP handler with cfg.HTTPChallengeHandler(). If you don't
-// have an HTTP server, you will need to disable the HTTP
-// challenge.
+// use NewDefault().TLSConfig() as your TLS config and to wrap
+// your HTTP handler with NewDefault().HTTPChallengeHandler().
+// If you don't have an HTTP server, you will need to disable
+// the HTTP challenge.
 //
 // If you already have a TLS config you want to use, you can
-// simply set its GetCertificate field to cfg.GetCertificate.
+// simply set its GetCertificate field to
+// NewDefault().GetCertificate.
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
-func Manage(domainNames []string) (cfg *Config, err error) {
-	return manageWithDefaultConfig(domainNames, false)
-}
-
-// manageWithDefaultConfig returns a TLS configuration that
-// is fully managed for the given names, optionally
-// with the HTTP challenge disabled.
-func manageWithDefaultConfig(domainNames []string, disableHTTPChallenge bool) (*Config, error) {
-	cfg := NewDefault()
-	cfg.DisableHTTPChallenge = disableHTTPChallenge
-	return cfg, cfg.Manage(domainNames)
+func Manage(domainNames []string) error {
+	Default.Agreed = true
+	return NewDefault().Manage(domainNames)
 }
 
 // OnDemandConfig contains some state relevant for providing
-// on-demand TLS.
+// on-demand TLS. Important note: If you are using the
+// MaxObtain property to limit the maximum number of certs
+// to be issued, the count of how many certs were issued
+// will be reset if this struct gets garbage-collected.
 type OnDemandConfig struct {
 	// If set, this function will be the absolute
 	// authority on whether the hostname (according
@@ -246,6 +259,8 @@ type OnDemandConfig struct {
 	// The number of certificates that have been issued on-demand
 	// by this config. It is only safe to modify this count atomically.
 	// If it reaches MaxObtain, on-demand issuances must fail.
+	// Note that this will necessarily be reset to 0 if the
+	// struct leaves scope and/or gets garbage-collected.
 	obtainedCount int32
 }
 
@@ -405,98 +420,28 @@ func isInternal(addr string) bool {
 	return false
 }
 
-// Package defaults
-var (
-	// The endpoint of the directory for the ACME
-	// CA we are to use
-	CA = LetsEncryptProductionCA
-
-	// The email address to use when creating or
-	// selecting an existing ACME server account
-	Email string
-
-	// The synchronization implementation - all
-	// instances of certmagic in a cluster must
-	// use the same value here, otherwise some
-	// cert operations will not be properly
-	// coordinated
-	Sync Locker
-
-	// Set to true if agreed to the CA's
-	// subscriber agreement
-	Agreed bool
-
-	// Disable all HTTP challenges
-	DisableHTTPChallenge bool
-
-	// Disable all TLS-ALPN challenges
-	DisableTLSALPNChallenge bool
-
-	// How long before expiration to renew certificates
-	RenewDurationBefore = DefaultRenewDurationBefore
-
-	// How long before expiration to require a renewed
-	// certificate when in interactive mode, like when
-	// the program is first starting up (see
-	// mholt/caddy#1680). A wider window between
-	// RenewDurationBefore and this value will suppress
-	// errors under duress (bad) but hopefully this duration
-	// will give it enough time for the blockage to be
-	// relieved.
-	RenewDurationBeforeAtStartup = DefaultRenewDurationBeforeAtStartup
-
-	// An optional event callback clients can set
-	// to subscribe to certain things happening
-	// internally by this config; invocations are
-	// synchronous, so make them return quickly!
-	OnEvent func(event string, data interface{})
-
-	// The host (ONLY the host, not port) to listen
-	// on if necessary to start a listener to solve
-	// an ACME challenge
-	ListenHost string
-
-	// The alternate port to use for the ACME HTTP
-	// challenge; if non-empty,  this port will be
-	// used instead of HTTPChallengePort to spin up
-	// a listener for the HTTP challenge
-	AltHTTPPort int
-
-	// The alternate port to use for the ACME
-	// TLS-ALPN challenge; the system must forward
-	// TLSALPNChallengePort to this port for
-	// challenge to succeed
-	AltTLSALPNPort int
-
-	// The DNS provider to use when solving the
-	// ACME DNS challenge
-	DNSProvider challenge.Provider
-
-	// The type of key to use when generating
-	// certificates
-	KeyType = certcrypto.RSA2048
-
-	// The maximum amount of time to allow for
-	// obtaining a certificate. If empty, the
-	// default from the underlying lego lib is
-	// used. If set, it must not be too low so
-	// as to cancel orders too early, running
-	// the risk of rate limiting.
-	CertObtainTimeout time.Duration
-
-	// Set the default server name for clients
-	// not indicating a server name using SNI.
-	// In most cases this will be the primary
-	// domain that is being served.
-	DefaultServerName string
-
-	// The state needed to operate on-demand TLS
-	OnDemand *OnDemandConfig
-
-	// Add the must staple TLS extension to the
-	// CSR generated by lego/acme
-	MustStaple bool
-)
+// Default contains the package defaults for the
+// various Config fields. This is used as a template
+// when creating your own Configs with New(), and it
+// is also used as the Config by all the high-level
+// functions in this package.
+//
+// The fields of this value will be used for Config
+// fields which are unset. Feel free to modify these
+// defaults, but do not use this Config by itself: it
+// is only a template. Valid configurations can be
+// obtained by calling New() (if you have your own
+// certificate cache) or NewDefault() (if you only
+// need a single config and want to use the default
+// cache). This is the only Config which can access
+// the default certificate cache.
+var Default = Config{
+	CA:                           LetsEncryptProductionCA,
+	RenewDurationBefore:          DefaultRenewDurationBefore,
+	RenewDurationBeforeAtStartup: DefaultRenewDurationBeforeAtStartup,
+	KeyType:                      certcrypto.EC256,
+	Storage:                      defaultFileStorage,
+}
 
 const (
 	// HTTPChallengePort is the officially-designated port for
@@ -520,16 +465,16 @@ const (
 var (
 	// HTTPPort is the port on which to serve HTTP
 	// and, by extension, the HTTP challenge (unless
-	// AltHTTPPort is set).
+	// Default.AltHTTPPort is set).
 	HTTPPort = 80
 
 	// HTTPSPort is the port on which to serve HTTPS
 	// and, by extension, the TLS-ALPN challenge
-	// (unless AltTLSALPNPort is set).
+	// (unless Default.AltTLSALPNPort is set).
 	HTTPSPort = 443
 )
 
-// Variables for conveniently serving HTTPS
+// Variables for conveniently serving HTTPS.
 var (
 	httpLn, httpsLn net.Listener
 	lnMu            sync.Mutex

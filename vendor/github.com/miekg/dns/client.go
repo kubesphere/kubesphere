@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -128,20 +129,15 @@ func (c *Client) Exchange(m *Msg, address string) (r *Msg, rtt time.Duration, er
 		return c.exchange(m, address)
 	}
 
-	t := "nop"
-	if t1, ok := TypeToString[m.Question[0].Qtype]; ok {
-		t = t1
-	}
-	cl := "nop"
-	if cl1, ok := ClassToString[m.Question[0].Qclass]; ok {
-		cl = cl1
-	}
-	r, rtt, err, shared := c.group.Do(m.Question[0].Name+t+cl, func() (*Msg, time.Duration, error) {
+	q := m.Question[0]
+	key := fmt.Sprintf("%s:%d:%d", q.Name, q.Qtype, q.Qclass)
+	r, rtt, err, shared := c.group.Do(key, func() (*Msg, time.Duration, error) {
 		return c.exchange(m, address)
 	})
 	if r != nil && shared {
 		r = r.Copy()
 	}
+
 	return r, rtt, err
 }
 
@@ -270,8 +266,7 @@ func (co *Conn) Read(p []byte) (n int, err error) {
 			return 0, io.ErrShortBuffer
 		}
 
-		n, err := io.ReadFull(co.Conn, p[:length])
-		return int(n), err
+		return io.ReadFull(co.Conn, p[:length])
 	}
 
 	// UDP connection

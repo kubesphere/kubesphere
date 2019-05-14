@@ -267,6 +267,3 @@ type ErrNotExist interface {
 // defaultFileStorage is a convenient, default storage
 // implementation using the local file system.
 var defaultFileStorage = &FileStorage{Path: dataDir()}
-
-// DefaultStorage is the default Storage implementation.
-var DefaultStorage Storage = defaultFileStorage
