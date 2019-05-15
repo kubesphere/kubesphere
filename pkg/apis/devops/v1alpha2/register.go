@@ -134,7 +134,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.UpdateDevOpsProjectPipelineHandler).
 		Doc("update devops project pipeline").
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "pipeline name")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
@@ -145,7 +145,7 @@ func addWebService(c *restful.Container) error {
 		Doc("get devops project pipeline config").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "pipeline name")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}))
 
@@ -154,7 +154,7 @@ func addWebService(c *restful.Container) error {
 		Doc("get devops project pipeline sonarStatus").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "pipeline name")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
@@ -163,7 +163,7 @@ func addWebService(c *restful.Container) error {
 		Doc("get devops project pipeline sonarStatus").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "pipeline name")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branches", "branch name")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
@@ -173,7 +173,7 @@ func addWebService(c *restful.Container) error {
 		Doc("delete devops project pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "pipeline name")))
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")))
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
@@ -223,8 +223,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get DevOps Pipelines.").
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
 		Returns(http.StatusOK, RespOK, devops.Pipeline{}).
 		Writes(devops.Pipeline{}))
 
@@ -233,16 +233,16 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.SearchPipelines).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Search DevOps resource.").
-		Param(webservice.QueryParameter("q", "query pipelines").
+		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
 			Required(false).
 			DataFormat("q=%s")).
-		Param(webservice.QueryParameter("filter", "filter resource").
+		Param(webservice.QueryParameter("filter", "Condition for filteringfilter folders or not..").
 			Required(false).
 			DataFormat("filter=%s")).
-		Param(webservice.QueryParameter("start", "start page").
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(false).
 			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.Pipeline{}).
@@ -253,15 +253,15 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.SearchPipelineRuns).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Search DevOps Pipelines runs in branch.").
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.QueryParameter("start", "start page").
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(false).
 			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
-		Param(webservice.QueryParameter("branch", "branch ").
+		Param(webservice.QueryParameter("branch", "the name of branch, same as repository brnach, will be filter by branch.").
 			Required(false).
 			DataFormat("branch=%s")).
 		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRun{}).
@@ -272,11 +272,11 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get DevOps Pipelines run in branch.").
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(false).
 			DataFormat("start=%d")).
 		Returns(http.StatusOK, RespOK, devops.BranchPipelineRun{}).
@@ -287,11 +287,11 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipelineRunNodesbyBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get node on DevOps Pipelines run.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("limit", "limit").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d").
 			DefaultValue("limit=10000")).
@@ -304,13 +304,13 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipelines step log.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.PathParameter("nodeId", "pipeline runs node id")).
-		Param(webservice.PathParameter("stepId", "pipeline runs step id")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.PathParameter("stepId", "pipeline step id, the one step in pipeline.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(true).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
@@ -321,12 +321,12 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipelines step log.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.PathParameter("nodeId", "pipeline runs node id")).
-		Param(webservice.PathParameter("stepId", "pipeline runs step id")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.PathParameter("stepId", "pipeline step id, the one step in pipeline.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(true).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
@@ -336,7 +336,7 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.Validate).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Validate Github personal access token.").
-		Param(webservice.PathParameter("scmId", "SCM id")).
+		Param(webservice.PathParameter("scmId", "the id of SCM.")).
 		Returns(http.StatusOK, RespOK, devops.Validates{}).
 		Writes(devops.Validates{}))
 
@@ -345,8 +345,8 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List organizations of SCM").
-		Param(webservice.PathParameter("scmId", "SCM id")).
-		Param(webservice.QueryParameter("credentialId", "credential id for SCM").
+		Param(webservice.PathParameter("scmId", "the id of SCM.")).
+		Param(webservice.QueryParameter("credentialId", "credential id for SCM.").
 			Required(true).
 			DataFormat("credentialId=%s")).
 		Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
@@ -358,14 +358,14 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get SCM repositories in an organization").
 		Param(webservice.PathParameter("scmId", "SCM id")).
-		Param(webservice.PathParameter("organizationId", "organization Id, such as github username")).
-		Param(webservice.QueryParameter("credentialId", "credential id for SCM").
+		Param(webservice.PathParameter("organizationId", "organization Id, such as github username.")).
+		Param(webservice.QueryParameter("credentialId", "credential id for SCM.").
 			Required(true).
 			DataFormat("credentialId=%s")).
-		Param(webservice.QueryParameter("pageNumber", "page number").
+		Param(webservice.QueryParameter("pageNumber", "the number of page.").
 			Required(true).
 			DataFormat("pageNumber=%d")).
-		Param(webservice.QueryParameter("pageSize", "page size").
+		Param(webservice.QueryParameter("pageSize", "the size of page.").
 			Required(true).
 			DataFormat("pageSize=%d")).
 		Returns(http.StatusOK, RespOK, []devops.OrgRepo{}).
@@ -376,15 +376,15 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.StopBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Stop pipeline in running").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
 			Required(false).
 			DataFormat("blocking=%t").
 			DefaultValue("blocking=false")).
-		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep").
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
 			Required(false).
 			DataFormat("timeOutInSecs=%d").
 			DefaultValue("timeOutInSecs=10")).
@@ -396,14 +396,14 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.StopPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Stop pipeline in running").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
 			Required(false).
 			DataFormat("blocking=%t").
 			DefaultValue("blocking=false")).
-		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep").
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
 			Required(false).
 			DataFormat("timeOutInSecs=%d").
 			DefaultValue("timeOutInSecs=10")).
@@ -415,10 +415,10 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.ReplayBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Replay pipeline").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
 		Writes(devops.ReplayPipe{}))
 
@@ -427,9 +427,9 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.ReplayPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Replay pipeline").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
 		Writes(devops.ReplayPipe{}))
 
@@ -439,11 +439,11 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get Pipelines run log.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(true).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
@@ -454,10 +454,10 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get Pipelines run log.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(true).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
@@ -467,14 +467,14 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetBranchArtifacts).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline artifacts.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("start", "start page").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(false).
 			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
@@ -485,13 +485,13 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetArtifacts).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline artifacts.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("start", "start page").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(false).
 			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
@@ -502,15 +502,15 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipeBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline of branch.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.QueryParameter("filter", "filter remote").
 			Required(true).
 			DataFormat("filter=%s")).
-		Param(webservice.QueryParameter("start", "start").
+		Param(webservice.QueryParameter("start", "the count of item start.").
 			Required(true).
 			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(true).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.PipeBranch{}).
@@ -523,12 +523,12 @@ func addWebService(c *restful.Container) error {
 		Doc("Pauses pipeline execution and allows the user to interact and control the flow of the build.").
 		Reads(devops.CheckPlayload{}).
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
-		Param(webservice.PathParameter("stepId", "pipeline step id")))
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.PathParameter("stepId", "pipeline step id, the one step in pipeline.")))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/pipelines/{pipelineName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}
 	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/runs/{runId}/nodes/{nodeId}/steps/{stepId}").
@@ -537,10 +537,10 @@ func addWebService(c *restful.Container) error {
 		Doc("Pauses pipeline execution and allows the user to interact and control the flow of the build.").
 		Reads(devops.CheckPlayload{}).
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
 		Param(webservice.PathParameter("stepId", "pipeline step id")))
 
 	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
@@ -549,8 +549,8 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get index console log.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")))
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")))
 
 	// match /job/{projectName}/job/{pipelineName}/build?delay=0
 	webservice.Route(webservice.POST("/devops/{projectName}/pipelines/{pipelineName}/scan").
@@ -558,10 +558,10 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Start a build.").
 		Produces("text/html; charset=utf-8").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.QueryParameter("delay", "delay time").
-			Required(true).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.QueryParameter("delay", "will be delay time to scan.").
+			Required(false).
 			DataFormat("delay=%d")))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}/branches/{}/runs/
@@ -570,9 +570,9 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Run pipeline.").
 		Reads(devops.RunPayload{}).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
 		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
 		Writes(devops.QueuedBlueRun{}))
 
@@ -582,8 +582,8 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Run pipeline.").
 		Reads(devops.RunPayload{}).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
 		Writes(devops.QueuedBlueRun{}))
 
@@ -592,12 +592,12 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetBranchStepsStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline steps status.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline run name")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(true).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.QueuedBlueRun{}).
@@ -608,11 +608,11 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetStepsStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get pipeline steps status.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline run name")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(true).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.QueuedBlueRun{}).
@@ -622,7 +622,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/crumbissuer").
 		To(devopsapi.GetCrumb).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get crumb").
+		Doc("Get crumb issuer.").
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).
 		Writes(devops.Crumb{}))
 
@@ -643,7 +643,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Produces("application/json", "charset=utf-8").
 		Doc("Check cron script compile.").
-		Param(webservice.QueryParameter("value", "cpec value").
+		Param(webservice.QueryParameter("value", "string of cron script.").
 			Required(true).
 			DataFormat("value=%s")).
 		Returns(http.StatusOK, RespOK, []devops.QueuedBlueRun{}).
@@ -655,9 +655,9 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get run pipeline in project.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline run id")).
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
 		Writes(devops.PipelineRun{}))
 
@@ -665,10 +665,10 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}").
 		To(devopsapi.GetBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Pipeline run in branch.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
+		Doc("Get Pipeline run by branch.").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach")).
 		Returns(http.StatusOK, RespOK, devops.BranchPipeline{}).
 		Writes(devops.BranchPipeline{}))
 
@@ -677,10 +677,10 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetPipelineRunNodes).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get Pipeline run nodes.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline run id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build")).
+		Param(webservice.QueryParameter("limit", "the count of item limit").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
@@ -690,13 +690,13 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodes/{nodeId}/steps").
 		To(devopsapi.GetBranchNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get steps in node.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline run id")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Doc("Get steps in node by branch.").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
@@ -707,11 +707,11 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get steps in node.").
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("runId", "pipeline run id")).
-		Param(webservice.PathParameter("nodeId", "pipeline node id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build")).
+		Param(webservice.PathParameter("nodeId", "pipeline node id, the one node in pipeline.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(false).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
@@ -723,7 +723,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
-		Doc("Json to Jenkinsfile.").
+		Doc("Convert json to jenkinsfile format.").
 		Reads(devops.ReqJson{}).
 		Returns(http.StatusOK, RespOK, devops.NodeSteps{}).
 		Writes(devops.ResJenkinsfile{}))
@@ -734,7 +734,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
-		Doc("Jenkinsfile to Json.").
+		Doc("Convert jenkinsfile to json format.").
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
@@ -743,7 +743,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/notifycommit").
 		To(devopsapi.GetNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Notify Commit by GET HTTP method.").
+		Doc("Get notify commit by GET HTTP method.").
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.QueryParameter("url", "the url for webhook to push.").
 			Required(true).
@@ -753,7 +753,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/notifycommit").
 		To(devopsapi.GetNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Notify Commit by POST HTTP method.").
+		Doc("Get notify commit by POST HTTP method.").
 		Consumes("application/json").
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.QueryParameter("url", "the url for webhook to push.").
@@ -769,12 +769,12 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/branches/{branchName}/runs/{runId}/nodesdetail").
 		To(devopsapi.GetBranchNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get pipeline nodes stages detail").
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Doc("Gives steps details inside a pipeline node by branch. For a Stage, the steps will include all the steps defined inside the stage.").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(true).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
@@ -784,12 +784,12 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}/runs/{runId}/nodesdetail").
 		To(devopsapi.GetNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get pipeline nodes stages detail").
-		Param(webservice.PathParameter("pipelineName", "pipeline name")).
-		Param(webservice.PathParameter("projectName", "devops project name")).
-		Param(webservice.PathParameter("branchName", "pipeline branch name")).
-		Param(webservice.PathParameter("runId", "pipeline runs id")).
-		Param(webservice.QueryParameter("limit", "limit count").
+		Doc("Gives steps details inside a pipeline node. For a Stage, the steps will include all the steps defined inside the stage.").
+		Param(webservice.PathParameter("projectName", "the name of devops project, the project set of software development practices that combines software development (Dev) and information technology operations (Ops) to shorten the systems development life cycle while delivering features, fixes, and updates frequently in close alignment with business objectives.")).
+		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("branchName", "the name of branch, same as repository brnach.")).
+		Param(webservice.PathParameter("runId", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("limit", "the count of item limit.").
 			Required(true).
 			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
