@@ -180,6 +180,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/quotas").
 		To(quotas.GetClusterQuotas).
+		Deprecate().
 		Doc("get whole cluster's resource usage").
 		Writes(models.ResourceQuota{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
