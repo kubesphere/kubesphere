@@ -568,7 +568,6 @@
     "pkg/kbcontroller",
     "pkg/resource"
   ]
-  revision = "1be8f5eada07fe5b17804e4b91fc2f4c4fc4ecb9"
   source = "https://github.com/kubesphere/application"
 
 [[projects]]

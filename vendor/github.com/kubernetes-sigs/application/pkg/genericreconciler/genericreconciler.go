@@ -71,7 +71,6 @@ func (gr *Reconciler) observe(observables ...resource.Observable) (*resource.Obj
 				types.NamespacedName{Name: name, Namespace: namespace},
 				obs.Obj.(runtime.Object))
 			if err == nil {
-				log.Printf("   >>get: %s", otype+"/"+namespace+"/"+name)
 				resources = append(resources, resource.Object{Obj: obs.Obj})
 			} else {
 				log.Printf("   >>>ERR get: %s", otype+"/"+namespace+"/"+name)
@@ -147,11 +146,9 @@ func (gr *Reconciler) ReconcileCR(namespacedname types.NamespacedName, handle cr
 	err := gr.Get(context.TODO(), namespacedname, rsrc.(runtime.Object))
 	if err == nil {
 		o := rsrc.(metav1.Object)
-		log.Printf("%s Validating spec\n", name)
 		err = rsrc.Validate()
 		status = rsrc.NewStatus()
 		if err == nil {
-			log.Printf("%s Applying defaults\n", name)
 			rsrc.ApplyDefaults()
 			components := rsrc.Components()
 			for _, component := range components {
@@ -230,8 +227,8 @@ func (gr *Reconciler) ObserveAndMutate(crname string, c component.Component, sta
 // FinalizeComponent is a function that finalizes component
 func (gr *Reconciler) FinalizeComponent(crname string, c component.Component, status interface{}, aggregated *resource.ObjectBag) error {
 	cname := crname + "(cmpnt:" + c.Name + ")"
-	log.Printf("%s  { finalizing component\n", cname)
-	defer log.Printf("%s  } finalizing component\n", cname)
+	log.Printf("%s  finalizing component\n", cname)
+	defer log.Printf("%s finalizing component completed", cname)
 
 	expected, observed, err := gr.ObserveAndMutate(crname, c, status, false, aggregated)
 
@@ -249,8 +246,8 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 	var reconciled *resource.ObjectBag = new(resource.ObjectBag)
 
 	cname := crname + "(cmpnt:" + c.Name + ")"
-	log.Printf("%s  { reconciling component\n", cname)
-	defer log.Printf("%s  } reconciling component\n", cname)
+	log.Printf("%s  reconciling component\n", cname)
+	defer log.Printf("%s  reconciling component completed\n", cname)
 
 	expected, observed, err := gr.ObserveAndMutate(crname, c, status, true, aggregated)
 
@@ -270,17 +267,8 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 		errs = handleErrorArr("", crname, err, errs)
 	} else {
 		aggregated.Add(expected.Items()...)
-		log.Printf("%s  Expected Resources:\n", cname)
-		for _, e := range expected.Items() {
-			log.Printf("%s   exp: %s/%s/%s\n", cname, e.Obj.GetNamespace(), reflect.TypeOf(e.Obj).String(), e.Obj.GetName())
-		}
-		log.Printf("%s  Observed Resources:\n", cname)
-		for _, e := range observed.Items() {
-			log.Printf("%s   obs: %s/%s/%s\n", cname, e.Obj.GetNamespace(), reflect.TypeOf(e.Obj).String(), e.Obj.GetName())
-		}
-
-		log.Printf("%s  Reconciling Resources:\n", cname)
 	}
+
 	for _, e := range expected.Items() {
 		seen := false
 		eNamespace := e.Obj.GetNamespace()
@@ -298,11 +286,7 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 			if e.Lifecycle == resource.LifecycleManaged && (specDiffers(e.Obj, o.Obj) && c.Differs(e.Obj, o.Obj) || injectOwnerRefs(e.Obj, c.OwnerRef)) {
 				if err := gr.Update(context.TODO(), e.Obj.(runtime.Object).DeepCopyObject()); err != nil {
 					errs = handleErrorArr("update", eRsrcInfo, err, errs)
-				} else {
-					log.Printf("%s   update: %s\n", cname, eRsrcInfo)
 				}
-			} else {
-				log.Printf("%s   nochange: %s\n", cname, eRsrcInfo)
 			}
 			reconciled.Add(o)
 			seen = true
@@ -315,7 +299,6 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 				if err := gr.Create(context.TODO(), e.Obj.(runtime.Object)); err != nil {
 					errs = handleErrorArr("Create", cname, err, errs)
 				} else {
-					log.Printf("%s   +create: %s\n", cname, eRsrcInfo)
 					reconciled.Add(e)
 				}
 			} else {
@@ -344,8 +327,6 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 		if !seen {
 			if err := gr.Delete(context.TODO(), o.Obj.(runtime.Object)); err != nil {
 				errs = handleErrorArr("delete", oRsrcInfo, err, errs)
-			} else {
-				log.Printf("%s   -delete: %s\n", cname, oRsrcInfo)
 			}
 		}
 	}
