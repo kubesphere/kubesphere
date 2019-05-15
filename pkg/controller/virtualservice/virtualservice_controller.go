@@ -264,9 +264,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	subsets := destinationRule.Spec.Subsets
 	if len(subsets) == 0 {
 		// destination rule with no subsets, not possibly
-		err = fmt.Errorf("found destinationrule with no subsets for service %s", name)
-		log.Error(err, "found destinationrule with no subsets", "namespace", namespace, "name", appName)
-		return err
+		return nil
 	}
 
 	// fetch all strategies applied to service

@@ -574,14 +574,10 @@ func stubResult() *QueryResult {
 func Query(param QueryParameters) *QueryResult {
 	var queryResult *QueryResult
 
-	//queryResult = stubResult()
-	//return queryResult
-
 	client := &http.Client{}
 
 	operation, query, err := createQueryRequest(param)
 	if err != nil {
-		//fmt.Println("Create query error ", err.Error())
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
 		return queryResult

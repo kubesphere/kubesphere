@@ -211,9 +211,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 
 	service, err := v.serviceLister.Services(namespace).Get(name)
 	if err != nil {
-		// Delete the corresponding destinationrule, as the service has been deleted.
+		// Delete the corresponding destinationrule if there is any, as the service has been deleted.
 		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(name, nil)
-		if !errors.IsNotFound(err) {
+		if err != nil && !errors.IsNotFound(err) {
 			log.Error(err, "delete destination rule failed", "namespace", namespace, "name", name)
 			return err
 		}

@@ -22,8 +22,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -78,27 +78,30 @@ func (c client) CreateRuntime(runtime *RunTime) error {
 
 	data, err := json.Marshal(runtime)
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/runtimes", openpitrixAPIServer), bytes.NewReader(data))
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", openpitrixProxyToken)
 
-	log.Println(req.Method, req.URL, openpitrixProxyToken, string(data))
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
@@ -114,23 +117,24 @@ func (c client) DeleteRuntime(runtimeId string) error {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/v1/runtimes", openpitrixAPIServer), bytes.NewReader(data))
 
 	if err != nil {
+		glog.Error(err)
+
 		return err
 	}
 
 	req.Header.Add("Authorization", openpitrixProxyToken)
-	if err != nil {
-		return err
-	}
-	log.Println(req.Method, req.URL)
+
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 

@@ -27,7 +27,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -84,20 +83,22 @@ func (c client) CreateGroup(group *models.Group) (*models.Group, error) {
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups", accountAPIServer), bytes.NewReader(data))
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	log.Println(req.Method, req.URL, string(data))
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -108,6 +109,7 @@ func (c client) CreateGroup(group *models.Group) (*models.Group, error) {
 	err = json.Unmarshal(data, group)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -118,20 +120,18 @@ func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	data, err := json.Marshal(group)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
 	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, group.Name), bytes.NewReader(data))
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	if err != nil {
-		return nil, err
-	}
-	log.Println(req.Method, req.URL, string(data))
 	resp, err := c.client.Do(req)
 
 	if err != nil {
@@ -141,6 +141,7 @@ func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -151,6 +152,7 @@ func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	err = json.Unmarshal(data, group)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -161,19 +163,21 @@ func (c client) DeleteGroup(name string) error {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, name), nil)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
-	log.Println(req.Method, req.URL)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
@@ -188,18 +192,20 @@ func (c client) DescribeGroup(name string) (*models.Group, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, name), nil)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
-	log.Println(req.Method, req.URL)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -211,6 +217,7 @@ func (c client) DescribeGroup(name string) (*models.Group, error) {
 	err = json.Unmarshal(data, &group)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -224,19 +231,17 @@ func (c client) ListUsers() (*models.PageableResponse, error) {
 		return nil, err
 	}
 	req.Header.Add("Authorization", accountAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	log.Println(req.Method, req.URL)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -248,6 +253,7 @@ func (c client) ListUsers() (*models.PageableResponse, error) {
 	err = json.Unmarshal(data, &result)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
