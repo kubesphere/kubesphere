@@ -32,7 +32,6 @@ import (
 	"log"
 	// Install apis
 	_ "kubesphere.io/kubesphere/pkg/apis/devops/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/metrics/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"

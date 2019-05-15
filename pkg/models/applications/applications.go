@@ -18,6 +18,7 @@
 package applications
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/resources"
@@ -282,4 +284,23 @@ func getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
 	}
 
 	return ings
+}
+
+func DeployApplication(namespace string, app openpitrix.CreateClusterRequest) error {
+	ns, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(namespace)
+	if err != nil {
+		glog.Errorf("deploy application failed: %+v", err)
+		return err
+	}
+
+	if runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
+		app.RuntimeId = runtimeId
+	} else {
+		return fmt.Errorf("runtime not init: namespace %s", namespace)
+	}
+	return openpitrix.CreateCluster(app)
+}
+
+func DeleteApplication(clusterId string) error {
+	return openpitrix.DeleteCluster(openpitrix.DeleteClusterRequest{ClusterId: []string{clusterId}})
 }
