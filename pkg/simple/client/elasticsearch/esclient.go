@@ -158,16 +158,8 @@ type StartTimeAgg struct {
 }
 
 type TopHits struct {
-	Sort []TopHitsSort `json:"sort"`
-	Size int           `json:"size"`
-}
-
-type TopHitsSort struct {
-	Order TopHitsSortOrder `json:"time"`
-}
-
-type TopHitsSortOrder struct {
-	Type string `json:"order"`
+	Sort []Sort `json:"sort"`
+	Size int    `json:"size"`
 }
 
 type HistogramAggs struct {
@@ -263,7 +255,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	if param.Operation == "statistics" {
 		operation = OperationStatistics
 		containerAgg := AggField{"kubernetes.docker_id.keyword"}
-		startTimeAgg := TopHits{[]TopHitsSort{{TopHitsSortOrder{"asc"}}}, 1}
+		startTimeAgg := TopHits{[]Sort{{Order{"asc"}}}, 1}
 		statisticAggs := StatisticsAggs{ContainerAgg{containerAgg}, StartTimeAgg{startTimeAgg}}
 		request.Aggs = statisticAggs
 		request.Size = 0
