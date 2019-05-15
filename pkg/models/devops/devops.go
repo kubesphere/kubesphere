@@ -683,7 +683,6 @@ func sendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 
 	resBody, _ := getRespBody(resp)
-	log.Info(string(resBody))
 	if resp.StatusCode >= http.StatusBadRequest {
 		jkerr := new(JkError)
 		jkerr.Code = resp.StatusCode
