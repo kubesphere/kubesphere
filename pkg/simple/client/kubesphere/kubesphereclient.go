@@ -22,8 +22,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/devops"
 	"log"
 	"net/http"
 	"strings"
@@ -32,7 +35,7 @@ import (
 
 var (
 	accountAPIServer string
-	devopsAPIServer  string
+	ksAPIServer      string
 	once             sync.Once
 	c                client
 )
@@ -43,6 +46,8 @@ type Interface interface {
 	DescribeGroup(name string) (*models.Group, error)
 	DeleteGroup(name string) error
 	ListUsers() (*models.PageableResponse, error)
+	ListWorkspaceDevOpsProjects(workspace string) (*devops.PageableDevOpsProject, error)
+	DeleteWorkspaceDevOpsProjects(workspace, devops string) error
 }
 
 type client struct {
@@ -51,6 +56,7 @@ type client struct {
 
 func init() {
 	flag.StringVar(&accountAPIServer, "ks-account-api-server", "http://ks-account.kubesphere-system.svc", "kubesphere account api server")
+	flag.StringVar(&ksAPIServer, "ks-api-server", "http://ks-apiserver.kubesphere-system.svc", "kubesphere api server")
 }
 
 func Client() Interface {
@@ -246,6 +252,77 @@ func (c client) ListUsers() (*models.PageableResponse, error) {
 	}
 
 	return &result, nil
+}
+
+func (c client) ListWorkspaceDevOpsProjects(workspace string) (*devops.PageableDevOpsProject, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops", ksAPIServer, workspace), nil)
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+
+	req.Header.Add(constants.UserNameHeader, constants.AdminUserName)
+
+	glog.Info(req.Method, req.URL)
+	resp, err := c.client.Do(req)
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+	if resp.StatusCode > http.StatusOK {
+		glog.Error(req.Method, req.URL, resp.StatusCode, string(data))
+		return nil, Error{resp.StatusCode, string(data)}
+	}
+
+	var result devops.PageableDevOpsProject
+	err = json.Unmarshal(data, &result)
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+	return &result, nil
+
+}
+
+func (c client) DeleteWorkspaceDevOpsProjects(workspace, devops string) error {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops/%s", ksAPIServer, workspace, devops), nil)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+	req.Header.Add(constants.UserNameHeader, constants.AdminUserName)
+
+	glog.Info(req.Method, req.URL)
+	resp, err := c.client.Do(req)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+	if resp.StatusCode > http.StatusOK {
+		glog.Error(req.Method, req.URL, resp.StatusCode, string(data))
+		return Error{resp.StatusCode, string(data)}
+	}
+
+	return nil
 }
 
 func IsNotFound(err error) bool {
