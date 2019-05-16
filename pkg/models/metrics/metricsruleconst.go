@@ -400,10 +400,10 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_disk_read_throughput":  "sum(node:data_volume_throughput_bytes_read:sum)",
 	"cluster_disk_write_throughput": "sum(node:data_volume_throughput_bytes_written:sum)",
 
-	"cluster_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_usage":       `sum(max(node_filesystem_size_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"}) by (device, instance))`,
 	"cluster_disk_size_utilisation": `cluster:disk_utilization:ratio`,
-	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
-	"cluster_disk_size_available":   `sum(max(node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:) by (node))`,
+	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"}) by (device, instance))`,
+	"cluster_disk_size_available":   `sum(max(node_filesystem_avail_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"}) by (device, instance))`,
 
 	"cluster_disk_inode_total":       `sum(node:node_inodes_total:)`,
 	"cluster_disk_inode_usage":       `sum(node:node_inodes_total:) - sum(node:node_inodes_free:)`,
@@ -481,9 +481,9 @@ var RulePromQLTmplMap = MetricMap{
 	"node_disk_read_throughput":  "node:data_volume_throughput_bytes_read:sum",
 	"node_disk_write_throughput": "node:data_volume_throughput_bytes_written:sum",
 
-	"node_disk_size_capacity":    `max(node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (device, node)) by (node)`,
 	"node_disk_size_available":   `node:disk_space_available:$1`,
-	"node_disk_size_usage":       `max((node_filesystem_size_bytes{device=~"/dev/.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (node)`,
+	"node_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/[vsh]d.+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (device, node)) by (node)`,
 	"node_disk_size_utilisation": `node:disk_space_utilization:ratio$1`,
 
 	"node_disk_inode_total":       `node:node_inodes_total:$1`,
