@@ -421,17 +421,25 @@ func CheckScriptCompile(req *http.Request) ([]byte, error) {
 }
 
 func CheckCron(req *http.Request) (*CheckCronRes, error) {
-	baseUrl := jenkins.Server + CheckCronUrl + req.URL.RawQuery
-	log.Infof("Jenkins-url: " + baseUrl)
-	req.SetBasicAuth(jenkins.Requester.BasicAuth.Username, jenkins.Requester.BasicAuth.Password)
-	var res = new(CheckCronRes)
+	newurl, err := url.Parse(jenkins.Server + CheckCronUrl + req.URL.RawQuery)
 
-	resp, err := http.Get(baseUrl)
+	reqJenkins := &http.Request{
+		Method: http.MethodGet,
+		URL:    newurl,
+		Header: http.Header{},
+	}
+	var res = new(CheckCronRes)
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	reqJenkins.SetBasicAuth(jenkins.Requester.BasicAuth.Username, jenkins.Requester.BasicAuth.Password)
+
+	resp, err := client.Do(reqJenkins)
 	if err != nil {
 		log.Error(err)
 		return res, err
 	}
 	defer resp.Body.Close()
+
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
