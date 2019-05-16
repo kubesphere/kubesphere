@@ -305,6 +305,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	dr := currentDestinationRule.DeepCopy()
+	dr.Spec.TrafficPolicy = nil
 	dr.Spec.Subsets = subsets
 	//
 	if len(servicePolicies) > 0 {
