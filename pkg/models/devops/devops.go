@@ -440,7 +440,6 @@ func CheckCron(req *http.Request) (*CheckCronRes, error) {
 	}
 	defer resp.Body.Close()
 
-
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		log.Error(err)
