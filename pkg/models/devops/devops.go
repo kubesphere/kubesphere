@@ -106,30 +106,31 @@ func GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId st
 	return res, err
 }
 
-func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchStepLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
-	resBody, err := sendJenkinsRequest(baseUrl, req)
+	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return resBody, err
+	return resBody, header, err
 }
 
-func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+GetStepLogUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 	log.Infof("Jenkins-url: " + baseUrl)
 
-	resBody, err := sendJenkinsRequest(baseUrl, req)
+	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return resBody, err
+	return resBody, header, err
+
 }
 
 func Validate(scmId string, req *http.Request) ([]byte, error) {
@@ -658,10 +659,15 @@ func GetNodesDetail(projectName, pipelineName, runId string, req *http.Request) 
 
 // create jenkins request
 func sendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error) {
+	resBody, _, err := jenkinsClient(baseUrl, req)
+	return resBody, err
+}
+
+func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, error) {
 	newReqUrl, err := url.Parse(baseUrl)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -678,19 +684,21 @@ func sendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error) {
 	resp, err := client.Do(newRequest)
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	resBody, _ := getRespBody(resp)
+	defer resp.Body.Close()
+
 	if resp.StatusCode >= http.StatusBadRequest {
 		jkerr := new(JkError)
 		jkerr.Code = resp.StatusCode
 		jkerr.Message = http.StatusText(resp.StatusCode)
-		return nil, jkerr
+		return nil, nil, jkerr
 	}
 
-	return resBody, err
+	return resBody, resp.Header, nil
+
 }
 
 // Decompress response.body of JenkinsAPIResponse
