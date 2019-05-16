@@ -231,6 +231,14 @@ func (v *VirtualServiceController) syncService(key string) error {
 				log.Error(err, "delete orphan virtualservice failed", "namespace", namespace, "name", service.Name)
 				return err
 			}
+
+			// delete the orphan strategy if there is any
+			err = v.servicemeshClient.ServicemeshV1alpha2().Strategies(namespace).Delete(name, nil)
+			if err != nil && !errors.IsNotFound(err) {
+				log.Error(err, "delete orphan strategy failed", "namespace", namespace, "name", service.Name)
+				return err
+			}
+
 			return nil
 		}
 		log.Error(err, "get service failed", "namespace", namespace, "name", name)
@@ -385,9 +393,9 @@ func (v *VirtualServiceController) syncService(key string) error {
 	}
 
 	if createVirtualService {
-		newVirtualService, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Create(newVirtualService)
 	} else {
-		newVirtualService, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
+		_, err = v.virtualServiceClient.NetworkingV1alpha3().VirtualServices(namespace).Update(newVirtualService)
 	}
 
 	if err != nil {
