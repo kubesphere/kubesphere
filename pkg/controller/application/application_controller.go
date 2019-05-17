@@ -149,7 +149,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 }
 
 func (v *ApplicationController) Start(stopCh <-chan struct{}) error {
-	v.Run(5, stopCh)
+	v.Run(2, stopCh)
 	return nil
 }
 

@@ -88,7 +88,8 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		informerFactory.Core().V1().Services(),
 		servicemeshInformer.Servicemesh().V1alpha2().ServicePolicies(),
 		kubeClient,
-		istioclient)
+		istioclient,
+		servicemeshclient)
 
 	apController := application.NewApplicationController(informerFactory.Core().V1().Services(),
 		informerFactory.Apps().V1().Deployments(),
