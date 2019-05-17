@@ -35,6 +35,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"math"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -44,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"time"
 )
 
 const (
@@ -115,25 +118,47 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
+			// The object is being deleted
+			// our finalizer is present, so lets handle our external dependency
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
 
-	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+	// name of your custom finalizer
+	finalizer := "finalizers.kubesphere.io/namespaces"
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object.
+		if !sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
+			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, finalizer)
+			if err := r.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+	} else {
 		// The object is being deleted
+		if sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
+			if err := r.deleteRouter(instance.Name); err != nil {
+				return reconcile.Result{}, err
+			}
 
-		if err := r.deleteRouter(instance.Name); err != nil {
-			return reconcile.Result{}, err
+			// delete runtime in the background, retry 3 times
+			go r.deleteRuntime(instance)
+
+			// remove our finalizer from the list and update it.
+			instance.ObjectMeta.Finalizers = sliceutil.RemoveString(instance.ObjectMeta.Finalizers, func(item string) bool {
+				return item == finalizer
+			})
+
+			if err := r.Update(context.Background(), instance); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 
-		if err := r.deleteRuntime(instance); err != nil {
-			// if fail to delete the external dependency here, return with error
-			// so that it can be retried
-			return reconcile.Result{}, err
-		}
-
+		// Our finalizer has finished, so the reconciler can do nothing.
 		return reconcile.Result{}, nil
 	}
 
@@ -347,9 +372,17 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
 
 	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
-		log.Info("Deleting openpitrix runtime", "namespace", namespace.Name, "runtime", runtimeId)
-		if err := openpitrix.Client().DeleteRuntime(runtimeId); err != nil {
-			return err
+		maxRetries := float64(3)
+		for i := float64(0); i < maxRetries; i++ {
+			time.Sleep(time.Duration(i*math.Pow(2, i)) * time.Second)
+			log.Info("Deleting openpitrix runtime", "namespace", namespace.Name, "runtime", runtimeId)
+			err := openpitrix.Client().DeleteRuntime(runtimeId)
+
+			if err == nil || openpitrix.IsNotFound(err) || openpitrix.IsDeleted(err) {
+				return nil
+			}
+
+			log.Error(err, fmt.Sprintf("Deleteing openpitrix runtime failed: %v times left", maxRetries-i-1))
 		}
 	}
 
