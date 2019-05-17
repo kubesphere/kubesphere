@@ -42,12 +42,12 @@ const (
 	GetArtifactsUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/artifacts/?"
 	GetBranchStepsStatusUrl  = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
 
-	GetStepsStatusUrl = "/blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?"
+	GetStepsStatusUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/?"
 
 	CheckBranchPipelineUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
 	CheckPipelineUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/%s/"
-	GetBranchNodeStepsUrl  = "/blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?"
-	GetNodeStepsUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?"
+	GetBranchNodeStepsUrl  = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
+	GetNodeStepsUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/?"
 	ValidateUrl            = "/blue/rest/organizations/jenkins/scm/%s/validate"
 	GetSCMOrgUrl           = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
 	GetOrgRepoUrl          = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
