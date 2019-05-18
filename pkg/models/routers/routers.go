@@ -112,6 +112,10 @@ func getMasterNodeIp() string {
 
 func addLoadBalancerIp(service *corev1.Service) {
 
+	if service == nil {
+		return
+	}
+
 	// append selected node ip as loadbalancer ingress ip
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer && len(service.Status.LoadBalancer.Ingress) == 0 {
 		rip := getMasterNodeIp()
