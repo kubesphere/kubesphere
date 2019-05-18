@@ -308,29 +308,6 @@ func (gr *Reconciler) ReconcileComponent(crname string, c component.Component, s
 		}
 	}
 
-	// delete(observed - expected)
-	for _, o := range observed.Items() {
-		seen := false
-		oNamespace := o.Obj.GetNamespace()
-		oName := o.Obj.GetName()
-		oKind := reflect.TypeOf(o.Obj).String()
-		oRsrcInfo := oKind + "/" + oNamespace + "/" + oName
-		for _, e := range expected.Items() {
-			if (e.Obj.GetName() == oName) &&
-				(e.Obj.GetNamespace() == oNamespace) &&
-				(reflect.TypeOf(o.Obj).String() == oKind) {
-				seen = true
-				break
-			}
-		}
-		// rsrc is in observed but not in expected - delete
-		if !seen {
-			if err := gr.Delete(context.TODO(), o.Obj.(runtime.Object)); err != nil {
-				errs = handleErrorArr("delete", oRsrcInfo, err, errs)
-			}
-		}
-	}
-
 	err = utilerrors.NewAggregate(errs)
 	c.UpdateComponentStatus(c.CR, status, reconciled, err)
 	return err
