@@ -20,9 +20,9 @@ KubeSphere Advanced Edition 2.0.0 provides an easy-to-use console with the aweso
 - DevOps Delivery
 - Source to Image
 - Multi-tenant management
-- Multi-dimensional monitoring, Logging, Alerting,
+- Multi-dimensional and Multi-tenant monitoring, Logging, Alerting, Notification
 - Service and network management
-- Application template 
+- Application template and repository
 - Infrastructure management, image registry management
 - Interate Harbor and GitLab
 - LB controller for Kubernetes on bare metal ([Porter](https://github.com/kubesphere/porter)), [cloud LB plugin](https://github.com/yunify/qingcloud-cloud-controller-manager)
@@ -41,18 +41,22 @@ KubeSphere Advanced Edition 2.0.0 was released on **May 18th, 2019**. See the [R
 
 ## Installation
 
-### Download
-
-```shell
-curl
-```
-
-### Install 
-
 KubeSphere installation supports following 2 kinds of installation, please reference the following guides on how to get KubeSphere up and running.
 
-- [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard, the all-in-one installation must be your best choice since it supports one-click installation.
-- [Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/): Multi-node is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster which is able to use in a formal environment.
+### All-in-One
+
+[All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. 
+
+Just download the installer and execute the `install.sh` under `/scripts` folder, choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any modification, for details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
+
+```bash
+$ curl -L https://kubesphere.io/download/stable/advanced-2.0.0 > advanced-2.0.0.tar.gz
+$ tar -zxf advanced-2.0.0.tar.gz
+```
+
+### Multi-Node
+
+[Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/) is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster which is able to use in a formal environment.
 
 
 ### Minimum Requirements
