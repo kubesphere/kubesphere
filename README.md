@@ -16,15 +16,15 @@ KubeSphere Advanced Edition 2.0.0 provides an easy-to-use console with the aweso
 
 
 - Workload management
-- Microservice governance
+- Service mesh (Istio-based)
 - DevOps Delivery
 - Source to Image
 - Multi-tenant management
-- Multi-dimensional and Multi-tenant monitoring, Logging, Alerting, Notification
+- Multi-dimensional and Multi-tenant Monitoring, Logging, Alerting, Notification
 - Service and network management
 - Application template and repository
 - Infrastructure management, image registry management
-- Interate Harbor and GitLab
+- Integrate Harbor and GitLab
 - LB controller for Kubernetes on bare metal ([Porter](https://github.com/kubesphere/porter)), [cloud LB plugin](https://github.com/yunify/qingcloud-cloud-controller-manager)
 - Support GPU node
 
