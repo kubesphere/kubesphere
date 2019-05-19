@@ -16,8 +16,8 @@ KubeSphere Advanced Edition 2.0.0 provides an easy-to-use console with the aweso
 
 
 - Workload management
-- Microservice governance
-- DevOps Delivery
+- Service mesh
+- DevOps
 - Source to Image
 - Multi-tenant management
 - Multi-dimensional and Multi-tenant monitoring, Logging, Alerting, Notification
