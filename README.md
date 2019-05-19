@@ -29,7 +29,7 @@ KubeSphere Advanced Edition 2.0.0 provides an easy-to-use console with the aweso
 - Support GPU node
 
 
-It also supports multiple open source storage and high-performance cloud storage as the persistent storage services, as well as support multiple open source network plugins.
+It also supports multiple open source storage and high-performance cloud storage as the persistent storage services, as well as supports multiple open source network plugins.
 
 > See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
 
