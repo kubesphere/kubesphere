@@ -23,7 +23,10 @@ import (
 	log "github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
+	"strings"
 )
+
+const jenkinsHeaderPre  = "X-"
 
 func GetPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
@@ -111,7 +114,9 @@ func GetBranchStepLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	for k, v := range header {
-		resp.AddHeader(k, v[0])
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }
@@ -129,7 +134,9 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	for k, v := range header {
-		resp.AddHeader(k, v[0])
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }
