@@ -698,6 +698,7 @@ func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
+		log.Errorf("%+v", string(resBody))
 		jkerr := new(JkError)
 		jkerr.Code = resp.StatusCode
 		jkerr.Message = http.StatusText(resp.StatusCode)
