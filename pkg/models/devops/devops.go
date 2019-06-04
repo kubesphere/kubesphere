@@ -68,10 +68,11 @@ func SearchPipelines(req *http.Request) ([]byte, error) {
 }
 
 func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+SearchPipelineRunUrl+req.URL.RawQuery, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Server+SearchPipelineRunUrl, projectName, pipelineName)
+
 	log.Infof("Jenkins-url: " + baseUrl)
 
-	res, err := sendJenkinsRequest(baseUrl, req)
+	res, err := sendJenkinsRequest(baseUrl + req.URL.RawQuery, req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -277,10 +278,10 @@ func GetArtifacts(projectName, pipelineName, runId string, req *http.Request) ([
 }
 
 func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetPipeBranchUrl+req.URL.RawQuery, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Server+GetPipeBranchUrl, projectName, pipelineName)
 	log.Infof("Jenkins-url: " + baseUrl)
 
-	res, err := sendJenkinsRequest(baseUrl, req)
+	res, err := sendJenkinsRequest(baseUrl + req.URL.RawQuery, req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -544,7 +545,7 @@ func ToJson(req *http.Request) ([]byte, error) {
 }
 
 func GetNotifyCommit(req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server + GetNotifyCommitUrl + req.URL.RawQuery)
+	baseUrl := fmt.Sprint(jenkins.Server + GetNotifyCommitUrl + req.URL.RawQuery)
 	log.Infof("Jenkins-url: " + baseUrl)
 	req.Method = "GET"
 
