@@ -137,12 +137,9 @@ type ContainerHighLightField struct {
 type EmptyField struct {
 }
 
-// The aggs object holds two aggregations to be computed by Elasticsearch
-// ContainterAgg is a cardinality aggregation to calculate the count of distinct containers
-// StartTimeAgg is a top hits aggregation to retrieve the first record
+// StatisticsAggs, the struct for `aggs` of type Request, holds a cardinality aggregation for distinct container counting
 type StatisticsAggs struct {
 	ContainerAgg ContainerAgg `json:"containers"`
-	StartTimeAgg StartTimeAgg `json:"starttime"`
 }
 
 type ContainerAgg struct {
@@ -151,15 +148,6 @@ type ContainerAgg struct {
 
 type AggField struct {
 	Field string `json:"field"`
-}
-
-type StartTimeAgg struct {
-	TopHits TopHits `json:"top_hits"`
-}
-
-type TopHits struct {
-	Sort []Sort `json:"sort"`
-	Size int    `json:"size"`
 }
 
 type HistogramAggs struct {
@@ -255,8 +243,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	if param.Operation == "statistics" {
 		operation = OperationStatistics
 		containerAgg := AggField{"kubernetes.docker_id.keyword"}
-		startTimeAgg := TopHits{[]Sort{{Order{"asc"}}}, 1}
-		statisticAggs := StatisticsAggs{ContainerAgg{containerAgg}, StartTimeAgg{startTimeAgg}}
+		statisticAggs := StatisticsAggs{ContainerAgg{containerAgg}}
 		request.Aggs = statisticAggs
 		request.Size = 0
 	} else if param.Operation == "histogram" {
@@ -361,18 +348,13 @@ type ReadResult struct {
 	Records []LogRecord `json:"records,omitempty"`
 }
 
-// The aggregations object represents the return from an aggregation (see StatisticsAggs type)
+// StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
 type StatisticsResponseAggregations struct {
-	ContainerCount ContainerCount  `json:"containers"`
-	StartTime      StartTimeTopHit `json:"starttime"`
+	ContainerCount ContainerCount `json:"containers"`
 }
 
 type ContainerCount struct {
 	Value int64 `json:"value"`
-}
-
-type StartTimeTopHit struct {
-	Hits Hits `json:"hits"`
 }
 
 type HistogramAggregations struct {
@@ -396,7 +378,6 @@ type HistogramRecord struct {
 type StatisticsResult struct {
 	Containers int64 `json:"containers"`
 	Logs       int64 `json:"logs"`
-	StartTime  int64 `json:"starttime"`
 }
 
 type HistogramResult struct {
@@ -460,13 +441,14 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	if response.Status != 0 {
 		//Elastic error, eg, es_rejected_execute_exception
 		queryResult.Status = response.Status
+		glog.Errorln("The query failed with no response")
 		return &queryResult
 	}
 
 	if response.Shards.Successful != response.Shards.Total {
 		//Elastic some shards error
-		queryResult.Status = http.StatusInternalServerError
-		return &queryResult
+		glog.Warningf("Not all shards succeed, successful shards: %d, skipped shards: %d, failed shards: %d",
+			response.Shards.Successful, response.Shards.Skipped, response.Shards.Failed)
 	}
 
 	switch operation {
@@ -496,8 +478,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 			queryResult.Status = http.StatusInternalServerError
 			return &queryResult
 		}
-		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value,
-			Logs: statisticsResponse.StartTime.Hits.Total, StartTime: statisticsResponse.StartTime.Hits.Hits[0].Sort[0]}
+		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: response.Hits.Total}
 
 	case OperationHistogram:
 		var histogramResult HistogramResult
@@ -583,6 +564,7 @@ func Query(param QueryParameters) *QueryResult {
 	}
 
 	url := fmt.Sprintf("http://%s:%s/%s*/_search", es.Host, es.Port, es.Index)
+
 	request, err := http.NewRequest("GET", url, bytes.NewBuffer(query))
 	if err != nil {
 		glog.Errorln(err)
