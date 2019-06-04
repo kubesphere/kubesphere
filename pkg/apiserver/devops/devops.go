@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-const jenkinsHeaderPre  = "X-"
+const jenkinsHeaderPre = "X-"
 
 func GetPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
