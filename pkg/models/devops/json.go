@@ -226,7 +226,7 @@ type BranchPipelineRunNodes struct {
 			URLName string `json:"urlName,omitempty"`
 		} `json:"actions,omitempty" description:"references the reachable path to this resource"`
 		DisplayDescription interface{} `json:"displayDescription,omitempty" description:"display description"`
-		DisplayName        string      `json:"displayName,omitempty",description:"display name"`
+		DisplayName        string      `json:"displayName,omitempty" description:"display name"`
 		DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in millis"`
 		ID                 string      `json:"id,omitempty" description:"id"`
 		Input              interface{} `json:"input,omitempty" description:"input"`
