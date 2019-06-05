@@ -284,7 +284,7 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 	defer conn.Close()
 
-	pageControl := ldap.NewControlPaging(80)
+	pageControl := ldap.NewControlPaging(1000)
 
 	users := make([]models.User, 0)
 

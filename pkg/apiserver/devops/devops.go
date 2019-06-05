@@ -23,7 +23,10 @@ import (
 	log "github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
+	"strings"
 )
+
+const jenkinsHeaderPre = "X-"
 
 func GetPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("projectName")
@@ -104,10 +107,16 @@ func GetBranchStepLog(req *restful.Request, resp *restful.Response) {
 	nodeId := req.PathParameter("nodeId")
 	stepId := req.PathParameter("stepId")
 
-	res, err := devops.GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+	res, header, err := devops.GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+
 	if err != nil {
 		parseErr(err, resp)
 		return
+	}
+	for k, v := range header {
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }
@@ -119,10 +128,15 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 	nodeId := req.PathParameter("nodeId")
 	stepId := req.PathParameter("stepId")
 
-	res, err := devops.GetStepLog(projectName, pipelineName, runId, nodeId, stepId, req.Request)
+	res, header, err := devops.GetStepLog(projectName, pipelineName, runId, nodeId, stepId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
+	}
+	for k, v := range header {
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }

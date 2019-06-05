@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"time"
 
+	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 )
@@ -53,6 +54,7 @@ type DestinationRuleController struct {
 	client clientset.Interface
 
 	destinationRuleClient istioclientset.Interface
+	servicemeshClient     servicemeshclient.Interface
 
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
@@ -79,7 +81,8 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 	serviceInformer coreinformers.ServiceInformer,
 	servicePolicyInformer servicemeshinformers.ServicePolicyInformer,
 	client clientset.Interface,
-	destinationRuleClient istioclientset.Interface) *DestinationRuleController {
+	destinationRuleClient istioclientset.Interface,
+	servicemeshClient servicemeshclient.Interface) *DestinationRuleController {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -95,6 +98,7 @@ func NewDestinationRuleController(deploymentInformer informersv1.DeploymentInfor
 	v := &DestinationRuleController{
 		client:                client,
 		destinationRuleClient: destinationRuleClient,
+		servicemeshClient:     servicemeshClient,
 		queue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "destinationrule"),
 		workerLoopPeriod:      time.Second,
 	}
@@ -211,12 +215,20 @@ func (v *DestinationRuleController) syncService(key string) error {
 
 	service, err := v.serviceLister.Services(namespace).Get(name)
 	if err != nil {
-		// Delete the corresponding destinationrule, as the service has been deleted.
+		// delete the corresponding destinationrule if there is any, as the service has been deleted.
 		err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Delete(name, nil)
-		if !errors.IsNotFound(err) {
+		if err != nil && !errors.IsNotFound(err) {
 			log.Error(err, "delete destination rule failed", "namespace", namespace, "name", name)
 			return err
 		}
+
+		// delete orphan service policy if there is any
+		err = v.servicemeshClient.ServicemeshV1alpha2().ServicePolicies(namespace).Delete(name, nil)
+		if err != nil && !errors.IsNotFound(err) {
+			log.Error(err, "delete orphan service policy failed", "namespace", namespace, "name", name)
+			return err
+		}
+
 		return nil
 	}
 
@@ -293,6 +305,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	dr := currentDestinationRule.DeepCopy()
+	dr.Spec.TrafficPolicy = nil
 	dr.Spec.Subsets = subsets
 	//
 	if len(servicePolicies) > 0 {
@@ -332,9 +345,9 @@ func (v *DestinationRuleController) syncService(key string) error {
 	}
 
 	if createDestinationRule {
-		newDestinationRule, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(newDestinationRule)
+		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Create(newDestinationRule)
 	} else {
-		newDestinationRule, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(newDestinationRule)
+		_, err = v.destinationRuleClient.NetworkingV1alpha3().DestinationRules(namespace).Update(newDestinationRule)
 	}
 
 	if err != nil {

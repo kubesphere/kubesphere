@@ -905,7 +905,7 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"get", "list"},
-							APIGroups: []string{"resources.kubesphere.io"},
+							APIGroups: []string{"resources.kubesphere.io", "app.k8s.io"},
 							Resources: []string{"applications"},
 						}, {
 							Verbs:     []string{"get", "list"},
@@ -927,7 +927,7 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"create", "update", "patch"},
-							APIGroups: []string{"resources.kubesphere.io"},
+							APIGroups: []string{"resources.kubesphere.io", "app.k8s.io"},
 							Resources: []string{"applications"},
 						}, {
 							Verbs:     []string{"create", "update", "patch"},
@@ -940,7 +940,7 @@ var (
 					Rules: []v1.PolicyRule{
 						{
 							Verbs:     []string{"delete"},
-							APIGroups: []string{"resources.kubesphere.io"},
+							APIGroups: []string{"resources.kubesphere.io", "app.k8s.io"},
 							Resources: []string{"applications"},
 						},
 						{

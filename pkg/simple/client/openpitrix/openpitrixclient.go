@@ -22,9 +22,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/golang/glog"
 	"io/ioutil"
-	"log"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -47,6 +49,10 @@ type RunTime struct {
 type Interface interface {
 	CreateRuntime(runtime *RunTime) error
 	DeleteRuntime(runtimeId string) error
+}
+type cluster struct {
+	Status    string `json:"status"`
+	ClusterId string `json:"cluster_id"`
 }
 
 type Error struct {
@@ -89,54 +95,174 @@ func (c client) CreateRuntime(runtime *RunTime) error {
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", openpitrixProxyToken)
 
-	log.Println(req.Method, req.URL, openpitrixProxyToken, string(data))
 	resp, err := c.client.Do(req)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
 	if resp.StatusCode > http.StatusOK {
-		return Error{resp.StatusCode, string(data)}
+		err = Error{resp.StatusCode, string(data)}
+		glog.Error(err)
+		return err
 	}
 
 	return nil
 }
 
-func (c client) DeleteRuntime(runtimeId string) error {
-	data := []byte(fmt.Sprintf(`{"runtime_id":"%s"}`, runtimeId))
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/v1/runtimes", openpitrixAPIServer), bytes.NewReader(data))
+func (c client) deleteClusters(clusters []cluster) error {
+	clusterId := make([]string, 0)
+
+	for _, cluster := range clusters {
+		if cluster.Status != "deleted" && cluster.Status != "deleting" && !sliceutil.HasString(clusterId, cluster.ClusterId) {
+			clusterId = append(clusterId, cluster.ClusterId)
+		}
+	}
+
+	if len(clusterId) == 0 {
+		return nil
+	}
+
+	deleteRequest := struct {
+		ClusterId []string `json:"cluster_id"`
+	}{
+		ClusterId: clusterId,
+	}
+	data, _ := json.Marshal(deleteRequest)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/v1/clusters/delete", openpitrixAPIServer), bytes.NewReader(data))
 
 	if err != nil {
 		return err
 	}
-
 	req.Header.Add("Authorization", openpitrixProxyToken)
-	if err != nil {
-		return err
-	}
-	log.Println(req.Method, req.URL)
-	resp, err := c.client.Do(req)
 
+	resp, err := c.client.Do(req)
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
+
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
+		glog.Error(err)
 		return err
 	}
 
 	if resp.StatusCode > http.StatusOK {
-		return Error{resp.StatusCode, string(data)}
+		err = Error{resp.StatusCode, string(data)}
+		glog.Error(err)
+		return err
 	}
 
 	return nil
+}
+
+func (c client) listClusters(runtimeId string) ([]cluster, error) {
+	limit := 200
+	offset := 0
+	clusters := make([]cluster, 0)
+	for {
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/v1/clusters?runtime_id=%s&limit=%d&offset=%d", openpitrixAPIServer, runtimeId, limit, offset), nil)
+
+		if err != nil {
+			glog.Error(err)
+			return nil, err
+		}
+
+		req.Header.Add("Authorization", openpitrixProxyToken)
+
+		resp, err := c.client.Do(req)
+
+		if err != nil {
+			glog.Error(err)
+			return nil, err
+		}
+
+		data, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			glog.Error(err)
+			return nil, err
+		}
+
+		resp.Body.Close()
+
+		if resp.StatusCode > http.StatusOK {
+			err = Error{resp.StatusCode, string(data)}
+			glog.Error(err)
+			return nil, err
+		}
+		listClusterResponse := struct {
+			TotalCount int       `json:"total_count"`
+			ClusterSet []cluster `json:"cluster_set"`
+		}{}
+		err = json.Unmarshal(data, &listClusterResponse)
+
+		if err != nil {
+			glog.Error(err)
+			return nil, err
+		}
+
+		clusters = append(clusters, listClusterResponse.ClusterSet...)
+
+		if listClusterResponse.TotalCount <= limit+offset {
+			break
+		}
+
+		offset += limit
+	}
+
+	return clusters, nil
+}
+
+func (c client) DeleteRuntime(runtimeId string) error {
+	clusters, err := c.listClusters(runtimeId)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	err = c.deleteClusters(clusters)
+
+	if err != nil {
+		glog.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func IsNotFound(err error) bool {
+	if e, ok := err.(Error); ok {
+		if e.status == http.StatusNotFound {
+			return true
+		}
+		if strings.Contains(e.message, "not exist") {
+			return true
+		}
+		if strings.Contains(e.message, "not found") {
+			return true
+		}
+	}
+	return false
+}
+
+func IsDeleted(err error) bool {
+	if e, ok := err.(Error); ok {
+		if strings.Contains(e.message, "is [deleted]") {
+			return true
+		}
+	}
+	return false
 }

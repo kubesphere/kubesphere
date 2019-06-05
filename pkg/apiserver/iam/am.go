@@ -30,7 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 )
 
-type roleList struct {
+type RoleList struct {
 	ClusterRoles []*v1.ClusterRole `json:"clusterRole" protobuf:"bytes,2,rep,name=clusterRoles"`
 	Roles        []*v1.Role        `json:"roles" protobuf:"bytes,2,rep,name=roles"`
 }
@@ -132,7 +132,7 @@ func ListUserRoles(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	roleList := roleList{}
+	roleList := RoleList{}
 	roleList.Roles = roles
 	roleList.ClusterRoles = clusterRoles
 
