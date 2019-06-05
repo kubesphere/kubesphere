@@ -58,7 +58,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.PATCH("/devops/{devops}").
 		To(devopsapi.UpdateProjectHandler).
-		Doc("get devops project").
+		Doc("update devops project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
@@ -66,7 +66,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}/defaultroles").
 		To(devopsapi.GetDevOpsProjectDefaultRoles).
-		Doc("get devops project defaultroles").
+		Doc("get devops project default roles").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Returns(http.StatusOK, RespOK, []devops.Role{}).

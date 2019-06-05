@@ -26,9 +26,9 @@ const (
 )
 
 type JenkinsCredential struct {
-	Id          string `json:"id"`
-	Type        string `json:"type"`
-	DisplayName string `json:"display_name,omitempty"`
+	Id          string `json:"id" description:"id of credential"`
+	Type        string `json:"type" description:"type of credential,such as ssh/kubeconfig"`
+	DisplayName string `json:"display_name,omitempty" description:"credential's display name'"`
 	Fingerprint *struct {
 		FileName string `json:"file_name,omitempty"`
 		Hash     string `json:"hash,omitempty"`
@@ -41,7 +41,7 @@ type JenkinsCredential struct {
 				} `json:"ranges,omitempty"`
 			} `json:"ranges,omitempty"`
 		} `json:"usage,omitempty"`
-	} `json:"fingerprint,omitempty"`
+	} `json:"fingerprint,omitempty" description:""`
 	Description                string                      `json:"description,omitempty"`
 	Domain                     string                      `json:"domain,omitempty"`
 	CreateTime                 *time.Time                  `json:"create_time,omitempty"`
