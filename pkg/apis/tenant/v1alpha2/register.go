@@ -23,9 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
+	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/params"
+	"net/http"
 )
 
-const GroupName = "tenant.kubesphere.io"
+const (
+	GroupName = "tenant.kubesphere.io"
+	RespOK    = "ok"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
@@ -87,23 +93,45 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/workspaces/{workspace}/devops").
 		To(tenant.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.QueryParameter(params.PagingParam, "page").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")).
+		Param(ws.QueryParameter(params.ConditionsParam, "query conditions").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
 		Doc("List devops projects for the current user").
+		Writes([]devops.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, []devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/devops").
 		To(tenant.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("username", "workspace member's username")).
+		Param(ws.QueryParameter(params.PagingParam, "page").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")).
+		Param(ws.QueryParameter(params.ConditionsParam, "query conditions").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
 		Doc("List the devops projects for the workspace member").
+		Writes([]devops.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, []devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
 		To(tenant.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create devops project").
+		Reads(devops.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{id}").
 		To(tenant.DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("id", "devops project id")).
 		Doc("Delete devops project").
+		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/logging").
 		To(tenant.LogQuery).
