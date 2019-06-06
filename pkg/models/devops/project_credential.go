@@ -43,7 +43,7 @@ type JenkinsCredential struct {
 		} `json:"usage,omitempty" description:"all usage of credential"`
 	} `json:"fingerprint,omitempty" description:"usage of credential"`
 	Description                string                      `json:"description,omitempty" description:"credential's description'"`
-	Domain                     string                      `json:"domain,omitempty" description:"credential's domain, default '_''"`
+	Domain                     string                      `json:"domain,omitempty" description:"credential's domain,In ks we only use the default domain, default '_''"`
 	CreateTime                 *time.Time                  `json:"create_time,omitempty" description:"credential's create_time'"`
 	Creator                    string                      `json:"creator,omitempty" description:"creator's username"`
 	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password credential struct"`

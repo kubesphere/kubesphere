@@ -247,17 +247,17 @@ type SCMOrg struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Repositories struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
+			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Href  string `json:"href,omitempty" description:"url in api"`
 		} `json:"repositories,omitempty"`
 		Self struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"self,omitempty"`
+			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Href  string `json:"href,omitempty" description:"self url in api"`
+		} `json:"self,omitempty" description:"scm org self info"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
 	Avatar                      string `json:"avatar,omitempty" description:"avatar url"`
 	JenkinsOrganizationPipeline bool   `json:"jenkinsOrganizationPipeline,omitempty" description:"jenkins organization pipeline"`
-	Name                        string `json:"name,omitempty" description:"name "`
+	Name                        string `json:"name,omitempty" description:"org name "`
 }
 
 // GetOrgRepo
@@ -733,10 +733,10 @@ type Crumb struct {
 
 // CheckScriptCompile
 type CheckScript struct {
-	Column  int    `json:"column,omitempty" description:"column"`
-	Line    int    `json:"line,omitempty" description:"line"`
-	Message string `json:"message,omitempty" description:"message"`
-	Status  string `json:"status,omitempty" description:"statue"`
+	Column  int    `json:"column,omitempty" description:"column e.g. 0"`
+	Line    int    `json:"line,omitempty" description:"line e.g. 0"`
+	Message string `json:"message,omitempty" description:"message e.g. success"`
+	Status  string `json:"status,omitempty" description:"status e.g. success"`
 }
 
 // CheckCron

@@ -47,7 +47,7 @@ type DevOpsProject struct {
 
 	CreateTime time.Time `json:"create_time" description:"DevOps Project's Creation time'"`
 
-	Status string `json:"status" description:"DevOps project's status"`
+	Status string `json:"status" description:"DevOps project's status. e.g. active"`
 
 	Visibility string `json:"visibility,omitempty" description:"Desperated Field"`
 
