@@ -28,9 +28,9 @@ import (
 )
 
 type AuthInfo struct {
-	Username   string `json:"username"`
-	Password   string `json:"password"`
-	ServerHost string `json:"serverhost"`
+	Username   string `json:"username" description:"username"`
+	Password   string `json:"password" description:"password"`
+	ServerHost string `json:"serverhost" description:"registry server host"`
 }
 
 const loginSuccess = "Login Succeeded"

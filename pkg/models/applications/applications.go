@@ -38,28 +38,28 @@ import (
 )
 
 type Application struct {
-	Name        string            `json:"name"`
-	RepoName    string            `json:"repoName"`
-	Runtime     string            `json:"namespace"`
-	RuntimeId   string            `json:"runtime_id"`
-	Version     string            `json:"version"`
-	VersionId   string            `json:"version_id"`
-	Status      string            `json:"status"`
-	UpdateTime  time.Time         `json:"updateTime"`
-	CreateTime  time.Time         `json:"createTime"`
-	App         string            `json:"app"`
-	AppId       string            `json:"app_id"`
-	Description string            `json:"description,omitempty"`
-	WorkLoads   *workLoads        `json:"workloads,omitempty"`
-	Services    []v1.Service      `json:"services,omitempty"`
-	Ingresses   []v1beta1.Ingress `json:"ingresses,omitempty"`
-	ClusterID   string            `json:"cluster_id"`
+	Name        string            `json:"name" description:"application name"`
+	RepoName    string            `json:"repoName" description:"repo name"`
+	Runtime     string            `json:"namespace" description:"namespace"`
+	RuntimeId   string            `json:"runtime_id" description:"runtime id"`
+	Version     string            `json:"version" description:"application version"`
+	VersionId   string            `json:"version_id" description:"application version id"`
+	Status      string            `json:"status" description:"application status"`
+	UpdateTime  time.Time         `json:"updateTime" description:"update time"`
+	CreateTime  time.Time         `json:"createTime" description:"create name"`
+	App         string            `json:"app" description:"application template name"`
+	AppId       string            `json:"app_id" description:"application template id"`
+	Description string            `json:"description,omitempty" description:"application description"`
+	WorkLoads   *workLoads        `json:"workloads,omitempty" description:"application workloads"`
+	Services    []v1.Service      `json:"services,omitempty" description:"application services"`
+	Ingresses   []v1beta1.Ingress `json:"ingresses,omitempty" description:"application ingresses"`
+	ClusterID   string            `json:"cluster_id" description:"application id"`
 }
 
 type workLoads struct {
-	Deployments  []appsv1.Deployment  `json:"deployments,omitempty"`
-	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty"`
-	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty"`
+	Deployments  []appsv1.Deployment  `json:"deployments,omitempty" description:"deployment list"`
+	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty" description:"statefulset list"`
+	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
 }
 
 func ListApplication(runtimeId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {

@@ -36,8 +36,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/applications"
 	gitmodel "kubesphere.io/kubesphere/pkg/models/git"
+	registriesmodel "kubesphere.io/kubesphere/pkg/models/registries"
+	"kubesphere.io/kubesphere/pkg/models/status"
 	"kubesphere.io/kubesphere/pkg/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
+	"net/http"
 )
 
 const GroupName = "resources.kubesphere.io"
@@ -54,6 +57,7 @@ func addWebService(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	tags := []string{"Namespace resources"}
+	ok := "ok"
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(resources.ListResources).
@@ -68,13 +72,13 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
-		Writes(models.PageableResponse{}))
+		Returns(http.StatusOK, ok, models.PageableResponse{}))
 
 	tags = []string{"Cluster resources"}
 
 	webservice.Route(webservice.GET("/{resources}").
 		To(resources.ListResources).
-		Writes(models.PageableResponse{}).
+		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Cluster level resource query").
 		Param(webservice.PathParameter("resources", "cluster level resource type"))).
@@ -91,7 +95,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/applications").
 		To(resources.ListApplication).
-		Writes(models.PageableResponse{}).
+		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List applications in cluster").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
@@ -107,7 +111,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
 		To(resources.ListNamespacedApplication).
-		Writes(models.PageableResponse{}).
+		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List applications").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
@@ -122,24 +126,27 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{cluster_id}").
 		To(resources.DescribeApplication).
-		Writes(applications.Application{}).
+		Returns(http.StatusOK, ok, applications.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Describe application").
 		Param(webservice.PathParameter("namespace", "namespace name")).
-		Param(webservice.PathParameter("cluster_id", "openpitrix cluster id")))
+		Param(webservice.PathParameter("cluster_id", "application id")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
 		To(resources.DeployApplication).
 		Doc("Deploy application").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(openpitrix.CreateClusterRequest{}).
+		Returns(http.StatusOK, ok, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "namespace name")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{cluster_id}").
 		To(resources.DeleteApplication).
 		Doc("Delete application").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("namespace", "namespace name")))
+		Returns(http.StatusOK, ok, errors.Error{}).
+		Param(webservice.PathParameter("namespace", "namespace name")).
+		Param(webservice.PathParameter("cluster_id", "application id")))
 
 	tags = []string{"User resources"}
 
@@ -148,13 +155,14 @@ func addWebService(c *restful.Container) error {
 		Doc("get user's kubectl pod").
 		Param(webservice.PathParameter("username", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(models.PodInfo{}))
+		Returns(http.StatusOK, ok, models.PodInfo{}))
 
 	webservice.Route(webservice.GET("/users/{username}/kubeconfig").
 		Produces("text/plain").
 		To(resources.GetKubeconfig).
 		Doc("get users' kubeconfig").
 		Param(webservice.PathParameter("username", "username")).
+		Returns(http.StatusOK, ok, "").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 
 	tags = []string{"Components"}
@@ -163,18 +171,18 @@ func addWebService(c *restful.Container) error {
 		To(components.GetComponents).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("").
-		Writes(map[string]models.Component{}))
+		Returns(http.StatusOK, ok, map[string]models.Component{}))
 	webservice.Route(webservice.GET("/components/{component}").
 		To(components.GetComponentStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("").
 		Param(webservice.PathParameter("component", "component name")).
-		Writes(models.Component{}))
+		Returns(http.StatusOK, ok, models.Component{}))
 	webservice.Route(webservice.GET("/health").
 		To(components.GetSystemHealthStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("").
-		Writes(map[string]int{}))
+		Returns(http.StatusOK, ok, map[string]int{}))
 
 	tags = []string{"Quotas"}
 
@@ -182,13 +190,13 @@ func addWebService(c *restful.Container) error {
 		To(quotas.GetClusterQuotas).
 		Deprecate().
 		Doc("get whole cluster's resource usage").
-		Writes(models.ResourceQuota{}).
+		Returns(http.StatusOK, ok, models.ResourceQuota{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/quotas").
 		Doc("get specified namespace's resource quota and usage").
 		Param(webservice.PathParameter("namespace", "namespace's name")).
-		Writes(models.ResourceQuota{}).
+		Returns(http.StatusOK, ok, models.ResourceQuota{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		To(quotas.GetNamespaceQuotas))
 
@@ -198,7 +206,8 @@ func addWebService(c *restful.Container) error {
 		To(registries.RegistryVerify).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("docker registry verify").
-		Writes(errors.Error{}))
+		Reads(registriesmodel.AuthInfo{}).
+		Returns(http.StatusOK, ok, errors.Error{}))
 
 	tags = []string{"Git"}
 	webservice.Route(webservice.POST("/git/readverify").
@@ -207,7 +216,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("secret git read verify").
 		Reads(gitmodel.AuthInfo{}).
-		Writes(errors.Error{}),
+		Returns(http.StatusOK, ok, errors.Error{}),
 	)
 	tags = []string{"Revision"}
 
@@ -218,7 +227,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("daemonset", "daemonset's name")).
 		Param(webservice.PathParameter("namespace", "daemonset's namespace")).
 		Param(webservice.PathParameter("revision", "daemonset's revision")).
-		Writes(appsv1.DaemonSet{}))
+		Returns(http.StatusOK, ok, appsv1.DaemonSet{}))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}").
 		To(revisions.GetDeployRevision).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -226,7 +235,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("deployment", "deployment's name")).
 		Param(webservice.PathParameter("namespace", "deployment's namespace")).
 		Param(webservice.PathParameter("revision", "deployment's revision")).
-		Writes(appsv1.ReplicaSet{}))
+		Returns(http.StatusOK, ok, appsv1.ReplicaSet{}))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}").
 		To(revisions.GetStatefulSetRevision).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -234,7 +243,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("statefulset", "statefulset's name")).
 		Param(webservice.PathParameter("namespace", "statefulset's namespace")).
 		Param(webservice.PathParameter("revision", "statefulset's revision")).
-		Writes(appsv1.StatefulSet{}))
+		Returns(http.StatusOK, ok, appsv1.StatefulSet{}))
 
 	tags = []string{"Router"}
 
@@ -242,7 +251,7 @@ func addWebService(c *restful.Container) error {
 		To(routers.GetAllRouters).
 		Doc("List all routers").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(corev1.Service{}))
+		Returns(http.StatusOK, ok, corev1.Service{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/router").
 		To(routers.GetRouter).
@@ -273,11 +282,13 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/workloadstatuses").
 		Doc("get abnormal workloads' count of whole cluster").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
 		To(workloadstatuses.GetClusterResourceStatus))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/workloadstatuses").
 		Doc("get abnormal workloads' count of specified namespace").
 		Param(webservice.PathParameter("namespace", "the name of namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
 		To(workloadstatuses.GetNamespacesResourceStatus))
 
 	c.Add(webservice)
