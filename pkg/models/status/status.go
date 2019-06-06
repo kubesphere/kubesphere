@@ -26,14 +26,14 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources"
 )
 
-type workLoadStatus struct {
-	Namespace string                 `json:"namespace"`
-	Count     map[string]int         `json:"data"`
-	Items     map[string]interface{} `json:"items,omitempty"`
+type WorkLoadStatus struct {
+	Namespace string                 `json:"namespace" description:"namespace"`
+	Count     map[string]int         `json:"data" description:"unhealthy workload count"`
+	Items     map[string]interface{} `json:"items,omitempty" description:"unhealthy workloads"`
 }
 
-func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
-	res := workLoadStatus{Count: make(map[string]int), Namespace: namespace, Items: make(map[string]interface{})}
+func GetNamespacesResourceStatus(namespace string) (*WorkLoadStatus, error) {
+	res := WorkLoadStatus{Count: make(map[string]int), Namespace: namespace, Items: make(map[string]interface{})}
 	var notReadyList *models.PageableResponse
 	var err error
 	for _, resource := range []string{resources.Deployments, resources.StatefulSets, resources.DaemonSets, resources.PersistentVolumeClaims, resources.Jobs} {
@@ -61,7 +61,7 @@ func GetNamespacesResourceStatus(namespace string) (*workLoadStatus, error) {
 	return &res, nil
 }
 
-func GetClusterResourceStatus() (*workLoadStatus, error) {
+func GetClusterResourceStatus() (*WorkLoadStatus, error) {
 
 	return GetNamespacesResourceStatus("")
 }

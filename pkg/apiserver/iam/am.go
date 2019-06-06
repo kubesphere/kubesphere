@@ -31,8 +31,8 @@ import (
 )
 
 type RoleList struct {
-	ClusterRoles []*v1.ClusterRole `json:"clusterRole" protobuf:"bytes,2,rep,name=clusterRoles"`
-	Roles        []*v1.Role        `json:"roles" protobuf:"bytes,2,rep,name=roles"`
+	ClusterRoles []*v1.ClusterRole `json:"clusterRole" description:"cluster role list"`
+	Roles        []*v1.Role        `json:"roles" description:"role list"`
 }
 
 func ListRoleUsers(req *restful.Request, resp *restful.Response) {

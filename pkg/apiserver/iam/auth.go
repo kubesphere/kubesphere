@@ -30,24 +30,24 @@ import (
 )
 
 type Spec struct {
-	Token string `json:"token"`
+	Token string `json:"token" description:"access token"`
 }
 
 type Status struct {
-	Authenticated bool                   `json:"authenticated"`
-	User          map[string]interface{} `json:"user,omitempty"`
+	Authenticated bool                   `json:"authenticated" description:"is authenticated"`
+	User          map[string]interface{} `json:"user,omitempty" description:"user info"`
 }
 
 type TokenReview struct {
-	APIVersion string  `json:"apiVersion"`
-	Kind       string  `json:"kind"`
+	APIVersion string  `json:"apiVersion" description:"Kubernetes API version"`
+	Kind       string  `json:"kind" description:"kind of the API object"`
 	Spec       *Spec   `json:"spec,omitempty"`
-	Status     *Status `json:"status,omitempty"`
+	Status     *Status `json:"status,omitempty" description:"token review status"`
 }
 
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" description:"username"`
+	Password string `json:"password" description:"password"`
 }
 
 const (

@@ -11,8 +11,8 @@ import (
 )
 
 type AuthInfo struct {
-	RemoteUrl string                  `json:"remoteUrl"`
-	SecretRef *corev1.SecretReference `json:"secretRef,omitempty"`
+	RemoteUrl string                  `json:"remoteUrl" description:"git server url"`
+	SecretRef *corev1.SecretReference `json:"secretRef,omitempty" description:"auth secret reference"`
 }
 
 func GitReadVerify(namespace string, authInfo AuthInfo) error {
