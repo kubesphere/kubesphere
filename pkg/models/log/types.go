@@ -48,6 +48,6 @@ type FluentbitFiltersResult struct {
 }
 
 type FluentbitOutputsResult struct {
-	Status  int               `json:"status"`
-	Outputs []fb.OutputPlugin `json:"outputs,omitempty"`
+	Status  int               `json:"status" description:"response status"`
+	Outputs []fb.OutputPlugin `json:"outputs,omitempty" description:"array of fluent bit output plugins"`
 }
