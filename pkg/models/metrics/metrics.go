@@ -47,19 +47,19 @@ const (
 )
 
 type FormatedLevelMetric struct {
-	MetricsLevel string           `json:"metrics_level"`
-	Results      []FormatedMetric `json:"results"`
+	MetricsLevel string           `json:"metrics_level" description:"metrics level, eg. cluster"`
+	Results      []FormatedMetric `json:"results" description:"actual array of results"`
 }
 
 type FormatedMetric struct {
-	MetricName string             `json:"metric_name,omitempty"`
-	Status     string             `json:"status"`
-	Data       FormatedMetricData `json:"data,omitempty"`
+	MetricName string             `json:"metric_name,omitempty" description:"metrics name, eg. scheduler_up_sum"`
+	Status     string             `json:"status" description:"result status, one of error, success"`
+	Data       FormatedMetricData `json:"data,omitempty" description:"actual metrics result"`
 }
 
 type FormatedMetricData struct {
-	Result     []map[string]interface{} `json:"result"`
-	ResultType string                   `json:"resultType"`
+	Result     []map[string]interface{} `json:"result" description:"result presenting metric labels, a series of time points and their instant values"`
+	ResultType string                   `json:"resultType" description:"result type, one of matrix, vector"`
 }
 
 type MetricResultValues []MetricResultValue
