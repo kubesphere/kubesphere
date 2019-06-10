@@ -585,6 +585,14 @@ func GetNotifyCommit(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
+func PostNotifyCommit(req *restful.Request, resp *restful.Response) {
+	res, err := devops.GetNotifyCommit(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Write(res)
+}
 func GithubWebhook(req *restful.Request, resp *restful.Response) {
 	res, err := devops.GithubWebhook(req.Request)
 	if err != nil {
