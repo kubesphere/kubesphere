@@ -60,7 +60,7 @@ func addWebService(c *restful.Container) error {
 	ok := "ok"
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
-		To(resources.ListResources).
+		To(resources.ListNamespacedResources).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Namespace level resource query").
 		Param(webservice.PathParameter("namespace", "which namespace")).
@@ -81,7 +81,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Cluster level resource query").
-		Param(webservice.PathParameter("resources", "cluster level resource type"))).
+		Param(webservice.PathParameter("resources", "cluster level resource type")).
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
 			Required(false).
 			DataFormat("key=value,key~value").
@@ -89,7 +89,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter(params.PagingParam, "page").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
-			DefaultValue("limit=10,page=1"))
+			DefaultValue("limit=10,page=1")))
 
 	tags = []string{"Applications"}
 
