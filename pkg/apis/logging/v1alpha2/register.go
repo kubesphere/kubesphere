@@ -65,8 +65,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
@@ -91,8 +91,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
@@ -115,8 +115,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
@@ -138,8 +138,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
@@ -159,8 +159,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
@@ -179,8 +179,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("int").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("int").DefaultValue("10").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
