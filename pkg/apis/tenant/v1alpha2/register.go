@@ -27,10 +27,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/params"
+	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
-
 
 	"net/http"
 )
@@ -118,7 +118,6 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("key=%s,key~%s")).
 		Doc("List devops projects for the current user").
-
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/devops").
 		To(tenant.ListDevopsProjects).
@@ -151,7 +150,29 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/logging").
 		To(tenant.LogQuery).
 		Doc("Query cluster-level logs in a multi-tenants environment").
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("workspaces", "List of workspaces the query will perform against, eg. wk-one,wk-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workspace_query", "List of keywords for filtering workspaces. Workspaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespaces", "List of namespaces the query will perform against, eg. ns-one,ns-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespace_query", "List of keywords for filtering namespaces. Namespaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "List of workloads the query will perform against, eg. wl-one,wl-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "List of keywords for filtering workloads. Workloads whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "List of pods the query will perform against, eg. pod-one,pod-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pod_query", "List of keywords for filtering pods. Pods whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "List of containers the query will perform against, eg. container-one,container-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "List of keywords for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "List of keywords  for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query range, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query range, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(esclient.Response{}).
+		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Produces(restful.MIME_JSON)
 
 	c.Add(ws)
 	return nil
