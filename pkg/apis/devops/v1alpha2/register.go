@@ -237,7 +237,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
 			Required(false).
 			DataFormat("q=%s")).
-		Param(webservice.QueryParameter("filter", "Condition for filteringfilter folders or not..").
+		Param(webservice.QueryParameter("filter", "Filter some types of jobs. e.g. no-folder，will not get a job of type folder").
 			Required(false).
 			DataFormat("filter=%s")).
 		Param(webservice.QueryParameter("start", "the count of item start.").
