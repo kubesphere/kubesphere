@@ -101,6 +101,9 @@ func DescribeWorkspace(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteAsJson(result)
 }
+func ListNamespacesByUsername(req *restful.Request, resp *restful.Response) {
+	ListNamespaces(req, resp)
+}
 
 func ListNamespaces(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
@@ -206,6 +209,10 @@ func DeleteNamespace(req *restful.Request, resp *restful.Response) {
 
 func checkResourceQuotas(wokrspace *v1alpha1.Workspace) error {
 	return nil
+}
+
+func ListDevopsProjectsByUsername(req *restful.Request, resp *restful.Response) {
+	ListDevopsProjects(req, resp)
 }
 
 func ListDevopsProjects(req *restful.Request, resp *restful.Response) {

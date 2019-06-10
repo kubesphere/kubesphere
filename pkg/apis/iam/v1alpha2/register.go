@@ -133,23 +133,23 @@ func addWebService(c *restful.Container) error {
 		Reads(CreateUserRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/users/{name}").
+	ws.Route(ws.DELETE("/users/{username}").
 		To(iam.DeleteUser).
 		Doc("Remove a specified user.").
-		Param(ws.PathParameter("name", "username")).
+		Param(ws.PathParameter("username", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.PUT("/users/{name}").
+	ws.Route(ws.PUT("/users/{username}").
 		To(iam.UpdateUser).
 		Doc("Updates information about the specified user.").
-		Param(ws.PathParameter("name", "username")).
+		Param(ws.PathParameter("username", "username")).
 		Reads(UserUpdateRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/users/{name}/log").
+	ws.Route(ws.GET("/users/{username}/log").
 		To(iam.UserLoginLog).
 		Doc("This method is used to retrieve the \"login logs\" for the specified user.").
-		Param(ws.PathParameter("name", "username")).
+		Param(ws.PathParameter("username", "username")).
 		Returns(http.StatusOK, ok, LoginLog{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/users").
@@ -296,7 +296,7 @@ func addWebService(c *restful.Container) error {
 		To(iam.RemoveUser).
 		Doc("Remove members from workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("name", "username")).
+		Param(ws.PathParameter("username", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}").

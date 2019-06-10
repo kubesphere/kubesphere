@@ -27,7 +27,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/params"
-	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -59,7 +59,8 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}").
 		To(tenant.DescribeWorkspace).
-		Doc("Get workspace detail").
+		Doc("Describe workspace").
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, ok, v1alpha1.Workspace{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/rules").
@@ -87,7 +88,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/namespaces").
-		To(tenant.ListNamespaces).
+		To(tenant.ListNamespacesByUsername).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("username", "workspace member's username")).
 		Doc("List the namespaces for the workspace member").
@@ -120,7 +121,7 @@ func addWebService(c *restful.Container) error {
 		Doc("List devops projects for the current user").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/devops").
-		To(tenant.ListDevopsProjects).
+		To(tenant.ListDevopsProjectsByUsername).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("username", "workspace member's username")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
