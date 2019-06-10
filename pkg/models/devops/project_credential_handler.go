@@ -205,7 +205,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 		credentialId, err := jenkinsClient.UpdateSecretTextCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.SecretTextCredential.Secret,
-			credentialRequest.SecretTextCredential.Description,
+			credentialRequest.Description,
 			projectId)
 		if err != nil {
 			glog.Errorf("%+v", err)
@@ -421,17 +421,17 @@ func formatCredentialResponse(
 	response.DisplayName = jenkinsCredentialResponse.DisplayName
 	if jenkinsCredentialResponse.Fingerprint != nil && jenkinsCredentialResponse.Fingerprint.Hash != "" {
 		response.Fingerprint = &struct {
-			FileName string `json:"file_name,omitempty"`
-			Hash     string `json:"hash,omitempty"`
+			FileName string `json:"file_name,omitempty" description:"credential's display name and description"`
+			Hash     string `json:"hash,omitempty" description:"credential's hash'"`
 			Usage    []*struct {
-				Name   string `json:"name,omitempty"`
+				Name   string `json:"name,omitempty" description:"jenkins pipeline full name"`
 				Ranges struct {
 					Ranges []*struct {
-						Start int `json:"start,omitempty"`
-						End   int `json:"end,omitempty"`
+						Start int `json:"start,omitempty" description:"start build number"`
+						End   int `json:"end,omitempty" description:"end build number"`
 					} `json:"ranges,omitempty"`
-				} `json:"ranges,omitempty"`
-			} `json:"usage,omitempty"`
+				} `json:"ranges,omitempty" description:"all build num using credential"`
+			} `json:"usage,omitempty" description:"all usage of credential"`
 		}{}
 		response.Fingerprint.FileName = jenkinsCredentialResponse.Fingerprint.FileName
 		response.Fingerprint.Hash = jenkinsCredentialResponse.Fingerprint.Hash

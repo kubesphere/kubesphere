@@ -79,8 +79,8 @@ const (
 )
 
 type Role struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" description:"role's name'"`
+	Description string `json:"description" description:"role 's description'"`
 }
 
 var DefaultRoles = []*Role{
