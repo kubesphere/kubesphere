@@ -31,7 +31,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 
-
 	"net/http"
 )
 
@@ -118,7 +117,6 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("key=%s,key~%s")).
 		Doc("List devops projects for the current user").
-
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}/devops").
 		To(tenant.ListDevopsProjects).

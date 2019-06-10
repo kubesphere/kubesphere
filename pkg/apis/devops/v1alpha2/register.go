@@ -220,12 +220,12 @@ func addWebService(c *restful.Container) error {
 		Reads([]devops.JenkinsCredential{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{projectName}/{pipelineName}"
-	webservice.Route(webservice.GET("/devops/{projectName}/pipelines/{pipelineName}").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}").
 		To(devopsapi.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get a Pipeline Inside a DevOps Project").
-		Param(webservice.PathParameter("pipelineName", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("projectName", "the name of devops project.")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("devops", "the name of devops project.")).
 		Returns(http.StatusOK, RespOK, devops.Pipeline{}).
 		Writes(devops.Pipeline{}))
 
@@ -752,7 +752,7 @@ func addWebService(c *restful.Container) error {
 
 	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
 	webservice.Route(webservice.POST("/devops/notifycommit").
-		To(devopsapi.GetNotifyCommit).
+		To(devopsapi.PostNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get notify commit by  HTTP POST method.").
 		Consumes("application/json").
