@@ -286,49 +286,49 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 }
 
 type Response struct {
-	Status       int             `json:"status"`
-	Workspace    string          `json:"workspace,omitempty"`
-	Shards       Shards          `json:"_shards"`
-	Hits         Hits            `json:"hits"`
-	Aggregations json.RawMessage `json:"aggregations"`
+	Status       int             `json:"status" description:"query status"`
+	Workspace    string          `json:"workspace,omitempty" description:"workspace the query was performed against"`
+	Shards       Shards          `json:"_shards" description:"tells shard information"`
+	Hits         Hits            `json:"hits" description:"search results"`
+	Aggregations json.RawMessage `json:"aggregations" description:"aggregation results"`
 }
 
 type Shards struct {
-	Total      int64 `json:"total"`
-	Successful int64 `json:"successful"`
-	Skipped    int64 `json:"skipped"`
-	Failed     int64 `json:"failed"`
+	Total      int64 `json:"total" description:"tells how many shards were searched"`
+	Successful int64 `json:"successful" description:"count of the successful searched shards"`
+	Skipped    int64 `json:"skipped" description:"count of the skipped searched shards"`
+	Failed     int64 `json:"failed" description:"count of the failed searched shards"`
 }
 
 type Hits struct {
-	Total int64 `json:"total"`
-	Hits  []Hit `json:"hits"`
+	Total int64 `json:"total" description:"total number of documents matching our search criteria"`
+	Hits  []Hit `json:"hits" description:"actual array of search results"`
 }
 
 type Hit struct {
-	Source    Source    `json:"_source"`
-	HighLight HighLight `json:"highlight"`
-	Sort      []int64   `json:"sort"`
+	Source    Source    `json:"_source" description:"search result item"`
+	HighLight HighLight `json:"highlight" description:"highlighted log fragment"`
+	Sort      []int64   `json:"sort" description:"sort key for results"`
 }
 
 type Source struct {
-	Log        string     `json:"log"`
-	Time       string     `json:"time"`
-	Kubernetes Kubernetes `json:"kubernetes"`
+	Log        string     `json:"log" description:"the log message"`
+	Time       string     `json:"time" description:"log timestamp"`
+	Kubernetes Kubernetes `json:"kubernetes" description:"kubernetes addon information on the log"`
 }
 
 type Kubernetes struct {
-	Namespace string `json:"namespace_name"`
-	Pod       string `json:"pod_name"`
-	Container string `json:"container_name"`
-	Host      string `json:"host"`
+	Namespace string `json:"namespace_name" description:"the namespace the log is from"`
+	Pod       string `json:"pod_name" description:"the pod the log is from"`
+	Container string `json:"container_name" description:"the container the log is from"`
+	Host      string `json:"host" description:"the node the log if from"`
 }
 
 type HighLight struct {
-	LogHighLights       []string `json:"log,omitempty"`
-	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty"`
-	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty"`
-	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty"`
+	LogHighLights       []string `json:"log,omitempty" description:"log messages to highlight"`
+	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty" description:"namespaces to highlight"`
+	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty" description:"pods to highlight"`
+	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty" description:"containers to highlight"`
 }
 
 type LogRecord struct {
