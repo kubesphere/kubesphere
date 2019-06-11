@@ -212,7 +212,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users").
 		To(iam.ListRoleUsers).
-		Doc("This method is used to retrieve the users that are bind the role in the specified namespace.").
+		Doc("This method is used to retrieve the users that are bound to the role in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Param(ws.PathParameter("role", "role name")).
 		Returns(http.StatusOK, ok, []models.User{}).
@@ -225,7 +225,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
 		To(iam.ListClusterRoleUsers).
-		Doc("List all users that are bind the cluster role.").
+		Doc("List all users that are bound to the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Returns(http.StatusOK, ok, UserList{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
