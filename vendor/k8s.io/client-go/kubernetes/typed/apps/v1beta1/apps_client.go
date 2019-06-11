@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ type AppsV1beta1Interface interface {
 	RESTClient() rest.Interface
 	ControllerRevisionsGetter
 	DeploymentsGetter
-	ScalesGetter
 	StatefulSetsGetter
 }
 
@@ -44,10 +43,6 @@ func (c *AppsV1beta1Client) ControllerRevisions(namespace string) ControllerRevi
 
 func (c *AppsV1beta1Client) Deployments(namespace string) DeploymentInterface {
 	return newDeployments(c, namespace)
-}
-
-func (c *AppsV1beta1Client) Scales(namespace string) ScaleInterface {
-	return newScales(c, namespace)
 }
 
 func (c *AppsV1beta1Client) StatefulSets(namespace string) StatefulSetInterface {

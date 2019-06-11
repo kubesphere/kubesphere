@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,11 +33,3 @@ type DeploymentListerExpansion interface{}
 // DeploymentNamespaceListerExpansion allows custom methods to be added to
 // DeploymentNamespaceLister.
 type DeploymentNamespaceListerExpansion interface{}
-
-// ScaleListerExpansion allows custom methods to be added to
-// ScaleLister.
-type ScaleListerExpansion interface{}
-
-// ScaleNamespaceListerExpansion allows custom methods to be added to
-// ScaleNamespaceLister.
-type ScaleNamespaceListerExpansion interface{}

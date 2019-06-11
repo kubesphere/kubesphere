@@ -1,40 +1,32 @@
 /*
-Copyright 2018 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Copyright 2019 The KubeSphere Authors.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
 */
 
 package log
 
 import (
-	//"fmt"
-	//"encoding/json"
-	//"regexp"
+	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"reflect"
-
 	"strconv"
 	"strings"
-
-	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-
-	//"time"
-
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"kubesphere.io/kubesphere/pkg/client"
-	"kubesphere.io/kubesphere/pkg/constants"
-	//"kubesphere.io/kubesphere/pkg/models"
+	"time"
 )
 
 func intersection(s1, s2 []string) (inter []string) {
@@ -65,7 +57,7 @@ func removeDups(elements []string) (nodups []string) {
 	return
 }
 
-func In(value interface{}, container interface{}) int {
+func in(value interface{}, container interface{}) int {
 	if container == nil {
 		return -1
 	}
@@ -124,12 +116,13 @@ func queryLabel(label string, labelsQuery []string) bool {
 	return result
 }
 
-func queryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []string) {
+func QueryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []string) {
 	if workspaceMatch == "" && workspaceQuery == "" {
 		return false, nil
 	}
 
-	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(metaV1.ListOptions{})
+	nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+	nsList, err := nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("failed to list namespace, error: ", err)
 		return true, nil
@@ -151,7 +144,7 @@ func queryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []strin
 		hasQuery = true
 	}
 
-	for _, ns := range nsList.Items {
+	for _, ns := range nsList {
 		labels := ns.GetLabels()
 		_, ok := labels[constants.WorkspaceLabelKey]
 		if ok {
@@ -176,7 +169,7 @@ func queryWorkspace(workspaceMatch string, workspaceQuery string) (bool, []strin
 	return true, namespaces
 }
 
-func matchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []string) (bool, []string) {
+func MatchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []string) (bool, []string) {
 	if namespaceMatch == "" {
 		return namespaceFilled, namespaces
 	}
@@ -190,12 +183,44 @@ func matchNamespace(namespaceMatch string, namespaceFilled bool, namespaces []st
 	return true, namespacesMatch
 }
 
-func queryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
+func GetNamespaceCreationTimeMap(namespaces []string) (bool, map[string]string) {
+
+	namespaceWithCreationTime := make(map[string]string)
+
+	nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+
+	if len(namespaces) == 0 {
+		nsList, err := nsLister.List(labels.Everything())
+		if err != nil {
+			glog.Error("failed to list namespace, error: ", err)
+			return true, namespaceWithCreationTime
+		}
+
+		for _, ns := range nsList {
+			namespaces = append(namespaces, ns.Name)
+		}
+	}
+
+	for _, item := range namespaces {
+		ns, err := nsLister.Get(item)
+		if err != nil {
+			glog.Error("failed to get namespace, error: ", err)
+			continue
+		}
+
+		namespaceWithCreationTime[ns.Name] = strconv.FormatInt(ns.CreationTimestamp.UnixNano()/int64(time.Millisecond), 10)
+	}
+
+	return true, namespaceWithCreationTime
+}
+
+func QueryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
 	if workloadMatch == "" && workloadQuery == "" {
 		return false, nil
 	}
 
-	podList, err := client.NewK8sClient().CoreV1().Pods("").List(metaV1.ListOptions{})
+	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
+	podList, err := podLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("failed to list pods, error: ", err)
 		return true, nil
@@ -218,7 +243,7 @@ func queryWorkload(workloadMatch string, workloadQuery string, namespaces []stri
 	}
 
 	if namespaces == nil {
-		for _, pod := range podList.Items {
+		for _, pod := range podList {
 			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
 				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
 			}*/
@@ -242,11 +267,11 @@ func queryWorkload(workloadMatch string, workloadQuery string, namespaces []stri
 			}
 		}
 	} else {
-		for _, pod := range podList.Items {
+		for _, pod := range podList {
 			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
 				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
 			}*/
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && In(pod.Namespace, namespaces) >= 0 {
+			if len(pod.ObjectMeta.OwnerReferences) > 0 && in(pod.Namespace, namespaces) >= 0 {
 				var podCanAppend = true
 				workloadName := getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
 				if hasMatch {
@@ -270,7 +295,7 @@ func queryWorkload(workloadMatch string, workloadQuery string, namespaces []stri
 	return true, pods
 }
 
-func matchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {
+func MatchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {
 	if podMatch == "" {
 		return podFilled, pods
 	}
@@ -284,7 +309,7 @@ func matchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {
 	return true, podsMatch
 }
 
-func matchContainer(containerMatch string) (bool, []string) {
+func MatchContainer(containerMatch string) (bool, []string) {
 	if containerMatch == "" {
 		return false, nil
 	}
@@ -292,17 +317,18 @@ func matchContainer(containerMatch string) (bool, []string) {
 	return true, strings.Split(strings.Replace(containerMatch, ",", " ", -1), " ")
 }
 
-func getWorkspaceOfNamesapce(namespace string) string {
+func GetWorkspaceOfNamesapce(namespace string) string {
 	var workspace string
 	workspace = ""
 
-	nsList, err := client.NewK8sClient().CoreV1().Namespaces().List(metaV1.ListOptions{})
+	nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
+	nsList, err := nsLister.List(labels.Everything())
 	if err != nil {
 		glog.Error("failed to list namespace, error: ", err)
 		return workspace
 	}
 
-	for _, ns := range nsList.Items {
+	for _, ns := range nsList {
 		if ns.GetName() == namespace {
 			labels := ns.GetLabels()
 			_, ok := labels[constants.WorkspaceLabelKey]
@@ -313,98 +339,4 @@ func getWorkspaceOfNamesapce(namespace string) string {
 	}
 
 	return workspace
-}
-
-func LogQuery(level constants.LogQueryLevel, request *restful.Request) *client.QueryResult {
-	var param client.QueryParameters
-
-	param.Level = level
-	param.Operation = request.QueryParameter("operation")
-
-	switch level {
-	case constants.QueryLevelCluster:
-		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.QueryParameter("workspaces"), request.QueryParameter("workspace_query"))
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
-			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
-	case constants.QueryLevelWorkspace:
-		{
-			param.NamespaceFilled, param.Namespaces = queryWorkspace(request.PathParameter("workspace_name"), "")
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
-			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
-	case constants.QueryLevelNamespace:
-		{
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
-			param.PodFilled, param.Pods = queryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
-	case constants.QueryLevelWorkload:
-		{
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
-			param.PodFilled, param.Pods = queryWorkload(request.PathParameter("workload_name"), "", param.Namespaces)
-			param.PodFilled, param.Pods = matchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
-	case constants.QueryLevelPod:
-		{
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
-			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), false, nil)
-			param.ContainerFilled, param.Containers = matchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
-	case constants.QueryLevelContainer:
-		{
-			param.NamespaceFilled, param.Namespaces = matchNamespace(request.PathParameter("namespace_name"), false, nil)
-			param.PodFilled, param.Pods = matchPod(request.PathParameter("pod_name"), false, nil)
-			param.ContainerFilled, param.Containers = matchContainer(request.PathParameter("container_name"))
-		}
-	}
-
-	if len(param.Namespaces) == 1 {
-		param.Workspace = getWorkspaceOfNamesapce(param.Namespaces[0])
-	}
-
-	param.Interval = request.QueryParameter("interval")
-
-	param.LogQuery = request.QueryParameter("log_query")
-	param.StartTime = request.QueryParameter("start_time")
-	param.EndTime = request.QueryParameter("end_time")
-	param.Sort = request.QueryParameter("sort")
-
-	var err error
-	param.From, err = strconv.ParseInt(request.QueryParameter("from"), 10, 64)
-	if err != nil {
-		param.From = 0
-	}
-	param.Size, err = strconv.ParseInt(request.QueryParameter("size"), 10, 64)
-	if err != nil {
-		param.Size = 10
-	}
-
-	//log.Printf("LogQuery with %v", param)
-
-	glog.Infof("LogQuery with %v", param)
-
-	return client.Query(param)
-}
-
-func InitClientConfigMapWatcher() {
-	client.InitConfigMapWatcher()
 }

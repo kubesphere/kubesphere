@@ -17,36 +17,43 @@ limitations under the License.
 package log
 
 import (
-	"github.com/jinzhu/gorm"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"github.com/json-iterator/go"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/emicklei/go-restful"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"kubesphere.io/kubesphere/pkg/client"
-
-	_ "github.com/go-sql-driver/mysql"
+	"kubesphere.io/kubesphere/pkg/informers"
+	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
+	"net/http"
+	"strings"
+	"time"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
+const (
+	ConfigMapName    = "fluent-bit-output-config"
+	ConfigMapData    = "outputs"
+	LoggingNamespace = "kubesphere-logging-system"
+)
+
 func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
-	config, err := client.GetClientConfig("")
+	config, err := fb.GetClientConfig("")
 	if err != nil {
 		//panic(err.Error())
 		return nil, nil, err
 	}
 
 	// Create a new clientset which include our CRD schema
-	return client.NewClient(config)
+	return fb.NewFluentbitCRDClient(config)
 }
 
-func getParameterValue(parameters []client.Parameter, name string) string {
+func getParameterValue(parameters []fb.Parameter, name string) string {
 	var value string
 
 	value = ""
@@ -59,217 +66,7 @@ func getParameterValue(parameters []client.Parameter, name string) string {
 	return value
 }
 
-func FluentbitCRDQuery(request *restful.Request) *FluentbitCRDResult {
-	var result FluentbitCRDResult
-
-	crdcs, scheme, err := createCRDClientSet()
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	item, err := crdclient.Get("fluent-bit")
-	if err != nil {
-		//panic(err)
-		result.Status = 200
-		return &result
-	}
-
-	result.CRD = item.Spec
-	result.Status = 200
-
-	return &result
-}
-
-func FluentbitCRDUpdate(request *restful.Request) *FluentbitCRDResult {
-	var result FluentbitCRDResult
-
-	spec := new(client.FluentBitSpec)
-
-	err := request.ReadEntity(&spec)
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
-	crdcs, scheme, err := createCRDClientSet()
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	var item *client.FluentBit
-	var err_read error
-
-	item, err_read = crdclient.Get("fluent-bit")
-	if err_read != nil {
-		//panic(err)
-		fluentBitOperator := &client.FluentBit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fluent-bit",
-			},
-			Spec: *spec,
-		}
-
-		itemnew, err := crdclient.Create(fluentBitOperator)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.CRD = itemnew.Spec
-		result.Status = 200
-	} else {
-		item.Spec = *spec
-
-		itemnew, err := crdclient.Update("fluent-bit", item)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.CRD = itemnew.Spec
-		result.Status = 200
-	}
-
-	return &result
-}
-
-func FluentbitCRDDelete(request *restful.Request) *FluentbitCRDDeleteResult {
-	var result FluentbitCRDDeleteResult
-
-	crdcs, scheme, err := createCRDClientSet()
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	err = crdclient.Delete("fluent-bit", nil)
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	result.Status = 200
-	return &result
-}
-
-func FluentbitSettingsQuery(request *restful.Request) *FluentbitSettingsResult {
-	var result FluentbitSettingsResult
-
-	crdcs, scheme, err := createCRDClientSet()
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	item, err := crdclient.Get("fluent-bit")
-	if err != nil {
-		//panic(err)
-		result.Enable = "true"
-		result.Status = 200
-		return &result
-	}
-
-	if len(item.Spec.Settings) > 0 {
-		result.Enable = getParameterValue(item.Spec.Settings[0].Parameters, "Enable")
-	} else {
-		result.Enable = "true"
-	}
-
-	result.Status = 200
-
-	return &result
-}
-
-func FluentbitSettingsUpdate(request *restful.Request) *FluentbitSettingsResult {
-	var result FluentbitSettingsResult
-
-	parameters := new([]client.Parameter)
-
-	err := request.ReadEntity(&parameters)
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
-	var settings []client.Plugin
-	settings = append(settings, client.Plugin{"fluentbit_settings", "fluentbit-settings", *parameters})
-
-	crdcs, scheme, err := createCRDClientSet()
-	if err != nil {
-		//panic(err)
-		result.Status = 400
-		return &result
-	}
-
-	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
-
-	var item *client.FluentBit
-	var err_read error
-
-	item, err_read = crdclient.Get("fluent-bit")
-	if err_read != nil {
-		//panic(err)
-		spec := new(client.FluentBitSpec)
-		spec.Settings = settings
-
-		fluentBitOperator := &client.FluentBit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fluent-bit",
-			},
-			Spec: *spec,
-		}
-
-		itemnew, err := crdclient.Create(fluentBitOperator)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.Enable = getParameterValue(itemnew.Spec.Settings[0].Parameters, "Enable")
-		result.Status = 200
-	} else {
-		item.Spec.Settings = settings
-
-		itemnew, err := crdclient.Update("fluent-bit", item)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		result.Enable = getParameterValue(itemnew.Spec.Settings[0].Parameters, "Enable")
-		result.Status = 200
-	}
-
-	return &result
-}
-
-func getFilters(result *FluentbitFiltersResult, Filters []client.Plugin) {
+func getFilters(result *FluentbitFiltersResult, Filters []fb.Plugin) {
 	for _, filter := range Filters {
 		if strings.Compare(filter.Name, "fluentbit-filter-input-regex") == 0 {
 			parameters := strings.Split(getParameterValue(filter.Parameters, "Regex"), " ")
@@ -286,93 +83,82 @@ func getFilters(result *FluentbitFiltersResult, Filters []client.Plugin) {
 	}
 }
 
-func FluentbitFiltersQuery(request *restful.Request) *FluentbitFiltersResult {
+func FluentbitFiltersQuery() *FluentbitFiltersResult {
 	var result FluentbitFiltersResult
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
-		//panic(err)
-		result.Status = 400
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	item, err := crdclient.Get("fluent-bit")
 	if err != nil {
-		//panic(err)
-		result.Status = 200
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
 	getFilters(&result, item.Spec.Filter)
 
-	result.Status = 200
+	result.Status = http.StatusOK
 
 	return &result
 }
 
-func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
+func FluentbitFiltersUpdate(filters *[]FluentbitFilter) *FluentbitFiltersResult {
 	var result FluentbitFiltersResult
 
-	filters := new([]FluentbitFilter)
-
-	err := request.ReadEntity(&filters)
-	if err != nil {
-		//panic(err.Error())
-		result.Status = 400
-		return &result
-	}
-
 	//Generate filter plugin config
-	var filter []client.Plugin
+	var filter []fb.Plugin
 
-	var para_kubernetes []client.Parameter
-	para_kubernetes = append(para_kubernetes, client.Parameter{"Name", nil, "kubernetes"})
-	para_kubernetes = append(para_kubernetes, client.Parameter{"Match", nil, "kube.*"})
-	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_URL", nil, "https://kubernetes.default.svc:443"})
-	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_CA_File", nil, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"})
-	para_kubernetes = append(para_kubernetes, client.Parameter{"Kube_Token_File", nil, "/var/run/secrets/kubernetes.io/serviceaccount/token"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-kubernetes", para_kubernetes})
+	var para_kubernetes []fb.Parameter
+	para_kubernetes = append(para_kubernetes, fb.Parameter{Name: "Name", Value: "kubernetes"})
+	para_kubernetes = append(para_kubernetes, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_kubernetes = append(para_kubernetes, fb.Parameter{Name: "Kube_URL", Value: "https://kubernetes.default.svc:443"})
+	para_kubernetes = append(para_kubernetes, fb.Parameter{Name: "Kube_CA_File", Value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"})
+	para_kubernetes = append(para_kubernetes, fb.Parameter{Name: "Kube_Token_File", Value: "/var/run/secrets/kubernetes.io/serviceaccount/token"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-kubernetes", Parameters: para_kubernetes})
 
-	var para_lift []client.Parameter
-	para_lift = append(para_lift, client.Parameter{"Name", nil, "nest"})
-	para_lift = append(para_lift, client.Parameter{"Match", nil, "kube.*"})
-	para_lift = append(para_lift, client.Parameter{"Operation", nil, "lift"})
-	para_lift = append(para_lift, client.Parameter{"Nested_under", nil, "kubernetes"})
-	para_lift = append(para_lift, client.Parameter{"Prefix_with", nil, "kubernetes_"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-lift", para_lift})
+	var para_lift []fb.Parameter
+	para_lift = append(para_lift, fb.Parameter{Name: "Name", Value: "nest"})
+	para_lift = append(para_lift, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_lift = append(para_lift, fb.Parameter{Name: "Operation", Value: "lift"})
+	para_lift = append(para_lift, fb.Parameter{Name: "Nested_under", Value: "kubernetes"})
+	para_lift = append(para_lift, fb.Parameter{Name: "Prefix_with", Value: "kubernetes_"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-lift", Parameters: para_lift})
 
-	var para_remove_stream []client.Parameter
-	para_remove_stream = append(para_remove_stream, client.Parameter{"Name", nil, "modify"})
-	para_remove_stream = append(para_remove_stream, client.Parameter{"Match", nil, "kube.*"})
-	para_remove_stream = append(para_remove_stream, client.Parameter{"Remove", nil, "stream"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-stream", para_remove_stream})
+	var para_remove_stream []fb.Parameter
+	para_remove_stream = append(para_remove_stream, fb.Parameter{Name: "Name", Value: "modify"})
+	para_remove_stream = append(para_remove_stream, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_remove_stream = append(para_remove_stream, fb.Parameter{Name: "Remove", Value: "stream"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-remove-stream", Parameters: para_remove_stream})
 
-	var para_remove_labels []client.Parameter
-	para_remove_labels = append(para_remove_labels, client.Parameter{"Name", nil, "modify"})
-	para_remove_labels = append(para_remove_labels, client.Parameter{"Match", nil, "kube.*"})
-	para_remove_labels = append(para_remove_labels, client.Parameter{"Remove", nil, "kubernetes_labels"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-labels", para_remove_labels})
+	var para_remove_labels []fb.Parameter
+	para_remove_labels = append(para_remove_labels, fb.Parameter{Name: "Name", Value: "modify"})
+	para_remove_labels = append(para_remove_labels, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_remove_labels = append(para_remove_labels, fb.Parameter{Name: "Remove", Value: "kubernetes_labels"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-remove-labels", Parameters: para_remove_labels})
 
-	var para_remove_annotations []client.Parameter
-	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Name", nil, "modify"})
-	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Match", nil, "kube.*"})
-	para_remove_annotations = append(para_remove_annotations, client.Parameter{"Remove", nil, "kubernetes_annotations"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-annotations", para_remove_annotations})
+	var para_remove_annotations []fb.Parameter
+	para_remove_annotations = append(para_remove_annotations, fb.Parameter{Name: "Name", Value: "modify"})
+	para_remove_annotations = append(para_remove_annotations, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_remove_annotations = append(para_remove_annotations, fb.Parameter{Name: "Remove", Value: "kubernetes_annotations"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-remove-annotations", Parameters: para_remove_annotations})
 
-	var para_remove_pod_id []client.Parameter
-	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Name", nil, "modify"})
-	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Match", nil, "kube.*"})
-	para_remove_pod_id = append(para_remove_pod_id, client.Parameter{"Remove", nil, "kubernetes_pod_id"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-podid", para_remove_pod_id})
+	var para_remove_pod_id []fb.Parameter
+	para_remove_pod_id = append(para_remove_pod_id, fb.Parameter{Name: "Name", Value: "modify"})
+	para_remove_pod_id = append(para_remove_pod_id, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_remove_pod_id = append(para_remove_pod_id, fb.Parameter{Name: "Remove", Value: "kubernetes_pod_id"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-remove-podid", Parameters: para_remove_pod_id})
 
-	var para_remove_docker_id []client.Parameter
-	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Name", nil, "modify"})
-	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Match", nil, "kube.*"})
-	para_remove_docker_id = append(para_remove_docker_id, client.Parameter{"Remove", nil, "kubernetes_docker_id"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-remove-dockerid", para_remove_docker_id})
+	var para_remove_docker_id []fb.Parameter
+	para_remove_docker_id = append(para_remove_docker_id, fb.Parameter{Name: "Name", Value: "modify"})
+	para_remove_docker_id = append(para_remove_docker_id, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_remove_docker_id = append(para_remove_docker_id, fb.Parameter{Name: "Remove", Value: "kubernetes_docker_id"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-remove-dockerid", Parameters: para_remove_docker_id})
 
 	if len(*filters) > 0 {
 		for _, item := range *filters {
@@ -380,282 +166,299 @@ func FluentbitFiltersUpdate(request *restful.Request) *FluentbitFiltersResult {
 				field := "kubernetes_" + strings.TrimSpace(item.Field) + "_name"
 				expression := strings.TrimSpace(item.Expression)
 
-				var para_regex []client.Parameter
-				para_regex = append(para_regex, client.Parameter{"Name", nil, "grep"})
-				para_regex = append(para_regex, client.Parameter{"Match", nil, "kube.*"})
-				para_regex = append(para_regex, client.Parameter{"Regex", nil, field + " " + expression})
-				filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-regex", para_regex})
+				var para_regex []fb.Parameter
+				para_regex = append(para_regex, fb.Parameter{Name: "Name", Value: "grep"})
+				para_regex = append(para_regex, fb.Parameter{Name: "Match", Value: "kube.*"})
+				para_regex = append(para_regex, fb.Parameter{Name: "Regex", Value: field + " " + expression})
+				filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-regex", Parameters: para_regex})
 			}
 
 			if strings.Compare(item.Type, "Exclude") == 0 {
 				field := "kubernetes_" + strings.TrimSpace(item.Field) + "_name"
 				expression := strings.TrimSpace(item.Expression)
 
-				var para_exclude []client.Parameter
-				para_exclude = append(para_exclude, client.Parameter{"Name", nil, "grep"})
-				para_exclude = append(para_exclude, client.Parameter{"Match", nil, "kube.*"})
-				para_exclude = append(para_exclude, client.Parameter{"Exclude", nil, field + " " + expression})
-				filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-exclude", para_exclude})
+				var para_exclude []fb.Parameter
+				para_exclude = append(para_exclude, fb.Parameter{Name: "Name", Value: "grep"})
+				para_exclude = append(para_exclude, fb.Parameter{Name: "Match", Value: "kube.*"})
+				para_exclude = append(para_exclude, fb.Parameter{Name: "Exclude", Value: field + " " + expression})
+				filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-exclude", Parameters: para_exclude})
 			}
 		}
 	}
 
-	var para_nest []client.Parameter
-	para_nest = append(para_nest, client.Parameter{"Name", nil, "nest"})
-	para_nest = append(para_nest, client.Parameter{"Match", nil, "kube.*"})
-	para_nest = append(para_nest, client.Parameter{"Operation", nil, "nest"})
-	para_nest = append(para_nest, client.Parameter{"Wildcard", nil, "kubernetes_*"})
-	para_nest = append(para_nest, client.Parameter{"Nested_under", nil, "kubernetes"})
-	para_nest = append(para_nest, client.Parameter{"Remove_prefix", nil, "kubernetes_"})
-	filter = append(filter, client.Plugin{"fluentbit_filter", "fluentbit-filter-input-nest", para_nest})
+	var para_nest []fb.Parameter
+	para_nest = append(para_nest, fb.Parameter{Name: "Name", Value: "nest"})
+	para_nest = append(para_nest, fb.Parameter{Name: "Match", Value: "kube.*"})
+	para_nest = append(para_nest, fb.Parameter{Name: "Operation", Value: "nest"})
+	para_nest = append(para_nest, fb.Parameter{Name: "Wildcard", Value: "kubernetes_*"})
+	para_nest = append(para_nest, fb.Parameter{Name: "Nested_under", Value: "kubernetes"})
+	para_nest = append(para_nest, fb.Parameter{Name: "Remove_prefix", Value: "kubernetes_"})
+	filter = append(filter, fb.Plugin{Type: "fluentbit_filter", Name: "fluentbit-filter-input-nest", Parameters: para_nest})
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
-		//panic(err)
-		result.Status = 400
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
-	var item *client.FluentBit
+	var item *fb.FluentBit
 	var err_read error
 
 	item, err_read = crdclient.Get("fluent-bit")
 	if err_read != nil {
-		//panic(err)
-		spec := new(client.FluentBitSpec)
-		spec.Filter = filter
-
-		fluentBitOperator := &client.FluentBit{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fluent-bit",
-			},
-			Spec: *spec,
-		}
-
-		itemnew, err := crdclient.Create(fluentBitOperator)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		getFilters(&result, itemnew.Spec.Filter)
-		result.Status = 200
-	} else {
-		item.Spec.Filter = filter
-
-		itemnew, err := crdclient.Update("fluent-bit", item)
-		if err != nil {
-			//panic(err)
-			result.Status = 400
-			return &result
-		}
-
-		getFilters(&result, itemnew.Spec.Filter)
-		result.Status = 200
+		result.Status = http.StatusInternalServerError
+		return &result
 	}
+
+	item.Spec.Filter = filter
+
+	itemnew, err := crdclient.Update("fluent-bit", item)
+	if err != nil {
+		result.Status = http.StatusInternalServerError
+		return &result
+	}
+
+	getFilters(&result, itemnew.Spec.Filter)
+	result.Status = http.StatusOK
 
 	return &result
 }
 
-func FluentbitOutputsQuery(request *restful.Request) *FluentbitOutputsResult {
+func FluentbitOutputsQuery() *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	// Retrieve outputs from DB
-	db := client.NewSharedDBClient()
-	defer db.Close()
-
-	var outputs []OutputDBBinding
-
-	err := db.Find(&outputs).Error
+	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
-		result.Status = 400
+		result.Status = http.StatusNotFound
 		return &result
 	}
 
-	var unmarshaledOutputs []client.OutputPlugin
+	result.Outputs = outputs
+	result.Status = http.StatusOK
 
+	return &result
+}
+
+func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	// 1. Update ConfigMap
+	var outputs []fb.OutputPlugin
+	outputs, err := GetFluentbitOutputFromConfigMap()
+	if err != nil {
+		// If the ConfigMap doesn't exist, a new one will be created later
+		glog.Errorln(err)
+	}
+
+	// When adding a new output for the first time, one should always set it enabled
+	output.Enable = true
+	output.Id = uuid.New().String()
+	output.Updatetime = time.Now()
+
+	outputs = append(outputs, output)
+
+	err = updateFluentbitOutputConfigMap(outputs)
+	if err != nil {
+		result.Status = http.StatusInternalServerError
+		return &result
+	}
+
+	// 2. Keep CRD in inline with ConfigMap
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
+	if err != nil {
+		result.Status = http.StatusInternalServerError
+		return &result
+	}
+
+	// 3. If it's an configs output added, reset configs client configs
+	configs := ParseEsOutputParams(output.Parameters)
+	if configs != nil {
+		configs.WriteESConfigs()
+	}
+
+	result.Status = http.StatusOK
+	return &result
+}
+
+func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsResult {
+	var result FluentbitOutputsResult
+
+	// 1. Update ConfigMap
+	var outputs []fb.OutputPlugin
+	outputs, err := GetFluentbitOutputFromConfigMap()
+	if err != nil {
+		// If the ConfigMap doesn't exist, a new one will be created later
+		glog.Errorln(err)
+	}
+
+	index := 0
 	for _, output := range outputs {
-		var params []client.Parameter
-
-		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
-		if err != nil {
-			result.Status = 400
-			return &result
+		if output.Id == id {
+			break
 		}
-
-		unmarshaledOutputs = append(unmarshaledOutputs,
-			client.OutputPlugin{Plugin: client.Plugin{Type: output.Type, Name: output.Name, Parameters: params},
-				Id: output.Id, Enable: output.Enable, Updatetime: output.Updatetime})
+		index++
 	}
 
-	result.Outputs = unmarshaledOutputs
-	result.Status = 200
+	if index >= len(outputs) {
+		result.Status = http.StatusNotFound
+		return &result
+	}
 
+	output.Updatetime = time.Now()
+	outputs = append(append(outputs[:index], outputs[index+1:]...), output)
+
+	err = updateFluentbitOutputConfigMap(outputs)
+	if err != nil {
+		result.Status = http.StatusInternalServerError
+		return &result
+	}
+
+	// 2. Keep CRD in inline with ConfigMap
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
+	if err != nil {
+		result.Status = http.StatusInternalServerError
+		return &result
+	}
+
+	// 3. If it's an configs output updated, reset configs client configs
+	configs := ParseEsOutputParams(output.Parameters)
+	if configs != nil {
+		configs.WriteESConfigs()
+	}
+
+	result.Status = http.StatusOK
 	return &result
 }
 
-func FluentbitOutputInsert(request *restful.Request) *FluentbitOutputsResult {
+func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	var result FluentbitOutputsResult
 
-	var output client.OutputPlugin
+	// 1. Update ConfigMap
+	// If the ConfigMap doesn't exist, a new one will be created
+	outputs, _ := GetFluentbitOutputFromConfigMap()
 
-	err := request.ReadEntity(&output)
-	if err != nil {
-		result.Status = 400
+	index := 0
+	for _, output := range outputs {
+		if output.Id == id {
+			break
+		}
+		index++
+	}
+
+	if index >= len(outputs) {
+		result.Status = http.StatusNotFound
 		return &result
 	}
 
-	params, err := jsoniter.MarshalToString(output.Parameters)
+	outputs = append(outputs[:index], outputs[index+1:]...)
+
+	err := updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
-		result.Status = 400
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
-	// 1. update DB
-	db := client.NewSharedDBClient()
-	defer db.Close()
-
-	marshaledOutput := OutputDBBinding{Type: output.Type, Name: output.Name, Parameters: params,
-		Enable: output.Enable, Updatetime: time.Now()}
-	err = db.Create(&marshaledOutput).Error
+	// 2. Keep CRD in inline with DB
+	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
-		result.Status = 400
+		result.Status = http.StatusInternalServerError
 		return &result
 	}
 
-	// 2. update CRD in accord with DB
-	err = syncFluentbitCRDOutputWithDB(db)
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	result.Status = 200
+	result.Status = http.StatusOK
 	return &result
 }
 
-func FluentbitOutputUpdate(request *restful.Request) *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
-
-	var (
-		id     string
-		output client.OutputPlugin
-	)
-
-	id = request.PathParameter("output_id")
-	_, err := strconv.ParseUint(id, 10, 64)
+func GetFluentbitOutputFromConfigMap() ([]fb.OutputPlugin, error) {
+	configMap, err := informers.SharedInformerFactory().Core().V1().ConfigMaps().Lister().ConfigMaps(LoggingNamespace).Get(ConfigMapName)
 	if err != nil {
-		result.Status = 400
-		return &result
-	}
-	err = request.ReadEntity(&output)
-	if err != nil {
-		result.Status = 400
-		return &result
+		return nil, err
 	}
 
-	// 1. update DB
-	db := client.NewSharedDBClient()
-	defer db.Close()
+	data := configMap.Data[ConfigMapData]
 
-	params, err := jsoniter.MarshalToString(output.Parameters)
-	if err != nil {
-		result.Status = 400
-		return &result
+	var outputs []fb.OutputPlugin
+	if err = jsonIter.UnmarshalFromString(data, &outputs); err != nil {
+		return nil, err
 	}
 
-	var marshaledOutput OutputDBBinding
-	err = db.Where("id = ?", id).First(&marshaledOutput).Error
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	marshaledOutput.Name = output.Name
-	marshaledOutput.Type = output.Type
-	marshaledOutput.Parameters = params
-	marshaledOutput.Enable = output.Enable
-	marshaledOutput.Updatetime = time.Now()
-
-	err = db.Save(&marshaledOutput).Error
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	// 2. update CRD in accord with DB
-	err = syncFluentbitCRDOutputWithDB(db)
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	result.Status = 200
-	return &result
+	return outputs, nil
 }
 
-func FluentbitOutputDelete(request *restful.Request) *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
+func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
 
-	id := request.PathParameter("output_id")
-	_, err := strconv.ParseUint(id, 10, 64)
+	var data string
+	data, err := jsonIter.MarshalToString(outputs)
 	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	// 1. remove the OutputDBBinding from DB
-	db := client.NewSharedDBClient()
-	defer db.Close()
-
-	err = db.Where("id = ?", id).Delete(&OutputDBBinding{}).Error
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	// 2. update CRD in accord with DB
-	err = syncFluentbitCRDOutputWithDB(db)
-	if err != nil {
-		result.Status = 400
-		return &result
-	}
-
-	result.Status = 200
-	return &result
-}
-
-func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
-	var outputs []OutputDBBinding
-
-	err := db.Where("enable is true").Find(&outputs).Error
-	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
-	var unmarshaledOutputs []client.Plugin
+	// Update the ConfigMap
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		glog.Errorln(err)
+		return err
+	}
 
-	for _, output := range outputs {
-		var params []client.Parameter
+	// Creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		glog.Errorln(err)
+		return err
+	}
 
-		err = jsonIter.UnmarshalFromString(output.Parameters, &params)
-		if err != nil {
-			return err
+	configMapClient := clientset.CoreV1().ConfigMaps(LoggingNamespace)
+
+	configMap, err := configMapClient.Get(ConfigMapName, metav1.GetOptions{})
+	if err != nil {
+
+		// If the ConfigMap doesn't exist, create a new one
+		newConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ConfigMapName,
+			},
+			Data: map[string]string{ConfigMapData: data},
 		}
 
-		unmarshaledOutputs = append(unmarshaledOutputs, client.Plugin{Type: output.Type, Name: output.Name, Parameters: params})
+		_, err = configMapClient.Create(newConfigMap)
+		if err != nil {
+			glog.Errorln(err)
+			return err
+		}
+	} else {
+
+		// update
+		configMap.Data = map[string]string{ConfigMapData: data}
+		_, err = configMapClient.Update(configMap)
+		if err != nil {
+			glog.Errorln(err)
+			return err
+		}
 	}
-	// empty output is not allowed, must specify a null-type output
-	if len(unmarshaledOutputs) ==0 {
-		unmarshaledOutputs = []client.Plugin{
+
+	return nil
+}
+
+func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
+
+	var enabledOutputs []fb.Plugin
+	for _, output := range outputs {
+		if output.Enable {
+			enabledOutputs = append(enabledOutputs, fb.Plugin{Type: output.Type, Name: output.Name, Parameters: output.Parameters})
+		}
+	}
+
+	// Empty output is not allowed, must specify a null-type output
+	if len(enabledOutputs) == 0 {
+		enabledOutputs = []fb.Plugin{
 			{
 				Type: "fluentbit_output",
 				Name: "fluentbit-output-null",
-				Parameters: []client.Parameter{
+				Parameters: []fb.Parameter{
 					{
 						Name:  "Name",
 						Value: "null",
@@ -671,21 +474,73 @@ func syncFluentbitCRDOutputWithDB(db *gorm.DB) error {
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
 	// Create a CRD client interface
-	crdclient := client.CrdClient(crdcs, scheme, "kubesphere-logging-system")
+	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	fluentbit, err := crdclient.Get("fluent-bit")
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
-	fluentbit.Spec.Output = unmarshaledOutputs
+
+	fluentbit.Spec.Output = enabledOutputs
 	_, err = crdclient.Update("fluent-bit", fluentbit)
 	if err != nil {
+		glog.Errorln(err)
 		return err
 	}
 
 	return nil
+}
+
+// Parse es host, port and index
+func ParseEsOutputParams(params []fb.Parameter) *es.ESConfigs {
+
+	var (
+		isEsFound bool
+
+		host           = "127.0.0.1"
+		port           = "9200"
+		index          = "logstash"
+		logstashFormat string
+		logstashPrefix string
+	)
+
+	for _, param := range params {
+		switch param.Name {
+		case "Name":
+			if param.Value == "es" {
+				isEsFound = true
+			}
+		case "Host":
+			host = param.Value
+		case "Port":
+			port = param.Value
+		case "Index":
+			index = param.Value
+		case "Logstash_Format":
+			logstashFormat = strings.ToLower(param.Value)
+		case "Logstash_Prefix":
+			logstashPrefix = param.Value
+		}
+	}
+
+	if !isEsFound {
+		return nil
+	}
+
+	// If Logstash_Format is On/True, ignore Index
+	if logstashFormat == "on" || logstashFormat == "true" {
+		if logstashPrefix != "" {
+			index = logstashPrefix
+		} else {
+			index = "logstash"
+		}
+	}
+
+	return &es.ESConfigs{Host: host, Port: port, Index: index}
 }

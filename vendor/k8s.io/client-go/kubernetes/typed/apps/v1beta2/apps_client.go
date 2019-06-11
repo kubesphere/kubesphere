@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ type AppsV1beta2Interface interface {
 	DaemonSetsGetter
 	DeploymentsGetter
 	ReplicaSetsGetter
-	ScalesGetter
 	StatefulSetsGetter
 }
 
@@ -54,10 +53,6 @@ func (c *AppsV1beta2Client) Deployments(namespace string) DeploymentInterface {
 
 func (c *AppsV1beta2Client) ReplicaSets(namespace string) ReplicaSetInterface {
 	return newReplicaSets(c, namespace)
-}
-
-func (c *AppsV1beta2Client) Scales(namespace string) ScaleInterface {
-	return newScales(c, namespace)
 }
 
 func (c *AppsV1beta2Client) StatefulSets(namespace string) StatefulSetInterface {

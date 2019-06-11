@@ -3,107 +3,83 @@
 # that can be found in the LICENSE file.
 
 # The binary to build 
-BIN ?= kubesphere
+BIN ?= ks-apiserver
 
-TRAG.Org:=kubesphere
-TRAG.Name:=ks-apiserver
-TRAG.Gopkg:=kubesphere.io/kubesphere
-TRAG.Version:=$(TRAG.Gopkg)/pkg/version
+IMG ?= kubespheredev/ks-apiserver
+OUTPUT_DIR=bin
 
-DOCKER_TAGS=latest
-RUN_IN_DOCKER:=docker run -it --rm -v `pwd`:/go/src/$(TRAG.Gopkg) -v `pwd`/tmp/cache:/root/.cache/go-build  -w /go/src/$(TRAG.Gopkg) -e GOBIN=/go/src/$(TRAG.Gopkg)/tmp/bin -e USER_ID=`id -u` -e GROUP_ID=`id -g` kubesphere/kubesphere-builder
-GO_FMT:=goimports -l -w -e -local=kubesphere -srcdir=/go/src/$(TRAG.Gopkg)
-GO_FILES:=./cmd ./pkg
-
-REGISTRY ?= kubespheredev/ks-apiserver
-
-define get_diff_files
-    $(eval DIFF_FILES=$(shell git diff --name-only --diff-filter=ad | grep -E "^(test|cmd|pkg)/.+\.go"))
+define ALL_HELP_INFO
+# Build code.
+#
+# Args:
+#   WHAT: Directory names to build.  If any of these directories has a 'main'
+#     package, the build will produce executable files under $(OUT_DIR).
+#     If not specified, "everything" will be built.
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#   GOLDFLAGS: Extra linking flags passed to 'go' when building.
+#   GOGCFLAGS: Additional go compile flags passed to 'go' when building.
+#
+# Example:
+#   make
+#   make all
+#   make all WHAT=cmd/ks-apiserver
+#     Note: Use the -N -l options to disable compiler optimizations an inlining.
+#           Using these build options allows you to subsequently use source
+#           debugging tools like delve.
 endef
-define get_build_flags
-    $(eval SHORT_VERSION=$(shell git describe --tags --always --dirty="-dev"))
-    $(eval SHA1_VERSION=$(shell git show --quiet --pretty=format:%H))
-	$(eval DATE=$(shell date +'%Y-%m-%dT%H:%M:%S'))
-	$(eval BUILD_FLAG= -X $(TRAG.Version).ShortVersion="$(SHORT_VERSION)" \
-		-X $(TRAG.Version).GitSha1Version="$(SHA1_VERSION)" \
-		-X $(TRAG.Version).BuildDate="$(DATE)")
-endef
-
 .PHONY: all
-all: generate build
+all: test ks-apiserver ks-apigateway ks-iam controller-manager
 
-.PHONY: help
-help:
-# TODO: update help info to last version
-	@echo "TODO"
+# Build ks-apiserver binary
+ks-apiserver: test
+	hack/gobuild.sh cmd/ks-apiserver
 
-.PHONY: init-vendor
-init-vendor:
-	@if [[ ! -f "$$(which govendor)" ]]; then \
-		go get -u github.com/kardianos/govendor; \
-	fi
-	govendor init
-	govendor add +external
-	@echo "init-vendor done"
+# Build ks-apigateway binary
+ks-apigateway: test
+	hack/gobuild.sh cmd/ks-apigateway
 
-.PHONY: update-vendor
-update-vendor:
-	@if [[ ! -f "$$(which govendor)" ]]; then \
-		go get -u github.com/kardianos/govendor; \
-	fi
-	govendor update +external
-	govendor list
-	@echo "update-vendor done"
+# Build ks-iam binary
+ks-iam: test
+	hack/gobuild.sh cmd/ks-iam
 
-.PHONY: update-builder
-update-builder:
-	docker pull kubesphere/kubesphere-builder
-	@echo "update-builder done"
+# Build controller-manager binary
+controller-manager: test
+	hack/gobuild.sh cmd/controller-manager
 
-.PHONY: generate-in-local
-generate-in-local:
-	go generate ./pkg/version/
-
-.PHONY: generate
-generate:
-	$(RUN_IN_DOCKER) make generate-in-local
-	@echo "generate done"
-
-.PHONY: fmt-all
-fmt-all:
-	mkdir -p ./tmp/bin && cp -r ./install ./tmp/
-	$(RUN_IN_DOCKER) $(GO_FMT) $(GO_FILES)
-	@echo "fmt done"
-
-.PHONY: fmt
+# Run go fmt against code 
 fmt:
-	$(call get_diff_files)
-	$(if $(DIFF_FILES), \
-		$(RUN_IN_DOCKER) $(GO_FMT) ${DIFF_FILES}, \
-		$(info cannot find modified files from git) \
-	)
-	@echo "fmt done"
+	go fmt ./pkg/... ./cmd/...
 
-.PHONY: fmt-check
-fmt-check: fmt-all
-	$(call get_diff_files)
-	$(if $(DIFF_FILES), \
-		exit 2 \
-	)
+# Run go vet against code
+vet:
+	go vet ./pkg/... ./cmd/...
 
-.PHONY: build
-build: fmt
-	mkdir -p ./tmp/bin && cp -r ./install/ ./tmp/
-	$(call get_build_flags)
-	$(RUN_IN_DOCKER) time go install -ldflags '$(BUILD_FLAG)' $(TRAG.Gopkg)/cmd/...
-	mv ./tmp/bin/cmd ./tmp/bin/$(TRAG.Name)
-	@docker build -t ${REGISTRY} -f - ./tmp < ./Dockerfile.dev 
-	@docker image prune -f 1>/dev/null 2>&1
-	@echo "build done"
+# Generate manifests e.g. CRD, RBAC etc.
+manifests:
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
-.PHONY: release
-release:
-	@echo "TODO"
+deploy: manifests
+	kubectl apply -f config/crds
+	kustomize build config/default | kubectl apply -f -
+
+# Generate DeepCopy to implement runtime.Object
+deepcopy:
+	./vendor/k8s.io/code-generator/generate-groups.sh all kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2 tenant:v1alpha1"
+
+# Generate code
+generate:
+ifndef GOPATH
+	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
+endif
+	go generate ./pkg/... ./cmd/...
+
+# Build the docker image
+docker-build: all
+	docker build . -t ${IMG}
+
+# Run tests
+test: generate fmt vet
+	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
 clean:

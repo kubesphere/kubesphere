@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ type ExtensionsV1beta1Interface interface {
 	IngressesGetter
 	PodSecurityPoliciesGetter
 	ReplicaSetsGetter
-	ScalesGetter
 }
 
 // ExtensionsV1beta1Client is used to interact with features provided by the extensions group.
@@ -58,10 +57,6 @@ func (c *ExtensionsV1beta1Client) PodSecurityPolicies() PodSecurityPolicyInterfa
 
 func (c *ExtensionsV1beta1Client) ReplicaSets(namespace string) ReplicaSetInterface {
 	return newReplicaSets(c, namespace)
-}
-
-func (c *ExtensionsV1beta1Client) Scales(namespace string) ScaleInterface {
-	return newScales(c, namespace)
 }
 
 // NewForConfig creates a new ExtensionsV1beta1Client for the given config.

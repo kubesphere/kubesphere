@@ -1,0 +1,28 @@
+apiVersion: servicemesh.kubesphere.io/v1alpha2
+kind: Strategy
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: strategy-sample
+spec:
+  # Add fields here
+  type: Canary
+  selector:
+    matchLabels:
+      "servicemesh.kubesphere.io/type": "canary"
+  template:
+    spec:
+      service: "details"
+      principal: "v1"
+      hosts:
+      - details
+      http:
+      - route:
+        - destination:
+            host: "details"
+            subset: v1
+          weight: 60
+        - destination:
+            host: "details"
+            subset: v2
+          weight: 40

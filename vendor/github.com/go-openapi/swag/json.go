@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
@@ -35,14 +34,13 @@ var DefaultJSONNameProvider = NewNameProvider()
 
 const comma = byte(',')
 
-var atomicClosers atomic.Value
+var closers map[byte]byte
 
 func init() {
-	atomicClosers.Store(
-		map[byte]byte{
-			'{': '}',
-			'[': ']',
-		})
+	closers = map[byte]byte{
+		'{': '}',
+		'[': ']',
+	}
 }
 
 type ejMarshaler interface {
@@ -70,15 +68,16 @@ func WriteJSON(data interface{}) ([]byte, error) {
 // ReadJSON reads json data, prefers finding an appropriate interface to short-circuit the unmarshaller
 // so it takes the fastes option available
 func ReadJSON(data []byte, value interface{}) error {
+	trimmedData := bytes.Trim(data, "\x00")
 	if d, ok := value.(ejUnmarshaler); ok {
-		jl := &jlexer.Lexer{Data: data}
+		jl := &jlexer.Lexer{Data: trimmedData}
 		d.UnmarshalEasyJSON(jl)
 		return jl.Error()
 	}
 	if d, ok := value.(json.Unmarshaler); ok {
-		return d.UnmarshalJSON(data)
+		return d.UnmarshalJSON(trimmedData)
 	}
-	return json.Unmarshal(data, value)
+	return json.Unmarshal(trimmedData, value)
 }
 
 // DynamicJSONToStruct converts an untyped json structure into a struct
@@ -113,7 +112,6 @@ func ConcatJSON(blobs ...[]byte) []byte {
 	var opening, closing byte
 	var idx, a int
 	buf := bytes.NewBuffer(nil)
-	closers := atomicClosers.Load().(map[byte]byte)
 
 	for i, b := range blobs[:last+1] {
 		if b == nil || bytes.Equal(b, nullJSON) {
@@ -264,7 +262,7 @@ func (n *NameProvider) GetJSONNames(subject interface{}) []string {
 		names = n.makeNameIndex(tpe)
 	}
 
-	var res []string
+	res := make([]string, 0, len(names.jsonNames))
 	for k := range names.jsonNames {
 		res = append(res, k)
 	}

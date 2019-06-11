@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
+// NewInformerFunc takes kubernetes.Interface and time.Duration to return a SharedIndexInformer.
 type NewInformerFunc func(kubernetes.Interface, time.Duration) cache.SharedIndexInformer
 
 // SharedInformerFactory a small interface to allow for adding an informer without an import cycle
@@ -35,4 +36,5 @@ type SharedInformerFactory interface {
 	InformerFor(obj runtime.Object, newFunc NewInformerFunc) cache.SharedIndexInformer
 }
 
+// TweakListOptionsFunc is a function that transforms a v1.ListOptions.
 type TweakListOptionsFunc func(*v1.ListOptions)

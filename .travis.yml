@@ -7,24 +7,24 @@ git:
   depth: false
 
 go:
-  - 1.10
+  - 1.12
 
 go_import_path: kubesphere.io/kubesphere
 
 before_install:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - go get -u github.com/golang/dep/cmd/dep
 
 before_script:
   - dep ensure -v
   - docker --version
-  - dep ensure -v
+  - bash hack/install_kubebuilder.sh
 
 script:
-  - make fmt-check && make build
+  - make all 
 
 deploy:
   skip_cleanup: true
   provider: script
-  script: bash install/scripts/docker_push
+  script: bash hack/docker_build.sh 
   on:
     branch: master

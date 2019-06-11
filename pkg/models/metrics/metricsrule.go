@@ -17,14 +17,54 @@ import (
 	"strings"
 )
 
-func MakeWorkloadPromQL(metricName, nsName, wlFilter string) string {
-	if wlFilter == "" {
-		wlFilter = ".*"
+// resources_filter = xxxx|xxxx
+func MakeWorkloadPromQL(metricName, nsName, resources_filter, wkKind string) string {
+
+	switch wkKind {
+	case "deployment":
+		wkKind = Deployment
+	case "daemonset":
+		wkKind = DaemonSet
+	case "statefulset":
+		wkKind = StatefulSet
+	default:
+		wkKind = "(.*)"
+	}
+
+	if resources_filter == "" {
+		resources_filter = ".*"
+	} else {
+		var prefix string
+
+		// The "workload_{deployment,statefulset,daemonset}_xxx" metric uses "deployment","statefulset" or "daemonset" label selectors
+		// which match exactly a workload name
+		// eg. kube_daemonset_status_number_unavailable{daemonset=~"^xxx$"}
+		if strings.Contains(metricName, "deployment") || strings.Contains(metricName, "daemonset") || strings.Contains(metricName, "statefulset") {
+			// to pass "resources_filter" to PromQL, we reformat it
+			prefix = ""
+		} else {
+			// While workload_{cpu,memory,net}_xxx metrics uses "workload"
+			// eg. namespace:workload_cpu_usage:sum{workload="Deployment:xxx"}
+			prefix = wkKind + ":"
+		}
+
+		filters := strings.Split(resources_filter, "|")
+		// reshape it to match PromQL re2 syntax
+		resources_filter = ""
+		for i, filter := range filters {
+
+			resources_filter += "^" + prefix + filter + "$" // eg. ^Deployment:xxx$
+
+			if i != len(filters)-1 {
+				resources_filter += "|"
+			}
+		}
 	}
 
 	var promql = RulePromQLTmplMap[metricName]
 	promql = strings.Replace(promql, "$2", nsName, -1)
-	promql = strings.Replace(promql, "$3", wlFilter, -1)
+	promql = strings.Replace(promql, "$3", resources_filter, -1)
+
 	return promql
 }
 
@@ -76,11 +116,15 @@ func MakeAllWorkspacesPromQL(metricsName, nsFilter string) string {
 	return promql
 }
 
-func MakeSpecificWorkspacePromQL(metricsName, nsFilter string) string {
+func MakeSpecificWorkspacePromQL(metricsName, nsFilter string, workspace string) string {
 
 	var promql = RulePromQLTmplMap[metricsName]
+
 	nsFilter = "=~\"" + nsFilter + "\""
+	workspace = "=~\"^(" + workspace + ")$\""
+
 	promql = strings.Replace(promql, "$1", nsFilter, -1)
+	promql = strings.Replace(promql, "$2", workspace, -1)
 	return promql
 }
 
@@ -196,5 +240,10 @@ func MakeNodeRule(nodeID string, nodesFilter string, metricsName string) string 
 		}
 	}
 
+	return rule
+}
+
+func MakeComponentRule(metricsName string) string {
+	var rule = RulePromQLTmplMap[metricsName]
 	return rule
 }
