@@ -152,7 +152,7 @@ func addWebService(c *restful.Container) error {
 		To(tenant.LogQuery).
 		Doc("Query cluster-level logs in a multi-tenants environment").
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("workspaces", "List of workspaces the query will perform against, eg. wk-one,wk-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workspaces", "List of workspaces separated by comma the query will perform against.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspace_query", "List of keywords for filtering workspaces. Workspaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespaces", "List of namespaces the query will perform against, eg. ns-one,ns-two").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "List of keywords for filtering namespaces. Namespaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
