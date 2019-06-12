@@ -29,8 +29,8 @@ import (
 const jenkinsHeaderPre = "X-"
 
 func GetPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("projectName")
-	pipelineName := req.PathParameter("pipelineName")
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipelines")
 
 	res, err := devops.GetPipeline(projectName, pipelineName, req.Request)
 	if err != nil {
