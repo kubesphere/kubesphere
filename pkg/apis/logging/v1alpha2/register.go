@@ -48,9 +48,9 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
 		Filter(filter.Logging).
-		Doc("Log query against the cluster.").
+		Doc("Query logs against the cluster.").
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("workspaces", "List of workspaces the query will perform against, eg. wk-one,wk-two").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workspaces", "List of workspaces separated by comma the query will perform against.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspace_query", "List of keywords for filtering workspaces. Workspaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespaces", "List of namespaces the query will perform against, eg. ns-one,ns-two").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespace_query", "List of keywords for filtering namespaces. Namespaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching. eg. one,two.").DataType("string").Required(false)).
@@ -75,7 +75,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
 		Filter(filter.Logging).
-		Doc("Log query against a specific workspace.").
+		Doc("Query logs against a specific workspace.").
 		Param(ws.PathParameter("workspace", "Perform query against a specific workspace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("namespaces", "List of namespaces the query will perform against, eg. ns-one,ns-two").DataType("string").Required(false)).
@@ -101,7 +101,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/namespaces/{namespace}").To(logging.LoggingQueryNamespace).
 		Filter(filter.Logging).
-		Doc("Log query against a specific namespace.").
+		Doc("Query logs against a specific namespace.").
 		Param(ws.PathParameter("namespace", "Perform query against a specific namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("workloads", "List of workloads the query will perform against, eg. wl-one,wl-two").DataType("string").Required(false)).
@@ -125,7 +125,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload}").To(logging.LoggingQueryWorkload).
 		Filter(filter.Logging).
-		Doc("Log query against a specific workload.").
+		Doc("Query logs against a specific workload.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the workload.").DataType("string").Required(true)).
 		Param(ws.PathParameter("workload", "Perform query against a specific workload.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
@@ -148,7 +148,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").To(logging.LoggingQueryPod).
 		Filter(filter.Logging).
-		Doc("Log query against a specific pod.").
+		Doc("Query logs against a specific pod.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the pod.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Perform query against a specific pod.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
@@ -169,7 +169,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(logging.LoggingQueryContainer).
 		Filter(filter.Logging).
-		Doc("Log query against a specific container.").
+		Doc("Query logs against a specific container.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the pod.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the pod of the container.").DataType("string").Required(true)).
 		Param(ws.PathParameter("container", "Perform query against a specific container.").DataType("string").Required(true)).
