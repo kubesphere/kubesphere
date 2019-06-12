@@ -220,7 +220,7 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/fluentbit/outputs/{output}").To(logging.LoggingUpdateFluentbitOutput).
+	ws.Route(ws.PUT("/fluentbit/outputs/{output}").To(logging.LoggingUpdateFluentbitOutput).
 		Filter(filter.Logging).
 		Doc("Update a Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output to update.").DataType("string").Required(true)).
