@@ -42,8 +42,6 @@ var (
 func addWebService(c *restful.Container) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	tags := []string{"Monitoring"}
-
 	ws.Route(ws.GET("/cluster").To(monitoring.MonitorCluster).
 		Doc("Get cluster-level metrics.").
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. cluster_cpu|cluster_memory.").DataType("string").Required(false)).
@@ -51,7 +49,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "cluster"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -65,8 +63,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "node"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -80,7 +78,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "node"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -94,8 +92,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "namespace"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -109,7 +107,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "namespace"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -124,8 +122,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "pod"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -140,7 +138,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "pod"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -155,8 +153,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "pod"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -171,7 +169,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "pod"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -187,8 +185,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "container"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -204,8 +202,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "container"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -216,12 +214,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the target pod.").DataType("string").Required(true)).
 		Param(ws.PathParameter("container", "Specify the target container.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. container_cpu|container_memory.").DataType("string").Required(false)).Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. container_cpu|container_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Used to get metrics over a range of time. Query resolution step. eg. 10m.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "container"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -239,7 +237,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "workload"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -255,8 +253,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "workload"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -271,8 +269,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "workload"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -287,7 +285,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "workspace"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -301,8 +299,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort_type", "Sorting order, one of asc, desc. Valid only if type is rank.").DefaultValue("desc.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("page", "The number of paged results per metric. Default to return the whole metrics.").DataType("integer").Required(false).DefaultValue("1")).
 		Param(ws.QueryParameter("limit", "Max count of items per page.").DataType("integer").Required(false).DefaultValue("5")).
-		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistic.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("type", "Additional operation to the result. One of rank, statistics.").DataType("string").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "workspace"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -316,7 +314,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("start", "Used to get metrics over a range of time. Start time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "Used to get metrics over a range of time. End time of query range. eg. 1559762729.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("time", "Used to get metrics at a given time point. eg. 1559762729.").DataType("string").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Monitoring", "component"}).
 		Writes(metrics.FormatedLevelMetric{}).
 		Returns(http.StatusOK, RespOK, metrics.FormatedLevelMetric{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
