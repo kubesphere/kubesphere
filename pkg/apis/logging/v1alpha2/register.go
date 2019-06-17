@@ -44,7 +44,6 @@ var (
 
 func addWebService(c *restful.Container) error {
 	ws := runtime.NewWebService(GroupVersion)
-	tags := []string{"Logging"}
 
 	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
 		Filter(filter.Logging).
@@ -67,7 +66,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -93,7 +92,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -117,7 +116,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -140,7 +139,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -161,7 +160,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -181,7 +180,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("sort", "Sort log by time. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
 		Writes(esclient.Response{}).
 		Returns(http.StatusOK, RespOK, esclient.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -190,21 +189,21 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/fluentbit/filters").To(logging.LoggingQueryFluentbitFilters).
 		Filter(filter.Logging).
 		Doc("List all Fluent bit filter plugins. This API is work-in-process.").
-		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.POST("/fluentbit/filters").To(logging.LoggingUpdateFluentbitFilters).
 		Filter(filter.Logging).
 		Doc("Add a new Fluent bit filter plugin. This API is work-in-process.").
-		Metadata(restfulspec.KeyOpenAPITags, tags)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
 		Filter(filter.Logging).
 		Doc("List all Fluent bit output plugins.").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -213,7 +212,7 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/fluentbit/outputs").To(logging.LoggingInsertFluentbitOutput).
 		Filter(filter.Logging).
 		Doc("Add a new Fluent bit output plugin.").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
 		Reads(fluentbitclient.OutputPlugin{}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
@@ -224,7 +223,7 @@ func addWebService(c *restful.Container) error {
 		Filter(filter.Logging).
 		Doc("Update a Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output to update.").DataType("string").Required(true)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
 		Reads(fluentbitclient.OutputPlugin{}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
@@ -235,7 +234,7 @@ func addWebService(c *restful.Container) error {
 		Filter(filter.Logging).
 		Doc("Delete a Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output to delete.").DataType("string").Required(true)).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
