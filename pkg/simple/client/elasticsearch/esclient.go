@@ -137,12 +137,9 @@ type ContainerHighLightField struct {
 type EmptyField struct {
 }
 
-// The aggs object holds two aggregations to be computed by Elasticsearch
-// ContainterAgg is a cardinality aggregation to calculate the count of distinct containers
-// StartTimeAgg is a top hits aggregation to retrieve the first record
+// StatisticsAggs, the struct for `aggs` of type Request, holds a cardinality aggregation for distinct container counting
 type StatisticsAggs struct {
 	ContainerAgg ContainerAgg `json:"containers"`
-	StartTimeAgg StartTimeAgg `json:"starttime"`
 }
 
 type ContainerAgg struct {
@@ -151,15 +148,6 @@ type ContainerAgg struct {
 
 type AggField struct {
 	Field string `json:"field"`
-}
-
-type StartTimeAgg struct {
-	TopHits TopHits `json:"top_hits"`
-}
-
-type TopHits struct {
-	Sort []Sort `json:"sort"`
-	Size int    `json:"size"`
 }
 
 type HistogramAggs struct {
@@ -255,8 +243,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	if param.Operation == "statistics" {
 		operation = OperationStatistics
 		containerAgg := AggField{"kubernetes.docker_id.keyword"}
-		startTimeAgg := TopHits{[]Sort{{Order{"asc"}}}, 1}
-		statisticAggs := StatisticsAggs{ContainerAgg{containerAgg}, StartTimeAgg{startTimeAgg}}
+		statisticAggs := StatisticsAggs{ContainerAgg{containerAgg}}
 		request.Aggs = statisticAggs
 		request.Size = 0
 	} else if param.Operation == "histogram" {
@@ -299,49 +286,49 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 }
 
 type Response struct {
-	Status       int             `json:"status"`
-	Workspace    string          `json:"workspace,omitempty"`
-	Shards       Shards          `json:"_shards"`
-	Hits         Hits            `json:"hits"`
-	Aggregations json.RawMessage `json:"aggregations"`
+	Status       int             `json:"status" description:"query status"`
+	Workspace    string          `json:"workspace,omitempty" description:"workspace the query was performed against"`
+	Shards       Shards          `json:"_shards" description:"tells shard information"`
+	Hits         Hits            `json:"hits" description:"search results"`
+	Aggregations json.RawMessage `json:"aggregations" description:"aggregation results"`
 }
 
 type Shards struct {
-	Total      int64 `json:"total"`
-	Successful int64 `json:"successful"`
-	Skipped    int64 `json:"skipped"`
-	Failed     int64 `json:"failed"`
+	Total      int64 `json:"total" description:"tells how many shards were searched"`
+	Successful int64 `json:"successful" description:"count of the successful searched shards"`
+	Skipped    int64 `json:"skipped" description:"count of the skipped searched shards"`
+	Failed     int64 `json:"failed" description:"count of the failed searched shards"`
 }
 
 type Hits struct {
-	Total int64 `json:"total"`
-	Hits  []Hit `json:"hits"`
+	Total int64 `json:"total" description:"total number of documents matching our search criteria"`
+	Hits  []Hit `json:"hits" description:"actual array of search results"`
 }
 
 type Hit struct {
-	Source    Source    `json:"_source"`
-	HighLight HighLight `json:"highlight"`
-	Sort      []int64   `json:"sort"`
+	Source    Source    `json:"_source" description:"search result item"`
+	HighLight HighLight `json:"highlight" description:"highlighted log fragment"`
+	Sort      []int64   `json:"sort" description:"sort key for results"`
 }
 
 type Source struct {
-	Log        string     `json:"log"`
-	Time       string     `json:"time"`
-	Kubernetes Kubernetes `json:"kubernetes"`
+	Log        string     `json:"log" description:"the log message"`
+	Time       string     `json:"time" description:"log timestamp"`
+	Kubernetes Kubernetes `json:"kubernetes" description:"kubernetes addon information on the log"`
 }
 
 type Kubernetes struct {
-	Namespace string `json:"namespace_name"`
-	Pod       string `json:"pod_name"`
-	Container string `json:"container_name"`
-	Host      string `json:"host"`
+	Namespace string `json:"namespace_name" description:"the namespace the log is from"`
+	Pod       string `json:"pod_name" description:"the pod the log is from"`
+	Container string `json:"container_name" description:"the container the log is from"`
+	Host      string `json:"host" description:"the node the log if from"`
 }
 
 type HighLight struct {
-	LogHighLights       []string `json:"log,omitempty"`
-	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty"`
-	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty"`
-	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty"`
+	LogHighLights       []string `json:"log,omitempty" description:"log messages to highlight"`
+	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty" description:"namespaces to highlight"`
+	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty" description:"pods to highlight"`
+	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty" description:"containers to highlight"`
 }
 
 type LogRecord struct {
@@ -361,18 +348,13 @@ type ReadResult struct {
 	Records []LogRecord `json:"records,omitempty"`
 }
 
-// The aggregations object represents the return from an aggregation (see StatisticsAggs type)
+// StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
 type StatisticsResponseAggregations struct {
-	ContainerCount ContainerCount  `json:"containers"`
-	StartTime      StartTimeTopHit `json:"starttime"`
+	ContainerCount ContainerCount `json:"containers"`
 }
 
 type ContainerCount struct {
 	Value int64 `json:"value"`
-}
-
-type StartTimeTopHit struct {
-	Hits Hits `json:"hits"`
 }
 
 type HistogramAggregations struct {
@@ -396,7 +378,6 @@ type HistogramRecord struct {
 type StatisticsResult struct {
 	Containers int64 `json:"containers"`
 	Logs       int64 `json:"logs"`
-	StartTime  int64 `json:"starttime"`
 }
 
 type HistogramResult struct {
@@ -460,13 +441,14 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	if response.Status != 0 {
 		//Elastic error, eg, es_rejected_execute_exception
 		queryResult.Status = response.Status
+		glog.Errorln("The query failed with no response")
 		return &queryResult
 	}
 
 	if response.Shards.Successful != response.Shards.Total {
 		//Elastic some shards error
-		queryResult.Status = http.StatusInternalServerError
-		return &queryResult
+		glog.Warningf("Not all shards succeed, successful shards: %d, skipped shards: %d, failed shards: %d",
+			response.Shards.Successful, response.Shards.Skipped, response.Shards.Failed)
 	}
 
 	switch operation {
@@ -496,8 +478,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 			queryResult.Status = http.StatusInternalServerError
 			return &queryResult
 		}
-		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value,
-			Logs: statisticsResponse.StartTime.Hits.Total, StartTime: statisticsResponse.StartTime.Hits.Hits[0].Sort[0]}
+		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: response.Hits.Total}
 
 	case OperationHistogram:
 		var histogramResult HistogramResult
@@ -583,6 +564,7 @@ func Query(param QueryParameters) *QueryResult {
 	}
 
 	url := fmt.Sprintf("http://%s:%s/%s*/_search", es.Host, es.Port, es.Index)
+
 	request, err := http.NewRequest("GET", url, bytes.NewBuffer(query))
 	if err != nil {
 		glog.Errorln(err)

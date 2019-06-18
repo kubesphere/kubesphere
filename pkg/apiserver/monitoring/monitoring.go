@@ -23,6 +23,22 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
+func MonitorAllPodsOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorPod(request, response)
+}
+
+func MonitorSpecificPodOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorPod(request, response)
+}
+
+func MonitorAllPodsOnSpecificNode(request *restful.Request, response *restful.Response) {
+	MonitorPod(request, response)
+}
+
+func MonitorSpecificPodOnSpecificNode(request *restful.Request, response *restful.Response) {
+	MonitorPod(request, response)
+}
+
 func MonitorPod(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	podName := requestParams.PodName
@@ -48,6 +64,18 @@ func MonitorPod(request *restful.Request, response *restful.Response) {
 	}
 }
 
+func MonitorAllContainersOnSpecificNode(request *restful.Request, response *restful.Response) {
+	MonitorContainer(request, response)
+}
+
+func MonitorAllContainersOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorContainer(request, response)
+}
+
+func MonitorSpecificContainerOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorContainer(request, response)
+}
+
 func MonitorContainer(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	metricName := requestParams.MetricsName
@@ -65,6 +93,18 @@ func MonitorContainer(request *restful.Request, response *restful.Response) {
 		response.WriteAsJson(res)
 	}
 
+}
+
+func MonitorSpecificWorkload(request *restful.Request, response *restful.Response) {
+	MonitorWorkload(request, response)
+}
+
+func MonitorAllWorkloadsOfSpecificKind(request *restful.Request, response *restful.Response) {
+	MonitorWorkload(request, response)
+}
+
+func MonitorAllWorkloadsOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorWorkload(request, response)
 }
 
 func MonitorWorkload(request *restful.Request, response *restful.Response) {
@@ -108,7 +148,7 @@ func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) 
 	}
 }
 
-func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
+func MonitorSpecificWorkspace(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
 	tp := requestParams.Tp
@@ -133,6 +173,14 @@ func MonitorOneWorkspace(request *restful.Request, response *restful.Response) {
 		res := metrics.GetWorkspaceLevelMetrics(requestParams)
 		response.WriteAsJson(res)
 	}
+}
+
+func MonitorAllNamespaces(request *restful.Request, response *restful.Response) {
+	MonitorNamespace(request, response)
+}
+
+func MonitorSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorNamespace(request, response)
 }
 
 func MonitorNamespace(request *restful.Request, response *restful.Response) {
@@ -163,6 +211,14 @@ func MonitorCluster(request *restful.Request, response *restful.Response) {
 		res := metrics.GetClusterLevelMetrics(requestParams)
 		response.WriteAsJson(res)
 	}
+}
+
+func MonitorAllNodes(request *restful.Request, response *restful.Response) {
+	MonitorNode(request, response)
+}
+
+func MonitorSpecificNode(request *restful.Request, response *restful.Response) {
+	MonitorNode(request, response)
 }
 
 func MonitorNode(request *restful.Request, response *restful.Response) {

@@ -25,7 +25,7 @@ import (
 )
 
 type Error struct {
-	Message string `json:"message"`
+	Message string `json:"message" description:"error message"`
 }
 
 var None = Error{Message: "success"}

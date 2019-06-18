@@ -77,7 +77,7 @@ func CreateUser(req *restful.Request, resp *restful.Response) {
 }
 
 func DeleteUser(req *restful.Request, resp *restful.Response) {
-	username := req.PathParameter("name")
+	username := req.PathParameter("username")
 
 	operator := req.HeaderParameter(constants.UserNameHeader)
 
@@ -98,7 +98,7 @@ func DeleteUser(req *restful.Request, resp *restful.Response) {
 
 func UpdateUser(req *restful.Request, resp *restful.Response) {
 
-	usernameInPath := req.PathParameter("name")
+	usernameInPath := req.PathParameter("username")
 	usernameInHeader := req.HeaderParameter(constants.UserNameHeader)
 	var user models.User
 
@@ -162,7 +162,7 @@ func isUserManager(username string) (bool, error) {
 }
 
 func UserLoginLog(req *restful.Request, resp *restful.Response) {
-	username := req.PathParameter("name")
+	username := req.PathParameter("username")
 	logs, err := iam.LoginLog(username)
 
 	if err != nil {

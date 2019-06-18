@@ -23,11 +23,14 @@ import (
 	log "github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
+	"strings"
 )
 
+const jenkinsHeaderPre = "X-"
+
 func GetPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("projectName")
-	pipelineName := req.PathParameter("pipelineName")
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipelines")
 
 	res, err := devops.GetPipeline(projectName, pipelineName, req.Request)
 	if err != nil {
@@ -111,7 +114,9 @@ func GetBranchStepLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	for k, v := range header {
-		resp.AddHeader(k, v[0])
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }
@@ -129,7 +134,9 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	for k, v := range header {
-		resp.AddHeader(k, v[0])
+		if strings.HasPrefix(k, jenkinsHeaderPre) {
+			resp.AddHeader(k, v[0])
+		}
 	}
 	resp.Write(res)
 }
@@ -578,6 +585,14 @@ func GetNotifyCommit(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
+func PostNotifyCommit(req *restful.Request, resp *restful.Response) {
+	res, err := devops.GetNotifyCommit(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Write(res)
+}
 func GithubWebhook(req *restful.Request, resp *restful.Response) {
 	res, err := devops.GithubWebhook(req.Request)
 	if err != nil {

@@ -26,6 +26,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/params"
 )
 
+func ListNamespacedResources(req *restful.Request, resp *restful.Response) {
+	ListResources(req, resp)
+}
+
 func ListResources(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	resourceName := req.PathParameter("resources")

@@ -25,8 +25,8 @@ import (
 )
 
 type PageableResponse struct {
-	Items      []interface{} `json:"items"`
-	TotalCount int           `json:"total_count"`
+	Items      []interface{} `json:"items" description:"paging data"`
+	TotalCount int           `json:"total_count" description:"total count"`
 }
 
 type Workspace struct {
@@ -47,8 +47,8 @@ type Rule struct {
 }
 
 type SimpleRule struct {
-	Name    string   `json:"name"`
-	Actions []string `json:"actions"`
+	Name    string   `json:"name" description:"rule name"`
+	Actions []string `json:"actions" description:"actions"`
 }
 
 type User struct {
@@ -82,26 +82,26 @@ type Group struct {
 }
 
 type Component struct {
-	Name            string      `json:"name"`
-	Namespace       string      `json:"namespace"`
-	SelfLink        string      `json:"selfLink"`
-	Label           interface{} `json:"label"`
-	StartedAt       time.Time   `json:"startedAt"`
-	TotalBackends   int         `json:"totalBackends"`
-	HealthyBackends int         `json:"healthyBackends"`
+	Name            string      `json:"name" description:"component name"`
+	Namespace       string      `json:"namespace" description:"namespace"`
+	SelfLink        string      `json:"selfLink" description:"self link"`
+	Label           interface{} `json:"label" description:"labels"`
+	StartedAt       time.Time   `json:"startedAt" description:"started time"`
+	TotalBackends   int         `json:"totalBackends" description:"total backends"`
+	HealthyBackends int         `json:"healthyBackends" description:"healthy backends"`
 }
 
 type PodInfo struct {
-	Namespace string `json:"namespace"`
-	Pod       string `json:"pod"`
-	Container string `json:"container"`
+	Namespace string `json:"namespace" description:"namespace"`
+	Pod       string `json:"pod" description:"pod name"`
+	Container string `json:"container" description:"container name"`
 }
 
 type Token struct {
-	Token string `json:"access_token"`
+	Token string `json:"access_token" description:"access token"`
 }
 
 type ResourceQuota struct {
-	Namespace string                     `json:"namespace"`
-	Data      corev1.ResourceQuotaStatus `json:"data"`
+	Namespace string                     `json:"namespace" description:"namespace"`
+	Data      corev1.ResourceQuotaStatus `json:"data" description:"resource quota status"`
 }
