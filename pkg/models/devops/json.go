@@ -1025,9 +1025,9 @@ type ReqJson struct {
 
 // ToJenkinsfile response
 type ResJenkinsfile struct {
-	Status string `json:"status,omitempty" description:"status"`
+	Status string `json:"status,omitempty" description:"status e.g. ok"`
 	Data   struct {
-		Result      string `json:"result,omitempty" description:"result"`
+		Result      string `json:"result,omitempty" description:"result e.g. success"`
 		Jenkinsfile string `json:"jenkinsfile,omitempty" description:"jenkinsfile"`
 		Errors      []struct {
 			Location []string `json:"location,omitempty" description:"err location"`
@@ -1041,9 +1041,9 @@ type ReqJenkinsfile struct {
 }
 
 type ResJson struct {
-	Status string `json:"status,omitempty" description:"status"`
+	Status string `json:"status,omitempty" description:"status e.g. ok"`
 	Data   struct {
-		Result string `json:"result,omitempty" description:"result"`
+		Result string `json:"result,omitempty" description:"result e.g. success"`
 		JSON   struct {
 			Pipeline struct {
 				Stages []interface{} `json:"stages,omitempty" description:"stages"`
