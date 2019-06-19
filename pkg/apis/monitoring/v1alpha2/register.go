@@ -56,7 +56,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes").To(monitoring.MonitorAllNodes).
-		Doc("Get node-level metrics.").
+		Doc("Get all nodes' metrics.").
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. node_cpu|node_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "Node filter in regexp pattern, eg. i-caojnter|i-cmu82ogj.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort_metric", "Sort nodes by the specified metric. Valid only if type is rank.").DataType("string").Required(false)).
@@ -114,7 +114,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").To(monitoring.MonitorAllPodsOfSpecificNamespace).
-		Doc("Get pod-level metrics of a given namespace.").
+		Doc("Get all pod-level metrics of a given namespace.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. pod_cpu|pod_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "Pods filter in regexp pattern, eg. coredns-77b8449dc9-hd6gd|coredns-77b8449dc9-b4n74.").DataType("string").Required(false)).
@@ -145,7 +145,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods").To(monitoring.MonitorAllPodsOnSpecificNode).
-		Doc("Get metrics of all pod on a specific node.").
+		Doc("Get metrics of all pods on a specific node.").
 		Param(ws.PathParameter("node", "Specify the target node.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. node_cpu|node_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "Pod filter in regexp pattern, eg. coredns-77b8449dc9-hd6gd|coredns-77b8449dc9-b4n74.").DataType("string").Required(false)).
@@ -161,7 +161,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").To(monitoring.MonitorSpecificPodOnSpecificNode).
-		Doc("Get specific pod metrics under a given namespace.").
+		Doc("Get specific pod metrics on a specified node.").
 		Param(ws.PathParameter("node", "Specify the target node.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the target pod.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. pod_cpu|pod_memory.").DataType("string").Required(false)).
@@ -193,7 +193,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers").To(monitoring.MonitorAllContainersOfSpecificNamespace).
-		Doc("Get container-level metrics under a given namespace and pod.").
+		Doc("Get all container-level metrics of a given pod.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the target pod.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. container_cpu|container_memory.").DataType("string").Required(false)).
@@ -210,7 +210,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(monitoring.MonitorSpecificContainerOfSpecificNamespace).
-		Doc("Get specific container metrics under a given node and pod.").
+		Doc("Get specific container metrics of a given pod.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the target pod.").DataType("string").Required(true)).
 		Param(ws.PathParameter("container", "Specify the target container.").DataType("string").Required(true)).
@@ -244,7 +244,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload_kind}").To(monitoring.MonitorAllWorkloadsOfSpecificKind).
-		Doc("Get workload-level metrics of specific workload kind.").
+		Doc("Get all workload-level metrics of a specific workload kind under a given namespace.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("workload_kind", "Specify the target workload kind. One of deployment, daemonset, statefulset. Other values will be interpreted as any of three.").DataType("string").Required(true).DefaultValue("(.*)")).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. node_cpu|node_memory.").DataType("string").Required(false)).
@@ -261,7 +261,7 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads").To(monitoring.MonitorAllWorkloadsOfSpecificNamespace).
-		Doc("Get workload-level metrics under a given namespace.").
+		Doc("Get all workload-level metrics of a given namespace.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. workload_cpu|workload_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "Workload filter in regexp pattern.").DataType("string").Required(false)).
