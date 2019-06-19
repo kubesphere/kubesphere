@@ -204,7 +204,6 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
 		Param(webservice.PathParameter("credentials", "credential's Id")).
-		Param(webservice.QueryParameter("domain", "credential's domain")).
 		Param(webservice.QueryParameter("content", "get additional content")).
 		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}).
 		Reads(devops.JenkinsCredential{}))
@@ -214,8 +213,6 @@ func addWebService(c *restful.Container) error {
 		Doc("Get project credential pipeline").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("credentials", "credential's Id")).
-		Param(webservice.QueryParameter("domain", "credential's domain")).
 		Returns(http.StatusOK, RespOK, []devops.JenkinsCredential{}).
 		Reads([]devops.JenkinsCredential{}))
 
@@ -754,7 +751,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/notifycommit").
 		To(devopsapi.PostNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get notify commit by  HTTP POST method.").
+		Doc("Get notification commit by  HTTP POST method.").
 		Consumes("application/json").
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.QueryParameter("url", "url of git scm").
