@@ -56,7 +56,7 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipelines")
+	pipelineId := request.PathParameter("pipeline")
 
 	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
@@ -82,7 +82,7 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipelines")
+	pipelineId := request.PathParameter("pipeline")
 	var pipeline *devops.ProjectPipeline
 	err := request.ReadEntity(&pipeline)
 	if err != nil {
@@ -114,7 +114,7 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipelines")
+	pipelineId := request.PathParameter("pipeline")
 
 	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
@@ -137,7 +137,7 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipelines")
+	pipelineId := request.PathParameter("pipeline")
 	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		glog.Errorf("%+v", err)
@@ -157,7 +157,7 @@ func GetMultiBranchesPipelineSonarStatusHandler(request *restful.Request, resp *
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipelines")
-	branchId := request.PathParameter("branches")
+	branchId := request.PathParameter("branch")
 	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		glog.Errorf("%+v", err)

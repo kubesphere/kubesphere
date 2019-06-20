@@ -26,30 +26,30 @@ const (
 )
 
 type JenkinsCredential struct {
-	Id          string `json:"id" description:"id of credential"`
-	Type        string `json:"type" description:"type of credential,such as ssh/kubeconfig"`
-	DisplayName string `json:"display_name,omitempty" description:"credential's display name'"`
+	Id          string `json:"id" description:"Id of Credential, e.g. dockerhub-id"`
+	Type        string `json:"type" description:"Type of Credential, e.g. ssh/kubeconfig"`
+	DisplayName string `json:"display_name,omitempty" description:"Credential's display name'"`
 	Fingerprint *struct {
-		FileName string `json:"file_name,omitempty" description:"credential's display name and description"`
-		Hash     string `json:"hash,omitempty" description:"credential's hash'"`
+		FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
+		Hash     string `json:"hash,omitempty" description:"Credential's hash"`
 		Usage    []*struct {
-			Name   string `json:"name,omitempty" description:"jenkins pipeline full name"`
+			Name   string `json:"name,omitempty" description:"Jenkins pipeline full name"`
 			Ranges struct {
 				Ranges []*struct {
-					Start int `json:"start,omitempty" description:"start build number"`
-					End   int `json:"end,omitempty" description:"end build number"`
+					Start int `json:"start,omitempty" description:"Start build number"`
+					End   int `json:"end,omitempty" description:"End build number"`
 				} `json:"ranges,omitempty"`
-			} `json:"ranges,omitempty" description:"all build num using credential"`
-		} `json:"usage,omitempty" description:"all usage of credential"`
-	} `json:"fingerprint,omitempty" description:"usage of credential"`
-	Description                string                      `json:"description,omitempty" description:"credential's description'"`
-	Domain                     string                      `json:"domain,omitempty" description:"credential's domain,In ks we only use the default domain, default '_''"`
-	CreateTime                 *time.Time                  `json:"create_time,omitempty" description:"credential's create_time'"`
-	Creator                    string                      `json:"creator,omitempty" description:"creator's username"`
-	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password credential struct"`
-	SshCredential              *SshCredential              `json:"ssh,omitempty" description:"ssh credential struct"`
-	SecretTextCredential       *SecretTextCredential       `json:"secret_text,omitempty" description:"secret_text credential struct"`
-	KubeconfigCredential       *KubeconfigCredential       `json:"kubeconfig,omitempty" description:"kubeconfig credential struct"`
+			} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
+		} `json:"usage,omitempty" description:"all usage of Credential"`
+	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
+	Description                string                      `json:"description,omitempty" description:"Credential's description'"`
+	Domain                     string                      `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
+	CreateTime                 *time.Time                  `json:"create_time,omitempty" description:"Credential's create_time'"`
+	Creator                    string                      `json:"creator,omitempty" description:"Creator's username"`
+	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password Credential struct"`
+	SshCredential              *SshCredential              `json:"ssh,omitempty" description:"ssh Credential struct"`
+	SecretTextCredential       *SecretTextCredential       `json:"secret_text,omitempty" description:"secret_text Credential struct"`
+	KubeconfigCredential       *KubeconfigCredential       `json:"kubeconfig,omitempty" description:"kubeconfig Credential struct"`
 }
 
 type UsernamePasswordCredential struct {

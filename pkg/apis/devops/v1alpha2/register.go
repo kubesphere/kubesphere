@@ -50,34 +50,34 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}").
 		To(devopsapi.GetDevOpsProjectHandler).
-		Doc("Get devops project").
+		Doc("Get a DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Writes(devops.DevOpsProject{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}").
 		To(devopsapi.UpdateProjectHandler).
-		Doc("Update devops project").
+		Doc("Update a DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Reads(devops.DevOpsProject{}).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Writes(devops.DevOpsProject{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/defaultroles").
 		To(devopsapi.GetDevOpsProjectDefaultRoles).
-		Doc("Get devops project default roles").
+		Doc("Get DevOps Project Build-in Roles Info").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Returns(http.StatusOK, RespOK, []devops.Role{}).
 		Writes([]devops.Role{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/members").
 		To(devopsapi.GetDevOpsProjectMembersHandler).
-		Doc("Get devops project members").
+		Doc("Get members of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.QueryParameter(params.PagingParam, "page").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
@@ -88,131 +88,131 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, []devops.DevOpsProjectMembership{}).
 		Writes([]devops.DevOpsProjectMembership{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/members/{members}").
+	webservice.Route(webservice.GET("/devops/{devops}/members/{member}").
 		To(devopsapi.GetDevOpsProjectMemberHandler).
-		Doc("Get devops project member").
+		Doc("Get a Member of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("members", "member's username")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("member", "Member's username, e.g. admin")).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/members").
 		To(devopsapi.AddDevOpsProjectMemberHandler).
-		Doc("Add devops project members").
+		Doc("Add a member of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
-	webservice.Route(webservice.PATCH("/devops/{devops}/members/{members}").
+	webservice.Route(webservice.PATCH("/devops/{devops}/members/{member}").
 		To(devopsapi.UpdateDevOpsProjectMemberHandler).
-		Doc("Update devops project members").
+		Doc("Update a member of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("members", "member's username")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("member", "Member's username, e.g. admin")).
 		Reads(devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
-	webservice.Route(webservice.DELETE("/devops/{devops}/members/{members}").
+	webservice.Route(webservice.DELETE("/devops/{devops}/members/{member}").
 		To(devopsapi.DeleteDevOpsProjectMemberHandler).
-		Doc("Delete devops project members").
+		Doc("Delete a member of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("members", "member's username")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("member", "Member's username, e.g. admin")).
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
 		To(devopsapi.CreateDevOpsProjectPipelineHandler).
-		Doc("Add devops project pipeline").
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Doc("Add DevOps Project pipeline").
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
 		Reads(devops.ProjectPipeline{}))
 
-	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipelines}").
+	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipeline}").
 		To(devopsapi.UpdateDevOpsProjectPipelineHandler).
-		Doc("Update devops project pipeline").
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Doc("Update DevOps Project pipeline").
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
 		Reads(devops.ProjectPipeline{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/config").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/config").
 		To(devopsapi.GetDevOpsProjectPipelineHandler).
-		Doc("Get devops project pipeline config").
+		Doc("Get the configuration information of a pipeline under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/sonarStatus").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarStatus").
 		To(devopsapi.GetPipelineSonarStatusHandler).
-		Doc("Get devops project pipeline sonarStatus").
+		Doc("Get the sonar quality information of a pipeline under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branches}/sonarStatus").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branch}/sonarStatus").
 		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
-		Doc("Get devops project pipeline sonarStatus").
+		Doc("Get the sonar quality check information for a pipeline branch under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("branches", "branch name")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipelines", "the name of pipeline, e.g. sample-pipeline")).
+		Param(webservice.PathParameter("branch", "branch name, e.g. master")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
-	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipelines}").
+	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
 		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
-		Doc("Delete devops project pipeline").
+		Doc("Delete a pipeline under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")))
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")))
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
-		Doc("Add project credential pipeline").
+		Doc("Create a Credential under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Reads(devops.JenkinsCredential{}))
 
-	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credentials}").
+	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credential}").
 		To(devopsapi.UpdateDevOpsProjectCredentialHandler).
-		Doc("Update project credential pipeline").
+		Doc("Update a Credential under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("credentials", "credential's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("credentials", "Credential's Id, e.g. dockerhub-id")).
 		Reads(devops.JenkinsCredential{}))
 
-	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credentials}").
+	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
 		To(devopsapi.DeleteDevOpsProjectCredentialHandler).
-		Doc("delete project credential pipeline").
+		Doc("Delete a Credential under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("credentials", "credential's Id")))
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("credential", "credential's Id, e.g. dockerhub-id")))
 
-	webservice.Route(webservice.GET("/devops/{devops}/credentials/{credentials}").
+	webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}").
 		To(devopsapi.GetDevOpsProjectCredentialHandler).
-		Doc("Get project credential pipeline").
+		Doc("Get a Credential under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
-		Param(webservice.PathParameter("credentials", "credential's Id")).
-		Param(webservice.QueryParameter("content", "get additional content")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("credential", "Credential's Id, e.g. dockerhub-id")).
+		Param(webservice.QueryParameter("content", "Get extra content, if not none will get credential's content")).
 		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}).
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials").
 		To(devopsapi.GetDevOpsProjectCredentialsHandler).
-		Doc("Get project credential pipeline").
+		Doc("Get Credentials under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "devops project's Id")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Returns(http.StatusOK, RespOK, []devops.JenkinsCredential{}).
 		Reads([]devops.JenkinsCredential{}))
 
