@@ -75,7 +75,7 @@ func Run(s *options.ServerRunOptions) error {
 	initializeAdminJenkins()
 	initializeDevOpsDatabase()
 
-	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime)
+	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime, s.AuthRateLimit)
 	jwtutil.Setup(s.JWTSecret)
 
 	if err != nil {

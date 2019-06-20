@@ -55,7 +55,7 @@ const (
 	KindTokenReview = "TokenReview"
 )
 
-func LoginHandler(req *restful.Request, resp *restful.Response) {
+func Login(req *restful.Request, resp *restful.Response) {
 	var loginRequest LoginRequest
 
 	err := req.ReadEntity(&loginRequest)
@@ -70,6 +70,10 @@ func LoginHandler(req *restful.Request, resp *restful.Response) {
 	token, err := iam.Login(loginRequest.Username, loginRequest.Password, ip)
 
 	if err != nil {
+		if serviceError, ok := err.(restful.ServiceError); ok {
+			resp.WriteHeaderAndEntity(serviceError.Code, errors.New(serviceError.Message))
+			return
+		}
 		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.Wrap(err))
 		return
 	}
