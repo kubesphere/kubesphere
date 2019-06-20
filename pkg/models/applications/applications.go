@@ -46,7 +46,7 @@ type Application struct {
 	VersionId   string            `json:"version_id" description:"application version id"`
 	Status      string            `json:"status" description:"application status"`
 	UpdateTime  time.Time         `json:"updateTime" description:"update time"`
-	CreateTime  time.Time         `json:"createTime" description:"create name"`
+	CreateTime  time.Time         `json:"createTime" description:"create time"`
 	App         string            `json:"app" description:"application template name"`
 	AppId       string            `json:"app_id" description:"application template id"`
 	Description string            `json:"description,omitempty" description:"application description"`

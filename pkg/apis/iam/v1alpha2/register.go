@@ -121,10 +121,10 @@ func addWebService(c *restful.Container) error {
 		Reads(iam.LoginRequest{}).
 		Returns(http.StatusOK, ok, models.Token{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/users/{username}").
+	ws.Route(ws.GET("/users/{user}").
 		To(iam.DescribeUser).
-		Doc("Describes the specified user.").
-		Param(ws.PathParameter("username", "username")).
+		Doc("Describe the specified user.").
+		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, models.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.POST("/users").
@@ -133,23 +133,23 @@ func addWebService(c *restful.Container) error {
 		Reads(CreateUserRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/users/{username}").
+	ws.Route(ws.DELETE("/users/{user}").
 		To(iam.DeleteUser).
 		Doc("Remove a specified user.").
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.PUT("/users/{username}").
+	ws.Route(ws.PUT("/users/{user}").
 		To(iam.UpdateUser).
 		Doc("Updates information about the specified user.").
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("user", "username")).
 		Reads(UserUpdateRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/users/{username}/log").
-		To(iam.UserLoginLog).
+	ws.Route(ws.GET("/users/{user}/logs").
+		To(iam.UserLoginLogs).
 		Doc("This method is used to retrieve the \"login logs\" for the specified user.").
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, LoginLog{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/users").
@@ -160,43 +160,39 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/groups").
 		To(iam.ListGroups).
 		Doc("List all user groups.").
-		Returns(http.StatusOK, ok, []models.Group{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/groups/{path}").
+		Returns(http.StatusOK, ok, []models.Group{}))
+	ws.Route(ws.GET("/groups/{group}").
 		To(iam.DescribeGroup).
-		Doc("Describes the specified user group.").
-		Param(ws.PathParameter("path", "user group path separated by colon.")).
-		Returns(http.StatusOK, ok, models.Group{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/groups/{path}/users").
+		Doc("Describe the specified user group.").
+		Param(ws.PathParameter("group", "user group path separated by colon.")).
+		Returns(http.StatusOK, ok, models.Group{}))
+	ws.Route(ws.GET("/groups/{group}/users").
 		To(iam.ListGroupUsers).
 		Doc("List all users in the specified user group.").
-		Param(ws.PathParameter("path", "user group path separated by colon.")).
-		Returns(http.StatusOK, ok, []models.User{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
+		Param(ws.PathParameter("group", "user group path separated by colon.")).
+		Returns(http.StatusOK, ok, []models.User{}))
 	ws.Route(ws.POST("/groups").
 		To(iam.CreateGroup).
 		Doc("Create a user group.").
 		Reads(models.Group{}).
-		Returns(http.StatusOK, ok, models.Group{}).
-		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/groups/{path}").
+		Returns(http.StatusOK, ok, models.Group{}))
+	ws.Route(ws.DELETE("/groups/{group}").
 		To(iam.DeleteGroup).
 		Doc("Delete a user group.").
-		Param(ws.PathParameter("path", "user group path separated by colon.")).
+		Param(ws.PathParameter("group", "user group path separated by colon.")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.PUT("/groups/{path}").
+	ws.Route(ws.PUT("/groups/{group}").
 		To(iam.UpdateGroup).
 		Doc("Updates information about the user group.").
-		Param(ws.PathParameter("path", "user group path separated by colon.")).
+		Param(ws.PathParameter("group", "user group path separated by colon.")).
 		Reads(models.Group{}).
 		Returns(http.StatusOK, ok, models.Group{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/users/{username}/roles").
+	ws.Route(ws.GET("/users/{user}/roles").
 		To(iam.ListUserRoles).
 		Doc("This method is used to retrieve all the roles that are assigned to the user.").
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, iam.RoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
@@ -267,7 +263,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}").
 		To(iam.DescribeWorkspaceRole).
-		Doc("Describes the workspace role.").
+		Doc("Describe the workspace role.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("role", "workspace role name")).
 		Returns(http.StatusOK, ok, rbacv1.ClusterRole{}).
@@ -292,18 +288,18 @@ func addWebService(c *restful.Container) error {
 		Reads(InviteUserRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{username}").
+	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{member}").
 		To(iam.RemoveUser).
 		Doc("Remove members from workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("member", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
-	ws.Route(ws.GET("/workspaces/{workspace}/members/{username}").
+	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}").
 		To(iam.DescribeWorkspaceUser).
-		Doc("Describes the specified user.").
+		Doc("Describe the specified user.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("username", "username")).
+		Param(ws.PathParameter("member", "username")).
 		Returns(http.StatusOK, ok, DescribeWorkspaceUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 	c.Add(ws)

@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/components"
 	"kubesphere.io/kubesphere/pkg/apiserver/git"
+	"kubesphere.io/kubesphere/pkg/apiserver/operations"
 	"kubesphere.io/kubesphere/pkg/apiserver/quotas"
 	"kubesphere.io/kubesphere/pkg/apiserver/registries"
 	"kubesphere.io/kubesphere/pkg/apiserver/resources"
@@ -74,6 +75,15 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")).
 		Returns(http.StatusOK, ok, models.PageableResponse{}))
 
+	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
+		To(operations.RerunJob).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Rerun job whether the job is complete or not").
+		Param(webservice.PathParameter("job", "job name")).
+		Param(webservice.PathParameter("namespace", "job's namespace")).
+		Param(webservice.QueryParameter("a", "action")).
+		Returns(http.StatusOK, ok, errors.Error{}))
+
 	tags = []string{"Cluster resources"}
 
 	webservice.Route(webservice.GET("/{resources}").
@@ -90,6 +100,15 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
+
+	webservice.Route(webservice.POST("/nodes/{node}/drainage").
+		To(operations.DrainNode).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Drain node").
+		Param(webservice.PathParameter("node", "node name")).
+		Returns(http.StatusOK, ok, errors.Error{}))
+
+	c.Add(webservice)
 
 	tags = []string{"Applications"}
 
@@ -124,13 +143,13 @@ func addWebService(c *restful.Container) error {
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{cluster_id}").
+	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{application}").
 		To(resources.DescribeApplication).
 		Returns(http.StatusOK, ok, applications.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Describe application").
 		Param(webservice.PathParameter("namespace", "namespace name")).
-		Param(webservice.PathParameter("cluster_id", "application id")))
+		Param(webservice.PathParameter("application", "application id")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
 		To(resources.DeployApplication).
@@ -140,28 +159,28 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "namespace name")))
 
-	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{cluster_id}").
+	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
 		To(resources.DeleteApplication).
 		Doc("Delete application").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "namespace name")).
-		Param(webservice.PathParameter("cluster_id", "application id")))
+		Param(webservice.PathParameter("application", "application id")))
 
 	tags = []string{"User resources"}
 
-	webservice.Route(webservice.GET("/users/{username}/kubectl").
+	webservice.Route(webservice.GET("/users/{user}/kubectl").
 		To(resources.GetKubectl).
 		Doc("get user's kubectl pod").
-		Param(webservice.PathParameter("username", "username")).
+		Param(webservice.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, ok, models.PodInfo{}))
 
-	webservice.Route(webservice.GET("/users/{username}/kubeconfig").
+	webservice.Route(webservice.GET("/users/{user}/kubeconfig").
 		Produces("text/plain").
 		To(resources.GetKubeconfig).
 		Doc("get users' kubeconfig").
-		Param(webservice.PathParameter("username", "username")).
+		Param(webservice.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, "").
 		Metadata(restfulspec.KeyOpenAPITags, tags))
 
@@ -178,7 +197,7 @@ func addWebService(c *restful.Container) error {
 		Doc("").
 		Param(webservice.PathParameter("component", "component name")).
 		Returns(http.StatusOK, ok, models.Component{}))
-	webservice.Route(webservice.GET("/health").
+	webservice.Route(webservice.GET("/componenthealth").
 		To(components.GetSystemHealthStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("").
@@ -202,7 +221,7 @@ func addWebService(c *restful.Container) error {
 
 	tags = []string{"Registries"}
 
-	webservice.Route(webservice.POST("registries/verify").
+	webservice.Route(webservice.POST("registry/verify").
 		To(registries.RegistryVerify).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("docker registry verify").
@@ -279,17 +298,17 @@ func addWebService(c *restful.Container) error {
 
 	tags = []string{"WorkloadStatus"}
 
-	webservice.Route(webservice.GET("/workloadstatuses").
+	webservice.Route(webservice.GET("/abnormalworkloads").
 		Doc("get abnormal workloads' count of whole cluster").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
-		To(workloadstatuses.GetClusterResourceStatus))
-	webservice.Route(webservice.GET("/namespaces/{namespace}/workloadstatuses").
+		To(workloadstatuses.GetClusterAbnormalWorkloads))
+	webservice.Route(webservice.GET("/namespaces/{namespace}/abnormalworkloads").
 		Doc("get abnormal workloads' count of specified namespace").
 		Param(webservice.PathParameter("namespace", "the name of namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
-		To(workloadstatuses.GetNamespacesResourceStatus))
+		To(workloadstatuses.GetNamespacedAbnormalWorkloads))
 
 	c.Add(webservice)
 
