@@ -87,18 +87,18 @@ type CredentialResponse struct {
 	TypeName    string `json:"typeName"`
 	DisplayName string `json:"displayName"`
 	Fingerprint *struct {
-		FileName string `json:"file_name,omitempty" description:"credential's display name and description"`
-		Hash     string `json:"hash,omitempty" description:"credential's hash'"`
+		FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
+		Hash     string `json:"hash,omitempty" description:"Credential's hash"`
 		Usage    []*struct {
-			Name   string `json:"name,omitempty" description:"jenkins pipeline full name"`
+			Name   string `json:"name,omitempty" description:"Jenkins pipeline full name"`
 			Ranges struct {
 				Ranges []*struct {
-					Start int `json:"start,omitempty" description:"start build number"`
-					End   int `json:"end,omitempty" description:"end build number"`
+					Start int `json:"start,omitempty" description:"Start build number"`
+					End   int `json:"end,omitempty" description:"End build number"`
 				} `json:"ranges,omitempty"`
-			} `json:"ranges,omitempty" description:"all build num using credential"`
-		} `json:"usage,omitempty" description:"all usage of credential"`
-	} `json:"fingerprint,omitempty" description:"usage of credential"`
+			} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
+		} `json:"usage,omitempty" description:"all usage of Credential"`
+	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
 	Description string `json:"description,omitempty"`
 	Domain      string `json:"domain"`
 }
