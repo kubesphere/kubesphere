@@ -421,17 +421,17 @@ func formatCredentialResponse(
 	response.DisplayName = jenkinsCredentialResponse.DisplayName
 	if jenkinsCredentialResponse.Fingerprint != nil && jenkinsCredentialResponse.Fingerprint.Hash != "" {
 		response.Fingerprint = &struct {
-			FileName string `json:"file_name,omitempty" description:"credential's display name and description"`
-			Hash     string `json:"hash,omitempty" description:"credential's hash'"`
+			FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
+			Hash     string `json:"hash,omitempty" description:"Credential's hash"`
 			Usage    []*struct {
-				Name   string `json:"name,omitempty" description:"jenkins pipeline full name"`
+				Name   string `json:"name,omitempty" description:"Jenkins pipeline full name"`
 				Ranges struct {
 					Ranges []*struct {
-						Start int `json:"start,omitempty" description:"start build number"`
-						End   int `json:"end,omitempty" description:"end build number"`
+						Start int `json:"start,omitempty" description:"Start build number"`
+						End   int `json:"end,omitempty" description:"End build number"`
 					} `json:"ranges,omitempty"`
-				} `json:"ranges,omitempty" description:"all build num using credential"`
-			} `json:"usage,omitempty" description:"all usage of credential"`
+				} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
+			} `json:"usage,omitempty" description:"all usage of Credential"`
 		}{}
 		response.Fingerprint.FileName = jenkinsCredentialResponse.Fingerprint.FileName
 		response.Fingerprint.Hash = jenkinsCredentialResponse.Fingerprint.Hash
