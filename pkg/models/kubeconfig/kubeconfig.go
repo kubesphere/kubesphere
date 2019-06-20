@@ -217,7 +217,7 @@ func createKubeConfig(username string) (string, error) {
 		return "", err
 	}
 	base64ServerCa := base64.StdEncoding.EncodeToString(serverCa)
-	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.KubeConfig.Host}
+	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.MasterURL}
 	tmpCluster := cluster{Cluster: tmpClusterInfo, Name: clusterName}
 	tmpKubeConfig.Clusters = append(tmpKubeConfig.Clusters, tmpCluster)
 
