@@ -90,7 +90,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}/members/{member}").
 		To(devopsapi.GetDevOpsProjectMemberHandler).
-		Doc("Get a Member of the DevOps Project").
+		Doc("Get a member of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("member", "Member's username, e.g. admin")).
@@ -188,7 +188,7 @@ func addWebService(c *restful.Container) error {
 		Doc("Update a Credential under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("credentials", "Credential's Id, e.g. dockerhub-id")).
+		Param(webservice.PathParameter("credential", "Credential's Id, e.g. dockerhub-id")).
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
