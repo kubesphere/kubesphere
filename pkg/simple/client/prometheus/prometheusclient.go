@@ -114,7 +114,7 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	nsName := strings.Trim(request.PathParameter("namespace"), " ")
 	podName := strings.Trim(request.PathParameter("pod"), " ")
 	containerName := strings.Trim(request.PathParameter("container"), " ")
-	workloadKind := strings.Trim(request.PathParameter("workload_kind"), " ")
+	workloadKind := strings.Trim(request.PathParameter("kind"), " ")
 	componentName := strings.Trim(request.PathParameter("component"), " ")
 
 	var requestParams = MonitoringRequestParams{
