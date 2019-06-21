@@ -61,7 +61,7 @@ func CreateGroup(req *restful.Request, resp *restful.Response) {
 }
 
 func DeleteGroup(req *restful.Request, resp *restful.Response) {
-	path := req.PathParameter("path")
+	path := req.PathParameter("group")
 
 	if path == "" {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("group path must not be null")))
@@ -84,7 +84,7 @@ func DeleteGroup(req *restful.Request, resp *restful.Response) {
 }
 
 func UpdateGroup(req *restful.Request, resp *restful.Response) {
-	groupPathInPath := req.PathParameter("path")
+	groupPathInPath := req.PathParameter("group")
 
 	var group models.Group
 
@@ -108,7 +108,7 @@ func UpdateGroup(req *restful.Request, resp *restful.Response) {
 
 func DescribeGroup(req *restful.Request, resp *restful.Response) {
 
-	path := req.PathParameter("path")
+	path := req.PathParameter("group")
 
 	group, err := iam.DescribeGroup(path)
 
@@ -127,7 +127,7 @@ func DescribeGroup(req *restful.Request, resp *restful.Response) {
 
 func ListGroupUsers(req *restful.Request, resp *restful.Response) {
 
-	path := req.PathParameter("path")
+	path := req.PathParameter("group")
 
 	group, err := iam.DescribeGroup(path)
 

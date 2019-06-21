@@ -227,10 +227,10 @@ func addWebService(c *restful.Container) error {
 
 	// Only use this api to monitor status of pods under the {workload}
 	// To monitor a specific workload, try the next two apis with "resources_filter"
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload_kind}/{workload}").To(monitoring.MonitorSpecificWorkload).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}/{workload}").To(monitoring.MonitorSpecificWorkload).
 		Doc("Get specific workload metrics under a given namespace.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_kind", "Specify the target workload kind. One of deployment, daemonset, statefulset. Other values will be interpreted as any of three.").DataType("string").Required(true).DefaultValue("(.*)")).
+		Param(ws.PathParameter("kind", "Specify the target workload kind. One of deployment, daemonset, statefulset. Other values will be interpreted as any of three.").DataType("string").Required(true).DefaultValue("(.*)")).
 		Param(ws.PathParameter("workload", "Specify the target workload.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. workload_cpu|workload_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Used to get metrics over a range of time. Query resolution step. eg. 10m.").DataType("string").Required(false)).
@@ -243,10 +243,10 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload_kind}").To(monitoring.MonitorAllWorkloadsOfSpecificKind).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}").To(monitoring.MonitorAllWorkloadsOfSpecificKind).
 		Doc("Get all workload-level metrics of a specific workload kind under a given namespace.").
 		Param(ws.PathParameter("namespace", "Specify the target namespace.").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload_kind", "Specify the target workload kind. One of deployment, daemonset, statefulset. Other values will be interpreted as any of three.").DataType("string").Required(true).DefaultValue("(.*)")).
+		Param(ws.PathParameter("kind", "Specify the target workload kind. One of deployment, daemonset, statefulset. Other values will be interpreted as any of three.").DataType("string").Required(true).DefaultValue("(.*)")).
 		Param(ws.QueryParameter("metrics_filter", "Metrics filter in regexp pattern, eg. node_cpu|node_memory.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "Workload filter in regexp pattern.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("sort_metric", "Sort workloads by the specified metric. Valid only if type is rank.").DataType("string").Required(false)).
