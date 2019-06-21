@@ -152,7 +152,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarStatus").
 		To(devopsapi.GetPipelineSonarStatusHandler).
-		Doc("Get the sonar quality information of a pipeline under the DevOps Project").
+		Doc("Get the sonar quality information for a pipeline under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
