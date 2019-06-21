@@ -77,7 +77,7 @@ func DescribeWorkspaceRole(req *restful.Request, resp *restful.Response) {
 
 func DescribeWorkspaceUser(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	username := req.PathParameter("username")
+	username := req.PathParameter("member")
 
 	workspaceRole, err := iam.GetUserWorkspaceRole(workspace, username)
 
@@ -132,7 +132,7 @@ func InviteUser(req *restful.Request, resp *restful.Response) {
 
 func RemoveUser(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	username := req.PathParameter("username")
+	username := req.PathParameter("member")
 
 	err := workspaces.RemoveUser(workspace, username)
 	if err != nil {
