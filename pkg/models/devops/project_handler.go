@@ -52,7 +52,7 @@ func UpdateProject(project *DevOpsProject) (*DevOpsProject, error) {
 		query.Set(DevOpsProjectExtraColumn, project.Extra)
 	}
 	if !govalidator.IsNull(project.Name) {
-		query.Set(DevOpsProjectNameColumn, project.Extra)
+		query.Set(DevOpsProjectNameColumn, project.Name)
 	}
 	if len(query.UpdateStmt.Value) > 0 {
 		_, err := query.

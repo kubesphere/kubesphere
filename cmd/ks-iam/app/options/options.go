@@ -28,6 +28,7 @@ type ServerRunOptions struct {
 	AdminPassword           string
 	TokenExpireTime         string
 	JWTSecret               string
+	AuthRateLimit           string
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -42,5 +43,6 @@ func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.AdminPassword, "admin-password", "passw0rd", "default administrator's password")
 	fs.StringVar(&s.TokenExpireTime, "token-expire-time", "2h", "token expire time,valid time units are \"ns\",\"us\",\"ms\",\"s\",\"m\",\"h\"")
 	fs.StringVar(&s.JWTSecret, "jwt-secret", "", "jwt secret")
+	fs.StringVar(&s.AuthRateLimit, "auth-rate-limit", "5/30m", "specifies the maximum number of authentication attempts permitted and time interval,valid time units are \"s\",\"m\",\"h\"")
 	s.GenericServerRunOptions.AddFlags(fs)
 }
