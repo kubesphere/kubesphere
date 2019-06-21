@@ -29,7 +29,7 @@ import (
 
 func GetKubectl(req *restful.Request, resp *restful.Response) {
 
-	user := req.PathParameter("username")
+	user := req.PathParameter("user")
 
 	kubectlPod, err := kubectl.GetKubectlPod(user)
 
@@ -43,7 +43,7 @@ func GetKubectl(req *restful.Request, resp *restful.Response) {
 
 func GetKubeconfig(req *restful.Request, resp *restful.Response) {
 
-	user := req.PathParameter("username")
+	user := req.PathParameter("user")
 
 	kubectlConfig, err := kubeconfig.GetKubeConfig(user)
 

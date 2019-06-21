@@ -19,7 +19,6 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/operations"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -38,20 +37,17 @@ var (
 
 func addWebService(c *restful.Container) error {
 
-	tags := []string{"Operations"}
 	ok := "ok"
 	webservice := runtime.NewWebService(GroupVersion)
 
 	webservice.Route(webservice.POST("/nodes/{node}/drainage").
 		To(operations.DrainNode).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Drain node").
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
 		To(operations.RerunJob).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Job rerun").
 		Param(webservice.PathParameter("job", "job name")).
 		Param(webservice.PathParameter("namespace", "job's namespace")).

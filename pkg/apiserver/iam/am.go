@@ -116,7 +116,7 @@ func ListNamespaceUsers(req *restful.Request, resp *restful.Response) {
 
 func ListUserRoles(req *restful.Request, resp *restful.Response) {
 
-	username := req.PathParameter("username")
+	username := req.PathParameter("user")
 
 	roles, err := iam.GetUserRoles("", username)
 

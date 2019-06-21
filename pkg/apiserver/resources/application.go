@@ -117,7 +117,7 @@ func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 }
 
 func DescribeApplication(req *restful.Request, resp *restful.Response) {
-	clusterId := req.PathParameter("cluster_id")
+	clusterId := req.PathParameter("application")
 	namespaceName := req.PathParameter("namespace")
 	app, err := applications.GetApp(clusterId)
 	if err != nil {
@@ -166,7 +166,7 @@ func DeployApplication(req *restful.Request, resp *restful.Response) {
 }
 
 func DeleteApplication(req *restful.Request, resp *restful.Response) {
-	clusterId := req.PathParameter("cluster_id")
+	clusterId := req.PathParameter("application")
 	namespaceName := req.PathParameter("namespace")
 	app, err := applications.GetApp(clusterId)
 	if err != nil {

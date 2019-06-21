@@ -26,7 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/status"
 )
 
-func GetClusterResourceStatus(req *restful.Request, resp *restful.Response) {
+func GetClusterAbnormalWorkloads(req *restful.Request, resp *restful.Response) {
 	res, err := status.GetClusterResourceStatus()
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -35,7 +35,7 @@ func GetClusterResourceStatus(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(res)
 }
 
-func GetNamespacesResourceStatus(req *restful.Request, resp *restful.Response) {
+func GetNamespacedAbnormalWorkloads(req *restful.Request, resp *restful.Response) {
 	res, err := status.GetNamespacesResourceStatus(req.PathParameter("namespace"))
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
