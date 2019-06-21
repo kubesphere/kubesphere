@@ -108,8 +108,6 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
-	c.Add(webservice)
-
 	tags = []string{"Applications"}
 
 	webservice.Route(webservice.GET("/applications").
