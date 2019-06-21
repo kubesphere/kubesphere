@@ -34,12 +34,12 @@ var (
 	k8sClient      *kubernetes.Clientset
 	k8sClientOnce  sync.Once
 	KubeConfig     *rest.Config
-	masterURL      string
+	MasterURL      string
 )
 
 func init() {
 	flag.StringVar(&kubeConfigFile, "kubeconfig", "", "path to kubeconfig file")
-	flag.StringVar(&masterURL, "master-url", "", "kube-apiserver url, only needed when out of cluster")
+	flag.StringVar(&MasterURL, "master-url", "", "kube-apiserver url, only needed when out of cluster")
 }
 
 func Client() *kubernetes.Clientset {
@@ -63,7 +63,7 @@ func Client() *kubernetes.Clientset {
 func Config() (kubeConfig *rest.Config, err error) {
 
 	if _, err = os.Stat(kubeConfigFile); err == nil {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeConfigFile)
+		kubeConfig, err = clientcmd.BuildConfigFromFlags(MasterURL, kubeConfigFile)
 	} else {
 		kubeConfig, err = rest.InClusterConfig()
 	}

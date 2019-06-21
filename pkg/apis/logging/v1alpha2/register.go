@@ -186,20 +186,6 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/fluentbit/filters").To(logging.LoggingQueryFluentbitFilters).
-		Filter(filter.Logging).
-		Doc("List all Fluent bit filter plugins. This API is work-in-process.").
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
-
-	ws.Route(ws.POST("/fluentbit/filters").To(logging.LoggingUpdateFluentbitFilters).
-		Filter(filter.Logging).
-		Doc("Add a new Fluent bit filter plugin. This API is work-in-process.").
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
-
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
 		Filter(filter.Logging).
 		Doc("List all Fluent bit output plugins.").

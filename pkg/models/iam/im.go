@@ -56,10 +56,12 @@ import (
 )
 
 var (
-	adminEmail      string
-	adminPassword   string
-	tokenExpireTime time.Duration
-	initUsers       []initUser
+	adminEmail       string
+	adminPassword    string
+	tokenExpireTime  time.Duration
+	maxAuthFailed    int
+	authTimeInterval time.Duration
+	initUsers        []initUser
 )
 
 type initUser struct {
@@ -68,14 +70,17 @@ type initUser struct {
 }
 
 const (
-	userInitFile = "/etc/ks-iam/users.json"
+	userInitFile            = "/etc/ks-iam/users.json"
+	authRateLimitRegex      = `(\d+)/(\d+[s|m|h])`
+	defaultMaxAuthFailed    = 5
+	defaultAuthTimeInterval = 30 * time.Minute
 )
 
-func Init(email, password string, t time.Duration) error {
+func Init(email, password string, expireTime time.Duration, authRateLimit string) error {
 	adminEmail = email
 	adminPassword = password
-	tokenExpireTime = t
-
+	tokenExpireTime = expireTime
+	maxAuthFailed, authTimeInterval = parseAuthRateLimit(authRateLimit)
 	conn, err := ldapclient.Client()
 
 	if err != nil {
@@ -99,6 +104,23 @@ func Init(email, password string, t time.Duration) error {
 	}
 
 	return nil
+}
+
+func parseAuthRateLimit(authRateLimit string) (int, time.Duration) {
+	regex := regexp.MustCompile(authRateLimitRegex)
+	groups := regex.FindStringSubmatch(authRateLimit)
+
+	maxCount := defaultMaxAuthFailed
+	timeInterval := defaultAuthTimeInterval
+
+	if len(groups) == 3 {
+		maxCount, _ = strconv.Atoi(groups[1])
+		timeInterval, _ = time.ParseDuration(groups[2])
+	} else {
+		glog.Warning("invalid auth rate limit", authRateLimit)
+	}
+
+	return maxCount, timeInterval
 }
 
 func checkAndCreateDefaultGroup(conn ldap.Client) error {
@@ -203,9 +225,23 @@ func createGroupsBaseDN(conn ldap.Client) error {
 // User login
 func Login(username string, password string, ip string) (*models.Token, error) {
 
+	redisClient := redis.Client()
+
+	records, err := redisClient.Keys(fmt.Sprintf("kubesphere:authfailed:%s:*", username)).Result()
+
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+
+	if len(records) >= maxAuthFailed {
+		return nil, restful.NewError(http.StatusTooManyRequests, "auth rate limit exceeded")
+	}
+
 	conn, err := ldapclient.Client()
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -237,7 +273,13 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 	err = conn.Bind(dn, password)
 
 	if err != nil {
-		glog.Errorln("auth error", username, err)
+		glog.Infoln("auth failed", username, err)
+
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+			loginFailedRecord := fmt.Sprintf("kubesphere:authfailed:%s:%d", username, time.Now().UnixNano())
+			redisClient.Set(loginFailedRecord, "", authTimeInterval)
+		}
+
 		return nil, err
 	}
 
@@ -874,6 +916,17 @@ func UpdateUser(user *models.User) (*models.User, error) {
 	if err != nil {
 		glog.Errorln("create cluster role binding filed", err)
 		return nil, err
+	}
+
+	// clear auth failed record
+	if user.Password != "" {
+		redisClient := redis.Client()
+
+		records, err := redisClient.Keys(fmt.Sprintf("kubesphere:authfailed:%s:*", user.Username)).Result()
+
+		if err == nil {
+			redisClient.Del(records...)
+		}
 	}
 
 	return GetUserInfo(user.Username)

@@ -107,7 +107,7 @@ func ListNamespacesByUsername(req *restful.Request, resp *restful.Response) {
 
 func ListNamespaces(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	username := req.PathParameter("username")
+	username := req.PathParameter("member")
 	// /workspaces/{workspace}/members/{username}/namespaces
 	if username == "" {
 		// /workspaces/{workspace}/namespaces
@@ -218,7 +218,7 @@ func ListDevopsProjectsByUsername(req *restful.Request, resp *restful.Response) 
 func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("workspace")
-	username := req.PathParameter(constants.UserNameHeader)
+	username := req.PathParameter("member")
 	if username == "" {
 		username = req.HeaderParameter(constants.UserNameHeader)
 	}
@@ -245,7 +245,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 }
 
 func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
-	projectId := req.PathParameter("id")
+	projectId := req.PathParameter("devops")
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
