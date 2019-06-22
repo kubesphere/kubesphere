@@ -72,16 +72,16 @@ type Plugin struct {
 // Fluent-bit output plugins
 type OutputPlugin struct {
 	Plugin
-	Id         string    `json:"id,omitempty" description:"output plugin uuid"`
-	Enable     bool      `json:"enable" description:"current output plugin status, one of true, false"`
-	Updatetime time.Time `json:"updatetime,omitempty" description:"last updatetime of the output plugin"`
+	Id         string    `json:"id,omitempty" description:"output uuid"`
+	Enable     bool      `json:"enable" description:"active status, one of true, false"`
+	Updatetime time.Time `json:"updatetime,omitempty" description:"last updatetime"`
 }
 
 // Parameter generic parameter type to handle values from different sources
 type Parameter struct {
-	Name      string     `json:"name" description:"configuration parameter key, eg. Name. refer to fluent bit official doc for more information."`
+	Name      string     `json:"name" description:"configuration parameter key, eg. Name. refer to Fluent bit's Output Plugins Section for more configuration parameters."`
 	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
-	Value     string     `json:"value" description:"configuration parameter value, eg. es. refer to fluent bit official doc for more information."`
+	Value     string     `json:"value" description:"configuration parameter value, eg. es. refer to Fluent bit's Output Plugins Section for more configuration parameters."`
 }
 
 // ValueFrom generic type to determine value origin
