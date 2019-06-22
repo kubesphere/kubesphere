@@ -61,6 +61,7 @@ const (
 	Label                  = "label"
 	OwnerKind              = "ownerKind"
 	OwnerName              = "ownerName"
+	Role                   = "role"
 	CreateTime             = "createTime"
 	UpdateTime             = "updateTime"
 	LastScheduleTime       = "lastScheduleTime"

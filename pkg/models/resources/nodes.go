@@ -18,6 +18,7 @@
 package resources
 
 import (
+	"fmt"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -43,6 +44,11 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 		case Name:
 			names := strings.Split(v, "|")
 			if !sliceutil.HasString(names, item.Name) {
+				return false
+			}
+		case Role:
+			labelKey := fmt.Sprintf("node-role.kubernetes.io/%s", v)
+			if _, ok := item.Labels[labelKey]; !ok {
 				return false
 			}
 		case Keyword:
