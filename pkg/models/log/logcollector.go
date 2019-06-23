@@ -214,85 +214,25 @@ func GetNamespaceCreationTimeMap(namespaces []string) (bool, map[string]string) 
 	return true, namespaceWithCreationTime
 }
 
-func QueryWorkload(workloadMatch string, workloadQuery string, namespaces []string) (bool, []string) {
-	if workloadMatch == "" && workloadQuery == "" {
+func QueryWorkload(workloadMatch string) (bool, []string) {
+	if workloadMatch == "" {
 		return false, nil
 	}
 
-	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
-	podList, err := podLister.List(labels.Everything())
-	if err != nil {
-		glog.Error("failed to list pods, error: ", err)
-		return true, nil
-	}
+	return true, strings.Split(workloadMatch, ",")
+}
 
-	var pods []string
+func QueryPod(podQuery string, workloadQuery string) string {
 
-	var hasMatch = false
-	var workloadsMatch []string
-	if workloadMatch != "" {
-		workloadsMatch = strings.Split(strings.Replace(workloadMatch, ",", " ", -1), " ")
-		hasMatch = true
-	}
-
-	var hasQuery = false
-	var workloadsQuery []string
 	if workloadQuery != "" {
-		workloadsQuery = strings.Split(strings.ToLower(strings.Replace(workloadQuery, ",", " ", -1)), " ")
-		hasQuery = true
-	}
-
-	if namespaces == nil {
-		for _, pod := range podList {
-			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
-				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			}*/
-			if len(pod.ObjectMeta.OwnerReferences) > 0 {
-				var podCanAppend = true
-				workloadName := getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-				if hasMatch {
-					if !matchLabel(workloadName, workloadsMatch) {
-						podCanAppend = false
-					}
-				}
-				if hasQuery {
-					if !queryLabel(strings.ToLower(workloadName), workloadsQuery) {
-						podCanAppend = false
-					}
-				}
-
-				if podCanAppend {
-					pods = append(pods, pod.Name)
-				}
-			}
-		}
-	} else {
-		for _, pod := range podList {
-			/*if len(pod.ObjectMeta.OwnerReferences) > 0 {
-				glog.Infof("List Pod %v:%v:%v", pod.Name, pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-			}*/
-			if len(pod.ObjectMeta.OwnerReferences) > 0 && in(pod.Namespace, namespaces) >= 0 {
-				var podCanAppend = true
-				workloadName := getWorkloadName(pod.ObjectMeta.OwnerReferences[0].Name, pod.ObjectMeta.OwnerReferences[0].Kind)
-				if hasMatch {
-					if !matchLabel(workloadName, workloadsMatch) {
-						podCanAppend = false
-					}
-				}
-				if hasQuery {
-					if !queryLabel(strings.ToLower(workloadName), workloadsQuery) {
-						podCanAppend = false
-					}
-				}
-
-				if podCanAppend {
-					pods = append(pods, pod.Name)
-				}
-			}
+		if podQuery != "" {
+			return podQuery + "," + workloadQuery
+		} else {
+			return workloadQuery
 		}
 	}
 
-	return true, pods
+	return podQuery
 }
 
 func MatchPod(podMatch string, podFilled bool, pods []string) (bool, []string) {

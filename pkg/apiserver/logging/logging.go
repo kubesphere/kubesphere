@@ -140,9 +140,9 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
+			param.WorkloadFilled, param.Workloads = log.QueryWorkload(request.QueryParameter("workloads"))
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
+			param.PodQuery = log.QueryPod(request.QueryParameter("pod_query"), request.QueryParameter("workload_query"))
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
@@ -152,9 +152,9 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
 			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
 			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
+			param.WorkloadFilled, param.Workloads = log.QueryWorkload(request.QueryParameter("workloads"))
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
+			param.PodQuery = log.QueryPod(request.QueryParameter("pod_query"), request.QueryParameter("workload_query"))
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
@@ -162,9 +162,9 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
 			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
+			param.WorkloadFilled, param.Workloads = log.QueryWorkload(request.QueryParameter("workloads"))
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
+			param.PodQuery = log.QueryPod(request.QueryParameter("pod_query"), request.QueryParameter("workload_query"))
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
 			param.ContainerQuery = request.QueryParameter("container_query")
 		}
@@ -172,7 +172,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		{
 			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
 			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.QueryWorkload(request.PathParameter("workload"), "", param.Namespaces)
+			param.WorkloadFilled, param.Workloads = log.QueryWorkload(request.QueryParameter("workloads"))
 			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
 			param.PodQuery = request.QueryParameter("pod_query")
 			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))

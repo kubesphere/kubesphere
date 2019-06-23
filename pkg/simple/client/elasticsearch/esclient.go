@@ -92,6 +92,10 @@ type TimeRange struct {
 	Lte string `json:"lte,omitempty"`
 }
 
+type RegexpQuery struct {
+	RegexpQuery interface{} `json:"regexp"`
+}
+
 type BoolShouldMatchPhrase struct {
 	ShouldMatchPhrase ShouldMatchPhrase `json:"bool"`
 }
@@ -187,6 +191,51 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		}
 		shouldMatchPhrase.MinimumShouldMatch = 1
 		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	}
+	// Use regexp query to select pods by workload name. Note that pod naming differs by controllers.
+	// Refer to source code and relevant blog for more information on pod naming convention
+	// https://blog.openshift.com/kubernetes-naming-things/
+	if param.WorkloadFilled {
+		var regexp string
+		for i, workload := range param.Workloads {
+
+			// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/validation/validation.go#L34
+			podNameMaxLength := 63
+			// pod naming for replicaset:
+			// https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/sync.go#L197
+			// max 10 characters + 1 hyphen
+			replicaSetSuffixMaxLength := 11
+			// a unique random string as suffix
+			// 5 characters + 1 hyphen
+			randSuffixLength := 6
+
+			if len(workload) <= podNameMaxLength-replicaSetSuffixMaxLength-randSuffixLength {
+				// match deployment pods, eg. productpage-v1-579dfbcddd-24znw
+				regexp += workload + "-[bcdfghjklmnpqrstvwxz2456789]{1,10}-[a-z0-9]{5}|"
+				// match statefulset pods, eg. elasticsearch-logging-data-0
+				// https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-identity
+				regexp += workload + "-[0-9]+|"
+				// match pods of daemonset or job, eg. fluent-bit-29tdk, job-demo-5xqvl
+				regexp += workload + "-[a-z0-9]{5}"
+			} else if len(workload) <= podNameMaxLength-randSuffixLength {
+				replicaSetSuffixLength := podNameMaxLength - randSuffixLength - len(workload)
+				regexp += fmt.Sprintf("%s%d%s", workload+"-[bcdfghjklmnpqrstvwxz2456789]{", replicaSetSuffixLength, "}[a-z0-9]{5}|")
+				regexp += workload + "-[0-9]+|"
+				regexp += workload + "-[a-z0-9]{5}"
+			} else {
+				// Rand suffix may overwrites the workload name if the name is too long
+				// This won't happen for StatefulSet because a statefulset pod will fail to create when the workload name is too long
+				regexp += workload[:podNameMaxLength-randSuffixLength+1] + "[a-z0-9]{5}|"
+				regexp += workload + "-[0-9]+"
+			}
+
+			if i < len(param.Workloads)-1 {
+				regexp += "|"
+			}
+		}
+
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, RegexpQuery{map[string]interface{}{"kubernetes.pod_name.keyword": regexp}})
+
 	}
 	if param.PodFilled {
 		var shouldMatchPhrase ShouldMatchPhrase
@@ -516,6 +565,8 @@ type QueryParameters struct {
 	NamespaceFilled           bool
 	Namespaces                []string
 	NamespaceWithCreationTime map[string]string
+	WorkloadFilled            bool
+	Workloads                 []string
 	PodFilled                 bool
 	Pods                      []string
 	ContainerFilled           bool
