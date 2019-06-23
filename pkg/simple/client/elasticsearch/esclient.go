@@ -285,11 +285,12 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	return operation, queryRequest, err
 }
 
+// Fore more info, refer to https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-search-API.html
 type Response struct {
 	Status       int             `json:"status" description:"query status"`
 	Workspace    string          `json:"workspace,omitempty" description:"workspace the query was performed against"`
 	Shards       Shards          `json:"_shards" description:"tells shard information"`
-	Hits         Hits            `json:"hits" description:"search results"`
+	Hits         Hits            `json:"hits" description:"query results"`
 	Aggregations json.RawMessage `json:"aggregations" description:"aggregation results"`
 }
 
@@ -306,15 +307,15 @@ type Hits struct {
 }
 
 type Hit struct {
-	Source    Source    `json:"_source" description:"search result item"`
-	HighLight HighLight `json:"highlight" description:"highlighted log fragment"`
+	Source    Source    `json:"_source" description:"a search result"`
+	HighLight HighLight `json:"highlight" description:"highlighted log information"`
 	Sort      []int64   `json:"sort" description:"sort key for results"`
 }
 
 type Source struct {
-	Log        string     `json:"log" description:"the log message"`
+	Log        string     `json:"log" description:"log message"`
 	Time       string     `json:"time" description:"log timestamp"`
-	Kubernetes Kubernetes `json:"kubernetes" description:"kubernetes addon information on the log"`
+	Kubernetes Kubernetes `json:"kubernetes" description:"kubernetes information"`
 }
 
 type Kubernetes struct {
