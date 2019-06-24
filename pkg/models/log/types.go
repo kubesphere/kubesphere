@@ -49,5 +49,6 @@ type FluentbitFiltersResult struct {
 
 type FluentbitOutputsResult struct {
 	Status  int               `json:"status" description:"response status"`
+	Error   string            `json:"error,omitempty" description:"debug information"`
 	Outputs []fb.OutputPlugin `json:"outputs,omitempty" description:"array of fluent bit output plugins"`
 }

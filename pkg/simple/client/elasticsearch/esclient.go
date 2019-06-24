@@ -393,6 +393,7 @@ type HistogramResult struct {
 // Wrap elasticsearch response
 type QueryResult struct {
 	Status     int               `json:"status,omitempty" description:"query status"`
+	Error      string            `json:"error,omitempty" description:"debug information"`
 	Workspace  string            `json:"workspace,omitempty" description:"workspace the query was performed against"`
 	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
 	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
@@ -428,21 +429,22 @@ func calcTimestamp(input string) int64 {
 
 func parseQueryResult(operation int, param QueryParameters, body []byte, query []byte) *QueryResult {
 	var queryResult QueryResult
-	//queryResult.Request = string(query)
-	//queryResult.Response = string(body)
 
 	var response Response
 	err := jsonIter.Unmarshal(body, &response)
 	if err != nil {
 		glog.Errorln(err)
 		queryResult.Status = http.StatusInternalServerError
+		queryResult.Error = err.Error()
 		return &queryResult
 	}
 
 	if response.Status != 0 {
 		//Elastic error, eg, es_rejected_execute_exception
+		err := "The query failed with no response"
 		queryResult.Status = response.Status
-		glog.Errorln("The query failed with no response")
+		queryResult.Error = err
+		glog.Errorln(err)
 		return &queryResult
 	}
 
@@ -477,6 +479,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		if err != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
+			queryResult.Error = err.Error()
 			return &queryResult
 		}
 		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: response.Hits.Total}
@@ -493,6 +496,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		if err != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
+			queryResult.Error = err.Error()
 			return &queryResult
 		}
 		for _, histogram := range histogramAggregations.HistogramAggregation.Histograms {
@@ -554,6 +558,7 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 
@@ -561,6 +566,7 @@ func Query(param QueryParameters) *QueryResult {
 	if es == nil {
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = "Elasticsearch configurations not found. Please check if they are properly configured."
 		return queryResult
 	}
 
@@ -571,6 +577,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 	request.Header.Set("Content-Type", "application/json; charset=utf-8")
@@ -580,6 +587,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 	defer response.Body.Close()
@@ -589,6 +597,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 
