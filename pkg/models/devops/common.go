@@ -79,7 +79,7 @@ const (
 )
 
 type Role struct {
-	Name        string `json:"name" description:"role's name'"`
+	Name        string `json:"name" description:"role's name e.g. owner'"`
 	Description string `json:"description" description:"role 's description'"`
 }
 

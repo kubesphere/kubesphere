@@ -227,11 +227,11 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	tags = []string{"Git"}
-	webservice.Route(webservice.POST("/git/readverify").
+	webservice.Route(webservice.POST("git/verify").
 		To(
 			git.GitReadVerify).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("secret git read verify").
+		Doc("Verify that the kubernetes secret has read access to the git repository").
 		Reads(gitmodel.AuthInfo{}).
 		Returns(http.StatusOK, ok, errors.Error{}),
 	)
