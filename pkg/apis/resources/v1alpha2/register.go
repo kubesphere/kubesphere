@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/components"
-	"kubesphere.io/kubesphere/pkg/apiserver/git"
 	"kubesphere.io/kubesphere/pkg/apiserver/operations"
 	"kubesphere.io/kubesphere/pkg/apiserver/quotas"
 	"kubesphere.io/kubesphere/pkg/apiserver/registries"
@@ -36,7 +35,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/applications"
-	gitmodel "kubesphere.io/kubesphere/pkg/models/git"
 	registriesmodel "kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/models/status"
 	"kubesphere.io/kubesphere/pkg/params"
@@ -226,15 +224,7 @@ func addWebService(c *restful.Container) error {
 		Reads(registriesmodel.AuthInfo{}).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
-	tags = []string{"Git"}
-	webservice.Route(webservice.POST("/git/readverify").
-		To(
-			git.GitReadVerify).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("secret git read verify").
-		Reads(gitmodel.AuthInfo{}).
-		Returns(http.StatusOK, ok, errors.Error{}),
-	)
+
 	tags = []string{"Revision"}
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}").

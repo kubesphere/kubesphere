@@ -111,6 +111,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("member", "Member's username, e.g. admin")).
+		Returns(http.StatusOK, RespOK, devops.DevOpsProjectMembership{}).
 		Reads(devops.DevOpsProjectMembership{}).
 		Writes(devops.DevOpsProjectMembership{}))
 
@@ -137,7 +138,6 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
 		Reads(devops.ProjectPipeline{}))
 
