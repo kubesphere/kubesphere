@@ -54,3 +54,14 @@ var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
 	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace}
 )
+
+const (
+	DefaultSelectLimit = 200
+)
+
+const (
+	DefaultOffset = uint32(0)
+	DefaultLimit  = uint32(20)
+)
+
+const MIME_MERGEPATCH = "application/merge-patch+json"

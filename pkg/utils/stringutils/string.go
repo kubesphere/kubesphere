@@ -14,6 +14,8 @@ limitations under the License.
 package stringutils
 
 import (
+	"regexp"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/asaskevich/govalidator"
@@ -75,3 +77,20 @@ func Reverse(s string) string {
 	}
 	return string(buf)
 }
+
+func SimplifyStringList(s []string) []string {
+	b := s[:0]
+	for _, x := range s {
+		if x := SimplifyString(x); x != "" {
+			b = append(b, x)
+		}
+	}
+	return b
+}
+
+// "\ta  b  c" => "a b c"
+func SimplifyString(s string) string {
+	return reMoreSpace.ReplaceAllString(strings.TrimSpace(s), " ")
+}
+
+var reMoreSpace = regexp.MustCompile(`\s+`)
