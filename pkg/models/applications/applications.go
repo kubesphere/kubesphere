@@ -45,8 +45,8 @@ type Application struct {
 	Version     string            `json:"version" description:"application version"`
 	VersionId   string            `json:"version_id" description:"application version id"`
 	Status      string            `json:"status" description:"application status"`
-	UpdateTime  time.Time         `json:"updateTime" description:"update time"`
-	CreateTime  time.Time         `json:"createTime" description:"create name"`
+	UpdateTime  time.Time         `json:"updateTime" description:"the last time this application was updated"`
+	CreateTime  time.Time         `json:"createTime" description:"application creation time"`
 	App         string            `json:"app" description:"application template name"`
 	AppId       string            `json:"app_id" description:"application template id"`
 	Description string            `json:"description,omitempty" description:"application description"`
@@ -148,6 +148,11 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 				item, err := informers.SharedInformerFactory().Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
 
 				if err != nil {
+					// app not ready
+					if errors.IsNotFound(err) {
+						continue
+					}
+					glog.Error(err)
 					return nil, err
 				}
 
@@ -159,6 +164,11 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 				name := strings.Split(workLoadName, openpitrix.DaemonSuffix)[0]
 				item, err := informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
 				if err != nil {
+					// app not ready
+					if errors.IsNotFound(err) {
+						continue
+					}
+					glog.Error(err)
 					return nil, err
 				}
 				works.Daemonsets = append(works.Daemonsets, *item)
@@ -169,6 +179,11 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 				name := strings.Split(workLoadName, openpitrix.StateSuffix)[0]
 				item, err := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
 				if err != nil {
+					// app not ready
+					if errors.IsNotFound(err) {
+						continue
+					}
+					glog.Error(err)
 					return nil, err
 				}
 				works.Statefulsets = append(works.Statefulsets, *item)

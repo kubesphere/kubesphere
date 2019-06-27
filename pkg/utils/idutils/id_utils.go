@@ -15,26 +15,25 @@ package idutils
 
 import (
 	"errors"
-	"net"
-	"os"
-
 	"github.com/golang/example/stringutil"
 	"github.com/sony/sonyflake"
-	hashids "github.com/speps/go-hashids"
+	"github.com/speps/go-hashids"
+	"net"
 
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
 var sf *sonyflake.Sonyflake
+var upperMachineID uint16
 
 func init() {
 	var st sonyflake.Settings
-	if len(os.Getenv("DEVOPSPHERE_IP")) != 0 {
-		st.MachineID = machineID
-	}
 	sf = sonyflake.NewSonyflake(st)
 	if sf == nil {
-		panic("failed to initialize sonyflake")
+		sf = sonyflake.NewSonyflake(sonyflake.Settings{
+			MachineID: lower16BitIP,
+		})
+		upperMachineID, _ = upper16BitIP()
 	}
 }
 
@@ -81,14 +80,40 @@ func GetUuid36(prefix string) string {
 	return prefix + stringutil.Reverse(i)
 }
 
-func machineID() (uint16, error) {
-	ipStr := os.Getenv("DEVOPSPHERE_IP")
-	if len(ipStr) == 0 {
-		return 0, errors.New("'DEVOPSPHERE_IP' environment variable not set")
+func lower16BitIP() (uint16, error) {
+	ip, err := IPv4()
+	if err != nil {
+		return 0, err
 	}
-	ip := net.ParseIP(ipStr)
-	if len(ip) < 4 {
-		return 0, errors.New("invalid IP")
-	}
+
 	return uint16(ip[2])<<8 + uint16(ip[3]), nil
 }
+
+func upper16BitIP() (uint16, error) {
+	ip, err := IPv4()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint16(ip[0])<<8 + uint16(ip[1]), nil
+}
+
+func IPv4() (net.IP, error) {
+	as, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range as {
+		ipnet, ok := a.(*net.IPNet)
+		if !ok || ipnet.IP.IsLoopback() {
+			continue
+		}
+
+		ip := ipnet.IP.To4()
+		return ip, nil
+
+	}
+	return nil, errors.New("no ip address")
+}
+

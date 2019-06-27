@@ -138,6 +138,7 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+ValidateUrl, scmId)
 	log.Info("Jenkins-url: " + baseUrl)
 
+	req.Method = http.MethodPut
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
 		log.Error(err)
@@ -177,6 +178,7 @@ func StopBranchPipeline(projectName, pipelineName, branchName, runId string, req
 	baseUrl := fmt.Sprintf(jenkins.Server+StopBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	log.Info("Jenkins-url: " + baseUrl)
 
+	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
 		log.Error(err)
@@ -190,6 +192,7 @@ func StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([
 	baseUrl := fmt.Sprintf(jenkins.Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 	log.Info("Jenkins-url: " + baseUrl)
 
+	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
 		log.Error(err)
@@ -357,32 +360,6 @@ func RunBranchPipeline(projectName, pipelineName, branchName string, req *http.R
 
 func RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
-	log.Info("Jenkins-url: " + baseUrl)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func GetBranchStepsStatus(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetBranchStepsStatusUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
-	log.Info("Jenkins-url: " + baseUrl)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func GetStepsStatus(projectName, pipelineName, runId, nodeId string, req *http.Request) ([]byte, error) {
-	baseUrl := fmt.Sprintf(jenkins.Server+GetStepsStatusUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId)
 	log.Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)

@@ -58,7 +58,7 @@ func GetDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Respo
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := request.PathParameter("members")
+	member := request.PathParameter("member")
 
 	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
@@ -132,7 +132,7 @@ func UpdateDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Re
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	member.Username = request.PathParameter("members")
+	member.Username = request.PathParameter("member")
 	if govalidator.IsNull(member.Username) {
 		err := fmt.Errorf("error need username")
 		glog.Errorf("%+v", err)
@@ -175,7 +175,7 @@ func DeleteDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Re
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := request.PathParameter("members")
+	member := request.PathParameter("member")
 
 	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {

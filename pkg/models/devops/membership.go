@@ -21,10 +21,10 @@ const (
 )
 
 type DevOpsProjectMembership struct {
-	Username  string `json:"username" description:"member's username，username can uniquely identify a user"`
-	ProjectId string `json:"project_id" db:"project_id" description:"the devops projects which project membership belongs to"`
-	Role      string `json:"role" description:"devops project membership's role type. e.g. owner '"`
-	Status    string `json:"status" description:"Desperated, status of project membership"`
+	Username  string `json:"username" description:"Member's username，username can uniquely identify a user"`
+	ProjectId string `json:"project_id" db:"project_id" description:"the DevOps Projects which project membership belongs to"`
+	Role      string `json:"role" description:"DevOps Project membership's role type. e.g. owner '"`
+	Status    string `json:"status" description:"Desperated, Status of project membership. e.g. active "`
 	GrantBy   string `json:"grand_by,omitempty" description:"Username of the user who assigned the role"`
 }
 

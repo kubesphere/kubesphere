@@ -57,7 +57,7 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	credentialId := request.PathParameter("credentials")
+	credentialId := request.PathParameter("credential")
 	var credential *devops.JenkinsCredential
 	err := request.ReadEntity(&credential)
 	if err != nil {
@@ -89,7 +89,7 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	credentialId := request.PathParameter("credentials")
+	credentialId := request.PathParameter("credential")
 	var credential *devops.JenkinsCredential
 	err := request.ReadEntity(&credential)
 	if err != nil {
@@ -121,7 +121,7 @@ func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.R
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	credentialId := request.PathParameter("credentials")
+	credentialId := request.PathParameter("credential")
 	getContent := request.QueryParameter("content")
 	domain := request.QueryParameter("domain")
 
