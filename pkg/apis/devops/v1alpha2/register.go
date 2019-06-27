@@ -157,7 +157,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarStatus").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarstatus").
 		To(devopsapi.GetPipelineSonarStatusHandler).
 		Doc("Get the sonar quality information for a pipeline under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -166,7 +166,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branch}/sonarStatus").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branch}/sonarstatus").
 		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
 		Doc("Get the sonar quality check information for a pipeline branch under the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
