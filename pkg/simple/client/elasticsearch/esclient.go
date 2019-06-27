@@ -286,43 +286,44 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 }
 
 // Fore more info, refer to https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-search-API.html
+// Response from the elasticsearch engine
 type Response struct {
-	Status       int             `json:"status" description:"query status"`
-	Workspace    string          `json:"workspace,omitempty" description:"workspace the query was performed against"`
-	Shards       Shards          `json:"_shards" description:"tells shard information"`
-	Hits         Hits            `json:"hits" description:"query results"`
-	Aggregations json.RawMessage `json:"aggregations" description:"aggregation results"`
+	Status       int             `json:"status"`
+	Workspace    string          `json:"workspace,omitempty"`
+	Shards       Shards          `json:"_shards"`
+	Hits         Hits            `json:"hits"`
+	Aggregations json.RawMessage `json:"aggregations"`
 }
 
 type Shards struct {
-	Total      int64 `json:"total" description:"tells how many shards were searched"`
-	Successful int64 `json:"successful" description:"count of the successful searched shards"`
-	Skipped    int64 `json:"skipped" description:"count of the skipped searched shards"`
-	Failed     int64 `json:"failed" description:"count of the failed searched shards"`
+	Total      int64 `json:"total"`
+	Successful int64 `json:"successful"`
+	Skipped    int64 `json:"skipped"`
+	Failed     int64 `json:"failed"`
 }
 
 type Hits struct {
-	Total int64 `json:"total" description:"total number of documents matching our search criteria"`
-	Hits  []Hit `json:"hits" description:"actual array of search results"`
+	Total int64 `json:"total"`
+	Hits  []Hit `json:"hits"`
 }
 
 type Hit struct {
-	Source    Source    `json:"_source" description:"a search result"`
-	HighLight HighLight `json:"highlight" description:"highlighted log information"`
-	Sort      []int64   `json:"sort" description:"sort key for results"`
+	Source    Source    `json:"_source"`
+	HighLight HighLight `json:"highlight"`
+	Sort      []int64   `json:"sort"`
 }
 
 type Source struct {
-	Log        string     `json:"log" description:"log message"`
-	Time       string     `json:"time" description:"log timestamp"`
-	Kubernetes Kubernetes `json:"kubernetes" description:"kubernetes information"`
+	Log        string     `json:"log"`
+	Time       string     `json:"time"`
+	Kubernetes Kubernetes `json:"kubernetes"`
 }
 
 type Kubernetes struct {
-	Namespace string `json:"namespace_name" description:"the namespace the log is from"`
-	Pod       string `json:"pod_name" description:"the pod the log is from"`
-	Container string `json:"container_name" description:"the container the log is from"`
-	Host      string `json:"host" description:"the node the log if from"`
+	Namespace string `json:"namespace_name"`
+	Pod       string `json:"pod_name"`
+	Container string `json:"container_name"`
+	Host      string `json:"host"`
 }
 
 type HighLight struct {
@@ -333,20 +334,20 @@ type HighLight struct {
 }
 
 type LogRecord struct {
-	Time      int64     `json:"time,omitempty"`
-	Log       string    `json:"log,omitempty"`
-	Namespace string    `json:"namespace,omitempty"`
-	Pod       string    `json:"pod,omitempty"`
-	Container string    `json:"container,omitempty"`
-	Host      string    `json:"host,omitempty"`
-	HighLight HighLight `json:"highlight,omitempty"`
+	Time      int64     `json:"time,omitempty" description:"log timestamp"`
+	Log       string    `json:"log,omitempty" description:"log message"`
+	Namespace string    `json:"namespace,omitempty" description:"namespace"`
+	Pod       string    `json:"pod,omitempty" description:"pod name"`
+	Container string    `json:"container,omitempty" description:"container name"`
+	Host      string    `json:"host,omitempty" description:"node id"`
+	HighLight HighLight `json:"highlight,omitempty" description:"highlighted log fragment"`
 }
 
 type ReadResult struct {
-	Total   int64       `json:"total"`
-	From    int64       `json:"from"`
-	Size    int64       `json:"size"`
-	Records []LogRecord `json:"records,omitempty"`
+	Total   int64       `json:"total" description:"total number of matched results"`
+	From    int64       `json:"from" description:"the offset from the result set"`
+	Size    int64       `json:"size" description:"the amount of hits to be returned"`
+	Records []LogRecord `json:"records,omitempty" description:"actual array of results"`
 }
 
 // StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
@@ -372,31 +373,31 @@ type HistogramStatistics struct {
 }
 
 type HistogramRecord struct {
-	Time  int64 `json:"time"`
-	Count int64 `json:"count"`
+	Time  int64 `json:"time" description:"time point"`
+	Count int64 `json:"count" description:"total number of logs at intervals"`
 }
 
 type StatisticsResult struct {
-	Containers int64 `json:"containers"`
-	Logs       int64 `json:"logs"`
+	Containers int64 `json:"containers" description:"total number of containers"`
+	Logs       int64 `json:"logs" description:"total number of logs"`
 }
 
 type HistogramResult struct {
-	Total      int64             `json:"total"`
-	StartTime  int64             `json:"start_time"`
-	EndTime    int64             `json:"end_time"`
-	Interval   string            `json:"interval"`
-	Histograms []HistogramRecord `json:"histograms"`
+	Total      int64             `json:"total" description:"total number of logs"`
+	StartTime  int64             `json:"start_time" description:"start time"`
+	EndTime    int64             `json:"end_time" description:"end time"`
+	Interval   string            `json:"interval" description:"interval"`
+	Histograms []HistogramRecord `json:"histograms" description:"actual array of histogram results"`
 }
 
+// Wrap elasticsearch response
 type QueryResult struct {
-	Status     int               `json:"status,omitempty"`
-	Workspace  string            `json:"workspace,omitempty"`
-	Read       *ReadResult       `json:"query,omitempty"`
-	Statistics *StatisticsResult `json:"statistics,omitempty"`
-	Histogram  *HistogramResult  `json:"histogram,omitempty"`
-	Request    string            `json:"request,omitempty"`
-	Response   string            `json:"response,omitempty"`
+	Status     int               `json:"status,omitempty" description:"query status"`
+	Error      string            `json:"error,omitempty" description:"debug information"`
+	Workspace  string            `json:"workspace,omitempty" description:"workspace the query was performed against"`
+	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
+	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
+	Histogram  *HistogramResult  `json:"histogram,omitempty" description:"histogram results"`
 }
 
 const (
@@ -428,21 +429,22 @@ func calcTimestamp(input string) int64 {
 
 func parseQueryResult(operation int, param QueryParameters, body []byte, query []byte) *QueryResult {
 	var queryResult QueryResult
-	//queryResult.Request = string(query)
-	//queryResult.Response = string(body)
 
 	var response Response
 	err := jsonIter.Unmarshal(body, &response)
 	if err != nil {
 		glog.Errorln(err)
 		queryResult.Status = http.StatusInternalServerError
+		queryResult.Error = err.Error()
 		return &queryResult
 	}
 
 	if response.Status != 0 {
 		//Elastic error, eg, es_rejected_execute_exception
+		err := "The query failed with no response"
 		queryResult.Status = response.Status
-		glog.Errorln("The query failed with no response")
+		queryResult.Error = err
+		glog.Errorln(err)
 		return &queryResult
 	}
 
@@ -477,6 +479,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		if err != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
+			queryResult.Error = err.Error()
 			return &queryResult
 		}
 		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: response.Hits.Total}
@@ -493,6 +496,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 		if err != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
+			queryResult.Error = err.Error()
 			return &queryResult
 		}
 		for _, histogram := range histogramAggregations.HistogramAggregation.Histograms {
@@ -554,6 +558,7 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 
@@ -561,6 +566,7 @@ func Query(param QueryParameters) *QueryResult {
 	if es == nil {
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = "Elasticsearch configurations not found. Please check if they are properly configured."
 		return queryResult
 	}
 
@@ -571,6 +577,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 	request.Header.Set("Content-Type", "application/json; charset=utf-8")
@@ -580,6 +587,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 	defer response.Body.Close()
@@ -589,6 +597,7 @@ func Query(param QueryParameters) *QueryResult {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusNotFound
+		queryResult.Error = err.Error()
 		return queryResult
 	}
 

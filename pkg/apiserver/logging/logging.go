@@ -30,31 +30,63 @@ import (
 
 func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelCluster, request)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
+
 	response.WriteAsJson(res)
 }
 
 func LoggingQueryWorkspace(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelWorkspace, request)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
+
 	response.WriteAsJson(res)
 }
 
 func LoggingQueryNamespace(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelNamespace, request)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
+
 	response.WriteAsJson(res)
 }
 
 func LoggingQueryWorkload(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelWorkload, request)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
+
 	response.WriteAsJson(res)
 }
 
 func LoggingQueryPod(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelPod, request)
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
 	response.WriteAsJson(res)
 }
 
 func LoggingQueryContainer(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelContainer, request)
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
 	response.WriteAsJson(res)
 }
 
@@ -81,6 +113,10 @@ func LoggingUpdateFluentbitFilters(request *restful.Request, response *restful.R
 
 func LoggingQueryFluentbitOutputs(request *restful.Request, response *restful.Response) {
 	res := log.FluentbitOutputsQuery()
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
 	response.WriteAsJson(res)
 }
 
@@ -95,6 +131,11 @@ func LoggingInsertFluentbitOutput(request *restful.Request, response *restful.Re
 		res = &log.FluentbitOutputsResult{Status: http.StatusBadRequest}
 	} else {
 		res = log.FluentbitOutputInsert(output)
+	}
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
 	}
 
 	response.WriteAsJson(res)
@@ -115,6 +156,12 @@ func LoggingUpdateFluentbitOutput(request *restful.Request, response *restful.Re
 	}
 
 	res := log.FluentbitOutputUpdate(output, id)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
+
 	response.WriteAsJson(res)
 }
 
@@ -124,6 +171,11 @@ func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Re
 
 	id := request.PathParameter("output")
 	res = log.FluentbitOutputDelete(id)
+
+	if res.Status != http.StatusOK {
+		response.WriteHeaderAndEntity(res.Status, res.Error)
+		return
+	}
 
 	response.WriteAsJson(res)
 }
