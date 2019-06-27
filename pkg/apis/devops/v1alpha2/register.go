@@ -124,7 +124,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
 		To(devopsapi.CreateDevOpsProjectPipelineHandler).
-		Doc("Add DevOps Project pipeline").
+		Doc("Create a DevOps Project pipeline").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
@@ -140,6 +140,13 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 		Writes(devops.ProjectPipeline{}).
 		Reads(devops.ProjectPipeline{}))
+
+	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
+		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
+		Doc("Delete a pipeline under the DevOps Project").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/config").
 		To(devopsapi.GetDevOpsProjectPipelineHandler).
@@ -168,13 +175,6 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("branch", "branch name, e.g. master")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
-
-	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
-		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
-		Doc("Delete a pipeline under the DevOps Project").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "The name of pipeline, e.g. sample-pipeline")))
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
@@ -250,7 +250,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
 		To(devopsapi.SearchPipelineRuns).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Search DevOps Pipelines runs in branch.").
+		Doc("Get all runs").
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.QueryParameter("start", "the count of item start.").
@@ -269,7 +269,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
 		To(devopsapi.GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get all runs in a branch").
+		Doc("(MultiBranchesPipeline) Get all runs in a branch").
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -284,7 +284,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes").
 		To(devopsapi.GetPipelineRunNodesbyBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get MultiBranch Pipeline run nodes.").
+		Doc("(MultiBranchesPipeline) Get run nodes.").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -300,7 +300,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}/log").
 		To(devopsapi.GetBranchStepLog).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get pipelines step log.").
+		Doc("(MultiBranchesPipeline) Get pipelines step log.").
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
@@ -373,7 +373,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop").
 		To(devopsapi.StopBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Stop pipeline in running filter by branch").
+		Doc("(MultiBranchesPipeline) Stop pipeline in running.").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -412,7 +412,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
 		To(devopsapi.ReplayBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Replay pipeline").
+		Doc("(MultiBranchesPipeline) Replay pipeline").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -435,7 +435,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/log").
 		To(devopsapi.GetBranchRunLog).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Pipelines run log.").
+		Doc("(MultiBranchesPipeline) Get Pipelines run log.").
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
@@ -464,7 +464,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/artifacts").
 		To(devopsapi.GetBranchArtifacts).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get pipeline artifacts.").
+		Doc("(MultiBranchesPipeline) Get pipeline artifacts.").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -499,7 +499,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches").
 		To(devopsapi.GetPipeBranch).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get MultiBranch pipeline branches.").
+		Doc("(MultiBranchesPipeline) Get pipeline branches.").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.QueryParameter("filter", "filter remote scm. e.g. origin").
@@ -518,7 +518,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}").
 		To(devopsapi.CheckBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Pauses pipeline execution and allows the user to interact and control the flow of the build.").
+		Doc("(MultiBranchesPipeline) Proceed/Break paused pipeline").
 		Reads(devops.CheckPlayload{}).
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
@@ -532,7 +532,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}").
 		To(devopsapi.CheckPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Pauses pipeline execution and allows the user to interact and control the flow of the build.").
+		Doc("Proceed/Break paused pipeline").
 		Reads(devops.CheckPlayload{}).
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
@@ -566,7 +566,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/run").
 		To(devopsapi.RunBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Run pipeline.").
+		Doc("(MultiBranchesPipeline) Run pipeline.").
 		Reads(devops.RunPayload{}).
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
@@ -633,7 +633,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").
 		To(devopsapi.GetBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get Pipeline run by branch.").
+		Doc("(MultiBranchesPipeline) Get Pipeline run by branch.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach")).
@@ -658,7 +658,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps").
 		To(devopsapi.GetBranchNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get steps in node by branch.").
+		Doc("(MultiBranchesPipeline) Get steps in node by branch.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
@@ -691,7 +691,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
-		Doc("Convert json to jenkinsfile format. Usually the frontend uses json to edit jenkinsfile").
+		Doc("Convert json to jenkinsfile format.").
 		Reads(devops.ReqJson{}).
 		Returns(http.StatusOK, RespOK, devops.ResJenkinsfile{}).
 		Writes(devops.ResJenkinsfile{}))
@@ -702,7 +702,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
-		Doc("Convert jenkinsfile to json format. Usually the frontend uses json to edit jenkinsfile").
+		Doc("Convert jenkinsfile to json format. Usually the frontend uses json to show or edit pipeline").
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
@@ -737,7 +737,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodesdetail").
 		To(devopsapi.GetBranchNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Gives steps details inside a pipeline node by branch. For a Stage, the steps will include all the steps defined inside the stage.").
+		Doc("(MultiBranchesPipeline) Gives steps details inside a pipeline node by branch. For a Stage, the steps will include all the steps defined inside the stage.").
 		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
