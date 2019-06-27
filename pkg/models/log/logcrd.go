@@ -233,6 +233,7 @@ func FluentbitOutputsQuery() *FluentbitOutputsResult {
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		result.Status = http.StatusNotFound
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -263,6 +264,7 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	err = updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -270,6 +272,7 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -304,6 +307,7 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 
 	if index >= len(outputs) {
 		result.Status = http.StatusNotFound
+		result.Error = "The output plugin to update doesn't exist. Please check the output id you provide."
 		return &result
 	}
 
@@ -313,6 +317,7 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 	err = updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -320,6 +325,7 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -350,6 +356,7 @@ func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 
 	if index >= len(outputs) {
 		result.Status = http.StatusNotFound
+		result.Error = "The output plugin to delete doesn't exist. Please check the output id you provide."
 		return &result
 	}
 
@@ -358,6 +365,7 @@ func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	err := updateFluentbitOutputConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 
@@ -365,6 +373,7 @@ func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	err = syncFluentbitCRDOutputWithConfigMap(outputs)
 	if err != nil {
 		result.Status = http.StatusInternalServerError
+		result.Error = err.Error()
 		return &result
 	}
 

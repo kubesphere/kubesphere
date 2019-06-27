@@ -67,8 +67,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -93,8 +93,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -117,8 +117,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -140,8 +140,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -161,8 +161,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -181,8 +181,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(esclient.QueryResult{}).
+		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
