@@ -81,7 +81,7 @@ type Group struct {
 	Description string   `json:"description"`
 }
 
-type Component struct {
+type ComponentStatus struct {
 	Name            string      `json:"name" description:"component name"`
 	Namespace       string      `json:"namespace" description:"namespace"`
 	SelfLink        string      `json:"selfLink" description:"self link"`
@@ -89,6 +89,16 @@ type Component struct {
 	StartedAt       time.Time   `json:"startedAt" description:"started time"`
 	TotalBackends   int         `json:"totalBackends" description:"total backends"`
 	HealthyBackends int         `json:"healthyBackends" description:"healthy backends"`
+}
+type NodeStatus struct {
+	TotalNodes   int `json:"totalNodes" description:"total number of nodes"`
+	HealthyNodes int `json:"healthyNodes" description:"number of healthy nodes"`
+}
+
+type HealthStatus struct {
+	KubeSphereComponents []ComponentStatus        `json:"kubesphereStatus" description:"kubesphere components status"`
+	KubernetesComponents []corev1.ComponentStatus `json:"kubernetesStatus" description:"kubernetes components status"`
+	NodeStatus           NodeStatus               `json:"nodeStatus" description:"nodes status"`
 }
 
 type PodInfo struct {
