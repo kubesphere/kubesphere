@@ -50,14 +50,14 @@ type Pipeline struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"queue,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource."`
-	Actions         []interface{} `json:"actions,omitempty" description:"the list of actions."`
-	Disabled        interface{}   `json:"disabled,omitempty" description:"disable or not"`
+	Actions         []interface{} `json:"actions,omitempty" description:"the list of all actions."`
+	Disabled        interface{}   `json:"disabled,omitempty" description:"disable or not, if disabled, can not do any action."`
 	DisplayName     string        `json:"displayName,omitempty" description:"display name"`
 	FullDisplayName string        `json:"fullDisplayName,omitempty" description:"full display name"`
 	FullName        string        `json:"fullName,omitempty" description:"full name"`
 	Name            string        `json:"name,omitempty" description:"name"`
-	Organization    string        `json:"organization,omitempty" description:"organization name"`
-	Parameters      interface{}   `json:"parameters,omitempty" description:"parameters of pipeline"`
+	Organization    string        `json:"organization,omitempty" description:"the name of organization"`
+	Parameters      interface{}   `json:"parameters,omitempty" description:"parameters of pipeline, a pipeline can define list of parameters pipeline job expects."`
 	Permissions     struct {
 		Create    bool `json:"create,omitempty" description:"create action"`
 		Configure bool `json:"configure,omitempty" description:"configure action"`
@@ -69,7 +69,7 @@ type Pipeline struct {
 	NumberOfFolders                int           `json:"numberOfFolders,omitempty" description:"number of folders"`
 	NumberOfPipelines              int           `json:"numberOfPipelines,omitempty" description:"number of pipelines"`
 	PipelineFolderNames            []interface{} `json:"pipelineFolderNames,omitempty" description:"pipeline folder names"`
-	WeatherScore                   int           `json:"weatherScore,omitempty" description:"the score to description the result of pipeline"`
+	WeatherScore                   int           `json:"weatherScore,omitempty" description:"the score to description the result of pipeline activity"`
 	BranchNames                    []string      `json:"branchNames,omitempty" description:"branch names"`
 	NumberOfFailingBranches        int           `json:"numberOfFailingBranches,omitempty" description:"number of failing branches"`
 	NumberOfFailingPullRequests    int           `json:"numberOfFailingPullRequests,omitempty" description:"number of failing pull requests"`
@@ -78,7 +78,7 @@ type Pipeline struct {
 	ScmSource                      struct {
 		Class  string      `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		APIURL interface{} `json:"apiUrl,omitempty" description:"api url"`
-		ID     string      `json:"id,omitempty" description:"scm source id"`
+		ID     string      `json:"id,omitempty" description:"The id of the source configuration management (SCM)."`
 	} `json:"scmSource,omitempty"`
 	TotalNumberOfBranches     int `json:"totalNumberOfBranches,omitempty" description:"total number of branches"`
 	TotalNumberOfPullRequests int `json:"totalNumberOfPullRequests,omitempty" description:"total number of pull requests"`
@@ -133,31 +133,31 @@ type BranchPipelineRun struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"nextRun,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Causes           []struct {
 		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 		UserID           string `json:"userId,omitempty" description:"user id"`
 		UserName         string `json:"userName,omitempty" description:"user name"`
 	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 	Description               interface{}   `json:"description,omitempty" description:"description of resource"`
 	DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"enqueue time"`
-	EndTime                   string        `json:"endTime,omitempty" description:"end time"`
-	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
+	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+	EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
+	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time, unit is millis"`
 	ID                        string        `json:"id,omitempty" description:"id"`
 	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"organization name"`
+	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline name"`
 	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"result"`
+	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 string        `json:"startTime,omitempty" description:"start time"`
-	State                     string        `json:"state,omitempty" description:"pipeline run state"`
-	Type                      string        `json:"type,omitempty" description:"source type"`
+	StartTime                 string        `json:"startTime,omitempty" description:"the time of start"`
+	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
+	Type                      string        `json:"type,omitempty" description:"source type, such as \"WorkflowRun\""`
 	Branch                    struct {
 		IsPrimary bool          `json:"isPrimary,omitempty" description:"primary or not"`
 		Issues    []interface{} `json:"issues,omitempty" description:"issues"`
@@ -185,17 +185,17 @@ type BranchPipelineRunNodes struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"steps,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions            []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              interface{}   `json:"input,omitempty" description:"input"`
-	Result             string        `json:"result,omitempty" description:"result"`
-	StartTime          string        `json:"startTime,omitempty" description:"start time"`
-	State              string        `json:"state,omitempty" description:"statue"`
-	Type               string        `json:"type,omitempty" description:"source type"`
-	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
+	Type               string        `json:"type,omitempty" description:"source type, e.g. \"WorkflowRun\""`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Edges              []struct {
 		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ID    string `json:"id,omitempty" description:"id"`
@@ -229,17 +229,17 @@ type BranchPipelineRunNodes struct {
 		DisplayName        string      `json:"displayName,omitempty" description:"display name"`
 		DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in millis"`
 		ID                 string      `json:"id,omitempty" description:"id"`
-		Input              interface{} `json:"input,omitempty" description:"input"`
+		Input              Input       `json:"input,omitempty" description:"the action should user input"`
 		Result             string      `json:"result,omitempty" description:"result"`
-		StartTime          string      `json:"startTime,omitempty" description:"start time"`
-		State              string      `json:"state,omitempty" description:"source state"`
+		StartTime          string      `json:"startTime,omitempty" description:"the time of start"`
+		State              string      `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 		Type               string      `json:"type,omitempty" description:"source type"`
 	} `json:"steps,omitempty"`
 }
 
 // Validate
 type Validates struct {
-	CredentialID string `json:"credentialId,omitempty" description:"credential id"`
+	CredentialID string `json:"credentialId,omitempty" description:"the id of credential"`
 }
 
 // GetSCMOrg
@@ -255,9 +255,9 @@ type SCMOrg struct {
 			Href  string `json:"href,omitempty" description:"self url in api"`
 		} `json:"self,omitempty" description:"scm org self info"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Avatar                      string `json:"avatar,omitempty" description:"avatar url"`
-	JenkinsOrganizationPipeline bool   `json:"jenkinsOrganizationPipeline,omitempty" description:"jenkins organization pipeline"`
-	Name                        string `json:"name,omitempty" description:"org name "`
+	Avatar                      string `json:"avatar,omitempty" description:"the url of organization avatar"`
+	JenkinsOrganizationPipeline bool   `json:"jenkinsOrganizationPipeline,omitempty" description:"weather or not already have jenkins pipeline."`
+	Name                        string `json:"name,omitempty" description:"organization name"`
 }
 
 // GetOrgRepo
@@ -293,7 +293,7 @@ type OrgRepo struct {
 				Push  bool `json:"push,omitempty" description:"push action"`
 				Pull  bool `json:"pull,omitempty" description:"pull action"`
 			} `json:"permissions,omitempty"`
-			Private  bool   `json:"private,omitempty" description:"private"`
+			Private  bool   `json:"private,omitempty" description:"private or not"`
 			FullName string `json:"fullName,omitempty" description:"full name"`
 		} `json:"items,omitempty"`
 		LastPage interface{} `json:"lastPage,omitempty" description:"last page"`
@@ -343,28 +343,28 @@ type StopPipe struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"artifacts,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of actions."`
+	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions."`
 	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Causes           []struct {
 		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 	Description               interface{}   `json:"description,omitempty" description:"description"`
 	DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"enqueue time"`
-	EndTime                   string        `json:"endTime,omitempty" description:"end time"`
+	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+	EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
 	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 	ID                        string        `json:"id,omitempty" description:"id"`
 	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"organization"`
+	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
 	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"result"`
+	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 string        `json:"startTime,omitempty" description:"start time"`
-	State                     string        `json:"state,omitempty" description:"State"`
+	StartTime                 string        `json:"startTime,omitempty" description:"the time of start"`
+	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 	Type                      string        `json:"type,omitempty" description:"type"`
 	Branch                    struct {
 		IsPrimary bool          `json:"isPrimary,omitempty" description:"primary or not"`
@@ -409,30 +409,30 @@ type ReplayPipe struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"artifacts,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of actions."`
+	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions."`
 	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  string        `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage  string        `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Causes           []struct {
 		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 		UserID           string `json:"userId,omitempty" description:"user id"`
 		UserName         string `json:"userName,omitempty" description:"user name"`
 	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 	Description               interface{}   `json:"description,omitempty" description:"description"`
 	DurationInMillis          interface{}   `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               interface{}   `json:"enQueueTime,omitempty" description:"enqueue time"`
-	EndTime                   interface{}   `json:"endTime,omitempty" description:"end time"`
+	EnQueueTime               interface{}   `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+	EndTime                   interface{}   `json:"endTime,omitempty" description:"the time of end"`
 	EstimatedDurationInMillis interface{}   `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time, unit is millis"`
 	ID                        string        `json:"id,omitempty" description:"id"`
 	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"organization"`
+	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
 	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"result"`
+	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	RunSummary                interface{}   `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 interface{}   `json:"startTime,omitempty" description:"start time"`
-	State                     string        `json:"state,omitempty" description:"state"`
+	StartTime                 interface{}   `json:"startTime,omitempty" description:"the time of start"`
+	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 	Type                      string        `json:"type,omitempty" description:"type"`
 	QueueID                   string        `json:"queueId,omitempty" description:"queue id"`
 }
@@ -483,8 +483,8 @@ type PipeBranch struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"queue,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions                   []interface{} `json:"actions,omitempty" description:"the list of actions."`
-	Disabled                  bool          `json:"disabled,omitempty" description:"disable or not"`
+	Actions                   []interface{} `json:"actions,omitempty" description:"the list of all actions."`
+	Disabled                  bool          `json:"disabled,omitempty" description:"disable or not, if disabled, can not do any action"`
 	DisplayName               string        `json:"displayName,omitempty" description:"display name"`
 	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time, unit is millis"`
 	FullDisplayName           string        `json:"fullDisplayName,omitempty" description:"full display name"`
@@ -525,32 +525,32 @@ type PipeBranch struct {
 				Href  string `json:"href,omitempty"`
 			} `json:"artifacts,omitempty"`
 		} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-		Actions          []interface{} `json:"actions,omitempty" description:"the list of actions"`
+		Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 		ArtifactsZipFile string        `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-		CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+		CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 		Causes           []struct {
 			Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 			ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 		} `json:"causes,omitempty"`
-		ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+		ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 		Description               interface{}   `json:"description,omitempty" description:"description"`
 		DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-		EnQueueTime               string        `json:"enQueueTime,omitempty" description:"enqueue time"`
-		EndTime                   string        `json:"endTime,omitempty" description:"end time"`
+		EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+		EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
 		EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 		ID                        string        `json:"id,omitempty" description:"id"`
 		Name                      interface{}   `json:"name,omitempty" description:"name"`
-		Organization              string        `json:"organization,omitempty" description:"organization"`
+		Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 		Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
 		Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-		Result                    string        `json:"result,omitempty" description:"result"`
+		Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 		RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
 		StartTime                 string        `json:"startTime,omitempty" description:"start run"`
-		State                     string        `json:"state,omitempty" description:"state"`
+		State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 		Type                      string        `json:"type,omitempty" description:"type"`
 	} `json:"latestRun,omitempty"`
 	Name         string `json:"name,omitempty" description:"name"`
-	Organization string `json:"organization,omitempty" description:"organization"`
+	Organization string `json:"organization,omitempty" description:"the name of organization"`
 	Parameters   []struct {
 		Class                 string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		DefaultParameterValue struct {
@@ -617,30 +617,30 @@ type QueuedBlueRun struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"artifacts,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  string        `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage  string        `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Causes           []struct {
 		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 		UserID           string `json:"userId,omitempty" description:"user id"`
 		UserName         string `json:"userName,omitempty" description:"user name"`
 	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 	Description               interface{}   `json:"description,omitempty" description:"description"`
 	DurationInMillis          interface{}   `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               interface{}   `json:"enQueueTime,omitempty" description:"enqueue time"`
-	EndTime                   interface{}   `json:"endTime,omitempty" description:"end time"`
+	EnQueueTime               interface{}   `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+	EndTime                   interface{}   `json:"endTime,omitempty" description:"the time of end"`
 	EstimatedDurationInMillis interface{}   `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 	ID                        string        `json:"id,omitempty" description:"id"`
 	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"organization"`
+	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
 	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"result"`
+	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	RunSummary                interface{}   `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 interface{}   `json:"startTime,omitempty" description:"start time"`
-	State                     string        `json:"state,omitempty" description:"state"`
+	StartTime                 interface{}   `json:"startTime,omitempty" description:"the time of start"`
+	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 	Type                      string        `json:"type,omitempty" description:"type"`
 	QueueID                   string        `json:"queueId,omitempty" description:"queue id"`
 }
@@ -662,17 +662,17 @@ type NodeStatus struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"steps,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions            []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              interface{}   `json:"input,omitempty" description:"input"`
-	Result             string        `json:"result,omitempty" description:"result"`
-	StartTime          string        `json:"startTime,omitempty" description:"start time"`
-	State              string        `json:"state,omitempty" description:"state"`
+	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 	Type               string        `json:"type,omitempty" description:"type"`
-	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Edges              []struct {
 		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ID    string `json:"id,omitempty" description:"id"`
@@ -706,10 +706,10 @@ type NodeStatus struct {
 		DisplayName        string      `json:"displayName,omitempty" description:"display name"`
 		DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in millis"`
 		ID                 string      `json:"id,omitempty" description:"id"`
-		Input              interface{} `json:"input,omitempty" description:"input"`
-		Result             string      `json:"result,omitempty" description:"result"`
-		StartTime          string      `json:"startTime,omitempty" description:"start time"`
-		State              string      `json:"state,omitempty" description:"state"`
+		Input              Input       `json:"input,omitempty" description:"the action should user input"`
+		Result             string      `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+		StartTime          string      `json:"startTime,omitempty" description:"the time of start"`
+		State              string      `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 		Type               string      `json:"type,omitempty" description:"type"`
 	} `json:"steps,omitempty"`
 }
@@ -790,30 +790,30 @@ type PipelineRun struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"artifacts,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Causes           []struct {
 		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 		UserID           string `json:"userId,omitempty" description:"user id"`
 		UserName         string `json:"userName,omitempty" description:"user name"`
 	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 	Description               interface{}   `json:"description,omitempty" description:"description"`
 	DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"enqueue time"`
-	EndTime                   string        `json:"endTime,omitempty" description:"end time"`
+	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+	EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
 	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 	ID                        string        `json:"id,omitempty" description:"id"`
 	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"organization"`
-	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
+	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
+	Pipeline                  string        `json:"pipeline,omitempty" description:"the name of pipeline"`
 	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"result"`
+	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 string        `json:"startTime,omitempty" description:"start time"`
-	State                     string        `json:"state,omitempty" description:"state"`
+	StartTime                 string        `json:"startTime,omitempty" description:"the time of start"`
+	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 	Type                      string        `json:"type,omitempty" description:"type"`
 	Branch                    interface{}   `json:"branch,omitempty" description:"branch"`
 	CommitID                  interface{}   `json:"commitId,omitempty" description:"commit id"`
@@ -850,8 +850,8 @@ type BranchPipeline struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"queue,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions                   []interface{} `json:"actions,omitempty" description:"the list of actions"`
-	Disabled                  bool          `json:"disabled,omitempty" description:"disable or not"`
+	Actions                   []interface{} `json:"actions,omitempty" description:"the list of all actions"`
+	Disabled                  bool          `json:"disabled,omitempty" description:"disable or not, if disabled, can not do any action"`
 	DisplayName               string        `json:"displayName,omitempty" description:"display name"`
 	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 	FullDisplayName           string        `json:"fullDisplayName,omitempty" description:"full display name"`
@@ -892,34 +892,34 @@ type BranchPipeline struct {
 				Href  string `json:"href,omitempty"`
 			} `json:"artifacts,omitempty"`
 		} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-		Actions          []interface{} `json:"actions,omitempty" description:"the list of actions"`
+		Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 		ArtifactsZipFile string        `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-		CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+		CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 		Causes           []struct {
 			Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 			ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
 			UserID           string `json:"userId,omitempty" description:"user id"`
 			UserName         string `json:"userName,omitempty" description:"user name"`
 		} `json:"causes,omitempty"`
-		ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"change set"`
+		ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
 		Description               interface{}   `json:"description,omitempty" description:"description"`
 		DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-		EnQueueTime               string        `json:"enQueueTime,omitempty" description:"enqueue time"`
-		EndTime                   string        `json:"endTime,omitempty" description:"end time"`
+		EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
+		EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
 		EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time in millis"`
 		ID                        string        `json:"id,omitempty" description:"id"`
 		Name                      interface{}   `json:"name,omitempty" description:"name"`
-		Organization              string        `json:"organization,omitempty" description:"organization"`
+		Organization              string        `json:"organization,omitempty" description:"the name of organization"`
 		Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline"`
 		Replayable                bool          `json:"replayable,omitempty" description:"Replayable or not"`
-		Result                    string        `json:"result,omitempty" description:"result"`
+		Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 		RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
-		StartTime                 string        `json:"startTime,omitempty" description:"start time"`
-		State                     string        `json:"state,omitempty" description:"state"`
+		StartTime                 string        `json:"startTime,omitempty" description:"the time of start"`
+		State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
 		Type                      string        `json:"type,omitempty" description:"type"`
 	} `json:"latestRun,omitempty"`
 	Name         string `json:"name,omitempty" description:"name"`
-	Organization string `json:"organization,omitempty" description:"organization"`
+	Organization string `json:"organization,omitempty" description:"the name of organization"`
 	Parameters   []struct {
 		Class                 string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		DefaultParameterValue struct {
@@ -963,17 +963,17 @@ type PipelineRunNodes struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"steps,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions            []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in mullis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              interface{}   `json:"input,omitempty" description:"input"`
-	Result             string        `json:"result,omitempty" description:"result"`
-	StartTime          string        `json:"startTime,omitempty" description:"start time"`
-	State              string        `json:"state,omitempty" description:"state"`
+	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. FINISHED"`
 	Type               string        `json:"type,omitempty" description:"type"`
-	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"cause 0f blockage"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Edges              []interface{} `json:"edges,omitempty" description:"edges"`
 	FirstParent        interface{}   `json:"firstParent,omitempty" description:"first parent"`
 	Restartable        bool          `json:"restartable,omitempty" description:"restartable or not"`
@@ -1002,15 +1002,15 @@ type NodeSteps struct {
 		} `json:"_links,omitempty" description:"references the reachable path to this resource"`
 		URLName string `json:"urlName,omitempty" description:"url name"`
 	} `json:"actions,omitempty"`
-	DisplayDescription string      `json:"displayDescription,omitempty" description:"display description"`
-	DisplayName        string      `json:"displayName,omitempty" description:"display name"`
-	DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in mullis"`
-	ID                 string      `json:"id,omitempty" description:"id"`
-	Input              interface{} `json:"input,omitempty" description:"input"`
-	Result             string      `json:"result,omitempty" description:"result"`
-	StartTime          string      `json:"startTime,omitempty" description:"start times"`
-	State              string      `json:"state,omitempty" description:"state"`
-	Type               string      `json:"type,omitempty" description:"type"`
+	DisplayDescription string `json:"displayDescription,omitempty" description:"display description"`
+	DisplayName        string `json:"displayName,omitempty" description:"display name"`
+	DurationInMillis   int    `json:"durationInMillis,omitempty" description:"duration time in mullis"`
+	ID                 string `json:"id,omitempty" description:"id"`
+	Input              Input  `json:"input,omitempty" description:"the action should user input"`
+	Result             string `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string `json:"startTime,omitempty" description:"the time of starts"`
+	State              string `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
+	Type               string `json:"type,omitempty" description:"type"`
 }
 
 // CheckScriptCompile
@@ -1078,17 +1078,17 @@ type NodesDetail struct {
 			Href  string `json:"href,omitempty"`
 		} `json:"steps,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions            []interface{} `json:"actions,omitempty" description:"the list of actions"`
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
 	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              interface{}   `json:"input,omitempty" description:"input"`
-	Result             string        `json:"result,omitempty" description:"result"`
-	StartTime          string        `json:"startTime,omitempty" description:"start time"`
-	State              string        `json:"state,omitempty" description:"statue"`
+	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
 	Type               string        `json:"type,omitempty" description:"type"`
-	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"cause of blockage"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
 	Edges              []struct {
 		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		ID    string `json:"id,omitempty" description:"id"`
@@ -1102,4 +1102,19 @@ type NodesDetail struct {
 type NodesStepsIndex struct {
 	Id    int         `json:"id,omitempty" description:"id"`
 	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
+}
+
+type Input struct {
+	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+	Links struct {
+		Self struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"self"`
+	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
+	ID         string        `json:"id,omitempty" description:"the id of check action"`
+	Message    string        `json:"message,omitempty" description:"the message of check action"`
+	Ok         string        `json:"ok,omitempty" description:"check status. e.g. \"Proceed\""`
+	Parameters []interface{} `json:"parameters,omitempty" description:"the parameters of check action"`
+	Submitter  interface{}   `json:"submitter,omitempty" description:"check submitter"`
 }

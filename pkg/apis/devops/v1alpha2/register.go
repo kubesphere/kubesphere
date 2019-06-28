@@ -719,7 +719,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "url of git scm").
+		Param(webservice.QueryParameter("url", "url of git").
 			Required(true).
 			DataFormat("url=%s")))
 
@@ -730,7 +730,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
 		Consumes("application/json").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "url of git scm").
+		Param(webservice.QueryParameter("url", "url of git").
 			Required(true).
 			DataFormat("url=%s")))
 
