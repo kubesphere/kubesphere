@@ -13,10 +13,6 @@ limitations under the License.
 
 package metrics
 
-import (
-	"fmt"
-)
-
 const (
 	ResultTypeVector             = "vector"
 	ResultTypeMatrix             = "matrix"
@@ -734,12 +730,4 @@ var RulePromQLTmplMap = MetricMap{
 
 	"prometheus_up_sum":                          `prometheus:up:sum`,
 	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
-}
-
-func init() {
-	for metric, promql := range RulePromQLTmplMap {
-
-		// Use absent() to fill missing data with zero
-		RulePromQLTmplMap[metric] = fmt.Sprintf("%s or absent(%s)-1", promql, promql)
-	}
 }
