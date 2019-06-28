@@ -19,6 +19,7 @@ package iam
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/params"
 	"net/http"
 	"regexp"
@@ -43,22 +44,29 @@ func CreateUser(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&user)
 
 	if err != nil {
+		glog.Info(err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if user.Username == "" {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid username")))
+		err = fmt.Errorf("invalid username: %s", user.Username)
+		glog.Info(err, user.Username)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if !regexp.MustCompile(emailRegex).MatchString(user.Email) {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid email")))
+		err = fmt.Errorf("invalid email: %s", user.Email)
+		glog.Info(err, user.Email)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if len(user.Password) < 6 {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid password")))
+		err = fmt.Errorf("invalid password")
+		glog.Info(err, user.Password)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -66,9 +74,11 @@ func CreateUser(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			glog.Info(err)
 			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
 			return
 		}
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -82,13 +92,16 @@ func DeleteUser(req *restful.Request, resp *restful.Response) {
 	operator := req.HeaderParameter(constants.UserNameHeader)
 
 	if operator == username {
-		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(fmt.Errorf("cannot delete yourself")))
+		err := fmt.Errorf("cannot delete yourself")
+		glog.Info(err)
+		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(err))
 		return
 	}
 
 	err := iam.DeleteUser(username)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -105,22 +118,29 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&user)
 
 	if err != nil {
+		glog.Info(err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if usernameInPath != user.Username {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("the name of user (%s) does not match the name on the URL (%s)", user.Username, usernameInPath)))
+		err = fmt.Errorf("the name of user (%s) does not match the name on the URL (%s)", user.Username, usernameInPath)
+		glog.Info(err)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if !regexp.MustCompile(emailRegex).MatchString(user.Email) {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid email")))
+		err = fmt.Errorf("invalid email: %s", user.Email)
+		glog.Info(err)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if user.Password != "" && len(user.Password) < 6 {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("invalid password")))
+		err = fmt.Errorf("invalid password")
+		glog.Info(err)
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -128,14 +148,17 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 	if usernameInHeader == user.Username && user.Password != "" {
 		isUserManager, err := isUserManager(usernameInHeader)
 		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+			glog.Error(err)
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
 		if !isUserManager {
 			_, err = iam.Login(usernameInHeader, user.CurrentPassword, "")
 		}
 		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(fmt.Errorf("incorrect current password")))
+			err = fmt.Errorf("incorrect current password")
+			glog.Info(err)
+			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 			return
 		}
 	}
@@ -143,6 +166,13 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 	result, err := iam.UpdateUser(&user)
 
 	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			glog.Info(err)
+			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
+			return
+		}
+
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -166,6 +196,7 @@ func UserLoginLogs(req *restful.Request, resp *restful.Response) {
 	logs, err := iam.LoginLog(username)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -193,8 +224,10 @@ func DescribeUser(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			glog.Info(err)
 			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		} else {
+			glog.Error(err)
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		}
 		return
@@ -203,6 +236,7 @@ func DescribeUser(req *restful.Request, resp *restful.Response) {
 	clusterRole, err := iam.GetUserClusterRole(username)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -212,6 +246,7 @@ func DescribeUser(req *restful.Request, resp *restful.Response) {
 	clusterRules, err := iam.GetUserClusterSimpleRules(username)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -234,6 +269,7 @@ func Precheck(req *restful.Request, resp *restful.Response) {
 	exist, err := iam.UserCreateCheck(check)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -254,6 +290,7 @@ func ListUsers(req *restful.Request, resp *restful.Response) {
 	reverse := params.ParseReverse(req)
 
 	if err != nil {
+		glog.Info(err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -261,6 +298,7 @@ func ListUsers(req *restful.Request, resp *restful.Response) {
 	users, err := iam.ListUsers(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
