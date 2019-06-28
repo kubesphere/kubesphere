@@ -875,6 +875,7 @@ func UpdateUser(user *models.User) (*models.User, error) {
 	conn, err := ldapclient.Client()
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
@@ -883,6 +884,28 @@ func UpdateUser(user *models.User) (*models.User, error) {
 	dn := fmt.Sprintf("uid=%s,%s", user.Username, ldapclient.UserSearchBase)
 	userModifyRequest := ldap.NewModifyRequest(dn, nil)
 	if user.Email != "" {
+		userSearchRequest := ldap.NewSearchRequest(
+			ldapclient.UserSearchBase,
+			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+			fmt.Sprintf("(&(objectClass=inetOrgPerson)(mail=%s))", user.Email),
+			[]string{"uid", "mail"},
+			nil,
+		)
+		result, err := conn.Search(userSearchRequest)
+		if err != nil {
+			glog.Error(err)
+			return nil, err
+		}
+		if len(result.Entries) > 1 {
+			err = ldap.NewError(ldap.ErrorDebugging, fmt.Errorf("email is duplicated: %s", user.Email))
+			glog.Error(err)
+			return nil, err
+		}
+		if len(result.Entries) == 1 && result.Entries[0].GetAttributeValue("uid") != user.Username {
+			err = ldap.NewError(ldap.LDAPResultEntryAlreadyExists, fmt.Errorf("email is duplicated: %s", user.Email))
+			glog.Error(err)
+			return nil, err
+		}
 		userModifyRequest.Replace("mail", []string{user.Email})
 	}
 	if user.Description != "" {
@@ -902,12 +925,14 @@ func UpdateUser(user *models.User) (*models.User, error) {
 	}
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
 	err = conn.Modify(userModifyRequest)
 
 	if err != nil {
+		glog.Error(err)
 		return nil, err
 	}
 
