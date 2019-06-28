@@ -187,18 +187,18 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/components").
 		To(components.GetComponents).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("").
+		Doc("List the system components.").
 		Returns(http.StatusOK, ok, map[string]models.Component{}))
 	webservice.Route(webservice.GET("/components/{component}").
 		To(components.GetComponentStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("").
+		Doc("Describe the specified system component.").
 		Param(webservice.PathParameter("component", "component name")).
 		Returns(http.StatusOK, ok, models.Component{}))
 	webservice.Route(webservice.GET("/componenthealth").
 		To(components.GetSystemHealthStatus).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("").
+		Doc("Get the health status of system components.").
 		Returns(http.StatusOK, ok, map[string]int{}))
 
 	tags = []string{"Quotas"}
