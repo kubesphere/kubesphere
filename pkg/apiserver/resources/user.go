@@ -19,6 +19,7 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
@@ -34,6 +35,7 @@ func GetKubectl(req *restful.Request, resp *restful.Response) {
 	kubectlPod, err := kubectl.GetKubectlPod(user)
 
 	if err != nil {
+		glog.Error(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -48,14 +50,14 @@ func GetKubeconfig(req *restful.Request, resp *restful.Response) {
 	kubectlConfig, err := kubeconfig.GetKubeConfig(user)
 
 	if err != nil {
+		glog.Error(err)
 		if k8serr.IsNotFound(err) {
 			// recreate
 			kubeconfig.CreateKubeConfig(user)
-			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+			resp.WriteHeaderAndJson(http.StatusNotFound, errors.Wrap(err), restful.MIME_JSON)
 		} else {
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+			resp.WriteHeaderAndJson(http.StatusInternalServerError, errors.Wrap(err), restful.MIME_JSON)
 		}
-
 		return
 	}
 
