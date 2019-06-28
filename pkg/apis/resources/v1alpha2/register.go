@@ -130,7 +130,7 @@ func addWebService(c *restful.Container) error {
 		To(resources.ListNamespacedApplication).
 		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("List applications").
+		Doc("List all applications within the specified namespace").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
 			DataFormat("key=value,key~value").
@@ -145,13 +145,13 @@ func addWebService(c *restful.Container) error {
 		To(resources.DescribeApplication).
 		Returns(http.StatusOK, ok, applications.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("Describe application").
+		Doc("Describe the specified application of the namespace").
 		Param(webservice.PathParameter("namespace", "namespace name")).
-		Param(webservice.PathParameter("application", "application id")))
+		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
 		To(resources.DeployApplication).
-		Doc("Deploy application").
+		Doc("Deploy a new application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix.CreateClusterRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
@@ -159,11 +159,11 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
 		To(resources.DeleteApplication).
-		Doc("Delete application").
+		Doc("Delete the specified application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "namespace name")).
-		Param(webservice.PathParameter("application", "application id")))
+		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.GET("/users/{user}/kubectl").
 		To(resources.GetKubectl).
@@ -183,18 +183,18 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/components").
 		To(components.GetComponents).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentStatusTag}).
-		Doc("").
+		Doc("List the system components.").
 		Returns(http.StatusOK, ok, map[string]models.Component{}))
 	webservice.Route(webservice.GET("/components/{component}").
 		To(components.GetComponentStatus).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentStatusTag}).
-		Doc("").
+		Doc("Describe the specified system component.").
 		Param(webservice.PathParameter("component", "component name")).
 		Returns(http.StatusOK, ok, models.Component{}))
 	webservice.Route(webservice.GET("/componenthealth").
 		To(components.GetSystemHealthStatus).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentStatusTag}).
-		Doc("").
+		Doc("Get the health status of system components.").
 		Returns(http.StatusOK, ok, map[string]int{}))
 
 	webservice.Route(webservice.GET("/quotas").
