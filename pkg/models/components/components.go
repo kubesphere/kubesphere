@@ -62,7 +62,7 @@ func GetComponentStatus(name string) (interface{}, error) {
 		return nil, err
 	}
 
-	component := models.Component{
+	component := models.ComponentStatus{
 		Name:            service.Name,
 		Namespace:       service.Namespace,
 		SelfLink:        service.SelfLink,
@@ -71,40 +71,41 @@ func GetComponentStatus(name string) (interface{}, error) {
 		HealthyBackends: 0,
 		TotalBackends:   0,
 	}
-	for _, v := range pods {
+	for _, pod := range pods {
 		component.TotalBackends++
-		component.HealthyBackends++
-		for _, c := range v.Status.ContainerStatuses {
-			if !c.Ready {
-				component.HealthyBackends--
-				break
-			}
+		if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(pod) {
+			component.HealthyBackends++
 		}
 	}
 	return component, nil
 }
 
-func GetSystemHealthStatus() (map[string]interface{}, error) {
+func isAllContainersReady(pod *corev1.Pod) bool {
+	for _, c := range pod.Status.ContainerStatuses {
+		if !c.Ready {
+			return false
+		}
+	}
+	return true
+}
 
-	status := make(map[string]interface{})
+func GetSystemHealthStatus() (*models.HealthStatus, error) {
+
+	status := &models.HealthStatus{}
 
 	componentStatuses, err := k8s.Client().CoreV1().ComponentStatuses().List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, cs := range componentStatuses.Items {
-		status[cs.Name] = cs.Conditions[0]
-	}
+	status.KubernetesComponents = append(status.KubernetesComponents, componentStatuses.Items...)
 
 	// get kubesphere-system components
-	systemComponentStatus, err := GetAllComponentsStatus()
+	components, err := GetAllComponentsStatus()
 	if err != nil {
 		glog.Errorln(err)
 	}
 
-	for k, v := range systemComponentStatus {
-		status[k] = v
-	}
+	status.KubeSphereComponents = components
 
 	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 	// get node status
@@ -114,7 +115,6 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 		return status, nil
 	}
 
-	nodeStatus := make(map[string]int)
 	totalNodes := 0
 	healthyNodes := 0
 	for _, nodes := range nodes {
@@ -125,25 +125,22 @@ func GetSystemHealthStatus() (map[string]interface{}, error) {
 			}
 		}
 	}
-	nodeStatus["totalNodes"] = totalNodes
-	nodeStatus["healthyNodes"] = healthyNodes
+	nodeStatus := models.NodeStatus{TotalNodes: totalNodes, HealthyNodes: healthyNodes}
 
-	status["nodes"] = nodeStatus
+	status.NodeStatus = nodeStatus
 
 	return status, nil
 
 }
 
-func GetAllComponentsStatus() (map[string]interface{}, error) {
+func GetAllComponentsStatus() ([]models.ComponentStatus, error) {
 	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
 	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
 
-	status := make(map[string]interface{})
+	components := make([]models.ComponentStatus, 0)
 
 	var err error
 	for _, ns := range constants.SystemNamespaces {
-
-		nsStatus := make(map[string]interface{})
 
 		services, err := serviceLister.Services(ns).List(labels.Everything())
 
@@ -159,7 +156,7 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 				continue
 			}
 
-			component := models.Component{
+			component := models.ComponentStatus{
 				Name:            service.Name,
 				Namespace:       service.Namespace,
 				SelfLink:        service.SelfLink,
@@ -178,22 +175,14 @@ func GetAllComponentsStatus() (map[string]interface{}, error) {
 
 			for _, pod := range pods {
 				component.TotalBackends++
-				component.HealthyBackends++
-				for _, c := range pod.Status.ContainerStatuses {
-					if !c.Ready {
-						component.HealthyBackends--
-						break
-					}
+				if pod.Status.Phase == corev1.PodRunning && isAllContainersReady(pod) {
+					component.HealthyBackends++
 				}
 			}
 
-			nsStatus[service.Name] = component
-		}
-
-		if len(nsStatus) > 0 {
-			status[ns] = nsStatus
+			components = append(components, component)
 		}
 	}
 
-	return status, err
+	return components, err
 }
