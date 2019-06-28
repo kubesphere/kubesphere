@@ -116,4 +116,3 @@ func IPv4() (net.IP, error) {
 	}
 	return nil, errors.New("no ip address")
 }
-

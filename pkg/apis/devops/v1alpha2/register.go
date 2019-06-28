@@ -202,9 +202,15 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectCredentialHandler).
 		Doc("Get the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
-		Param(webservice.QueryParameter("content", "Get extra content, if not none will get credential's content")).
+		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("credential", "Credential's Id, e.g. dockerhub-id")).
+		Param(webservice.QueryParameter("content", `
+Get extra content, if not none will get credential's content.
+There are three main types of fields in the credential.
+All credential fields, such as name, id, etc., will be returned each time.
+Some credential non-encrypted fields, such as the username of the username-password type credential, which returns when the "content" parameter is set to non-empty.
+Some encrypted fields, such as the password of the username password type credential, this part of the field will never return.
+`)).
 		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}).
 		Reads(devops.JenkinsCredential{}))
 
