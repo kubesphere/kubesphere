@@ -132,12 +132,6 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 		// The object is being deleted
 		if sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
 			// our finalizer is present, so lets handle our external dependency
-			if err := r.deleteGroup(instance); err != nil {
-				// if fail to delete the external dependency here, return with error
-				// so that it can be retried
-				return reconcile.Result{}, err
-			}
-
 			if err := r.deleteDevOpsProjects(instance); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -166,10 +160,6 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 	if err = r.createWorkspaceViewer(instance); err != nil {
 		return reconcile.Result{}, err
 	}
-
-	//if err = r.createGroup(instance); err != nil {
-	//	return reconcile.Result{}, err
-	//}
 
 	if err = r.createWorkspaceRoleBindings(instance); err != nil {
 		return reconcile.Result{}, err

@@ -48,6 +48,15 @@ const (
 	DevopsReporter                 = "reporter"
 
 	UserNameHeader = "X-Token-Username"
+
+	TenantResourcesTag    = "Tenant Resources"
+	IdentityManagementTag = "Identity Management"
+	AccessManagementTag   = "Access Management"
+	NamespaceResourcesTag = "Namespace Resources"
+	ClusterResourcesTag   = "Cluster Resources"
+	ComponentStatusTag    = "Component Status"
+	VerificationTag       = "Verification"
+	UserResourcesTag      = "User Resources"
 )
 
 var (
