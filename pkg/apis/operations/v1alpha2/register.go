@@ -42,6 +42,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.POST("/nodes/{node}/drainage").
 		To(operations.DrainNode).
+		Deprecate().
 		Doc("Drain node").
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
@@ -49,6 +50,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
 		To(operations.RerunJob).
 		Doc("Job rerun").
+		Deprecate().
 		Param(webservice.PathParameter("job", "job name")).
 		Param(webservice.PathParameter("namespace", "job's namespace")).
 		Param(webservice.QueryParameter("a", "action")).
