@@ -27,6 +27,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"math/big"
@@ -34,7 +35,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"gopkg.in/yaml.v2"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -217,7 +217,7 @@ func createKubeConfig(username string) (string, error) {
 		return "", err
 	}
 	base64ServerCa := base64.StdEncoding.EncodeToString(serverCa)
-	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.MasterURL}
+	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.KubeConfig.Host}
 	tmpCluster := cluster{Cluster: tmpClusterInfo, Name: clusterName}
 	tmpKubeConfig.Clusters = append(tmpKubeConfig.Clusters, tmpCluster)
 
@@ -276,7 +276,28 @@ func GetKubeConfig(username string) (string, error) {
 		glog.Errorf("cannot get username %s's kubeConfig, reason: %v", username, err)
 		return "", err
 	}
-	return configMap.Data[kubectlConfigKey], nil
+
+	str := configMap.Data[kubectlConfigKey]
+	var kubeConfig kubeConfig
+	err = yaml.Unmarshal([]byte(str), &kubeConfig)
+	if err != nil {
+		glog.Error(err)
+		return "", err
+	}
+	masterURL := k8s.KubeConfig.Host
+	if host := k8s.MasterURL; host != "" {
+		masterURL = host
+	}
+	for i, cluster := range kubeConfig.Clusters {
+		cluster.Cluster.Server = masterURL
+		kubeConfig.Clusters[i] = cluster
+	}
+	data, err := yaml.Marshal(kubeConfig)
+	if err != nil {
+		glog.Error(err)
+		return "", err
+	}
+	return string(data), nil
 }
 
 func DelKubeConfig(username string) error {

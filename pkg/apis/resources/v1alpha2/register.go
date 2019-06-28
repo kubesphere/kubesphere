@@ -175,7 +175,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, models.PodInfo{}))
 
 	webservice.Route(webservice.GET("/users/{user}/kubeconfig").
-		Produces("text/plain").
+		Produces("text/plain", restful.MIME_JSON).
 		To(resources.GetKubeconfig).
 		Doc("get users' kubeconfig").
 		Param(webservice.PathParameter("user", "username")).
