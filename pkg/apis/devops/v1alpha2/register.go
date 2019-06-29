@@ -82,7 +82,7 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
-		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, support use keyword to search, like 'conditions:keyword=demo'").
 			Required(false).
 			DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, RespOK, []devops.DevOpsProjectMembership{}).
@@ -159,7 +159,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarstatus").
 		To(devopsapi.GetPipelineSonarStatusHandler).
-		Doc("Get the sonar quality information for the specified pipeline of the DevOps project").
+		Doc("Get the sonar quality information for the specified pipeline of the DevOps project. For a detailed explanation of the fields you can refer to the official sonarqube documentation: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
@@ -168,7 +168,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branch}/sonarstatus").
 		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
-		Doc("Get the sonar quality check information for the specified pipeline branch of the DevOps project").
+		Doc("Get the sonar quality check information for the specified pipeline branch of the DevOps project. For a detailed explanation of the fields you can refer to the official sonarqube documentation: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipelines", "the name of pipeline, e.g. sample-pipeline")).
@@ -211,24 +211,22 @@ All credential fields, such as name, id, etc., will be returned each time.
 Some credential non-encrypted fields, such as the username of the username-password type credential, which returns when the "content" parameter is set to non-empty.
 Some encrypted fields, such as the password of the username password type credential, this part of the field will never return.
 `)).
-		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}).
-		Reads(devops.JenkinsCredential{}))
+		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials").
 		To(devopsapi.GetDevOpsProjectCredentialsHandler).
 		Doc("Get all credentials of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Returns(http.StatusOK, RespOK, []devops.JenkinsCredential{}).
-		Reads([]devops.JenkinsCredential{}))
+		Returns(http.StatusOK, RespOK, []devops.JenkinsCredential{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
 		To(devopsapi.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get the specified pipeline of the DevOps project").
-		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Returns(http.StatusOK, RespOK, devops.Pipeline{}).
 		Writes(devops.Pipeline{}))
 
@@ -280,9 +278,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.QueryParameter("start", "the item number of the search starts from.").
-			Required(false).
-			DataFormat("start=%d")).
 		Returns(http.StatusOK, RespOK, devops.BranchPipelineRun{}).
 		Writes(devops.BranchPipelineRun{}))
 
@@ -315,7 +310,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("node", "pipeline node id, the one node in pipeline.")).
 		Param(webservice.PathParameter("step", "pipeline step id, the one step in pipeline.")).
 		Param(webservice.QueryParameter("start", "the item number of the search starts from.").
-			Required(true).
+			Required(false).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
 
@@ -331,7 +326,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("node", "pipeline node id, the one node in pipeline.")).
 		Param(webservice.PathParameter("step", "pipeline step id, the one step in pipeline.")).
 		Param(webservice.QueryParameter("start", "the item number of the search starts from.").
-			Required(true).
+			Required(false).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
 
@@ -448,7 +443,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number of the search starts from.").
-			Required(true).
+			Required(false).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
 
@@ -462,7 +457,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number of the search starts from.").
-			Required(true).
+			Required(false).
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
 
@@ -509,14 +504,14 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.QueryParameter("filter", "filter remote scm. e.g. origin").
-			Required(true).
+			Required(false).
 			DataFormat("filter=%s")).
 		Param(webservice.QueryParameter("start", "the count of branches start.").
-			Required(true).
-			DataFormat("start=%d")).
+			Required(false).
+			DataFormat("start=%d").DefaultValue("start=0")).
 		Param(webservice.QueryParameter("limit", "the count of branches limit.").
-			Required(true).
-			DataFormat("limit=%d")).
+			Required(false).
+			DataFormat("limit=%d").DefaultValue("limit=100")).
 		Returns(http.StatusOK, RespOK, []devops.PipeBranch{}).
 		Writes([]devops.PipeBranch{}))
 
@@ -569,7 +564,7 @@ Some encrypted fields, such as the password of the username password type creden
 			DataFormat("delay=%d")))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{}/runs/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/run").
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs").
 		To(devopsapi.RunBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("(MultiBranchesPipeline) Run pipeline.").
@@ -581,7 +576,7 @@ Some encrypted fields, such as the password of the username password type creden
 		Writes(devops.QueuedBlueRun{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/run").
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
 		To(devopsapi.RunPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Run pipeline.").
@@ -654,9 +649,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search").
-			Required(false).
-			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
 		Writes([]devops.PipelineRunNodes{}))
 
@@ -670,9 +662,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
 		Param(webservice.PathParameter("node", "pipeline node id, the one node in pipeline.")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(false).
-			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
@@ -685,9 +674,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build")).
 		Param(webservice.PathParameter("node", "pipeline node id, the one node in pipeline.")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(false).
-			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
@@ -748,9 +734,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(true).
-			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
@@ -763,9 +746,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository brnach.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(true).
-			DataFormat("limit=%d")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
