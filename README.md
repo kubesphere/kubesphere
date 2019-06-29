@@ -2,6 +2,8 @@
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
 
+![logo](docs/images/kubesphere-logo.png)
+
 ----
 
 ## What is KubeSphere
@@ -12,7 +14,7 @@
 
 ## Features
 
-KubeSphere Advanced Edition 2.0.0 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
+KubeSphere Advanced Edition 2.0.1 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
 
 
 - Workload management
@@ -37,27 +39,9 @@ It also supports multiple open source storage and high-performance cloud storage
 
 ## Latest Release
 
-KubeSphere Advanced Edition 2.0.0 was released on **May 18th, 2019**. See the [Release Notes For 2.0.0](https://docs.kubesphere.io/advanced-v2.0/release/release-v200/) to preview the updates.
+KubeSphere Advanced Edition 2.0.1 was released on **May 18th, 2019**. See the [Release Notes For 2.0.1](https://docs.kubesphere.io/advanced-v2.0/release/release-v201/) to preview the updates.
 
 ## Installation
-
-KubeSphere installation supports following 2 kinds of installation, please reference the following guides on how to get KubeSphere up and running.
-
-### All-in-One
-
-[All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. 
-
-Just download the installer and execute the `install.sh` under `/scripts` folder, choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any modification, for details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
-
-```bash
-$ curl -L https://kubesphere.io/download/stable/advanced-2.0.0 > advanced-2.0.0.tar.gz
-$ tar -zxf advanced-2.0.0.tar.gz
-```
-
-### Multi-Node
-
-[Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/) is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster which is able to use in a formal environment.
-
 
 ### Minimum Requirements
 
@@ -69,27 +53,56 @@ $ tar -zxf advanced-2.0.0.tar.gz
 - Hardware
    - CPU：8 Core,  Memory：16 G, Disk Space：100 G
 
-## Quick Start
+### All-in-One
 
-The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/admin-quick-start/) provides 12 quick-start examples to walk you through the process and common manipulation in KubeSphere, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
+[All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
 
+```bash
+$ curl -L https://kubesphere.io/download/stable/advanced-2.0.1 > advanced-2.0.1.tar.gz && tar -zxf advanced-2.0.1.tar.gz
+$ cd kubesphere-all-advanced-2.0.1/scripts
+$ ./install.sh
+```
+
+![demo](https://pek3b.qingstor.com/kubesphere-docs/png/kubesphere-intall.gif)
+
+Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
+
+### Multi-Node
+
+[Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/) is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster in a formal environment. Multi-node installation requires pre-configuration steps, see [Multi-Node Guide](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
+
+
+## To start using KubeSphere
+
+### Quick Start
+
+The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/admin-quick-start/) provides 12 quick-start tutorials to walk you through the process and common manipulation in KubeSphere, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
+
+
+![Dashboard](docs/images/dashboard.png)
+
+### Documentation
+
+- [KubeSphere Documentation (En/中) ](https://docs.kubesphere.io/)
+- [KubeSphere Documentation (PDF)](https://docs.kubesphere.io/KubeSphere-advanced-v2.0.pdf)
+
+
+## To start developing KubeSphere
+
+The [development guide](docs/development-guide.md) hosts all information about building KubeSphere from source, git workflow, how to contribute code and how to test.
 
 ## RoadMap
 
-Currently, KubeSphere has released the following 4 major editions. Advanced Edition 2.0.0 was released on May 18, 2019. The future releases will include Big data, AI, Multicluster, QingCloud SDN, etc.
+Currently, KubeSphere has released the following 4 major editions. The future releases will include Big data, AI, Multicluster, QingCloud SDN, etc.
 
-**Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.0**
+**Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
 
 ![Roadmap](docs/images/roadmap-en.png)
 
-## Documentation
-
-- [KubeSphere Documentation (En/中) ](https://docs.kubesphere.io/)
-- [KubeSphere Docementation (PDF)](https://docs.kubesphere.io/KubeSphere-advanced-v2.0.pdf)
 
 ## Support, Discussion, and Community
 
-If you need any help with KubeSphere, please join us at [Slack channel](http://kubesphere.slack.com/) where most of our team hangs out at.
+If you need any help with KubeSphere, please join us at [Slack channel](http://kubesphere.slack.com/).
 
 Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
 
@@ -99,6 +112,5 @@ All members of the KubeSphere community must abide by [Code of Conduct](docs/cod
 
 How to submit a pull request to KubeSphere? See [Pull Request Instruction](docs/pull-requests.md).
 
-You can then find out more detail [here](docs/welcome-to-KubeSphere-new-developer-guide.md).
 
 
