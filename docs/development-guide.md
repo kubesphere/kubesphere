@@ -86,7 +86,7 @@ $ git checkout -b myfeature
 
 Then edit code on the myfeature branch.
 
-**Test and Build**
+**Test and build**
 
 Currently, make rules only contain simple checks such as vet, unit test, will add e2e tests soon.
 
@@ -96,7 +96,7 @@ Currently, make rules only contain simple checks such as vet, unit test, will ad
 
 - For MacOS, you can install KubeBuilder by following this [guide](https://book.kubebuilder.io/quick-start.html).
 
-**Run and Test**
+**Run and test**
 
 ```bash
 $ make all
@@ -107,6 +107,21 @@ $ make test
 Run `make help` for additional information on these make targets.
 
 ### 5 Development in new branch
+
+**Sync with upstream**
+
+After the test is completed, suggest you to keep your local in sync with upstream which can avoid conflicts.
+
+```
+# Rebase your the master branch of your local repo.
+$ git checkout master
+$ git rebase upstream/master
+
+# Then make your development branch in sync with master branch
+git checkout new_feature
+git rebase -i master
+```
+**Commit local changes**
 
 ```bash
 $ git add <file>
@@ -128,3 +143,22 @@ $ git push -f ${your_remote_name} myfeature
 - Check out the [pull request process](pull-request.md) for more details and advice.
 
 
+## CI/CD
+
+KubeSphere uses [Travis CI](https://travis-ci.org/) as a CI/CD tool.
+
+The components of KubeSphere need to be compiled and build include following:
+
+`ks-apiserver, ks-controller-manager, ks-account, ks-apigateway, ks-devops`
+
+After your PR is merged，Travis CI will compile the entire project and build the image, and push the image `kubespheredev/[component-name]:latest` to Dockerhub (e.g. `kubespheredev/ks-apiserver:latest`)
+
+## Code conventions
+
+Please reference [Code conventions](https://github.com/kubernetes/community/blob/master/contributors/guide/coding-conventions.md) and follow with the rules.
+
+**Note:**
+
+> - All new packages and most new significant functionality must come with unit tests
+> - Comment your code in English, see [Go's commenting conventions
+](http://blog.golang.org/godoc-documenting-go-code)
