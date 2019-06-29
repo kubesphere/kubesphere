@@ -263,6 +263,9 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.QueryParameter("limit", "the limit item count of the search").
 			Required(false).
 			DataFormat("limit=%d")).
+		Param(webservice.QueryParameter("branch", "the name of branch, same as repository branch, will be filtered by branch.").
+			Required(false).
+			DataFormat("branch=%s")).
 		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRun{}).
 		Writes([]devops.BranchPipelineRun{}))
 
@@ -342,9 +345,9 @@ Some encrypted fields, such as the password of the username password type creden
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
 		Param(webservice.PathParameter("scm", "the id of the source configuration management (SCM).")).
-		Param(webservice.QueryParameter("credentialid", "credential id for source configuration management (SCM).").
+		Param(webservice.QueryParameter("credentialId", "credential id for source configuration management (SCM).").
 			Required(true).
-			DataFormat("credentialid=%s")).
+			DataFormat("credentialId=%s")).
 		Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
 		Writes([]devops.SCMOrg{}))
 
@@ -355,9 +358,9 @@ Some encrypted fields, such as the password of the username password type creden
 		Doc("List all repositories in the specified organization.").
 		Param(webservice.PathParameter("scm", "The id of the source configuration management (SCM).")).
 		Param(webservice.PathParameter("organization", "organization Id, such as github username.")).
-		Param(webservice.QueryParameter("credentialid", "credential id for SCM.").
+		Param(webservice.QueryParameter("credentialId", "credential id for SCM.").
 			Required(true).
-			DataFormat("credentialid=%s")).
+			DataFormat("credentialId=%s")).
 		Param(webservice.QueryParameter("pageNumber", "page number.").
 			Required(true).
 			DataFormat("pageNumber=%d")).
