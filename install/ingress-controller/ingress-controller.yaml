@@ -22,7 +22,7 @@ spec:
       serviceAccountName: kubesphere-router-serviceaccount
       containers:
         - name: nginx-ingress-controller
-          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.16.2
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.24.1
           args:
             - /nginx-ingress-controller
             - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
@@ -31,6 +31,15 @@ spec:
             - --force-namespace-isolation
             - --update-status
             - --update-status-on-shutdown
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+            # www-data -> 33
+            runAsUser: 33
           env:
             - name: POD_NAME
               valueFrom:
@@ -54,7 +63,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 1
+            timeoutSeconds: 10
           readinessProbe:
             failureThreshold: 3
             httpGet:
@@ -63,7 +72,6 @@ spec:
               scheme: HTTP
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 1
-          securityContext:
-            runAsNonRoot: false
+            timeoutSeconds: 10
+
 
