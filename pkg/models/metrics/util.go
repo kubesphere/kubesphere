@@ -239,19 +239,11 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	allPage := int(math.Ceil(float64(maxLength) / float64(limit)))
 
 	// add page fields
-	return &struct {
-		*FormatedLevelMetric
-		CurrentPage int    `json:"page"`
-		TotalPage   int    `json:"total_page"`
-		TotalItem   int    `json:"total_item"`
-		Message     string `json:"msg"`
-	}{
-		FormatedLevelMetric: fmtLevelMetric,
-		CurrentPage:         page,
-		TotalItem:           maxLength,
-		TotalPage:           allPage,
-		Message:             "paged",
-	}
+	fmtLevelMetric.CurrentPage = page
+	fmtLevelMetric.TotalItem = maxLength
+	fmtLevelMetric.TotalPage = allPage
+
+	return fmtLevelMetric
 }
 
 // maybe this function is time consuming
