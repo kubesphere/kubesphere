@@ -82,7 +82,7 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
-		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, support use keyword to search, like 'conditions:keyword=demo'").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, support using key-value pairs separated by comma to search, like 'conditions:somekey=somevalue,anotherkey=anothervalue'").
 			Required(false).
 			DataFormat("key=%s,key~%s")).
 		Returns(http.StatusOK, RespOK, []devops.DevOpsProjectMembership{}).
@@ -178,7 +178,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
 		To(devopsapi.CreateDevOpsProjectCredentialHandler).
-		Doc("Create a Credential in the specified DevOps project").
+		Doc("Create a credential in the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Reads(devops.JenkinsCredential{}))
@@ -202,14 +202,13 @@ func addWebService(c *restful.Container) error {
 		To(devopsapi.GetDevOpsProjectCredentialHandler).
 		Doc("Get the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(webservice.PathParameter("devops", "DevOps Project's Id, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("credential", "Credential's Id, e.g. dockerhub-id")).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
 		Param(webservice.QueryParameter("content", `
-Get extra content, if not none will get credential's content.
-There are three main types of fields in the credential.
-All credential fields, such as name, id, etc., will be returned each time.
-Some credential non-encrypted fields, such as the username of the username-password type credential, which returns when the "content" parameter is set to non-empty.
-Some encrypted fields, such as the password of the username password type credential, this part of the field will never return.
+Get extra credential content if this query parameter is set. 
+Specifically, there are three types of info in a credential. One is the basic info that must be returned for each query such as name, id, etc.
+The second one is non-encrypted info such as the username of the username-password type of credential, which returns when the "content" parameter is set to non-empty.
+The last one is encrypted info, such as the password of the username-password type of credential, which never returns.
 `)).
 		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}))
 
