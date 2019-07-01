@@ -166,12 +166,12 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
 
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipelines}/branches/{branch}/sonarstatus").
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/sonarstatus").
 		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
 		Doc("Get the sonar quality check information for the specified pipeline branch of the DevOps project. For a detailed explanation of the fields you can refer to the official sonarqube documentation: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipelines", "the name of pipeline, e.g. sample-pipeline")).
+		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
 		Param(webservice.PathParameter("branch", "branch name, e.g. master")).
 		Returns(http.StatusOK, RespOK, []devops.SonarStatus{}).
 		Writes([]devops.SonarStatus{}))
