@@ -103,7 +103,8 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProjectMembership{}).
-		Writes(devops.DevOpsProjectMembership{}))
+		Writes(devops.DevOpsProjectMembership{}).
+		Reads(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}/members/{member}").
 		To(devopsapi.UpdateDevOpsProjectMemberHandler).
