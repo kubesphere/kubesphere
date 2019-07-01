@@ -263,9 +263,6 @@ Some encrypted fields, such as the password of the username password type creden
 		Param(webservice.QueryParameter("limit", "the limit item count of the search").
 			Required(false).
 			DataFormat("limit=%d")).
-		Param(webservice.QueryParameter("branch", "the name of branch, same as repository branch, will be filtered by branch.").
-			Required(false).
-			DataFormat("branch=%s")).
 		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRun{}).
 		Writes([]devops.BranchPipelineRun{}))
 
