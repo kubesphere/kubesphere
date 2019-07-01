@@ -57,6 +57,14 @@ const (
 	ComponentStatusTag    = "Component Status"
 	VerificationTag       = "Verification"
 	UserResourcesTag      = "User Resources"
+	ClusterMetricsTag     = "Cluster Metrics"
+	NodeMetricsTag        = "Node Metrics"
+	NamespaceMetricsTag   = "Namespace Metrics"
+	PodMetricsTag         = "Pod Metrics"
+	ContainerMetricsTag   = "Container Metrics"
+	WorkloadMetricsTag    = "Workload Metrics"
+	WorkspaceMetricsTag   = "Workspace Metrics"
+	ComponentMetricsTag   = "Component Metrics"
 )
 
 var (
