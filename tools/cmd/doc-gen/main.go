@@ -62,12 +62,22 @@ func generateSwaggerJson() {
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 
 	swagger := restfulspec.BuildSwagger(config)
+	addExtensions(swagger)
+	addMissingDefinitions(swagger)
+	data, _ := json.Marshal(swagger)
+	err := ioutil.WriteFile(output, data, 420)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("successfully written to %s", output)
+}
 
-	swagger.Info.Extensions = make(spec.Extensions)
-	swagger.Info.Extensions.Add("x-tagGroups", []struct {
-		Name string   `json:"name"`
-		Tags []string `json:"tags"`
-	}{
+func addExtensions(swagger *spec.Swagger) {
+	swagger.Info.Extensions = spec.Extensions{"x-logo": URL{URL: "/ApiDocs.svg"}}
+	swagger.Extensions = make(spec.Extensions)
+	swagger.Extensions["x-servers"] = URL{URL: "https://console.kubesphere.io"}
+	swagger.ExternalDocs = &spec.ExternalDocumentation{Description: "> Read Notification API documents.", URL: "/advanced-v2.0/api"}
+	swagger.Extensions["x-tagGroups"] = []Group{
 		{
 			Name: "IAM",
 			Tags: []string{constants.IdentityManagementTag, constants.AccessManagementTag},
@@ -88,14 +98,7 @@ func generateSwaggerJson() {
 			Name: "Other",
 			Tags: []string{constants.VerificationTag},
 		},
-	})
-
-	data, _ := json.Marshal(swagger)
-	err := ioutil.WriteFile(output, data, 420)
-	if err != nil {
-		log.Fatal(err)
 	}
-	log.Printf("successfully written to %s", output)
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
@@ -112,7 +115,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 				Name: "Apache",
 				URL:  "http://www.apache.org/licenses/",
 			},
-			Version: "2.0.0",
+			Version: "2.0.2",
 		},
 	}
 
@@ -123,6 +126,25 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Security = []map[string][]string{{"jwt": []string{}}}
 }
 
+func addMissingDefinitions(swo *spec.Swagger) {
+	// error
+	errorRef := spec.Schema{}
+	errorRef.Type = spec.StringOrArray{"object"}
+	errorRef.Properties = make(map[string]spec.Schema)
+	message := *spec.StringProperty()
+	message.Description = "error message"
+	errorRef.Properties["message"] = message
+	swo.Definitions["error"] = errorRef
+
+	// resource.Scale
+	resourceScale := *spec.Int32Property()
+	swo.Definitions["resource.Scale"] = resourceScale
+
+	// inf.Scale
+	infScale := *spec.Int32Property()
+	swo.Definitions["inf.Scale"] = infScale
+}
+
 func apiTree(container *restful.Container) {
 	buf := bytes.NewBufferString("\n")
 	for _, ws := range container.RegisteredWebServices() {
@@ -131,4 +153,13 @@ func apiTree(container *restful.Container) {
 		}
 	}
 	log.Println(buf.String())
+}
+
+type URL struct {
+	URL string `json:"url"`
+}
+
+type Group struct {
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
 }
