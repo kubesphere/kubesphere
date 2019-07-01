@@ -76,6 +76,7 @@ const (
 	StatefulSet = "StatefulSet"
 	DaemonSet   = "DaemonSet"
 	Deployment  = "Deployment"
+	Any         = ".*"
 )
 
 const (
@@ -598,6 +599,10 @@ var RulePromQLTmplMap = MetricMap{
 
 	// workload
 	// Join the "container_cpu_usage_seconds_total" metric with "kube_pod_owner" to calculate workload-level resource usage
+	//
+	// Note the name convention:
+	// For hardware resource metrics, combine pod metric name with `workload_`
+	// For k8s resource metrics, must specify the workload type in metric names
 	"workload_pod_cpu_usage":             `round(namespace:workload_cpu_usage:sum{namespace="$2", workload=~"$3"}, 0.001)`,
 	"workload_pod_memory_usage":          `namespace:workload_memory_usage:sum{namespace="$2", workload=~"$3"}`,
 	"workload_pod_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{namespace="$2", workload=~"$3"}`,

@@ -27,12 +27,16 @@ func MakeWorkloadPromQL(metricName, nsName, resources_filter, wkKind string) str
 		wkKind = DaemonSet
 	case "statefulset":
 		wkKind = StatefulSet
-	default:
-		wkKind = "(.*)"
 	}
 
-	if resources_filter == "" {
-		resources_filter = ".*"
+	if wkKind == "" {
+		resources_filter = Any
+	} else if resources_filter == "" {
+		if strings.Contains(metricName, "pod") {
+			resources_filter = wkKind + ":" + Any
+		} else if strings.Contains(metricName, strings.ToLower(wkKind)) {
+			resources_filter = Any
+		}
 	} else {
 		var prefix string
 
