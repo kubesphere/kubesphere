@@ -93,6 +93,10 @@ func generateSwaggerJson() {
 			Tags: []string{constants.ClusterMetricsTag, constants.NodeMetricsTag, constants.NamespaceMetricsTag, constants.WorkloadMetricsTag,
 				constants.PodMetricsTag, constants.ContainerMetricsTag, constants.WorkspaceMetricsTag, constants.ComponentMetricsTag},
 		},
+		{
+			Name: "Logging",
+			Tags: []string{constants.LogQueryTag, constants.FluentBitSetting},
+		},
 	})
 
 	data, _ := json.Marshal(swagger)

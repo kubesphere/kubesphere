@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/models/log"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
@@ -48,25 +49,25 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
 		Filter(filter.Logging).
 		Doc("Query logs against the cluster.").
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("workspaces", "List of workspaces, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workspace_query", "List of keywords, separated by comma, for filtering workspaces. Workspaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("namespaces", "List of namespaces, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("namespace_query", "List of keywords, separated by comma, for filtering namespaces. Namespaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workloads", "List of workloads, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workload_query", "List of keywords, separated by comma, for filtering workloads. Workloads whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pods", "List of pods, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pod_query", "List of keywords, separated by comma, for filtering pods. Pods whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("containers", "List of containers, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("container_query", "List of keywords, separated by comma, for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("workspaces", "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workspace_query", "A comma-separated list of keywords. Differing from **workspaces**, this field performs fuzzy matching on workspaces. For example, the following value limits the query to workspaces whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespaces", "A comma-separated list of namespaces. This field restricts the query to specified namespaces. For example, the following filter matches the namespace my-ns and demo-ns: `my-ns,demo-ns`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespace_query", "A comma-separated list of keywords. Differing from **namespaces**, this field performs fuzzy matching on namespaces. For example, the following value limits the query to namespaces whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "A comma-separated list of workloads. This field restricts the query to specified workloads. For example, the following filter matches the workload my-wl and demo-wl: `my-wl,demo-wl`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "A comma-separated list of keywords. Differing from **workloads**, this field performs fuzzy matching on workloads. For example, the following value limits the query to workloads whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "A comma-separated list of pods. This field restricts the query to specified pods. For example, the following filter matches the pod my-po and demo-po: `my-po,demo-po`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pod_query", "A comma-separated list of keywords. Differing from **pods**, this field performs fuzzy matching on pods. For example, the following value limits the query to pods whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "A comma-separated list of containers. This field restricts the query to specified containers. For example, the following filter matches the container my-cont and demo-cont: `my-cont,demo-cont`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "A comma-separated list of keywords. Differing from **containers**, this field performs fuzzy matching on containers. For example, the following value limits the query to containers whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -75,24 +76,24 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
 		Filter(filter.Logging).
 		Doc("Query logs against a specific workspace.").
-		Param(ws.PathParameter("workspace", "Perform query against a specific workspace.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("namespaces", "List of namespaces, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("namespace_query", "List of keywords, separated by comma, for filtering namespaces. Namespaces whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workloads", "List of workloads, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workload_query", "List of keywords, separated by comma, for filtering workloads. Workloads whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pods", "List of pods, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pod_query", "List of keywords, separated by comma, for filtering pods. Pods whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("containers", "List of containers, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("container_query", "List of keywords, separated by comma, for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.PathParameter("workspace", "Specify the workspace. This field restricts the query to a specific workspace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("namespaces", "A comma-separated list of namespaces. This field restricts the query to specified namespaces. For example, the following filter matches the namespace my-ns and demo-ns: `my-ns,demo-ns`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("namespace_query", "A comma-separated list of keywords. Differing from **namespaces**, this field performs fuzzy matching on namespaces. For example, the following value limits the query to namespaces whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workloads", "A comma-separated list of workloads. This field restricts the query to specified workloads. For example, the following filter matches the workload my-wl and demo-wl: `my-wl,demo-wl`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "A comma-separated list of keywords. Differing from **workloads**, this field performs fuzzy matching on workloads. For example, the following value limits the query to workloads whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "A comma-separated list of pods. This field restricts the query to specified pods. For example, the following filter matches the pod my-po and demo-po: `my-po,demo-po`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pod_query", "A comma-separated list of keywords. Differing from **pods**, this field performs fuzzy matching on pods. For example, the following value limits the query to pods whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "A comma-separated list of containers. This field restricts the query to specified containers. For example, the following filter matches the container my-cont and demo-cont: `my-cont,demo-cont`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "A comma-separated list of keywords. Differing from **containers**, this field performs fuzzy matching on containers. For example, the following value limits the query to containers whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -101,22 +102,22 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/namespaces/{namespace}").To(logging.LoggingQueryNamespace).
 		Filter(filter.Logging).
 		Doc("Query logs against a specific namespace.").
-		Param(ws.PathParameter("namespace", "Perform query against a specific namespace.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("workloads", "List of workloads, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("workload_query", "List of keywords, separated by comma, for filtering workloads. Workloads whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pods", "List of pods, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pod_query", "List of keywords, separated by comma, for filtering pods. Pods whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("containers", "List of containers, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("container_query", "List of keywords, separated by comma, for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.PathParameter("namespace", "Specify the namespace. This field restricts the query to a specific namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("workloads", "A comma-separated list of workloads. This field restricts the query to specified workloads. For example, the following filter matches the workload my-wl and demo-wl: `my-wl,demo-wl`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("workload_query", "A comma-separated list of keywords. Differing from **workloads**, this field performs fuzzy matching on workloads. For example, the following value limits the query to workloads whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pods", "A comma-separated list of pods. This field restricts the query to specified pods. For example, the following filter matches the pod my-po and demo-po: `my-po,demo-po`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pod_query", "A comma-separated list of keywords. Differing from **pods**, this field performs fuzzy matching on pods. For example, the following value limits the query to pods whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "A comma-separated list of containers. This field restricts the query to specified containers. For example, the following filter matches the container my-cont and demo-cont: `my-cont,demo-cont`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "A comma-separated list of keywords. Differing from **containers**, this field performs fuzzy matching on containers. For example, the following value limits the query to containers whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -126,20 +127,20 @@ func addWebService(c *restful.Container) error {
 		Filter(filter.Logging).
 		Doc("Query logs against a specific workload.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the workload.").DataType("string").Required(true)).
-		Param(ws.PathParameter("workload", "Perform query against a specific workload.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("pods", "List of pods, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("pod_query", "List of keywords, separated by comma, for filtering pods. Pods whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("containers", "List of containers, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("container_query", "List of keywords, separated by comma, for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.PathParameter("workload", "Specify the workload. This field restricts the query to a specific workload.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("pods", "A comma-separated list of pods. This field restricts the query to specified pods. For example, the following filter matches the pod my-po and demo-po: `my-po,demo-po`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("pod_query", "A comma-separated list of keywords. Differing from **pods**, this field performs fuzzy matching on pods. For example, the following value limits the query to pods whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("containers", "A comma-separated list of containers. This field restricts the query to specified containers. For example, the following filter matches the container my-cont and demo-cont: `my-cont,demo-cont`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "A comma-separated list of keywords. Differing from **containers**, this field performs fuzzy matching on containers. For example, the following value limits the query to containers whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -149,18 +150,18 @@ func addWebService(c *restful.Container) error {
 		Filter(filter.Logging).
 		Doc("Query logs against a specific pod.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the pod.").DataType("string").Required(true)).
-		Param(ws.PathParameter("pod", "Perform query against a specific pod.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("containers", "List of containers, separated by comma, the query will perform against.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("container_query", "List of keywords, separated by comma, for filtering containers. Containers whose name contains at least one keyword will be matched for query. Non case-sensitive matching.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.PathParameter("pod", "Specify the pod. This field restricts the query to a specific pod.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("containers", "A comma-separated list of containers. This field restricts the query to specified containers. For example, the following filter matches the container my-cont and demo-cont: `my-cont,demo-cont`").DataType("string").Required(false)).
+		Param(ws.QueryParameter("container_query", "A comma-separated list of keywords. Differing from **containers**, this field performs fuzzy matching on containers. For example, the following value limits the query to containers whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -171,16 +172,16 @@ func addWebService(c *restful.Container) error {
 		Doc("Query logs against a specific container.").
 		Param(ws.PathParameter("namespace", "Specify the namespace of the pod.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Specify the pod of the container.").DataType("string").Required(true)).
-		Param(ws.PathParameter("container", "Perform query against a specific container.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query operation type. One of query, statistics, histogram.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("log_query", "List of keywords, separated by comma, for filtering logs. The query returns log containing at least one keyword. Non case-sensitive matching. eg. err,INFO.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("interval", "Count logs at intervals. Valid only if operation is histogram. The unit can be ms(milliseconds), s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months), q(quarters), y(years). eg. 30m.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start_time", "Start of query range. Default to 0. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("end_time", "End of query range. Default to now. This option accepts built-in formats supported by Elasticsearch, such as epoch_millis (eg. 1559664000000).").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Sort logs by timestamp. One of acs, desc.").DataType("string").DefaultValue("desc").Required(false)).
-		Param(ws.QueryParameter("from", "Beginning index of result to return. Use this option together with size.").DataType("integer").DefaultValue("0").Required(false)).
-		Param(ws.QueryParameter("size", "Size of result to return.").DataType("integer").DefaultValue("10").Required(false)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "query"}).
+		Param(ws.PathParameter("container", "Specify the container. This field restricts the query to a specific container.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval).").DataType("string").Required(true)).
+		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
+		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
+		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
+		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
 		Writes(esclient.QueryResult{}).
 		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -189,7 +190,7 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
 		Filter(filter.Logging).
 		Doc("List all Fluent bit output plugins.").
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
@@ -198,7 +199,7 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/fluentbit/outputs").To(logging.LoggingInsertFluentbitOutput).
 		Filter(filter.Logging).
 		Doc("Add a new Fluent bit output plugin.").
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Reads(fluentbitclient.OutputPlugin{}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
@@ -208,8 +209,8 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.PUT("/fluentbit/outputs/{output}").To(logging.LoggingUpdateFluentbitOutput).
 		Filter(filter.Logging).
 		Doc("Update a Fluent bit output plugin.").
-		Param(ws.PathParameter("output", "ID of the output to update.").DataType("string").Required(true)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
+		Param(ws.PathParameter("output", "ID of the output to be updated.").DataType("string").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Reads(fluentbitclient.OutputPlugin{}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
@@ -219,8 +220,8 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.DELETE("/fluentbit/outputs/{output}").To(logging.LoggingDeleteFluentbitOutput).
 		Filter(filter.Logging).
 		Doc("Delete a Fluent bit output plugin.").
-		Param(ws.PathParameter("output", "ID of the output to delete.").DataType("string").Required(true)).
-		Metadata(restfulspec.KeyOpenAPITags, []string{"Logging", "setting"}).
+		Param(ws.PathParameter("output", "ID of the output to be deleted.").DataType("string").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Writes(log.FluentbitOutputsResult{}).
 		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
