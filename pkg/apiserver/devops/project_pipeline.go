@@ -156,7 +156,7 @@ func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Respo
 func GetMultiBranchesPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipelines")
+	pipelineId := request.PathParameter("pipeline")
 	branchId := request.PathParameter("branch")
 	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
