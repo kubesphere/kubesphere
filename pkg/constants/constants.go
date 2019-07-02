@@ -65,6 +65,8 @@ const (
 	WorkloadMetricsTag    = "Workload Metrics"
 	WorkspaceMetricsTag   = "Workspace Metrics"
 	ComponentMetricsTag   = "Component Metrics"
+	LogQueryTag           = "Log Query"
+	FluentBitSetting      = "Fluent Bit Setting"
 )
 
 var (

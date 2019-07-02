@@ -373,7 +373,7 @@ type HistogramStatistics struct {
 }
 
 type HistogramRecord struct {
-	Time  int64 `json:"time" description:"time point"`
+	Time  int64 `json:"time" description:"timestamp"`
 	Count int64 `json:"count" description:"total number of logs at intervals"`
 }
 
@@ -393,7 +393,7 @@ type HistogramResult struct {
 // Wrap elasticsearch response
 type QueryResult struct {
 	Status     int               `json:"status,omitempty" description:"query status"`
-	Error      string            `json:"error,omitempty" description:"debug information"`
+	Error      string            `json:"error,omitempty" description:"debugging information"`
 	Workspace  string            `json:"workspace,omitempty" description:"workspace the query was performed against"`
 	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
 	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
