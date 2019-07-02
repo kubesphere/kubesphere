@@ -230,7 +230,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(monitoring.MonitorSpecificContainerOfSpecificNamespace).
 		Doc("Get container-level metric data of a specific container. Navigate to the container by the pod name and the namespace.").
-		Param(ws.PathParameter("namespace", "the name of the namespace.").DataType("string").Required(true)).
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
 		Param(ws.PathParameter("container", "Container name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both container CPU usage and memory usage: `container_cpu_usage|container_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
