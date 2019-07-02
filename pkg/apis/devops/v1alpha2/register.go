@@ -322,9 +322,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node id, the stage in pipeline.")).
-		Param(webservice.PathParameter("step", "pipeline step id, the step in pipeline.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Param(webservice.PathParameter("step", "pipeline step ID, the step in pipeline.")).
 		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
 			Required(false).
 			DataFormat("start=%d").
@@ -335,7 +335,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		To(devopsapi.Validate).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
-		Param(webservice.PathParameter("scm", "the id of the source configuration management (SCM).")).
+		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
 		Returns(http.StatusOK, RespOK, devops.Validates{}).
 		Writes(devops.Validates{}))
 
@@ -344,8 +344,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		To(devopsapi.GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
-		Param(webservice.PathParameter("scm", "the id of the source configuration management (SCM).")).
-		Param(webservice.QueryParameter("credentialId", "credential id for source configuration management (SCM).").
+		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
+		Param(webservice.QueryParameter("credentialId", "credential ID for source configuration management (SCM).").
 			Required(true).
 			DataFormat("credentialId=%s")).
 		Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
@@ -356,9 +356,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		To(devopsapi.GetOrgRepo).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("List all repositories in the specified organization.").
-		Param(webservice.PathParameter("scm", "The id of the source configuration management (SCM).")).
-		Param(webservice.PathParameter("organization", "organization Id, such as github username.")).
-		Param(webservice.QueryParameter("credentialId", "credential id for SCM.").
+		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
+		Param(webservice.PathParameter("organization", "organization ID, such as github username.")).
+		Param(webservice.QueryParameter("credentialId", "credential ID for SCM.").
 			Required(true).
 			DataFormat("credentialId=%s")).
 		Param(webservice.QueryParameter("pageNumber", "page number.").
@@ -374,11 +374,11 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop").
 		To(devopsapi.StopBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("(MultiBranchesPipeline) Stop pipeline.").
+		Doc("(MultiBranchesPipeline) Stop the specified pipeline of the DevOps project.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
 			Required(false).
 			DataFormat("blocking=%t").
@@ -397,7 +397,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Stop pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
 			Required(false).
 			DataFormat("blocking=%t").
@@ -413,11 +413,11 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
 		To(devopsapi.ReplayBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("(MultiBranchesPipeline) Replay pipeline").
+		Doc("(MultiBranchesPipeline) Replay the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
 		Writes(devops.ReplayPipe{}))
 
@@ -428,7 +428,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Replay pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
 		Writes(devops.ReplayPipe{}))
 
@@ -441,7 +441,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
 			Required(false).
 			DataFormat("start=%d").
@@ -455,7 +455,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
 			Required(false).
 			DataFormat("start=%d").
@@ -469,7 +469,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
 			Required(false).
 			DataFormat("start=%d")).
@@ -486,7 +486,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get all artifacts in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
 			Required(false).
 			DataFormat("start=%d")).
@@ -523,9 +523,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node id, the stage in pipeline.")).
-		Param(webservice.PathParameter("step", "pipeline step id, the step in pipeline.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Param(webservice.PathParameter("step", "pipeline step ID, the step in pipeline.")).
 		Reads(devops.CheckPlayload{}).
 		Produces("text/plain; charset=utf-8"))
 
@@ -538,9 +538,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Produces("text/plain; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node id, the stage in pipeline.")).
-		Param(webservice.PathParameter("step", "pipeline step id")))
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Param(webservice.PathParameter("step", "pipeline step ID")))
 
 	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
@@ -559,7 +559,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Produces("text/html; charset=utf-8").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.QueryParameter("delay", "will be delay time to scan.").
+		Param(webservice.QueryParameter("delay", "the delay time to scan").
 			Required(false).
 			DataFormat("delay=%d")))
 
@@ -567,7 +567,7 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs").
 		To(devopsapi.RunBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("(MultiBranchesPipeline) Run pipeline.").
+		Doc("(MultiBranchesPipeline) Run the specified pipeline of the DevOps project.").
 		Reads(devops.RunPayload{}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
@@ -626,7 +626,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get all activities in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
 		Writes(devops.PipelineRun{}))
 
@@ -648,7 +648,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get all nodes in the specified activity. node is the stage in the pipeline task").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
 		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
 		Writes([]devops.PipelineRunNodes{}))
 
@@ -660,8 +660,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node id, the stage in pipeline.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
@@ -672,8 +672,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get all steps in the specified node.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build")).
-		Param(webservice.PathParameter("node", "pipeline node id, the stage in pipeline.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
 		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
 		Writes([]devops.NodeSteps{}))
 
@@ -705,7 +705,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "url of git").
+		Param(webservice.QueryParameter("url", "Git url").
 			Required(true).
 			DataFormat("url=%s")))
 
@@ -716,7 +716,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
 		Consumes("application/json").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "url of git").
+		Param(webservice.QueryParameter("url", "Git url").
 			Required(true).
 			DataFormat("url=%s")))
 
@@ -733,7 +733,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
@@ -741,11 +741,11 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodesdetail").
 		To(devopsapi.GetNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Gives steps details inside a activity node. For a node, the steps which defined inside the node.").
+		Doc("Get steps details inside a activity node. For a node, the steps which defined inside the node.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
