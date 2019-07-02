@@ -135,7 +135,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.DELETE("/users/{user}").
 		To(iam.DeleteUser).
-		Doc("Delete a specified user.").
+		Doc("Delete the specified user.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
@@ -159,7 +159,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.GET("/users/{user}/roles").
 		To(iam.ListUserRoles).
-		Doc("Retrieve all the roles that are assigned to the user.").
+		Doc("Retrieve all the roles that are assigned to the specified user.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, ok, iam.RoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
@@ -251,14 +251,14 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/members").
 		To(iam.InviteUser).
-		Doc("Invite members to the workspace.").
+		Doc("Invite a member to the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Reads(InviteUserRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{member}").
 		To(iam.RemoveUser).
-		Doc("Remove members from the workspace.").
+		Doc("Remove the specified member from the workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "username")).
 		Returns(http.StatusOK, ok, errors.Error{}).
