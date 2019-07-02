@@ -64,7 +64,7 @@ func addWebService(c *restful.Container) error {
 		To(resources.ListNamespacedResources).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Namespace level resource query").
-		Param(webservice.PathParameter("namespace", "which namespace")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("resources", "namespace level resource type, e.g. pods,jobs,configmaps,services.")).
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -82,7 +82,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Rerun job whether the job is complete or not").
 		Param(webservice.PathParameter("job", "job name")).
-		Param(webservice.PathParameter("namespace", "job's namespace")).
+		Param(webservice.PathParameter("namespace", "the namespace where the job runs in")).
 		Param(webservice.QueryParameter("a", "action")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
@@ -135,7 +135,7 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("key=value,key~value").
 			DefaultValue("")).
-		Param(webservice.PathParameter("namespace", "namespace")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
@@ -146,7 +146,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, applications.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Describe the specified application of the namespace").
-		Param(webservice.PathParameter("namespace", "namespace name")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
@@ -155,14 +155,14 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix.CreateClusterRequest{}).
 		Returns(http.StatusOK, ok, errors.Error{}).
-		Param(webservice.PathParameter("namespace", "namespace name")))
+		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
 		To(resources.DeleteApplication).
 		Doc("Delete the specified application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Returns(http.StatusOK, ok, errors.Error{}).
-		Param(webservice.PathParameter("namespace", "namespace name")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.GET("/users/{user}/kubectl").
@@ -205,7 +205,7 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/quotas").
 		Doc("get specified namespace's resource quota and usage").
-		Param(webservice.PathParameter("namespace", "namespace's name")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Returns(http.StatusOK, ok, models.ResourceQuota{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		To(quotas.GetNamespaceQuotas))
@@ -213,14 +213,14 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("registry/verify").
 		To(registries.RegistryVerify).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).
-		Doc("docker registry verify").
+		Doc("verify if a user has access to the docker registry").
 		Reads(registriesmodel.AuthInfo{}).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	webservice.Route(webservice.POST("git/verify").
 		To(git.GitReadVerify).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).
-		Doc("Verify that the kubernetes secret has read access to the git repository").
+		Doc("Verify if the kubernetes secret has read access to the git repository").
 		Reads(gitmodel.AuthInfo{}).
 		Returns(http.StatusOK, ok, errors.Error{}),
 	)
@@ -228,26 +228,26 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/daemonsets/{daemonset}/revisions/{revision}").
 		To(revisions.GetDaemonSetRevision).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("Handle daemonset operation").
-		Param(webservice.PathParameter("daemonset", "daemonset's name")).
-		Param(webservice.PathParameter("namespace", "daemonset's namespace")).
-		Param(webservice.PathParameter("revision", "daemonset's revision")).
+		Doc("Get the specified daemonset revision").
+		Param(webservice.PathParameter("daemonset", "the name of the daemonset")).
+		Param(webservice.PathParameter("namespace", "the namespace of the daemonset")).
+		Param(webservice.PathParameter("revision", "the revision of the daemonset")).
 		Returns(http.StatusOK, ok, appsv1.DaemonSet{}))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/deployments/{deployment}/revisions/{revision}").
 		To(revisions.GetDeployRevision).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("Handle deployment operation").
-		Param(webservice.PathParameter("deployment", "deployment's name")).
-		Param(webservice.PathParameter("namespace", "deployment's namespace")).
-		Param(webservice.PathParameter("revision", "deployment's revision")).
+		Doc("Get the specified deployment revision").
+		Param(webservice.PathParameter("deployment", "the name of deployment")).
+		Param(webservice.PathParameter("namespace", "the namespace of the deployment")).
+		Param(webservice.PathParameter("revision", "the revision of the deployment")).
 		Returns(http.StatusOK, ok, appsv1.ReplicaSet{}))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/statefulsets/{statefulset}/revisions/{revision}").
 		To(revisions.GetStatefulSetRevision).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("Handle statefulset operation").
-		Param(webservice.PathParameter("statefulset", "statefulset's name")).
-		Param(webservice.PathParameter("namespace", "statefulset's namespace")).
-		Param(webservice.PathParameter("revision", "statefulset's revision")).
+		Doc("Get the specified statefulset revision").
+		Param(webservice.PathParameter("statefulset", "the name of the statefulset")).
+		Param(webservice.PathParameter("namespace", "the namespace of the statefulset")).
+		Param(webservice.PathParameter("revision", "the revision of the statefulset")).
 		Returns(http.StatusOK, ok, appsv1.StatefulSet{}))
 
 	webservice.Route(webservice.GET("/routers").
@@ -260,25 +260,25 @@ func addWebService(c *restful.Container) error {
 		To(routers.GetRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Param(webservice.PathParameter("namespace", "name of the project")))
+		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/router").
 		To(routers.DeleteRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Param(webservice.PathParameter("namespace", "name of the project")))
+		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/router").
 		To(routers.CreateRouter).
 		Doc("Create a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Param(webservice.PathParameter("namespace", "name of the project")))
+		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/router").
 		To(routers.UpdateRouter).
 		Doc("Update a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Param(webservice.PathParameter("namespace", "name of the project")))
+		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.GET("/abnormalworkloads").
 		Doc("get abnormal workloads' count of whole cluster").
@@ -287,7 +287,7 @@ func addWebService(c *restful.Container) error {
 		To(workloadstatuses.GetClusterAbnormalWorkloads))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/abnormalworkloads").
 		Doc("get abnormal workloads' count of specified namespace").
-		Param(webservice.PathParameter("namespace", "the name of namespace")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
 		To(workloadstatuses.GetNamespacedAbnormalWorkloads))
