@@ -89,6 +89,12 @@ func generateSwaggerJson() {
 			Tags: []string{constants.VerificationTag},
 		},
 		{
+			Name: "DevOps",
+			Tags: []string{constants.DevOpsProjectTag, constants.DevOpsProjectCredentialTag,
+				constants.DevOpsPipelineTag, constants.DevOpsProjectMemberTag,
+				constants.DevOpsWebhookTag, constants.DevOpsJenkinsfileTag, constants.DevOpsScmTag},
+		},
+		{
 			Name: "Monitoring",
 			Tags: []string{constants.ClusterMetricsTag, constants.NodeMetricsTag, constants.NamespaceMetricsTag, constants.WorkloadMetricsTag,
 				constants.PodMetricsTag, constants.ContainerMetricsTag, constants.WorkspaceMetricsTag, constants.ComponentMetricsTag},
