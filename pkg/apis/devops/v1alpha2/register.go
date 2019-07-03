@@ -272,8 +272,6 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
 		To(devopsapi.GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all runs in a branch").
-		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
 		Doc("(MultiBranchesPipeline) Get all runs in the specified branch").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, which helps to deliver continuous integration continuous deployment.")).
