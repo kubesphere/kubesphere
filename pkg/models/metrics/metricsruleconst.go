@@ -401,7 +401,7 @@ var RulePromQLTmplMap = MetricMap{
 	"cluster_disk_read_throughput":  "sum(node:data_volume_throughput_bytes_read:sum)",
 	"cluster_disk_write_throughput": "sum(node:data_volume_throughput_bytes_written:sum)",
 
-	"cluster_disk_size_usage":       `sum(max(node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) by (device, instance))`,
+	"cluster_disk_size_usage":       `sum(max(node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"} - node_filesystem_free_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) by (device, instance))`,
 	"cluster_disk_size_utilisation": `cluster:disk_utilization:ratio`,
 	"cluster_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) by (device, instance))`,
 	"cluster_disk_size_available":   `sum(max(node_filesystem_avail_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) by (device, instance))`,
@@ -484,7 +484,7 @@ var RulePromQLTmplMap = MetricMap{
 
 	"node_disk_size_capacity":    `sum(max(node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"} * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (device, node)) by (node)`,
 	"node_disk_size_available":   `node:disk_space_available:$1`,
-	"node_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"} - node_filesystem_avail_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (device, node)) by (node)`,
+	"node_disk_size_usage":       `sum(max((node_filesystem_size_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"} - node_filesystem_free_bytes{device=~"/dev/.*", device!~"/dev/loop\\d+", job="node-exporter"}) * on (namespace, pod) group_left(node) node_namespace_pod:kube_pod_info:$1) by (device, node)) by (node)`,
 	"node_disk_size_utilisation": `node:disk_space_utilization:ratio$1`,
 
 	"node_disk_inode_total":       `node:node_inodes_total:$1`,
