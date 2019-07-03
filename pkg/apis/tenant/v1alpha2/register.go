@@ -55,36 +55,36 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/workspaces").
 		To(tenant.ListWorkspaces).
 		Returns(http.StatusOK, ok, models.PageableResponse{}).
-		Doc("List workspace by user").
+		Doc("List all workspaces that belongs to the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}").
 		To(tenant.DescribeWorkspace).
-		Doc("Describe workspace").
+		Doc("Describe the specified workspace").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, ok, v1alpha1.Workspace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/rules").
 		To(tenant.ListWorkspaceRules).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("List the rules for the current user").
+		Doc("List the rules of the specified workspace for the current user").
 		Returns(http.StatusOK, ok, models.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/rules").
 		To(tenant.ListNamespaceRules).
-		Param(ws.PathParameter("namespace", "namespace")).
-		Doc("List the rules for the current user").
+		Param(ws.PathParameter("namespace", "the name of the namespace")).
+		Doc("List the rules of the specified namespace for the current user").
 		Returns(http.StatusOK, ok, models.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devops/{devops}/rules").
 		To(tenant.ListDevopsRules).
-		Param(ws.PathParameter("devops", "devops project id")).
-		Doc("List the rules for the current user").
+		Param(ws.PathParameter("devops", "devops project ID")).
+		Doc("List the rules of the specified DevOps project for the current user").
 		Returns(http.StatusOK, ok, models.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
 		To(tenant.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("List the namespaces for the current user").
+		Doc("List the namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, ok, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/namespaces").
@@ -97,14 +97,14 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
 		To(tenant.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("Create namespace").
+		Doc("Create a namespace in the specified workspace").
 		Returns(http.StatusOK, ok, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/namespaces/{namespace}").
 		To(tenant.DeleteNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("namespace", "namespace")).
-		Doc("Delete namespace").
+		Param(ws.PathParameter("namespace", "the name of the namespace")).
+		Doc("Delete the specified namespace from the workspace").
 		Returns(http.StatusOK, ok, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
@@ -137,15 +137,15 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
 		To(tenant.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("Create devops project").
+		Doc("Create a devops project in the specified workspace").
 		Reads(devops.DevOpsProject{}).
 		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
 		To(tenant.DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("devops", "devops project id")).
-		Doc("Delete devops project").
+		Param(ws.PathParameter("devops", "devops project ID")).
+		Doc("Delete the specified devops project from the workspace").
 		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/logs").
@@ -166,7 +166,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end_time", "End time of query. Default to now. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("sort", "Direction of the sort. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
+		Param(ws.QueryParameter("sort", "Sort order. One of acs, desc. This field sorts logs by timestamp.").DataType("string").DefaultValue("desc").Required(false)).
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}).
