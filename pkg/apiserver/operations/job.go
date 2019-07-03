@@ -33,7 +33,7 @@ func RerunJob(req *restful.Request, resp *restful.Response) {
 
 	job := req.PathParameter("job")
 	namespace := req.PathParameter("namespace")
-	action := req.QueryParameter("a")
+	action := req.QueryParameter("action")
 
 	switch action {
 	case "rerun":

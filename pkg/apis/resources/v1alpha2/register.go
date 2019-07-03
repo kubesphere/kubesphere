@@ -83,7 +83,7 @@ func addWebService(c *restful.Container) error {
 		Doc("Rerun job whether the job is complete or not").
 		Param(webservice.PathParameter("job", "job name")).
 		Param(webservice.PathParameter("namespace", "the namespace where the job runs in")).
-		Param(webservice.QueryParameter("a", "action")).
+		Param(webservice.QueryParameter("action", "action must be \"rerun\"")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	webservice.Route(webservice.GET("/{resources}").
