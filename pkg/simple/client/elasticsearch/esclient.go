@@ -557,7 +557,7 @@ func Query(param QueryParameters) *QueryResult {
 	operation, query, err := createQueryRequest(param)
 	if err != nil {
 		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusNotFound
+		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
 	}
@@ -565,7 +565,7 @@ func Query(param QueryParameters) *QueryResult {
 	es := readESConfigs()
 	if es == nil {
 		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusNotFound
+		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = "Elasticsearch configurations not found. Please check if they are properly configured."
 		return queryResult
 	}
@@ -576,7 +576,7 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusNotFound
+		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
 	}
@@ -586,7 +586,7 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusNotFound
+		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
 	}
@@ -596,7 +596,7 @@ func Query(param QueryParameters) *QueryResult {
 	if err != nil {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusNotFound
+		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
 	}

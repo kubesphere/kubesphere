@@ -232,7 +232,7 @@ func FluentbitOutputsQuery() *FluentbitOutputsResult {
 
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
-		result.Status = http.StatusNotFound
+		result.Status = http.StatusInternalServerError
 		result.Error = err.Error()
 		return &result
 	}

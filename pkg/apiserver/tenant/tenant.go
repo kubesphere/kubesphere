@@ -335,7 +335,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 
 	clusterRules, err := iam.GetUserClusterRules(username)
 	if err != nil {
-		resp.WriteError(http.StatusInternalServerError, err)
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		glog.Errorln(err)
 		return
 	}
@@ -348,8 +348,9 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		namespaces := make([]string, 0)
 		roles, err := iam.GetUserRoles("", username)
 		if err != nil {
-			resp.WriteError(http.StatusInternalServerError, err)
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			glog.Errorln(err)
+			return
 		}
 		for _, role := range roles {
 			if !sliceutil.HasString(namespaces, role.Namespace) && iam.RulesMatchesRequired(role.Rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
