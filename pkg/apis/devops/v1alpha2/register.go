@@ -516,7 +516,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}").
-		To(devopsapi.CheckBranchPipeline).
+		To(devopsapi.SubmitBranchInputStep).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Proceed or Break the paused pipeline which waiting for user input.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -530,7 +530,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}").
-		To(devopsapi.CheckPipeline).
+		To(devopsapi.SubmitInputStep).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Proceed or Break the paused pipeline which waiting for user input.").
 		Reads(devops.CheckPlayload{}).
