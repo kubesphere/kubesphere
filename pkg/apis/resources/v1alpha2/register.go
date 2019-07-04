@@ -252,32 +252,36 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.GET("/routers").
 		To(routers.GetAllRouters).
-		Doc("List all routers").
+		Doc("List all routers of all projects").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
-		Returns(http.StatusOK, ok, corev1.Service{}))
+		Returns(http.StatusOK, ok, corev1.ServiceList{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/router").
 		To(routers.GetRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, ok, corev1.Service{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/router").
 		To(routers.DeleteRouter).
 		Doc("List router of a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, ok, corev1.Service{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/router").
 		To(routers.CreateRouter).
 		Doc("Create a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, ok, corev1.Service{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/router").
 		To(routers.UpdateRouter).
 		Doc("Update a router for a specified project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, ok, corev1.Service{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.GET("/abnormalworkloads").
