@@ -18,6 +18,7 @@
 package devops
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -293,10 +294,16 @@ func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte,
 	return res, err
 }
 
-func CheckBranchPipeline(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+func SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+CheckBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
 	log.Info("Jenkins-url: " + baseUrl)
 
+	newBody, err := getInputReqBody(req.Body)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	req.Body = newBody
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
 		log.Error(err)
@@ -306,10 +313,16 @@ func CheckBranchPipeline(projectName, pipelineName, branchName, runId, nodeId, s
 	return resBody, err
 }
 
-func CheckPipeline(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
+func SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+CheckPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 	log.Info("Jenkins-url: " + baseUrl)
 
+	newBody, err := getInputReqBody(req.Body)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	req.Body = newBody
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
 		log.Error(err)
@@ -317,6 +330,45 @@ func CheckPipeline(projectName, pipelineName, runId, nodeId, stepId string, req 
 	}
 
 	return resBody, err
+}
+
+func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error) {
+	var checkBody CheckPlayload
+	var jsonBody []byte
+	var workRound struct {
+		ID         string                    `json:"id,omitempty" description:"id"`
+		Parameters []CheckPlayloadParameters `json:"parameters"`
+		Abort      bool                      `json:"abort,omitempty" description:"abort or not"`
+	}
+
+	Body, err := ioutil.ReadAll(reqBody)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(Body, &checkBody)
+
+	if checkBody.Abort != true && checkBody.Parameters == nil {
+		workRound.Parameters = []CheckPlayloadParameters{}
+		workRound.ID = checkBody.ID
+		jsonBody, _ = json.Marshal(workRound)
+	} else {
+		jsonBody, _ = json.Marshal(checkBody)
+	}
+
+	newReqBody = parseBody(bytes.NewBuffer(jsonBody))
+
+	return newReqBody, nil
+
+}
+
+func parseBody(body io.Reader) (newReqBody io.ReadCloser) {
+	rc, ok := body.(io.ReadCloser)
+	if !ok && body != nil {
+		rc = ioutil.NopCloser(body)
+	}
+	return rc
 }
 
 func GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte, error) {

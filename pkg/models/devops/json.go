@@ -716,12 +716,14 @@ type NodeStatus struct {
 
 // CheckPipeline
 type CheckPlayload struct {
-	ID         string `json:"id,omitempty" description:"id"`
-	Parameters []struct {
-		Name  string `json:"name,omitempty" description:"name"`
-		Value string `json:"value,omitempty" description:"value"`
-	} `json:"parameters,omitempty"`
-	Abort bool `json:"abort,omitempty" description:"abort or not"`
+	ID         string                    `json:"id,omitempty" description:"id"`
+	Parameters []CheckPlayloadParameters `json:"parameters,omitempty"`
+	Abort      bool                      `json:"abort,omitempty" description:"abort or not"`
+}
+
+type CheckPlayloadParameters struct {
+	Name  string `json:"name,omitempty" description:"name"`
+	Value string `json:"value,omitempty" description:"value"`
 }
 
 // Getcrumb
