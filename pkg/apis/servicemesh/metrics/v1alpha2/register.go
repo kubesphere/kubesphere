@@ -149,7 +149,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/health").
 		To(metrics.GetNamespaceHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get workload health").
+		Doc("Get app/service/workload health of a namespace").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
 		Param(webservice.PathParameter("type", "the type of health, app/service/workload, default app").DefaultValue("app")).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
