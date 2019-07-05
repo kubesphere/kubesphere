@@ -28,7 +28,7 @@ const (
 type JenkinsCredential struct {
 	Id          string `json:"id" description:"Id of Credential, e.g. dockerhub-id"`
 	Type        string `json:"type" description:"Type of Credential, e.g. ssh/kubeconfig"`
-	DisplayName string `json:"display_name,omitempty" description:"Credential's display name'"`
+	DisplayName string `json:"display_name,omitempty" description:"Credential's display name"`
 	Fingerprint *struct {
 		FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
 		Hash     string `json:"hash,omitempty" description:"Credential's hash"`
