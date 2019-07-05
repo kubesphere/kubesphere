@@ -642,11 +642,6 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 			glog.Errorln("create cluster role binding", err)
 			return err
 		}
-		if clusterRoleName == constants.ClusterAdmin {
-			if err := kubectl.CreateKubectlDeploy(username); err != nil {
-				glog.Errorln("create user terminal pod failed", username, err)
-			}
-		}
 		return nil
 	} else if err != nil {
 		return err
@@ -677,6 +672,12 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		}
 		glog.Errorln("create cluster role binding", err)
 		return err
+	}
+
+	if clusterRoleName == constants.ClusterAdmin {
+		if err := kubectl.CreateKubectlDeploy(username); err != nil {
+			glog.Errorln("create user terminal pod failed", username, err)
+		}
 	}
 
 	if !k8sutil.ContainsUser(found.Subjects, username) {
