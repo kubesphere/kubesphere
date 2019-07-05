@@ -106,7 +106,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.POST("/nodes/{node}/drainage").
 		To(operations.DrainNode).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
-		Doc("Drain node").
+		Doc("remove a node from service, safely evict all of your pods from a node and you can power down the node. More info: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/").
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 

@@ -83,16 +83,16 @@ type Group struct {
 
 type ComponentStatus struct {
 	Name            string      `json:"name" description:"component name"`
-	Namespace       string      `json:"namespace" description:"namespace"`
+	Namespace       string      `json:"namespace" description:"the name of the namespace"`
 	SelfLink        string      `json:"selfLink" description:"self link"`
 	Label           interface{} `json:"label" description:"labels"`
 	StartedAt       time.Time   `json:"startedAt" description:"started time"`
-	TotalBackends   int         `json:"totalBackends" description:"total backends"`
-	HealthyBackends int         `json:"healthyBackends" description:"healthy backends"`
+	TotalBackends   int         `json:"totalBackends" description:"the total replicas of each backend system component"`
+	HealthyBackends int         `json:"healthyBackends" description:"the number of healthy backend components"`
 }
 type NodeStatus struct {
 	TotalNodes   int `json:"totalNodes" description:"total number of nodes"`
-	HealthyNodes int `json:"healthyNodes" description:"number of healthy nodes"`
+	HealthyNodes int `json:"healthyNodes" description:"the number of healthy nodes"`
 }
 
 type HealthStatus struct {
