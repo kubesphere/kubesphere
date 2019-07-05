@@ -233,9 +233,9 @@ The last one is encrypted info, such as the password of the username-password ty
 	webservice.Route(webservice.GET("/search").
 		To(devopsapi.SearchPipelines).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Search DevOps resource.").
+		Doc("Search DevOps resource. More info: https://github.com/jenkinsci/blueocean-plugin/tree/master/blueocean-rest#get-pipelines-across-organization").
 		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
-			Required(false).
+			Required(true).
 			DataFormat("q=%s")).
 		Param(webservice.QueryParameter("filter", "Filter some types of jobs. e.g. no-folder，will not get a job of type folder").
 			Required(false).
