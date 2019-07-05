@@ -285,7 +285,9 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 
 	claims := jwt.MapClaims{}
 
-	claims["exp"] = time.Now().Add(tokenExpireTime).Unix()
+	if tokenExpireTime > 0 {
+		claims["exp"] = time.Now().Add(tokenExpireTime).Unix()
+	}
 	claims["username"] = uid
 	claims["email"] = email
 
