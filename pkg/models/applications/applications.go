@@ -40,8 +40,8 @@ import (
 type Application struct {
 	Name        string            `json:"name" description:"application name"`
 	RepoName    string            `json:"repoName" description:"repo name"`
-	Runtime     string            `json:"namespace" description:"namespace"`
-	RuntimeId   string            `json:"runtime_id" description:"runtime id"`
+	Runtime     string            `json:"namespace" description:"namespace name"`
+	RuntimeId   string            `json:"runtime_id" description:"It is the application runtime in OpenPitrix and represents k8s namespace by annotating the namespace"`
 	Version     string            `json:"version" description:"application version"`
 	VersionId   string            `json:"version_id" description:"application version id"`
 	Status      string            `json:"status" description:"application status"`
