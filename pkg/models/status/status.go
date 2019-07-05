@@ -27,8 +27,8 @@ import (
 )
 
 type WorkLoadStatus struct {
-	Namespace string                 `json:"namespace" description:"namespace"`
-	Count     map[string]int         `json:"data" description:"unhealthy workload count"`
+	Namespace string                 `json:"namespace" description:"the name of the namespace"`
+	Count     map[string]int         `json:"data" description:"the number of unhealthy workloads"`
 	Items     map[string]interface{} `json:"items,omitempty" description:"unhealthy workloads"`
 }
 
