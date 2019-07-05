@@ -41,7 +41,7 @@ type Application struct {
 	Name        string            `json:"name" description:"application name"`
 	RepoName    string            `json:"repoName" description:"repo name"`
 	Runtime     string            `json:"namespace" description:"namespace"`
-	RuntimeId   string            `json:"runtime_id" description:"runtime id"`
+	RuntimeId   string            `json:"runtime_id" description:"originates from OpenPitrix and represents k8s namespace, it's the value of the annotation in each namespace, e.g. openpitrix_runtime: runtime-xEg1LGZQYN93"`
 	Version     string            `json:"version" description:"application version"`
 	VersionId   string            `json:"version_id" description:"application version id"`
 	Status      string            `json:"status" description:"application status"`
