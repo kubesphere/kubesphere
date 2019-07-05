@@ -394,7 +394,7 @@ type HistogramResult struct {
 type QueryResult struct {
 	Status     int               `json:"status,omitempty" description:"query status"`
 	Error      string            `json:"error,omitempty" description:"debugging information"`
-	Workspace  string            `json:"workspace,omitempty" description:"workspace the query was performed against"`
+	Workspace  string            `json:"workspace,omitempty" description:"the name of the workspace where logs come from"`
 	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
 	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty" description:"histogram results"`
