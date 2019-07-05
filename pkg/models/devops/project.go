@@ -41,11 +41,11 @@ type DevOpsProject struct {
 
 	Name string `json:"name" description:"DevOps Projects's Name"`
 
-	Description string `json:"description,omitempty" description:"DevOps Projects's Description, used to describe the DevOps Project'"`
+	Description string `json:"description,omitempty" description:"DevOps Projects's Description, used to describe the DevOps Project"`
 
-	Creator string `json:"creator" description:"Creator's username'"`
+	Creator string `json:"creator" description:"Creator's username"`
 
-	CreateTime time.Time `json:"create_time" description:"DevOps Project's Creation time'"`
+	CreateTime time.Time `json:"create_time" description:"DevOps Project's Creation time"`
 
 	Status string `json:"status" description:"DevOps project's status. e.g. active"`
 
