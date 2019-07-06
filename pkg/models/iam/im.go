@@ -786,6 +786,11 @@ func CreateUser(user *models.User) (*models.User, error) {
 		userCreateRequest.Attribute("description", []string{user.Description}) // RFC4519: descriptive information
 	}
 
+	if err := kubeconfig.CreateKubeConfig(user.Username); err != nil {
+		glog.Errorln("create user kubeconfig failed", user.Username, err)
+		return nil, err
+	}
+
 	err = conn.Add(userCreateRequest)
 
 	if err != nil {
@@ -795,10 +800,6 @@ func CreateUser(user *models.User) (*models.User, error) {
 
 	if user.AvatarUrl != "" {
 		setAvatar(user.Username, user.AvatarUrl)
-	}
-
-	if err := kubeconfig.CreateKubeConfig(user.Username); err != nil {
-		glog.Errorln("create user kubeconfig failed", user.Username, err)
 	}
 
 	if user.ClusterRole != "" {
