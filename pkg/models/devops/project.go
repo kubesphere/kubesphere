@@ -49,7 +49,7 @@ type DevOpsProject struct {
 
 	Status string `json:"status" description:"DevOps project's status. e.g. active"`
 
-	Visibility string `json:"visibility,omitempty" description:"Desperated Field"`
+	Visibility string `json:"visibility,omitempty" description:"Deprecated Field"`
 
 	Extra string `json:"extra,omitempty" description:"Internal Use"`
 
