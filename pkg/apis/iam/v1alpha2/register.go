@@ -72,6 +72,17 @@ type UserList struct {
 	} `json:"items" description:"paging data"`
 	TotalCount int `json:"total_count" description:"total count"`
 }
+type NamespacedUser struct {
+	Username      string    `json:"username" description:"username"`
+	Email         string    `json:"email" description:"email address"`
+	Lang          string    `json:"lang,omitempty" description:"user's language setting, default is zh-CN"`
+	Description   string    `json:"description" description:"user's description"`
+	Role          string    `json:"role" description:"user's role in the specified namespace"`
+	RoleBinding   string    `json:"role_binding" description:"user's role binding name in the specified namespace"`
+	RoleBindTime  string    `json:"role_bind_time" description:"user's role binding time"`
+	CreateTime    time.Time `json:"create_time" description:"user creation time"`
+	LastLoginTime time.Time `json:"last_login_time" description:"last login time"`
+}
 
 type ClusterRoleList struct {
 	Items      []rbacv1.ClusterRole `json:"items" description:"paging data"`
@@ -179,13 +190,13 @@ func addWebService(c *restful.Container) error {
 		Doc("Retrieve the users that are bound to the role in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, ok, []models.User{}).
+		Returns(http.StatusOK, ok, []NamespacedUser{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/users").
 		To(iam.ListNamespaceUsers).
 		Doc("List all users in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Returns(http.StatusOK, ok, []models.User{}).
+		Returns(http.StatusOK, ok, []NamespacedUser{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
 		To(iam.ListClusterRoleUsers).
