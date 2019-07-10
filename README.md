@@ -98,7 +98,7 @@ Currently, KubeSphere has released the following 4 major editions. The future re
 
 **Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
 
-![](https://pek3b.qingstor.com/kubesphere-docs/png/20190710165631.png)
+![Roadmap](docs/images/roadmap-2.0.2-en.png)
 
 
 ## Support, Discussion, and Community
