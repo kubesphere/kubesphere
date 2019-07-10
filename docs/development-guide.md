@@ -25,6 +25,14 @@ KubeSphere uses `dep` to manage dependencies in the `vendor/` tree, execute foll
 ```go
 go get -u github.com/golang/dep/cmd/dep
 ```
+#### Dependencies
+
+[kubesphere/kubesphere](https://github.com/kubesphere/kubesphere) repository contains the source code . If you're looking for its dependent components, they live in their own repositories since they can be individual and universal.
+
+- [Alert](https://github.com/kubesphere/alert): Alert is an enterprise-grade general-purpose high-performance alerting system.
+- [Notification](https://github.com/openpitrix/notification): Notification is an enterprise-grade general-purpose high-performance notification system, it provides email notification service for KubeSphere currently.
+- [OpenPitrix](https://github.com/openpitrix/openpitrix): Application management platform on multi-cloud environment, it provides application template and application management for KubeSphere currently.
+- [SonarQube](https://github.com/SonarSource/sonarqube): Integrated in KubeSphere DevOps, it provides the capability to not only show health of an application but also to highlight issues newly introduced. 
 
 ### Test
 
@@ -152,6 +160,10 @@ The components of KubeSphere need to be compiled and build include following:
 `ks-apiserver, ks-controller-manager, ks-account, ks-apigateway, ks-devops`
 
 After your PR is merged，Travis CI will compile the entire project and build the image, and push the image `kubespheredev/[component-name]:latest` to Dockerhub (e.g. `kubespheredev/ks-apiserver:latest`)
+
+## API Reference
+
+KubeSphere provides standard RESTFul API and detailed API documentations for developers, see [KubeSphere API Reference](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/api-docs/) for more information.
 
 ## Code conventions
 

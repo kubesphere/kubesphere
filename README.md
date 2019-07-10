@@ -14,7 +14,7 @@
 
 ## Features
 
-KubeSphere Advanced Edition 2.0.1 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
+KubeSphere Advanced Edition 2.0.2 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
 
 
 - Workload management
@@ -33,13 +33,15 @@ KubeSphere Advanced Edition 2.0.1 provides an easy-to-use console with the aweso
 
 It also supports multiple open source storage and high-performance cloud storage as the persistent storage services, as well as supports multiple open source network plugins.
 
-> See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
+> Note:
+> - See the [Screenshots](docs/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
+> - See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
 
 ----
 
 ## Latest Release
 
-KubeSphere Advanced Edition 2.0.1 was released on **May 18th, 2019**. See the [Release Notes For 2.0.1](https://docs.kubesphere.io/advanced-v2.0/release/release-v201/) to preview the updates.
+KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/release/release-v202/) to preview the updates.
 
 ## Installation
 
@@ -58,12 +60,11 @@ KubeSphere Advanced Edition 2.0.1 was released on **May 18th, 2019**. See the [R
 [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
 
 ```bash
-$ curl -L https://kubesphere.io/download/stable/advanced-2.0.1 > advanced-2.0.1.tar.gz && tar -zxf advanced-2.0.1.tar.gz
-$ cd kubesphere-all-advanced-2.0.1/scripts
+$ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz && tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/scripts
 $ ./install.sh
 ```
 
-![demo](https://pek3b.qingstor.com/kubesphere-docs/png/kubesphere-intall.gif)
+![all-in-one](https://pek3b.qingstor.com/kubesphere-docs/png/kubesphere-allinone.gif)
 
 Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
 
