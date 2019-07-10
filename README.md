@@ -41,7 +41,7 @@ It also supports multiple open source storage and high-performance cloud storage
 
 ## Latest Release
 
-KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/release/release-v202/) to preview the updates.
+KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/zh-CN/release/release-v202/) to preview the updates.
 
 ## Installation
 
@@ -98,7 +98,7 @@ Currently, KubeSphere has released the following 4 major editions. The future re
 
 **Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
 
-![Roadmap](docs/images/roadmap-en.png)
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190710165631.png)
 
 
 ## Support, Discussion, and Community
