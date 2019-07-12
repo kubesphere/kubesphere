@@ -48,6 +48,32 @@ const (
 	DevopsReporter                 = "reporter"
 
 	UserNameHeader = "X-Token-Username"
+
+	TenantResourcesTag         = "Tenant Resources"
+	IdentityManagementTag      = "Identity Management"
+	AccessManagementTag        = "Access Management"
+	NamespaceResourcesTag      = "Namespace Resources"
+	ClusterResourcesTag        = "Cluster Resources"
+	ComponentStatusTag         = "Component Status"
+	VerificationTag            = "Verification"
+	UserResourcesTag           = "User Resources"
+	DevOpsProjectTag           = "DevOps Project"
+	DevOpsProjectCredentialTag = "DevOps Project Credential"
+	DevOpsProjectMemberTag     = "DevOps Project Member"
+	DevOpsPipelineTag          = "DevOps Pipeline"
+	DevOpsWebhookTag           = "DevOps Webhook"
+	DevOpsJenkinsfileTag       = "DevOps Jenkinsfile"
+	DevOpsScmTag               = "DevOps Scm"
+	ClusterMetricsTag          = "Cluster Metrics"
+	NodeMetricsTag             = "Node Metrics"
+	NamespaceMetricsTag        = "Namespace Metrics"
+	PodMetricsTag              = "Pod Metrics"
+	ContainerMetricsTag        = "Container Metrics"
+	WorkloadMetricsTag         = "Workload Metrics"
+	WorkspaceMetricsTag        = "Workspace Metrics"
+	ComponentMetricsTag        = "Component Metrics"
+	LogQueryTag                = "Log Query"
+	FluentBitSetting           = "Fluent Bit Setting"
 )
 
 var (

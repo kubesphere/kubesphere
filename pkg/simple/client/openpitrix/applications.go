@@ -102,14 +102,14 @@ type repoList struct {
 }
 
 type CreateClusterRequest struct {
-	AppId     string `json:"app_id"`
-	VersionId string `json:"version_id"`
-	RuntimeId string `json:"runtime_id"`
-	Conf      string `json:"conf"`
+	AppId     string `json:"app_id" description:"ID of app to run in cluster, e.g. app-AA3A3y3zEgEM"`
+	VersionId string `json:"version_id" description:"app version, e.g. appv-154gXYx5RKRp"`
+	RuntimeId string `json:"runtime_id" description:"ID of runtime, e.g. runtime-wWwXL0LzWqEr"`
+	Conf      string `json:"conf" description:"conf a json string, include cpu, memory info of cluster"`
 }
 
 type DeleteClusterRequest struct {
-	ClusterId []string `json:"cluster_id"`
+	ClusterId []string `json:"cluster_id" description:"cluster ID"`
 }
 
 func GetAppInfo(appId string) (string, string, string, error) {

@@ -314,7 +314,7 @@ func GetPipeBranch(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func CheckBranchPipeline(req *restful.Request, resp *restful.Response) {
+func SubmitBranchInputStep(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 	branchName := req.PathParameter("branch")
@@ -322,7 +322,7 @@ func CheckBranchPipeline(req *restful.Request, resp *restful.Response) {
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	res, err := devops.CheckBranchPipeline(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
+	res, err := devops.SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -331,14 +331,14 @@ func CheckBranchPipeline(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func CheckPipeline(req *restful.Request, resp *restful.Response) {
+func SubmitInputStep(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 	runId := req.PathParameter("run")
 	nodeId := req.PathParameter("node")
 	stepId := req.PathParameter("step")
 
-	res, err := devops.CheckPipeline(projectName, pipelineName, runId, nodeId, stepId, req.Request)
+	res, err := devops.SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return

@@ -628,6 +628,19 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		return err
 	}
 
+	if clusterRoleName == constants.ClusterAdmin {
+		// create kubectl pod if cluster role is cluster-admin
+		if err := kubectl.CreateKubectlDeploy(username); err != nil {
+			glog.Error("create user terminal pod failed", username, err)
+		}
+		
+	} else { 
+		// delete kubectl pod if cluster role is not cluster-admin, whether it exists or not
+		if err := kubectl.DelKubectlDeploy(username); err != nil {
+			glog.Error("delete user terminal pod failed", username, err)
+		}
+	}
+
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 	clusterRoleBinding.Name = username
 	clusterRoleBinding.RoleRef = rbacv1.RoleRef{Name: clusterRoleName, Kind: ClusterRoleKind}
@@ -641,11 +654,6 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		if err != nil {
 			glog.Errorln("create cluster role binding", err)
 			return err
-		}
-		if clusterRoleName == constants.ClusterAdmin {
-			if err := kubectl.CreateKubectlDeploy(username); err != nil {
-				glog.Errorln("create user terminal pod failed", username, err)
-			}
 		}
 		return nil
 	} else if err != nil {
@@ -661,11 +669,6 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		if err != nil {
 			glog.Errorln("delete cluster role binding", err)
 			return err
-		}
-		if found.RoleRef.Name == constants.ClusterAdmin {
-			if err := kubectl.DelKubectlDeploy(username); err != nil {
-				glog.Error("delete user terminal pod failed", username, err)
-			}
 		}
 		maxRetries := 3
 		for i := 0; i < maxRetries; i++ {

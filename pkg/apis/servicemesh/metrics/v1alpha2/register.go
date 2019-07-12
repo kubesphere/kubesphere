@@ -96,7 +96,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/metrics").
 		To(metrics.GetNamespaceMetrics).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get workload metrics from a specific namespace").
+		Doc("Get metrics from a specific namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace").Required(true)).
 		Param(webservice.PathParameter("service", "name of the service")).
 		Param(webservice.QueryParameter("filters[]", "type of metrics type, fetch all metrics when empty, e.g. request_count, request_duration, request_error_count").DefaultValue("[]")).
@@ -149,7 +149,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/health").
 		To(metrics.GetNamespaceHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get workload health").
+		Doc("Get app/service/workload health of a namespace").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
 		Param(webservice.PathParameter("type", "the type of health, app/service/workload, default app").DefaultValue("app")).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
@@ -175,7 +175,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/apps/{app}/health").
 		To(metrics.GetAppHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get workload health").
+		Doc("Get app health").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
 		Param(webservice.PathParameter("app", "app name").Required(true)).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
@@ -187,7 +187,7 @@ func addWebService(c *restful.Container) error {
 	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/health").
 		To(metrics.GetServiceHealth).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get workload health").
+		Doc("Get service health").
 		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
 		Param(webservice.PathParameter("service", "service name").Required(true)).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).

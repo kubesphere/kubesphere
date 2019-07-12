@@ -27,6 +27,7 @@ import (
 	"github.com/go-openapi/spec"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"log"
 	// Install apis
 	_ "kubesphere.io/kubesphere/pkg/apis/devops/install"
@@ -62,6 +63,48 @@ func generateSwaggerJson() {
 
 	swagger := restfulspec.BuildSwagger(config)
 
+	swagger.Info.Extensions = make(spec.Extensions)
+	swagger.Info.Extensions.Add("x-tagGroups", []struct {
+		Name string   `json:"name"`
+		Tags []string `json:"tags"`
+	}{
+		{
+			Name: "IAM",
+			Tags: []string{constants.IdentityManagementTag, constants.AccessManagementTag},
+		},
+		{
+			Name: "Resources",
+			Tags: []string{constants.ClusterResourcesTag, constants.NamespaceResourcesTag, constants.UserResourcesTag},
+		},
+		{
+			Name: "Monitoring",
+			Tags: []string{constants.ComponentStatusTag},
+		},
+		{
+			Name: "Tenant",
+			Tags: []string{constants.TenantResourcesTag},
+		},
+		{
+			Name: "Other",
+			Tags: []string{constants.VerificationTag},
+		},
+		{
+			Name: "DevOps",
+			Tags: []string{constants.DevOpsProjectTag, constants.DevOpsProjectCredentialTag,
+				constants.DevOpsPipelineTag, constants.DevOpsProjectMemberTag,
+				constants.DevOpsWebhookTag, constants.DevOpsJenkinsfileTag, constants.DevOpsScmTag},
+		},
+		{
+			Name: "Monitoring",
+			Tags: []string{constants.ClusterMetricsTag, constants.NodeMetricsTag, constants.NamespaceMetricsTag, constants.WorkloadMetricsTag,
+				constants.PodMetricsTag, constants.ContainerMetricsTag, constants.WorkspaceMetricsTag, constants.ComponentMetricsTag},
+		},
+		{
+			Name: "Logging",
+			Tags: []string{constants.LogQueryTag, constants.FluentBitSetting},
+		},
+	})
+
 	data, _ := json.Marshal(swagger)
 	err := ioutil.WriteFile(output, data, 420)
 	if err != nil {
@@ -84,7 +127,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 				Name: "Apache",
 				URL:  "http://www.apache.org/licenses/",
 			},
-			Version: "2.0.0",
+			Version: "2.0.2",
 		},
 	}
 

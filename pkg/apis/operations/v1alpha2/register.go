@@ -42,16 +42,18 @@ func addWebService(c *restful.Container) error {
 
 	webservice.Route(webservice.POST("/nodes/{node}/drainage").
 		To(operations.DrainNode).
-		Doc("Drain node").
+		Deprecate().
+		Doc("remove a node from service, safely evict all of your pods from a node and you can power down the node. More info: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/").
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
 		To(operations.RerunJob).
-		Doc("Job rerun").
+		Doc("Rerun job whether the job is complete or not").
+		Deprecate().
 		Param(webservice.PathParameter("job", "job name")).
-		Param(webservice.PathParameter("namespace", "job's namespace")).
-		Param(webservice.QueryParameter("a", "action")).
+		Param(webservice.PathParameter("namespace", "the name of the namespace where the job runs in")).
+		Param(webservice.QueryParameter("action", "action must be \"rerun\"")).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
 	c.Add(webservice)

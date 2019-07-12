@@ -18,6 +18,7 @@
 package monitoring
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
@@ -42,26 +43,16 @@ func MonitorSpecificPodOnSpecificNode(request *restful.Request, response *restfu
 func MonitorPod(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
 	podName := requestParams.PodName
-	metricName := requestParams.MetricsName
 	if podName != "" {
-		// single pod single metric
-		queryType, params, nullRule := metrics.AssemblePodMetricRequestInfo(requestParams, metricName)
-		var res *metrics.FormatedMetric
-		if !nullRule {
-			metricsStr := prometheus.SendMonitoringRequest(prometheus.PrometheusEndpoint, queryType, params)
-			res = metrics.ReformatJson(metricsStr, metricName, map[string]string{metrics.MetricLevelPodName: ""})
-		}
-		response.WriteAsJson(res)
-
-	} else {
-		// multiple
-		rawMetrics := metrics.GetPodLevelMetrics(requestParams)
-		// sorting
-		sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics)
-		// paging
-		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
-		response.WriteAsJson(pagedMetrics)
+		requestParams.ResourcesFilter = fmt.Sprintf("^%s$", requestParams.PodName)
 	}
+
+	rawMetrics := metrics.GetPodLevelMetrics(requestParams)
+	// sorting
+	sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics)
+	// paging
+	pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+	response.WriteAsJson(pagedMetrics)
 }
 
 func MonitorAllContainersOnSpecificNode(request *restful.Request, response *restful.Response) {
@@ -78,21 +69,13 @@ func MonitorSpecificContainerOfSpecificNamespace(request *restful.Request, respo
 
 func MonitorContainer(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
-	metricName := requestParams.MetricsName
-	if requestParams.MetricsFilter != "" {
-		rawMetrics := metrics.GetContainerLevelMetrics(requestParams)
-		// sorting
-		sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics)
-		// paging
-		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+	rawMetrics := metrics.GetContainerLevelMetrics(requestParams)
+	// sorting
+	sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics)
+	// paging
+	pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
 
-		response.WriteAsJson(pagedMetrics)
-
-	} else {
-		res := metrics.MonitorContainer(requestParams, metricName)
-		response.WriteAsJson(res)
-	}
-
+	response.WriteAsJson(pagedMetrics)
 }
 
 func MonitorSpecificWorkload(request *restful.Request, response *restful.Response) {
@@ -132,7 +115,7 @@ func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) 
 		res := metrics.GetAllWorkspacesStatistics()
 		response.WriteAsJson(res)
 
-	} else if tp == "rank" {
+	} else {
 		rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
 
 		// sorting
@@ -142,9 +125,6 @@ func MonitorAllWorkspaces(request *restful.Request, response *restful.Response) 
 		pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
 
 		response.WriteAsJson(pagedMetrics)
-	} else {
-		rawMetrics := metrics.MonitorAllWorkspaces(requestParams)
-		response.WriteAsJson(rawMetrics)
 	}
 }
 

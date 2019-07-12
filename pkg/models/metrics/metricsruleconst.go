@@ -13,10 +13,6 @@ limitations under the License.
 
 package metrics
 
-import (
-	"fmt"
-)
-
 const (
 	ResultTypeVector             = "vector"
 	ResultTypeMatrix             = "matrix"
@@ -80,6 +76,7 @@ const (
 	StatefulSet = "StatefulSet"
 	DaemonSet   = "DaemonSet"
 	Deployment  = "Deployment"
+	Any         = ".*"
 )
 
 const (
@@ -602,6 +599,10 @@ var RulePromQLTmplMap = MetricMap{
 
 	// workload
 	// Join the "container_cpu_usage_seconds_total" metric with "kube_pod_owner" to calculate workload-level resource usage
+	//
+	// Note the name convention:
+	// For hardware resource metrics, combine pod metric name with `workload_`
+	// For k8s resource metrics, must specify the workload type in metric names
 	"workload_pod_cpu_usage":             `round(namespace:workload_cpu_usage:sum{namespace="$2", workload=~"$3"}, 0.001)`,
 	"workload_pod_memory_usage":          `namespace:workload_memory_usage:sum{namespace="$2", workload=~"$3"}`,
 	"workload_pod_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{namespace="$2", workload=~"$3"}`,
@@ -734,12 +735,4 @@ var RulePromQLTmplMap = MetricMap{
 
 	"prometheus_up_sum":                          `prometheus:up:sum`,
 	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
-}
-
-func init() {
-	for metric, promql := range RulePromQLTmplMap {
-
-		// Use absent() to fill missing data with zero
-		RulePromQLTmplMap[metric] = fmt.Sprintf("%s or absent(%s)-1", promql, promql)
-	}
 }

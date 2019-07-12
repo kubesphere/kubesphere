@@ -49,6 +49,9 @@ const (
 type FormatedLevelMetric struct {
 	MetricsLevel string           `json:"metrics_level" description:"metric level, eg. cluster"`
 	Results      []FormatedMetric `json:"results" description:"actual array of results"`
+	CurrentPage  int              `json:"page,omitempty" description:"current page returned"`
+	TotalPage    int              `json:"total_page,omitempty" description:"total number of pages"`
+	TotalItem    int              `json:"total_item,omitempty" description:"page size"`
 }
 
 type FormatedMetric struct {
@@ -58,7 +61,7 @@ type FormatedMetric struct {
 }
 
 type FormatedMetricData struct {
-	Result     []map[string]interface{} `json:"result" description:"result including metric labels, time points and values"`
+	Result     []map[string]interface{} `json:"result" description:"metric data including metric metadata, time points and values"`
 	ResultType string                   `json:"resultType" description:"result type, one of matrix, vector"`
 }
 
