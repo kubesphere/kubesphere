@@ -8,16 +8,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alert/pb"
 )
 
+const (
+	ManagerHost = "alerting-manager-server.kubesphere-alerting-system.svc"
+	ManagerPort = 9201
+)
+
 type Client struct {
 	pb.AlertManagerClient
 }
 
 func NewClient() (*Client, error) {
-	//cfg := config.GetInstance()
-	managerHost := "alerting-manager-server.kubesphere-alerting-system.svc" //cfg.App.Host
-	managerPort := 9201 //strconv.Atoi(cfg.App.Port)
-
-	conn, err := NewGRPCClient(managerHost, managerPort)
+	conn, err := NewGRPCClient(ManagerHost, ManagerPort)
 	if err != nil {
 		return nil, err
 	}
@@ -31,11 +32,7 @@ type CustomClient struct {
 }
 
 func NewCustomClient() (*CustomClient, error) {
-	//cfg := config.GetInstance()
-	managerHost := "alerting-manager-server.kubesphere-alerting-system.svc" //cfg.App.Host
-	managerPort := 9201 //strconv.Atoi(cfg.App.Port)
-
-	conn, err := NewGRPCClient(managerHost, managerPort)
+	conn, err := NewGRPCClient(ManagerHost, ManagerPort)
 	if err != nil {
 		return nil, err
 	}

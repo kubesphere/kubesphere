@@ -25,14 +25,20 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/alert"
 	alclient "kubesphere.io/kubesphere/pkg/simple/client/alert"
 	"kubesphere.io/kubesphere/pkg/simple/client/alert/pb"
 	k8sclient "kubesphere.io/kubesphere/pkg/simple/client/kubernetes"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	grpcTimeoutSeconds = 60
 )
 
 func parseBool(input string) bool {
@@ -107,18 +113,18 @@ func CreateResourceType(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&resourceType)
 	if err != nil {
 		glog.Errorf("CreateResourceType request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateResourceTypeResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateResourceTypeResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateResourceTypeRequest{
@@ -129,11 +135,11 @@ func CreateResourceType(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateResourceType(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateResourceType failed: %+v", err)
-		response.WriteAsJson(&pb.CreateResourceTypeResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateResourceType success: %+v", resp)
+	glog.Infof("CreateResourceType success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -150,11 +156,11 @@ func DescribeResourceTypes(request *restful.Request, response *restful.Response)
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeResourceTypesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeResourceTypesRequest{
@@ -169,11 +175,11 @@ func DescribeResourceTypes(request *restful.Request, response *restful.Response)
 	resp, err := client.DescribeResourceTypes(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeResourceTypes failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeResourceTypesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeResourceTypes success: %+v", resp)
+	glog.Infof("DescribeResourceTypes success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -184,16 +190,18 @@ func ModifyResourceType(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&resourceType)
 	if err != nil {
 		glog.Errorf("ModifyResourceType request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyResourceTypeResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyResourceTypeRequest{
@@ -205,7 +213,7 @@ func ModifyResourceType(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyResourceType(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyResourceType failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyResourceTypeResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -220,11 +228,11 @@ func DeleteResourceTypes(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteResourceTypesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteResourceTypesRequest{
@@ -234,11 +242,11 @@ func DeleteResourceTypes(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeleteResourceTypes(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteResourceTypes failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteResourceTypesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteResourceTypes success: %+v", resp)
+	glog.Infof("DeleteResourceTypes success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -249,18 +257,18 @@ func CreateResourceFilter(request *restful.Request, response *restful.Response) 
 	err := request.ReadEntity(&rsFilter)
 	if err != nil {
 		glog.Errorf("CreateResourceFilter request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateResourceFilterRequest{
@@ -273,11 +281,11 @@ func CreateResourceFilter(request *restful.Request, response *restful.Response) 
 	resp, err := client.CreateResourceFilter(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateResourceFilter failed: %+v", err)
-		response.WriteAsJson(&pb.CreateResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateResourceFilter success: %+v", resp)
+	glog.Infof("CreateResourceFilter success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -296,11 +304,11 @@ func DescribeResourceFilters(request *restful.Request, response *restful.Respons
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeResourceFiltersResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeResourceFiltersRequest{
@@ -317,11 +325,11 @@ func DescribeResourceFilters(request *restful.Request, response *restful.Respons
 	resp, err := client.DescribeResourceFilters(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeResourceFilters failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeResourceFiltersResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeResourceFilters success: %+v", resp)
+	glog.Infof("DescribeResourceFilters success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -332,18 +340,18 @@ func ModifyResourceFilter(request *restful.Request, response *restful.Response) 
 	err := request.ReadEntity(&rsFilter)
 	if err != nil {
 		glog.Errorf("ModifyResourceFilter request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.ModifyResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyResourceFilterRequest{
@@ -357,11 +365,11 @@ func ModifyResourceFilter(request *restful.Request, response *restful.Response) 
 	resp, err := client.ModifyResourceFilter(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyResourceFilter failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyResourceFilterResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyResourceFilter success: %+v", resp)
+	glog.Infof("ModifyResourceFilter success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -372,11 +380,11 @@ func DeleteResourceFilters(request *restful.Request, response *restful.Response)
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteResourceFiltersResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteResourceFiltersRequest{
@@ -386,11 +394,11 @@ func DeleteResourceFilters(request *restful.Request, response *restful.Response)
 	resp, err := client.DeleteResourceFilters(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteResourceFilters failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteResourceFiltersResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteResourceFilters success: %+v", resp)
+	glog.Infof("DeleteResourceFilters success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -401,18 +409,18 @@ func CreateMetric(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&metric)
 	if err != nil {
 		glog.Errorf("CreateMetric request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateMetricRequest{
@@ -425,11 +433,11 @@ func CreateMetric(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateMetric(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateMetric failed: %+v", err)
-		response.WriteAsJson(&pb.CreateMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateMetric success: %+v", resp)
+	glog.Infof("CreateMetric success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -448,11 +456,11 @@ func DescribeMetrics(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeMetricsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeMetricsRequest{
@@ -469,11 +477,11 @@ func DescribeMetrics(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeMetrics(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeMetrics failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeMetricsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeMetrics success: %+v", resp)
+	glog.Infof("DescribeMetrics success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -484,18 +492,18 @@ func ModifyMetric(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&metric)
 	if err != nil {
 		glog.Errorf("ModifyMetric request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.ModifyMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyMetricRequest{
@@ -509,11 +517,11 @@ func ModifyMetric(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyMetric(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyMetric failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyMetricResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyMetric success: %+v", resp)
+	glog.Infof("ModifyMetric success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -524,11 +532,11 @@ func DeleteMetrics(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteMetricsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteMetricsRequest{
@@ -538,11 +546,11 @@ func DeleteMetrics(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeleteMetrics(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteMetrics failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteMetricsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteMetrics success: %+v", resp)
+	glog.Infof("DeleteMetrics success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -553,18 +561,18 @@ func CreatePolicy(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&policy)
 	if err != nil {
 		glog.Errorf("CreatePolicy request data error %+v.", err)
-		response.WriteAsJson(&pb.CreatePolicyResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreatePolicyResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreatePolicyRequest{
@@ -579,11 +587,11 @@ func CreatePolicy(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreatePolicy(ctx, req)
 	if err != nil {
 		glog.Errorf("CreatePolicy failed: %+v", err)
-		response.WriteAsJson(&pb.CreatePolicyResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreatePolicy success: %+v", resp)
+	glog.Infof("CreatePolicy success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -603,11 +611,11 @@ func DescribePolicies(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribePoliciesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribePoliciesRequest{
@@ -625,11 +633,11 @@ func DescribePolicies(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribePolicies(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribePolicies failed: %+v", err)
-		response.WriteAsJson(&pb.DescribePoliciesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribePolicies success: %+v", resp)
+	glog.Infof("DescribePolicies success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -640,16 +648,18 @@ func ModifyPolicy(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&policy)
 	if err != nil {
 		glog.Errorf("ModifyPolicy request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyPolicyResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyPolicyRequest{
@@ -666,11 +676,11 @@ func ModifyPolicy(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyPolicy(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyPolicy failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyPolicyResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyPolicy success: %+v", resp)
+	glog.Infof("ModifyPolicy success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -681,11 +691,11 @@ func DeletePolicies(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeletePoliciesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeletePoliciesRequest{
@@ -695,11 +705,11 @@ func DeletePolicies(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeletePolicies(ctx, req)
 	if err != nil {
 		glog.Errorf("DeletePolicies failed: %+v", err)
-		response.WriteAsJson(&pb.DeletePoliciesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeletePolicies success: %+v", resp)
+	glog.Infof("DeletePolicies success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -730,25 +740,25 @@ func modifyPolicyByAlert(resourceMap map[string]string, request *restful.Request
 	err := request.ReadEntity(&policyByAlert)
 	if err != nil {
 		glog.Errorf("ModifyPolicyByAlert request data error %+v.", err)
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	alertNames := stringutils.SimplifyStringList(strings.Split(policyByAlert.AlertName, ","))
 	if len(alertNames) == 0 {
 		glog.Errorf("ModifyPolicyByAlert has no alert name specified.")
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	reqAlerts := &pb.DescribeAlertsWithResourceRequest{
@@ -759,7 +769,7 @@ func modifyPolicyByAlert(resourceMap map[string]string, request *restful.Request
 	respAlerts, err := clientCustom.DescribeAlertsWithResource(ctx, reqAlerts)
 
 	if respAlerts.Total != 1 {
-		glog.Errorf("ModifyPolicyByAlert get no match alert name or duplicate names.")
+		glog.Infof("ModifyPolicyByAlert get no match alert name or duplicate names.")
 		response.WriteAsJson(resp)
 		return
 	}
@@ -767,7 +777,7 @@ func modifyPolicyByAlert(resourceMap map[string]string, request *restful.Request
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -785,20 +795,20 @@ func modifyPolicyByAlert(resourceMap map[string]string, request *restful.Request
 	respModify, err := client.ModifyPolicy(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyPolicyByAlert failed: %+v", err)
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respModify.PolicyId != respAlerts.AlertSet[0].PolicyId {
 		glog.Errorf("ModifyPolicyByAlert failed, PolicyId request[%+v] response[%+v] mismatch", respAlerts.AlertSet[0].PolicyId, respModify.PolicyId)
-		response.WriteAsJson(resp)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	resp = ModifyPolicyByAlertResponse{
 		AlertName: policyByAlert.AlertName,
 	}
-	glog.Errorf("ModifyPolicyByAlert success: %+v", resp)
+	glog.Infof("ModifyPolicyByAlert success: %+v", resp)
 	response.WriteAsJson(resp)
 }
 
@@ -866,16 +876,18 @@ func CreateRule(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&rule)
 	if err != nil {
 		glog.Errorf("CreateRule request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateRuleResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateRuleRequest{
@@ -896,11 +908,11 @@ func CreateRule(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateRule(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateRule failed: %+v", err)
-		response.WriteAsJson(&pb.CreateRuleResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateRule success: %+v", resp)
+	glog.Infof("CreateRule success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -928,11 +940,11 @@ func DescribeRules(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeRulesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeRulesRequest{
@@ -958,11 +970,11 @@ func DescribeRules(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeRules(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeRules failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeRulesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeRules success: %+v", resp)
+	glog.Infof("DescribeRules success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -973,18 +985,18 @@ func ModifyRule(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&rule)
 	if err != nil {
 		glog.Errorf("ModifyRule request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyRuleResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.ModifyRuleResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyRuleRequest{
@@ -1004,11 +1016,11 @@ func ModifyRule(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyRule(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyRule failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyRuleResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyRule success: %+v", resp)
+	glog.Infof("ModifyRule success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1019,11 +1031,11 @@ func DeleteRules(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteRulesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteRulesRequest{
@@ -1033,11 +1045,11 @@ func DeleteRules(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeleteRules(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteRules failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteRulesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteRules success: %+v", resp)
+	glog.Infof("DeleteRules success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1048,18 +1060,18 @@ func CreateAlert(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&alert)
 	if err != nil {
 		glog.Errorf("CreateAlert request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateAlertRequest{
@@ -1071,11 +1083,11 @@ func CreateAlert(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateAlert(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateAlert failed: %+v", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlert success: %+v", resp)
+	glog.Infof("CreateAlert success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1097,11 +1109,11 @@ func DescribeAlerts(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeAlertsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeAlertsRequest{
@@ -1121,11 +1133,11 @@ func DescribeAlerts(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeAlerts(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeAlerts failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeAlertsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeAlerts success: %+v", resp)
+	glog.Infof("DescribeAlerts success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1136,18 +1148,18 @@ func ModifyAlert(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&alert)
 	if err != nil {
 		glog.Errorf("ModifyAlert request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.ModifyAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyAlertRequest{
@@ -1161,11 +1173,11 @@ func ModifyAlert(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyAlert(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyAlert failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyAlert success: %+v", resp)
+	glog.Infof("ModifyAlert success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1176,11 +1188,11 @@ func DeleteAlerts(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteAlertsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteAlertsRequest{
@@ -1190,11 +1202,11 @@ func DeleteAlerts(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeleteAlerts(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteAlerts failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteAlertsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteAlerts success: %+v", resp)
+	glog.Infof("DeleteAlerts success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1221,31 +1233,31 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 	err := request.ReadEntity(&alertInfo)
 	if err != nil {
 		glog.Errorf("createAlertInfo request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	//1. Check Rules Length
 	if len(alertInfo.Rules) == 0 {
 		glog.Errorf("CreateAlertInfo Rules Length error")
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -1259,19 +1271,19 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 	respRsType, err := client.DescribeResourceTypes(ctx, reqRsType)
 	if err != nil {
 		glog.Errorf("CreateAlertInfo DescribeResourceTypes failed: %+v", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respRsType.Total != 1 {
 		glog.Errorf("CreateAlertInfo resource type error")
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	if respRsType.ResourceTypeSet[0].RsTypeName != resourceMap["rs_type_name"] {
 		glog.Errorf("CreateAlertInfo resource type mismatch")
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -1280,7 +1292,7 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 	err = json.Unmarshal([]byte(alertInfo.RsFilter.RsFilterParam), &rsFilterURI)
 	if err != nil {
 		glog.Errorf("CreateAlertInfo Unmarshal rsFilterURI Error: %+v", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -1314,7 +1326,7 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 
 	if !uriCorrect {
 		glog.Errorf("CreateAlertInfo uri mismatch")
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -1329,13 +1341,13 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 	respCheck, err := clientCustom.DescribeAlertsWithResource(ctx, reqCheck)
 	if err != nil {
 		glog.Errorf("CreateAlertInfo check alert name failed: %+v", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respCheck.Total != 0 {
 		glog.Errorf("CreateAlertInfo alert name already exists")
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -1350,11 +1362,11 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 	respRsFilter, err := client.CreateResourceFilter(ctx, reqRsFilter)
 	if err != nil {
 		glog.Errorf("CreateAlertInfo Resource Filter failed: %+v", err)
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlertInfo Resource Filter success: %+v", respRsFilter)
+	glog.Infof("CreateAlertInfo Resource Filter success: %+v", respRsFilter)
 	rsFilterId := respRsFilter.RsFilterId
 
 	//6. Create Policy
@@ -1374,11 +1386,11 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 
 		removeResourceFilter(client, ctx, rsFilterId)
 
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlertInfo Policy success: %+v", respPolicy)
+	glog.Infof("CreateAlertInfo Policy success: %+v", respPolicy)
 	policyId := respPolicy.PolicyId
 
 	//7. Create Action
@@ -1395,11 +1407,11 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 		removeResourceFilter(client, ctx, rsFilterId)
 		removePolicy(client, ctx, policyId)
 
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlertInfo Action success: %+v", respAction)
+	glog.Infof("CreateAlertInfo Action success: %+v", respAction)
 
 	//8. Create Rules
 	createRulesSuccess := true
@@ -1432,11 +1444,11 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 		removeResourceFilter(client, ctx, rsFilterId)
 		removePolicy(client, ctx, policyId)
 
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlertInfo Rules success")
+	glog.Infof("CreateAlertInfo Rules success")
 
 	//9. Create Alert
 	var reqAlert = &pb.CreateAlertRequest{
@@ -1452,11 +1464,11 @@ func createAlertInfo(resourceMap map[string]string, request *restful.Request, re
 		removeResourceFilter(client, ctx, rsFilterId)
 		removePolicy(client, ctx, policyId)
 
-		response.WriteAsJson(&pb.CreateAlertResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAlertInfo Alert success: %+v", respAlert)
+	glog.Infof("CreateAlertInfo Alert success: %+v", respAlert)
 
 	response.WriteAsJson(respAlert)
 }
@@ -1529,25 +1541,25 @@ func modifyAlertByName(resourceMap map[string]string, request *restful.Request, 
 	err := request.ReadEntity(&alert)
 	if err != nil {
 		glog.Errorf("ModifyAlertByName request data error %+v.", err)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	alertNames := stringutils.SimplifyStringList(strings.Split(alert.AlertName, ","))
 	if len(alertNames) == 0 {
 		glog.Errorf("ModifyAlertByName has no alert name specified.")
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	resourceSearch, _ := json.Marshal(resourceMap)
@@ -1559,12 +1571,12 @@ func modifyAlertByName(resourceMap map[string]string, request *restful.Request, 
 	respAlerts, err := clientCustom.DescribeAlertsWithResource(ctx, reqCheck)
 	if err != nil {
 		glog.Errorf("ModifyAlertByName check alert name failed: %+v", err)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respAlerts.Total != 1 {
-		glog.Errorf("ModifyAlertByName get no match alert name or duplicate names.")
+		glog.Infof("ModifyAlertByName get no match alert name or duplicate names.")
 		response.WriteAsJson(&ModifyAlertByNameResponse{})
 		return
 	}
@@ -1572,7 +1584,7 @@ func modifyAlertByName(resourceMap map[string]string, request *restful.Request, 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -1586,20 +1598,20 @@ func modifyAlertByName(resourceMap map[string]string, request *restful.Request, 
 	respModify, err := client.ModifyAlert(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyAlertByName failed: %+v", err)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respModify.AlertId != respAlerts.AlertSet[0].AlertId {
 		glog.Errorf("ModifyAlertByName failed, AlertId request[%+v] response[%+v] mismatch", respAlerts.AlertSet[0].AlertId, respModify.AlertId)
-		response.WriteAsJson(&ModifyAlertByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	resp := ModifyAlertByNameResponse{
 		AlertName: alert.AlertName,
 	}
-	glog.Errorf("ModifyAlertByName success: %+v", resp)
+	glog.Infof("ModifyAlertByName success: %+v", resp)
 	response.WriteAsJson(resp)
 }
 
@@ -1669,18 +1681,18 @@ func deleteAlertsByName(resourceMap map[string]string, request *restful.Request,
 	alertNames := stringutils.SimplifyStringList(strings.Split(request.QueryParameter("alert_names"), ","))
 	if len(alertNames) == 0 {
 		glog.Errorf("DeleteAlertsByName has no alert name specified.")
-		response.WriteAsJson(&DeleteAlertsByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.New("DeleteAlertsByName has no alert name specified."))
 		return
 	}
 
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&DeleteAlertsByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	resourceSearch, _ := json.Marshal(resourceMap)
@@ -1692,12 +1704,12 @@ func deleteAlertsByName(resourceMap map[string]string, request *restful.Request,
 	respAlerts, err := clientCustom.DescribeAlertsWithResource(ctx, reqCheck)
 	if err != nil {
 		glog.Errorf("DeleteAlertsByName check alert name failed: %+v", err)
-		response.WriteAsJson(&DeleteAlertsByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	if respAlerts.Total == 0 {
-		glog.Errorf("DeleteAlertsByName get no match alert name.")
+		glog.Info("DeleteAlertsByName get no match alert name.")
 		response.WriteAsJson(&DeleteAlertsByNameResponse{})
 		return
 	}
@@ -1717,14 +1729,14 @@ func deleteAlertsByName(resourceMap map[string]string, request *restful.Request,
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&DeleteAlertsByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
 	respDelete, err := client.DeleteAlerts(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteAlertsByName failed: %+v", err)
-		response.WriteAsJson(&DeleteAlertsByNameResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -1737,7 +1749,7 @@ func deleteAlertsByName(resourceMap map[string]string, request *restful.Request,
 		AlertName: alertNamesSuccess,
 	}
 
-	glog.Errorf("DeleteAlertsByName success: %+v", resp)
+	glog.Infof("DeleteAlertsByName success: %+v", resp)
 	response.WriteAsJson(resp)
 }
 
@@ -1818,11 +1830,11 @@ func describeAlertDetails(resourceMap map[string]string, request *restful.Reques
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeAlertDetailsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeAlertDetailsRequest{
@@ -1845,11 +1857,11 @@ func describeAlertDetails(resourceMap map[string]string, request *restful.Reques
 	resp, err := clientCustom.DescribeAlertDetails(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeAlertDetails failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeAlertDetailsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeAlertDetails success: %+v", resp)
+	glog.Infof("DescribeAlertDetails success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -1932,11 +1944,11 @@ func describeAlertStatus(resourceMap map[string]string, request *restful.Request
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeAlertStatusResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeAlertStatusRequest{
@@ -1959,10 +1971,10 @@ func describeAlertStatus(resourceMap map[string]string, request *restful.Request
 	resp, err := clientCustom.DescribeAlertStatus(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeAlertStatus failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeAlertStatusResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 	}
 
-	glog.Errorf("DescribeAlertStatus success: %+v", resp)
+	glog.Infof("DescribeAlertStatus success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2040,11 +2052,11 @@ func DescribeHistories(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeHistoriesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeHistoriesRequest{
@@ -2062,11 +2074,11 @@ func DescribeHistories(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeHistories(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeHistories failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeHistoriesResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeHistories success: %+v", resp)
+	glog.Infof("DescribeHistories success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2090,11 +2102,11 @@ func describeHistoryDetail(resourceMap map[string]string, request *restful.Reque
 	clientCustom, err := alclient.NewCustomClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeHistoryDetailResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeHistoryDetailRequest{
@@ -2117,11 +2129,11 @@ func describeHistoryDetail(resourceMap map[string]string, request *restful.Reque
 	resp, err := clientCustom.DescribeHistoryDetail(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeHistoryDetail failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeHistoryDetailResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeHistoryDetail success: %+v", resp)
+	glog.Infof("DescribeHistoryDetail success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2190,18 +2202,18 @@ func CreateComment(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&comment)
 	if err != nil {
 		glog.Errorf("CreateComment request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateCommentResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create comment grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateCommentResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateCommentRequest{
@@ -2213,11 +2225,11 @@ func CreateComment(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateComment(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateComment failed: %+v", err)
-		response.WriteAsJson(&pb.CreateCommentResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateComment success: %+v", resp)
+	glog.Infof("CreateComment success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2236,11 +2248,11 @@ func DescribeComments(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeCommentsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeCommentsRequest{
@@ -2257,11 +2269,11 @@ func DescribeComments(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeComments(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeComments failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeCommentsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeComments success: %+v", resp)
+	glog.Infof("DescribeComments success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2272,18 +2284,18 @@ func CreateAction(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&action)
 	if err != nil {
 		glog.Errorf("CreateAction request data error %+v.", err)
-		response.WriteAsJson(&pb.CreateActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.CreateActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.CreateActionRequest{
@@ -2297,11 +2309,11 @@ func CreateAction(request *restful.Request, response *restful.Response) {
 	resp, err := client.CreateAction(ctx, req)
 	if err != nil {
 		glog.Errorf("CreateAction failed: %+v", err)
-		response.WriteAsJson(&pb.CreateActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("CreateAction success: %+v", resp)
+	glog.Infof("CreateAction success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2322,11 +2334,11 @@ func DescribeActions(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DescribeActionsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DescribeActionsRequest{
@@ -2345,11 +2357,11 @@ func DescribeActions(request *restful.Request, response *restful.Response) {
 	resp, err := client.DescribeActions(ctx, req)
 	if err != nil {
 		glog.Errorf("DescribeActions failed: %+v", err)
-		response.WriteAsJson(&pb.DescribeActionsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DescribeActions success: %+v", resp)
+	glog.Infof("DescribeActions success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2360,18 +2372,18 @@ func ModifyAction(request *restful.Request, response *restful.Response) {
 	err := request.ReadEntity(&action)
 	if err != nil {
 		glog.Errorf("ModifyAction request data error %+v.", err)
-		response.WriteAsJson(&pb.ModifyActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.ModifyActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.ModifyActionRequest{
@@ -2386,11 +2398,11 @@ func ModifyAction(request *restful.Request, response *restful.Response) {
 	resp, err := client.ModifyAction(ctx, req)
 	if err != nil {
 		glog.Errorf("ModifyAction failed: %+v", err)
-		response.WriteAsJson(&pb.ModifyActionResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("ModifyAction success: %+v", resp)
+	glog.Infof("ModifyAction success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2401,11 +2413,11 @@ func DeleteActions(request *restful.Request, response *restful.Response) {
 	client, err := alclient.NewClient()
 	if err != nil {
 		glog.Errorf("Failed to create alert grpc client %+v.", err)
-		response.WriteAsJson(&pb.DeleteActionsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), grpcTimeoutSeconds*time.Second)
 	defer cancel()
 
 	var req = &pb.DeleteActionsRequest{
@@ -2415,11 +2427,11 @@ func DeleteActions(request *restful.Request, response *restful.Response) {
 	resp, err := client.DeleteActions(ctx, req)
 	if err != nil {
 		glog.Errorf("DeleteActions failed: %+v", err)
-		response.WriteAsJson(&pb.DeleteActionsResponse{})
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
-	glog.Errorf("DeleteActions success: %+v", resp)
+	glog.Infof("DeleteActions success: %+v", resp)
 
 	response.WriteAsJson(resp)
 }
@@ -2434,7 +2446,7 @@ func DescribeResourcesNode(request *restful.Request, response *restful.Response)
 	err := json.Unmarshal([]byte(request.QueryParameter("selector")), &resourceSelector)
 	if err != nil {
 		glog.Errorf("Unmarshal DescribeResourcesNode Error: %+v", err)
-		response.WriteAsJson(resources)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
@@ -2443,7 +2455,7 @@ func DescribeResourcesNode(request *restful.Request, response *restful.Response)
 	nodeList, err := k8sclient.NewK8sClient().CoreV1().Nodes().List(metaV1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		glog.Errorf("getResourceFilterURIBySelector list nodes error: %+v", err)
-		response.WriteAsJson(resources)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 
@@ -2467,7 +2479,7 @@ func DescribeResourcesWorkload(request *restful.Request, response *restful.Respo
 	err := json.Unmarshal([]byte(request.QueryParameter("selector")), &resourceSelector)
 	if err != nil {
 		glog.Errorf("Unmarshal DescribeResourcesNode Error: %+v", err)
-		response.WriteAsJson(resources)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
