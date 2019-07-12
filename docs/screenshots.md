@@ -24,6 +24,26 @@ Screenshots of various KubeSphere dashboard views:
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190710113153.png)
 
+## Service Mesh
+
+### Traffic Management
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002111.png)
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002849.png)
+
+### Tracing
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002331.png)
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002424.png)
+
+## Grayscale Release
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002554.png)
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190713002641.png)
+
 ## Node Management
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190710111701.png)
