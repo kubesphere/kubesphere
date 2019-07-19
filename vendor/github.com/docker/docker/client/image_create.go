@@ -6,21 +6,21 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/reference"
 )
 
 // ImageCreate creates a new image based in the parent options.
 // It returns the JSON content in the response body.
 func (cli *Client) ImageCreate(ctx context.Context, parentReference string, options types.ImageCreateOptions) (io.ReadCloser, error) {
-	ref, err := reference.ParseNormalizedNamed(parentReference)
+	repository, tag, err := reference.Parse(parentReference)
 	if err != nil {
 		return nil, err
 	}
 
 	query := url.Values{}
-	query.Set("fromImage", reference.FamiliarName(ref))
-	query.Set("tag", getAPITagFromNamedRef(ref))
+	query.Set("fromImage", repository)
+	query.Set("tag", tag)
 	resp, err := cli.tryImageCreate(ctx, query, options.RegistryAuth)
 	if err != nil {
 		return nil, err

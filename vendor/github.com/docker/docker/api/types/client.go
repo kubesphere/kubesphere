@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"os"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -159,10 +160,9 @@ type ImageBuildOptions struct {
 	ShmSize        int64
 	Dockerfile     string
 	Ulimits        []*units.Ulimit
-	// BuildArgs needs to be a *string instead of just a string so that
-	// we can tell the difference between "" (empty string) and no value
-	// at all (nil). See the parsing of buildArgs in
-	// api/server/router/build/build_routes.go for even more info.
+	// See the parsing of buildArgs in api/server/router/build/build_routes.go
+	// for an explaination of why BuildArgs needs to use *string instead of
+	// just a string
 	BuildArgs   map[string]*string
 	AuthConfigs map[string]AuthConfig
 	Context     io.Reader
@@ -175,8 +175,6 @@ type ImageBuildOptions struct {
 	// specified here do not need to have a valid parent chain to match cache.
 	CacheFrom   []string
 	SecurityOpt []string
-	ExtraHosts  []string // List of extra hosts
-	Target      string
 }
 
 // ImageBuildResponse holds information
@@ -194,8 +192,8 @@ type ImageCreateOptions struct {
 
 // ImageImportSource holds source information for ImageImport
 type ImageImportSource struct {
-	Source     io.Reader // Source is the data to send to the server to create this image from. You must set SourceName to "-" to leverage this.
-	SourceName string    // SourceName is the name of the image to pull. Set to "-" to leverage the Source attribute.
+	Source     io.Reader // Source is the data to send to the server to create this image from (mutually exclusive with SourceName)
+	SourceName string    // SourceName is the name of the image to pull (mutually exclusive with Source)
 }
 
 // ImageImportOptions holds information to import images from the client host.
@@ -258,6 +256,18 @@ type ResizeOptions struct {
 	Width  uint
 }
 
+// VersionResponse holds version information for the client and the server
+type VersionResponse struct {
+	Client *Version
+	Server *Version
+}
+
+// ServerOK returns true when the client could connect to the docker server
+// and parse the information received. It returns false otherwise.
+func (v VersionResponse) ServerOK() bool {
+	return v.Server != nil
+}
+
 // NodeListOptions holds parameters to list nodes with.
 type NodeListOptions struct {
 	Filters filters.Args
@@ -308,26 +318,14 @@ type ServiceUpdateOptions struct {
 	// credentials if they are not given in EncodedRegistryAuth. Valid
 	// values are "spec" and "previous-spec".
 	RegistryAuthFrom string
-
-	// Rollback indicates whether a server-side rollback should be
-	// performed. When this is set, the provided spec will be ignored.
-	// The valid values are "previous" and "none". An empty value is the
-	// same as "none".
-	Rollback string
 }
 
-// ServiceListOptions holds parameters to list services with.
+// ServiceListOptions holds parameters to list  services with.
 type ServiceListOptions struct {
 	Filters filters.Args
 }
 
-// ServiceInspectOptions holds parameters related to the "service inspect"
-// operation.
-type ServiceInspectOptions struct {
-	InsertDefaults bool
-}
-
-// TaskListOptions holds parameters to list tasks with.
+// TaskListOptions holds parameters to list  tasks with.
 type TaskListOptions struct {
 	Filters filters.Args
 }
@@ -356,6 +354,15 @@ type PluginInstallOptions struct {
 	PrivilegeFunc         RequestPrivilegeFunc
 	AcceptPermissionsFunc func(PluginPrivileges) (bool, error)
 	Args                  []string
+}
+
+// SecretRequestOption is a type for requesting secrets
+type SecretRequestOption struct {
+	Source string
+	Target string
+	UID    string
+	GID    string
+	Mode   os.FileMode
 }
 
 // SwarmUnlockKeyResponse contains the response for Engine API:

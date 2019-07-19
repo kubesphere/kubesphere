@@ -229,7 +229,7 @@ func IsErrPluginPermissionDenied(err error) bool {
 // if less than the current supported version
 func (cli *Client) NewVersionError(APIrequired, feature string) error {
 	if versions.LessThan(cli.version, APIrequired) {
-		return fmt.Errorf("%q requires API version %s, but the Docker daemon API version is %s", feature, APIrequired, cli.version)
+		return fmt.Errorf("%q requires API version %s, but the Docker server is version %s", feature, APIrequired, cli.version)
 	}
 	return nil
 }
@@ -244,7 +244,7 @@ func (e secretNotFoundError) Error() string {
 	return fmt.Sprintf("Error: no such secret: %s", e.name)
 }
 
-// NotFound indicates that this error type is of NotFound
+// NoFound indicates that this error type is of NotFound
 func (e secretNotFoundError) NotFound() bool {
 	return true
 }

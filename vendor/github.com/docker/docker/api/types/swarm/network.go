@@ -82,7 +82,6 @@ type NetworkSpec struct {
 	IPv6Enabled         bool         `json:",omitempty"`
 	Internal            bool         `json:",omitempty"`
 	Attachable          bool         `json:",omitempty"`
-	Ingress             bool         `json:",omitempty"`
 	IPAMOptions         *IPAMOptions `json:",omitempty"`
 }
 
