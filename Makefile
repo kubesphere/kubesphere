@@ -68,9 +68,6 @@ deepcopy:
 
 # Generate code
 generate:
-ifndef GOPATH
-	$(error GOPATH not defined, please define GOPATH. Run "go help gopath" to learn more about GOPATH)
-endif
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image

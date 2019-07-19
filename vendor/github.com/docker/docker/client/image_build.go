@@ -29,7 +29,7 @@ func (cli *Client) ImageBuild(ctx context.Context, buildContext io.Reader, optio
 		return types.ImageBuildResponse{}, err
 	}
 	headers.Add("X-Registry-Config", base64.URLEncoding.EncodeToString(buf))
-	headers.Set("Content-Type", "application/x-tar")
+	headers.Set("Content-Type", "application/tar")
 
 	serverResp, err := cli.postRaw(ctx, "/build", query, buildContext, headers)
 	if err != nil {
@@ -48,7 +48,6 @@ func (cli *Client) imageBuildOptionsToQuery(options types.ImageBuildOptions) (ur
 	query := url.Values{
 		"t":           options.Tags,
 		"securityopt": options.SecurityOpt,
-		"extrahosts":  options.ExtraHosts,
 	}
 	if options.SuppressOutput {
 		query.Set("q", "1")
@@ -95,7 +94,6 @@ func (cli *Client) imageBuildOptionsToQuery(options types.ImageBuildOptions) (ur
 	query.Set("cgroupparent", options.CgroupParent)
 	query.Set("shmsize", strconv.FormatInt(options.ShmSize, 10))
 	query.Set("dockerfile", options.Dockerfile)
-	query.Set("target", options.Target)
 
 	ulimitsJSON, err := json.Marshal(options.Ulimits)
 	if err != nil {

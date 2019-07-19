@@ -633,8 +633,8 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		if err := kubectl.CreateKubectlDeploy(username); err != nil {
 			glog.Error("create user terminal pod failed", username, err)
 		}
-		
-	} else { 
+
+	} else {
 		// delete kubectl pod if cluster role is not cluster-admin, whether it exists or not
 		if err := kubectl.DelKubectlDeploy(username); err != nil {
 			glog.Error("delete user terminal pod failed", username, err)

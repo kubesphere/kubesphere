@@ -5,8 +5,9 @@ import (
 	"errors"
 	"net/url"
 
-	"github.com/docker/distribution/reference"
+	distreference "github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/reference"
 	"golang.org/x/net/context"
 )
 
@@ -14,20 +15,17 @@ import (
 func (cli *Client) ContainerCommit(ctx context.Context, container string, options types.ContainerCommitOptions) (types.IDResponse, error) {
 	var repository, tag string
 	if options.Reference != "" {
-		ref, err := reference.ParseNormalizedNamed(options.Reference)
+		distributionRef, err := distreference.ParseNamed(options.Reference)
 		if err != nil {
 			return types.IDResponse{}, err
 		}
 
-		if _, isCanonical := ref.(reference.Canonical); isCanonical {
+		if _, isCanonical := distributionRef.(distreference.Canonical); isCanonical {
 			return types.IDResponse{}, errors.New("refusing to create a tag with a digest reference")
 		}
-		ref = reference.TagNameOnly(ref)
 
-		if tagged, ok := ref.(reference.Tagged); ok {
-			tag = tagged.Tag()
-		}
-		repository = reference.FamiliarName(ref)
+		tag = reference.GetTagFromNamedRef(distributionRef)
+		repository = distributionRef.Name()
 	}
 
 	query := url.Values{}

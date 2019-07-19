@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// SwarmUpdate updates the swarm.
+// SwarmUpdate updates the Swarm.
 func (cli *Client) SwarmUpdate(ctx context.Context, version swarm.Version, swarm swarm.Spec, flags swarm.UpdateFlags) error {
 	query := url.Values{}
 	query.Set("version", strconv.FormatUint(version.Index, 10))

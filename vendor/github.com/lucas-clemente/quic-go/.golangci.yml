@@ -1,0 +1,25 @@
+run:
+  skip-files:
+    - h2quic/response_writer_closenotifier.go
+    - internal/handshake/unsafe_test.go
+
+linters-settings:
+  misspell:
+    ignore-words:
+      - ect
+
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - goconst
+    - goimports
+    - gosimple
+    - ineffassign
+    - misspell
+    - staticcheck
+    - structcheck
+    - unconvert
+    - unused
+    - varcheck
+    - vet

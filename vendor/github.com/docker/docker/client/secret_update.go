@@ -8,7 +8,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-// SecretUpdate attempts to updates a Secret
+// SecretUpdate updates a Secret. Currently, the only part of a secret spec
+// which can be updated is Labels.
 func (cli *Client) SecretUpdate(ctx context.Context, id string, version swarm.Version, secret swarm.SecretSpec) error {
 	query := url.Values{}
 	query.Set("version", strconv.FormatUint(version.Index, 10))

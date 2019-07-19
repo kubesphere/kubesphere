@@ -42,9 +42,6 @@ type PluginConfig struct {
 	// Required: true
 	Description string `json:"Description"`
 
-	// Docker Version used to create the plugin
-	DockerVersion string `json:"DockerVersion,omitempty"`
-
 	// documentation
 	// Required: true
 	Documentation string `json:"Documentation"`
@@ -61,10 +58,6 @@ type PluginConfig struct {
 	// Required: true
 	Interface PluginConfigInterface `json:"Interface"`
 
-	// ipc host
-	// Required: true
-	IpcHost bool `json:"IpcHost"`
-
 	// linux
 	// Required: true
 	Linux PluginConfigLinux `json:"Linux"`
@@ -76,10 +69,6 @@ type PluginConfig struct {
 	// network
 	// Required: true
 	Network PluginConfigNetwork `json:"Network"`
-
-	// pid host
-	// Required: true
-	PidHost bool `json:"PidHost"`
 
 	// propagated mount
 	// Required: true
