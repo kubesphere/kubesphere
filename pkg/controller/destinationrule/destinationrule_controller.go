@@ -2,9 +2,11 @@ package destinationrule
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -14,12 +16,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-	"reflect"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"time"
 
 	istioclientset "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
@@ -32,7 +34,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"time"
 
 	servicemeshclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
@@ -159,7 +160,7 @@ func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) {
 	log.Info("starting destinationrule controller")
 	defer log.Info("shutting down destinationrule controller")
 
-	if !controller.WaitForCacheSync("destinationrule-controller", stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced, v.servicePolicySynced) {
+	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.destinationRuleSynced, v.deploymentSynced, v.servicePolicySynced) {
 		return
 	}
 
@@ -171,7 +172,7 @@ func (v *DestinationRuleController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (v *DestinationRuleController) enqueueService(obj interface{}) {
-	key, err := controller.KeyFunc(obj)
+	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
 		return
@@ -433,7 +434,7 @@ func (v *DestinationRuleController) getDeploymentServiceMemberShip(deployment *a
 		}
 		selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
 		if selector.Matches(labels.Set(deployment.Spec.Selector.MatchLabels)) {
-			key, err := controller.KeyFunc(service)
+			key, err := cache.MetaNamespaceKeyFunc(service)
 			if err != nil {
 				return nil, err
 			}
@@ -458,7 +459,7 @@ func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
 
 	set := sets.String{}
 	for _, service := range services {
-		key, err := controller.KeyFunc(service)
+		key, err := cache.MetaNamespaceKeyFunc(service)
 		if err != nil {
 			utilruntime.HandleError(err)
 			continue

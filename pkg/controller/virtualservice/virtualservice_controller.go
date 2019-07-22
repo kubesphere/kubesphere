@@ -2,8 +2,11 @@ package virtualservice
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/knative/pkg/apis/istio/v1alpha3"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,12 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-	"reflect"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"strings"
 
 	istioclient "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
@@ -156,7 +156,7 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
 	log.Info("starting virtualservice controller")
 	defer log.Info("shutting down virtualservice controller")
 
-	if !controller.WaitForCacheSync("virtualservice-controller", stopCh, v.serviceSynced, v.virtualServiceSynced, v.destinationRuleSynced, v.strategySynced) {
+	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.virtualServiceSynced, v.destinationRuleSynced, v.strategySynced) {
 		return
 	}
 
@@ -168,7 +168,7 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (v *VirtualServiceController) enqueueService(obj interface{}) {
-	key, err := controller.KeyFunc(obj)
+	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
 		return
@@ -428,7 +428,7 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 	_, err = v.virtualServiceLister.VirtualServices(dr.Namespace).Get(dr.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			key, err := controller.KeyFunc(service)
+			key, err := cache.MetaNamespaceKeyFunc(service)
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("get service %s/%s key failed", service.Namespace, service.Name))
 				return
@@ -472,7 +472,7 @@ func (v *VirtualServiceController) addStrategy(obj interface{}) {
 			continue
 		}
 
-		key, err := controller.KeyFunc(service)
+		key, err := cache.MetaNamespaceKeyFunc(service)
 		if err != nil {
 			utilruntime.HandleError(err)
 			return
