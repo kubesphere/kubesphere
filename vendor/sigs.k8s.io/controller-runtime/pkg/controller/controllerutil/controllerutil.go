@@ -22,7 +22,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,15 +33,15 @@ import (
 // a controller reference is already owned by another controller Object is the
 // subject and Owner is the reference for the current owner
 type AlreadyOwnedError struct {
-	Object v1.Object
-	Owner  v1.OwnerReference
+	Object metav1.Object
+	Owner  metav1.OwnerReference
 }
 
 func (e *AlreadyOwnedError) Error() string {
 	return fmt.Sprintf("Object %s/%s is already owned by another %s controller %s", e.Object.GetNamespace(), e.Object.GetName(), e.Owner.Kind, e.Owner.Name)
 }
 
-func newAlreadyOwnedError(Object v1.Object, Owner v1.OwnerReference) *AlreadyOwnedError {
+func newAlreadyOwnedError(Object metav1.Object, Owner metav1.OwnerReference) *AlreadyOwnedError {
 	return &AlreadyOwnedError{
 		Object: Object,
 		Owner:  Owner,
@@ -53,7 +53,7 @@ func newAlreadyOwnedError(Object v1.Object, Owner v1.OwnerReference) *AlreadyOwn
 // reconciling the owner object on changes to owned (with a Watch + EnqueueRequestForOwner).
 // Since only one OwnerReference can be a controller, it returns an error if
 // there is another OwnerReference with Controller flag set.
-func SetControllerReference(owner, object v1.Object, scheme *runtime.Scheme) error {
+func SetControllerReference(owner, object metav1.Object, scheme *runtime.Scheme) error {
 	ro, ok := owner.(runtime.Object)
 	if !ok {
 		return fmt.Errorf("is not a %T a runtime.Object, cannot call SetControllerReference", owner)
@@ -65,7 +65,7 @@ func SetControllerReference(owner, object v1.Object, scheme *runtime.Scheme) err
 	}
 
 	// Create a new ref
-	ref := *v1.NewControllerRef(owner, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
+	ref := *metav1.NewControllerRef(owner, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
 
 	existingRefs := object.GetOwnerReferences()
 	fi := -1
@@ -88,7 +88,7 @@ func SetControllerReference(owner, object v1.Object, scheme *runtime.Scheme) err
 }
 
 // Returns true if a and b point to the same object
-func referSameObject(a, b v1.OwnerReference) bool {
+func referSameObject(a, b metav1.OwnerReference) bool {
 	aGV, err := schema.ParseGroupVersion(a.APIVersion)
 	if err != nil {
 		return false
@@ -114,65 +114,57 @@ const ( // They should complete the sentence "Deployment default/foo has been ..
 	OperationResultUpdated OperationResult = "updated"
 )
 
-// CreateOrUpdate creates or updates the given object obj in the Kubernetes
-// cluster. The object's desired state should be reconciled with the existing
-// state using the passed in ReconcileFn. obj must be a struct pointer so that
-// obj can be updated with the content returned by the Server.
+// CreateOrUpdate creates or updates the given object in the Kubernetes
+// cluster. The object's desired state must be reconciled with the existing
+// state inside the passed in callback MutateFn.
+//
+// The MutateFn is called regardless of creating or updating an object.
 //
 // It returns the executed operation and an error.
 func CreateOrUpdate(ctx context.Context, c client.Client, obj runtime.Object, f MutateFn) (OperationResult, error) {
-	// op is the operation we are going to attempt
-	op := OperationResultNone
-
-	// get the existing object meta
-	metaObj, ok := obj.(v1.Object)
-	if !ok {
-		return OperationResultNone, fmt.Errorf("%T does not implement metav1.Object interface", obj)
-	}
-
-	// retrieve the existing object
-	key := client.ObjectKey{
-		Name:      metaObj.GetName(),
-		Namespace: metaObj.GetNamespace(),
-	}
-	err := c.Get(ctx, key, obj)
-
-	// reconcile the existing object
-	existing := obj.DeepCopyObject()
-	existingObjMeta := existing.(v1.Object)
-	existingObjMeta.SetName(metaObj.GetName())
-	existingObjMeta.SetNamespace(metaObj.GetNamespace())
-
-	if e := f(obj); e != nil {
-		return OperationResultNone, e
-	}
-
-	if metaObj.GetName() != existingObjMeta.GetName() {
-		return OperationResultNone, fmt.Errorf("ReconcileFn cannot mutate objects name")
-	}
-
-	if metaObj.GetNamespace() != existingObjMeta.GetNamespace() {
-		return OperationResultNone, fmt.Errorf("ReconcileFn cannot mutate objects namespace")
-	}
-
-	if errors.IsNotFound(err) {
-		err = c.Create(ctx, obj)
-		op = OperationResultCreated
-	} else if err == nil {
-		if reflect.DeepEqual(existing, obj) {
-			return OperationResultNone, nil
-		}
-		err = c.Update(ctx, obj)
-		op = OperationResultUpdated
-	} else {
+	key, err := client.ObjectKeyFromObject(obj)
+	if err != nil {
 		return OperationResultNone, err
 	}
 
-	if err != nil {
-		op = OperationResultNone
+	if err := c.Get(ctx, key, obj); err != nil {
+		if !errors.IsNotFound(err) {
+			return OperationResultNone, err
+		}
+		if err := mutate(f, key, obj); err != nil {
+			return OperationResultNone, err
+		}
+		if err := c.Create(ctx, obj); err != nil {
+			return OperationResultNone, err
+		}
+		return OperationResultCreated, nil
 	}
-	return op, err
+
+	existing := obj.DeepCopyObject()
+	if err := mutate(f, key, obj); err != nil {
+		return OperationResultNone, err
+	}
+
+	if reflect.DeepEqual(existing, obj) {
+		return OperationResultNone, nil
+	}
+
+	if err := c.Update(ctx, obj); err != nil {
+		return OperationResultNone, err
+	}
+	return OperationResultUpdated, nil
+}
+
+// mutate wraps a MutateFn and applies validation to its result
+func mutate(f MutateFn, key client.ObjectKey, obj runtime.Object) error {
+	if err := f(); err != nil {
+		return err
+	}
+	if newKey, err := client.ObjectKeyFromObject(obj); err != nil || key != newKey {
+		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
+	}
+	return nil
 }
 
 // MutateFn is a function which mutates the existing object into it's desired state.
-type MutateFn func(existing runtime.Object) error
+type MutateFn func() error

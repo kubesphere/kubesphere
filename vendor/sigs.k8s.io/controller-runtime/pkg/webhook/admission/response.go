@@ -19,17 +19,38 @@ package admission
 import (
 	"net/http"
 
+	"gomodules.xyz/jsonpatch/v2"
+
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/patch"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission/types"
 )
 
-// ErrorResponse creates a new Response for error-handling a request.
-func ErrorResponse(code int32, err error) types.Response {
-	return types.Response{
-		Response: &admissionv1beta1.AdmissionResponse{
+// Allowed constructs a response indicating that the given operation
+// is allowed (without any patches).
+func Allowed(reason string) Response {
+	return ValidationResponse(true, reason)
+}
+
+// Denied constructs a response indicating that the given operation
+// is not allowed.
+func Denied(reason string) Response {
+	return ValidationResponse(false, reason)
+}
+
+// Patched constructs a response indicating that the given operation is
+// allowed, and that the target object should be modified by the given
+// JSONPatch operations.
+func Patched(reason string, patches ...jsonpatch.JsonPatchOperation) Response {
+	resp := Allowed(reason)
+	resp.Patches = patches
+
+	return resp
+}
+
+// Errored creates a new Response for error-handling a request.
+func Errored(code int32, err error) Response {
+	return Response{
+		AdmissionResponse: admissionv1beta1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
 				Code:    code,
@@ -40,29 +61,36 @@ func ErrorResponse(code int32, err error) types.Response {
 }
 
 // ValidationResponse returns a response for admitting a request.
-func ValidationResponse(allowed bool, reason string) types.Response {
-	resp := types.Response{
-		Response: &admissionv1beta1.AdmissionResponse{
+func ValidationResponse(allowed bool, reason string) Response {
+	code := http.StatusForbidden
+	if allowed {
+		code = http.StatusOK
+	}
+	resp := Response{
+		AdmissionResponse: admissionv1beta1.AdmissionResponse{
 			Allowed: allowed,
+			Result: &metav1.Status{
+				Code: int32(code),
+			},
 		},
 	}
 	if len(reason) > 0 {
-		resp.Response.Result = &metav1.Status{
-			Reason: metav1.StatusReason(reason),
-		}
+		resp.Result.Reason = metav1.StatusReason(reason)
 	}
 	return resp
 }
 
-// PatchResponse returns a new response with json patch.
-func PatchResponse(original, current runtime.Object) types.Response {
-	patches, err := patch.NewJSONPatch(original, current)
+// PatchResponseFromRaw takes 2 byte arrays and returns a new response with json patch.
+// The original object should be passed in as raw bytes to avoid the roundtripping problem
+// described in https://github.com/kubernetes-sigs/kubebuilder/issues/510.
+func PatchResponseFromRaw(original, current []byte) Response {
+	patches, err := jsonpatch.CreatePatch(original, current)
 	if err != nil {
-		return ErrorResponse(http.StatusInternalServerError, err)
+		return Errored(http.StatusInternalServerError, err)
 	}
-	return types.Response{
+	return Response{
 		Patches: patches,
-		Response: &admissionv1beta1.AdmissionResponse{
+		AdmissionResponse: admissionv1beta1.AdmissionResponse{
 			Allowed:   true,
 			PatchType: func() *admissionv1beta1.PatchType { pt := admissionv1beta1.PatchTypeJSONPatch; return &pt }(),
 		},

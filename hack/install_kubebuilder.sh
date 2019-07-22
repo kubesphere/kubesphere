@@ -45,7 +45,7 @@ esac
 command_exists curl
 command_exists tar
 
-KUBEBUILDER_VERSION=v1.0.8
+KUBEBUILDER_VERSION=2.0.0-beta.0
 KUBEBUILDER_VERSION=${KUBEBUILDER_VERSION#"v"}
 KUBEBUILDER_VERSION_NAME="kubebuilder_${KUBEBUILDER_VERSION}"
 KUBEBUILDER_DIR=/usr/local/kubebuilder
@@ -62,7 +62,7 @@ TMP_DIR=$(mktemp -d)
 pushd $TMP_DIR
 
 # Downloading Kubebuilder compressed file using curl program
-URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH}.tar.gz"
+URL="https://go.kubebuilder.io/dl/${KUBEBUILDER_VERSION}/${OSEXT}/${ARCH}.tar.gz"
 echo "Downloading ${KUBEBUILDER_VERSION_NAME}\nfrom $URL\n"
 curl -L "$URL"| tar xz -C $TMP_DIR
 
@@ -70,7 +70,7 @@ echo "Downloaded executable files"
 ls "${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH}/bin"
 
 echo "Moving files to $KUBEBUILDER_DIR folder\n"
-mv ${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH} kubebuilder && sudo mv -f kubebuilder /usr/local/
+sudo mv ${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH} /usr/local/kubebuilder
 
 echo "Add kubebuilder to your path; e.g copy paste in your shell and/or edit your ~/.profile file"
 echo "export PATH=\$PATH:/usr/local/kubebuilder/bin"

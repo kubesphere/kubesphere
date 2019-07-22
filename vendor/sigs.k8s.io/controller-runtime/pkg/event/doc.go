@@ -18,8 +18,11 @@ limitations under the License.
 Package event contains the definitions for the Event types produced by source.Sources and transformed into
 reconcile.Requests by handler.EventHandler.
 
-The details of how events are produced and transformed into reconcile.Requests are not something most
-users should need to use or understand.  Instead of working with Events, users should use
-source.Sources and handler.EventHandlers with Controller.Watch.
+You should rarely need to work with these directly -- instead, use Controller.Watch with
+source.Sources and handler.EventHandlers.
+
+Events generally contain both a full runtime.Object that caused the event, as well
+as a direct handle to that object's metadata.  This saves a lot of typecasting in
+code that works with Events.
 */
 package event

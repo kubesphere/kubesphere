@@ -36,16 +36,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/leaderelection"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/recorder"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission/types"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // Manager initializes shared dependencies such as Caches and Clients, and provides them to Runnables.
 // A Manager is required to create Controllers.
 type Manager interface {
-	// Add will set reqeusted dependencies on the component, and cause the component to be
+	// Add will set requested dependencies on the component, and cause the component to be
 	// started when Start is called.  Add will inject any dependencies for which the argument
-	// implements the inject interface - e.g. inject.Client
+	// implements the inject interface - e.g. inject.Client.
+	// Depending on if a Runnable implements LeaderElectionRunnable interface, a Runnable can be run in either
+	// non-leaderelection mode (always running) or leader election mode (managed by leader election if enabled).
 	Add(Runnable) error
 
 	// SetFields will set any dependencies on an object for which the object has implemented the inject
@@ -59,11 +60,8 @@ type Manager interface {
 	// GetConfig returns an initialized Config
 	GetConfig() *rest.Config
 
-	// GetScheme returns and initialized Scheme
+	// GetScheme returns an initialized Scheme
 	GetScheme() *runtime.Scheme
-
-	// GetAdmissionDecoder returns the runtime.Decoder based on the scheme.
-	GetAdmissionDecoder() types.Decoder
 
 	// GetClient returns a client configured with the Config
 	GetClient() client.Client
@@ -74,17 +72,26 @@ type Manager interface {
 	// GetCache returns a cache.Cache
 	GetCache() cache.Cache
 
-	// GetRecorder returns a new EventRecorder for the provided name
-	GetRecorder(name string) record.EventRecorder
+	// GetEventRecorderFor returns a new EventRecorder for the provided name
+	GetEventRecorderFor(name string) record.EventRecorder
 
 	// GetRESTMapper returns a RESTMapper
 	GetRESTMapper() meta.RESTMapper
+
+	// GetAPIReader returns a reader that will be configured to use the API server.
+	// This should be used sparingly and only when the client does not fit your
+	// use case.
+	GetAPIReader() client.Reader
+
+	// GetWebhookServer returns a webhook.Server
+	GetWebhookServer() *webhook.Server
 }
 
 // Options are the arguments for creating a new Manager
 type Options struct {
 	// Scheme is the scheme used to resolve runtime.Objects to GroupVersionKinds / Resources
-	// Defaults to the kubernetes/client-go scheme.Scheme
+	// Defaults to the kubernetes/client-go scheme.Scheme, but it's almost always better
+	// idea to pass your own scheme in.  See the documentation in pkg/scheme for more information.
 	Scheme *runtime.Scheme
 
 	// MapperProvider provides the rest mapper used to map go types to Kubernetes APIs
@@ -108,21 +115,42 @@ type Options struct {
 	// will use for holding the leader lock.
 	LeaderElectionID string
 
-	// Namespace if specified restricts the manager's cache to watch objects in the desired namespace
-	// Defaults to all namespaces
-	// Note: If a namespace is specified then controllers can still Watch for a cluster-scoped resource e.g Node
-	// For namespaced resources the cache will only hold objects from the desired namespace.
+	// LeaseDuration is the duration that non-leader candidates will
+	// wait to force acquire leadership. This is measured against time of
+	// last observed ack. Default is 15 seconds.
+	LeaseDuration *time.Duration
+	// RenewDeadline is the duration that the acting master will retry
+	// refreshing leadership before giving up. Default is 10 seconds.
+	RenewDeadline *time.Duration
+	// RetryPeriod is the duration the LeaderElector clients should wait
+	// between tries of actions. Default is 2 seconds.
+	RetryPeriod *time.Duration
+
+	// Namespace if specified restricts the manager's cache to watch objects in
+	// the desired namespace Defaults to all namespaces
+	//
+	// Note: If a namespace is specified, controllers can still Watch for a
+	// cluster-scoped resource (e.g Node).  For namespaced resources the cache
+	// will only hold objects from the desired namespace.
 	Namespace string
 
 	// MetricsBindAddress is the TCP address that the controller should bind to
-	// for serving prometheus metrics
+	// for serving prometheus metrics.
+	// It can be set to "0" to disable the metrics serving.
 	MetricsBindAddress string
+
+	// Port is the port that the webhook server serves at.
+	// It is used to set webhook.Server.Port.
+	Port int
+	// Host is the hostname that the webhook server binds to.
+	// It is used to set webhook.Server.Host.
+	Host string
 
 	// Functions to all for a user to customize the values that will be injected.
 
 	// NewCache is the function that will create the cache to be used
 	// by the manager. If not set this will use the default new cache function.
-	NewCache NewCacheFunc
+	NewCache cache.NewCacheFunc
 
 	// NewClient will create the client to be used by the manager.
 	// If not set this will create the default DelegatingClient that will
@@ -132,29 +160,37 @@ type Options struct {
 	// Dependency injection for testing
 	newRecorderProvider func(config *rest.Config, scheme *runtime.Scheme, logger logr.Logger) (recorder.Provider, error)
 	newResourceLock     func(config *rest.Config, recorderProvider recorder.Provider, options leaderelection.Options) (resourcelock.Interface, error)
-	newAdmissionDecoder func(scheme *runtime.Scheme) (types.Decoder, error)
 	newMetricsListener  func(addr string) (net.Listener, error)
 }
-
-// NewCacheFunc allows a user to define how to create a cache
-type NewCacheFunc func(config *rest.Config, opts cache.Options) (cache.Cache, error)
 
 // NewClientFunc allows a user to define how to create a client
 type NewClientFunc func(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error)
 
 // Runnable allows a component to be started.
+// It's very important that Start blocks until
+// it's done running.
 type Runnable interface {
-	// Start starts running the component.  The component will stop running when the channel is closed.
-	// Start blocks until the channel is closed or an error occurs.
+	// Start starts running the component.  The component will stop running
+	// when the channel is closed.  Start blocks until the channel is closed or
+	// an error occurs.
 	Start(<-chan struct{}) error
 }
 
-// RunnableFunc implements Runnable
+// RunnableFunc implements Runnable using a function.
+// It's very important that the given function block
+// until it's done running.
 type RunnableFunc func(<-chan struct{}) error
 
 // Start implements Runnable
 func (r RunnableFunc) Start(s <-chan struct{}) error {
 	return r(s)
+}
+
+// LeaderElectionRunnable knows if a Runnable needs to be run in the leader election mode.
+type LeaderElectionRunnable interface {
+	// NeedLeaderElection returns true if the Runnable needs to be run in the leader election mode.
+	// e.g. controllers need to be run in leader election mode, while webhook server doesn't.
+	NeedLeaderElection() bool
 }
 
 // New returns a new Manager for creating Controllers.
@@ -176,6 +212,11 @@ func New(config *rest.Config, options Options) (Manager, error) {
 
 	// Create the cache for the cached read client and registering informers
 	cache, err := options.NewCache(config, cache.Options{Scheme: options.Scheme, Mapper: mapper, Resync: options.SyncPeriod, Namespace: options.Namespace})
+	if err != nil {
+		return nil, err
+	}
+
+	apiReader, err := client.New(config, client.Options{Scheme: options.Scheme, Mapper: mapper})
 	if err != nil {
 		return nil, err
 	}
@@ -202,11 +243,6 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		return nil, err
 	}
 
-	admissionDecoder, err := options.newAdmissionDecoder(options.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the mertics listener. This will throw an error if the metrics bind
 	// address is invalid or already in use.
 	metricsListener, err := options.newMetricsListener(options.MetricsBindAddress)
@@ -219,17 +255,22 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	return &controllerManager{
 		config:           config,
 		scheme:           options.Scheme,
-		admissionDecoder: admissionDecoder,
 		errChan:          make(chan error),
 		cache:            cache,
 		fieldIndexes:     cache,
 		client:           writeObj,
+		apiReader:        apiReader,
 		recorderProvider: recorderProvider,
 		resourceLock:     resourceLock,
 		mapper:           mapper,
 		metricsListener:  metricsListener,
 		internalStop:     stop,
 		internalStopper:  stop,
+		port:             options.Port,
+		host:             options.Host,
+		leaseDuration:    *options.LeaseDuration,
+		renewDeadline:    *options.RenewDeadline,
+		retryPeriod:      *options.RetryPeriod,
 	}, nil
 }
 
@@ -282,12 +323,20 @@ func setOptionsDefaults(options Options) Options {
 		options.newResourceLock = leaderelection.NewResourceLock
 	}
 
-	if options.newAdmissionDecoder == nil {
-		options.newAdmissionDecoder = admission.NewDecoder
-	}
-
 	if options.newMetricsListener == nil {
 		options.newMetricsListener = metrics.NewListener
+	}
+	leaseDuration, renewDeadline, retryPeriod := defaultLeaseDuration, defaultRenewDeadline, defaultRetryPeriod
+	if options.LeaseDuration == nil {
+		options.LeaseDuration = &leaseDuration
+	}
+
+	if options.RenewDeadline == nil {
+		options.RenewDeadline = &renewDeadline
+	}
+
+	if options.RetryPeriod == nil {
+		options.RetryPeriod = &retryPeriod
 	}
 
 	return options

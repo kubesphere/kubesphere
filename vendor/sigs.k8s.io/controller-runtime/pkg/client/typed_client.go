@@ -30,31 +30,39 @@ type typedClient struct {
 }
 
 // Create implements client.Client
-func (c *typedClient) Create(ctx context.Context, obj runtime.Object) error {
+func (c *typedClient) Create(ctx context.Context, obj runtime.Object, opts ...CreateOptionFunc) error {
 	o, err := c.cache.getObjMeta(obj)
 	if err != nil {
 		return err
 	}
+
+	createOpts := &CreateOptions{}
+	createOpts.ApplyOptions(opts)
 	return o.Post().
 		NamespaceIfScoped(o.GetNamespace(), o.isNamespaced()).
 		Resource(o.resource()).
 		Body(obj).
+		VersionedParams(createOpts.AsCreateOptions(), c.paramCodec).
 		Context(ctx).
 		Do().
 		Into(obj)
 }
 
 // Update implements client.Client
-func (c *typedClient) Update(ctx context.Context, obj runtime.Object) error {
+func (c *typedClient) Update(ctx context.Context, obj runtime.Object, opts ...UpdateOptionFunc) error {
 	o, err := c.cache.getObjMeta(obj)
 	if err != nil {
 		return err
 	}
+
+	updateOpts := &UpdateOptions{}
+	updateOpts.ApplyOptions(opts)
 	return o.Put().
 		NamespaceIfScoped(o.GetNamespace(), o.isNamespaced()).
 		Resource(o.resource()).
 		Name(o.GetName()).
 		Body(obj).
+		VersionedParams(updateOpts.AsUpdateOptions(), c.paramCodec).
 		Context(ctx).
 		Do().
 		Into(obj)
@@ -78,6 +86,30 @@ func (c *typedClient) Delete(ctx context.Context, obj runtime.Object, opts ...De
 		Error()
 }
 
+// Patch implements client.Client
+func (c *typedClient) Patch(ctx context.Context, obj runtime.Object, patch Patch, opts ...PatchOptionFunc) error {
+	o, err := c.cache.getObjMeta(obj)
+	if err != nil {
+		return err
+	}
+
+	data, err := patch.Data(obj)
+	if err != nil {
+		return err
+	}
+
+	patchOpts := &PatchOptions{}
+	return o.Patch(patch.Type()).
+		NamespaceIfScoped(o.GetNamespace(), o.isNamespaced()).
+		Resource(o.resource()).
+		Name(o.GetName()).
+		VersionedParams(patchOpts.ApplyOptions(opts).AsPatchOptions(), c.paramCodec).
+		Body(data).
+		Context(ctx).
+		Do().
+		Into(obj)
+}
+
 // Get implements client.Client
 func (c *typedClient) Get(ctx context.Context, key ObjectKey, obj runtime.Object) error {
 	r, err := c.cache.getResource(obj)
@@ -92,27 +124,24 @@ func (c *typedClient) Get(ctx context.Context, key ObjectKey, obj runtime.Object
 }
 
 // List implements client.Client
-func (c *typedClient) List(ctx context.Context, opts *ListOptions, obj runtime.Object) error {
+func (c *typedClient) List(ctx context.Context, obj runtime.Object, opts ...ListOptionFunc) error {
 	r, err := c.cache.getResource(obj)
 	if err != nil {
 		return err
 	}
-	namespace := ""
-	if opts != nil {
-		namespace = opts.Namespace
-	}
+	listOpts := ListOptions{}
+	listOpts.ApplyOptions(opts)
 	return r.Get().
-		NamespaceIfScoped(namespace, r.isNamespaced()).
+		NamespaceIfScoped(listOpts.Namespace, r.isNamespaced()).
 		Resource(r.resource()).
-		Body(obj).
-		VersionedParams(opts.AsListOptions(), c.paramCodec).
+		VersionedParams(listOpts.AsListOptions(), c.paramCodec).
 		Context(ctx).
 		Do().
 		Into(obj)
 }
 
 // UpdateStatus used by StatusWriter to write status.
-func (c *typedClient) UpdateStatus(ctx context.Context, obj runtime.Object) error {
+func (c *typedClient) UpdateStatus(ctx context.Context, obj runtime.Object, opts ...UpdateOptionFunc) error {
 	o, err := c.cache.getObjMeta(obj)
 	if err != nil {
 		return err
@@ -127,6 +156,32 @@ func (c *typedClient) UpdateStatus(ctx context.Context, obj runtime.Object) erro
 		Name(o.GetName()).
 		SubResource("status").
 		Body(obj).
+		VersionedParams((&UpdateOptions{}).ApplyOptions(opts).AsUpdateOptions(), c.paramCodec).
+		Context(ctx).
+		Do().
+		Into(obj)
+}
+
+// PatchStatus used by StatusWriter to write status.
+func (c *typedClient) PatchStatus(ctx context.Context, obj runtime.Object, patch Patch, opts ...PatchOptionFunc) error {
+	o, err := c.cache.getObjMeta(obj)
+	if err != nil {
+		return err
+	}
+
+	data, err := patch.Data(obj)
+	if err != nil {
+		return err
+	}
+
+	patchOpts := &PatchOptions{}
+	return o.Patch(patch.Type()).
+		NamespaceIfScoped(o.GetNamespace(), o.isNamespaced()).
+		Resource(o.resource()).
+		Name(o.GetName()).
+		SubResource("status").
+		Body(data).
+		VersionedParams(patchOpts.ApplyOptions(opts).AsPatchOptions(), c.paramCodec).
 		Context(ctx).
 		Do().
 		Into(obj)

@@ -24,49 +24,39 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission/types"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics"
 )
 
-var admissionv1beta1scheme = runtime.NewScheme()
-var admissionv1beta1schemecodecs = serializer.NewCodecFactory(admissionv1beta1scheme)
+var admissionScheme = runtime.NewScheme()
+var admissionCodecs = serializer.NewCodecFactory(admissionScheme)
 
 func init() {
-	addToScheme(admissionv1beta1scheme)
-}
-
-func addToScheme(scheme *runtime.Scheme) {
-	utilruntime.Must(admissionv1beta1.AddToScheme(scheme))
+	utilruntime.Must(admissionv1beta1.AddToScheme(admissionScheme))
 }
 
 var _ http.Handler = &Webhook{}
 
 func (wh *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	startTS := time.Now()
-	defer metrics.RequestLatency.WithLabelValues(wh.Name).Observe(time.Now().Sub(startTS).Seconds())
-
 	var body []byte
 	var err error
 
-	var reviewResponse types.Response
+	var reviewResponse Response
 	if r.Body != nil {
 		if body, err = ioutil.ReadAll(r.Body); err != nil {
-			log.Error(err, "unable to read the body from the incoming request")
-			reviewResponse = ErrorResponse(http.StatusBadRequest, err)
+			wh.log.Error(err, "unable to read the body from the incoming request")
+			reviewResponse = Errored(http.StatusBadRequest, err)
 			wh.writeResponse(w, reviewResponse)
 			return
 		}
 	} else {
 		err = errors.New("request body is empty")
-		log.Error(err, "bad request")
-		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
+		wh.log.Error(err, "bad request")
+		reviewResponse = Errored(http.StatusBadRequest, err)
 		wh.writeResponse(w, reviewResponse)
 		return
 	}
@@ -74,42 +64,38 @@ func (wh *Webhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// verify the content type is accurate
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		err = fmt.Errorf("contentType=%s, expect application/json", contentType)
-		log.Error(err, "unable to process a request with an unknown content type", "content type", contentType)
-		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
+		err = fmt.Errorf("contentType=%s, expected application/json", contentType)
+		wh.log.Error(err, "unable to process a request with an unknown content type", "content type", contentType)
+		reviewResponse = Errored(http.StatusBadRequest, err)
 		wh.writeResponse(w, reviewResponse)
 		return
 	}
 
-	ar := v1beta1.AdmissionReview{}
-	if _, _, err := admissionv1beta1schemecodecs.UniversalDeserializer().Decode(body, nil, &ar); err != nil {
-		log.Error(err, "unable to decode the request")
-		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
+	req := Request{}
+	ar := v1beta1.AdmissionReview{
+		// avoid an extra copy
+		Request: &req.AdmissionRequest,
+	}
+	if _, _, err := admissionCodecs.UniversalDeserializer().Decode(body, nil, &ar); err != nil {
+		wh.log.Error(err, "unable to decode the request")
+		reviewResponse = Errored(http.StatusBadRequest, err)
 		wh.writeResponse(w, reviewResponse)
 		return
 	}
 
 	// TODO: add panic-recovery for Handle
-	reviewResponse = wh.Handle(context.Background(), types.Request{AdmissionRequest: ar.Request})
+	reviewResponse = wh.Handle(context.Background(), req)
 	wh.writeResponse(w, reviewResponse)
 }
 
-func (wh *Webhook) writeResponse(w io.Writer, response types.Response) {
-	if response.Response.Result.Code != 0 {
-		if response.Response.Result.Code == http.StatusOK {
-			metrics.TotalRequests.WithLabelValues(wh.Name, "true").Inc()
-		} else {
-			metrics.TotalRequests.WithLabelValues(wh.Name, "false").Inc()
-		}
-	}
-
+func (wh *Webhook) writeResponse(w io.Writer, response Response) {
 	encoder := json.NewEncoder(w)
 	responseAdmissionReview := v1beta1.AdmissionReview{
-		Response: response.Response,
+		Response: &response.AdmissionResponse,
 	}
 	err := encoder.Encode(responseAdmissionReview)
 	if err != nil {
-		log.Error(err, "unable to encode the response")
-		wh.writeResponse(w, ErrorResponse(http.StatusInternalServerError, err))
+		wh.log.Error(err, "unable to encode the response")
+		wh.writeResponse(w, Errored(http.StatusInternalServerError, err))
 	}
 }

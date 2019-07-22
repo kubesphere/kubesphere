@@ -18,10 +18,10 @@ package predicate
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
-var log = logf.KBLog.WithName("predicate").WithName("eventFilters")
+var log = logf.RuntimeLog.WithName("predicate").WithName("eventFilters")
 
 // Predicate filters events before enqueuing the keys.
 type Predicate interface {
