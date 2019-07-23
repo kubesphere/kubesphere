@@ -20,24 +20,25 @@ package job
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"github.com/golang/glog"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	batchv1informers "k8s.io/client-go/informers/batch/v1"
 	batchv1listers "k8s.io/client-go/listers/batch/v1"
-	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/util/metrics"
-	"reflect"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+
+	"time"
 
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"time"
 )
 
 const (
@@ -106,7 +107,7 @@ func (v *JobController) Run(workers int, stopCh <-chan struct{}) {
 	log.Info("starting job controller")
 	defer log.Info("shutting down job controller")
 
-	if !controller.WaitForCacheSync("job-controller", stopCh, v.jobSynced) {
+	if !cache.WaitForCacheSync(stopCh, v.jobSynced) {
 		return
 	}
 
@@ -118,7 +119,7 @@ func (v *JobController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (v *JobController) enqueueJob(obj interface{}) {
-	key, err := controller.KeyFunc(obj)
+	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
 		return
