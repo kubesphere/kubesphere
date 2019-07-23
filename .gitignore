@@ -24,3 +24,4 @@ tmp/
 # OSX trash
 .DS_Store
 api.json
+*.coverprofile
