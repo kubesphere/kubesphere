@@ -145,11 +145,10 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 }
 
 func (v *VirtualServiceController) Start(stopCh <-chan struct{}) error {
-	v.Run(5, stopCh)
-	return nil
+	return v.Run(5, stopCh)
 }
 
-func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
+func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
@@ -157,7 +156,7 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
 	defer log.Info("shutting down virtualservice controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.virtualServiceSynced, v.destinationRuleSynced, v.strategySynced) {
-		return
+		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
 	for i := 0; i < workers; i++ {
@@ -165,6 +164,7 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) {
 	}
 
 	<-stopCh
+	return nil
 }
 
 func (v *VirtualServiceController) enqueueService(obj interface{}) {

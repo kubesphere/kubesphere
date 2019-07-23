@@ -7,7 +7,7 @@ BIN ?= ks-apiserver
 
 IMG ?= kubespheredev/ks-apiserver
 OUTPUT_DIR=bin
-
+GOFLAGS=-mod=vendor
 define ALL_HELP_INFO
 # Build code.
 #
