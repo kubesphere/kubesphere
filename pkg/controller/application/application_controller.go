@@ -2,6 +2,8 @@ package application
 
 import (
 	"fmt"
+	"time"
+
 	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/app/v1beta1"
 	applicationlister "github.com/kubernetes-sigs/application/pkg/client/listers/app/v1beta1"
@@ -25,7 +27,6 @@ import (
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"time"
 )
 
 const (
@@ -148,11 +149,10 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 }
 
 func (v *ApplicationController) Start(stopCh <-chan struct{}) error {
-	v.Run(2, stopCh)
-	return nil
+	return v.Run(2, stopCh)
 }
 
-func (v *ApplicationController) Run(workers int, stopCh <-chan struct{}) {
+func (v *ApplicationController) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
@@ -160,14 +160,14 @@ func (v *ApplicationController) Run(workers int, stopCh <-chan struct{}) {
 	defer log.Info("shutting down application controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.deploymentSynced, v.statefulSetSynced, v.serviceSynced, v.strategySynced, v.servicePolicySynced, v.applicationSynced) {
-		return
+		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(v.worker, v.workerLoopPeriod, stopCh)
 	}
-
 	<-stopCh
+	return nil
 }
 
 func (v *ApplicationController) worker() {
