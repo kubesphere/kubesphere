@@ -13,6 +13,8 @@
 
 > See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
 
+![Dashboard](docs/images/dashboard.png)
+
 ## Features
 
 KubeSphere Advanced Edition 2.0.2 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
@@ -65,8 +67,6 @@ $ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.
 $ ./install.sh
 ```
 
-![all-in-one](https://pek3b.qingstor.com/kubesphere-docs/png/kubesphere-allinone.gif)
-
 Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
 
 ### Multi-Node
@@ -79,9 +79,6 @@ Choose `"1) All-in-one"` to trigger the installation. Generally, you can install
 ### Quick Start
 
 The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/admin-quick-start/) provides 12 quick-start tutorials to walk you through the process and common manipulation in KubeSphere, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
-
-
-![Dashboard](docs/images/dashboard.png)
 
 ### Documentation
 
