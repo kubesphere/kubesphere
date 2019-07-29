@@ -17,14 +17,15 @@ KubeSphere development is based on [Kubernetes](https://github.com/kubernetes/ku
 environment instructions. 
 > - It's recommended to install [macOS GNU tools](https://www.topbug.net/blog/2013/04/14/install-and-use-gnu-command-line-tools-in-mac-os-x) for Mac OS.
 
+### Docker
+
+KubeSphere components are often deployed as containers in Kubernetes. If you need to rebuild the KubeSphere components in the Kubernetes cluster, you will need to [install Docker](https://docs.docker.com/install/).
+
 
 ### Dependency management
 
-KubeSphere uses `dep` to manage dependencies in the `vendor/` tree, execute following command to install [dep](https://github.com/golang/dep).
+KubeSphere uses [Go Modules](https://github.com/golang/go/wiki/Modules) to manage dependencies in the `vendor/` tree.
 
-```go
-go get -u github.com/golang/dep/cmd/dep
-```
 #### Dependencies
 
 [kubesphere/kubesphere](https://github.com/kubesphere/kubesphere) repository contains the source code . If you're looking for its dependent components, they live in their own repositories since they can be individual and universal.
@@ -34,6 +35,46 @@ go get -u github.com/golang/dep/cmd/dep
 - [OpenPitrix](https://github.com/openpitrix/openpitrix): Application management platform on multi-cloud environment, it provides application template and application management for KubeSphere currently.
 - [SonarQube](https://github.com/SonarSource/sonarqube): Integrated in KubeSphere DevOps, it provides the capability to not only show health of an application but also to highlight issues newly introduced. 
 
+## Building KubeSphere on a local OS/shell environment
+
+### For Quick Taste Binary
+
+```bash
+mkdir ks-tmp
+cd ks-tmp
+echo 'module kubesphere' > go.mod
+echo 'replace (
+      	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3
+      	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7
+      )' >> go.mod
+      
+GO111MODULE=on go get kubesphere.io/kubesphere@cda4f4f05ae1d5c653e7158b8de0164f92341e5c
+GO111MODULE=on go build -o ks-apiserver kubesphere.io/kubesphere/cmd/ks-apiserver # build ks-apiserver
+GO111MODULE=on go build -o ks-apigateway kubesphere.io/kubesphere/cmd/ks-apigateway # build ks-apigateway
+GO111MODULE=on go build -o ks-controller-manager kubesphere.io/kubesphere/cmd/controller-manager # build ks-controller-manager
+GO111MODULE=on go build -o ks-iam kubesphere.io/kubesphere/cmd/ks-iam # build ks-iam
+```
+
+### For Building KubeSphere Images 
+
+KubeSphere components are often deployed as a container in a kubernetes cluster, you may need to build a Docker image locally.
+
+1. Clone repo to local
+
+```bash
+git clone https://github.com/kubesphere/kubesphere.git
+```
+
+2. Run Docker command to build image
+
+```bash
+docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG .
+docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
+docker build -f build/ks-iam/Dockerfile -t $REPO/ks-account:$TAG .
+docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
+docker build -f ./pkg/db/Dockerfile -t $REPO/ks-devops:flyway-$TAG ./pkg/db/
+```
+
 ### Test
 
 In the development process, it is recommended to use local Kubernetes clusters, such as [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/), or to install an single-node [all-in-one](https://github.com/kubesphere/kubesphere#all-in-one) environment (Kubernetes-based) for quick testing.
@@ -42,7 +83,7 @@ In the development process, it is recommended to use local Kubernetes clusters, 
 
 ## Development Workflow
 
-![ks-workflow](images/ks-workflow.png)
+![ks-workflow](docs/images/ks-workflow.png)
 
 ### 1 Fork in the cloud
 
