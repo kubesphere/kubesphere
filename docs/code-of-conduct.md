@@ -2,7 +2,7 @@
 
 KubeSphere follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).  
 
-# Best practice of committing code
+# Best practices of committing code
 Besides following above conduct from CNCF, we also hope every contributor in this project could help us to improve the quality of code, something you should know before checking in any new code:
  - As gopher, make sure you already read [the conduct of Go language](https://golang.org/conduct) and [the instruction of writting Go](https://golang.org/doc/effective_go.html).  
  - Fork the project under your account and make the changes you want there.  
