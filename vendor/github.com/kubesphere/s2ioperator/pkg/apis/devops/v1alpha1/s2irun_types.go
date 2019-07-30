@@ -23,6 +23,12 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const (
+	ResourceKindS2iRun     = "S2iRun"
+	ResourceSingularS2iRun = "s2irun"
+	ResourcePluralS2iRun   = "s2iruns"
+)
+
 // S2iRunSpec defines the desired state of S2iRun
 type S2iRunSpec struct {
 	//BuilderName specify the name of s2ibuilder, required
