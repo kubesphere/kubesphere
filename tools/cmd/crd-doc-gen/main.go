@@ -1,9 +1,10 @@
 package main
 
 import (
-	"go/build"
+	"flag"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
+	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/tools/lib"
 	"log"
 	"os"
@@ -16,9 +17,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kube-openapi/pkg/common"
+	servicemeshinstall "kubesphere.io/kubesphere/pkg/apis/servicemesh/crdinstall"
 	tenantinstall "kubesphere.io/kubesphere/pkg/apis/tenant/crdinstall"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 )
+
+var output string
+
+func init() {
+	flag.StringVar(&output, "output", "./api/openapi-spec/swagger.json", "--output=./api/openapi-spec/swagger.json")
+}
 
 func main() {
 
@@ -27,13 +35,23 @@ func main() {
 		Codecs = serializer.NewCodecFactory(Scheme)
 	)
 	// tmp install s2i api group because
-	// cannot use Scheme (type *"kubesphere.io/kubesphere/vendor/k8s.io/apimachinery/pkg/runtime".Scheme) as type *"github.com/kubesphere/s2ioperator/vendor/k8s.io/apimachinery/pkg/runtime".Scheme in argument to "github.com/kubesphere/s2ioperator/pkg/apis/devops/install".Install
+	// cannot use Scheme (type *"kubesphere.io/kubesphere/vendor/k8s.io/apimachinery/pkg/runtime".Scheme) as
+	// type *"github.com/kubesphere/s2ioperator/vendor/k8s.io/apimachinery/pkg/runtime".Scheme in argument to "github.com/kubesphere/s2ioperator/pkg/apis/devops/install".Install
 	urlruntime.Must(s2iv1alpha1.AddToScheme(Scheme))
 	urlruntime.Must(Scheme.SetVersionPriority(s2iv1alpha1.SchemeGroupVersion))
 
+	servicemeshinstall.Install(Scheme)
 	tenantinstall.Install(Scheme)
 
 	mapper := meta.NewDefaultRESTMapper(nil)
+
+	mapper.AddSpecific(servicemeshv1alpha2.SchemeGroupVersion.WithKind(servicemeshv1alpha2.ResourceKindServicePolicy),
+		servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourcePluralServicePolicy),
+		servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourceSingularServicePolicy), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(servicemeshv1alpha2.SchemeGroupVersion.WithKind(servicemeshv1alpha2.ResourceKindStrategy),
+		servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourcePluralStrategy),
+		servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourceSingularStrategy), meta.RESTScopeRoot)
 
 	mapper.AddSpecific(tenantv1alpha1.SchemeGroupVersion.WithKind(tenantv1alpha1.ResourceKindWorkspace),
 		tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace),
@@ -68,10 +86,16 @@ func main() {
 			},
 		},
 		OpenAPIDefinitions: []common.GetOpenAPIDefinitions{
+			servicemeshv1alpha2.GetOpenAPIDefinitions,
 			tenantv1alpha1.GetOpenAPIDefinitions,
 			s2iv1alpha1.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
+			//TODO（runzexia） At present, the document generation requires the openapi structure of the go language,
+			// but there is no +k8s:openapi-gen=true in the repository of https://github.com/knative/pkg,
+			// and the api document cannot be generated temporarily.
+			//servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourcePluralStrategy),
+			//servicemeshv1alpha2.SchemeGroupVersion.WithResource(servicemeshv1alpha2.ResourcePluralServicePolicy),
 			tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace),
 			s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iRun),
 			s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iBuilderTemplate),
@@ -83,12 +107,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	filename := build.Default.GOPATH + "/src/kubesphere.io/kubesphere/api/openapi-spec/swagger.json"
-	err = os.MkdirAll(filepath.Dir(filename), 0755)
+	err = os.MkdirAll(filepath.Dir(output), 0755)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = ioutil.WriteFile(filename, []byte(spec), 0644)
+	err = ioutil.WriteFile(output, []byte(spec), 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

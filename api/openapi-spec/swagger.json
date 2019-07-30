@@ -4552,6 +4552,11 @@
           "kind": "DeleteOptions"
         },
         {
+          "group": "servicemesh.kubesphere.io",
+          "version": "v1alpha2",
+          "kind": "DeleteOptions"
+        },
+        {
           "group": "tenant.kubesphere.io",
           "version": "v1alpha1",
           "kind": "DeleteOptions"
@@ -4912,6 +4917,11 @@
         {
           "group": "devops.kubesphere.io",
           "version": "v1alpha1",
+          "kind": "WatchEvent"
+        },
+        {
+          "group": "servicemesh.kubesphere.io",
+          "version": "v1alpha2",
           "kind": "WatchEvent"
         },
         {
