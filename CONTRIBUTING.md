@@ -68,6 +68,9 @@ git clone https://github.com/kubesphere/kubesphere.git
 2. Run Docker command to build image
 
 ```bash
+# $REPO is the docker registry to push to
+# $Tag is the tag name of the docker image
+# The full go build process will be executed in the Dockerfile, so you may need to set GOPROXY in it.
 docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG .
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
 docker build -f build/ks-iam/Dockerfile -t $REPO/ks-account:$TAG .
