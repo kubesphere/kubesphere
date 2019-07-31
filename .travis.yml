@@ -12,6 +12,9 @@ go:
   - "1.12.x"
 env:
   - GO111MODULE=on
+cache:
+  directories:
+    - $HOME/gopath/pkg/mod
 
 before_script:
   - docker --version
