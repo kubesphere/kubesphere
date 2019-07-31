@@ -381,6 +381,7 @@ golang.org/x/tools v0.0.0-20181011042414-1f849cf54d09/go.mod h1:n7NCudcB/nEzxVGm
 golang.org/x/tools v0.0.0-20190114222345-bf090417da8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
 golang.org/x/tools v0.0.0-20190312170243-e65039ee4138/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+golang.org/x/tools v0.0.0-20190511041617-99f201b6807e h1:wTxRxdzKt8fn3IQa3+kVlPJMxK2hJj2Orm+M2Mzw9eg=
 golang.org/x/tools v0.0.0-20190511041617-99f201b6807e/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
 google.golang.org/api v0.4.0/go.mod h1:8k5glujaEP+g9n7WNsDg8QP6cUVNI86fCNMcbazEtwE=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
@@ -435,8 +436,10 @@ k8s.io/apiserver v0.0.0-20181213151703-3ccfe8365421 h1:NyOpnIh+7SLvC05NGCIXF9c4K
 k8s.io/apiserver v0.0.0-20181213151703-3ccfe8365421/go.mod h1:6bqaTSOSJavUIXUtfaR9Os9JtTCm8ZqH2SUl2S60C4w=
 k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31 h1:OH3z6khCtxnJBAc0C5CMYWLl1CoK5R5fngX7wrwdN5c=
 k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
+k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b h1:KH0fUlgdFZH8UMxJ/FDCYHpczfSQKefetq5NjL6BVF0=
 k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b/go.mod h1:MYiN+ZJZ9HkETbgVZdWw2AsuAi9PZ4V80cwfuf2axe8=
 k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
+k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a h1:QoHVuRquf80YZ+/bovwxoMO3Q/A3nt3yTgS0/0nejuk=
 k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v0.3.0 h1:0VPpR+sizsiivjIfIAQH/rl8tan6jvWkS7lU+0di3lE=

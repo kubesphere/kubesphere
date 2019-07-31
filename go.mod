@@ -69,6 +69,7 @@ require (
 	github.com/miekg/dns v1.1.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
+	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
@@ -122,7 +123,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.9 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
-	sigs.k8s.io/yaml v1.1.0 // indirect
+	sigs.k8s.io/yaml v1.1.0
 )
 
 replace (
