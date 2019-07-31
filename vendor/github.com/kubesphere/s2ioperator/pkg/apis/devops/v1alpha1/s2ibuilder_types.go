@@ -29,6 +29,12 @@ import (
 type RunState string
 
 const (
+	ResourceKindS2iBuilder     = "S2iBuilder"
+	ResourceSingularS2iBuilder = "s2ibuilder"
+	ResourcePluralS2iBuilder   = "s2ibuilders"
+)
+
+const (
 	NotRunning RunState = "Not Running Yet"
 	Running    RunState = "Running"
 	Successful          = "Successful"
@@ -40,6 +46,7 @@ const (
 	S2iRunLabel                      = "devops.kubesphere.io/s2ir"
 	S2irCompletedScaleAnnotations    = "devops.kubesphere.io/completedscale"
 	WorkLoadCompletedInitAnnotations = "devops.kubesphere.io/inithasbeencomplted"
+	S2iRunDoNotAutoScaleAnnotations  = "devops.kubesphere.io/donotautoscale"
 	DescriptionAnnotations           = "desc"
 )
 const (

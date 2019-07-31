@@ -3,6 +3,8 @@ services:
 
 language: go
 
+dist: xenial
+
 git:
   depth: false
 

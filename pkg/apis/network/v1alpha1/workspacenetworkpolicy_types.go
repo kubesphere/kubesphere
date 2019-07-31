@@ -21,6 +21,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ResourceKindWorkspaceNetworkPolicy     = "WorkspaceNetworkPolicy"
+	ResourceSingularWorkspaceNetworkPolicy = "workspacenetworkpolicy"
+	ResourcePluralWorkspaceNetworkPolicy   = "workspacenetworkpolicies"
+)
+
 // WorkspaceNetworkPolicySpec defines the desired state of WorkspaceNetworkPolicy
 type WorkspaceNetworkPolicySpec struct {
 	// Workspace specify the name of ws to apply this workspace network policy
