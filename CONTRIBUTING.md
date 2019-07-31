@@ -44,11 +44,12 @@ mkdir ks-tmp
 cd ks-tmp
 echo 'module kubesphere' > go.mod
 echo 'replace (
+        github.com/Sirupsen/logrus v1.4.1 => github.com/sirupsen/logrus v1.4.1
       	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3
       	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7
       )' >> go.mod
       
-GO111MODULE=on go get kubesphere.io/kubesphere@cda4f4f05ae1d5c653e7158b8de0164f92341e5c
+GO111MODULE=on go get kubesphere.io/kubesphere@d649e3d0bbc64bfba18816c904819e4850d021e0
 GO111MODULE=on go build -o ks-apiserver kubesphere.io/kubesphere/cmd/ks-apiserver # build ks-apiserver
 GO111MODULE=on go build -o ks-apigateway kubesphere.io/kubesphere/cmd/ks-apigateway # build ks-apigateway
 GO111MODULE=on go build -o ks-controller-manager kubesphere.io/kubesphere/cmd/controller-manager # build ks-controller-manager
