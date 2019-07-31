@@ -22,12 +22,16 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 )
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
+	// Deprecated: please explicitly pick a version if possible.
+	Network() networkv1alpha1.NetworkV1alpha1Interface
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	// Deprecated: please explicitly pick a version if possible.
 	Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface
@@ -40,8 +44,20 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	networkV1alpha1     *networkv1alpha1.NetworkV1alpha1Client
 	servicemeshV1alpha2 *servicemeshv1alpha2.ServicemeshV1alpha2Client
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
+}
+
+// NetworkV1alpha1 retrieves the NetworkV1alpha1Client
+func (c *Clientset) NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface {
+	return c.networkV1alpha1
+}
+
+// Deprecated: Network retrieves the default version of NetworkClient.
+// Please explicitly pick a version.
+func (c *Clientset) Network() networkv1alpha1.NetworkV1alpha1Interface {
+	return c.networkV1alpha1
 }
 
 // ServicemeshV1alpha2 retrieves the ServicemeshV1alpha2Client
@@ -82,6 +98,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.networkV1alpha1, err = networkv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.servicemeshV1alpha2, err = servicemeshv1alpha2.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -102,6 +122,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.networkV1alpha1 = networkv1alpha1.NewForConfigOrDie(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.NewForConfigOrDie(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
 
@@ -112,6 +133,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.networkV1alpha1 = networkv1alpha1.New(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.New(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.New(c)
 

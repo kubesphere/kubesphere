@@ -340,6 +340,10 @@ func (in *S2iBuilderStatus) DeepCopyInto(out *S2iBuilderStatus) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.LastRunStartTime != nil {
+		in, out := &in.LastRunStartTime, &out.LastRunStartTime
+		*out = (*in).DeepCopy()
+	}
 	return
 }
 

@@ -21,6 +21,9 @@ bin/
 
 tmp/
 
+apiserver.local.config
+
 # OSX trash
 .DS_Store
 api.json
+*.coverprofile

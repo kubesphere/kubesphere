@@ -25,6 +25,8 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
 	clientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
+	fakenetworkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1/fake"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	fakeservicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2/fake"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
@@ -72,6 +74,16 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 var _ clientset.Interface = &Clientset{}
+
+// NetworkV1alpha1 retrieves the NetworkV1alpha1Client
+func (c *Clientset) NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface {
+	return &fakenetworkv1alpha1.FakeNetworkV1alpha1{Fake: &c.Fake}
+}
+
+// Network retrieves the NetworkV1alpha1Client
+func (c *Clientset) Network() networkv1alpha1.NetworkV1alpha1Interface {
+	return &fakenetworkv1alpha1.FakeNetworkV1alpha1{Fake: &c.Fake}
+}
 
 // ServicemeshV1alpha2 retrieves the ServicemeshV1alpha2Client
 func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface {
