@@ -27,7 +27,7 @@ import (
 
 const (
 	ResourceKindStrategy     = "Strategy"
-	ResourceSingularStrategy  = "strategy"
+	ResourceSingularStrategy = "strategy"
 	ResourcePluralStrategy   = "strategies"
 )
 

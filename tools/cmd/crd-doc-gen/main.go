@@ -17,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kube-openapi/pkg/common"
+	networkinstall "kubesphere.io/kubesphere/pkg/apis/network/crdinstall"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	servicemeshinstall "kubesphere.io/kubesphere/pkg/apis/servicemesh/crdinstall"
 	tenantinstall "kubesphere.io/kubesphere/pkg/apis/tenant/crdinstall"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
@@ -42,6 +44,7 @@ func main() {
 
 	servicemeshinstall.Install(Scheme)
 	tenantinstall.Install(Scheme)
+	networkinstall.Install(Scheme)
 
 	mapper := meta.NewDefaultRESTMapper(nil)
 
@@ -69,6 +72,10 @@ func main() {
 		s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iRun),
 		s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourceSingularS2iRun), meta.RESTScopeRoot)
 
+	mapper.AddSpecific(networkv1alpha1.SchemeGroupVersion.WithKind(networkv1alpha1.ResourceKindWorkspaceNetworkPolicy),
+		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
+		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourceSingularWorkspaceNetworkPolicy), meta.RESTScopeRoot)
+
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,
 		Codecs: Codecs,
@@ -89,6 +96,7 @@ func main() {
 			servicemeshv1alpha2.GetOpenAPIDefinitions,
 			tenantv1alpha1.GetOpenAPIDefinitions,
 			s2iv1alpha1.GetOpenAPIDefinitions,
+			networkv1alpha1.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
 			//TODO（runzexia） At present, the document generation requires the openapi structure of the go language,
@@ -100,6 +108,7 @@ func main() {
 			s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iRun),
 			s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iBuilderTemplate),
 			s2iv1alpha1.SchemeGroupVersion.WithResource(s2iv1alpha1.ResourcePluralS2iBuilder),
+			networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
 		},
 		Mapper: mapper,
 	})
