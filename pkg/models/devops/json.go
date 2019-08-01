@@ -1112,7 +1112,7 @@ type Input struct {
 		Self struct {
 			Class string `json:"_class,omitempty"`
 			Href  string `json:"href,omitempty"`
-		} `json:"self"`
+		} `json:"self,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
 	ID         string        `json:"id,omitempty" description:"the id of check action"`
 	Message    string        `json:"message,omitempty" description:"the message of check action"`
