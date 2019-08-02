@@ -65,7 +65,8 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 				}
 			}
 		default:
-			if item.Labels[k] != v {
+			// label not exist or value not equal
+			if val, ok := item.Labels[k]; !ok || val != v {
 				return false
 			}
 		}
@@ -91,7 +92,7 @@ func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRol
 			}
 			return false
 		default:
-			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
+			if !searchFuzzy(item.Labels, k, v) {
 				return false
 			}
 		}

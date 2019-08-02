@@ -49,7 +49,8 @@ func (*namespaceSearcher) match(match map[string]string, item *v1.Namespace) boo
 				return false
 			}
 		default:
-			if item.Labels[k] != v {
+			// label not exist or value not equal
+			if val, ok := item.Labels[k]; !ok || val != v {
 				return false
 			}
 		}
