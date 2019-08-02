@@ -10,7 +10,7 @@ FROM golang:1.12 as controller-manager-builder
 COPY / /go/src/kubesphere.io/kubesphere
 WORKDIR /go/src/kubesphere.io/kubesphere
 
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build --ldflags "-extldflags -static" -o controller-manager ./cmd/controller-manager/
+RUN CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 GOFLAGS=-mod=vendor go build --ldflags "-extldflags -static" -o controller-manager ./cmd/controller-manager/
 
 FROM alpine:3.7
 RUN apk add --update ca-certificates && update-ca-certificates

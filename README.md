@@ -90,7 +90,7 @@ The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/adm
 
 ## To start developing KubeSphere
 
-The [development guide](docs/development-guide.md) hosts all information about building KubeSphere from source, git workflow, how to contribute code and how to test.
+The [development guide](CONTRIBUTING.md) hosts all information about building KubeSphere from source, git workflow, how to contribute code and how to test.
 
 ## RoadMap
 

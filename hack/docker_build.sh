@@ -7,9 +7,7 @@ REPO=kubespheredev
 TAG=latest
 
 # check if build was triggered by a travis cronjob
-if [[ ! -v TRAVIS_EVENT_TYPE ]]; then
-    echo "TRAVIS_EVENT_TYPE is not set, treat as regular build"
-elif [[ -z "$TRAVIS_EVENT_TYPE" ]]; then
+if [[ -z "$TRAVIS_EVENT_TYPE" ]]; then
     echo "TRAVIS_EVENT_TYPE is empty, also normaly build"
 elif [ $TRAVIS_EVENT_TYPE == "cron" ]; then
     TAG=dev-$(date +%Y%m%d)
