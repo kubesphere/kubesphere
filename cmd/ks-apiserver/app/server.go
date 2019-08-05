@@ -26,8 +26,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
+	"kubesphere.io/kubesphere/pkg/apiserver/resources"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
+	"kubesphere.io/kubesphere/pkg/controller/watch"
 	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/devops"
@@ -177,6 +179,18 @@ func waitForResourceSync() {
 	informerFactory.Batch().V1beta1().CronJobs().Lister()
 	informerFactory.Extensions().V1beta1().Ingresses().Lister()
 
+	go watch.Resource(resources.EventReceiver, informerFactory.Apps().V1().Deployments().Informer(), "Deployment").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Apps().V1().StatefulSets().Informer(), "StatefulSet").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Apps().V1().DaemonSets().Informer(), "DaemonSet").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Batch().V1().Jobs().Informer(), "Job").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Batch().V1beta1().CronJobs().Informer(), "CronJob").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().ConfigMaps().Informer(), "ConfigMap").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().Secrets().Informer(), "Secret").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().Services().Informer(), "Service").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Extensions().V1beta1().Ingresses().Informer(), "Ingress").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().Pods().Informer(), "Pod").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().PersistentVolumeClaims().Informer(), "PersistentVolumeClaim").Watch(stopChan)
+	go watch.Resource(resources.EventReceiver, informerFactory.Core().V1().Events().Informer(), "Event").Watch(stopChan)
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
 

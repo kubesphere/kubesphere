@@ -57,6 +57,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorilla/mux v1.7.1 // indirect
+	github.com/gorilla/websocket v1.4.0
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -85,7 +86,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
-	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
@@ -139,7 +139,6 @@ require (
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 // indirect
 	sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/structured-merge-diff v0.0.0-20190426204423-ea680f03cc65 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )

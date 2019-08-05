@@ -59,6 +59,11 @@ func addWebService(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	ok := "ok"
+	webservice.Route(webservice.GET("/namespaces/{namespace}/events").
+		To(resources.NamespacedResourceEvents).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Doc("Websocket API, watch all namespaced resources"))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(resources.ListNamespacedResources).

@@ -19,12 +19,37 @@ package resources
 
 import (
 	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+	"github.com/gorilla/websocket"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/params"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	// Allow connections from any Origin
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func NamespacedResourceEvents(req *restful.Request, resp *restful.Response) {
+	ws, err := upgrader.Upgrade(resp.ResponseWriter, req.Request, nil)
+	if _, ok := err.(websocket.HandshakeError); ok {
+		glog.Infoln("ws: not a websocket handshake")
+		return
+	} else if err != nil {
+		glog.Infoln("ws: failed to upgrade ", err)
+		return
+	}
+	username := req.HeaderParameter(constants.UserNameHeader)
+	namespace := req.PathParameter("namespace")
+	session := NewSession(username, ws)
+	session.subscribe(namespace)
+}
 
 func ListNamespacedResources(req *restful.Request, resp *restful.Response) {
 	ListResources(req, resp)
@@ -44,6 +69,7 @@ func ListResources(req *restful.Request, resp *restful.Response) {
 	}
 
 	if err != nil {
+		glog.Errorln(err)
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -51,6 +77,7 @@ func ListResources(req *restful.Request, resp *restful.Response) {
 	result, err := resources.ListResources(namespace, resourceName, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
+		glog.Errorln(err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
