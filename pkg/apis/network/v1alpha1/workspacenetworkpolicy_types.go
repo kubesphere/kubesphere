@@ -75,6 +75,7 @@ type WorkspaceNetworkPolicyStatus struct {
 
 // WorkspaceNetworkPolicy is a set of network policies applied to the scope to workspace
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:categories="networking",scope="Cluster",shortName="wsnp"
 type WorkspaceNetworkPolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

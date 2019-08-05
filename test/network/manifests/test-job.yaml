@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-connect
+  namespace: production
+spec:
+  template:
+    metadata:
+      labels:
+        color : blue
+    spec:
+      containers:
+      - name: test-connect
+        image: alpine
+        command: ["ping", "10.17.30.131"]
+      restartPolicy: Never
+  backoffLimit: 1

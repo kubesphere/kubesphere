@@ -18,6 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+GOPATH="${HOME}/go"
 # generate-groups generates everything for a project with external types only, e.g. a project based
 # on CustomResourceDefinitions.
 

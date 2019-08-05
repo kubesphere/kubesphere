@@ -70,7 +70,7 @@ manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
 crds:
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=net-manager-role webhook paths="./pkg/apis/network/..." paths="./pkg/controller/network/..." output:crd:artifacts:config=config/crds
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
