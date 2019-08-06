@@ -55,8 +55,8 @@ func (p *Parameter) ToEnvonment() *EnvironmentSpec {
 type S2iBuilderTemplateSpec struct {
 	//DefaultBaseImage is the image that will be used by default
 	DefaultBaseImage string `json:"defaultBaseImage,omitempty"`
-	//BaseImages are the images this template will use.
-	BaseImages []string `json:"baseImages,omitempty"`
+	//Images are the images this template will use.
+	ContainerInfo []ContainerInfo `json:"containerInfo,omitempty"`
 	//CodeFramework means which language this template is designed for and which framework is using if has framework. Like Java, NodeJS etc
 	CodeFramework CodeFramework `json:"codeFramework,omitempty"`
 	// Parameters is a set of environment variables to be passed to the image.
@@ -67,6 +67,16 @@ type S2iBuilderTemplateSpec struct {
 	Description string `json:"description,omitempty"`
 	// IconPath is used for frontend display
 	IconPath string `json:"iconPath,omitempty"`
+}
+
+type ContainerInfo struct {
+	//BaseImage are the images this template will use.
+	BuilderImage     string       `json:"builderImage,omitempty"`
+	RuntimeImage     string       `json:"runtimeImage,omitempty"`
+	RuntimeArtifacts []VolumeSpec `json:"runtimeArtifacts,omitempty"`
+	// BuildVolumes specifies a list of volumes to mount to container running the
+	// build.
+	BuildVolumes []string `json:"buildVolumes,omitempty"`
 }
 
 // S2iBuilderTemplateStatus defines the observed state of S2iBuilderTemplate

@@ -73,7 +73,7 @@ require (
 	github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-sigs/application v0.0.0-20190404151855-67ae7f915d4e
-	github.com/kubesphere/s2ioperator v0.0.11
+	github.com/kubesphere/s2ioperator v0.0.12
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/lucas-clemente/quic-go v0.11.1 // indirect
@@ -85,7 +85,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
-	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
@@ -139,7 +138,6 @@ require (
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 // indirect
 	sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/structured-merge-diff v0.0.0-20190426204423-ea680f03cc65 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
