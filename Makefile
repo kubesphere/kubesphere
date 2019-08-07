@@ -58,16 +58,16 @@ controller-manager: test
 	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
-fmt: generate-apis
+fmt: deepcopy
 	go fmt ./pkg/... ./cmd/...
 
 # Run go vet against code
-vet: generate-apis
+vet: deepcopy
 	go vet ./pkg/... ./cmd/...
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
 deploy: manifests
 	kubectl apply -f config/crds
@@ -76,8 +76,8 @@ deploy: manifests
 generate:
 	go generate ./pkg/... ./cmd/...
 # Generate code
-generate-apis: controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/...
+deepcopy: controller-gen
+	go run ./vendor/k8s.io/code-generator/cmd/deepcopy-gen -i kubesphere.io/kubesphere/pkg/apis/... -h hack/boilerplate.go.txt -O zz_generated.deepcopy
 
 
 # Build the docker image
@@ -95,13 +95,6 @@ clean:
 
 # find or download controller-gen
 # download controller-gen if necessary
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	cd .. && GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.0-beta.4
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
 
 clientset:
 	./hack/generate_client.sh
