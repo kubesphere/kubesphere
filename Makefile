@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam controller-manager generate-apis
+all: test ks-apiserver ks-apigateway ks-iam controller-manager generate-apis clientset
 
 # Build ks-apiserver binary
 ks-apiserver: test
@@ -71,7 +71,7 @@ manifests:
 
 crds: generate-apis
 	$(CONTROLLER_GEN) crd:trivialVersions=true paths="./pkg/apis/devops/..." output:crd:artifacts:config=config/crds
-	
+
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
