@@ -142,6 +142,8 @@ github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
+# github.com/gobuffalo/flect v0.1.5
+github.com/gobuffalo/flect
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
@@ -427,6 +429,9 @@ github.com/sergi/go-diff/diffmatchpatch
 github.com/sony/sonyflake
 # github.com/speps/go-hashids v2.0.0+incompatible
 github.com/speps/go-hashids
+# github.com/spf13/afero v1.2.2
+github.com/spf13/afero
+github.com/spf13/afero/mem
 # github.com/spf13/cobra v0.0.3
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
@@ -509,8 +514,8 @@ golang.org/x/sys/cpu
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/width
 golang.org/x/text/transform
+golang.org/x/text/width
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -1100,6 +1105,16 @@ sigs.k8s.io/controller-runtime/pkg/webhook/types
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
+# sigs.k8s.io/controller-tools v0.1.12
+sigs.k8s.io/controller-tools/cmd/controller-gen
+sigs.k8s.io/controller-tools/pkg/crd/generator
+sigs.k8s.io/controller-tools/pkg/rbac
+sigs.k8s.io/controller-tools/pkg/webhook
+sigs.k8s.io/controller-tools/pkg/crd/util
+sigs.k8s.io/controller-tools/pkg/internal/codegen
+sigs.k8s.io/controller-tools/pkg/internal/codegen/parse
+sigs.k8s.io/controller-tools/pkg/util
+sigs.k8s.io/controller-tools/pkg/internal/general
 # sigs.k8s.io/testing_frameworks v0.1.1
 sigs.k8s.io/testing_frameworks/integration
 sigs.k8s.io/testing_frameworks/integration/addr

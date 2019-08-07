@@ -69,14 +69,11 @@ vet: generate-apis
 manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
-crds: generate-apis
-	$(CONTROLLER_GEN) crd:trivialVersions=true paths="./pkg/apis/devops/..." output:crd:artifacts:config=config/crds
-
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
 
-generate: crds
+generate:
 	go generate ./pkg/... ./cmd/...
 # Generate code
 generate-apis: controller-gen
@@ -89,7 +86,7 @@ docker-build: all
 
 # Run tests
 test:
-	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out -p 1
+	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
 clean:

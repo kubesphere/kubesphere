@@ -34,7 +34,7 @@ type S2iBinarySpec struct {
 	//DownloadURL in KubeSphere
 	DownloadURL string `json:"downloadURL,omitempty"`
 	// UploadTime is last upload time
-	UploadTimeStamp metav1.Time `json:"uploadTimeStamp,omitempty"`
+	UploadTimeStamp *metav1.Time `json:"uploadTimeStamp,omitempty"`
 }
 
 // S2iBinaryStatus defines the observed state of S2iBinary
