@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam controller-manager generate-apis clientset
+all: test ks-apiserver ks-apigateway ks-iam controller-manager 
 
 # Build ks-apiserver binary
 ks-apiserver: test
@@ -88,7 +88,7 @@ docker-build: all
 	docker build . -t ${IMG}
 
 # Run tests
-test: generate fmt vet generate-apis
+test:
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out -p 1
 
 .PHONY: clean
