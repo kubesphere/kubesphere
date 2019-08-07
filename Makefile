@@ -89,7 +89,7 @@ docker-build: all
 
 # Run tests
 test: generate fmt vet generate-apis
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out -p 1
 
 .PHONY: clean
 clean:
