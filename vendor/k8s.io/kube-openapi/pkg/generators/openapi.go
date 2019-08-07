@@ -171,7 +171,7 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 	sw.Do("return map[string]$.OpenAPIDefinition|raw${\n", argsFromType(nil))
 
 	for _, t := range c.Order {
-		err := newOpenAPITypeWriter(sw, c).generateCall(t)
+		err := newOpenAPITypeWriter(sw).generateCall(t)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 func (g *openAPIGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	klog.V(5).Infof("generating for type %v", t)
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
-	err := newOpenAPITypeWriter(sw, c).generate(t)
+	err := newOpenAPITypeWriter(sw).generate(t)
 	if err != nil {
 		return err
 	}
@@ -221,15 +221,13 @@ func shouldInlineMembers(m *types.Member) bool {
 
 type openAPITypeWriter struct {
 	*generator.SnippetWriter
-	context                *generator.Context
 	refTypes               map[string]*types.Type
 	GetDefinitionInterface *types.Type
 }
 
-func newOpenAPITypeWriter(sw *generator.SnippetWriter, c *generator.Context) openAPITypeWriter {
+func newOpenAPITypeWriter(sw *generator.SnippetWriter) openAPITypeWriter {
 	return openAPITypeWriter{
 		SnippetWriter: sw,
-		context:       c,
 		refTypes:      map[string]*types.Type{},
 	}
 }
@@ -338,23 +336,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		}
 		g.Do("return $.OpenAPIDefinition|raw${\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", args)
 		g.generateDescription(t.CommentLines)
-		g.Do("Type: []string{\"object\"},\n", nil)
-
-		// write members into a temporary buffer, in order to postpone writing out the Properties field. We only do
-		// that if it is not empty.
-		propertiesBuf := bytes.Buffer{}
-		bsw := g
-		bsw.SnippetWriter = generator.NewSnippetWriter(&propertiesBuf, g.context, "$", "$")
-		required, err := bsw.generateMembers(t, []string{})
+		g.Do("Properties: map[string]$.SpecSchemaType|raw${\n", args)
+		required, err := g.generateMembers(t, []string{})
 		if err != nil {
 			return err
 		}
-		if propertiesBuf.Len() > 0 {
-			g.Do("Properties: map[string]$.SpecSchemaType|raw${\n", args)
-			g.Do(strings.Replace(propertiesBuf.String(), "$", "$\"$\"$", -1), nil) // escape $ (used as delimiter of the templates)
-			g.Do("},\n", nil)
-		}
-
+		g.Do("},\n", nil)
 		if len(required) > 0 {
 			g.Do("Required: []string{\"$.$\"},\n", strings.Join(required, "\",\""))
 		}
@@ -363,14 +350,13 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			return err
 		}
 		g.Do("},\n", nil)
-
+		g.Do("Dependencies: []string{\n", args)
 		// Map order is undefined, sort them or we may get a different file generated each time.
 		keys := []string{}
 		for k := range g.refTypes {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		deps := []string{}
 		for _, k := range keys {
 			v := g.refTypes[k]
 			if t, _ := openapi.GetOpenAPITypeFormat(v.String()); t != "" {
@@ -378,16 +364,9 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				// Will eliminate special case of time.Time
 				continue
 			}
-			deps = append(deps, k)
+			g.Do("\"$.$\",", k)
 		}
-		if len(deps) > 0 {
-			g.Do("Dependencies: []string{\n", args)
-			for _, k := range deps {
-				g.Do("\"$.$\",", k)
-			}
-			g.Do("},\n", nil)
-		}
-		g.Do("}\n}\n\n", nil)
+		g.Do("},\n}\n}\n\n", nil)
 	}
 	return nil
 }
@@ -397,18 +376,11 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type) error {
 	// Initially, we will only log struct extension errors.
 	if len(errors) > 0 {
 		for _, e := range errors {
-			klog.Errorf("[%s]: %s\n", t.String(), e)
+			klog.V(2).Infof("[%s]: %s\n", t.String(), e)
 		}
 	}
-	unions, errors := parseUnions(t)
-	if len(errors) > 0 {
-		for _, e := range errors {
-			klog.Errorf("[%s]: %s\n", t.String(), e)
-		}
-	}
-
 	// TODO(seans3): Validate struct extensions here.
-	g.emitExtensions(extensions, unions)
+	g.emitExtensions(extensions)
 	return nil
 }
 
@@ -423,20 +395,20 @@ func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *typ
 			klog.V(2).Infof("%s %s\n", errorPrefix, e)
 		}
 	}
-	g.emitExtensions(extensions, nil)
+	g.emitExtensions(extensions)
 	return nil
 }
 
-func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union) {
+func (g openAPITypeWriter) emitExtensions(extensions []extension) {
 	// If any extensions exist, then emit code to create them.
-	if len(extensions) == 0 && len(unions) == 0 {
+	if len(extensions) == 0 {
 		return
 	}
 	g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
 	for _, extension := range extensions {
 		g.Do("\"$.$\": ", extension.xName)
 		if extension.hasMultipleValues() {
-			g.Do("[]interface{}{\n", nil)
+			g.Do("[]string{\n", nil)
 		}
 		for _, value := range extension.values {
 			g.Do("\"$.$\",\n", value)
@@ -444,13 +416,6 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 		if extension.hasMultipleValues() {
 			g.Do("},\n", nil)
 		}
-	}
-	if len(unions) > 0 {
-		g.Do("\"x-kubernetes-unions\": []interface{}{\n", nil)
-		for _, u := range unions {
-			u.emit(g)
-		}
-		g.Do("},\n", nil)
 	}
 	g.Do("},\n},\n", nil)
 }
@@ -596,7 +561,7 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 		return fmt.Errorf("map with non-string keys are not supported by OpenAPI in %v", t)
 	}
 	g.Do("Type: []string{\"object\"},\n", nil)
-	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nAllows: true,\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
+	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
 	typeString, format := openapi.GetOpenAPITypeFormat(elemType.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)
