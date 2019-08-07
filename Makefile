@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam controller-manager
+all: test ks-apiserver ks-apigateway ks-iam controller-manager generate-apis
 
 # Build ks-apiserver binary
 ks-apiserver: test
@@ -58,39 +58,37 @@ controller-manager: test
 	hack/gobuild.sh cmd/controller-manager
 
 # Run go fmt against code 
-fmt:
+fmt: generate-apis
 	go fmt ./pkg/... ./cmd/...
 
 # Run go vet against code
-vet:
+vet: generate-apis
 	go vet ./pkg/... ./cmd/...
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 
-crds:
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
+crds: generate-apis
+	$(CONTROLLER_GEN) crd:trivialVersions=true paths="./pkg/apis/devops/..." output:crd:artifacts:config=config/crds
+	
 deploy: manifests
 	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
 
-# Generate DeepCopy to implement runtime.Object
-deepcopy:
-	./vendor/k8s.io/code-generator/generate-groups.sh all kubesphere.io/kubesphere/pkg/client kubesphere.io/kubesphere/pkg/apis "servicemesh:v1alpha2 tenant:v1alpha1"
-
-generate:
+generate: crds
 	go generate ./pkg/... ./cmd/...
 # Generate code
 generate-apis: controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/...
+
 
 # Build the docker image
 docker-build: all
 	docker build . -t ${IMG}
 
 # Run tests
-test: generate fmt vet
+test: generate fmt vet generate-apis
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
