@@ -1,5 +1,7 @@
 # bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c
 bitbucket.org/ww/goautoneg
+# code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
+code.cloudfoundry.org/bytefmt
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
@@ -701,8 +703,8 @@ k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/runtime/serializer

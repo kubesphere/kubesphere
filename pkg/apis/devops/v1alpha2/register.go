@@ -593,6 +593,19 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).
 		Writes(devops.Crumb{}))
 
+	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
+		To(devopsapi.UploadS2iBinary).
+		Consumes("multipart/form-data").
+		Produces(restful.MIME_JSON).
+		Doc("Upload S2iBinary file").
+		Returns(http.StatusOK, RespOK, devops.Crumb{}))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
+		To(devopsapi.DownloadS2iBinary).
+		Produces(restful.MIME_OCTET).
+		Doc("Download S2iBinary file").
+		Returns(http.StatusOK, RespOK, nil))
+
 	// TODO are not used in this version. will be added in 2.1.0
 	//// match /job/init-job/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile
 	//webservice.Route(webservice.POST("/devops/check/scriptcompile").
