@@ -93,6 +93,24 @@ clean:
 
 # find or download controller-gen
 # download controller-gen if necessary
-
 clientset: generate
 	./hack/generate_client.sh
+
+
+# Currently in the upgrade phase of controller tools.
+# But the new controller tools are not compatible with the old version.
+# With these commands you may need to manually modify the generated code
+# So don't use it unless you know it very deeply
+internal-crds:
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
+
+internal-generate-apis: controller-gen
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/...
+
+internal-controller-gen:
+ifeq (, $(shell which controller-gen))
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.0-beta.4
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif
