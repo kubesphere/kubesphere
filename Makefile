@@ -104,7 +104,7 @@ clientset: generate
 internal-crds:
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
 
-internal-generate-apis: controller-gen
+internal-generate-apis: internal-controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/...
 
 internal-controller-gen:
