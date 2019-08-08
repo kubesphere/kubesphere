@@ -83,7 +83,7 @@ docker-build: all
 	docker build . -t ${IMG}
 
 # Run tests
-test:
+test: fmt vet
 	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: clean
