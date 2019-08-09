@@ -11,8 +11,6 @@
 
 [KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform that built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage computing resources with a few clicks, which reduces the learning curve and empowers the DevOps teams. It greatly reduces the complexity of the daily work of development, testing, operation and maintenance, aiming to alleviate the pain points of Kubernetes' storage, network, security and ease of use, etc.
 
-KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution.
-
 > See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
 
 ![Dashboard](docs/images/dashboard.png)
@@ -44,6 +42,12 @@ It also supports multiple open source storage and high-performance cloud storage
 
 ----
 
+## Architecture
+
+KubeSphere adopts the separation of front and back ends, each component is drawn in the architecture diagram below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution.
+
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190809235655.png)
+
 ## Latest Release
 
 KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/zh-CN/release/release-v202/) to preview the updates.
@@ -71,6 +75,8 @@ $ ./install.sh
 
 Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
 
+> Click [here](https://asciinema.org/~lilin) to preview the installation demo.
+
 ### Multi-Node
 
 [Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/) is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster in a mission-critical environment. Multi-node installation requires pre-configuration steps, see [Multi-Node Guide](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
@@ -86,6 +92,7 @@ The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/adm
 
 - [KubeSphere Documentation (En/中) ](https://docs.kubesphere.io/)
 - [KubeSphere Documentation (PDF)](https://docs.kubesphere.io/KubeSphere-advanced-v2.0.pdf)
+- [API Documentation](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
 
 
 ## To start developing KubeSphere
