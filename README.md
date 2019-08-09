@@ -46,7 +46,7 @@ It also supports multiple open source storage and high-performance cloud storage
 
 KubeSphere adopts the separation of front and back ends, each component is drawn in the architecture diagram below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution.
 
-![](https://pek3b.qingstor.com/kubesphere-docs/png/20190809235655.png)
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190810073322.png)
 
 ## Latest Release
 
