@@ -160,10 +160,17 @@ github.com/golang/glog
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
+github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/jsonpb
+github.com/golang/protobuf/protoc-gen-go/generator
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/struct
+github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
+github.com/golang/protobuf/protoc-gen-go/plugin
 # github.com/google/btree v1.0.0
 github.com/google/btree
 # github.com/google/go-querystring v1.0.0
@@ -185,6 +192,11 @@ github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 github.com/grpc-ecosystem/go-grpc-prometheus
+# github.com/grpc-ecosystem/grpc-gateway v1.9.5
+github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options
+github.com/grpc-ecosystem/grpc-gateway/runtime
+github.com/grpc-ecosystem/grpc-gateway/utilities
+github.com/grpc-ecosystem/grpc-gateway/internal
 # github.com/hashicorp/go-syslog v1.0.0
 github.com/hashicorp/go-syslog
 # github.com/hashicorp/go-version v1.2.0
@@ -489,15 +501,15 @@ golang.org/x/net/http2
 golang.org/x/net/context
 golang.org/x/net/html/atom
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/trace
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/proxy
+golang.org/x/net/internal/timeseries
 golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
 golang.org/x/net/websocket
-golang.org/x/net/trace
-golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/bpf
@@ -556,15 +568,16 @@ google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 # google.golang.org/genproto v0.0.0-20190418145605-e7d98fc518a7
+google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/httpbody
+google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.19.0
 google.golang.org/grpc
-google.golang.org/grpc/codes
 google.golang.org/grpc/credentials
-google.golang.org/grpc/grpclog
-google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/keepalive
-google.golang.org/grpc/metadata
+google.golang.org/grpc/codes
+google.golang.org/grpc/grpclog
 google.golang.org/grpc/status
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/roundrobin
@@ -579,6 +592,7 @@ google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/transport
+google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
@@ -590,6 +604,7 @@ google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/internal/syscall
+google.golang.org/grpc/health/grpc_health_v1
 # gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 gopkg.in/asn1-ber.v1
 # gopkg.in/fsnotify.v1 v1.4.7
@@ -706,8 +721,8 @@ k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/runtime/serializer

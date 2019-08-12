@@ -26,6 +26,7 @@ const (
 	IstioNamespace                = "istio-system"
 	KubeSphereMonitoringNamespace = "kubesphere-monitoring-system"
 	KubeSphereLoggingNamespace    = "kubesphere-logging-system"
+	KubeSphereAlertingNamespace   = "kubesphere-alerting-system"
 	KubeSphereNamespace           = "kubesphere-system"
 	KubeSphereControlNamespace    = "kubesphere-controls-system"
 	IngressControllerNamespace    = KubeSphereControlNamespace
@@ -78,5 +79,16 @@ const (
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
-	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, KubeSphereAlertingNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace}
 )
+
+const (
+	DefaultSelectLimit = 200
+)
+
+const (
+	DefaultOffset = uint32(0)
+	DefaultLimit  = uint32(20)
+)
+
+const MIME_MERGEPATCH = "application/merge-patch+json"
