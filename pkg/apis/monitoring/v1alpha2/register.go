@@ -353,6 +353,38 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.POST("/namespaces/{namespace}/servicemonitors").To(monitoring.ApplyServiceMonitor).
+		Doc("Setup monitoring configuration for data sources backed by Service.").
+		Param(ws.PathParameter("namespace", "Namespace of the service.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("precheck", "Check the validity of configuration. When present, modifications won't be applied.").DataType("bool").DefaultValue("false")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMonitoringTag}).
+		Writes(metrics.ServiceMonitorConfig{})).
+		Consumes(restful.MIME_JSON)
+
+	ws.Route(ws.PUT("/namespaces/{namespace}/servicemonitors").To(monitoring.ApplyServiceMonitor).
+		Doc("Update monitoring configuration for data sources backed by Service.").
+		Param(ws.PathParameter("namespace", "Namespace of the service.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("precheck", "Check the validity of configuration. When present, modifications won't be applied.").DataType("bool").DefaultValue("false")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMonitoringTag}).
+		Writes(metrics.ServiceMonitorConfig{})).
+		Consumes(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/namespaces/{namespace}/servicemonitors/{service}").To(monitoring.GetServiceMonitorConfig).
+		Doc("Get monitoring configuration for data sources backed by Service.").
+		Param(ws.PathParameter("namespace", "Namespace of the service.").DataType("string").Required(true)).
+		Param(ws.PathParameter("service", "Service name.").DataType("string").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMonitoringTag}).
+		Returns(http.StatusOK, RespOK, metrics.ServiceMonitorConfig{})).
+		Consumes(restful.MIME_JSON)
+
+	ws.Route(ws.DELETE("/namespaces/{namespace}/servicemonitors/{service}").To(monitoring.DeleteServiceMonitor).
+		Doc("Delete monitoring configuration for data sources backed by Service.").
+		Param(ws.PathParameter("namespace", "Namespace of the service.").DataType("string").Required(true)).
+		Param(ws.PathParameter("service", "Service name.").DataType("string").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMonitoringTag})).
+		Consumes(restful.MIME_JSON)
+
 	c.Add(ws)
+
 	return nil
 }

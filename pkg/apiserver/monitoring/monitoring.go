@@ -20,8 +20,13 @@ package monitoring
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
+	"github.com/golang/glog"
+	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 func MonitorAllPodsOfSpecificNamespace(request *restful.Request, response *restful.Response) {
@@ -245,4 +250,77 @@ func MonitorComponent(request *restful.Request, response *restful.Response) {
 	rawMetrics := metrics.GetComponentLevelMetrics(requestParams)
 
 	response.WriteAsJson(rawMetrics)
+}
+
+func ApplyServiceMonitor(request *restful.Request, response *restful.Response) {
+
+	ns := request.PathParameter("namespace")
+	precheck, _ := strconv.ParseBool(request.QueryParameter("precheck"))
+
+	var smon metrics.ServiceMonitorConfig
+	err := request.ReadEntity(&smon)
+	if err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	if _, err = time.ParseDuration(smon.Interval); err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	if _, err = time.ParseDuration(smon.ScrapeTimeout); err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+
+	err = metrics.CheckConnectionAndDataFormat(ns, smon)
+	if err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	// When precheck is present, modifications won't be applied in effect
+	if precheck {
+		response.WriteHeader(http.StatusOK)
+		return
+	}
+
+	err = metrics.ApplyServiceMonitor(ns, smon)
+	if err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	response.WriteHeader(http.StatusOK)
+}
+
+func GetServiceMonitorConfig(request *restful.Request, response *restful.Response) {
+
+	ns := request.PathParameter("namespace")
+	svc := request.PathParameter("service")
+
+	obj, err := metrics.GetServiceMonitorConfig(ns, svc)
+	if err != nil {
+		glog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
+		return
+	}
+
+	response.WriteAsJson(obj)
+}
+
+func DeleteServiceMonitor(request *restful.Request, response *restful.Response) {
+
+	ns := request.PathParameter("namespace")
+	svc := request.PathParameter("service")
+
+	err := metrics.DeleteServiceMonitor(ns, svc)
+	if err != nil {
+		return
+	}
+
+	return
 }

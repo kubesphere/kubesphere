@@ -27,6 +27,8 @@ github.com/beevik/etree
 github.com/beorn7/perks/quantile
 # github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
+# github.com/cespare/xxhash v1.1.0
+github.com/cespare/xxhash
 # github.com/cheekybits/genny v1.0.0
 github.com/cheekybits/genny/generic
 # github.com/coreos/etcd v3.3.13+incompatible
@@ -40,6 +42,12 @@ github.com/coreos/etcd/pkg/types
 github.com/coreos/etcd/pkg/tlsutil
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 github.com/coreos/go-systemd/daemon
+# github.com/coreos/prometheus-operator v0.27.0
+github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1
+github.com/coreos/prometheus-operator/pkg/client/versioned
+github.com/coreos/prometheus-operator/pkg/apis/monitoring
+github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
+github.com/coreos/prometheus-operator/pkg/client/versioned/scheme
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -419,6 +427,10 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 # github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
+# github.com/prometheus/prometheus v2.5.0+incompatible
+github.com/prometheus/prometheus/pkg/textparse
+github.com/prometheus/prometheus/pkg/labels
+github.com/prometheus/prometheus/pkg/value
 # github.com/russross/blackfriday v1.5.2
 github.com/russross/blackfriday
 # github.com/sergi/go-diff v1.0.0
@@ -701,8 +713,8 @@ k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/runtime/serializer
