@@ -45,7 +45,10 @@ github.com/davecgh/go-spew/spew
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/docker/distribution v0.0.0-20190417014306-3226863cbcba
+github.com/docker/distribution/manifest/schema2
 github.com/docker/distribution/reference
+github.com/docker/distribution
+github.com/docker/distribution/manifest
 github.com/docker/distribution/digestset
 # github.com/docker/docker v1.13.1
 github.com/docker/docker/api/types
@@ -393,6 +396,9 @@ github.com/onsi/gomega/gbytes
 github.com/onsi/gomega/gexec
 # github.com/opencontainers/go-digest v1.0.0-rc1
 github.com/opencontainers/go-digest
+# github.com/opencontainers/image-spec v1.0.1
+github.com/opencontainers/image-spec/specs-go/v1
+github.com/opencontainers/image-spec/specs-go
 # github.com/openshift/api v3.9.0+incompatible
 github.com/openshift/api/apps/v1
 github.com/openshift/api/project/v1
@@ -706,8 +712,8 @@ k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/runtime
 k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/runtime/serializer

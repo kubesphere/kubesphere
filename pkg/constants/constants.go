@@ -56,6 +56,7 @@ const (
 	ClusterResourcesTag        = "Cluster Resources"
 	ComponentStatusTag         = "Component Status"
 	VerificationTag            = "Verification"
+	RegistryTag                = "Docker Registry"
 	UserResourcesTag           = "User Resources"
 	DevOpsProjectTag           = "DevOps Project"
 	DevOpsProjectCredentialTag = "DevOps Project Credential"

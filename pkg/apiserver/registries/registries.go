@@ -24,6 +24,9 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/registries"
+
+	log "github.com/golang/glog"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func RegistryVerify(request *restful.Request, response *restful.Response) {
@@ -45,4 +48,82 @@ func RegistryVerify(request *restful.Request, response *restful.Response) {
 	}
 
 	response.WriteAsJson(errors.None)
+}
+
+func RegistryImageBlob(request *restful.Request, response *restful.Response) {
+	var statusUnauthorized = "Not found or unauthorized"
+
+	imageName := request.QueryParameter("image")
+	namespace := request.QueryParameter("namespace")
+	secretName := request.QueryParameter("secret")
+
+	// get entry
+	entry, err := registries.GetEntryBySecret(namespace, secretName)
+	if err != nil && k8serror.IsNotFound(err) {
+		log.Errorf("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), response)
+		return
+	}
+	if err != nil {
+		log.Errorf("%+v", err)
+		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+		return
+	}
+
+	// parse image
+	image, err := registries.ParseImage(imageName)
+	if err != nil {
+		log.Errorf("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), response)
+		return
+	}
+
+	// Create the registry client.
+	r, err := registries.CreateRegistryClient(entry.Username, entry.Password, image.Domain)
+	if err != nil {
+		log.Errorf("%+v", err)
+		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+		return
+	}
+
+	digestUrl := r.GetDigestUrl(image)
+
+	// Get token.
+	token, err := r.Token(digestUrl)
+	if err != nil {
+		log.Errorf("%+v", err)
+		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+		return
+	}
+
+	// Get digest.
+	imageManifest, err, statusCode := r.ImageManifest(image, token)
+	if statusCode == http.StatusUnauthorized {
+		log.Errorf("%+v", err)
+		errors.ParseSvcErr(restful.NewError(statusCode, statusUnauthorized), response)
+		return
+	}
+	if err != nil {
+		log.Errorf("%+v", err)
+		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+	}
+	image.Digest = imageManifest.ManifestConfig.Digest
+
+	// Get blob.
+	imageBlob, err := r.ImageBlob(image, token)
+	if err != nil {
+		log.Errorf("%+v", err)
+		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+		return
+	}
+
+	imageDetails := &registries.ImageDetails{
+		Status:        registries.StatusSuccess,
+		ImageManifest: imageManifest,
+		ImageBlob:     imageBlob,
+		ImageTag:      image.Tag,
+		Registry:      image.Domain,
+	}
+
+	response.WriteAsJson(imageDetails)
 }
