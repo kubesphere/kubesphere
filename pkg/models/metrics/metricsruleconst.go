@@ -414,7 +414,7 @@ var RulePromQLTmplMap = MetricMap{
 
 	// cluster_pod_count = cluster_pod_running_count + cluster_pod_succeeded_count + cluster_pod_abnormal_count
 	"cluster_pod_count":           `cluster:pod:sum`,
-	"cluster_pod_quota":           `sum(kube_node_status_capacity_pods unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
+	"cluster_pod_quota":           `sum(max(kube_node_status_capacity_pods) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_utilisation":     `cluster:pod_utilization:ratio`,
 	"cluster_pod_running_count":   `cluster:pod_running:count`,
 	"cluster_pod_succeeded_count": `count(kube_pod_info unless on (pod) (kube_pod_status_phase{phase=~"Failed|Pending|Unknown|Running"} > 0) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
@@ -492,7 +492,7 @@ var RulePromQLTmplMap = MetricMap{
 	"node_disk_inode_utilisation": `node:disk_inode_utilization:ratio$1`,
 
 	"node_pod_count":           `node:pod_count:sum$1`,
-	"node_pod_quota":           `sum(kube_node_status_capacity_pods$1) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
+	"node_pod_quota":           `max(kube_node_status_capacity_pods$1) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0)`,
 	"node_pod_utilisation":     `node:pod_utilization:ratio$1`,
 	"node_pod_running_count":   `node:pod_running:count$1`,
 	"node_pod_succeeded_count": `node:pod_succeeded:count$1`,
