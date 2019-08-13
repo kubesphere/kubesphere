@@ -83,6 +83,16 @@ spec:
                                   http:
                                     description: HTTP connection pool settings.
                                     properties:
+                                      http1MaxPendingRequests:
+                                        description: Maximum number of pending HTTP
+                                          requests to a destination. Default 1024.
+                                        format: int32
+                                        type: integer
+                                      http2MaxRequests:
+                                        description: Maximum number of requests to
+                                          a backend. Default 1024.
+                                        format: int32
+                                        type: integer
                                       maxRequestsPerConnection:
                                         description: Maximum number of requests per
                                           connection to a backend. Setting this parameter
@@ -211,6 +221,17 @@ spec:
                                         http:
                                           description: HTTP connection pool settings.
                                           properties:
+                                            http1MaxPendingRequests:
+                                              description: Maximum number of pending
+                                                HTTP requests to a destination. Default
+                                                1024.
+                                              format: int32
+                                              type: integer
+                                            http2MaxRequests:
+                                              description: Maximum number of requests
+                                                to a backend. Default 1024.
+                                              format: int32
+                                              type: integer
                                             maxRequestsPerConnection:
                                               description: Maximum number of requests
                                                 per connection to a backend. Setting
@@ -464,6 +485,16 @@ spec:
                             http:
                               description: HTTP connection pool settings.
                               properties:
+                                http1MaxPendingRequests:
+                                  description: Maximum number of pending HTTP requests
+                                    to a destination. Default 1024.
+                                  format: int32
+                                  type: integer
+                                http2MaxRequests:
+                                  description: Maximum number of requests to a backend.
+                                    Default 1024.
+                                  format: int32
+                                  type: integer
                                 maxRequestsPerConnection:
                                   description: Maximum number of requests per connection
                                     to a backend. Setting this parameter to 1 disables
@@ -586,6 +617,16 @@ spec:
                                   http:
                                     description: HTTP connection pool settings.
                                     properties:
+                                      http1MaxPendingRequests:
+                                        description: Maximum number of pending HTTP
+                                          requests to a destination. Default 1024.
+                                        format: int32
+                                        type: integer
+                                      http2MaxRequests:
+                                        description: Maximum number of requests to
+                                          a backend. Default 1024.
+                                        format: int32
+                                        type: integer
                                       maxRequestsPerConnection:
                                         description: Maximum number of requests per
                                           connection to a backend. Setting this parameter

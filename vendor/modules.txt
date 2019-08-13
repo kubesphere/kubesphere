@@ -5,7 +5,7 @@ github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
 # github.com/Microsoft/go-winio v0.4.12
 github.com/Microsoft/go-winio
-# github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
+# github.com/NYTimes/gziphandler v1.1.1
 github.com/NYTimes/gziphandler
 # github.com/PuerkitoBio/goquery v1.5.0
 github.com/PuerkitoBio/goquery
@@ -79,7 +79,7 @@ github.com/docker/spdystream/spdy
 github.com/dustin/go-humanize
 # github.com/elazarl/go-bindata-assetfs v1.0.0
 github.com/elazarl/go-bindata-assetfs
-# github.com/emicklei/go-restful v2.9.4+incompatible
+# github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
 github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0
@@ -124,13 +124,13 @@ github.com/go-ldap/ldap
 github.com/go-logr/logr
 # github.com/go-logr/zapr v0.1.1
 github.com/go-logr/zapr
-# github.com/go-openapi/jsonpointer v0.19.0
+# github.com/go-openapi/jsonpointer v0.19.2
 github.com/go-openapi/jsonpointer
-# github.com/go-openapi/jsonreference v0.19.0
+# github.com/go-openapi/jsonreference v0.19.2
 github.com/go-openapi/jsonreference
-# github.com/go-openapi/spec v0.19.0
+# github.com/go-openapi/spec v0.19.2
 github.com/go-openapi/spec
-# github.com/go-openapi/swag v0.19.0
+# github.com/go-openapi/swag v0.19.2
 github.com/go-openapi/swag
 # github.com/go-redis/redis v6.15.2+incompatible
 github.com/go-redis/redis
@@ -142,10 +142,12 @@ github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
+# github.com/gobuffalo/flect v0.1.5
+github.com/gobuffalo/flect
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.1.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/gogoproto
@@ -291,7 +293,7 @@ github.com/lucas-clemente/quic-go/internal/congestion
 github.com/lucas-clemente/quic-go/internal/flowcontrol
 github.com/lucas-clemente/quic-go/internal/handshake
 github.com/lucas-clemente/quic-go/internal/wire
-# github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983
+# github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
 github.com/mailru/easyjson/buffer
@@ -346,7 +348,7 @@ github.com/miekg/dns
 github.com/mitchellh/go-homedir
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
-# github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
+# github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
@@ -427,6 +429,9 @@ github.com/sergi/go-diff/diffmatchpatch
 github.com/sony/sonyflake
 # github.com/speps/go-hashids v2.0.0+incompatible
 github.com/speps/go-hashids
+# github.com/spf13/afero v1.2.2
+github.com/spf13/afero
+github.com/spf13/afero/mem
 # github.com/spf13/cobra v0.0.3
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
@@ -436,7 +441,7 @@ github.com/src-d/gcfg
 github.com/src-d/gcfg/scanner
 github.com/src-d/gcfg/token
 github.com/src-d/gcfg/types
-# github.com/stretchr/objx v0.1.1
+# github.com/stretchr/objx v0.2.0
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
@@ -454,7 +459,7 @@ go.uber.org/zap/zapcore
 go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
-# golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
+# golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/ocsp
@@ -478,7 +483,7 @@ golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/pbkdf2
-# golang.org/x/net v0.0.0-20190509222800-a4d6f7feada5
+# golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 golang.org/x/net/html
 golang.org/x/net/http2
 golang.org/x/net/context
@@ -501,7 +506,7 @@ golang.org/x/net/internal/socket
 # golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190509141414-a5b02f93d862
+# golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/cpu
@@ -509,8 +514,8 @@ golang.org/x/sys/cpu
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/width
 golang.org/x/text/transform
+golang.org/x/text/width
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -529,14 +534,14 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
 # golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190226205152-f727befe758c
+# golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59
 golang.org/x/tools/imports
+golang.org/x/tools/internal/imports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/packages
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/module
 golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/internal/semver
 golang.org/x/tools/internal/fastwalk
@@ -1023,19 +1028,38 @@ k8s.io/client-go/listers/settings/v1alpha1
 k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
 k8s.io/client-go/listers/storage/v1beta1
-# k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
+# k8s.io/code-generator v0.0.0-20190405172246-9a4d48088f6a => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
+k8s.io/code-generator/cmd/client-gen
+k8s.io/code-generator/cmd/deepcopy-gen
+k8s.io/code-generator/cmd/informer-gen
+k8s.io/code-generator/cmd/lister-gen
+k8s.io/code-generator/cmd/client-gen/args
+k8s.io/code-generator/cmd/client-gen/generators
+k8s.io/code-generator/pkg/util
+k8s.io/code-generator/cmd/deepcopy-gen/args
+k8s.io/code-generator/cmd/informer-gen/args
+k8s.io/code-generator/cmd/informer-gen/generators
+k8s.io/code-generator/cmd/lister-gen/args
+k8s.io/code-generator/cmd/lister-gen/generators
+k8s.io/code-generator/cmd/client-gen/types
+k8s.io/code-generator/cmd/client-gen/generators/fake
+k8s.io/code-generator/cmd/client-gen/generators/scheme
+k8s.io/code-generator/cmd/client-gen/generators/util
+k8s.io/code-generator/cmd/client-gen/path
+# k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 k8s.io/gengo/args
-k8s.io/gengo/examples/set-gen/sets
+k8s.io/gengo/examples/deepcopy-gen/generators
 k8s.io/gengo/generator
 k8s.io/gengo/namer
 k8s.io/gengo/types
 k8s.io/gengo/parser
-# k8s.io/klog v0.3.0
+k8s.io/gengo/examples/set-gen/sets
+# k8s.io/klog v0.3.1
 k8s.io/klog
 k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
-k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/cmd/openapi-gen/
+k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/builder
 k8s.io/kube-openapi/cmd/openapi-gen/args
 k8s.io/kube-openapi/pkg/generators
@@ -1081,6 +1105,16 @@ sigs.k8s.io/controller-runtime/pkg/webhook/types
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
+# sigs.k8s.io/controller-tools v0.1.12
+sigs.k8s.io/controller-tools/cmd/controller-gen
+sigs.k8s.io/controller-tools/pkg/crd/generator
+sigs.k8s.io/controller-tools/pkg/rbac
+sigs.k8s.io/controller-tools/pkg/webhook
+sigs.k8s.io/controller-tools/pkg/crd/util
+sigs.k8s.io/controller-tools/pkg/internal/codegen
+sigs.k8s.io/controller-tools/pkg/internal/codegen/parse
+sigs.k8s.io/controller-tools/pkg/util
+sigs.k8s.io/controller-tools/pkg/internal/general
 # sigs.k8s.io/testing_frameworks v0.1.1
 sigs.k8s.io/testing_frameworks/integration
 sigs.k8s.io/testing_frameworks/integration/addr
