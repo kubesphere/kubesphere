@@ -1,13 +1,11 @@
 approvers:
     - magicsong
-    - zryfish
     - zheng1
 
 reviewers:
     - magicsong
     - zheng1
-    - zryfish
 
 labels:
-    - area/controller
+    - area/testing
     - area/networking

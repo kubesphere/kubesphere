@@ -1,18 +1,15 @@
 apiVersion: network.kubesphere.io/v1alpha1
 kind: NamespaceNetworkPolicy
 metadata:
-  name: allow-tcp-80
+  name: allow-icmp-only
   namespace: production
 spec:
   selector: color == 'red'
   ingress:
   - action: Allow
-    protocol: TCP
+    protocol: ICMP
     source:
-      selector: color == 'blue'
-    # destination:
-    #   ports:
-    #   - 80
+      selector: "all()"
 
 ---
 apiVersion: apps/v1

@@ -110,3 +110,6 @@ endif
 
 clientset:
 	./hack/generate_client.sh
+
+network-e2e:
+	./test/network/test.sh
