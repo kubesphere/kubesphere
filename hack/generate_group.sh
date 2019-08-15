@@ -46,9 +46,9 @@ APIS_PKG="$3"
 GROUPS_WITH_VERSIONS="$4"
 shift 4
 
- (
-   go install --pkgdir ./vendor/k8s.io/code-generator/cmd/
- )
+
+GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/{client-gen,lister-gen,informer-gen}
+
 
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 

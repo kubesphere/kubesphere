@@ -29,7 +29,6 @@ import (
 
 // Generate deepcopy for apis
 
-//go:generate go install --pkgdir ../../vendor/k8s.io/code-generator/cmd/deepcopy-gen
 //go:generate ${GOPATH}/bin/deepcopy-gen -i kubesphere.io/kubesphere/pkg/apis/... -h ../../hack/boilerplate.go.txt -O zz_generated.deepcopy
 // AddToSchemes may be used to add all resources defined in the project to a Scheme
 var AddToSchemes runtime.SchemeBuilder
