@@ -4469,7 +4469,7 @@
         "secretRef": {
           "$ref": "#/definitions/io.k8s.api.core.v1.LocalObjectReference"
         },
-        "server_address": {
+        "serverAddress": {
           "type": "string"
         },
         "username": {
@@ -4510,6 +4510,31 @@
           "format": "int64"
         },
         "Parent": {
+          "type": "string"
+        }
+      }
+    },
+    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ContainerInfo": {
+      "type": "object",
+      "properties": {
+        "buildVolumes": {
+          "description": "BuildVolumes specifies a list of volumes to mount to container running the build.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "builderImage": {
+          "description": "BaseImage are the images this template will use.",
+          "type": "string"
+        },
+        "runtimeArtifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec"
+          }
+        },
+        "runtimeImage": {
           "type": "string"
         }
       }
@@ -4779,16 +4804,16 @@
       "description": "S2iBuilderTemplateSpec defines the desired state of S2iBuilderTemplate",
       "type": "object",
       "properties": {
-        "baseImages": {
-          "description": "BaseImages are the images this template will use.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "codeFramework": {
           "description": "CodeFramework means which language this template is designed for and which framework is using if has framework. Like Java, NodeJS etc",
           "type": "string"
+        },
+        "containerInfo": {
+          "description": "Images are the images this template will use.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ContainerInfo"
+          }
         },
         "defaultBaseImage": {
           "description": "DefaultBaseImage is the image that will be used by default",
@@ -4961,6 +4986,10 @@
             "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec"
           }
         },
+        "isBinaryURL": {
+          "description": "IsBinaryURL explain the type of SourceURL. If it is IsBinaryURL, it will download the file directly without using git.",
+          "type": "boolean"
+        },
         "keepSymlinks": {
           "description": "KeepSymlinks indicates to copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content.",
           "type": "boolean"
@@ -4979,6 +5008,17 @@
         "layeredBuild": {
           "description": "LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.",
           "type": "boolean"
+        },
+        "nodeAffinityKey": {
+          "description": "The key of Node Affinity.",
+          "type": "string"
+        },
+        "nodeAffinityValues": {
+          "description": "The values of Node Affinity.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "outputImageName": {
           "description": "OutputImageName is a result image name without tag, default is latest. tag will append to ImageName in the end",
@@ -5003,6 +5043,10 @@
         "removePreviousImage": {
           "description": "RemovePreviousImage describes if previous image should be removed after successful build. This applies only to incremental builds.",
           "type": "boolean"
+        },
+        "revisionId": {
+          "description": "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+          "type": "string"
         },
         "runImage": {
           "description": "RunImage will trigger a \"docker run ...\" invocation of the produced image so the user can see if it operates as he would expect",
@@ -5048,6 +5092,10 @@
         },
         "tag": {
           "description": "Tag is a result image tag name.",
+          "type": "string"
+        },
+        "taintKey": {
+          "description": "The name of taint.",
           "type": "string"
         },
         "usage": {
@@ -5143,6 +5191,14 @@
           "description": "BuilderName specify the name of s2ibuilder, required",
           "type": "string"
         },
+        "newRevisionId": {
+          "description": "NewRevisionId override the default NewRevisionId in its s2ibuilder.",
+          "type": "string"
+        },
+        "newSourceURL": {
+          "description": "NewSourceURL is used to download new binary artifacts",
+          "type": "string"
+        },
         "newTag": {
           "description": "NewTag override the default tag in its s2ibuilder, image name cannot be changed.",
           "type": "string"
@@ -5187,7 +5243,7 @@
     "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.UserDefineTemplate": {
       "type": "object",
       "properties": {
-        "baseImage": {
+        "builderImage": {
           "description": "BaseImage specify which version of this template to use",
           "type": "string"
         },
@@ -5207,21 +5263,16 @@
     "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec": {
       "description": "VolumeSpec represents a single volume mount point.",
       "type": "object",
-      "required": [
-        "Source",
-        "Destination",
-        "Keep"
-      ],
       "properties": {
-        "Destination": {
+        "destination": {
           "description": "Destination is the path to mount the volume to - absolute or relative.",
           "type": "string"
         },
-        "Keep": {
+        "keep": {
           "description": "Keep indicates if the mounted data should be kept in the final image.",
           "type": "boolean"
         },
-        "Source": {
+        "source": {
           "description": "Source is a reference to the volume source.",
           "type": "string"
         }

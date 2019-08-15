@@ -209,8 +209,8 @@ github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7 h1:9dongD6m
 github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7/go.mod h1:xCs7b2bgA24oBSuZYf+5btESJC3xPs//ZTSK1ql+W6I=
 github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3 h1:5IASnVaVqZFzzIc/0FZuAnjWO1gVCUxJe1OFUS42/fU=
 github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3/go.mod h1:Y1EqeixoXkKkU8I+yvOfhdh21+8+etFE6wYOVT2XFdI=
-github.com/kubesphere/s2ioperator v0.0.11 h1:jptEoR+pMb2HXqA6WhMXH3xx0qmtM5kgkoMhO/jaJLQ=
-github.com/kubesphere/s2ioperator v0.0.11/go.mod h1:dv9L+zRYDlHvnKPp0j6VHRtlGB1BU+lloltW9SAWqVU=
+github.com/kubesphere/s2ioperator v0.0.12 h1:gEDDjKw7q7gQUuy5qtBIV/adZEwk5liJUBL4CqyOOOY=
+github.com/kubesphere/s2ioperator v0.0.12/go.mod h1:dv9L+zRYDlHvnKPp0j6VHRtlGB1BU+lloltW9SAWqVU=
 github.com/kubesphere/sonargo v0.0.2 h1:hsSRE3sv3mkPcUAeSABdp7rtfcNW2zzeHXzFa01CTkU=
 github.com/kubesphere/sonargo v0.0.2/go.mod h1:ww8n9ANlDXhX5PBZ18iaRnCgEkXN0GMml3/KZXOZ11w=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3vkb4ax0b5D2DHbNAUsen0Gx5wZoq3lV4=
