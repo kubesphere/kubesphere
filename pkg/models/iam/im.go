@@ -46,7 +46,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
-	"k8s.io/api/rbac/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -635,7 +635,7 @@ func deleteRoleBindings(username string) error {
 		length1 := len(roleBinding.Subjects)
 
 		for index, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && subject.Name == username {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
 				roleBinding.Subjects = append(roleBinding.Subjects[:index], roleBinding.Subjects[index+1:]...)
 				index--
 			}
@@ -667,7 +667,7 @@ func deleteRoleBindings(username string) error {
 		length1 := len(clusterRoleBinding.Subjects)
 
 		for index, subject := range clusterRoleBinding.Subjects {
-			if subject.Kind == v1.UserKind && subject.Name == username {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
 				clusterRoleBinding.Subjects = append(clusterRoleBinding.Subjects[:index], clusterRoleBinding.Subjects[index+1:]...)
 				index--
 			}
@@ -675,7 +675,8 @@ func deleteRoleBindings(username string) error {
 
 		length2 := len(clusterRoleBinding.Subjects)
 		if length2 == 0 {
-			if groups := regexp.MustCompile(fmt.Sprintf(`^system:(\S+):(%s)$`, strings.Join(constants.WorkSpaceRoles, "|"))).FindStringSubmatch(clusterRoleBinding.RoleRef.Name); len(groups) == 3 {
+			// delete if it's not workspace role binding
+			if isWorkspaceRoleBinding(clusterRoleBinding) {
 				_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
 			} else {
 				deletePolicy := meta_v1.DeletePropagationForeground
@@ -695,6 +696,10 @@ func deleteRoleBindings(username string) error {
 	}
 
 	return nil
+}
+
+func isWorkspaceRoleBinding(clusterRoleBinding *rbacv1.ClusterRoleBinding) bool {
+	return k8sutil.IsControlledBy(clusterRoleBinding.OwnerReferences, "Workspace", "")
 }
 
 func UserCreateCheck(check string) (exist bool, err error) {
@@ -1201,7 +1206,7 @@ func WorkspaceUsersTotalCount(workspace string) (int, error) {
 
 	for _, roleBinding := range workspaceRoleBindings {
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+			if subject.Kind == rbacv1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
 				users = append(users, subject.Name)
 			}
 		}
@@ -1222,7 +1227,7 @@ func ListWorkspaceUsers(workspace string, conditions *params.Conditions, orderBy
 
 	for _, roleBinding := range workspaceRoleBindings {
 		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == v1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
+			if subject.Kind == rbacv1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
 				user, err := GetUserInfo(subject.Name)
 				if err != nil {
 					return nil, err
