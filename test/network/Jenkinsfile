@@ -15,13 +15,13 @@ pipeline {
         sh 'mkdir -p ~/.kube'
         sh 'mkdir ./kustomize/network/etcd'
         withCredentials([kubeconfigContent(credentialsId: 'net-kubeconfig', variable: 'KUBECONFIG_CONTENT'),
-        file(credentialsId: 'etcd-ca', variable: 'etcd-ca'),
-        file(credentialsId: 'etcd-crt', variable: 'etcd-crt'),
-        file(credentialsId: 'etcd-key', variable: 'etcd-key')]) {
+        file(credentialsId: 'etcd-ca', variable: 'etcd_ca'),
+        file(credentialsId: 'etcd-crt', variable: 'etcd_crt'),
+        file(credentialsId: 'etcd-key', variable: 'etcd_key')]) {
            sh 'echo "$KUBECONFIG_CONTENT" > ~/.kube/config'
-           sh "cp \${etcd-ca} ./kustomize/network/etcd/ca"
-           sh "cp \${etcd-key} ./kustomize/network/etcd/key"
-           sh "cp \${etcd-crt} ./kustomize/network/etcd/crt"
+           sh "cp \${etcd_ca} ./kustomize/network/etcd/ca"
+           sh "cp \${etcd_key} ./kustomize/network/etcd/key"
+           sh "cp \${etcd_crt} ./kustomize/network/etcd/crt"
         }
       }
     }
