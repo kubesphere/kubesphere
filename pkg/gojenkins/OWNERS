@@ -1,0 +1,10 @@
+approvers:
+    - runzexia
+    - soulseen
+
+reviewers:
+    - runzexia
+    - soulseen
+
+labels:
+    - area/devops

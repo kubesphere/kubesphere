@@ -27,6 +27,7 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	devops "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
@@ -173,9 +174,14 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Devops() devops.Interface
 	Network() network.Interface
 	Servicemesh() servicemesh.Interface
 	Tenant() tenant.Interface
+}
+
+func (f *sharedInformerFactory) Devops() devops.Interface {
+	return devops.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Network() network.Interface {

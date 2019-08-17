@@ -22,7 +22,8 @@ import (
 
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
+	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 )
