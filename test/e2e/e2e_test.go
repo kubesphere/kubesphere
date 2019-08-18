@@ -91,13 +91,17 @@ spec:
       restartPolicy: Never
   backoffLimit: 1`
 
+var testNs = "production"
 var _ = Describe("E2e for network policy", func() {
 	BeforeEach(func() {
-		Expect(test.EnsureNamespace(ctx.Client, "production")).ShouldNot(HaveOccurred())
+		Expect(test.EnsureNamespace(ctx.Client, testNs)).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		Expect(test.DeleteNamespace(ctx.Client, "production"))
+		Expect(test.DeleteNamespace(ctx.Client, testNs)).ShouldNot(HaveOccurred())
+		ns := &corev1.Namespace{}
+		ns.Name = testNs
+		Expect(test.WaitForDeletion(ctx.Client, ns, time.Second*5, time.Minute)).ShouldNot(HaveOccurred())
 	})
 
 	It("Should work well in simple namespaceNetworkPolicy", func() {
