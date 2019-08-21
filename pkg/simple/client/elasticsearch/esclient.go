@@ -561,7 +561,7 @@ func Query(param QueryParameters) *QueryResult {
 		return queryResult
 	}
 
-	body, err := client.Search(query, config.Index)
+	body, err := client.Search(query)
 	if err != nil {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)

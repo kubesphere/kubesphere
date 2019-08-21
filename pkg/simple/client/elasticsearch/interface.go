@@ -18,19 +18,20 @@ const (
 
 type Client interface {
 	// Perform Search API
-	Search(body []byte, indexPrefix string) ([]byte, error)
+	Search(body []byte) ([]byte, error)
 	GetTotalHitCount(v interface{}) int64
 }
 
 func NewForConfig(cfg *Config) Client {
 	address := fmt.Sprintf("http://%s:%s", cfg.Host, cfg.Port)
+	index := cfg.Index
 	switch cfg.VersionMajor {
 	case ElasticV5:
-		return v5.New(address)
+		return v5.New(address, index)
 	case ElasticV6:
-		return v6.New(address)
+		return v6.New(address, index)
 	case ElasticV7:
-		return v7.New(address)
+		return v7.New(address, index)
 	default:
 		return nil
 	}
@@ -40,7 +41,7 @@ func detectVersionMajor(cfg *Config) error {
 
 	// Info APIs are backward compatible with versions of v5.x, v6.x and v7.x
 	address := fmt.Sprintf("http://%s:%s", cfg.Host, cfg.Port)
-	es := v6.New(address)
+	es := v6.New(address, "")
 	res, err := es.Client.Info(
 		es.Client.Info.WithContext(context.Background()),
 	)
