@@ -11,22 +11,23 @@ import (
 
 type Elastic struct {
 	Client *elasticsearch.Client
+	index  string
 }
 
-func New(address string) Elastic {
+func New(address string, index string) Elastic {
 
 	client, _ := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{address},
 	})
 
-	return Elastic{Client: client}
+	return Elastic{Client: client, index: index}
 }
 
-func (e Elastic) Search(body []byte, indexPrefix string) ([]byte, error) {
+func (e Elastic) Search(body []byte) ([]byte, error) {
 
 	response, err := e.Client.Search(
 		e.Client.Search.WithContext(context.Background()),
-		e.Client.Search.WithIndex(fmt.Sprintf("%s*", indexPrefix)),
+		e.Client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
 		e.Client.Search.WithBody(bytes.NewBuffer(body)),
 	)
 	if err != nil {
