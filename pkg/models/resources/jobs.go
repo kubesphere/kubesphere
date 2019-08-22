@@ -76,7 +76,8 @@ func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 				return false
 			}
 		default:
-			if item.Labels[k] != v {
+			// label not exist or value not equal
+			if val, ok := item.Labels[k]; !ok || val != v {
 				return false
 			}
 		}
@@ -106,7 +107,7 @@ func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchv1.Job) bool {
 				return false
 			}
 		default:
-			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
+			if !searchFuzzy(item.Labels, k, v) {
 				return false
 			}
 		}

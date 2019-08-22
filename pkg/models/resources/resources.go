@@ -158,14 +158,14 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 }
 
 func searchFuzzy(m map[string]string, key, value string) bool {
-	for k, v := range m {
-		if key == "" {
-			if strings.Contains(k, value) || strings.Contains(v, value) {
-				return true
-			}
-		} else if k == key && strings.Contains(v, value) {
-			return true
-		}
+
+	val, exist := m[key]
+
+	if value == "" && (!exist || val == "") {
+		return true
+	} else if value != "" && strings.Contains(val, value) {
+		return true
 	}
+
 	return false
 }

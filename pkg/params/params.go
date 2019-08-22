@@ -56,15 +56,21 @@ func ParseConditions(conditionsStr string) (*Conditions, error) {
 		return conditions, nil
 	}
 
+	// ?conditions=key1=value1,key2~value2,key3=
 	for _, item := range strings.Split(conditionsStr, ",") {
-		if strings.Count(item, "=") > 1 || strings.Count(item, "~") > 1 {
-			return nil, fmt.Errorf("invalid conditions")
-		}
-		if groups := regexp.MustCompile(`(\S+)([=~])(\S+)`).FindStringSubmatch(item); len(groups) == 4 {
+		// exact query: key=value, if value is empty means label value must be ""
+		// fuzzy query: key~value, if value is empty means label value is "" or label key not exist
+		if groups := regexp.MustCompile(`(\S+)([=~])(\S+)?`).FindStringSubmatch(item); len(groups) >= 3 {
+			value := ""
+
+			if len(groups) > 3 {
+				value = groups[3]
+			}
+
 			if groups[2] == "=" {
-				conditions.Match[groups[1]] = groups[3]
+				conditions.Match[groups[1]] = value
 			} else {
-				conditions.Fuzzy[groups[1]] = groups[3]
+				conditions.Fuzzy[groups[1]] = value
 			}
 		} else {
 			return nil, fmt.Errorf("invalid conditions")
