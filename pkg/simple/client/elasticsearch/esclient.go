@@ -230,9 +230,16 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
 	}
 
-	if param.LogQuery != "" {
-		match := Match{map[string]interface{}{"log": QueryWord{param.LogQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.LogQuery != nil {
+		var shoulds []interface{}
+		for _, log := range param.LogQuery {
+			shoulds = append(shoulds, MatchPhrase{map[string]interface{}{"log": log}})
+		}
+		boolQuery := BoolShouldMatchPhrase{ShouldMatchPhrase{
+			Shoulds:            shoulds,
+			MinimumShouldMatch: 1,
+		}}
+		mainBoolQuery.Musts = append(mainBoolQuery.Musts, boolQuery)
 	}
 
 	rangeQuery := RangeQuery{RangeSpec{TimeRange{param.StartTime, param.EndTime}}}
@@ -532,7 +539,7 @@ type QueryParameters struct {
 	Workspace string
 
 	Operation string
-	LogQuery  string
+	LogQuery  []string
 	Interval  string
 	StartTime string
 	EndTime   string

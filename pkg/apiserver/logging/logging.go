@@ -253,7 +253,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 
 	param.Interval = request.QueryParameter("interval")
 
-	param.LogQuery = request.QueryParameter("log_query")
+	param.LogQuery = log.MatchLog(request.QueryParameter("log_query"))
 	param.StartTime = request.QueryParameter("start_time")
 	param.EndTime = request.QueryParameter("end_time")
 	param.Sort = request.QueryParameter("sort")

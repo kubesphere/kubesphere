@@ -317,6 +317,14 @@ func MatchContainer(containerMatch string) (bool, []string) {
 	return true, strings.Split(strings.Replace(containerMatch, ",", " ", -1), " ")
 }
 
+func MatchLog(logMatch string) []string {
+	if logMatch == "" {
+		return nil
+	}
+
+	return strings.Split(logMatch, ",")
+}
+
 func GetWorkspaceOfNamesapce(namespace string) string {
 	var workspace string
 	workspace = ""
