@@ -30,11 +30,15 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
 
-const channelMaxCapacity = 100
+const (
+	channelMaxCapacity = 100
+	cronJobLayout      = "Monday, January 2, 2006 15:04:05 PM"
+)
 
 var jenkins *gojenkins.Jenkins
 
@@ -485,10 +489,9 @@ func GetCrumb(req *http.Request) ([]byte, error) {
 	return res, err
 }
 
-func CheckScriptCompile(req *http.Request) ([]byte, error) {
-	baseUrl := jenkins.Server + CheckScriptCompileUrl
+func CheckScriptCompile(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+CheckScriptCompileUrl, projectName, pipelineName)
 	log.Info("Jenkins-url: " + baseUrl)
-	req.SetBasicAuth(jenkins.Requester.BasicAuth.Username, jenkins.Requester.BasicAuth.Password)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -499,36 +502,94 @@ func CheckScriptCompile(req *http.Request) ([]byte, error) {
 	return resBody, err
 }
 
-func CheckCron(req *http.Request) (*CheckCronRes, error) {
-	newurl, err := url.Parse(jenkins.Server + CheckCronUrl + req.URL.RawQuery)
+func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
+	var res = new(CheckCronRes)
+	var cron = new(CronData)
+	var reader io.ReadCloser
+	var baseUrl string
+
+	reader = req.Body
+	cronData, err := ioutil.ReadAll(reader)
+	json.Unmarshal(cronData, cron)
+
+	if cron.PipelineName != "" {
+		baseUrl = fmt.Sprintf(jenkins.Server+CheckPipelienCronUrl, projectName, cron.PipelineName, cron.Cron)
+	} else {
+		baseUrl = fmt.Sprintf(jenkins.Server+CheckCronUrl, projectName, cron.Cron)
+	}
+
+	log.Info("Jenkins-url: " + baseUrl)
+	newurl, err := url.Parse(baseUrl)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	newurl.RawQuery = newurl.Query().Encode()
 
 	reqJenkins := &http.Request{
 		Method: http.MethodGet,
 		URL:    newurl,
-		Header: http.Header{},
+		Header: req.Header,
 	}
-	var res = new(CheckCronRes)
+
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	reqJenkins.SetBasicAuth(jenkins.Requester.BasicAuth.Username, jenkins.Requester.BasicAuth.Password)
-
 	resp, err := client.Do(reqJenkins)
+	if resp.StatusCode != http.StatusOK {
+		resBody, _ := getRespBody(resp)
+		return &CheckCronRes{
+			Result:  "error",
+			Message: string(resBody),
+		}, err
+	}
 	if err != nil {
 		log.Error(err)
-		return res, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		log.Error(err)
-		return res, err
+		return nil, err
 	}
 	doc.Find("div").Each(func(i int, selection *goquery.Selection) {
 		res.Message = selection.Text()
 		res.Result, _ = selection.Attr("class")
 	})
+	if res.Result == "ok" {
+		res.LastTime, res.NextTime, err = parseCronJobTime(res.Message)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+	}
+
 	return res, err
+}
+
+func parseCronJobTime(msg string) (string, string, error) {
+	times := strings.Split(msg, ";")
+
+	lastTmp := strings.SplitN(times[0], " ", 2)
+	lastTime := strings.SplitN(lastTmp[1], " UTC", 2)
+	lastUinx, err := time.Parse(cronJobLayout, lastTime[0])
+	if err != nil {
+		log.Error(err)
+		return "","",err
+	}
+	last := lastUinx.Format(time.RFC3339)
+
+	nextTmp := strings.SplitN(times[1], " ", 3)
+	nextTime := strings.SplitN(nextTmp[2], " UTC", 2)
+	nextUinx, err := time.Parse(cronJobLayout, nextTime[0])
+	if err != nil {
+		log.Error(err)
+		return "","",err
+	}
+	next := nextUinx.Format(time.RFC3339)
+
+	return last, next, nil
 }
 
 func GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {

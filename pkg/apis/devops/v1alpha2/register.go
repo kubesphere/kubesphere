@@ -633,30 +633,30 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("file", "the name of binary file")).
 		Returns(http.StatusOK, RespOK, nil))
 
-	// TODO are not used in this version. will be added in 2.1.0
-	//// match /job/init-job/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile
-	//webservice.Route(webservice.POST("/devops/check/scriptcompile").
-	//	To(devopsapi.CheckScriptCompile).
-	//	Metadata(restfulspec.KeyOpenAPITags, tags).
-	//	Consumes("application/x-www-form-urlencoded", "charset=utf-8").
-	//	Produces("application/json", "charset=utf-8").
-	//	Doc("Check pipeline script compile.").
-	//	Reads(devops.ReqScript{}).
-	//	Returns(http.StatusOK, RespOK, devops.CheckScript{}).
-	//	Writes(devops.CheckScript{}))
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/checkScriptCompile").
+		To(devopsapi.CheckScriptCompile).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.QueryParameter("pipeline", "the name of the CI/CD pipeline").
+			Required(false).
+			DataFormat("pipeline=%s")).
+		Consumes("application/x-www-form-urlencoded", "charset=utf-8").
+		Produces("application/json", "charset=utf-8").
+		Doc("Check pipeline script compile.").
+		Reads(devops.ReqScript{}).
+		Returns(http.StatusOK, RespOK, devops.CheckScript{}).
+		Writes(devops.CheckScript{}))
 
-	// match /job/init-job/descriptorByName/hudson.triggers.TimerTrigger/checkSpec
-	//webservice.Route(webservice.GET("/devops/check/cron").
-	//	To(devopsapi.CheckCron).
-	//	Metadata(restfulspec.KeyOpenAPITags, tags).
-	//	Produces("application/json", "charset=utf-8").
-	//	Doc("Check cron script compile.").
-	//	Param(webservice.QueryParameter("value", "string of cron script.").
-	//		Required(true).
-	//		DataFormat("value=%s")).
-	//	Returns(http.StatusOK, RespOK, []devops.QueuedBlueRun{}).
-	//	Returns(http.StatusOK, RespOK, devops.CheckCronRes{}).
-	//	Writes(devops.CheckCronRes{}))
+	webservice.Route(webservice.POST("/devops/{devops}/checkCron").
+		To(devopsapi.CheckCron).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Produces("application/json", "charset=utf-8").
+		Doc("Check cron script compile.").
+		Reads(devops.CronData{}).
+		Returns(http.StatusOK, RespOK, devops.CheckCronRes{}).
+		Writes(devops.CheckCronRes{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
