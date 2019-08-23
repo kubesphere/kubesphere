@@ -755,14 +755,21 @@ type Crumb struct {
 type CheckScript struct {
 	Column  int    `json:"column,omitempty" description:"column e.g. 0"`
 	Line    int    `json:"line,omitempty" description:"line e.g. 0"`
-	Message string `json:"message,omitempty" description:"message e.g. success"`
-	Status  string `json:"status,omitempty" description:"status e.g. success"`
+	Message string `json:"message,omitempty" description:"message e.g. unexpected char: '#'"`
+	Status  string `json:"status,omitempty" description:"status e.g. fail"`
 }
 
 // CheckCron
+type CronData struct {
+	PipelineName string `json:"pipelineName,omitempty" description:"Pipeline name, if pipeline haven't created, not required'"`
+	Cron         string `json:"cron" description:"Cron script data."`
+}
+
 type CheckCronRes struct {
-	Result  string `json:"result,omitempty" description:"result"`
-	Message string `json:"message,omitempty" description:"message"`
+	Result   string `json:"result,omitempty" description:"result e.g. ok, error"`
+	Message  string `json:"message,omitempty" description:"message"`
+	LastTime string `json:"lastTime,omitempty" description:"last run time."`
+	NextTime string `json:"nextTime,omitempty" description:"next run time."`
 }
 
 // GetPipelineRun
@@ -1035,7 +1042,7 @@ type NodeSteps struct {
 
 // CheckScriptCompile
 type ReqScript struct {
-	Value string `json:"value,omitempty" description:"check value"`
+	Value string `json:"value,omitempty" description:"Pipeline script data"`
 }
 
 // ToJenkinsfile requests
