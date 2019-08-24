@@ -20,7 +20,7 @@ func TestDigestFromDockerHub(t *testing.T) {
 		t.Fatalf("Could not get token: %s", err)
 	}
 
-	d, err, _ := r.ImageManifest(testImage, token)
+	d, err := r.ImageManifest(testImage, token)
 	if err != nil {
 		t.Fatalf("Could not get digest: %s", err)
 	}

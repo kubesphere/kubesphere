@@ -25,8 +25,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/golang/glog"
-	log "github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
@@ -103,7 +103,7 @@ func getDockerEntryFromDockerSecret(instance *corev1.Secret) (dockerConfigEntry 
 
 	if instance.Type != corev1.SecretTypeDockerConfigJson {
 		return nil, fmt.Errorf("secret %s in ns %s type should be %s",
-			instance.Namespace, instance.Name, corev1.SecretTypeDockerConfigJson)
+			instance.Name, instance.Namespace, corev1.SecretTypeDockerConfigJson)
 	}
 	dockerConfigBytes, ok := instance.Data[corev1.DockerConfigJsonKey]
 	if !ok {

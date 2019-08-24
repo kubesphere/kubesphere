@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	log "github.com/golang/glog"
 )
 
 func (t authToken) String() (string, error) {
@@ -52,7 +50,6 @@ func isTokenDemand(resp *http.Response) (*authService, error) {
 // Token returns the required token for the specific resource url. If the registry requires basic authentication, this
 // function returns ErrBasicAuth.
 func (r *Registry) Token(url string) (str string, err error) {
-	log.Info("Get token from ", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
@@ -72,17 +69,16 @@ func (r *Registry) Token(url string) (str string, err error) {
 		return "", ErrBasicAuth
 	}
 
-	a, err := isTokenDemand(resp)
+	authService, err := isTokenDemand(resp)
 	if err != nil {
 		return "", err
 	}
 
-	if a == nil {
-		log.Info("registry.token authService=nil")
+	if authService == nil {
 		return "", nil
 	}
 
-	authReq, err := a.Request(r.Username, r.Password)
+	authReq, err := authService.Request(r.Username, r.Password)
 	if err != nil {
 		return "", err
 	}

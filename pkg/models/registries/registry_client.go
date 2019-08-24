@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
-	log "github.com/golang/glog"
 	"io"
 	"io/ioutil"
+	log "k8s.io/klog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -18,6 +18,8 @@ import (
 const (
 	// DefaultDockerRegistry is the default docker registry address.
 	DefaultDockerRegistry = "https://registry-1.docker.io"
+
+	DefaultDockerHub = "docker.io"
 
 	DefaultTimeout = 30 * time.Second
 )
@@ -31,8 +33,6 @@ var (
 	ErrBasicAuth = errors.New("basic auth required")
 
 	gcrMatcher = regexp.MustCompile(`https://([a-z]+\.|)gcr\.io/`)
-
-	reProtocol = regexp.MustCompile("^https?://")
 )
 
 // Registry defines the client for retrieving information from the registry API.
@@ -42,11 +42,11 @@ type Registry struct {
 	Username string
 	Password string
 	Client   *http.Client
-	Opt      Opt
+	Opt      RegistryOpt
 }
 
 // Opt holds the options for a new registry.
-type Opt struct {
+type RegistryOpt struct {
 	Domain  string
 	Timeout time.Duration
 	Headers map[string]string
@@ -68,14 +68,12 @@ func CreateRegistryClient(username, password, domain string) (*Registry, error) 
 	authDomain := domain
 	auth, err := GetAuthConfig(username, password, authDomain)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
 	// Create the registry client.
-	log.Infof("domain: %s", domain)
-	log.Infof("server address: %s", auth.ServerAddress)
-
-	return New(auth, Opt{
+	return New(auth, RegistryOpt{
 		Domain: domain,
 	})
 }
@@ -83,15 +81,13 @@ func CreateRegistryClient(username, password, domain string) (*Registry, error) 
 // GetAuthConfig returns the docker registry AuthConfig.
 func GetAuthConfig(username, password, registry string) (types.AuthConfig, error) {
 	registry = setDefaultRegistry(registry)
-	if username != "" && password != "" && registry != "" {
+	if username != "" && password != "" {
 		return types.AuthConfig{
 			Username:      username,
 			Password:      password,
 			ServerAddress: registry,
 		}, nil
 	}
-
-	log.Info("Using registry ", registry, " with no authentication")
 
 	return types.AuthConfig{
 		ServerAddress: registry,
@@ -100,39 +96,31 @@ func GetAuthConfig(username, password, registry string) (types.AuthConfig, error
 }
 
 func setDefaultRegistry(serverAddress string) string {
-	if serverAddress == "docker.io" || serverAddress == "" {
+	if serverAddress == DefaultDockerHub || serverAddress == "" {
 		serverAddress = DefaultDockerRegistry
 	}
 
 	return serverAddress
 }
 
-func newFromTransport(auth types.AuthConfig, opt Opt) (*Registry, error) {
-	if len(opt.Domain) < 1 || opt.Domain == "docker.io" {
+func newFromTransport(auth types.AuthConfig, opt RegistryOpt) (*Registry, error) {
+	if len(opt.Domain) < 1 || opt.Domain == DefaultDockerHub {
 		opt.Domain = auth.ServerAddress
 	}
-	url := strings.TrimSuffix(opt.Domain, "/")
-	authURL := strings.TrimSuffix(auth.ServerAddress, "/")
+	registryUrl := strings.TrimSuffix(opt.Domain, "/")
 
-	if !reProtocol.MatchString(url) {
+	if !strings.HasPrefix(registryUrl, "http://") && !strings.HasPrefix(registryUrl, "https://") {
 		if opt.UseSSL {
-			url = "https://" + url
+			registryUrl = "https://" + registryUrl
 		} else {
-			url = "http://" + url
+			registryUrl = "http://" + registryUrl
 		}
 	}
 
-	if !reProtocol.MatchString(authURL) {
-		if opt.UseSSL {
-			authURL = "https://" + authURL
-		} else {
-			authURL = "http://" + authURL
-		}
-	}
-
+	registryURL, _ := url.Parse(registryUrl)
 	registry := &Registry{
-		URL:    url,
-		Domain: reProtocol.ReplaceAllString(url, ""),
+		URL:    registryURL.String(),
+		Domain: registryURL.Host,
 		Client: &http.Client{
 			Timeout: DefaultTimeout,
 		},
@@ -152,7 +140,7 @@ func (r *Registry) url(pathTemplate string, args ...interface{}) string {
 }
 
 // New creates a new Registry struct with the given URL and credentials.
-func New(auth types.AuthConfig, opt Opt) (*Registry, error) {
+func New(auth types.AuthConfig, opt RegistryOpt) (*Registry, error) {
 
 	return newFromTransport(auth, opt)
 }

@@ -25,8 +25,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/registries"
 
-	log "github.com/golang/glog"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	log "k8s.io/klog"
 )
 
 func RegistryVerify(request *restful.Request, response *restful.Response) {
@@ -51,21 +51,19 @@ func RegistryVerify(request *restful.Request, response *restful.Response) {
 }
 
 func RegistryImageBlob(request *restful.Request, response *restful.Response) {
-	var statusUnauthorized = "Not found or unauthorized"
-
 	imageName := request.QueryParameter("image")
 	namespace := request.QueryParameter("namespace")
 	secretName := request.QueryParameter("secret")
 
 	// get entry
 	entry, err := registries.GetEntryBySecret(namespace, secretName)
-	if err != nil && k8serror.IsNotFound(err) {
-		log.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), response)
-		return
-	}
 	if err != nil {
 		log.Errorf("%+v", err)
+		if k8serror.IsNotFound(err) {
+			log.Errorf("%+v", err)
+			errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), response)
+			return
+		}
 		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
 		return
 	}
@@ -97,15 +95,15 @@ func RegistryImageBlob(request *restful.Request, response *restful.Response) {
 	}
 
 	// Get digest.
-	imageManifest, err, statusCode := r.ImageManifest(image, token)
-	if statusCode == http.StatusUnauthorized {
-		log.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(statusCode, statusUnauthorized), response)
-		return
-	}
+	imageManifest, err := r.ImageManifest(image, token)
 	if err != nil {
+		if serviceError, ok := err.(restful.ServiceError); ok {
+			response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: serviceError.Message})
+			return
+		}
 		log.Errorf("%+v", err)
 		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})
+		return
 	}
 	image.Digest = imageManifest.ManifestConfig.Digest
 

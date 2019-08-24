@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/distribution/manifest/schema2"
-	log "github.com/golang/glog"
+	log "k8s.io/klog"
 	"net/http"
 )
 
 // Digest returns the digest for an image.
 func (r *Registry) ImageBlob(image Image, token string) (*ImageBlob, error) {
-
+	if image.Path == "" {
+		return nil, fmt.Errorf("image is required")
+	}
 	url := r.GetBlobUrl(image)
-	log.Info("registry.blobs.get url=" + url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -32,14 +33,14 @@ func (r *Registry) ImageBlob(image Image, token string) (*ImageBlob, error) {
 	respBody, _ := GetRespBody(resp)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
-		log.Info("got response: " + string(resp.StatusCode) + string(respBody))
-		return nil, fmt.Errorf("got response: %s", respBody)
+		log.Error("got response: " + string(resp.StatusCode) + string(respBody))
+		return nil, fmt.Errorf("got image blob faild")
 	}
 
 	imageBlob := &ImageBlob{}
-	json.Unmarshal(respBody, imageBlob)
+	err = json.Unmarshal(respBody, imageBlob)
 
-	return imageBlob, nil
+	return imageBlob, err
 }
 
 func (r *Registry) GetBlobUrl(image Image) string {
