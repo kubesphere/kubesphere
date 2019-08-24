@@ -234,6 +234,23 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, registriesmodel.ImageDetails{}),
 	)
 
+	webservice.Route(webservice.GET("registry/images").
+		To(registries.ImageSearchFromDockerHub).
+		Param(webservice.QueryParameter("q", "query image by image name, condition for filtering.").
+			Required(false).
+			DataFormat("q=%s")).
+		Param(webservice.QueryParameter("page_size", "size of page, e.g. page_size=25").
+			Required(false).
+			DefaultValue("page_size=25").
+			DataFormat("page_size=%s")).
+		Param(webservice.QueryParameter("page", "the number of page, e.g. page=3").
+			Required(false).
+			DefaultValue("page=1").
+			DataFormat("page=%s")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.RegistryTag}).
+		Doc("Search image from Docker Hub.").
+		Returns(http.StatusOK, ok, registriesmodel.SearchImageList{}))
+
 	webservice.Route(webservice.POST("git/verify").
 		To(git.GitReadVerify).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).

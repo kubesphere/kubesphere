@@ -5,10 +5,58 @@ import (
 	"time"
 )
 
+const (
+	DefaultSearchImageURL = "https://hub.docker.com/api/content/v1/products/search?"
+	DefaultSearchVersion  = "v3"
+)
+
 type AuthInfo struct {
 	Username   string `json:"username" description:"username"`
 	Password   string `json:"password" description:"password"`
 	ServerHost string `json:"serverhost" description:"registry server host"`
+}
+
+type SearchImageList struct {
+	PageSize  int         `json:"page_size,omitempty" description:""`
+	Page      int         `json:"page,omitempty" description:""`
+	Count     int         `json:"count,omitempty" description:""`
+	Summaries []Summaries `json:"summaries,omitempty" description:""`
+}
+type Publisher struct {
+	ID   string `json:"id,omitempty" description:"the id of publisher"`
+	Name string `json:"name,omitempty" description:"the name of publisher"`
+}
+type OperatingSystems struct {
+	Name  string `json:"name,omitempty" description:"the name of CPU operating systems"`
+	Label string `json:"label,omitempty" description:"the name of CPU operating systems"`
+}
+type Architectures struct {
+	Name  string `json:"name,omitempty" description:"the name of CPU architecture"`
+	Label string `json:"label,omitempty" description:"the label of CPU architecture"`
+}
+type LogoURL struct {
+	Large string `json:"large,omitempty" description:"the url link of large picture."`
+	Small string `json:"small,omitempty" description:"the url link of small picture."`
+}
+type Categories struct {
+	Large string `json:"large,omitempty" description:"large categories."`
+	Small string `json:"small,omitempty" description:"small categories"`
+}
+type Summaries struct {
+	Name                string             `json:"name,omitempty" description:"image name. e.g. kubesphere/installer"`
+	Publisher           Publisher          `json:"publisher,omitempty" description:"publisher list."`
+	CreatedAt           time.Time          `json:"created_at,omitempty" description:"the time of created."`
+	UpdatedAt           time.Time          `json:"updated_at,omitempty" description:"the time of updated."`
+	ShortDescription    string             `json:"short_description,omitempty" description:"short description."`
+	Source              string             `json:"source,omitempty" description:"image source from. e.g. community, store"`
+	Categories          []Categories       `json:"categories,omitempty" description:"categories"`
+	OperatingSystems    []OperatingSystems `json:"operating_systems,omitempty" description:"Operating systems."`
+	Architectures       []Architectures    `json:"architectures,omitempty" description:"The architecture field specifies the CPU architecture."`
+	LogoURL             LogoURL            `json:"logo_url,omitempty" description:"Logo URL."`
+	CertificationStatus string             `json:"certification_status,omitempty" description:"certification or not. e.g. 'not_certified'"`
+	StarCount           int                `json:"star_count,omitempty" description:"the count of star."`
+	PullCount           string             `json:"pull_count,omitempty" description:"the count of pull. e.g. 10M+"`
+	FilterType          string             `json:"filter_type,omitempty" description:"the type of image. e.g. community, official"`
 }
 
 // ImageBlobInfo describes the info of an image.

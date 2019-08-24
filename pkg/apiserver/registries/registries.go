@@ -125,3 +125,12 @@ func RegistryImageBlob(request *restful.Request, response *restful.Response) {
 
 	response.WriteAsJson(imageDetails)
 }
+
+func ImageSearchFromDockerHub(request *restful.Request, response *restful.Response)  {
+	res, err := registries.ImageSearchFromDockerHub(request.Request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+	response.WriteAsJson(res)
+}

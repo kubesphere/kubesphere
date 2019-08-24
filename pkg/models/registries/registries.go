@@ -28,6 +28,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"net/http"
+	"net/url"
+	"time"
 )
 
 const (
@@ -80,6 +83,40 @@ func RegistryVerify(authInfo AuthInfo) error {
 	} else {
 		return fmt.Errorf(resp.Status)
 	}
+}
+
+func ImageSearchFromDockerHub(req *http.Request) (*SearchImageList,error) {
+	baseUrl := DefaultSearchImageURL + req.URL.RawQuery
+	searchUrl, err := url.Parse(baseUrl)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	var searchImageList = new(SearchImageList)
+
+	dockerHubClient := &http.Client{Timeout: 30 * time.Second}
+	newRequest := &http.Request{
+		Method: http.MethodGet,
+		URL:    searchUrl,
+		Header: http.Header{"Search-Version": []string{DefaultSearchVersion},},
+	}
+
+	resp, err := dockerHubClient.Do(newRequest)
+	if err != nil {
+		log.Error(err)
+		return searchImageList, err
+	}
+
+	defer resp.Body.Close()
+	respBody, err  := GetRespBody(resp)
+	if err != nil {
+		log.Error(err)
+		return searchImageList, err
+	}
+	err = json.Unmarshal(respBody, searchImageList)
+
+	return searchImageList, err
 }
 
 func GetEntryBySecret(namespace, secretName string) (dockerConfigEntry *DockerConfigEntry, err error) {
