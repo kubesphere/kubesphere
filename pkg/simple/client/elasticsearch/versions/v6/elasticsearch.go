@@ -41,11 +41,8 @@ func (e Elastic) Search(body []byte) ([]byte, error) {
 			return nil, err
 		} else {
 			// Print the response status and error information.
-			return nil, fmt.Errorf("[%s] %s: %s",
-				response.Status(),
-				e["error"].(map[string]interface{})["type"],
-				e["error"].(map[string]interface{})["reason"],
-			)
+			e, _ := e["error"].(map[string]interface{})
+			return nil, fmt.Errorf("[%s] %s: %s", response.Status(), e["type"], e["reason"])
 		}
 	}
 
@@ -53,5 +50,6 @@ func (e Elastic) Search(body []byte) ([]byte, error) {
 }
 
 func (e Elastic) GetTotalHitCount(v interface{}) int64 {
-	return int64(v.(float64))
+	f, _ := v.(float64)
+	return int64(f)
 }

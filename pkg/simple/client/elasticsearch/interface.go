@@ -56,15 +56,17 @@ func detectVersionMajor(cfg *Config) error {
 	}
 	if res.IsError() {
 		// Print the response status and error information.
-		return fmt.Errorf("[%s] %s: %s",
-			res.Status(),
-			b["error"].(map[string]interface{})["type"],
-			b["error"].(map[string]interface{})["reason"],
-		)
+		e, _ := b["error"].(map[string]interface{})
+		return fmt.Errorf("[%s] %s: %s", res.Status(), e["type"], e["reason"])
 	}
 
 	// get the major version
-	version := fmt.Sprintf("%v", b["version"].(map[string]interface{})["number"])
-	cfg.VersionMajor = strings.Split(version, ".")[0]
+	version, _ := b["version"].(map[string]interface{})
+	number, _ := version["number"].(string)
+	if number == "" {
+		return fmt.Errorf("failed to detect elastic version number")
+	}
+
+	cfg.VersionMajor = strings.Split(number, ".")[0]
 	return nil
 }
