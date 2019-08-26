@@ -16,12 +16,13 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	tenant "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/controller/network/controllerapi"
 	controllertesting "kubesphere.io/kubesphere/pkg/controller/network/testing"
 )
 
 var (
 	fakeControllerBuilder *controllertesting.FakeControllerBuilder
-	c                     Controller
+	c                     controllerapi.Controller
 	npLister              netv1lister.NetworkPolicyLister
 	stopCh                chan struct{}
 	deletePolicy          metav1.DeletionPropagation

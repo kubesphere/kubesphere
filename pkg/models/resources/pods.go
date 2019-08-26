@@ -180,7 +180,8 @@ func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 				return false
 			}
 		default:
-			if item.Labels[k] != v {
+			// label not exist or value not equal
+			if val, ok := item.Labels[k]; !ok || val != v {
 				return false
 			}
 		}
@@ -210,7 +211,7 @@ func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 				return false
 			}
 		default:
-			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
+			if !searchFuzzy(item.Labels, k, v) {
 				return false
 			}
 		}

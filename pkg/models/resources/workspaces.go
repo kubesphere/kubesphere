@@ -50,7 +50,8 @@ func (*workspaceSearcher) match(match map[string]string, item *tenantv1alpha1.Wo
 				return false
 			}
 		default:
-			if item.Labels[k] != v {
+			// label not exist or value not equal
+			if val, ok := item.Labels[k]; !ok || val != v {
 				return false
 			}
 		}
@@ -80,7 +81,7 @@ func (*workspaceSearcher) fuzzy(fuzzy map[string]string, item *tenantv1alpha1.Wo
 				return false
 			}
 		default:
-			if !searchFuzzy(item.Labels, k, v) && !searchFuzzy(item.Annotations, k, v) {
+			if !searchFuzzy(item.Labels, k, v) {
 				return false
 			}
 		}

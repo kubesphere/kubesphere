@@ -76,6 +76,7 @@ deploy: manifests
 # generate will generate crds' deepcopy & go openapi structs
 # Futher more about go:genreate . https://blog.golang.org/generate
 generate:
+	GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/deepcopy-gen
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image
@@ -93,7 +94,7 @@ clean:
 
 # find or download controller-gen
 # download controller-gen if necessary
-clientset: generate
+clientset: 
 	./hack/generate_client.sh
 
 
@@ -105,7 +106,7 @@ internal-crds:
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/network/..." output:crd:artifacts:config=config/crd/bases
 
 internal-generate-apis: internal-controller-gen
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/...
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/network/...
 
 internal-controller-gen:
 ifeq (, $(shell which controller-gen))

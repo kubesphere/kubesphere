@@ -39,6 +39,10 @@ type S2iRunSpec struct {
 	SecondsAfterFinished int32 `json:"secondsAfterFinished,omitempty"`
 	//NewTag override the default tag in its s2ibuilder, image name cannot be changed.
 	NewTag string `json:"newTag,omitempty"`
+	//NewRevisionId override the default NewRevisionId in its s2ibuilder.
+	NewRevisionId string `json:"newRevisionId,omitempty"`
+	//NewSourceURL is used to download new binary artifacts
+	NewSourceURL string `json:"newSourceURL,omitempty"`
 }
 
 // S2iRunStatus defines the observed state of S2iRun

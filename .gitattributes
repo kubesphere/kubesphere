@@ -1,2 +1,6 @@
 pkg/cmd/api/spec/api.swagger.json linguist-generated=true
 pkg/cmd/api/spec/static.go linguist-generated=true
+pkg/client/* linguist-generated=true
+config/crds/* linguist-generated=true
+config/rbac/* linguist-generated=true
+zz_generated.deepcopy.go linguist-generated=true

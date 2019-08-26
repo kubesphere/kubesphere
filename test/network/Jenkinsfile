@@ -1,0 +1,43 @@
+
+pipeline {
+  agent {
+    docker {
+      image 'magicsong/nete2e:v0.0.1'
+      args '-v gomod:/go -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
+    }
+  }
+  environment {
+        KUBECONFIG = "/root/.kube/config"
+    }
+  stages {
+    stage('set kubeconfig and secret'){
+     steps{
+        sh 'mkdir -p ~/.kube'
+        sh 'mkdir ./kustomize/network/etcd'
+        withCredentials([kubeconfigContent(credentialsId: 'net-kubeconfig', variable: 'KUBECONFIG_CONTENT'),
+        file(credentialsId: 'etcd-ca', variable: 'etcd_ca'),
+        file(credentialsId: 'etcd-crt', variable: 'etcd_crt'),
+        file(credentialsId: 'etcd-key', variable: 'etcd_key')]) {
+           sh 'echo "$KUBECONFIG_CONTENT" > ~/.kube/config'
+           sh "cp \${etcd_ca} ./kustomize/network/etcd/ca"
+           sh "cp \${etcd_key} ./kustomize/network/etcd/key"
+           sh "cp \${etcd_crt} ./kustomize/network/etcd/crt"
+        }
+      }
+    }
+    stage('testing') {
+      steps {
+        sh """
+            make network-e2e
+          """
+      }
+    }
+    stage('cleanup'){
+        steps{
+            sh """
+            rm -rf ./kustomize/network/etcd
+            """
+        }
+    }
+  }
+}
