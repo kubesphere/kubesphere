@@ -29,6 +29,7 @@ import (
 	workspaceinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	networklister "kubesphere.io/kubesphere/pkg/client/listers/network/v1alpha1"
 	workspacelister "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/controller/network/controllerapi"
 )
 
 const controllerAgentName = "wsnp-controller"
@@ -38,10 +39,6 @@ var (
 	errCount = 0
 )
 
-// Controller expose Run method
-type Controller interface {
-	Run(threadiness int, stopCh <-chan struct{}) error
-}
 type controller struct {
 	kubeClientset       kubernetes.Interface
 	kubesphereClientset kubesphereclient.Interface
@@ -77,7 +74,7 @@ func NewController(kubeclientset kubernetes.Interface,
 	wsnpInformer networkinformer.WorkspaceNetworkPolicyInformer,
 	networkPolicyInformer k8snetworkinformer.NetworkPolicyInformer,
 	namespaceInformer corev1informer.NamespaceInformer,
-	workspaceInformer workspaceinformer.WorkspaceInformer) Controller {
+	workspaceInformer workspaceinformer.WorkspaceInformer) controllerapi.Controller {
 	utilruntime.Must(kubespherescheme.AddToScheme(scheme.Scheme))
 	log.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()

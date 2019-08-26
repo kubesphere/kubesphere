@@ -1,0 +1,54 @@
+apiVersion: network.kubesphere.io/v1alpha1
+kind: NamespaceNetworkPolicy
+metadata:
+  name: allow-icmp-only
+  namespace: production
+spec:
+  selector: color == 'red'
+  ingress:
+  - action: Allow
+    protocol: ICMP
+    source:
+      selector: "all()"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  nginx
+  namespace: production
+  labels:
+    name:  nginx
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+       app: nginx
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name:  nginx
+        app: nginx
+        color : red
+    spec:
+      containers:
+      - image:  nginx:alpine
+        name:  nginx
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "55M"
+        env:
+        - name:  ENVVARNAME
+          value:  ENVVARVALUE       
+        ports:
+        - containerPort:  80
+          name:  http
+      restartPolicy: Always

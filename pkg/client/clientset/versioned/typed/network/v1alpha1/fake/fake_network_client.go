@@ -28,6 +28,10 @@ type FakeNetworkV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeNetworkV1alpha1) NamespaceNetworkPolicies(namespace string) v1alpha1.NamespaceNetworkPolicyInterface {
+	return &FakeNamespaceNetworkPolicies{c, namespace}
+}
+
 func (c *FakeNetworkV1alpha1) WorkspaceNetworkPolicies() v1alpha1.WorkspaceNetworkPolicyInterface {
 	return &FakeWorkspaceNetworkPolicies{c}
 }

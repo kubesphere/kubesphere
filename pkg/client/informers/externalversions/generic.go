@@ -60,6 +60,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBinaries().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
+	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().NamespaceNetworkPolicies().Informer()}, nil
 	case networkv1alpha1.SchemeGroupVersion.WithResource("workspacenetworkpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().WorkspaceNetworkPolicies().Informer()}, nil
 

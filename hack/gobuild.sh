@@ -40,6 +40,6 @@ BUILD_GOARCH=${GOARCH:-amd64}
 GOBINARY=${GOBINARY:-go}
 
 # forgoing -i (incremental build) because it will be deprecated by tool chain.
-time GOOS=${BUILD_GOOS} GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
+time GOOS=${BUILD_GOOS} CGO_ENABLED=0 GOARCH=${BUILD_GOARCH} ${GOBINARY} build \
         -o ${OUT} \
         ${BUILDPATH}
