@@ -110,7 +110,7 @@ func Test_NoScmPipelineConfig_Param(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Parameters: []*Parameter{
+			Parameters: &Parameters{
 				&Parameter{
 					Name:         "d",
 					DefaultValue: "a\nb",
@@ -123,7 +123,7 @@ func Test_NoScmPipelineConfig_Param(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Parameters: []*Parameter{
+			Parameters: &Parameters{
 				&Parameter{
 					Name:         "a",
 					DefaultValue: "abc",
