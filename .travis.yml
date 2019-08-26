@@ -17,7 +17,6 @@ cache:
     - $HOME/gopath/pkg/mod
 
 before_script:
-  - docker --version
   - bash hack/install_kubebuilder.sh
 
 script:

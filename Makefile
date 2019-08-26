@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam controller-manager clientset
+all: test ks-apiserver ks-apigateway ks-iam controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: test
@@ -67,7 +67,7 @@ vet: generate
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	controller-gen all
 
 deploy: manifests
 	kubectl apply -f config/crds
@@ -76,7 +76,6 @@ deploy: manifests
 # generate will generate crds' deepcopy & go openapi structs
 # Futher more about go:genreate . https://blog.golang.org/generate
 generate:
-	GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/deepcopy-gen
 	go generate ./pkg/... ./cmd/...
 
 # Build the docker image

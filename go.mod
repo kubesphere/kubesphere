@@ -139,5 +139,4 @@ replace (
 	github.com/Sirupsen/logrus v1.4.1 => github.com/sirupsen/logrus v1.4.1
 	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3
 	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7
-	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 )

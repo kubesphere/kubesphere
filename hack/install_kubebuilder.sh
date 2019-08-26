@@ -77,4 +77,5 @@ echo "export PATH=\$PATH:/usr/local/kubebuilder/bin"
 popd
 rm -rf $TMP_DIR
 
+go get k8s.io/code-generator/cmd/deepcopy-gen@v0.0.0-20190405172246-9a4d48088f6a
 export PATH=$PATH:/usr/local/kubebuilder/bin
