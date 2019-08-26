@@ -135,6 +135,30 @@ func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *ht
 
 }
 
+func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+GetSCMServersUrl, scmId)
+	log.Info("Jenkins-url: " + baseUrl)
+	req.Method = http.MethodGet
+	resBody, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return resBody, err
+}
+
+func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
+	baseUrl := fmt.Sprintf(jenkins.Server+CreateSCMServersUrl, scmId)
+	log.Info("Jenkins-url: " + baseUrl)
+	req.Method = http.MethodPost
+	resBody, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return resBody, err
+}
+
 func Validate(scmId string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+ValidateUrl, scmId)
 	log.Info("Jenkins-url: " + baseUrl)
@@ -731,7 +755,7 @@ func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, erro
 		log.Errorf("%+v", string(resBody))
 		jkerr := new(JkError)
 		jkerr.Code = resp.StatusCode
-		jkerr.Message = http.StatusText(resp.StatusCode)
+		jkerr.Message = string(resBody)
 		return nil, nil, jkerr
 	}
 
