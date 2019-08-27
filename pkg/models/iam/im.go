@@ -467,6 +467,8 @@ func GetUserInfo(username string) (*models.User, error) {
 		return nil, err
 	}
 
+	defer conn.Close()
+
 	userSearchRequest := ldap.NewSearchRequest(
 		ldapclient.UserSearchBase,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
@@ -1161,6 +1163,8 @@ func DescribeGroup(path string) (*models.Group, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer conn.Close()
 
 	groupSearchRequest := ldap.NewSearchRequest(searchBase,
 		ldap.ScopeSingleLevel, ldap.NeverDerefAliases, 0, 0, false,
