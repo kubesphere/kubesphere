@@ -355,7 +355,28 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &GithubDiscoverPRFromForks{
+				DiscoverPRFromForks: &DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+			},
+		},
+		&MultiBranchPipeline{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "bitbucket_server",
+			TimerTrigger: &TimerTrigger{
+				Interval: "12345566",
+			},
+			BitbucketServerSource: &BitbucketServerSource{
+				Owner:                "kubesphere",
+				Repo:                 "devops",
+				CredentialId:         "github",
+				ApiUri:               "https://api.github.com",
+				DiscoverBranches:     1,
+				DiscoverPRFromOrigin: 2,
+				DiscoverPRFromForks: &DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
@@ -439,7 +460,7 @@ func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &GithubDiscoverPRFromForks{
+				DiscoverPRFromForks: &DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
@@ -496,7 +517,7 @@ func Test_MultiBranchPipelineRegexFilter(t *testing.T) {
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &GithubDiscoverPRFromForks{
+				DiscoverPRFromForks: &DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},

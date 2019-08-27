@@ -72,16 +72,17 @@ type NoScmPipeline struct {
 }
 
 type MultiBranchPipeline struct {
-	Name            string             `json:"name" description:"name of pipeline"`
-	Description     string             `json:"descriptio,omitempty" description:"description of pipeline"`
-	Discarder       *DiscarderProperty `json:"discarder,omitempty" description:"Discarder of pipeline, managing when to drop a pipeline"`
-	TimerTrigger    *TimerTrigger      `json:"timer_trigger,omitempty" mapstructure:"timer_trigger" description:"Timer to trigger pipeline run"`
-	SourceType      string             `json:"source_type" description:"type of scm, such as github/git/svn"`
-	GitSource       *GitSource         `json:"git_source,omitempty" description:"git scm define"`
-	GitHubSource    *GithubSource      `json:"github_source,omitempty" description:"github scm define"`
-	SvnSource       *SvnSource         `json:"svn_source,omitempty" description:"multi branch svn scm define"`
-	SingleSvnSource *SingleSvnSource   `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
-	ScriptPath      string             `json:"script_path" mapstructure:"script_path" description:"script path in scm"`
+	Name                  string                 `json:"name" description:"name of pipeline"`
+	Description           string                 `json:"descriptio,omitempty" description:"description of pipeline"`
+	Discarder             *DiscarderProperty     `json:"discarder,omitempty" description:"Discarder of pipeline, managing when to drop a pipeline"`
+	TimerTrigger          *TimerTrigger          `json:"timer_trigger,omitempty" mapstructure:"timer_trigger" description:"Timer to trigger pipeline run"`
+	SourceType            string                 `json:"source_type" description:"type of scm, such as github/git/svn"`
+	GitSource             *GitSource             `json:"git_source,omitempty" description:"git scm define"`
+	GitHubSource          *GithubSource          `json:"github_source,omitempty" description:"github scm define"`
+	SvnSource             *SvnSource             `json:"svn_source,omitempty" description:"multi branch svn scm define"`
+	SingleSvnSource       *SingleSvnSource       `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
+	BitbucketServerSource *BitbucketServerSource `json:"bitbucket_server_source,omitempty" description:"bitbucket server scm defile"`
+	ScriptPath            string                 `json:"script_path" mapstructure:"script_path" description:"script path in scm"`
 }
 
 type GitSource struct {
@@ -94,16 +95,29 @@ type GitSource struct {
 }
 
 type GithubSource struct {
-	ScmId                string                     `json:"scm_id,omitempty" description:"uid of scm"`
-	Owner                string                     `json:"owner,omitempty" mapstructure:"owner" description:"owner of github repo"`
-	Repo                 string                     `json:"repo,omitempty" mapstructure:"repo" description:"repo name of github repo"`
-	CredentialId         string                     `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access github source"`
-	ApiUri               string                     `json:"api_uri,omitempty" mapstructure:"api_uri" description:"The api url can specify the location of the github apiserver.For private cloud configuration"`
-	DiscoverBranches     int                        `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
-	DiscoverPRFromOrigin int                        `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
-	DiscoverPRFromForks  *GithubDiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
-	CloneOption          *GitCloneOption            `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
-	RegexFilter          string                     `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+	ScmId                string               `json:"scm_id,omitempty" description:"uid of scm"`
+	Owner                string               `json:"owner,omitempty" mapstructure:"owner" description:"owner of github repo"`
+	Repo                 string               `json:"repo,omitempty" mapstructure:"repo" description:"repo name of github repo"`
+	CredentialId         string               `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access github source"`
+	ApiUri               string               `json:"api_uri,omitempty" mapstructure:"api_uri" description:"The api url can specify the location of the github apiserver.For private cloud configuration"`
+	DiscoverBranches     int                  `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
+	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
+	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
+	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
+	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+}
+
+type BitbucketServerSource struct {
+	ScmId                string               `json:"scm_id,omitempty" description:"uid of scm"`
+	Owner                string               `json:"owner,omitempty" mapstructure:"owner" description:"owner of github repo"`
+	Repo                 string               `json:"repo,omitempty" mapstructure:"repo" description:"repo name of github repo"`
+	CredentialId         string               `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access github source"`
+	ApiUri               string               `json:"api_uri,omitempty" mapstructure:"api_uri" description:"The api url can specify the location of the github apiserver.For private cloud configuration"`
+	DiscoverBranches     int                  `json:"discover_branches,omitempty" mapstructure:"discover_branches" description:"Discover branch configuration"`
+	DiscoverPRFromOrigin int                  `json:"discover_pr_from_origin,omitempty" mapstructure:"discover_pr_from_origin" description:"Discover origin PR configuration"`
+	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
+	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
+	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
 }
 
 type GitCloneOption struct {
@@ -125,7 +139,7 @@ type SingleSvnSource struct {
 	CredentialId string `json:"credential_id,omitempty" mapstructure:"credential_id" description:"credential id to access svn source"`
 }
 
-type GithubDiscoverPRFromForks struct {
+type DiscoverPRFromForks struct {
 	Strategy int `json:"strategy,omitempty" mapstructure:"strategy" description:"github discover startegy"`
 	Trust    int `json:"trust,omitempty" mapstructure:"trust" description:"trust user type"`
 }
@@ -491,22 +505,22 @@ func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
 		trust := strings.Split(trustClass, "$")
 		switch trust[1] {
 		case "TrustContributors":
-			s.DiscoverPRFromForks = &GithubDiscoverPRFromForks{
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    1,
 			}
 		case "TrustEveryone":
-			s.DiscoverPRFromForks = &GithubDiscoverPRFromForks{
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    2,
 			}
 		case "TrustPermission":
-			s.DiscoverPRFromForks = &GithubDiscoverPRFromForks{
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    3,
 			}
 		case "TrustNobody":
-			s.DiscoverPRFromForks = &GithubDiscoverPRFromForks{
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    4,
 			}
@@ -571,6 +585,139 @@ func (s *GithubSource) appendToEtree(source *etree.Element) *GithubSource {
 		case 4:
 			trustClass += "TrustNobody"
 		default:
+		}
+		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
+	}
+	if s.CloneOption != nil {
+		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
+		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
+		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
+		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
+		cloneExtension.CreateElement("reference")
+		if s.CloneOption.Timeout >= 0 {
+			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
+		} else {
+			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(10))
+		}
+
+		if s.CloneOption.Depth >= 0 {
+			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(s.CloneOption.Depth))
+		} else {
+			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(1))
+		}
+	}
+	if s.RegexFilter != "" {
+		regexTraits := traits.CreateElement("jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
+		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
+		regexTraits.CreateElement("regex").SetText(s.RegexFilter)
+	}
+	return s
+}
+
+func (s *BitbucketServerSource) fromEtree(source *etree.Element) *BitbucketServerSource {
+	if credential := source.SelectElement("credentialsId"); credential != nil {
+		s.CredentialId = credential.Text()
+	}
+	if repoOwner := source.SelectElement("repoOwner"); repoOwner != nil {
+		s.Owner = repoOwner.Text()
+	}
+	if repository := source.SelectElement("repository"); repository != nil {
+		s.Repo = repository.Text()
+	}
+	if apiUri := source.SelectElement("serverUrl"); apiUri != nil {
+		s.ApiUri = apiUri.Text()
+	}
+	traits := source.SelectElement("traits")
+	if branchDiscoverTrait := traits.SelectElement(
+		"com.cloudbees.jenkins.plugins.bitbucket.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
+		strategyId, _ := strconv.Atoi(branchDiscoverTrait.SelectElement("strategyId").Text())
+		s.DiscoverBranches = strategyId
+	}
+	if originPRDiscoverTrait := traits.SelectElement(
+		"com.cloudbees.jenkins.plugins.bitbucket.OriginPullRequestDiscoveryTrait"); originPRDiscoverTrait != nil {
+		strategyId, _ := strconv.Atoi(originPRDiscoverTrait.SelectElement("strategyId").Text())
+		s.DiscoverPRFromOrigin = strategyId
+	}
+	if forkPRDiscoverTrait := traits.SelectElement(
+		"com.cloudbees.jenkins.plugins.bitbucket.ForkPullRequestDiscoveryTrait"); forkPRDiscoverTrait != nil {
+		strategyId, _ := strconv.Atoi(forkPRDiscoverTrait.SelectElement("strategyId").Text())
+		trustClass := forkPRDiscoverTrait.SelectElement("trust").SelectAttr("class").Value
+		trust := strings.Split(trustClass, "$")
+		switch trust[1] {
+		case "TrustEveryone":
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+				Strategy: strategyId,
+				Trust:    1,
+			}
+		case "TrustTeamForks":
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+				Strategy: strategyId,
+				Trust:    2,
+			}
+		case "TrustNobody":
+			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+				Strategy: strategyId,
+				Trust:    3,
+			}
+		}
+		if cloneTrait := traits.SelectElement(
+			"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
+			if cloneExtension := cloneTrait.SelectElement(
+				"extension"); cloneExtension != nil {
+				s.CloneOption = &GitCloneOption{}
+				if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
+					s.CloneOption.Shallow = value
+				}
+				if value, err := strconv.ParseInt(cloneExtension.SelectElement("timeout").Text(), 10, 32); err == nil {
+					s.CloneOption.Timeout = int(value)
+				}
+				if value, err := strconv.ParseInt(cloneExtension.SelectElement("depth").Text(), 10, 32); err == nil {
+					s.CloneOption.Depth = int(value)
+				}
+			}
+		}
+
+		if regexTrait := traits.SelectElement(
+			"jenkins.scm.impl.trait.RegexSCMHeadFilterTrait"); regexTrait != nil {
+			if regex := regexTrait.SelectElement("regex"); regex != nil {
+				s.RegexFilter = regex.Text()
+			}
+		}
+	}
+	return s
+}
+
+func (s *BitbucketServerSource) appendToEtree(source *etree.Element) *BitbucketServerSource {
+	source.CreateAttr("class", "com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource")
+	source.CreateAttr("plugin", "cloudbees-bitbucket-branch-source")
+	source.CreateElement("id").SetText(s.ScmId)
+	source.CreateElement("credentialsId").SetText(s.CredentialId)
+	source.CreateElement("repoOwner").SetText(s.Owner)
+	source.CreateElement("repository").SetText(s.Repo)
+	source.CreateElement("serverUrl").SetText(s.ApiUri)
+
+	traits := source.CreateElement("traits")
+	if s.DiscoverBranches != 0 {
+		traits.CreateElement("com.cloudbees.jenkins.plugins.bitbucket.BranchDiscoveryTrait>").
+			CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverBranches))
+	}
+	if s.DiscoverPRFromOrigin != 0 {
+		traits.CreateElement("com.cloudbees.jenkins.plugins.bitbucket.OriginPullRequestDiscoveryTrait").
+			CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverPRFromOrigin))
+	}
+	if s.DiscoverPRFromForks != nil {
+		forkTrait := traits.CreateElement("com.cloudbees.jenkins.plugins.bitbucket.ForkPullRequestDiscoveryTrait")
+		forkTrait.CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverPRFromForks.Strategy))
+		trustClass := "com.cloudbees.jenkins.plugins.bitbucket.ForkPullRequestDiscoveryTrait$"
+		switch s.DiscoverPRFromForks.Trust {
+		case 1:
+			trustClass += "TrustEveryone"
+		case 2:
+			trustClass += "TrustTeamForks"
+		case 3:
+			trustClass += "TrustNobody"
+		default:
+			trustClass += "TrustEveryone"
 		}
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
 	}
@@ -779,6 +926,11 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 		singSvnDefine.ScmId = projectName + pipeline.Name
 		singSvnDefine.appendToEtree(source)
 
+	case "bitbucket_server":
+		bitbucketServerDefine := pipeline.BitbucketServerSource
+		bitbucketServerDefine.ScmId = projectName + pipeline.Name
+		bitbucketServerDefine.appendToEtree(source)
+
 	default:
 		return "", fmt.Errorf("unsupport source type")
 	}
@@ -834,6 +986,11 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 					githubSource.fromEtree(source)
 					pipeline.GitHubSource = githubSource
 					pipeline.SourceType = "github"
+				case "com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource":
+					bitbucketServerSource := &BitbucketServerSource{}
+					bitbucketServerSource.fromEtree(source)
+					pipeline.BitbucketServerSource = bitbucketServerSource
+					pipeline.SourceType = "bitbucket_server"
 
 				case "jenkins.plugins.git.GitSCMSource":
 					gitSource := &GitSource{}
