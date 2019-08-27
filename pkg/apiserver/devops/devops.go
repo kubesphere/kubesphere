@@ -141,6 +141,32 @@ func GetStepLog(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
+func GetSCMServers(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scm")
+
+	res, err := devops.GetSCMServers(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.Write(res)
+}
+
+func CreateSCMServers(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scm")
+
+	res, err := devops.CreateSCMServers(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.Write(res)
+}
+
 func Validate(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
 

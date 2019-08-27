@@ -260,6 +260,19 @@ type SCMOrg struct {
 	Name                        string `json:"name,omitempty" description:"organization name"`
 }
 
+type SCMServer struct {
+	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+	Links struct {
+		Self struct {
+			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Href  string `json:"href,omitempty" description:"self url in api"`
+		} `json:"self,omitempty" description:"scm server self info"`
+	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
+	ID     string `json:"id,omitempty" description:"server id of scm server"`
+	Name   string `json:"name,omitempty" description:"name of scm server"`
+	ApiURL string `json:"apiUrl,omitempty"  description:"url of scm server"`
+}
+
 // GetOrgRepo
 type OrgRepo struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
@@ -719,6 +732,11 @@ type CheckPlayload struct {
 	ID         string                    `json:"id,omitempty" description:"id"`
 	Parameters []CheckPlayloadParameters `json:"parameters,omitempty"`
 	Abort      bool                      `json:"abort,omitempty" description:"abort or not"`
+}
+
+type CreateScmServerReq struct {
+	Name   string `json:"name,omitempty" description:"name of scm server"`
+	ApiURL string `json:"apiUrl,omitempty"  description:"url of scm server"`
 }
 
 type CheckPlayloadParameters struct {
