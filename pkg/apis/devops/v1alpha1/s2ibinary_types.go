@@ -27,9 +27,9 @@ const (
 )
 
 const (
-	StatusUploading        = "Uploading"
-	StatusReady            = "Ready"
-	StatusUnableToDownload = "UnableToDownload"
+	StatusUploading    = "Uploading"
+	StatusReady        = "Ready"
+	StatusUploadFailed = "UploadFailed"
 )
 
 const (

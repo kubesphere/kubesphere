@@ -6,7 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/golang/glog"
+	"k8s.io/klog"
+	"sync"
 )
 
 var (
@@ -19,8 +20,12 @@ var (
 	s3SessionToken    string
 	s3Bucket          string
 )
-var s2iS3 *s3.S3
-var s2iS3Session *session.Session
+var (
+	s2iS3            *s3.S3
+	s2iS3Session     *session.Session
+	sessionInitMutex sync.Mutex
+	clientInitMutex  sync.Mutex
+)
 
 func init() {
 	flag.StringVar(&s3Region, "s2i-s3-region", "us-east-1", "region of s2i s3")
@@ -37,6 +42,23 @@ func Client() *s3.S3 {
 	if s2iS3 != nil {
 		return s2iS3
 	}
+	clientInitMutex.Lock()
+	defer clientInitMutex.Unlock()
+	if s2iS3Session == nil {
+		if sess := Session(); sess != nil {
+			klog.Error("failed to connect to s2i s3")
+			return nil
+		}
+	}
+	s2iS3 = s3.New(s2iS3Session)
+	return s2iS3
+}
+func Session() *session.Session {
+	if s2iS3Session != nil {
+		return s2iS3Session
+	}
+	sessionInitMutex.Lock()
+	defer sessionInitMutex.Unlock()
 	creds := credentials.NewStaticCredentials(
 		s3AccessKeyID, s3SecretAccessKey, s3SessionToken,
 	)
@@ -49,18 +71,10 @@ func Client() *s3.S3 {
 	}
 	sess, err := session.NewSession(config)
 	if err != nil {
-		glog.Errorf("failed to connect to s2i s3: %+v", err)
+		klog.Errorf("failed to connect to s2i s3: %+v", err)
 		return nil
 	}
 	s2iS3Session = sess
-	s2iS3 = s3.New(sess)
-	return s2iS3
-}
-func Session() *session.Session {
-	if s2iS3Session != nil {
-		return s2iS3Session
-	}
-	Client()
 	return s2iS3Session
 }
 

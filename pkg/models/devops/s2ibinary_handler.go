@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -28,20 +28,20 @@ const (
 func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHeader) (*v1alpha1.S2iBinary, error) {
 	binFile, err := fileHeader.Open()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, err
 	}
 	defer binFile.Close()
 
 	origin, err := informers.KsSharedInformerFactory().Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(namespace).Get(name)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, err
 	}
 	//Check file is uploading
 	if origin.Status.Phase == v1alpha1.StatusUploading {
 		err := restful.NewError(http.StatusConflict, "file is uploading, please try later")
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	copy := origin.DeepCopy()
@@ -54,13 +54,14 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 	}
 
 	//Set status Uploading to lock resource
-	origin, err = SetS2iBinaryStatus(origin, v1alpha1.StatusUploading)
+	uploading, err := SetS2iBinaryStatus(copy, v1alpha1.StatusUploading)
 	if err != nil {
 		err := restful.NewError(http.StatusConflict, fmt.Sprintf("could not set status: %+v", err))
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
-	copy = origin.DeepCopy()
+
+	copy = uploading.DeepCopy()
 	copy.Spec.MD5 = md5
 	copy.Spec.Size = bytefmt.ByteSize(uint64(fileHeader.Size))
 	copy.Spec.FileName = fileHeader.Filename
@@ -68,7 +69,12 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 	s3session := s2is3.Session()
 	if s3session == nil {
 		err := fmt.Errorf("could not connect to s2i s3")
-		glog.Error(err)
+		klog.Error(err)
+		_, serr := SetS2iBinaryStatusWithRetry(copy, origin.Status.Phase)
+		if serr != nil {
+			klog.Error(serr)
+			return nil, err
+		}
 		return nil, err
 	}
 	uploader := s3manager.NewUploader(s3session, func(uploader *s3manager.Uploader) {
@@ -87,22 +93,22 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case s3.ErrCodeNoSuchBucket:
-				glog.Error(err)
-				_, serr := SetS2iBinaryStatusWithRetry(origin, origin.Status.Phase)
+				klog.Error(err)
+				_, serr := SetS2iBinaryStatusWithRetry(copy, origin.Status.Phase)
 				if serr != nil {
-					glog.Error(serr)
+					klog.Error(serr)
 				}
 				return nil, err
 			default:
-				glog.Error(err)
-				_, serr := SetS2iBinaryStatusWithRetry(origin, v1alpha1.StatusUnableToDownload)
+				klog.Error(err)
+				_, serr := SetS2iBinaryStatusWithRetry(copy, v1alpha1.StatusUploadFailed)
 				if serr != nil {
-					glog.Error(serr)
+					klog.Error(serr)
 				}
 				return nil, err
 			}
 		}
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -110,40 +116,40 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 		copy.Spec.UploadTimeStamp = new(metav1.Time)
 	}
 	*copy.Spec.UploadTimeStamp = metav1.Now()
-	resp, err := k8s.KsClient().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
+	copy, err = k8s.KsClient().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
-	resp, err = SetS2iBinaryStatusWithRetry(resp, v1alpha1.StatusReady)
+	copy, err = SetS2iBinaryStatusWithRetry(copy, v1alpha1.StatusReady)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
-	return resp, nil
+	return copy, nil
 }
 
 func DownloadS2iBinary(namespace, name, fileName string) (string, error) {
 	origin, err := informers.KsSharedInformerFactory().Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(namespace).Get(name)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", err
 	}
 	if origin.Spec.FileName != fileName {
 		err := fmt.Errorf("could not fould file %s", fileName)
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	if origin.Status.Phase != v1alpha1.StatusReady {
 		err := restful.NewError(http.StatusBadRequest, "file is not ready, please try later")
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	s3Client := s2is3.Client()
 	if s3Client == nil {
 		err := fmt.Errorf("could not get s3 client")
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	req, _ := s3Client.GetObjectRequest(&s3.GetObjectInput{
@@ -153,7 +159,7 @@ func DownloadS2iBinary(namespace, name, fileName string) (string, error) {
 	})
 	url, err := req.Presign(5 * time.Minute)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	return url, nil
@@ -165,7 +171,7 @@ func SetS2iBinaryStatus(s2ibin *v1alpha1.S2iBinary, status string) (*v1alpha1.S2
 	copy.Status.Phase = status
 	copy, err := k8s.KsClient().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(copy)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return copy, nil
@@ -178,19 +184,19 @@ func SetS2iBinaryStatusWithRetry(s2ibin *v1alpha1.S2iBinary, status string) (*v1
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		bin, err = informers.KsSharedInformerFactory().Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(s2ibin.Namespace).Get(s2ibin.Name)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return err
 		}
 		bin.Status.Phase = status
 		bin, err = k8s.KsClient().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(bin)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return err
 		}
 		return nil
 	})
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 

@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
-	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1/numorstring"
 	corev1 "k8s.io/api/core/v1"
+	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1/numorstring"
 )
 
 // A Rule encapsulates a set of match criteria and an action.  Both selector-based security Policy
