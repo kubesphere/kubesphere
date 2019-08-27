@@ -104,6 +104,642 @@
         }
       }
     },
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary": {
+      "get": {
+        "description": "list or watch objects of kind S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf",
+          "application/json;stream=watch",
+          "application/vnd.kubernetes.protobuf;stream=watch"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "listDevopsKubesphereIoV1alpha1S2iBinary",
+        "parameters": [
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+            "name": "continue",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+            "name": "fieldSelector",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+            "name": "labelSelector",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "integer",
+            "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+            "name": "resourceVersion",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "integer",
+            "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+            "name": "timeoutSeconds",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "boolean",
+            "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+            "name": "watch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinaryList"
+            }
+          }
+        },
+        "x-kubernetes-action": "list",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "post": {
+        "description": "create a S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "createDevopsKubesphereIoV1alpha1S2iBinary",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "post",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "delete": {
+        "description": "delete collection of S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "deleteDevopsKubesphereIoV1alpha1CollectionS2iBinary",
+        "parameters": [
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+            "name": "continue",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+            "name": "fieldSelector",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+            "name": "labelSelector",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "integer",
+            "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+            "name": "resourceVersion",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "integer",
+            "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+            "name": "timeoutSeconds",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "boolean",
+            "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+            "name": "watch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
+            }
+          }
+        },
+        "x-kubernetes-action": "deletecollection",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "If true, partially initialized resources are included in the response.",
+          "name": "includeUninitialized",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary/{name}": {
+      "get": {
+        "description": "read the specified S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "readDevopsKubesphereIoV1alpha1S2iBinary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "get",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "put": {
+        "description": "replace the specified S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "replaceDevopsKubesphereIoV1alpha1S2iBinary",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "put",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "delete": {
+        "description": "delete a S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "deleteDevopsKubesphereIoV1alpha1S2iBinary",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "integer",
+            "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
+            "name": "gracePeriodSeconds",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "boolean",
+            "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+            "name": "orphanDependents",
+            "in": "query"
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy. Acceptable values are: 'Orphan' - orphan the dependents; 'Background' - allow the garbage collector to delete the dependents in the background; 'Foreground' - a cascading policy that deletes all dependents in the foreground.",
+            "name": "propagationPolicy",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
+            }
+          }
+        },
+        "x-kubernetes-action": "delete",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "patch": {
+        "description": "partially update the specified S2iBinary",
+        "consumes": [
+          "application/json-patch+json",
+          "application/merge-patch+json",
+          "application/strategic-merge-patch+json"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "patchDevopsKubesphereIoV1alpha1S2iBinary",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Patch"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "patch",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "name of the S2iBinary",
+          "name": "name",
+          "in": "path",
+          "required": true
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary/{name}/status": {
+      "get": {
+        "description": "read status of the specified S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "readDevopsKubesphereIoV1alpha1S2iBinaryStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "get",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "put": {
+        "description": "replace status of the specified S2iBinary",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "replaceDevopsKubesphereIoV1alpha1S2iBinaryStatus",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "put",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "patch": {
+        "description": "partially update status of the specified S2iBinary",
+        "consumes": [
+          "application/json-patch+json",
+          "application/merge-patch+json",
+          "application/strategic-merge-patch+json"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "patchDevopsKubesphereIoV1alpha1S2iBinaryStatus",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Patch"
+            }
+          },
+          {
+            "uniqueItems": true,
+            "type": "string",
+            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+            "name": "dryRun",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+            }
+          }
+        },
+        "x-kubernetes-action": "patch",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "name of the S2iBinary",
+          "name": "name",
+          "in": "path",
+          "required": true
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        }
+      ]
+    },
     "/apis/devops.kubesphere.io/v1alpha1/s2ibuilders": {
       "get": {
         "description": "list or watch objects of kind S2iBuilder",
@@ -2008,6 +2644,216 @@
           "type": "string",
           "description": "If 'true', then the output is pretty printed.",
           "name": "pretty",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinary": {
+      "get": {
+        "description": "watch individual changes to a list of S2iBinary. deprecated: use the 'watch' parameter with a list operation instead.",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf",
+          "application/json;stream=watch",
+          "application/vnd.kubernetes.protobuf;stream=watch"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "watchDevopsKubesphereIoV1alpha1S2iBinaryList",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
+            }
+          }
+        },
+        "x-kubernetes-action": "watchlist",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+          "name": "continue",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+          "name": "fieldSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "If true, partially initialized resources are included in the response.",
+          "name": "includeUninitialized",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+          "name": "labelSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+          "name": "limit",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+          "name": "resourceVersion",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+          "name": "timeoutSeconds",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+          "name": "watch",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinary/{name}": {
+      "get": {
+        "description": "watch changes to an object of kind S2iBinary. deprecated: use the 'watch' parameter with a list operation instead, filtered to a single item with the 'fieldSelector' parameter.",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf",
+          "application/json;stream=watch",
+          "application/vnd.kubernetes.protobuf;stream=watch"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "devopsKubesphereIo_v1alpha1"
+        ],
+        "operationId": "watchDevopsKubesphereIoV1alpha1S2iBinary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
+            }
+          }
+        },
+        "x-kubernetes-action": "watch",
+        "x-kubernetes-group-version-kind": {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+          "name": "continue",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+          "name": "fieldSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "If true, partially initialized resources are included in the response.",
+          "name": "includeUninitialized",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+          "name": "labelSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+          "name": "limit",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "name of the S2iBinary",
+          "name": "name",
+          "in": "path",
+          "required": true
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+          "name": "resourceVersion",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+          "name": "timeoutSeconds",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+          "name": "watch",
           "in": "query"
         }
       ]
@@ -5280,7 +6126,6 @@
     },
     "io.k8s.api.core.v1.LocalObjectReference": {
       "description": "LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.",
-      "type": "object",
       "properties": {
         "name": {
           "description": "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
@@ -5290,7 +6135,6 @@
     },
     "io.k8s.api.networking.v1.IPBlock": {
       "description": "IPBlock describes a particular CIDR (Ex. \"192.168.1.1/24\") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule.",
-      "type": "object",
       "required": [
         "cidr"
       ],
@@ -5310,7 +6154,6 @@
     },
     "io.k8s.api.networking.v1.NetworkPolicyPort": {
       "description": "NetworkPolicyPort describes a port to allow traffic on",
-      "type": "object",
       "properties": {
         "port": {
           "description": "The port on the given protocol. This can either be a numerical or named port on a pod. If this field is not provided, this matches all port names and numbers.",
@@ -5324,7 +6167,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.APIGroup": {
       "description": "APIGroup contains the name, the supported versions, and the preferred version of a group.",
-      "type": "object",
       "required": [
         "name",
         "versions"
@@ -5371,7 +6213,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.APIGroupList": {
       "description": "APIGroupList is a list of APIGroup, to allow clients to discover the API at /apis.",
-      "type": "object",
       "required": [
         "groups"
       ],
@@ -5402,7 +6243,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.APIResource": {
       "description": "APIResource specifies the name of a resource and whether it is namespaced.",
-      "type": "object",
       "required": [
         "name",
         "singularName",
@@ -5460,7 +6300,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.APIResourceList": {
       "description": "APIResourceList is a list of APIResource, it is used to expose the name of the resources supported in a specific group and version, and if the resource is namespaced.",
-      "type": "object",
       "required": [
         "groupVersion",
         "resources"
@@ -5496,7 +6335,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions": {
       "description": "DeleteOptions may be provided when deleting an API object.",
-      "type": "object",
       "properties": {
         "apiVersion": {
           "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
@@ -5561,7 +6399,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscovery": {
       "description": "GroupVersion contains the \"group/version\" and \"version\" string of a version. It is made a struct to keep extensibility.",
-      "type": "object",
       "required": [
         "groupVersion",
         "version"
@@ -5579,7 +6416,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Initializer": {
       "description": "Initializer is information about an initializer that has not yet completed.",
-      "type": "object",
       "required": [
         "name"
       ],
@@ -5592,7 +6428,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Initializers": {
       "description": "Initializers tracks the progress of initialization.",
-      "type": "object",
       "required": [
         "pending"
       ],
@@ -5614,7 +6449,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector": {
       "description": "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
-      "type": "object",
       "properties": {
         "matchExpressions": {
           "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
@@ -5634,7 +6468,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement": {
       "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
-      "type": "object",
       "required": [
         "key",
         "operator"
@@ -5661,7 +6494,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta": {
       "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
-      "type": "object",
       "properties": {
         "continue": {
           "description": "continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a consistent list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response, unless you have received this token from an error message.",
@@ -5679,7 +6511,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta": {
       "description": "ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create.",
-      "type": "object",
       "properties": {
         "annotations": {
           "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations",
@@ -5766,7 +6597,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference": {
       "description": "OwnerReference contains enough information to let you identify an owning object. An owning object must be in the same namespace as the dependent, or be cluster-scoped, so there is no namespace field.",
-      "type": "object",
       "required": [
         "apiVersion",
         "kind",
@@ -5801,12 +6631,10 @@
       }
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Patch": {
-      "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.",
-      "type": "object"
+      "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body."
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Preconditions": {
       "description": "Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.",
-      "type": "object",
       "properties": {
         "uid": {
           "description": "Specifies the target UID.",
@@ -5816,7 +6644,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.ServerAddressByClientCIDR": {
       "description": "ServerAddressByClientCIDR helps the client to determine the server address that they should use, depending on the clientCIDR that they match.",
-      "type": "object",
       "required": [
         "clientCIDR",
         "serverAddress"
@@ -5834,7 +6661,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.Status": {
       "description": "Status is a return value for calls that don't return other objects.",
-      "type": "object",
       "properties": {
         "apiVersion": {
           "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
@@ -5880,7 +6706,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.StatusCause": {
       "description": "StatusCause provides more information about an api.Status failure, including cases when multiple errors are encountered.",
-      "type": "object",
       "properties": {
         "field": {
           "description": "The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed.  Fields may appear more than once in an array of causes due to fields having multiple errors. Optional.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\"",
@@ -5898,7 +6723,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.StatusDetails": {
       "description": "StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.",
-      "type": "object",
       "properties": {
         "causes": {
           "description": "The Causes array includes more details associated with the StatusReason failure. Not all StatusReasons may provide detailed causes.",
@@ -5937,7 +6761,6 @@
     },
     "io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent": {
       "description": "Event represents a single event to a watched resource.",
-      "type": "object",
       "required": [
         "type",
         "object"
@@ -5981,7 +6804,6 @@
     },
     "io.k8s.apimachinery.pkg.runtime.RawExtension": {
       "description": "RawExtension is used to hold extensions in external versions.\n\nTo use this, make a field which has RawExtension as its type in your external, versioned struct, and Object in your internal struct. You also need to register your various plugin types.\n\n// Internal package: type MyAPIObject struct {\n\truntime.TypeMeta `json:\",inline\"`\n\tMyPlugin runtime.Object `json:\"myPlugin\"`\n} type PluginA struct {\n\tAOption string `json:\"aOption\"`\n}\n\n// External package: type MyAPIObject struct {\n\truntime.TypeMeta `json:\",inline\"`\n\tMyPlugin runtime.RawExtension `json:\"myPlugin\"`\n} type PluginA struct {\n\tAOption string `json:\"aOption\"`\n}\n\n// On the wire, the JSON will look something like this: {\n\t\"kind\":\"MyAPIObject\",\n\t\"apiVersion\":\"v1\",\n\t\"myPlugin\": {\n\t\t\"kind\":\"PluginA\",\n\t\t\"aOption\":\"foo\",\n\t},\n}\n\nSo what happens? Decode first uses json or yaml to unmarshal the serialized data into your external MyAPIObject. That causes the raw JSON to be stored, but not unpacked. The next step is to copy (using pkg/conversion) into the internal struct. The runtime package's DefaultScheme has conversion functions installed which will unpack the JSON stored in RawExtension, turning it into the correct object type, and storing it in the Object. (TODO: In the case where the object is of an unknown type, a runtime.Unknown object will be created and stored.)",
-      "type": "object",
       "required": [
         "Raw"
       ],
@@ -5998,9 +6820,103 @@
       "type": "string",
       "format": "int-or-string"
     },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary": {
+      "description": "S2iBinary is the Schema for the s2ibinaries API",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinarySpec"
+        },
+        "status": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinaryStatus"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinary"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinaryList": {
+      "description": "S2iBinaryList contains a list of S2iBinary",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary"
+          }
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "S2iBinaryList"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinarySpec": {
+      "description": "S2iBinarySpec defines the desired state of S2iBinary",
+      "properties": {
+        "downloadURL": {
+          "description": "DownloadURL in KubeSphere",
+          "type": "string"
+        },
+        "fileName": {
+          "description": "FileName is filename of binary",
+          "type": "string"
+        },
+        "md5": {
+          "description": "MD5 is Binary's MD5 Hash",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size is the file size of file",
+          "type": "string"
+        },
+        "uploadTimeStamp": {
+          "description": "UploadTime is last upload time",
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinaryStatus": {
+      "description": "S2iBinaryStatus defines the observed state of S2iBinary",
+      "properties": {
+        "phase": {
+          "description": "Phase is status of S2iBinary . Possible value is \"Ready\",\"UnableToDownload\"",
+          "type": "string"
+        }
+      }
+    },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy": {
       "description": "WorkspaceNetworkPolicy is a set of network policies applied to the scope to workspace",
-      "type": "object",
       "properties": {
         "apiVersion": {
           "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
@@ -6030,7 +6946,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyEgressRule": {
       "description": "WorkspaceNetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods matched by a WorkspaceNetworkPolicySpec's podSelector. The traffic must match both ports and to.",
-      "type": "object",
       "properties": {
         "from": {
           "description": "List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least on item, this rule allows traffic only if the traffic matches at least one item in the from list.",
@@ -6050,7 +6965,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyIngressRule": {
       "description": "WorkspaceNetworkPolicyIngressRule describes a particular set of traffic that is allowed to the pods matched by a WorkspaceNetworkPolicySpec's podSelector. The traffic must match both ports and from.",
-      "type": "object",
       "properties": {
         "from": {
           "description": "List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least on item, this rule allows traffic only if the traffic matches at least one item in the from list.",
@@ -6070,7 +6984,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyList": {
       "description": "WorkspaceNetworkPolicyList contains a list of WorkspaceNetworkPolicy",
-      "type": "object",
       "required": [
         "items"
       ],
@@ -6103,7 +7016,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyPeer": {
       "description": "WorkspaceNetworkPolicyPeer describes a peer to allow traffic from. Only certain combinations of fields are allowed. It is same as 'NetworkPolicyPeer' in k8s but with an additional field 'WorkspaceSelector'",
-      "type": "object",
       "properties": {
         "ipBlock": {
           "description": "IPBlock defines policy on a particular IPBlock. If this field is set then neither of the other fields can be.",
@@ -6124,7 +7036,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicySpec": {
       "description": "WorkspaceNetworkPolicySpec defines the desired state of WorkspaceNetworkPolicy",
-      "type": "object",
       "properties": {
         "egress": {
           "description": "List of egress rules to be applied to the selected pods. Outgoing traffic is allowed if there are no NetworkPolicies selecting the pod (and cluster policy otherwise allows the traffic), OR if the traffic matches at least one egress rule across all of the NetworkPolicy objects whose podSelector matches the pod. If this field is empty then this NetworkPolicy limits all outgoing traffic (and serves solely to ensure that the pods it selects are isolated by default). This field is beta-level in 1.8",
@@ -6154,12 +7065,10 @@
       }
     },
     "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyStatus": {
-      "description": "WorkspaceNetworkPolicyStatus defines the observed state of WorkspaceNetworkPolicy",
-      "type": "object"
+      "description": "WorkspaceNetworkPolicyStatus defines the observed state of WorkspaceNetworkPolicy"
     },
     "io.kubesphere.kubesphere.pkg.apis.tenant.v1alpha1.Workspace": {
       "description": "Workspace is the Schema for the workspaces API",
-      "type": "object",
       "properties": {
         "apiVersion": {
           "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
@@ -6189,7 +7098,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.tenant.v1alpha1.WorkspaceList": {
       "description": "WorkspaceList contains a list of Workspace",
-      "type": "object",
       "required": [
         "items"
       ],
@@ -6222,7 +7130,6 @@
     },
     "io.kubesphere.kubesphere.pkg.apis.tenant.v1alpha1.WorkspaceSpec": {
       "description": "WorkspaceSpec defines the desired state of Workspace",
-      "type": "object",
       "properties": {
         "manager": {
           "type": "string"
@@ -6230,8 +7137,7 @@
       }
     },
     "io.kubesphere.kubesphere.pkg.apis.tenant.v1alpha1.WorkspaceStatus": {
-      "description": "WorkspaceStatus defines the observed state of Workspace",
-      "type": "object"
+      "description": "WorkspaceStatus defines the observed state of Workspace"
     }
   }
 }

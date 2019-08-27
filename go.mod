@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c // indirect
+	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
@@ -12,6 +13,7 @@ require (
 	github.com/Sirupsen/logrus v1.4.1 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
+	github.com/aws/aws-sdk-go v1.22.2
 	github.com/beevik/etree v1.1.0
 	github.com/beorn7/perks v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

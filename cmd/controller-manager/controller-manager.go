@@ -20,10 +20,10 @@ package main
 
 import (
 	"flag"
-	"k8s.io/client-go/tools/clientcmd"
 	"kubesphere.io/kubesphere/cmd/controller-manager/app"
 	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/controller"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -32,13 +32,10 @@ import (
 
 var (
 	masterURL   string
-	kubeconfig  string
 	metricsAddr string
 )
 
 func init() {
-	flag.StringVar(&masterURL, "master-url", "", "only need if out of cluster")
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "only need if out of cluster")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 }
 
@@ -48,7 +45,7 @@ func main() {
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("controller-manager")
 
-	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	cfg, err := k8s.Config()
 	if err != nil {
 		log.Error(err, "failed to build kubeconfig")
 		os.Exit(1)
