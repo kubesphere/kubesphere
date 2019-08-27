@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.
+	NamespaceNetworkPolicies() NamespaceNetworkPolicyInformer
 	// WorkspaceNetworkPolicies returns a WorkspaceNetworkPolicyInformer.
 	WorkspaceNetworkPolicies() WorkspaceNetworkPolicyInformer
 }
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.
+func (v *version) NamespaceNetworkPolicies() NamespaceNetworkPolicyInformer {
+	return &namespaceNetworkPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // WorkspaceNetworkPolicies returns a WorkspaceNetworkPolicyInformer.

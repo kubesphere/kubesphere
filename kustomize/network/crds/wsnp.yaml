@@ -6,9 +6,13 @@ metadata:
 spec:
   group: network.kubesphere.io
   names:
+    categories:
+    - networking
     kind: WorkspaceNetworkPolicy
     plural: workspacenetworkpolicies
-  scope: "Cluster"
+    shortNames:
+    - wsnp
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: WorkspaceNetworkPolicy is a set of network policies applied to

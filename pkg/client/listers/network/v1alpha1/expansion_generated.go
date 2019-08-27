@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// NamespaceNetworkPolicyListerExpansion allows custom methods to be added to
+// NamespaceNetworkPolicyLister.
+type NamespaceNetworkPolicyListerExpansion interface{}
+
+// NamespaceNetworkPolicyNamespaceListerExpansion allows custom methods to be added to
+// NamespaceNetworkPolicyNamespaceLister.
+type NamespaceNetworkPolicyNamespaceListerExpansion interface{}
+
 // WorkspaceNetworkPolicyListerExpansion allows custom methods to be added to
 // WorkspaceNetworkPolicyLister.
 type WorkspaceNetworkPolicyListerExpansion interface{}

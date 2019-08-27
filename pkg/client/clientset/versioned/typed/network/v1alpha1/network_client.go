@@ -27,12 +27,17 @@ import (
 
 type NetworkV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	NamespaceNetworkPoliciesGetter
 	WorkspaceNetworkPoliciesGetter
 }
 
 // NetworkV1alpha1Client is used to interact with features provided by the network.kubesphere.io group.
 type NetworkV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *NetworkV1alpha1Client) NamespaceNetworkPolicies(namespace string) NamespaceNetworkPolicyInterface {
+	return newNamespaceNetworkPolicies(c, namespace)
 }
 
 func (c *NetworkV1alpha1Client) WorkspaceNetworkPolicies() WorkspaceNetworkPolicyInterface {
