@@ -244,6 +244,19 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(result)
 }
 
+func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
+	username := req.HeaderParameter(constants.UserNameHeader)
+
+	result, err := tenant.GetDevOpsProjectsCount(username)
+	if err != nil {
+		glog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	resp.WriteAsJson(struct {
+		Count uint32 `json:"count"`
+	}{Count: result})
+}
 func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	projectId := req.PathParameter("devops")
 	workspaceName := req.PathParameter("workspace")

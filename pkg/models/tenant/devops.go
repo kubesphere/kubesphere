@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"github.com/golang/glog"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
@@ -103,6 +104,36 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: int(count)}, nil
+}
+
+func GetDevOpsProjectsCount(username string) (uint32, error) {
+	dbconn := devops_mysql.OpenDatabase()
+
+	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, devops.DevOpsProject{})...).
+		From(devops.DevOpsProjectTableName)
+	var sqconditions []dbr.Builder
+
+	switch username {
+	case devops.KS_ADMIN:
+	default:
+		onCondition := fmt.Sprintf("%s = %s", devops.DevOpsProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
+		query.Join(devops.DevOpsProjectMembershipTableName, onCondition)
+		sqconditions = append(sqconditions, db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))
+		sqconditions = append(sqconditions, db.Eq(
+			devops.DevOpsProjectMembershipTableName+"."+devops.StatusColumn, devops.StatusActive))
+	}
+
+	sqconditions = append(sqconditions, db.Eq(
+		devops.DevOpsProjectTableName+"."+devops.StatusColumn, devops.StatusActive))
+	if len(sqconditions) > 0 {
+		query.Where(db.And(sqconditions...))
+	}
+	count, err := query.Count()
+	if err != nil {
+		klog.Errorf("%+v", err)
+		return 0, restful.NewError(http.StatusInternalServerError, err.Error())
+	}
+	return count, nil
 }
 
 func DeleteDevOpsProject(projectId, username string) error {

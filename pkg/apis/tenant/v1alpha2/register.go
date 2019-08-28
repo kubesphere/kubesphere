@@ -134,6 +134,14 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, models.PageableResponse{}).
 		Doc("List the devops projects for the workspace member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/devopscount").
+		To(tenant.GetDevOpsProjectsCount).
+		Param(ws.PathParameter("member", "workspace member's username")).
+		Returns(http.StatusOK, ok, struct {
+			Count uint32 `json:"count"`
+		}{}).
+		Doc("Get the devops projects count for the member").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
 		To(tenant.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
