@@ -148,6 +148,31 @@ func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
 }
 
 func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
+	requestBody, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	createReq := &CreateScmServerReq{}
+	err = json.Unmarshal(requestBody, createReq)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	req.Body = nil
+	byteServers, err := GetSCMServers(scmId, req)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	var servers []*SCMServer
+	_ = json.Unmarshal(byteServers, &servers)
+	for _, server := range servers {
+		if server.ApiURL == createReq.ApiURL {
+			return json.Marshal(server)
+		}
+	}
+	req.Body = ioutil.NopCloser(bytes.NewReader(requestBody))
 	baseUrl := fmt.Sprintf(jenkins.Server+CreateSCMServersUrl, scmId)
 	log.Info("Jenkins-url: " + baseUrl)
 	req.Method = http.MethodPost
