@@ -4,13 +4,13 @@ package language
 
 // This file contains code common to the maketables.go and the package code.
 
-// AliasType is the type of an alias in AliasMap.
-type AliasType int8
+// langAliasType is the type of an alias in langAliasMap.
+type langAliasType int8
 
 const (
-	Deprecated AliasType = iota
-	Macro
-	Legacy
+	langDeprecated langAliasType = iota
+	langMacro
+	langLegacy
 
-	AliasTypeUnknown AliasType = -1
+	langAliasTypeUnknown langAliasType = -1
 )
