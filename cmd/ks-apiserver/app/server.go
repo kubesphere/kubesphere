@@ -190,6 +190,7 @@ func waitForResourceSync() {
 
 	ksInformerFactory := informers.KsSharedInformerFactory()
 	ksInformerFactory.Tenant().V1alpha1().Workspaces().Lister()
+	ksInformerFactory.Devops().V1alpha1().S2iBinaries().Lister()
 
 	ksInformerFactory.Start(stopChan)
 	ksInformerFactory.WaitForCacheSync(stopChan)

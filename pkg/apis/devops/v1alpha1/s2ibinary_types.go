@@ -20,6 +20,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ResourceKindS2iBinary         = "S2iBinary"
+	ResourceSingularServicePolicy = "s2ibinary"
+	ResourcePluralServicePolicy   = "s2ibinaries"
+)
+
+const (
+	StatusUploading    = "Uploading"
+	StatusReady        = "Ready"
+	StatusUploadFailed = "UploadFailed"
+)
+
+const (
+	S2iBinaryFinalizerName = "s2ibinary.finalizers.kubesphere.io"
+	S2iBinaryLabelKey      = "s2ibinary-name.kubesphere.io"
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 

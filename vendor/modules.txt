@@ -2,6 +2,8 @@
 bitbucket.org/ww/goautoneg
 # cloud.google.com/go v0.34.0
 cloud.google.com/go/compute/metadata
+# code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
+code.cloudfoundry.org/bytefmt
 # contrib.go.opencensus.io/exporter/ocagent v0.4.12
 contrib.go.opencensus.io/exporter/ocagent
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
@@ -41,6 +43,45 @@ github.com/andybalholm/cascadia
 github.com/appscode/jsonpatch
 # github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
 github.com/asaskevich/govalidator
+# github.com/aws/aws-sdk-go v1.22.2
+github.com/aws/aws-sdk-go/aws
+github.com/aws/aws-sdk-go/aws/awserr
+github.com/aws/aws-sdk-go/service/s3
+github.com/aws/aws-sdk-go/service/s3/s3manager
+github.com/aws/aws-sdk-go/aws/credentials
+github.com/aws/aws-sdk-go/aws/session
+github.com/aws/aws-sdk-go/aws/endpoints
+github.com/aws/aws-sdk-go/internal/sdkio
+github.com/aws/aws-sdk-go/aws/awsutil
+github.com/aws/aws-sdk-go/aws/client
+github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/request
+github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/internal/s3err
+github.com/aws/aws-sdk-go/private/protocol
+github.com/aws/aws-sdk-go/private/protocol/eventstream
+github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
+github.com/aws/aws-sdk-go/private/protocol/rest
+github.com/aws/aws-sdk-go/private/protocol/restxml
+github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
+github.com/aws/aws-sdk-go/service/s3/s3iface
+github.com/aws/aws-sdk-go/internal/ini
+github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/aws/corehandlers
+github.com/aws/aws-sdk-go/aws/credentials/processcreds
+github.com/aws/aws-sdk-go/aws/credentials/stscreds
+github.com/aws/aws-sdk-go/aws/csm
+github.com/aws/aws-sdk-go/aws/defaults
+github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/private/protocol/query
+github.com/aws/aws-sdk-go/service/sts
+github.com/aws/aws-sdk-go/service/sts/stsiface
+github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
+github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+github.com/aws/aws-sdk-go/aws/ec2metadata
+github.com/aws/aws-sdk-go/private/protocol/query/queryutil
+github.com/aws/aws-sdk-go/internal/sdkuri
+github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 # github.com/beevik/etree v1.1.0
 github.com/beevik/etree
 # github.com/beorn7/perks v1.0.0
@@ -258,6 +299,8 @@ github.com/inconshreveable/mousetrap
 github.com/jbenet/go-context/io
 # github.com/jimstudt/http-authentication v0.0.0-20140401203705-3eca13d6893a
 github.com/jimstudt/http-authentication/basic
+# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
+github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
 # github.com/kelseyhightower/envconfig v1.4.0
@@ -325,15 +368,15 @@ github.com/kubernetes-sigs/application/pkg/genericreconciler
 github.com/kubernetes-sigs/application/pkg/kbcontroller
 github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/scheme
 # github.com/kubesphere/s2ioperator v0.0.13
+github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned
 github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions
 github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned
+github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops/v1alpha1
+github.com/kubesphere/s2ioperator/pkg/client/listers/devops/v1alpha1
+github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/typed/devops/v1alpha1
 github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops
 github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/internalinterfaces
-github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/typed/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops/v1alpha1
 github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/scheme
-github.com/kubesphere/s2ioperator/pkg/client/listers/devops/v1alpha1
 # github.com/kubesphere/sonargo v0.0.2
 github.com/kubesphere/sonargo/sonar
 # github.com/leodido/go-urn v1.1.0
@@ -576,8 +619,8 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 # golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp
+golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/errors
@@ -629,8 +672,8 @@ golang.org/x/oauth2/jwt
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/windows/svc/eventlog
-golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/unix
 golang.org/x/sys/windows/registry
 golang.org/x/sys/cpu
 # golang.org/x/text v0.3.0
@@ -850,11 +893,11 @@ k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/api/meta
 k8s.io/apimachinery/pkg/apis/meta/internalversion
-k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/api/validation/path
 k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/selection
+k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/json
@@ -983,7 +1026,6 @@ k8s.io/apiserver/pkg/util/trace
 k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission
 k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission/v1alpha1
 # k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
-k8s.io/client-go/tools/clientcmd
 k8s.io/client-go/informers
 k8s.io/client-go/kubernetes
 k8s.io/client-go/rest
@@ -1007,10 +1049,7 @@ k8s.io/client-go/informers/networking/v1
 k8s.io/client-go/listers/networking/v1
 k8s.io/client-go/kubernetes/fake
 k8s.io/client-go/tools/remotecommand
-k8s.io/client-go/tools/auth
-k8s.io/client-go/tools/clientcmd/api
-k8s.io/client-go/tools/clientcmd/api/latest
-k8s.io/client-go/util/homedir
+k8s.io/client-go/tools/clientcmd
 k8s.io/client-go/tools/leaderelection
 k8s.io/client-go/tools/leaderelection/resourcelock
 k8s.io/client-go/informers/admissionregistration
@@ -1064,6 +1103,7 @@ k8s.io/client-go/kubernetes/typed/storage/v1beta1
 k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
 k8s.io/client-go/rest/watch
+k8s.io/client-go/tools/clientcmd/api
 k8s.io/client-go/tools/metrics
 k8s.io/client-go/transport
 k8s.io/client-go/util/cert
@@ -1106,7 +1146,9 @@ k8s.io/client-go/kubernetes/typed/storage/v1alpha1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1beta1/fake
 k8s.io/client-go/transport/spdy
 k8s.io/client-go/util/exec
-k8s.io/client-go/tools/clientcmd/api/v1
+k8s.io/client-go/tools/auth
+k8s.io/client-go/tools/clientcmd/api/latest
+k8s.io/client-go/util/homedir
 k8s.io/client-go/restmapper
 k8s.io/client-go/informers/admissionregistration/v1alpha1
 k8s.io/client-go/informers/admissionregistration/v1beta1
@@ -1136,6 +1178,7 @@ k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/util/connrotation
+k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/listers/admissionregistration/v1alpha1
 k8s.io/client-go/listers/admissionregistration/v1beta1
 k8s.io/client-go/listers/apps/v1beta1
