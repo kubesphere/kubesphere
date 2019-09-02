@@ -9,6 +9,8 @@
 
 ## What is KubeSphere
 
+> English | [中文](README_zh.md)
+
 [KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform that built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage computing resources with a few clicks, which reduces the learning curve and empowers the DevOps teams. It greatly reduces the complexity of the daily work of development, testing, operation and maintenance, aiming to alleviate the pain points of Kubernetes' storage, network, security and ease of use, etc.
 
 > See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
@@ -54,7 +56,11 @@ KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [R
 
 ## Installation
 
-### Minimum Requirements
+### Deploy On Kubernetes
+
+You can deploy KubeSphere on any Kubernetes cluster，please refer to [KubeSphere on Kubernetes](https://github.com/kubesphere/ks-installer).
+
+### Deploy on Linux
 
 - Operating Systems
    - CentOS 7.5 (64 bit)
@@ -69,18 +75,16 @@ KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [R
 [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
 
 ```bash
-$ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz && tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/scripts
+$ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz \
+&& tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/conf
 $ ./install.sh
 ```
 
 Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
 
-> Click [here](https://asciinema.org/~lilin) to preview the installation demo.
-
-### Multi-Node
-
-[Multi-Node](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/) is used for installing KubeSphere on multiple instances, supports for installing a highly available cluster in a mission-critical environment. Multi-node installation requires pre-configuration steps, see [Multi-Node Guide](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
-
+> Note: 
+> - In a formal environment, it's highly recommended to install KubeSphere with [Multi-Node Installation](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
+> - Click [here](https://asciinema.org/~lilin) to preview the installation demo.
 
 ## To start using KubeSphere
 
@@ -110,7 +114,7 @@ Currently, KubeSphere has released the following 4 major editions. The future re
 
 ## Support, Discussion, and Community
 
-If you need any help with KubeSphere, please join us at [Slack channel](http://kubesphere.slack.com/).
+If you need any help with KubeSphere, please join us at [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE).
 
 Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
 
