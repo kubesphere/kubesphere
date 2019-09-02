@@ -27,7 +27,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
