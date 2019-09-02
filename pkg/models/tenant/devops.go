@@ -113,9 +113,7 @@ func GetDevOpsProjectsCount(username string) (uint32, error) {
 		From(devops.DevOpsProjectTableName)
 	var sqconditions []dbr.Builder
 
-	switch username {
-	case devops.KS_ADMIN:
-	default:
+	if username != devops.KS_ADMIN {
 		onCondition := fmt.Sprintf("%s = %s", devops.DevOpsProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
 		query.Join(devops.DevOpsProjectMembershipTableName, onCondition)
 		sqconditions = append(sqconditions, db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))

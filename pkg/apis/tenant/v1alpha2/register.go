@@ -136,7 +136,6 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devopscount").
 		To(tenant.GetDevOpsProjectsCount).
-		Param(ws.PathParameter("member", "workspace member's username")).
 		Returns(http.StatusOK, ok, struct {
 			Count uint32 `json:"count"`
 		}{}).

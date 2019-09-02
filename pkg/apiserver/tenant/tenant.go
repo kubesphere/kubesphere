@@ -24,6 +24,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -249,7 +250,7 @@ func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
 
 	result, err := tenant.GetDevOpsProjectsCount(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
