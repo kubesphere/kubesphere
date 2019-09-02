@@ -419,6 +419,9 @@ type S2iConfig struct {
 
 	// The values of Node Affinity.
 	NodeAffinityValues []string `json:"nodeAffinityValues,omitempty"`
+
+	// Whether output build result to status.
+	OutputBuildResult bool `json:"outputBuildResult,omitempty"`
 }
 
 type UserDefineTemplate struct {

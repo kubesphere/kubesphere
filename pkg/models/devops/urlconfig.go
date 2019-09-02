@@ -44,6 +44,8 @@ const (
 	CheckPipelineUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/%s/"
 	GetBranchNodeStepsUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
 	GetNodeStepsUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/?"
+	GetSCMServersUrl         = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	ValidateUrl              = "/blue/rest/organizations/jenkins/scm/%s/validate"
 	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
 	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"

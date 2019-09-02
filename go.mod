@@ -78,7 +78,7 @@ require (
 	github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-sigs/application v0.0.0-20190404151855-67ae7f915d4e
-	github.com/kubesphere/s2ioperator v0.0.12
+	github.com/kubesphere/s2ioperator v0.0.13
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect

@@ -42,6 +42,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.Parameter":                schema_pkg_apis_devops_v1alpha1_Parameter(ref),
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.ProxyConfig":              schema_pkg_apis_devops_v1alpha1_ProxyConfig(ref),
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iAutoScale":             schema_pkg_apis_devops_v1alpha1_S2iAutoScale(ref),
+		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildResult":           schema_pkg_apis_devops_v1alpha1_S2iBuildResult(ref),
+		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildSource":           schema_pkg_apis_devops_v1alpha1_S2iBuildSource(ref),
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuilder":               schema_pkg_apis_devops_v1alpha1_S2iBuilder(ref),
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuilderList":           schema_pkg_apis_devops_v1alpha1_S2iBuilderList(ref),
 		"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuilderSpec":           schema_pkg_apis_devops_v1alpha1_S2iBuilderSpec(ref),
@@ -766,6 +768,144 @@ func schema_pkg_apis_devops_v1alpha1_S2iAutoScale(ref common.ReferenceCallback) 
 					},
 				},
 				Required: []string{"kind", "name"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuildResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"imageName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImageName is the name of artifact",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageSize": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The size in bytes of the image",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"imageID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image ID.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageCreated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image created time.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageRepoTags": {
+						SchemaProps: spec.SchemaProps{
+							Description: "image tags.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"commandPull": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Command for pull image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuildSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"sourceUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceURL is  url of the codes such as https://github.com/a/b.git",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"revisionId": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"binaryName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Binary file Name",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"binarySize": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Binary file Size",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"builderImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "// BuilderImage describes which image is used for building the result images.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description is a result image description label. The default is no description.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"commitID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitID represents an arbitrary extended object reference in Git as SHA-1",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"committerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitterName contains the name of the committer",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"committerEmail": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitterEmail contains the e-mail of the committer",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 		Dependencies: []string{},
@@ -1577,6 +1717,13 @@ func schema_pkg_apis_devops_v1alpha1_S2iConfig(ref common.ReferenceCallback) com
 							},
 						},
 					},
+					"outputBuildResult": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Whether output build result to status.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"imageName", "sourceUrl"},
 			},
@@ -1774,18 +1921,23 @@ func schema_pkg_apis_devops_v1alpha1_S2iRunStatus(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
-					"imageName": {
+					"s2iBuildResult": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ImageName is the name of artifact",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "S2i build result info.",
+							Ref:         ref("github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildResult"),
+						},
+					},
+					"s2iBuildSource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "S2i build source info.",
+							Ref:         ref("github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildSource"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+			"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildResult", "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1.S2iBuildSource", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 

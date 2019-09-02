@@ -367,7 +367,7 @@ github.com/kubernetes-sigs/application/pkg/resource
 github.com/kubernetes-sigs/application/pkg/genericreconciler
 github.com/kubernetes-sigs/application/pkg/kbcontroller
 github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/scheme
-# github.com/kubesphere/s2ioperator v0.0.12
+# github.com/kubesphere/s2ioperator v0.0.13
 github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned
 github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions
 github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1
