@@ -89,7 +89,11 @@ func (t *TestCtx) Setup(yamlPath string, crdPath string, schemes ...AddToSchemeF
 		return err
 	}
 	for _, f := range schemes {
-		f(scheme.Scheme)
+		err = f(scheme.Scheme)
+		if err != nil {
+			klog.Errorln("Failed to add scheme")
+			return err
+		}
 	}
 	extscheme.AddToScheme(scheme.Scheme)
 	dynClient, err := client.New(cfg, client.Options{})

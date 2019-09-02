@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: magicsong/ks-network:90fa3885
+      - image: magicsong/ks-network:f22e8ea9
         name: manager
