@@ -86,7 +86,7 @@ func generateSwaggerJson() {
 		},
 		{
 			Name: "Other",
-			Tags: []string{constants.VerificationTag},
+			Tags: []string{constants.VerificationTag, constants.RegistryTag},
 		},
 		{
 			Name: "DevOps",

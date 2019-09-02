@@ -217,6 +217,23 @@ func addWebService(c *restful.Container) error {
 		Reads(registriesmodel.AuthInfo{}).
 		Returns(http.StatusOK, ok, errors.Error{}))
 
+	webservice.Route(webservice.GET("/registry/blob").
+		To(registries.RegistryImageBlob).
+		Param(webservice.QueryParameter("image", "query image, condition for filtering.").
+			Required(true).
+			DataFormat("image=%s")).
+		Param(webservice.QueryParameter("namespace", "namespace which secret in.").
+			Required(false).
+			DataFormat("namespace=%s")).
+		Param(webservice.QueryParameter("secret", "secret name").
+			Required(false).
+			DataFormat("secret=%s")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.RegistryTag}).
+		Doc("Retrieve the blob from the registry identified").
+		Writes(registriesmodel.ImageDetails{}).
+		Returns(http.StatusOK, ok, registriesmodel.ImageDetails{}),
+	)
+
 	webservice.Route(webservice.POST("git/verify").
 		To(git.GitReadVerify).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).
