@@ -176,6 +176,7 @@ func waitForResourceSync() {
 	informerFactory.Batch().V1().Jobs().Lister()
 	informerFactory.Batch().V1beta1().CronJobs().Lister()
 	informerFactory.Extensions().V1beta1().Ingresses().Lister()
+	informerFactory.Autoscaling().V2beta2().HorizontalPodAutoscalers().Lister()
 
 	informerFactory.Start(stopChan)
 	informerFactory.WaitForCacheSync(stopChan)
