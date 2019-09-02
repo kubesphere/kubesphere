@@ -158,7 +158,7 @@ extractQueries:
 		}
 	}
 
-	modifiedPkgs, needPkgs, err := processGolistOverlay(cfg, response.dr)
+	modifiedPkgs, needPkgs, err := processGolistOverlay(cfg, response)
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +209,13 @@ func addNeededOverlayPackages(cfg *Config, driver driver, response *responseDedu
 	for _, pkg := range dr.Packages {
 		response.addPackage(pkg)
 	}
-	_, needPkgs, err := processGolistOverlay(cfg, response.dr)
+	_, needPkgs, err := processGolistOverlay(cfg, response)
 	if err != nil {
 		return err
 	}
-	addNeededOverlayPackages(cfg, driver, response, needPkgs)
+	if err := addNeededOverlayPackages(cfg, driver, response, needPkgs); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -228,8 +230,16 @@ func runContainsQueries(cfg *Config, driver driver, response *responseDeduper, q
 			return fmt.Errorf("could not determine absolute path of file= query path %q: %v", query, err)
 		}
 		dirResponse, err := driver(cfg, pattern)
-		if err != nil {
-			return err
+		if err != nil || (len(dirResponse.Packages) == 1 && len(dirResponse.Packages[0].Errors) == 1) {
+			// There was an error loading the package. Try to load the file as an ad-hoc package.
+			// Usually the error will appear in a returned package, but may not if we're in modules mode
+			// and the ad-hoc is located outside a module.
+			var queryErr error
+			dirResponse, queryErr = driver(cfg, query)
+			if queryErr != nil {
+				// Return the original error if the attempt to fall back failed.
+				return err
+			}
 		}
 		isRoot := make(map[string]bool, len(dirResponse.Roots))
 		for _, root := range dirResponse.Roots {
@@ -693,7 +703,7 @@ func golistDriver(cfg *Config, words ...string) (*driverResponse, error) {
 		if p.Error != nil {
 			pkg.Errors = append(pkg.Errors, Error{
 				Pos: p.Error.Pos,
-				Msg: p.Error.Err,
+				Msg: strings.TrimSpace(p.Error.Err), // Trim to work around golang.org/issue/32363.
 			})
 		}
 
