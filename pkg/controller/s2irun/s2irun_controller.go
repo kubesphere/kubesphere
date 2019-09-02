@@ -126,7 +126,7 @@ func (c *S2iRunController) processNextWorkItem() bool {
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		c.workqueue.Forget(obj)
-		klog.Infof("Successfully synced '%s'", key)
+		klog.V(5).Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 

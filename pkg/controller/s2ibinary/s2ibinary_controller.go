@@ -119,7 +119,7 @@ func (c *S2iBinaryController) processNextWorkItem() bool {
 			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		c.workqueue.Forget(obj)
-		klog.Infof("Successfully synced '%s'", key)
+		klog.V(5).Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 
@@ -191,7 +191,7 @@ func (c *S2iBinaryController) syncHandler(key string) error {
 
 	} else {
 		if sliceutil.HasString(s2ibin.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName) {
-			if err := c.DeleteBinaryInS3(s2ibin); err != nil {
+			if err := c.deleteBinaryInS3(s2ibin); err != nil {
 				klog.Error(err, fmt.Sprintf("failed to delete resource %s in s3", key))
 				return err
 			}
@@ -209,7 +209,7 @@ func (c *S2iBinaryController) syncHandler(key string) error {
 	return nil
 }
 
-func (c *S2iBinaryController) DeleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
+func (c *S2iBinaryController) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
 	s3client := s2is3.Client()
 	input := &s3.DeleteObjectInput{
 		Bucket: s2is3.Bucket(),

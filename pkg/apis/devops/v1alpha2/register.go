@@ -22,7 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	v1alpha1devops "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -622,7 +622,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
 		Param(webservice.FormParameter("s2ibinary", "file to upload")).
 		Param(webservice.FormParameter("md5", "md5 of file")).
-		Returns(http.StatusOK, RespOK, v1alpha1devops.S2iBinary{}))
+		Returns(http.StatusOK, RespOK, devopsv1alpha1.S2iBinary{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
 		To(devopsapi.DownloadS2iBinary).
@@ -630,6 +630,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Download S2iBinary file").
 		Param(webservice.PathParameter("namespace", "the name of namespaces")).
 		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
+		Param(webservice.PathParameter("file","the name of binary file")).
 		Returns(http.StatusOK, RespOK, nil))
 
 	// TODO are not used in this version. will be added in 2.1.0
