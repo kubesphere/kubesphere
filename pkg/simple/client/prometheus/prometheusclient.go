@@ -50,24 +50,26 @@ func init() {
 }
 
 type MonitoringRequestParams struct {
-	Params          url.Values
-	QueryType       string
-	SortMetricName  string
-	SortType        string
-	PageNum         string
-	LimitNum        string
-	Tp              string
-	MetricsFilter   string
-	ResourcesFilter string
-	MetricsName     string
-	WorkloadName    string
-	NodeId          string
-	WsName          string
-	NsName          string
-	PodName         string
-	ContainerName   string
-	WorkloadKind    string
-	ComponentName   string
+	Params           url.Values
+	QueryType        string
+	SortMetricName   string
+	SortType         string
+	PageNum          string
+	LimitNum         string
+	Tp               string
+	MetricsFilter    string
+	ResourcesFilter  string
+	MetricsName      string
+	WorkloadName     string
+	NodeId           string
+	WsName           string
+	NsName           string
+	PodName          string
+	PVCName          string
+	StorageClassName string
+	ContainerName    string
+	WorkloadKind     string
+	ComponentName    string
 }
 
 var client = &http.Client{}
@@ -113,27 +115,31 @@ func ParseMonitoringRequestParams(request *restful.Request) *MonitoringRequestPa
 	wsName := strings.Trim(request.PathParameter("workspace"), " ")
 	nsName := strings.Trim(request.PathParameter("namespace"), " ")
 	podName := strings.Trim(request.PathParameter("pod"), " ")
+	pvcName := strings.Trim(request.PathParameter("pvc"), " ")
+	storageClassName := strings.Trim(request.PathParameter("storageclass"), " ")
 	containerName := strings.Trim(request.PathParameter("container"), " ")
 	workloadKind := strings.Trim(request.PathParameter("kind"), " ")
 	componentName := strings.Trim(request.PathParameter("component"), " ")
 
 	var requestParams = MonitoringRequestParams{
-		SortMetricName:  sortMetricName,
-		SortType:        sortType,
-		PageNum:         pageNum,
-		LimitNum:        limitNum,
-		Tp:              tp,
-		MetricsFilter:   metricsFilter,
-		ResourcesFilter: resourcesFilter,
-		MetricsName:     metricsName,
-		WorkloadName:    workloadName,
-		NodeId:          nodeId,
-		WsName:          wsName,
-		NsName:          nsName,
-		PodName:         podName,
-		ContainerName:   containerName,
-		WorkloadKind:    workloadKind,
-		ComponentName:   componentName,
+		SortMetricName:   sortMetricName,
+		SortType:         sortType,
+		PageNum:          pageNum,
+		LimitNum:         limitNum,
+		Tp:               tp,
+		MetricsFilter:    metricsFilter,
+		ResourcesFilter:  resourcesFilter,
+		MetricsName:      metricsName,
+		WorkloadName:     workloadName,
+		NodeId:           nodeId,
+		WsName:           wsName,
+		NsName:           nsName,
+		PodName:          podName,
+		PVCName:          pvcName,
+		StorageClassName: storageClassName,
+		ContainerName:    containerName,
+		WorkloadKind:     workloadKind,
+		ComponentName:    componentName,
 	}
 
 	if timeout == "" {

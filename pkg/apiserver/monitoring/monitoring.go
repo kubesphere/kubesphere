@@ -235,6 +235,33 @@ func MonitorNode(request *restful.Request, response *restful.Response) {
 	}
 }
 
+func MonitorAllPVCsOfSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorPVC(request, response)
+}
+
+func MonitorAllPVCsOfSpecificStorageClass(request *restful.Request, response *restful.Response) {
+	MonitorPVC(request, response)
+}
+
+func MonitorSpecificPVCofSpecificNamespace(request *restful.Request, response *restful.Response) {
+	MonitorPVC(request, response)
+}
+
+func MonitorPVC(request *restful.Request, response *restful.Response) {
+	requestParams := prometheus.ParseMonitoringRequestParams(request)
+	pvcName := requestParams.PVCName
+	if pvcName != "" {
+		requestParams.ResourcesFilter = fmt.Sprintf("^%s$", requestParams.PVCName)
+	}
+
+	rawMetrics := metrics.GetPVCLevelMetrics(requestParams)
+	// sorting
+	sortedMetrics, maxMetricCount := metrics.Sort(requestParams.SortMetricName, requestParams.SortType, rawMetrics)
+	// paging
+	pagedMetrics := metrics.Page(requestParams.PageNum, requestParams.LimitNum, sortedMetrics, maxMetricCount)
+	response.WriteAsJson(pagedMetrics)
+}
+
 func MonitorComponent(request *restful.Request, response *restful.Response) {
 	requestParams := prometheus.ParseMonitoringRequestParams(request)
 
