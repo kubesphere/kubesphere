@@ -18,48 +18,49 @@
 package redis
 
 import (
-	"flag"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-
+	"fmt"
 	"github.com/go-redis/redis"
+	"k8s.io/klog"
 )
 
-var (
-	redisHost       string
-	redisPassword   string
-	redisDB         int
-	redisClientOnce sync.Once
-	redisClient     *redis.Client
-)
-
-func init() {
-	flag.StringVar(&redisHost, "redis-server", "localhost:6379", "redis server host")
-	flag.StringVar(&redisPassword, "redis-password", "", "redis password")
-	flag.IntVar(&redisDB, "redis-db", 0, "redis db")
+type RedisClient struct {
+	client *redis.Client
 }
 
-func Client() *redis.Client {
+func NewRedisClientOrDie(options *RedisOptions, stopCh <-chan struct{}) *RedisClient {
+	client, err := NewRedisClient(options, stopCh)
+	if err != nil {
+		panic(err)
+	}
 
-	redisClientOnce.Do(func() {
-		redisClient = redis.NewClient(&redis.Options{
-			Addr:     redisHost,
-			Password: redisPassword,
-			DB:       redisDB,
-		})
-		if err := redisClient.Ping().Err(); err != nil {
-			log.Fatalln(err)
-		}
-		c := make(chan os.Signal, 0)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			redisClient.Close()
-		}()
+	return client
+}
+
+func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (*RedisClient, error) {
+	var r RedisClient
+
+	r.client = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", option.Host, option.Port),
+		Password: option.Password,
+		DB:       option.DB,
 	})
 
-	return redisClient
+	if err := r.client.Ping().Err(); err != nil {
+		klog.Error("unable to reach redis host", err)
+		r.client.Close()
+		return nil, err
+	}
+
+	go func() {
+		<-stopCh
+		if err := r.client.Close(); err != nil {
+			klog.Error(err)
+		}
+	}()
+
+	return &r, nil
+}
+
+func (r *RedisClient) Redis() *redis.Client {
+	return r.client
 }

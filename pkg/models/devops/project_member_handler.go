@@ -14,22 +14,24 @@ package devops
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
-	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
 	memberships := make([]*DevOpsProjectMembership, 0)
 	var sqconditions []dbr.Builder
 	sqconditions = append(sqconditions, db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))
@@ -59,14 +61,14 @@ func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy 
 	} else {
 		query.Where(sqconditions[0])
 	}
-	_, err := query.Load(&memberships)
+	_, err = query.Load(&memberships)
 	if err != nil && err != dbr.ErrNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	count, err := query.Count()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	result := make([]interface{}, 0)
@@ -78,35 +80,46 @@ func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy 
 }
 
 func GetProjectMember(projectId, username string) (*DevOpsProjectMembership, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
+
 	member := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId),
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username))).
 		LoadOne(&member)
 	if err != nil && err != dbr.ErrNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	if err == dbr.ErrNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusNotFound, err.Error())
 	}
 	return member, nil
 }
 
 func AddProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
-	dbconn := devops_mysql.OpenDatabase()
-	jenkinsClient := admin_jenkins.Client()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return nil, err
+	}
+	jenkinsClient := devops.Jenkins()
 	if jenkinsClient == nil {
 		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+		klog.Error(err)
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
 	membership := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, member.Username),
@@ -114,18 +127,18 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 	// if user could be founded in db, user have been added to project
 	if err == nil {
 		err = fmt.Errorf("user [%s] have been added to project", member.Username)
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	if err != nil && err != db.ErrNotFound {
-		glog.Errorf("%+v", err)
+	if err != db.ErrNotFound {
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	globalRole, err := jenkinsClient.GetGlobalRole(JenkinsAllUserRoleName)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
@@ -133,33 +146,33 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 			GlobalRead: true,
 		}, true)
 		if err != nil {
-			glog.Errorf("failed to create jenkins global role %+v", err)
+			klog.Errorf("failed to create jenkins global role %+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 	}
 	err = globalRole.AssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	projectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	pipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	projectMembership := NewDevOpsProjectMemberShip(member.Username, projectId, member.Role, operator)
@@ -168,15 +181,15 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		Columns(DevOpsProjectMembershipColumns...).
 		Record(projectMembership).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		err = projectRole.UnAssignRole(member.Username)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		err = pipelineRole.UnAssignRole(member.Username)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
@@ -185,66 +198,82 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 }
 
 func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
-	dbconn := devops_mysql.OpenDatabase()
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return nil, err
+	}
+
+	jenkinsClient := devops.Jenkins()
+	if jenkinsClient == nil {
+		err := fmt.Errorf("could not connect to jenkins")
+		klog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+
 	oldMembership := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, member.Username),
 			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId),
 		)).LoadOne(oldMembership)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 	}
 
 	oldProjectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, oldMembership.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	err = oldProjectRole.UnAssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	oldPipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, oldMembership.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	err = oldPipelineRole.UnAssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	projectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, member.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	err = projectRole.AssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	pipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, member.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	err = pipelineRole.AssignRole(member.Username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
+
 	_, err = dbconn.Update(DevOpsProjectMembershipTableName).
 		Set(DevOpsProjectMembershipRoleColumn, member.Role).
 		Where(db.And(
@@ -252,9 +281,10 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 			db.Eq(DevOpsProjectMembershipUsernameColumn, member.Username),
 		)).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
+
 	responseMembership := &DevOpsProjectMembership{}
 	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
@@ -263,35 +293,42 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId),
 		)).LoadOne(responseMembership)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return responseMembership, nil
 }
 
 func DeleteProjectMember(projectId, username string) (string, error) {
-	dbconn := devops_mysql.OpenDatabase()
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+
+	jenkinsClient := devops.Jenkins()
+
 	oldMembership := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
 			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId),
 		)).LoadOne(oldMembership)
-	if err != nil && err != db.ErrNotFound {
-		glog.Errorf("%+v", err)
-		return "", restful.NewError(http.StatusInternalServerError, err.Error())
+	if err != nil {
+		if err != db.ErrNotFound {
+			klog.Errorf("%+v", err)
+			return "", restful.NewError(http.StatusInternalServerError, err.Error())
+		} else if err == db.ErrNotFound {
+			klog.Warningf("user [%s] not found in project", username)
+			return username, nil
+		}
 	}
-	if err == db.ErrNotFound {
-		glog.Warningf("user [%s] not found in project", username)
-		return username, nil
-	}
+
 	if oldMembership.Role == ProjectOwner {
 		count, err := dbconn.Select(DevOpsProjectMembershipProjectIdColumn).
 			From(DevOpsProjectMembershipTableName).
@@ -299,34 +336,35 @@ func DeleteProjectMember(projectId, username string) (string, error) {
 				db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId),
 				db.Eq(DevOpsProjectMembershipRoleColumn, ProjectOwner))).Count()
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 		if count == 1 {
 			err = fmt.Errorf("project must has at least one admin")
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
 	}
+
 	oldProjectRole, err := jenkinsClient.GetProjectRole(GetProjectRoleName(projectId, oldMembership.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = oldProjectRole.UnAssignRole(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	oldPipelineRole, err := jenkinsClient.GetProjectRole(GetPipelineRoleName(projectId, oldMembership.Role))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = oldPipelineRole.UnAssignRole(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
@@ -336,7 +374,7 @@ func DeleteProjectMember(projectId, username string) (string, error) {
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
 		)).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return username, nil

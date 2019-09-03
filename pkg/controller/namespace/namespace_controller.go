@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -356,6 +357,10 @@ func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namesp
 
 // Create openpitrix runtime
 func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) error {
+	openPitrixClient, err := cs.ClientSets().OpenPitrix()
+	if err != nil {
+		return err
+	}
 
 	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
 		return nil
@@ -363,7 +368,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 
 	cm := &corev1.ConfigMap{}
 	configName := fmt.Sprintf("kubeconfig-%s", constants.AdminUserName)
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.KubeSphereControlNamespace, Name: configName}, cm)
+	err = r.Get(context.TODO(), types.NamespacedName{Namespace: constants.KubeSphereControlNamespace, Name: configName}, cm)
 
 	if err != nil {
 		return err
@@ -371,7 +376,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 
 	runtime := &openpitrix.RunTime{Name: namespace.Name, Zone: namespace.Name, Provider: "kubernetes", RuntimeCredential: cm.Data["config"]}
 
-	if err := openpitrix.Client().CreateRuntime(runtime); err != nil {
+	if err := openPitrixClient.CreateRuntime(runtime); err != nil {
 		klog.Errorf("creating openpitrix runtime namespace: %s, error: %s", namespace.Name, err)
 		return err
 	}
@@ -387,7 +392,12 @@ func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
 		for i := float64(0); i < maxRetries; i++ {
 			time.Sleep(time.Duration(i*math.Pow(2, i)) * time.Second)
 
-			err := openpitrix.Client().DeleteRuntime(runtimeId)
+			openPitrixClient, err := cs.ClientSets().OpenPitrix()
+			if err != nil {
+				return err
+			}
+
+			err = openPitrixClient.DeleteRuntime(runtimeId)
 
 			if err == nil || openpitrix.IsNotFound(err) || openpitrix.IsDeleted(err) {
 				return nil

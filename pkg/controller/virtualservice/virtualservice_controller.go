@@ -16,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	log "k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	istioclient "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
@@ -45,8 +45,6 @@ const (
 	// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
 	maxRetries = 15
 )
-
-var log = logf.Log.WithName("virtualservice-controller")
 
 type VirtualServiceController struct {
 	client clientset.Interface
@@ -152,7 +150,7 @@ func (v *VirtualServiceController) Run(workers int, stopCh <-chan struct{}) erro
 	defer utilruntime.HandleCrash()
 	defer v.queue.ShutDown()
 
-	log.Info("starting virtualservice controller")
+	log.V(0).Info("starting virtualservice controller")
 	defer log.Info("shutting down virtualservice controller")
 
 	if !cache.WaitForCacheSync(stopCh, v.serviceSynced, v.virtualServiceSynced, v.destinationRuleSynced, v.strategySynced) {

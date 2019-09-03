@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math/big"
 	rd "math/rand"
 	"time"
@@ -217,7 +217,7 @@ func createKubeConfig(username string) (string, error) {
 		return "", err
 	}
 	base64ServerCa := base64.StdEncoding.EncodeToString(serverCa)
-	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: k8s.KubeConfig.Host}
+	tmpClusterInfo := clusterInfo{CertificateAuthorityData: base64ServerCa, Server: client.ClientSets().K8s().Master()}
 	tmpCluster := cluster{Cluster: tmpClusterInfo, Name: clusterName}
 	tmpKubeConfig.Clusters = append(tmpKubeConfig.Clusters, tmpCluster)
 
@@ -244,7 +244,7 @@ func createKubeConfig(username string) (string, error) {
 }
 
 func CreateKubeConfig(username string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	configName := fmt.Sprintf("kubeconfig-%s", username)
 	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 
@@ -255,7 +255,7 @@ func CreateKubeConfig(username string) error {
 			return err
 		}
 
-		data := map[string]string{"config": string(config)}
+		data := map[string]string{"config": config}
 		configMap := v1.ConfigMap{TypeMeta: metaV1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metaV1.ObjectMeta{Name: configName}, Data: data}
 		_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(&configMap)
 		if err != nil && !errors.IsAlreadyExists(err) {
@@ -269,7 +269,7 @@ func CreateKubeConfig(username string) error {
 }
 
 func GetKubeConfig(username string) (string, error) {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	configName := fmt.Sprintf("kubeconfig-%s", username)
 	configMap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 	if err != nil {
@@ -284,10 +284,7 @@ func GetKubeConfig(username string) (string, error) {
 		glog.Error(err)
 		return "", err
 	}
-	masterURL := k8s.KubeConfig.Host
-	if host := k8s.MasterURL; host != "" {
-		masterURL = host
-	}
+	masterURL := client.ClientSets().K8s().Master()
 	for i, cluster := range kubeConfig.Clusters {
 		cluster.Cluster.Server = masterURL
 		kubeConfig.Clusters[i] = cluster
@@ -301,7 +298,7 @@ func GetKubeConfig(username string) (string, error) {
 }
 
 func DelKubeConfig(username string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	configName := fmt.Sprintf("kubeconfig-%s", username)
 	_, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 	if errors.IsNotFound(err) {

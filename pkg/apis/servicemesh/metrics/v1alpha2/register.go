@@ -168,7 +168,7 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("workload", "workload name").Required(true)).
 		Param(webservice.QueryParameter("rateInterval", "the rate interval used for fetching error rate").DefaultValue("10m").Required(true)).
 		Param(webservice.QueryParameter("queryTime", "the time to use for query")).
-		ReturnsError(http.StatusOK, "ok", workloadHealthResponse{}).
+		Returns(http.StatusOK, "ok", workloadHealthResponse{}).
 		Writes(workloadHealthResponse{})).Produces(restful.MIME_JSON)
 
 	// Get app health
