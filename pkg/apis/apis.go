@@ -21,15 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Generate openapi for apis
-//go:generate go run ../../vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ../../vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./tenant/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1 -h ../../hack/boilerplate.go.txt --report-filename ../../api/api-rules/violation_exceptions.list
-//go:generate go run ../../vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ../../vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./servicemesh/v1alpha2 -p kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2 -h ../../hack/boilerplate.go.txt --report-filename ../../api/api-rules/violation_exceptions.list
-//go:generate go run ../../vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ../../vendor/k8s.io/api/networking/v1,../../vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./network/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/network/v1alpha1 -h ../../hack/boilerplate.go.txt --report-filename ../../api/api-rules/violation_exceptions.list
-//go:generate go run ../../vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ../../vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./devops/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1 -h ../../hack/boilerplate.go.txt --report-filename ../../api/api-rules/violation_exceptions.list
 
-// Generate deepcopy for apis
-
-//go:generate ${GOPATH}/bin/deepcopy-gen -i kubesphere.io/kubesphere/pkg/apis/... -h ../../hack/boilerplate.go.txt -O zz_generated.deepcopy
 // AddToSchemes may be used to add all resources defined in the project to a Scheme
 var AddToSchemes runtime.SchemeBuilder
 
