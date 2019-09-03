@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -611,6 +612,26 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Get crumb issuer. A CrumbIssuer represents an algorithm to generate a nonce value, known as a crumb, to counter cross site request forgery exploits. Crumbs are typically hashes incorporating information that uniquely identifies an agent that sends a request, along with a guarded secret so that the crumb value cannot be forged by a third party.").
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).
 		Writes(devops.Crumb{}))
+
+	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
+		To(devopsapi.UploadS2iBinary).
+		Consumes("multipart/form-data").
+		Produces(restful.MIME_JSON).
+		Doc("Upload S2iBinary file").
+		Param(webservice.PathParameter("namespace", "the name of namespaces")).
+		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
+		Param(webservice.FormParameter("s2ibinary", "file to upload")).
+		Param(webservice.FormParameter("md5", "md5 of file")).
+		Returns(http.StatusOK, RespOK, devopsv1alpha1.S2iBinary{}))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
+		To(devopsapi.DownloadS2iBinary).
+		Produces(restful.MIME_OCTET).
+		Doc("Download S2iBinary file").
+		Param(webservice.PathParameter("namespace", "the name of namespaces")).
+		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
+		Param(webservice.PathParameter("file","the name of binary file")).
+		Returns(http.StatusOK, RespOK, nil))
 
 	// TODO are not used in this version. will be added in 2.1.0
 	//// match /job/init-job/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile

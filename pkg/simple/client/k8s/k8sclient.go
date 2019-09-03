@@ -38,7 +38,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&kubeConfigFile, "kubeconfig", "", "path to kubeconfig file")
+	flag.StringVar(&kubeConfigFile, "kubeconfig-path", "", "path to kubeconfig file")
 	flag.StringVar(&MasterURL, "master-url", "", "kube-apiserver url, only needed when out of cluster")
 }
 

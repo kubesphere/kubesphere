@@ -24,6 +24,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
+
+	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 
 	//"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
@@ -36,8 +39,10 @@ import (
 	istioinformers "github.com/knative/pkg/client/informers/externalversions"
 	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
-	servicemeshclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	s2iclientset "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
+	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
+	kubesphereclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	kubesphereinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )
 
 const defaultResync = 600 * time.Second
@@ -62,56 +67,70 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		log.Error(err, "create application client failed")
 		return err
 	}
+	s2iclient, err := s2iclientset.NewForConfig(cfg)
+	if err != nil {
+		log.Error(err, "create s2i client failed")
+		return err
+	}
+	kubesphereclient, err := kubesphereclientset.NewForConfig(cfg)
+	if err != nil {
+		log.Error(err, "create kubesphere client failed")
+		return err
+	}
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, defaultResync)
 	istioInformer := istioinformers.NewSharedInformerFactory(istioclient, defaultResync)
 	applicationInformer := applicationinformers.NewSharedInformerFactory(applicationClient, defaultResync)
+	s2iInformer := s2iinformers.NewSharedInformerFactory(s2iclient, defaultResync)
 
-	servicemeshclient, err := servicemeshclientset.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "create servicemesh client failed")
-		return err
-	}
-
-	servicemeshInformer := servicemeshinformers.NewSharedInformerFactory(servicemeshclient, defaultResync)
+	kubesphereInformer := kubesphereinformers.NewSharedInformerFactory(kubesphereclient, defaultResync)
 
 	vsController := virtualservice.NewVirtualServiceController(informerFactory.Core().V1().Services(),
 		istioInformer.Networking().V1alpha3().VirtualServices(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
-		servicemeshInformer.Servicemesh().V1alpha2().Strategies(),
+		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
 		kubeClient,
 		istioclient,
-		servicemeshclient)
+		kubesphereclient)
 
 	drController := destinationrule.NewDestinationRuleController(informerFactory.Apps().V1().Deployments(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
 		informerFactory.Core().V1().Services(),
-		servicemeshInformer.Servicemesh().V1alpha2().ServicePolicies(),
+		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
 		kubeClient,
 		istioclient,
-		servicemeshclient)
+		kubesphereclient)
 
 	apController := application.NewApplicationController(informerFactory.Core().V1().Services(),
 		informerFactory.Apps().V1().Deployments(),
 		informerFactory.Apps().V1().StatefulSets(),
-		servicemeshInformer.Servicemesh().V1alpha2().Strategies(),
-		servicemeshInformer.Servicemesh().V1alpha2().ServicePolicies(),
+		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
+		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
 		applicationInformer.App().V1beta1().Applications(),
 		kubeClient,
 		applicationClient)
 
 	jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
 
-	servicemeshInformer.Start(stopCh)
+	s2iBinaryController := s2ibinary.NewController(kubesphereclient, kubeClient, kubesphereInformer.Devops().V1alpha1().S2iBinaries())
+
+	s2iRunController := s2irun.NewController(kubesphereclient, s2iclient, kubeClient,
+		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+		s2iInformer.Devops().V1alpha1().S2iRuns())
+
+	kubesphereInformer.Start(stopCh)
 	istioInformer.Start(stopCh)
 	informerFactory.Start(stopCh)
 	applicationInformer.Start(stopCh)
+	s2iInformer.Start(stopCh)
 
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":  vsController,
 		"destinationrule-controller": drController,
 		"application-controller":     apController,
 		"job-controller":             jobController,
+		"s2ibinary-controller":       s2iBinaryController,
+		"s2irun-controller":          s2iRunController,
 	}
 
 	for name, ctrl := range controllers {

@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c // indirect
+	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
@@ -12,6 +13,7 @@ require (
 	github.com/Sirupsen/logrus v1.4.1 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180315120708-ccb8e960c48f
+	github.com/aws/aws-sdk-go v1.22.2
 	github.com/beevik/etree v1.1.0
 	github.com/beorn7/perks v1.0.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -22,7 +24,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/docker/distribution v0.0.0-20190417014306-3226863cbcba // indirect
+	github.com/docker/distribution v0.0.0-20190417014306-3226863cbcba
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
@@ -76,7 +78,7 @@ require (
 	github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-sigs/application v0.0.0-20190404151855-67ae7f915d4e
-	github.com/kubesphere/s2ioperator v0.0.12
+	github.com/kubesphere/s2ioperator v0.0.13
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
@@ -90,7 +92,8 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
+	github.com/opencontainers/go-digest v1.0.0-rc1
+	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect

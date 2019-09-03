@@ -43,7 +43,7 @@ import (
 var output string
 
 func init() {
-	flag.StringVar(&output, "output", "./api.json", "--output=./api.json")
+	flag.StringVar(&output, "output", "./api/ks-openapi-spec/swagger.json", "--output=./api.json")
 }
 
 func main() {
@@ -86,7 +86,7 @@ func generateSwaggerJson() {
 		},
 		{
 			Name: "Other",
-			Tags: []string{constants.VerificationTag},
+			Tags: []string{constants.VerificationTag, constants.RegistryTag},
 		},
 		{
 			Name: "DevOps",

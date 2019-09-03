@@ -163,7 +163,6 @@ type SchemaProps struct {
 	Schema               SchemaURL         `json:"-"`
 	Description          string            `json:"description,omitempty"`
 	Type                 StringOrArray     `json:"type,omitempty"`
-	Nullable             bool              `json:"nullable,omitempty"`
 	Format               string            `json:"format,omitempty"`
 	Title                string            `json:"title,omitempty"`
 	Default              interface{}       `json:"default,omitempty"`
@@ -300,12 +299,6 @@ func (s *Schema) AddType(tpe, format string) *Schema {
 	if format != "" {
 		s.Format = format
 	}
-	return s
-}
-
-// AsNullable flags this schema as nullable.
-func (s *Schema) AsNullable() *Schema {
-	s.Nullable = true
 	return s
 }
 

@@ -1,0 +1,6 @@
+apiVersion: devops.kubesphere.io/v1alpha1
+kind: S2iBinary
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: s2ibinary-sample

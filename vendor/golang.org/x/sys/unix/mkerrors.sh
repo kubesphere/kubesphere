@@ -182,7 +182,6 @@ struct ltchars {
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/xattr.h>
-#include <linux/bpf.h>
 #include <linux/errqueue.h>
 #include <linux/if.h>
 #include <linux/if_alg.h>
@@ -193,7 +192,6 @@ struct ltchars {
 #include <linux/if_packet.h>
 #include <linux/if_addr.h>
 #include <linux/falloc.h>
-#include <linux/fanotify.h>
 #include <linux/filter.h>
 #include <linux/fs.h>
 #include <linux/kexec.h>
@@ -223,7 +221,6 @@ struct ltchars {
 #include <linux/hdreg.h>
 #include <linux/rtc.h>
 #include <linux/if_xdp.h>
-#include <linux/cryptouser.h>
 #include <mtd/ubi-user.h>
 #include <net/route.h>
 
@@ -434,7 +431,7 @@ ccflags="$@"
 		$2 ~ /^TC[IO](ON|OFF)$/ ||
 		$2 ~ /^IN_/ ||
 		$2 ~ /^LOCK_(SH|EX|NB|UN)$/ ||
-		$2 ~ /^(AF|SOCK|SO|SOL|IPPROTO|IP|IPV6|ICMP6|TCP|MCAST|EVFILT|NOTE|EV|SHUT|PROT|MAP|MFD|T?PACKET|MSG|SCM|MCL|DT|MADV|PR)_/ ||
+		$2 ~ /^(AF|SOCK|SO|SOL|IPPROTO|IP|IPV6|ICMP6|TCP|EVFILT|NOTE|EV|SHUT|PROT|MAP|MFD|T?PACKET|MSG|SCM|MCL|DT|MADV|PR)_/ ||
 		$2 ~ /^TP_STATUS_/ ||
 		$2 ~ /^FALLOC_/ ||
 		$2 == "ICMPV6_FILTER" ||
@@ -467,7 +464,7 @@ ccflags="$@"
 		$2 ~ /^RLIMIT_(AS|CORE|CPU|DATA|FSIZE|LOCKS|MEMLOCK|MSGQUEUE|NICE|NOFILE|NPROC|RSS|RTPRIO|RTTIME|SIGPENDING|STACK)|RLIM_INFINITY/ ||
 		$2 ~ /^PRIO_(PROCESS|PGRP|USER)/ ||
 		$2 ~ /^CLONE_[A-Z_]+/ ||
-		$2 !~ /^(BPF_TIMEVAL|BPF_FIB_LOOKUP_[A-Z]+)$/ &&
+		$2 !~ /^(BPF_TIMEVAL)$/ &&
 		$2 ~ /^(BPF|DLT)_/ ||
 		$2 ~ /^(CLOCK|TIMER)_/ ||
 		$2 ~ /^CAN_/ ||
@@ -501,11 +498,9 @@ ccflags="$@"
 		$2 ~ /^NFN/ ||
 		$2 ~ /^XDP_/ ||
 		$2 ~ /^(HDIO|WIN|SMART)_/ ||
-		$2 ~ /^CRYPTO_/ ||
 		$2 !~ "WMESGLEN" &&
 		$2 ~ /^W[A-Z0-9]+$/ ||
 		$2 ~/^PPPIOC/ ||
-		$2 ~ /^FAN_|FANOTIFY_/ ||
 		$2 ~ /^BLK[A-Z]*(GET$|SET$|BUF$|PART$|SIZE)/ {printf("\t%s = C.%s\n", $2, $2)}
 		$2 ~ /^__WCOREFLAG$/ {next}
 		$2 ~ /^__W[A-Z0-9]+$/ {printf("\t%s = C.%s\n", substr($2,3), $2)}
