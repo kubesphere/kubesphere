@@ -630,7 +630,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Doc("Download S2iBinary file").
 		Param(webservice.PathParameter("namespace", "the name of namespaces")).
 		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
-		Param(webservice.PathParameter("file","the name of binary file")).
+		Param(webservice.PathParameter("file", "the name of binary file")).
 		Returns(http.StatusOK, RespOK, nil))
 
 	// TODO are not used in this version. will be added in 2.1.0

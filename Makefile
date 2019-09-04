@@ -76,9 +76,18 @@ deploy: manifests
 # generate will generate crds' deepcopy & go openapi structs
 # Futher more about go:genreate . https://blog.golang.org/generate
 generate:
-	GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/deepcopy-gen
 	go generate ./pkg/... ./cmd/...
 
+deepcopy:
+	GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/deepcopy-gen
+	${GOPATH}/bin/deepcopy-gen -i kubesphere.io/kubesphere/pkg/apis/... -h ./hack/boilerplate.go.txt -O zz_generated.deepcopy
+
+openapi:
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/tenant/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/servicemesh/v1alpha2 -p kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/api/networking/v1,./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/network/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/network/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/devops/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./tools/cmd/crd-doc-gen/main.go
 # Build the docker image
 docker-build: all
 	docker build . -t ${IMG}
