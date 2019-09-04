@@ -89,12 +89,10 @@ type BoolQuery struct {
 	Bool interface{} `json:"bool"`
 }
 
-type FilterContext struct {
+// user filter instead of must
+// filter ignores scoring
+type BoolFilter struct {
 	Filter []interface{} `json:"filter"`
-}
-
-type BoolMust struct {
-	Must []interface{} `json:"must"`
 }
 
 type BoolShould struct {
@@ -175,23 +173,23 @@ type DateHistogram struct {
 
 func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	var request Request
-	var mainBoolQuery FilterContext
+	var mainBoolQuery BoolFilter
 
 	if len(param.NamespaceWithCreationTime) != 0 {
-		var boolShoulds BoolShould
+		var boolShould BoolShould
 		for namespace, creationTime := range param.NamespaceWithCreationTime {
-			var boolMusts BoolMust
+			var boolFilter BoolFilter
 
 			matchPhrase := MatchPhrase{MatchPhrase: map[string]string{fieldNamespaceNameKeyword: namespace}}
 			rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
 
-			boolMusts.Must = append(boolMusts.Must, matchPhrase)
-			boolMusts.Must = append(boolMusts.Must, rangeQuery)
+			boolFilter.Filter = append(boolFilter.Filter, matchPhrase)
+			boolFilter.Filter = append(boolFilter.Filter, rangeQuery)
 
-			boolShoulds.Should = append(boolShoulds.Should, BoolQuery{Bool: boolMusts})
+			boolShould.Should = append(boolShould.Should, BoolQuery{Bool: boolFilter})
 		}
-		boolShoulds.MinimumShouldMatch = 1
-		mainBoolQuery.Filter = append(mainBoolQuery.Filter, BoolQuery{Bool: boolShoulds})
+		boolShould.MinimumShouldMatch = 1
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, BoolQuery{Bool: boolShould})
 	}
 	if param.WorkloadFilter != nil {
 		boolQuery := makeBoolShould(matchPhrase, fieldPodNameKeyword, param.WorkloadFilter)
