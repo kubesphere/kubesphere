@@ -4,7 +4,7 @@ set -e
 
 workspace=`pwd`
 tag=`git rev-parse --short HEAD`
-IMG=magicsong/ks-network:$tag
+IMG=kubespheredev/ks-network:$tag
 DEST=/tmp/manager.yaml
 TEST_NS=network-test-$tag
 SKIP_BUILD=no
