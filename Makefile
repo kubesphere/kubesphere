@@ -39,7 +39,7 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test ks-apiserver ks-apigateway ks-iam controller-manager clientset
+all: test ks-apiserver ks-apigateway ks-iam controller-manager 
 
 # Build ks-apiserver binary
 ks-apiserver: test
