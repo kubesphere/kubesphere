@@ -150,6 +150,21 @@ github.com/docker/spdystream
 github.com/docker/spdystream/spdy
 # github.com/dustin/go-humanize v1.0.0 => github.com/dustin/go-humanize v1.0.0
 github.com/dustin/go-humanize
+# github.com/elastic/go-elasticsearch/v5 v5.6.1 => github.com/elastic/go-elasticsearch/v5 v5.6.1
+github.com/elastic/go-elasticsearch/v5
+github.com/elastic/go-elasticsearch/v5/esapi
+github.com/elastic/go-elasticsearch/v5/estransport
+github.com/elastic/go-elasticsearch/v5/internal/version
+# github.com/elastic/go-elasticsearch/v6 v6.8.2 => github.com/elastic/go-elasticsearch/v6 v6.8.2
+github.com/elastic/go-elasticsearch/v6
+github.com/elastic/go-elasticsearch/v6/esapi
+github.com/elastic/go-elasticsearch/v6/estransport
+github.com/elastic/go-elasticsearch/v6/internal/version
+# github.com/elastic/go-elasticsearch/v7 v7.3.0 => github.com/elastic/go-elasticsearch/v7 v7.3.0
+github.com/elastic/go-elasticsearch/v7
+github.com/elastic/go-elasticsearch/v7/esapi
+github.com/elastic/go-elasticsearch/v7/estransport
+github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/elazarl/go-bindata-assetfs v1.0.0 => github.com/elazarl/go-bindata-assetfs v1.0.0
 github.com/elazarl/go-bindata-assetfs
 # github.com/emicklei/go-restful v2.9.5+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
