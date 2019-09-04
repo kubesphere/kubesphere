@@ -29,10 +29,13 @@ const (
 	matchPhrase = iota
 	matchPhrasePrefix
 
-	fieldNamespaceName = "kubernetes.namespace_name"
 	fieldPodName       = "kubernetes.pod_name"
 	fieldContainerName = "kubernetes.container_name"
 	fieldLog           = "log"
+
+	fieldNamespaceNameKeyword = "kubernetes.namespace_name.keyword"
+	fieldPodNameKeyword       = "kubernetes.pod_name.keyword"
+	fieldContainerNameKeyword = "kubernetes.container_name.keyword"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -87,7 +90,7 @@ type BoolQuery struct {
 }
 
 type FilterContext struct {
-	Filter []interface{} `json:"must"`
+	Filter []interface{} `json:"filter"`
 }
 
 type BoolMust struct {
@@ -179,7 +182,7 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		for namespace, creationTime := range param.NamespaceWithCreationTime {
 			var boolMusts BoolMust
 
-			matchPhrase := MatchPhrase{MatchPhrase: map[string]string{fieldNamespaceName: namespace}}
+			matchPhrase := MatchPhrase{MatchPhrase: map[string]string{fieldNamespaceNameKeyword: namespace}}
 			rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
 
 			boolMusts.Must = append(boolMusts.Must, matchPhrase)
@@ -191,15 +194,15 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 		mainBoolQuery.Filter = append(mainBoolQuery.Filter, BoolQuery{Bool: boolShoulds})
 	}
 	if param.WorkloadFilter != nil {
-		boolQuery := makeBoolShould(matchPhrase, fieldPodName, param.WorkloadFilter)
+		boolQuery := makeBoolShould(matchPhrase, fieldPodNameKeyword, param.WorkloadFilter)
 		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 	if param.PodFilter != nil {
-		boolQuery := makeBoolShould(matchPhrase, fieldPodName, param.PodFilter)
+		boolQuery := makeBoolShould(matchPhrase, fieldPodNameKeyword, param.PodFilter)
 		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 	if param.ContainerFilter != nil {
-		boolQuery := makeBoolShould(matchPhrase, fieldContainerName, param.ContainerFilter)
+		boolQuery := makeBoolShould(matchPhrase, fieldContainerNameKeyword, param.ContainerFilter)
 		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 
