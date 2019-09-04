@@ -24,7 +24,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/models/log"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fluentbitclient "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
@@ -47,7 +46,6 @@ func addWebService(c *restful.Container) error {
 	ws := runtime.NewWebService(GroupVersion)
 
 	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
-		Filter(filter.Logging).
 		Doc("Query logs against the cluster.").
 		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspaces", "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`").DataType("string").Required(false)).
@@ -74,7 +72,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
-		Filter(filter.Logging).
 		Doc("Query logs against the specific workspace.").
 		Param(ws.PathParameter("workspace", "The name of the workspace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
@@ -100,7 +97,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}").To(logging.LoggingQueryNamespace).
-		Filter(filter.Logging).
 		Doc("Query logs against the specific namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
@@ -124,7 +120,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload}").To(logging.LoggingQueryWorkload).
-		Filter(filter.Logging).
 		Doc("Query logs against the specific workload.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("workload", "The name of the workload.").DataType("string").Required(true)).
@@ -147,7 +142,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").To(logging.LoggingQueryPod).
-		Filter(filter.Logging).
 		Doc("Query logs against the specific pod.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -168,7 +162,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(logging.LoggingQueryContainer).
-		Filter(filter.Logging).
 		Doc("Query logs against the specific container.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -188,7 +181,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
-		Filter(filter.Logging).
 		Doc("List all Fluent bit output plugins.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Writes(log.FluentbitOutputsResult{}).
@@ -197,7 +189,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.POST("/fluentbit/outputs").To(logging.LoggingInsertFluentbitOutput).
-		Filter(filter.Logging).
 		Doc("Add a new Fluent bit output plugin.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Reads(fluentbitclient.OutputPlugin{}).
@@ -207,7 +198,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.PUT("/fluentbit/outputs/{output}").To(logging.LoggingUpdateFluentbitOutput).
-		Filter(filter.Logging).
 		Doc("Update the specific Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output.").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
@@ -218,7 +208,6 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.DELETE("/fluentbit/outputs/{output}").To(logging.LoggingDeleteFluentbitOutput).
-		Filter(filter.Logging).
 		Doc("Delete the specific Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output.").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
