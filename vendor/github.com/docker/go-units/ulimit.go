@@ -96,13 +96,8 @@ func ParseUlimit(val string) (*Ulimit, error) {
 		return nil, fmt.Errorf("too many limit value arguments - %s, can only have up to two, `soft[:hard]`", parts[1])
 	}
 
-	if *hard != -1 {
-		if soft == -1 {
-			return nil, fmt.Errorf("ulimit soft limit must be less than or equal to hard limit: soft: -1 (unlimited), hard: %d", *hard)
-		}
-		if soft > *hard {
-			return nil, fmt.Errorf("ulimit soft limit must be less than or equal to hard limit: %d > %d", soft, *hard)
-		}
+	if soft > *hard {
+		return nil, fmt.Errorf("ulimit soft limit must be less than or equal to hard limit: %d > %d", soft, *hard)
 	}
 
 	return &Ulimit{Name: parts[0], Soft: soft, Hard: *hard}, nil
