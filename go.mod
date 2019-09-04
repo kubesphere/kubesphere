@@ -360,7 +360,6 @@ replace (
 	golang.org/x/text => golang.org/x/text v0.3.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
-	golang.org/x/tools/gopls => golang.org/x/tools/gopls v0.1.3
 	google.golang.org/api => google.golang.org/api v0.3.1
 	google.golang.org/appengine => google.golang.org/appengine v1.5.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190418145605-e7d98fc518a7
