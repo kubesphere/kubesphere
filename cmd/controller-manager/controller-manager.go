@@ -42,7 +42,6 @@ func init() {
 func main() {
 	flag.Parse()
 
-
 	cfg, err := k8s.Config()
 	if err != nil {
 		klog.Error(err, "failed to build kubeconfig")
