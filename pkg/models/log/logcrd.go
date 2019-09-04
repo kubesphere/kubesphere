@@ -333,7 +333,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 }
 
 // Parse es host, port and index
-func ParseEsOutputParams(params []fb.Parameter) *es.ESConfigs {
+func ParseEsOutputParams(params []fb.Parameter) *es.Config {
 
 	var (
 		isEsFound bool
@@ -377,5 +377,5 @@ func ParseEsOutputParams(params []fb.Parameter) *es.ESConfigs {
 		}
 	}
 
-	return &es.ESConfigs{Host: host, Port: port, Index: index}
+	return &es.Config{Host: host, Port: port, Index: index}
 }

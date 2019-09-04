@@ -93,6 +93,12 @@ github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25Kn
 github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5mFgVsvEsIPBvNs=
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
+github.com/elastic/go-elasticsearch/v5 v5.6.1 h1:RnL2wcXepOT5SdoKMMO1j1OBX0vxHYbBtkQNL2E3xs4=
+github.com/elastic/go-elasticsearch/v5 v5.6.1/go.mod h1:r7uV7HidpfkYh7D8SB4lkS13TNlNy3oa5GNmTZvuVqY=
+github.com/elastic/go-elasticsearch/v6 v6.8.2 h1:rp5DGrd63V5c6nHLjF6QEXUpZSvs0+QM3ld7m9VhV2g=
+github.com/elastic/go-elasticsearch/v6 v6.8.2/go.mod h1:UwaDJsD3rWLM5rKNFzv9hgox93HoX8utj1kxD9aFUcI=
+github.com/elastic/go-elasticsearch/v7 v7.3.0 h1:H29Nqf9cB9dVxX6LwS+zTDC2D4t9s+8dK8ln4HPS9rw=
+github.com/elastic/go-elasticsearch/v7 v7.3.0/go.mod h1:OJ4wdbtDNk5g503kvlHLyErCgQwwzmDtaFC4XyOxXA4=
 github.com/elazarl/go-bindata-assetfs v1.0.0 h1:G/bYguwHIzWq9ZoyUQqrjTmJbbYn3j3CKKpKinvZLFk=
 github.com/elazarl/go-bindata-assetfs v1.0.0/go.mod h1:v+YaWX3bdea5J/mo8dSETolEo7R71Vk1u8bnjau5yw4=
 github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 h1:aZtFdDNWY/yH86JPR2WX/PN63635VsE/f/nXNPAbYxY=
