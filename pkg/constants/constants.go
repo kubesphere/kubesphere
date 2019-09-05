@@ -69,6 +69,7 @@ const (
 	NodeMetricsTag             = "Node Metrics"
 	NamespaceMetricsTag        = "Namespace Metrics"
 	PodMetricsTag              = "Pod Metrics"
+	PVCMetricsTag              = "PVC Metrics"
 	ContainerMetricsTag        = "Container Metrics"
 	WorkloadMetricsTag         = "Workload Metrics"
 	WorkspaceMetricsTag        = "Workspace Metrics"

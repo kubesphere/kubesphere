@@ -198,6 +198,37 @@ func MakePodPromQL(metricName, nsName, nodeID, podName, podFilter string) string
 	return promql
 }
 
+func MakePVCPromQL(metricName, nsName, pvcName, scName, pvcFilter string) string {
+	if pvcFilter == "" {
+		pvcFilter = ".*"
+	}
+
+	var promql = ""
+	if nsName != "" {
+		// get pvc metrics by namespace
+		if pvcName != "" {
+			// specific pvc
+			promql = RulePromQLTmplMap[metricName]
+			promql = strings.Replace(promql, "$1", nsName, -1)
+			promql = strings.Replace(promql, "$2", pvcName, -1)
+		} else {
+			// all pvc in a specific namespace
+			metricName += "_ns"
+			promql = RulePromQLTmplMap[metricName]
+			promql = strings.Replace(promql, "$1", nsName, -1)
+			promql = strings.Replace(promql, "$2", pvcFilter, -1)
+		}
+	} else {
+		if scName != "" {
+			// all pvc in a specific storageclass
+			metricName += "_sc"
+			promql = RulePromQLTmplMap[metricName]
+			promql = strings.Replace(promql, "$1", scName, -1)
+		}
+	}
+	return promql
+}
+
 func MakeNamespacePromQL(nsName string, nsFilter string, metricsName string) string {
 	var recordingRule = RulePromQLTmplMap[metricsName]
 

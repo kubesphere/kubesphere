@@ -67,6 +67,7 @@ const (
 	MetricLevelPodName          = "pod_name"
 	MetricLevelContainer        = "container"
 	MetricLevelContainerName    = "container_name"
+	MetricLevelPVC              = "persistentvolumeclaim"
 	MetricLevelWorkload         = "workload"
 	MetricLevelComponent        = "component"
 )
@@ -328,6 +329,15 @@ var ContainerMetricsNames = []string{
 	"container_memory_usage_wo_cache",
 	//"container_net_bytes_transmitted",
 	//"container_net_bytes_received",
+}
+
+var PVCMetricsNames = []string{
+	"pvc_inodes_available",
+	"pvc_inodes_used",
+	"pvc_inodes_total",
+	"pvc_bytes_available",
+	"pvc_bytes_used",
+	"pvc_bytes_total",
 }
 
 var ComponentMetricsNames = []string{
@@ -683,6 +693,26 @@ var RulePromQLTmplMap = MetricMap{
 
 	// New in ks 2.0
 	"workspace_pod_abnormal_ratio": `count((kube_pod_info{node!="", namespace$1} unless on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Succeeded"}>0) unless on (pod, namespace) ((kube_pod_status_ready{job="kube-state-metrics", condition="true"}>0) and on (pod, namespace) (kube_pod_status_phase{job="kube-state-metrics", phase="Running"}>0)) unless on (pod, namespace) (kube_pod_container_status_waiting_reason{job="kube-state-metrics", reason="ContainerCreating"}>0)) / sum(kube_pod_status_phase{phase!~"Succeeded", namespace!="", namespace$1}) * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{label_kubesphere_io_workspace$2}))`,
+
+	// PVC
+	"pvc_inodes_available":    `max (kubelet_volume_stats_inodes_free{namespace="$1",persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_used":         `max (kubelet_volume_stats_inodes_used{namespace="$1", persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_total":        `max (kubelet_volume_stats_inodes{namespace="$1", persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_available":     `max (kubelet_volume_stats_available_bytes{namespace="$1", persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_used":          `max (kubelet_volume_stats_used_bytes{namespace="$1", persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_total":         `max (kubelet_volume_stats_capacity_bytes{namespace="$1", persistentvolumeclaim="$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_available_ns": `max (kubelet_volume_stats_inodes_free{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_used_ns":      `max (kubelet_volume_stats_inodes_used{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_total_ns":     `max (kubelet_volume_stats_inodes{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_available_ns":  `max (kubelet_volume_stats_available_bytes{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_used_ns":       `max (kubelet_volume_stats_used_bytes{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_bytes_total_ns":      `max (kubelet_volume_stats_capacity_bytes{namespace="$1",persistentvolumeclaim=~"$2"})by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info`,
+	"pvc_inodes_available_sc": `max (kubelet_volume_stats_inodes_free)by(namespace,persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
+	"pvc_inodes_used_sc":      `max (kubelet_volume_stats_inodes_used)by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
+	"pvc_inodes_total_sc":     `max (kubelet_volume_stats_inodes)by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
+	"pvc_bytes_available_sc":  `max (kubelet_volume_stats_available_bytes)by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
+	"pvc_bytes_used_sc":       `max (kubelet_volume_stats_used_bytes)by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
+	"pvc_bytes_total_sc":      `max (kubelet_volume_stats_capacity_bytes)by(namespace, persistentvolumeclaim)*on(namespace, persistentvolumeclaim)group_left(storageclass)kube_persistentvolumeclaim_info{storageclass="$1"}`,
 
 	// component
 	"etcd_server_list":                           `label_replace(up{job="etcd"}, "node_ip", "$1", "instance", "(.*):.*")`,

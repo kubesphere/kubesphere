@@ -276,6 +276,16 @@ func AssemblePodMetricRequestInfo(monitoringRequest *client.MonitoringRequestPar
 	return queryType, params, rule == ""
 }
 
+func AssemblePVCMetricRequestInfo(monitoringRequest *client.MonitoringRequestParams, metricName string) (string, string, bool) {
+	queryType := monitoringRequest.QueryType
+
+	paramValues := monitoringRequest.Params
+
+	rule := MakePVCPromQL(metricName, monitoringRequest.NsName, monitoringRequest.PVCName, monitoringRequest.StorageClassName, monitoringRequest.ResourcesFilter)
+	params := makeRequestParamString(rule, paramValues)
+	return queryType, params, rule == ""
+}
+
 func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
 	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 	nodes, err := nodeLister.List(labels.Everything())
@@ -897,6 +907,49 @@ func GetContainerLevelMetrics(monitoringRequest *client.MonitoringRequestParams)
 
 	return &FormatedLevelMetric{
 		MetricsLevel: MetricLevelContainer,
+		Results:      metricsArray,
+	}
+}
+
+func GetPVCLevelMetrics(monitoringRequest *client.MonitoringRequestParams) *FormatedLevelMetric {
+	metricsFilter := monitoringRequest.MetricsFilter
+	if metricsFilter == "" {
+		metricsFilter = ".*"
+	}
+
+	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	for _, metricName := range PVCMetricsNames {
+		matched, err := regexp.MatchString(metricsFilter, metricName)
+		if err == nil && matched {
+			wg.Add(1)
+			go func(metricName string) {
+				queryType, params, nullRule := AssemblePVCMetricRequestInfo(monitoringRequest, metricName)
+				if !nullRule {
+					metricsStr := client.SendMonitoringRequest(client.PrometheusEndpoint, queryType, params)
+					ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelPVC: ""})
+				} else {
+					ch <- nil
+				}
+				wg.Done()
+			}(metricName)
+		}
+	}
+
+	wg.Wait()
+	close(ch)
+
+	var metricsArray []FormatedMetric
+
+	for oneMetric := range ch {
+		if oneMetric != nil {
+			metricsArray = append(metricsArray, *oneMetric)
+		}
+	}
+
+	return &FormatedLevelMetric{
+		MetricsLevel: MetricLevelPVC,
 		Results:      metricsArray,
 	}
 }
