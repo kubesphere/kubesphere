@@ -177,6 +177,9 @@ func Validate(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	if resp.StatusCode() == http.StatusUnauthorized {
+		resp.WriteHeader(http.StatusPreconditionRequired)
+	}
 	resp.Write(res)
 }
 
