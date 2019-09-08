@@ -91,27 +91,6 @@ func LoggingQueryContainer(request *restful.Request, response *restful.Response)
 	response.WriteAsJson(res)
 }
 
-func LoggingQueryFluentbitFilters(request *restful.Request, response *restful.Response) {
-	res := log.FluentbitFiltersQuery()
-	response.WriteAsJson(res)
-}
-
-func LoggingUpdateFluentbitFilters(request *restful.Request, response *restful.Response) {
-
-	var res *log.FluentbitFiltersResult
-
-	filters := new([]log.FluentbitFilter)
-
-	err := request.ReadEntity(&filters)
-	if err != nil {
-		res = &log.FluentbitFiltersResult{Status: http.StatusBadRequest}
-	} else {
-		res = log.FluentbitFiltersUpdate(filters)
-	}
-
-	response.WriteAsJson(res)
-}
-
 func LoggingQueryFluentbitOutputs(request *restful.Request, response *restful.Response) {
 	res := log.FluentbitOutputsQuery()
 	if res.Status != http.StatusOK {

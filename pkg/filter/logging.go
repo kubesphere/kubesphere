@@ -19,17 +19,17 @@
 package filter
 
 import (
+	"k8s.io/klog"
 	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 )
 
 func Logging(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	start := time.Now()
 	chain.ProcessFilter(req, resp)
-	glog.Infof("%s - \"%s %s %s\" %d %d %dms",
+	klog.V(4).Infof("%s - \"%s %s %s\" %d %d %dms",
 		strings.Split(req.Request.RemoteAddr, ":")[0],
 		req.Request.Method,
 		req.Request.RequestURI,
