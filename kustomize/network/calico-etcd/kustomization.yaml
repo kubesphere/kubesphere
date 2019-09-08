@@ -1,7 +1,8 @@
+bases:
+- ../crds
+
 resources:
   - network.yaml
-  - crds/wsnp.yaml
-  - crds/nsnp.yaml
   - rbac/role.yaml
   - rbac/role_binding.yaml
 
@@ -19,4 +20,4 @@ secretGenerator:
 patchesStrategicMerge:
   - patch_image_name.yaml
 
-namespace: network-test-90fa3885
+namespace: network-test-f22e8ea9

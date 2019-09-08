@@ -4,10 +4,12 @@ set -e
 
 workspace=`pwd`
 tag=`git rev-parse --short HEAD`
-IMG=magicsong/ks-network:$tag
+IMG=kubespheredev/ks-network:$tag
 DEST=/tmp/manager.yaml
 TEST_NS=network-test-$tag
 SKIP_BUILD=no
+STORE_MODE=etcd
+MODE=test
 
 export TEST_NAMESPACE=$TEST_NS
 export YAML_PATH=$DEST
@@ -33,6 +35,16 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    -S|--store-mode)
+    STORE_MODE="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -m|--mode)
+    MODE="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --default)
     DEFAULT=YES
     shift # past argument
@@ -51,7 +63,7 @@ if [ $SKIP_BUILD == "no" ]; then
     docker push $IMG
 fi
 
-kustomize_dir="./kustomize/network"
+kustomize_dir="./kustomize/network/calico-${STORE_MODE}"
 if [ "$(uname)" == "Darwin" ]; then
     sed -i '' -e  's/namespace: .*/namespace: '"${TEST_NS}"'/' $kustomize_dir/kustomization.yaml
     sed -i '' -e  's/namespace: .*/namespace: '"${TEST_NS}"'/' $kustomize_dir/patch_role_binding.yaml
@@ -62,6 +74,11 @@ else
     sed -i -e 's@image: .*@image: '"${IMG}"'@' $kustomize_dir/patch_image_name.yaml
 fi
 
-kustomize build $kustomize_dir -o $DEST 
-ginkgo -v ./test/e2e/...
+kustomize build $kustomize_dir -o $DEST
+if [ $MODE == "test" ]; then
+    ginkgo -v ./test/e2e/...
+elif  [ $MODE == "debug" ]; then
+    kubectl create ns $TEST_NS --dry-run -o yaml | kubectl apply -f -
+    kubectl apply -f $DEST
+fi
 

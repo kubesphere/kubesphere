@@ -1,0 +1,11 @@
+bases:
+- ../crds
+
+resources:
+- network.yaml
+- role.yaml
+
+patchesStrategicMerge:
+  - patch_image_name.yaml
+
+namespace: network-test-f22e8ea9

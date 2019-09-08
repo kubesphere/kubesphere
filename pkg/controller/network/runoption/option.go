@@ -14,18 +14,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
 )
 
-type CalicoDataStoreType string
-
 const (
 	certPath = "/calicocerts"
 
-	KubernetesDataStore CalicoDataStoreType = "k8s"
-	EtcdDataStore       CalicoDataStoreType = "etcd"
+	KubernetesDataStore = "k8s"
+	EtcdDataStore       = "etcd"
 )
 
 type RunOption struct {
 	ProviderName      string
-	DataStoreType     CalicoDataStoreType
+	DataStoreType     string
 	EtcdEndpoints     string
 	AllowInsecureEtcd bool
 }
