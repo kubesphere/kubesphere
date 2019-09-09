@@ -429,7 +429,7 @@ func calcTimestamp(input string) int64 {
 	return ret
 }
 
-func parseQueryResult(operation int, param QueryParameters, body []byte, query []byte) *QueryResult {
+func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryResult {
 	var queryResult QueryResult
 
 	var response Response
@@ -570,7 +570,7 @@ func Query(param QueryParameters) *QueryResult {
 		return queryResult
 	}
 
-	queryResult = parseQueryResult(operation, param, body, query)
+	queryResult = parseQueryResult(operation, param, body)
 
 	return queryResult
 }
