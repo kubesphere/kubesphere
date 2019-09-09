@@ -25,6 +25,16 @@ import (
 	"github.com/json-iterator/go"
 )
 
+const (
+	matchPhrase = iota
+	matchPhrasePrefix
+
+	fieldNamespaceName = "kubernetes.namespace_name"
+	fieldPodName       = "kubernetes.pod_name"
+	fieldContainerName = "kubernetes.container_name"
+	fieldLog           = "log"
+)
+
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
@@ -73,11 +83,20 @@ type Order struct {
 }
 
 type BoolQuery struct {
-	BoolMusts BoolMusts `json:"bool"`
+	Bool interface{} `json:"bool"`
 }
 
-type BoolMusts struct {
-	Musts []interface{} `json:"must"`
+type FilterContext struct {
+	Filter []interface{} `json:"must"`
+}
+
+type BoolMust struct {
+	Must []interface{} `json:"must"`
+}
+
+type BoolShould struct {
+	Should             []interface{} `json:"should"`
+	MinimumShouldMatch int64         `json:"minimum_should_match"`
 }
 
 type RangeQuery struct {
@@ -93,25 +112,12 @@ type TimeRange struct {
 	Lte string `json:"lte,omitempty"`
 }
 
-type BoolShouldMatchPhrase struct {
-	ShouldMatchPhrase ShouldMatchPhrase `json:"bool"`
-}
-
-type ShouldMatchPhrase struct {
-	Shoulds            []interface{} `json:"should"`
-	MinimumShouldMatch int64         `json:"minimum_should_match"`
-}
-
 type MatchPhrase struct {
-	MatchPhrase interface{} `json:"match_phrase"`
+	MatchPhrase map[string]string `json:"match_phrase"`
 }
 
-type Match struct {
-	Match interface{} `json:"match"`
-}
-
-type QueryWord struct {
-	Word string `json:"query"`
+type MatchPhrasePrefix struct {
+	MatchPhrasePrefix interface{} `json:"match_phrase_prefix"`
 }
 
 type MainHighLight struct {
@@ -166,78 +172,52 @@ type DateHistogram struct {
 
 func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	var request Request
-	var mainBoolQuery BoolMusts
+	var mainBoolQuery FilterContext
 
-	if param.NamespaceFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.NamespaceWithCreationTime) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for namespace, creationTime := range param.NamespaceWithCreationTime {
-				var boolQuery BoolQuery
+	if len(param.NamespaceWithCreationTime) != 0 {
+		var boolShoulds BoolShould
+		for namespace, creationTime := range param.NamespaceWithCreationTime {
+			var boolMusts BoolMust
 
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.keyword": QueryWord{namespace}}}
-				rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
+			matchPhrase := MatchPhrase{MatchPhrase: map[string]string{fieldNamespaceName: namespace}}
+			rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
 
-				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, matchPhrase)
-				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, rangeQuery)
+			boolMusts.Must = append(boolMusts.Must, matchPhrase)
+			boolMusts.Must = append(boolMusts.Must, rangeQuery)
 
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, boolQuery)
-			}
+			boolShoulds.Should = append(boolShoulds.Should, BoolQuery{Bool: boolMusts})
 		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+		boolShoulds.MinimumShouldMatch = 1
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, BoolQuery{Bool: boolShoulds})
 	}
-	if param.PodFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.Pods) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for _, pod := range param.Pods {
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.keyword": QueryWord{pod}}}
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-			}
-		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	if param.WorkloadFilter != nil {
+		boolQuery := makeBoolShould(matchPhrase, fieldPodName, param.WorkloadFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.ContainerFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.Containers) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for _, container := range param.Containers {
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.keyword": QueryWord{container}}}
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-			}
-		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	if param.PodFilter != nil {
+		boolQuery := makeBoolShould(matchPhrase, fieldPodName, param.PodFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
+	}
+	if param.ContainerFilter != nil {
+		boolQuery := makeBoolShould(matchPhrase, fieldContainerName, param.ContainerFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 
-	if param.NamespaceQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.namespace_name": QueryWord{param.NamespaceQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.PodQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldPodName, param.PodQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.PodQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.pod_name": QueryWord{param.PodQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.ContainerQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldContainerName, param.ContainerQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.ContainerQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.container_name": QueryWord{param.ContainerQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
-	}
-
-	if param.LogQuery != "" {
-		match := Match{map[string]interface{}{"log": QueryWord{param.LogQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.LogQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldLog, param.LogQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 
 	rangeQuery := RangeQuery{RangeSpec{TimeRange{param.StartTime, param.EndTime}}}
-	mainBoolQuery.Musts = append(mainBoolQuery.Musts, rangeQuery)
+	mainBoolQuery.Filter = append(mainBoolQuery.Filter, rangeQuery)
 
 	var operation int
 
@@ -284,6 +264,30 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	queryRequest, err := json.Marshal(request)
 
 	return operation, queryRequest, err
+}
+
+func makeBoolShould(queryType int, field string, list []string) BoolQuery {
+	var should []interface{}
+	for _, phrase := range list {
+
+		var q interface{}
+
+		switch queryType {
+		case matchPhrase:
+			q = MatchPhrase{MatchPhrase: map[string]string{field: phrase}}
+		case matchPhrasePrefix:
+			q = MatchPhrasePrefix{MatchPhrasePrefix: map[string]string{field: phrase}}
+		}
+
+		should = append(should, q)
+	}
+
+	return BoolQuery{
+		Bool: BoolShould{
+			Should:             should,
+			MinimumShouldMatch: 1,
+		},
+	}
 }
 
 // Fore more info, refer to https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-search-API.html
@@ -396,7 +400,6 @@ type HistogramResult struct {
 type QueryResult struct {
 	Status     int               `json:"status,omitempty" description:"query status"`
 	Error      string            `json:"error,omitempty" description:"debugging information"`
-	Workspace  string            `json:"workspace,omitempty" description:"the name of the workspace where logs come from"`
 	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
 	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty" description:"histogram results"`
@@ -513,28 +516,29 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 	}
 
 	queryResult.Status = http.StatusOK
-	queryResult.Workspace = param.Workspace
 
 	return &queryResult
 }
 
 type QueryParameters struct {
-	NamespaceFilled           bool
-	Namespaces                []string
+	// when true, indicates the provided `namespaces` or `namespace_query` doesn't match any namespace
+	NamespaceNotFound bool
+	// a map of namespace with creation time
 	NamespaceWithCreationTime map[string]string
-	PodFilled                 bool
-	Pods                      []string
-	ContainerFilled           bool
-	Containers                []string
 
-	NamespaceQuery string
-	PodQuery       string
-	ContainerQuery string
+	// when true, indicates the provided `workloads` or `workload_query` doesn't match any workload
+	WorkloadNotFound bool
+	WorkloadFilter   []string
 
-	Workspace string
+	PodFilter []string
+	PodQuery  []string
+
+	ContainerFilter []string
+	ContainerQuery  []string
+
+	LogQuery []string
 
 	Operation string
-	LogQuery  string
 	Interval  string
 	StartTime string
 	EndTime   string
@@ -546,6 +550,23 @@ type QueryParameters struct {
 func Query(param QueryParameters) *QueryResult {
 
 	var queryResult = new(QueryResult)
+
+	if param.NamespaceNotFound || param.WorkloadNotFound {
+		queryResult = new(QueryResult)
+		queryResult.Status = http.StatusOK
+		switch param.Operation {
+		case "statistics":
+			queryResult.Statistics = new(StatisticsResult)
+		case "histogram":
+			queryResult.Histogram = &HistogramResult{
+				StartTime: calcTimestamp(param.StartTime),
+				EndTime:   calcTimestamp(param.EndTime),
+				Interval:  param.Interval}
+		default:
+			queryResult.Read = new(ReadResult)
+		}
+		return queryResult
+	}
 
 	if client == nil {
 		queryResult.Status = http.StatusBadRequest

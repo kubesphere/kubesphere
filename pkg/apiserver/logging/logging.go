@@ -25,13 +25,14 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/log"
 	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelCluster, request)
-
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -42,7 +43,6 @@ func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
 
 func LoggingQueryWorkspace(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelWorkspace, request)
-
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -53,7 +53,6 @@ func LoggingQueryWorkspace(request *restful.Request, response *restful.Response)
 
 func LoggingQueryNamespace(request *restful.Request, response *restful.Response) {
 	res := logQuery(log.QueryLevelNamespace, request)
-
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -160,79 +159,66 @@ func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Re
 }
 
 func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult {
-	var param es.QueryParameters
 
-	param.Operation = request.QueryParameter("operation")
+	var param es.QueryParameters
 
 	switch level {
 	case log.QueryLevelCluster:
-		{
-			param.NamespaceFilled, param.Namespaces = log.QueryWorkspace(request.QueryParameter("workspaces"), request.QueryParameter("workspace_query"))
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
+		var namespaces []string
+		param.NamespaceNotFound, namespaces = log.MatchNamespace(stringutils.Split(request.QueryParameter("namespaces"), ","),
+			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","), // case-insensitive
+			stringutils.Split(request.QueryParameter("workspaces"), ","),
+			stringutils.Split(strings.ToLower(request.QueryParameter("workspace_query")), ",")) // case-insensitive
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
+		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
+		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
+		param.ContainerQuery = stringutils.Split(request.QueryParameter("container_query"), ",")
 	case log.QueryLevelWorkspace:
-		{
-			param.NamespaceFilled, param.Namespaces = log.QueryWorkspace(request.PathParameter("workspace"), "")
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.QueryParameter("namespaces"), param.NamespaceFilled, param.Namespaces)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.NamespaceQuery = request.QueryParameter("namespace_query")
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
+		var namespaces []string
+		param.NamespaceNotFound, namespaces = log.MatchNamespace(stringutils.Split(request.QueryParameter("namespaces"), ","),
+			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","), // case-insensitive
+			stringutils.Split(request.PathParameter("workspace"), ","), nil)                    // case-insensitive
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
+		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
+		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
+		param.ContainerQuery = stringutils.Split(request.QueryParameter("container_query"), ",")
 	case log.QueryLevelNamespace:
-		{
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.QueryWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
+		namespaces := []string{request.PathParameter("namespace")}
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
+		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
+		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
+		param.ContainerQuery = stringutils.Split(request.QueryParameter("container_query"), ",")
 	case log.QueryLevelWorkload:
-		{
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.QueryWorkload(request.PathParameter("workload"), "", param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.QueryParameter("pods"), param.PodFilled, param.Pods)
-			param.PodQuery = request.QueryParameter("pod_query")
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
+		namespaces := []string{request.PathParameter("namespace")}
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.PathParameter("workload"), "", namespaces)
+		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
+		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
+		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
+		param.ContainerQuery = stringutils.Split(request.QueryParameter("container_query"), ",")
 	case log.QueryLevelPod:
-		{
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.PathParameter("pod"), false, nil)
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.QueryParameter("containers"))
-			param.ContainerQuery = request.QueryParameter("container_query")
-		}
+		namespaces := []string{request.PathParameter("namespace")}
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.PodFilter = []string{request.PathParameter("pod")}
+		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
+		param.ContainerQuery = stringutils.Split(request.QueryParameter("container_query"), ",")
 	case log.QueryLevelContainer:
-		{
-			param.NamespaceFilled, param.Namespaces = log.MatchNamespace(request.PathParameter("namespace"), false, nil)
-			param.NamespaceFilled, param.NamespaceWithCreationTime = log.GetNamespaceCreationTimeMap(param.Namespaces)
-			param.PodFilled, param.Pods = log.MatchPod(request.PathParameter("pod"), false, nil)
-			param.ContainerFilled, param.Containers = log.MatchContainer(request.PathParameter("container"))
-		}
+		namespaces := []string{request.PathParameter("namespace")}
+		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
+		param.PodFilter = []string{request.PathParameter("pod")}
+		param.ContainerFilter = []string{request.PathParameter("container")}
 	}
 
-	if len(param.Namespaces) == 1 {
-		param.Workspace = log.GetWorkspaceOfNamesapce(param.Namespaces[0])
-	}
+	param.LogQuery = stringutils.Split(request.QueryParameter("log_query"), ",")
 
+	param.Operation = request.QueryParameter("operation")
 	param.Interval = request.QueryParameter("interval")
-
-	param.LogQuery = request.QueryParameter("log_query")
 	param.StartTime = request.QueryParameter("start_time")
 	param.EndTime = request.QueryParameter("end_time")
 	param.Sort = request.QueryParameter("sort")

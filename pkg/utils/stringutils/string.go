@@ -14,6 +14,7 @@ limitations under the License.
 package stringutils
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"github.com/asaskevich/govalidator"
@@ -74,4 +75,11 @@ func Reverse(s string) string {
 		utf8.EncodeRune(buf[size-start:], r)
 	}
 	return string(buf)
+}
+
+func Split(str string, sep string) []string {
+	if str == "" {
+		return nil
+	}
+	return strings.Split(str, sep)
 }
