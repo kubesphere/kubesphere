@@ -32,6 +32,9 @@ require (
 	github.com/docker/go-connections v0.3.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
+	github.com/elastic/go-elasticsearch/v5 v5.6.1
+	github.com/elastic/go-elasticsearch/v6 v6.8.2
+	github.com/elastic/go-elasticsearch/v7 v7.3.0
 	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
@@ -210,6 +213,9 @@ replace (
 	github.com/eapache/go-resiliency => github.com/eapache/go-resiliency v1.1.0
 	github.com/eapache/go-xerial-snappy => github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21
 	github.com/eapache/queue => github.com/eapache/queue v1.1.0
+	github.com/elastic/go-elasticsearch/v5 => github.com/elastic/go-elasticsearch/v5 v5.6.1
+	github.com/elastic/go-elasticsearch/v6 => github.com/elastic/go-elasticsearch/v6 v6.8.2
+	github.com/elastic/go-elasticsearch/v7 => github.com/elastic/go-elasticsearch/v7 v7.3.0
 	github.com/elazarl/go-bindata-assetfs => github.com/elazarl/go-bindata-assetfs v1.0.0
 	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2
 	github.com/elazarl/goproxy/ext => github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2

@@ -1,0 +1,8 @@
+comment: off
+
+coverage:
+  status:
+    patch: off
+
+ignore:
+  - "esapi/api.*.go"

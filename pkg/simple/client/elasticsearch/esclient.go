@@ -13,11 +13,9 @@ limitations under the License.
 package esclient
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/golang/glog"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,28 +28,31 @@ import (
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
-	mu        sync.RWMutex
-	esConfigs *ESConfigs
+	mu     sync.Mutex
+	config *Config
+
+	client Client
 )
 
-type ESConfigs struct {
-	Host  string
-	Port  string
-	Index string
+type Config struct {
+	Host         string
+	Port         string
+	Index        string
+	VersionMajor string
 }
 
-func readESConfigs() *ESConfigs {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	return esConfigs
-}
-
-func (configs *ESConfigs) WriteESConfigs() {
+func (cfg *Config) WriteESConfigs() {
 	mu.Lock()
 	defer mu.Unlock()
 
-	esConfigs = configs
+	config = cfg
+	if err := detectVersionMajor(config); err != nil {
+		glog.Errorln(err)
+		client = nil
+		return
+	}
+
+	client = NewForConfig(config)
 }
 
 type Request struct {
@@ -303,8 +304,9 @@ type Shards struct {
 }
 
 type Hits struct {
-	Total int64 `json:"total"`
-	Hits  []Hit `json:"hits"`
+	// As of ElasticSearch v7.x, hits.total is changed
+	Total interface{} `json:"total"`
+	Hits  []Hit       `json:"hits"`
 }
 
 type Hit struct {
@@ -427,7 +429,7 @@ func calcTimestamp(input string) int64 {
 	return ret
 }
 
-func parseQueryResult(operation int, param QueryParameters, body []byte, query []byte) *QueryResult {
+func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryResult {
 	var queryResult QueryResult
 
 	var response Response
@@ -457,7 +459,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	switch operation {
 	case OperationQuery:
 		var readResult ReadResult
-		readResult.Total = response.Hits.Total
+		readResult.Total = client.GetTotalHitCount(response.Hits.Total)
 		readResult.From = param.From
 		readResult.Size = param.Size
 		for _, hit := range response.Hits.Hits {
@@ -476,24 +478,24 @@ func parseQueryResult(operation int, param QueryParameters, body []byte, query [
 	case OperationStatistics:
 		var statisticsResponse StatisticsResponseAggregations
 		err := jsonIter.Unmarshal(response.Aggregations, &statisticsResponse)
-		if err != nil {
+		if err != nil && response.Aggregations != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
 			queryResult.Error = err.Error()
 			return &queryResult
 		}
-		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: response.Hits.Total}
+		queryResult.Statistics = &StatisticsResult{Containers: statisticsResponse.ContainerCount.Value, Logs: client.GetTotalHitCount(response.Hits.Total)}
 
 	case OperationHistogram:
 		var histogramResult HistogramResult
-		histogramResult.Total = response.Hits.Total
+		histogramResult.Total = client.GetTotalHitCount(response.Hits.Total)
 		histogramResult.StartTime = calcTimestamp(param.StartTime)
 		histogramResult.EndTime = calcTimestamp(param.EndTime)
 		histogramResult.Interval = param.Interval
 
 		var histogramAggregations HistogramAggregations
 		err := jsonIter.Unmarshal(response.Aggregations, &histogramAggregations)
-		if err != nil {
+		if err != nil && response.Aggregations != nil {
 			glog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
 			queryResult.Error = err.Error()
@@ -541,58 +543,25 @@ type QueryParameters struct {
 	Size      int64
 }
 
-func stubResult() *QueryResult {
-	var queryResult QueryResult
-
-	queryResult.Status = http.StatusOK
-
-	return &queryResult
-}
-
 func Query(param QueryParameters) *QueryResult {
-	var queryResult *QueryResult
 
-	client := &http.Client{}
+	var queryResult = new(QueryResult)
+
+	if client == nil {
+		queryResult.Status = http.StatusBadRequest
+		queryResult.Error = fmt.Sprintf("Invalid elasticsearch address: host=%s, port=%s", config.Host, config.Port)
+		return queryResult
+	}
 
 	operation, query, err := createQueryRequest(param)
 	if err != nil {
-		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusInternalServerError
-		queryResult.Error = err.Error()
-		return queryResult
-	}
-
-	es := readESConfigs()
-	if es == nil {
-		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusInternalServerError
-		queryResult.Error = "Elasticsearch configurations not found. Please check if they are properly configured."
-		return queryResult
-	}
-
-	url := fmt.Sprintf("http://%s:%s/%s*/_search", es.Host, es.Port, es.Index)
-
-	request, err := http.NewRequest("GET", url, bytes.NewBuffer(query))
-	if err != nil {
 		glog.Errorln(err)
-		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
 	}
-	request.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-	response, err := client.Do(request)
-	if err != nil {
-		glog.Errorln(err)
-		queryResult = new(QueryResult)
-		queryResult.Status = http.StatusInternalServerError
-		queryResult.Error = err.Error()
-		return queryResult
-	}
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := client.Search(query)
 	if err != nil {
 		glog.Errorln(err)
 		queryResult = new(QueryResult)
@@ -601,7 +570,7 @@ func Query(param QueryParameters) *QueryResult {
 		return queryResult
 	}
 
-	queryResult = parseQueryResult(operation, param, body, query)
+	queryResult = parseQueryResult(operation, param, body)
 
 	return queryResult
 }
