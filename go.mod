@@ -348,6 +348,10 @@ replace (
 	github.com/src-d/gcfg => github.com/src-d/gcfg v1.4.0
 	github.com/stretchr/objx => github.com/stretchr/objx v0.1.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.3.0
+	github.com/tidwall/gjson => github.com/tidwall/gjson v1.3.2
+	github.com/tidwall/match => github.com/tidwall/match v1.0.1
+	github.com/tidwall/pretty => github.com/tidwall/pretty v1.0.0
+	github.com/tidwall/sjson => github.com/tidwall/sjson v1.0.4
 	github.com/tmc/grpc-websocket-proxy => github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5
 	github.com/xanzy/ssh-agent => github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing => github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2

@@ -26,10 +26,13 @@ import (
 	log "github.com/golang/glog"
 	"io"
 	"io/ioutil"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
+	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -57,28 +60,104 @@ func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, e
 
 func SearchPipelines(req *http.Request) ([]byte, error) {
 	baseUrl := jenkins.Server + SearchPipelineUrl + req.URL.RawQuery
-	log.Infof("Jenkins-url: " + baseUrl)
+	klog.V(3).Infof("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
-
+	count, err := searchPipelineCount(req)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	responseStruct := models.PageableResponse{TotalCount: count}
+	err = json.Unmarshal(res, &responseStruct.Items)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	res, err = json.Marshal(responseStruct)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 	return res, err
+}
+
+func searchPipelineCount(req *http.Request) (int, error) {
+	query, _ := parseJenkinsQuery(req.URL.RawQuery)
+	query.Set("start", "0")
+	query.Set("limit", "1000")
+	query.Set("depth", "-1")
+
+	baseUrl := jenkins.Server + SearchPipelineUrl + query.Encode()
+	klog.Infof("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	var pipelines []Pipeline
+	err = json.Unmarshal(res, &pipelines)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	return len(pipelines), nil
+}
+
+func searchPipelineRunsCount(projectName, pipelineName string, req *http.Request) (int, error) {
+	query, _ := parseJenkinsQuery(req.URL.RawQuery)
+	query.Set("start", "0")
+	query.Set("limit", "1000")
+	query.Set("depth", "-1")
+	baseUrl := fmt.Sprintf(jenkins.Server+SearchPipelineRunUrl, projectName, pipelineName)
+
+	klog.V(3).Info("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl+query.Encode(), req)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	var runs []PipelineRun
+	err = json.Unmarshal(res, &runs)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	return len(runs), nil
 }
 
 func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	baseUrl := fmt.Sprintf(jenkins.Server+SearchPipelineRunUrl, projectName, pipelineName)
 
-	log.Info("Jenkins-url: " + baseUrl)
+	klog.V(3).Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-
+	count, err := searchPipelineRunsCount(projectName, pipelineName, req)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	responseStruct := models.PageableResponse{TotalCount: count}
+	err = json.Unmarshal(res, &responseStruct.Items)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	res, err = json.Marshal(responseStruct)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 	return res, err
 }
 
@@ -803,4 +882,42 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 	}
 	return resBody, err
 
+}
+
+// parseJenkinsQuery Parse the special query of jenkins.
+// ParseQuery in the standard library makes the query not re-encode
+func parseJenkinsQuery(query string) (url.Values, error) {
+	m := make(url.Values)
+	err := error(nil)
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		m[key] = append(m[key], value)
+	}
+	return m, err
 }
