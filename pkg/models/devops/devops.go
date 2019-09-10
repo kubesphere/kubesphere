@@ -139,7 +139,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 
 	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	count, err := searchPipelineRunsCount(projectName, pipelineName, req)
