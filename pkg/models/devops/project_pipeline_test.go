@@ -542,3 +542,92 @@ func Test_MultiBranchPipelineRegexFilter(t *testing.T) {
 	}
 
 }
+
+func Test_MultiBranchPipelineMultibranchTrigger(t *testing.T) {
+
+	inputs := []*MultiBranchPipeline{
+		&MultiBranchPipeline{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "github",
+			GitHubSource: &GithubSource{
+				Owner:                "kubesphere",
+				Repo:                 "devops",
+				CredentialId:         "github",
+				ApiUri:               "https://api.github.com",
+				DiscoverBranches:     1,
+				DiscoverPRFromOrigin: 2,
+				DiscoverPRFromForks: &DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+				RegexFilter: ".*",
+			},
+			MultiBranchJobTrigger: &MultiBranchJobTrigger{
+				CreateActionJobsToTrigger: "abc",
+				DeleteActionJobsToTrigger: "ddd",
+			},
+		},
+		&MultiBranchPipeline{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "github",
+			GitHubSource: &GithubSource{
+				Owner:                "kubesphere",
+				Repo:                 "devops",
+				CredentialId:         "github",
+				ApiUri:               "https://api.github.com",
+				DiscoverBranches:     1,
+				DiscoverPRFromOrigin: 2,
+				DiscoverPRFromForks: &DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+				RegexFilter: ".*",
+			},
+			MultiBranchJobTrigger: &MultiBranchJobTrigger{
+				CreateActionJobsToTrigger: "abc",
+			},
+		},
+		&MultiBranchPipeline{
+			Name:        "",
+			Description: "for test",
+			ScriptPath:  "Jenkinsfile",
+			SourceType:  "github",
+			GitHubSource: &GithubSource{
+				Owner:                "kubesphere",
+				Repo:                 "devops",
+				CredentialId:         "github",
+				ApiUri:               "https://api.github.com",
+				DiscoverBranches:     1,
+				DiscoverPRFromOrigin: 2,
+				DiscoverPRFromForks: &DiscoverPRFromForks{
+					Strategy: 1,
+					Trust:    1,
+				},
+				RegexFilter: ".*",
+			},
+			MultiBranchJobTrigger: &MultiBranchJobTrigger{
+				DeleteActionJobsToTrigger: "ddd",
+			},
+		},
+	}
+
+	for _, input := range inputs {
+		outputString, err := createMultiBranchPipelineConfigXml("", input)
+		if err != nil {
+			t.Fatalf("should not get error %+v", err)
+		}
+		output, err := parseMultiBranchPipelineConfigXml(outputString)
+
+		if err != nil {
+			t.Fatalf("should not get error %+v", err)
+		}
+		if !reflect.DeepEqual(input, output) {
+			t.Fatalf("input [%+v] output [%+v] should equal ", input, output)
+		}
+	}
+
+}
