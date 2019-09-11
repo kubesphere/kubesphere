@@ -170,7 +170,8 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 			stringutils.Split(request.QueryParameter("workspaces"), ","),
 			stringutils.Split(strings.ToLower(request.QueryParameter("workspace_query")), ",")) // case-insensitive
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
-		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.WorkloadFilter = stringutils.Split(request.QueryParameter("workloads"), ",")
+		param.WorkloadQuery = stringutils.Split(request.QueryParameter("workload_query"), ",")
 		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
 		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
 		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
@@ -181,7 +182,8 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","), // case-insensitive
 			stringutils.Split(request.PathParameter("workspace"), ","), nil)                    // case-insensitive
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
-		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.WorkloadFilter = stringutils.Split(request.QueryParameter("workloads"), ",")
+		param.WorkloadQuery = stringutils.Split(request.QueryParameter("workload_query"), ",")
 		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
 		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
 		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
@@ -189,7 +191,8 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelNamespace:
 		namespaces := []string{request.PathParameter("namespace")}
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
-		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.QueryParameter("workloads"), request.QueryParameter("workload_query"), namespaces)
+		param.WorkloadFilter = stringutils.Split(request.QueryParameter("workloads"), ",")
+		param.WorkloadQuery = stringutils.Split(request.QueryParameter("workload_query"), ",")
 		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
 		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
 		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
@@ -197,7 +200,7 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	case log.QueryLevelWorkload:
 		namespaces := []string{request.PathParameter("namespace")}
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
-		param.WorkloadNotFound, param.WorkloadFilter = log.MatchWorkload(request.PathParameter("workload"), "", namespaces)
+		param.WorkloadFilter = []string{request.PathParameter("workload")}
 		param.PodFilter = stringutils.Split(request.QueryParameter("pods"), ",")
 		param.PodQuery = stringutils.Split(request.QueryParameter("pod_query"), ",")
 		param.ContainerFilter = stringutils.Split(request.QueryParameter("containers"), ",")
