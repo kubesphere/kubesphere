@@ -19,7 +19,7 @@ func NewOpenPitrixOptions() *OpenPitrixOptions {
 }
 
 func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
-	reflectutils.Override(s, options)
+	reflectutils.Override(options, s)
 }
 
 func (s *OpenPitrixOptions) Validate() []error {

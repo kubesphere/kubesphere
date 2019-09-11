@@ -24,7 +24,7 @@ func (s *PrometheusOptions) Validate() []error {
 }
 
 func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
-	reflectutils.Override(s, options)
+	reflectutils.Override(options, s)
 }
 
 func (s *PrometheusOptions) AddFlags(fs *pflag.FlagSet) {
