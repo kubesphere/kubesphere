@@ -89,6 +89,11 @@ func (c *ClientSetOptions) SetPrometheusOptions(options *prometheus.PrometheusOp
 	return c
 }
 
+func (c *ClientSetOptions) SetSonarQubeOptions(options *sonarqube.SonarQubeOptions) *ClientSetOptions {
+	c.sonarqubeOptions = options
+	return c
+}
+
 // ClientSet provide best of effort service to initialize clients,
 // but there is no guarantee to return a valid client instance,
 // so do validity check before use
