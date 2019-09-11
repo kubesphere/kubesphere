@@ -57,6 +57,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"))
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))
+	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"))
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"))
 	s.S3Options.AddFlags(fss.FlagSet("s3"))
