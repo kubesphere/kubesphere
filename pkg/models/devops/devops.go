@@ -576,7 +576,7 @@ func parseCronJobTime(msg string) (string, string, error) {
 	lastUinx, err := time.Parse(cronJobLayout, lastTime[0])
 	if err != nil {
 		log.Error(err)
-		return "","",err
+		return "", "", err
 	}
 	last := lastUinx.Format(time.RFC3339)
 
@@ -585,7 +585,7 @@ func parseCronJobTime(msg string) (string, string, error) {
 	nextUinx, err := time.Parse(cronJobLayout, nextTime[0])
 	if err != nil {
 		log.Error(err)
-		return "","",err
+		return "", "", err
 	}
 	next := nextUinx.Format(time.RFC3339)
 

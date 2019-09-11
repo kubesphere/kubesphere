@@ -18,7 +18,7 @@ func Test_parseCronJobTime(t *testing.T) {
 		{"上次运行的时间 Tuesday, September 10, 2019 9:15:26 AM UTC; 下次运行的时间 Tuesday, September 10, 2019 10:03:26 AM UTC.", Except{Last: "2019-09-10T09:15:26Z", Next: "2019-09-10T10:03:26Z"}},
 	}
 
-	for _, item:=range Items {
+	for _, item := range Items {
 		last, next, err := parseCronJobTime(item.Input)
 		if err != nil {
 			t.Fatalf("should not get error %+v", err)
