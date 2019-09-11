@@ -25,7 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
 )
 
@@ -44,7 +44,7 @@ func CreateNamespace(workspaceName string, namespace *v1.Namespace, username str
 
 	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName
 
-	return k8s.Client().CoreV1().Namespaces().Create(namespace)
+	return client.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Create(namespace)
 }
 
 func DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {

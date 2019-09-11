@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/metrics"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -210,12 +210,16 @@ func (c *S2iBinaryController) syncHandler(key string) error {
 }
 
 func (c *S2iBinaryController) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
-	s3client := s2is3.Client()
+	s3Client, err := client.ClientSets().S3()
+	if err != nil {
+		return err
+	}
+
 	input := &s3.DeleteObjectInput{
-		Bucket: s2is3.Bucket(),
+		Bucket: s3Client.Bucket(),
 		Key:    aws.String(fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)),
 	}
-	_, err := s3client.DeleteObject(input)
+	_, err = s3Client.Client().DeleteObject(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {

@@ -21,7 +21,12 @@ before_script:
   - bash hack/install_kubebuilder.sh
 
 script:
-  - make all 
+  - diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools)
+  - make openapi
+  - make all
+
+install:
+  - go get golang.org/x/lint/golint
 
 deploy:
   skip_cleanup: true

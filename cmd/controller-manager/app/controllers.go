@@ -25,7 +25,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
-
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 
 	//"kubesphere.io/kubesphere/pkg/controller/job"
@@ -112,7 +111,9 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 
 	jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
 
-	s2iBinaryController := s2ibinary.NewController(kubesphereclient, kubeClient, kubesphereInformer.Devops().V1alpha1().S2iBinaries())
+	s2iBinaryController := s2ibinary.NewController(kubesphereclient,
+		kubeClient,
+		kubesphereInformer.Devops().V1alpha1().S2iBinaries())
 
 	s2iRunController := s2irun.NewController(kubesphereclient, s2iclient, kubeClient,
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),

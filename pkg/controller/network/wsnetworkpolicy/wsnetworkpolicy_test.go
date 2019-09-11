@@ -71,9 +71,9 @@ var _ = Describe("Wsnetworkpolicy", func() {
 		wsnp := newWorkspaceNP(testName)
 		wsnp.Spec.PolicyTypes = []k8snetwork.PolicyType{k8snetwork.PolicyTypeIngress}
 		wsnp.Spec.Ingress = []v1alpha1.WorkspaceNetworkPolicyIngressRule{
-			v1alpha1.WorkspaceNetworkPolicyIngressRule{
+			{
 				From: []v1alpha1.WorkspaceNetworkPolicyPeer{
-					v1alpha1.WorkspaceNetworkPolicyPeer{
+					{
 						WorkspaceSelector: &metav1.LabelSelector{
 							MatchLabels: label,
 						},

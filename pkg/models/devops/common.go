@@ -16,9 +16,10 @@ package devops
 import (
 	"fmt"
 	"github.com/fatih/structs"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
@@ -126,7 +127,7 @@ var JenkinsOwnerProjectPermissionIds = &gojenkins.ProjectPermissionIds{
 }
 
 var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
-	ProjectOwner: gojenkins.ProjectPermissionIds{
+	ProjectOwner: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,
 		CredentialManageDomains: true,
@@ -146,7 +147,7 @@ var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  true,
 	},
-	ProjectMaintainer: gojenkins.ProjectPermissionIds{
+	ProjectMaintainer: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,
 		CredentialManageDomains: true,
@@ -166,7 +167,7 @@ var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  true,
 	},
-	ProjectDeveloper: gojenkins.ProjectPermissionIds{
+	ProjectDeveloper: {
 		CredentialCreate:        false,
 		CredentialDelete:        false,
 		CredentialManageDomains: false,
@@ -186,7 +187,7 @@ var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  false,
 	},
-	ProjectReporter: gojenkins.ProjectPermissionIds{
+	ProjectReporter: {
 		CredentialCreate:        false,
 		CredentialDelete:        false,
 		CredentialManageDomains: false,
@@ -209,7 +210,7 @@ var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
 }
 
 var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
-	ProjectOwner: gojenkins.ProjectPermissionIds{
+	ProjectOwner: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,
 		CredentialManageDomains: true,
@@ -229,7 +230,7 @@ var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  true,
 	},
-	ProjectMaintainer: gojenkins.ProjectPermissionIds{
+	ProjectMaintainer: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,
 		CredentialManageDomains: true,
@@ -249,7 +250,7 @@ var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  true,
 	},
-	ProjectDeveloper: gojenkins.ProjectPermissionIds{
+	ProjectDeveloper: {
 		CredentialCreate:        false,
 		CredentialDelete:        false,
 		CredentialManageDomains: false,
@@ -269,7 +270,7 @@ var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
 		RunUpdate:               true,
 		SCMTag:                  false,
 	},
-	ProjectReporter: gojenkins.ProjectPermissionIds{
+	ProjectReporter: {
 		CredentialCreate:        false,
 		CredentialDelete:        false,
 		CredentialManageDomains: false,
@@ -311,9 +312,18 @@ func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	if username == KS_ADMIN {
 		return nil
 	}
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := client.ClientSets().MySQL()
+	if err != nil {
+		if _, ok := err.(client.ClientSetNotEnabledError); ok {
+			klog.Error("mysql is not enabled")
+		} else {
+			klog.Error("error creating mysql client", err)
+		}
+		return nil
+	}
+
 	membership := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
@@ -331,9 +341,17 @@ func GetProjectUserRole(username, projectId string) (string, error) {
 	if username == KS_ADMIN {
 		return ProjectOwner, nil
 	}
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := client.ClientSets().MySQL()
+	if err != nil {
+		if _, ok := err.(client.ClientSetNotEnabledError); ok {
+			klog.Error("mysql is not enabled")
+		} else {
+			klog.Error("error creating mysql client", err)
+		}
+		return "", err
+	}
 	membership := &DevOpsProjectMembership{}
-	err := dbconn.Select(DevOpsProjectMembershipColumns...).
+	err = dbconn.Select(DevOpsProjectMembershipColumns...).
 		From(DevOpsProjectMembershipTableName).
 		Where(db.And(
 			db.Eq(DevOpsProjectMembershipUsernameColumn, username),

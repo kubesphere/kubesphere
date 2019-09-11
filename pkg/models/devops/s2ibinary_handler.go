@@ -13,8 +13,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"mime/multipart"
 	"net/http"
 	"reflect"
@@ -26,6 +25,11 @@ const (
 )
 
 func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHeader) (*v1alpha1.S2iBinary, error) {
+	s3Client, err := client.ClientSets().S3()
+	if err != nil {
+		return nil, err
+	}
+
 	binFile, err := fileHeader.Open()
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -66,7 +70,8 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 	copy.Spec.Size = bytefmt.ByteSize(uint64(fileHeader.Size))
 	copy.Spec.FileName = fileHeader.Filename
 	copy.Spec.DownloadURL = fmt.Sprintf(GetS2iBinaryURL, namespace, name, copy.Spec.FileName)
-	s3session := s2is3.Session()
+
+	s3session := s3Client.Session()
 	if s3session == nil {
 		err := fmt.Errorf("could not connect to s2i s3")
 		klog.Error(err)
@@ -82,7 +87,7 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 		uploader.LeavePartsOnError = true
 	})
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:             s2is3.Bucket(),
+		Bucket:             s3Client.Bucket(),
 		Key:                aws.String(fmt.Sprintf("%s-%s", namespace, name)),
 		Body:               binFile,
 		ContentMD5:         aws.String(md5),
@@ -116,7 +121,7 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 		copy.Spec.UploadTimeStamp = new(metav1.Time)
 	}
 	*copy.Spec.UploadTimeStamp = metav1.Now()
-	copy, err = k8s.KsClient().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
+	copy, err = client.ClientSets().K8s().KubeSphere().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -131,6 +136,11 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 }
 
 func DownloadS2iBinary(namespace, name, fileName string) (string, error) {
+	s3Client, err := client.ClientSets().S3()
+	if err != nil {
+		return "", err
+	}
+
 	origin, err := informers.KsSharedInformerFactory().Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(namespace).Get(name)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -146,14 +156,9 @@ func DownloadS2iBinary(namespace, name, fileName string) (string, error) {
 		klog.Error(err)
 		return "", err
 	}
-	s3Client := s2is3.Client()
-	if s3Client == nil {
-		err := fmt.Errorf("could not get s3 client")
-		klog.Error(err)
-		return "", err
-	}
-	req, _ := s3Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket:                     s2is3.Bucket(),
+
+	req, _ := s3Client.Client().GetObjectRequest(&s3.GetObjectInput{
+		Bucket:                     s3Client.Bucket(),
 		Key:                        aws.String(fmt.Sprintf("%s-%s", namespace, name)),
 		ResponseContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", origin.Spec.FileName)),
 	})
@@ -169,7 +174,7 @@ func DownloadS2iBinary(namespace, name, fileName string) (string, error) {
 func SetS2iBinaryStatus(s2ibin *v1alpha1.S2iBinary, status string) (*v1alpha1.S2iBinary, error) {
 	copy := s2ibin.DeepCopy()
 	copy.Status.Phase = status
-	copy, err := k8s.KsClient().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(copy)
+	copy, err := client.ClientSets().K8s().KubeSphere().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(copy)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -188,7 +193,7 @@ func SetS2iBinaryStatusWithRetry(s2ibin *v1alpha1.S2iBinary, status string) (*v1
 			return err
 		}
 		bin.Status.Phase = status
-		bin, err = k8s.KsClient().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(bin)
+		bin, err = client.ClientSets().K8s().KubeSphere().DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Update(bin)
 		if err != nil {
 			klog.Error(err)
 			return err

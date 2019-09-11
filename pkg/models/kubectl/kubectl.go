@@ -21,7 +21,7 @@ package kubectl
 import (
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math/rand"
 	"os"
 
@@ -49,7 +49,7 @@ func init() {
 }
 
 func GetKubectlPod(username string) (models.PodInfo, error) {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err != nil {
@@ -97,7 +97,7 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 }
 
 func CreateKubectlDeploy(username string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	configName := fmt.Sprintf("kubeconfig-%s", username)
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
@@ -140,7 +140,7 @@ func CreateKubectlDeploy(username string) error {
 }
 
 func DelKubectlDeploy(username string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {

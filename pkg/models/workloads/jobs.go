@@ -19,7 +19,7 @@ package workloads
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strings"
 	"time"
 
@@ -31,7 +31,7 @@ import (
 const retryTimes = 3
 
 func JobReRun(namespace, jobName string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	job, err := k8sClient.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func JobReRun(namespace, jobName string) error {
 }
 
 func deleteJob(namespace, job string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deletePolicy := metav1.DeletePropagationBackground
 	err := k8sClient.BatchV1().Jobs(namespace).Delete(job, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	return err

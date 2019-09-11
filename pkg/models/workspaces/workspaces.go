@@ -30,8 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	clientset "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"strings"
@@ -41,7 +40,7 @@ import (
 	"errors"
 	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -67,13 +66,13 @@ func Namespaces(workspaceName string) ([]*core.Namespace, error) {
 }
 
 func DeleteNamespace(workspace string, namespaceName string) error {
-	namespace, err := k8s.Client().CoreV1().Namespaces().Get(namespaceName, meta_v1.GetOptions{})
+	namespace, err := clientset.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	if namespace.Labels[constants.WorkspaceLabelKey] == workspace {
-		deletePolicy := meta_v1.DeletePropagationForeground
-		return k8s.Client().CoreV1().Namespaces().Delete(namespaceName, &meta_v1.DeleteOptions{PropagationPolicy: &deletePolicy})
+		deletePolicy := metav1.DeletePropagationForeground
+		return clientset.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	} else {
 		return errors.New("resource not found")
 	}
@@ -134,7 +133,7 @@ func CreateWorkspaceRoleBinding(workspace, username string, role string) error {
 	if !k8sutil.ContainsUser(workspaceRoleBinding.Subjects, username) {
 		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+		_, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
 		if err != nil {
 			log.Errorf("update workspace role binding failed: %+v", err)
 			return err
@@ -165,14 +164,17 @@ func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
 		}
 	}
 
-	workspaceRoleBinding, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+	workspaceRoleBinding, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
 
 	return err
 }
 
 func GetDevOpsProjects(workspaceName string) ([]string, error) {
 
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := clientset.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
 
 	query := dbconn.Select(devops.DevOpsProjectIdColumn).
 		From(devops.DevOpsProjectTableName).
@@ -236,7 +238,10 @@ func GetAllProjectNums() (int, error) {
 }
 
 func GetAllDevOpsProjectsNums() (int, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := clientset.ClientSets().MySQL()
+	if err != nil {
+		return 0, err
+	}
 
 	query := dbconn.Select(devops.DevOpsProjectIdColumn).
 		From(devops.DevOpsProjectTableName).

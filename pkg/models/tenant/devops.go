@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
-	"github.com/golang/glog"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
@@ -29,8 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 	"sync"
 )
@@ -42,7 +40,11 @@ type DevOpsProjectRoleResponse struct {
 
 func ListDevopsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 
 	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, devops.DevOpsProject{})...).
 		From(devops.DevOpsProjectTableName)
@@ -87,14 +89,14 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	}
 	query.Limit(uint64(limit))
 	query.Offset(uint64(offset))
-	_, err := query.Load(&projects)
+	_, err = query.Load(&projects)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	count, err := query.Count()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
@@ -107,7 +109,11 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 }
 
 func GetDevOpsProjectsCount(username string) (uint32, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
 
 	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, devops.DevOpsProject{})...).
 		From(devops.DevOpsProjectTableName)
@@ -137,20 +143,27 @@ func GetDevOpsProjectsCount(username string) (uint32, error) {
 func DeleteDevOpsProject(projectId, username string) error {
 	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(http.StatusForbidden, err.Error())
 	}
-	gojenkins := admin_jenkins.Client()
-	if gojenkins == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+
+	dp, err := cs.ClientSets().Devops()
+	if err != nil {
+		klog.Error(err)
 		return restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	devopsdb := devops_mysql.OpenDatabase()
-	_, err = gojenkins.DeleteJob(projectId)
+	jenkins := dp.Jenkins()
+
+	devopsdb, err := cs.ClientSets().MySQL()
+	if err != nil {
+		klog.Error(err)
+		return restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+
+	_, err = jenkins.DeleteJob(projectId)
 
 	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
@@ -159,22 +172,22 @@ func DeleteDevOpsProject(projectId, username string) error {
 		roleNames = append(roleNames, devops.GetProjectRoleName(projectId, role))
 		roleNames = append(roleNames, devops.GetPipelineRoleName(projectId, role))
 	}
-	err = gojenkins.DeleteProjectRoles(roleNames...)
+	err = jenkins.DeleteProjectRoles(roleNames...)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
 		Where(db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId)).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.Update(devops.DevOpsProjectTableName).
 		Set(devops.StatusColumn, devops.StatusDeleted).
 		Where(db.Eq(devops.DevOpsProjectIdColumn, projectId)).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	project := &devops.DevOpsProject{}
@@ -183,7 +196,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 		Where(db.Eq(devops.DevOpsProjectIdColumn, projectId)).
 		LoadOne(project)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	return nil
@@ -191,17 +204,24 @@ func DeleteDevOpsProject(projectId, username string) error {
 
 func CreateDevopsProject(username string, workspace string, req *devops.DevOpsProject) (*devops.DevOpsProject, error) {
 
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	dp, err := cs.ClientSets().Devops()
+	if err != nil {
+		klog.Error(err)
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+
+	}
+	jenkinsClient := dp.Jenkins()
+
+	devopsdb, err := cs.ClientSets().MySQL()
+	if err != nil {
+		klog.Error(err)
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	devopsdb := devops_mysql.OpenDatabase()
+
 	project := devops.NewDevOpsProject(req.Name, req.Description, username, req.Extra, workspace)
-	_, err := jenkinsClient.CreateFolder(project.ProjectId, project.Description)
+	_, err = jenkinsClient.CreateFolder(project.ProjectId, project.Description)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
@@ -229,14 +249,14 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 	close(addRoleCh)
 	for addRoleResponse := range addRoleCh {
 		if addRoleResponse.Err != nil {
-			glog.Errorf("%+v", addRoleResponse.Err)
+			klog.Errorf("%+v", addRoleResponse.Err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(addRoleResponse.Err), addRoleResponse.Err.Error())
 		}
 	}
 
 	globalRole, err := jenkinsClient.GetGlobalRole(devops.JenkinsAllUserRoleName)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
@@ -244,41 +264,41 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 			GlobalRead: true,
 		}, true)
 		if err != nil {
-			glog.Error("failed to create jenkins global role")
+			klog.Error("failed to create jenkins global role")
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 	}
 	err = globalRole.AssignRole(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	projectRole, err := jenkinsClient.GetProjectRole(devops.GetProjectRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
 	pipelineRole, err := jenkinsClient.GetProjectRole(devops.GetPipelineRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(username)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	_, err = devopsdb.InsertInto(devops.DevOpsProjectTableName).
 		Columns(devops.DevOpsProjectColumns...).Record(project).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
@@ -286,7 +306,7 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 	_, err = devopsdb.InsertInto(devops.DevOpsProjectMembershipTableName).
 		Columns(devops.DevOpsProjectMembershipColumns...).Record(projectMembership).Exec()
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return project, nil
@@ -295,7 +315,7 @@ func CreateDevopsProject(username string, workspace string, req *devops.DevOpsPr
 func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
 	role, err := devops.GetProjectUserRole(username, projectId)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusForbidden, err.Error())
 	}
 	return GetDevopsRoleSimpleRules(role), nil

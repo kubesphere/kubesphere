@@ -13,7 +13,9 @@ limitations under the License.
 
 package reflectutils
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func In(value interface{}, container interface{}) bool {
 	containerValue := reflect.ValueOf(container)
@@ -32,4 +34,25 @@ func In(value interface{}, container interface{}) bool {
 		return false
 	}
 	return false
+}
+
+func Override(left interface{}, right interface{}) {
+	if left == nil || right == nil {
+		return
+	}
+
+	if reflect.ValueOf(left).Type().Kind() != reflect.Ptr ||
+		reflect.ValueOf(right).Type().Kind() != reflect.Ptr {
+		return
+	}
+
+	old := reflect.ValueOf(left).Elem()
+	new := reflect.ValueOf(right).Elem()
+
+	for i := 0; i < old.NumField(); i++ {
+		val := new.Field(i).Interface()
+		if !reflect.DeepEqual(val, reflect.Zero(reflect.TypeOf(val)).Interface()) {
+			old.Field(i).Set(reflect.ValueOf(val))
+		}
+	}
 }

@@ -33,7 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
@@ -650,7 +650,7 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 	found, err := clusterRoleBindingLister.Get(username)
 
 	if apierrors.IsNotFound(err) {
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if err != nil {
 			glog.Errorln("create cluster role binding", err)
 			return err
@@ -665,14 +665,14 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 		deletePolicy := metav1.DeletePropagationForeground
 		gracePeriodSeconds := int64(0)
 		deleteOption := &metav1.DeleteOptions{PropagationPolicy: &deletePolicy, GracePeriodSeconds: &gracePeriodSeconds}
-		err = k8s.Client().RbacV1().ClusterRoleBindings().Delete(found.Name, deleteOption)
+		err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Delete(found.Name, deleteOption)
 		if err != nil {
 			glog.Errorln("delete cluster role binding", err)
 			return err
 		}
 		maxRetries := 3
 		for i := 0; i < maxRetries; i++ {
-			_, err = k8s.Client().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+			_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
 			if err == nil {
 				return nil
 			}
@@ -684,7 +684,7 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 
 	if !k8sutil.ContainsUser(found.Subjects, username) {
 		found.Subjects = clusterRoleBinding.Subjects
-		_, err = k8s.Client().RbacV1().ClusterRoleBindings().Update(found)
+		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(found)
 		if err != nil {
 			glog.Errorln("update cluster role binding", err)
 			return err

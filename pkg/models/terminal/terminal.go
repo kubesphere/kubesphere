@@ -29,7 +29,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 // PtyHandler is what remotecommand expects from a pty
@@ -179,11 +179,9 @@ func HandleTerminalSession(session sockjs.Session) {
 // Executed cmd in the container specified in request and connects it up with the ptyHandler (a session)
 func startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
 
-	k8sClient := k8s.Client()
-	cfg, err := k8s.Config()
-	if err != nil {
-		return err
-	}
+	k8sClient := client.ClientSets().K8s().Kubernetes()
+
+	cfg := client.ClientSets().K8s().Config()
 
 	req := k8sClient.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -288,10 +286,6 @@ func NewSession(shell, namespace, podName, containerName string) (string, error)
 		id:       sessionId,
 		bound:    make(chan error),
 		sizeChan: make(chan remotecommand.TerminalSize),
-	}
-
-	if err != nil {
-		return "", err
 	}
 
 	go WaitingForConnection(shell, namespace, podName, containerName, sessionId)
