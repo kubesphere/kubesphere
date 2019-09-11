@@ -61,6 +61,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"))
 	s.S3Options.AddFlags(fss.FlagSet("s3"))
 	s.RedisOptions.AddFlags(fss.FlagSet("redis"))
+	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"))
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"))
 
