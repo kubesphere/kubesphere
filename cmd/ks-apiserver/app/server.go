@@ -182,7 +182,13 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 
 	csop.SetDevopsOptions(conf.DevopsOptions).
 		SetKubernetesOptions(conf.KubernetesOptions).
-		SetMySQLOptions(conf.MySQLOptions)
+		SetMySQLOptions(conf.MySQLOptions).
+		SetLdapOptions(conf.LdapOptions).
+		SetS3Options(conf.S3Options).
+		SetOpenPitrixOptions(conf.OpenPitrixOptions).
+		SetPrometheusOptions(conf.MonitoringOptions).
+		SetRedisOptions(conf.RedisOptions)
+
 
 	client.NewClientSetFactory(csop, stopCh)
 
