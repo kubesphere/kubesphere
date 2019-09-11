@@ -83,6 +83,7 @@ type MultiBranchPipeline struct {
 	SingleSvnSource       *SingleSvnSource       `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
 	BitbucketServerSource *BitbucketServerSource `json:"bitbucket_server_source,omitempty" description:"bitbucket server scm defile"`
 	ScriptPath            string                 `json:"script_path" mapstructure:"script_path" description:"script path in scm"`
+	MultiBranchJobTrigger *MultiBranchJobTrigger `json:"multibranch_job_triggeromitempty" mapstructure:"multibranch_job_trigger" description:"Pipeline tasks that need to be triggered when branch creation/deletion"`
 }
 
 type GitSource struct {
@@ -105,6 +106,11 @@ type GithubSource struct {
 	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
 	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+}
+
+type MultiBranchJobTrigger struct {
+	CreateActionJobsToTrigger string `json:"create_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
+	DeleteActionJobsToTrigger string `json:"delete_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
 }
 
 type BitbucketServerSource struct {
@@ -837,6 +843,22 @@ func (s *SingleSvnSource) appendToEtree(source *etree.Element) *SingleSvnSource 
 	return s
 }
 
+func (s *MultiBranchJobTrigger) appendToEtree(properties *etree.Element) *MultiBranchJobTrigger {
+	triggerProperty := properties.CreateElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
+	triggerProperty.CreateAttr("plugin", "multibranch-action-triggers")
+	triggerProperty.CreateElement("createActionJobsToTrigger").SetText(s.CreateActionJobsToTrigger)
+	triggerProperty.CreateElement("deleteActionJobsToTrigger").SetText(s.DeleteActionJobsToTrigger)
+	return s
+}
+
+func (s *MultiBranchJobTrigger) fromEtree(properties *etree.Element) *MultiBranchJobTrigger {
+	triggerProperty := properties.SelectElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
+	if triggerProperty != nil {
+		s.CreateActionJobsToTrigger = triggerProperty.SelectElement("createActionJobsToTrigger").Text()
+		s.DeleteActionJobsToTrigger = triggerProperty.SelectElement("deleteActionJobsToTrigger").Text()
+	}
+	return s
+}
 func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranchPipeline) (string, error) {
 	doc := etree.NewDocument()
 	xmlString := `
@@ -868,6 +890,11 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 
 	project := doc.SelectElement("org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject")
 	project.CreateElement("description").SetText(pipeline.Description)
+
+	if pipeline.MultiBranchJobTrigger != nil {
+		properties := project.SelectElement("properties")
+		pipeline.MultiBranchJobTrigger.appendToEtree(properties)
+	}
 
 	if pipeline.Discarder != nil {
 		discarder := project.CreateElement("orphanedItemStrategy")
@@ -958,6 +985,14 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 	project := doc.SelectElement("org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject")
 	if project == nil {
 		return nil, fmt.Errorf("can not parse mutibranch pipeline config")
+	}
+	if properties := project.SelectElement("properties"); properties != nil {
+		if multibranchTrigger := properties.SelectElement(
+			"org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty"); multibranchTrigger != nil {
+			trigger := &MultiBranchJobTrigger{}
+			trigger.fromEtree(properties)
+			pipeline.MultiBranchJobTrigger = trigger
+		}
 	}
 	pipeline.Description = project.SelectElement("description").Text()
 
