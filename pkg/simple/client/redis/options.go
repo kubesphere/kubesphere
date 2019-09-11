@@ -42,16 +42,16 @@ func (r *RedisOptions) ApplyTo(options *RedisOptions) {
 }
 
 func (r *RedisOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&r.Host, "--redis-host", r.Host, ""+
+	fs.StringVar(&r.Host, "redis-host", r.Host, ""+
 		"Redis service host address. If left blank, means redis is unnecessary, "+
 		"redis will be disabled")
 
-	fs.IntVar(&r.Port, "--redis-port", r.Port, ""+
+	fs.IntVar(&r.Port, "redis-port", r.Port, ""+
 		"Redis service port number.")
 
-	fs.StringVar(&r.Password, "--redis-password", r.Password, ""+
+	fs.StringVar(&r.Password, "redis-password", r.Password, ""+
 		"Redis service password if necessary, default to empty")
 
-	fs.IntVar(&r.DB, "--redis-db", r.DB, ""+
+	fs.IntVar(&r.DB, "redis-db", r.DB, ""+
 		"Redis service database index, default to 0.")
 }
