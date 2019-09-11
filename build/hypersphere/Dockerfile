@@ -14,5 +14,5 @@ RUN CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 GOFLAGS=-mod=vendor go 
 
 FROM alpine:3.9
 RUN apk add --update ca-certificates && update-ca-certificates
-COPY --from=ks-apiserver-builder /go/src/kubesphere.io/kubesphere/hypersphere /usr/local/bin/
+COPY --from=hypersphere-builder /go/src/kubesphere.io/kubesphere/hypersphere /usr/local/bin/
 CMD ["sh"]
