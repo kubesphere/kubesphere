@@ -52,10 +52,11 @@ const (
 	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
 	ScanBranchUrl            = "/job/%s/job/%s/build?"
 	GetCrumbUrl              = "/crumbIssuer/api/json/"
-	CheckScriptCompileUrl    = "/job/init-job/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile"
-	CheckCronUrl             = "/job/init-job/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?"
 	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
 	GetNotifyCommitUrl       = "/git/notifyCommit/?"
 	GithubWebhookUrl         = "/github-webhook/"
+	CheckScriptCompileUrl    = "/job/%s/job/%s/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile"
+	CheckPipelienCronUrl     = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
+	CheckCronUrl             = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
 )
