@@ -291,6 +291,10 @@ func Complete(s *options.ServerRunOptions) error {
 		KubernetesOptions:  s.KubernetesOptions,
 		ServiceMeshOptions: s.ServiceMeshOptions,
 		MonitoringOptions:  s.MonitoringOptions,
+		LdapOptions:        s.LdapOptions,
+		RedisOptions:       s.RedisOptions,
+		S3Options:          s.S3Options,
+		OpenPitrixOptions:  s.OpenPitrixOptions,
 	})
 
 	s = &options.ServerRunOptions{
@@ -301,6 +305,10 @@ func Complete(s *options.ServerRunOptions) error {
 		ServiceMeshOptions:      conf.ServiceMeshOptions,
 		MySQLOptions:            conf.MySQLOptions,
 		MonitoringOptions:       conf.MonitoringOptions,
+		LdapOptions:             conf.LdapOptions,
+		RedisOptions:            conf.RedisOptions,
+		S3Options:               conf.S3Options,
+		OpenPitrixOptions:       conf.OpenPitrixOptions,
 	}
 
 	return nil

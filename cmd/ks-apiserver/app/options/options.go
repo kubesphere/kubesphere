@@ -7,8 +7,12 @@ import (
 	genericoptions "kubesphere.io/kubesphere/pkg/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/redis"
+	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"strings"
@@ -17,17 +21,16 @@ import (
 type ServerRunOptions struct {
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 
-	KubernetesOptions *k8s.KubernetesOptions
-
-	DevopsOptions *devops.DevopsOptions
-
-	SonarQubeOptions *sonarqube.SonarQubeOptions
-
+	KubernetesOptions  *k8s.KubernetesOptions
+	DevopsOptions      *devops.DevopsOptions
+	SonarQubeOptions   *sonarqube.SonarQubeOptions
 	ServiceMeshOptions *servicemesh.ServiceMeshOptions
-
-	MySQLOptions *mysql.MySQLOptions
-
-	MonitoringOptions *prometheus.PrometheusOptions
+	MySQLOptions       *mysql.MySQLOptions
+	MonitoringOptions  *prometheus.PrometheusOptions
+	LdapOptions        *ldap.LdapOptions
+	S3Options          *s2is3.S3Options
+	RedisOptions       *redis.RedisOptions
+	OpenPitrixOptions  *openpitrix.OpenPitrixOptions
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -40,6 +43,10 @@ func NewServerRunOptions() *ServerRunOptions {
 		ServiceMeshOptions:      servicemesh.NewServiceMeshOptions(),
 		MySQLOptions:            mysql.NewMySQLOptions(),
 		MonitoringOptions:       prometheus.NewPrometheusOptions(),
+		LdapOptions:             ldap.NewLdapOptions(),
+		S3Options:               s2is3.NewS3Options(),
+		RedisOptions:            redis.NewRedisOptions(),
+		OpenPitrixOptions:       openpitrix.NewOpenPitrixOptions(),
 	}
 
 	return &s
@@ -49,8 +56,11 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 
 	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"))
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
+	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"))
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"))
+	s.S3Options.AddFlags(fss.FlagSet("s3"))
+	s.RedisOptions.AddFlags(fss.FlagSet("redis"))
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"))
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"))
 
