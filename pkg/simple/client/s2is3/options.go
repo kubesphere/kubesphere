@@ -18,7 +18,7 @@ type S3Options struct {
 
 func NewS3Options() *S3Options {
 	return &S3Options{
-		Endpoint:        "http://openpitrix-minio.openpitrix-system.svc:9000",
+		Endpoint:        "",
 		Region:          "us-east-1",
 		DisableSSL:      true,
 		ForcePathStyle:  true,
