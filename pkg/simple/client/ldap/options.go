@@ -31,12 +31,14 @@ func (l *LdapOptions) Validate() []error {
 }
 
 func (l *LdapOptions) ApplyTo(options *LdapOptions) {
-	reflectutils.Override(options, l)
+	if l.Host != "" {
+		reflectutils.Override(options, l)
+	}
 }
 
 func (l *LdapOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&l.Host, "ldap-host", l.Host, ""+
-		"Ldap service host, if left blank, all of the following options will "+
+		"Ldap service host, if left blank, all of the following ldap options will "+
 		"be ignored and ldap will be disabled.")
 
 	fs.StringVar(&l.ManagerDN, "ldap-manager-dn", l.ManagerDN, ""+

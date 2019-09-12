@@ -3,6 +3,7 @@ package devops
 import (
 	"fmt"
 	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type DevopsOptions struct {
@@ -22,29 +23,14 @@ func NewDevopsOptions() *DevopsOptions {
 	}
 }
 
+// ApplyTo apply configuration to another options
 func (s *DevopsOptions) ApplyTo(options *DevopsOptions) {
-	if options == nil {
-		return
-	}
-
-	if s.Host != "" {
-		options.Host = s.Host
-	}
-
-	if s.Username != "" {
-		options.Username = s.Username
-	}
-
-	if s.Password != "" {
-		options.Password = s.Password
-	}
-
-	if s.MaxConnections > 0 {
-		options.MaxConnections = s.MaxConnections
+	if s.Host != "" && options != nil {
+		reflectutils.Override(options, s)
 	}
 }
 
-//
+// Validate check if there is misconfiguration in options
 func (s *DevopsOptions) Validate() []error {
 	errors := []error{}
 
