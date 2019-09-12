@@ -189,7 +189,6 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 		SetPrometheusOptions(conf.MonitoringOptions).
 		SetRedisOptions(conf.RedisOptions)
 
-
 	client.NewClientSetFactory(csop, stopCh)
 
 	return nil

@@ -19,13 +19,13 @@ type S3Options struct {
 func NewS3Options() *S3Options {
 	return &S3Options{
 		Endpoint:        "",
-		Region:          "",
+		Region:          "us-east-1",
 		DisableSSL:      true,
 		ForcePathStyle:  true,
-		AccessKeyID:     "",
-		SecretAccessKey: "",
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 		SessionToken:    "",
-		Bucket:          "",
+		Bucket:          "s2i-binaries",
 	}
 }
 
@@ -44,7 +44,7 @@ func (s *S3Options) AddFlags(fs *pflag.FlagSet) {
 		"Endpoint to access to s3 object storage service, if left blank, the following options "+
 		"will be ignored.")
 
-	fs.StringVar(&s.Region, "s3-region", s.Region, ""+
+	fs.StringVar(&s.Region, "s3-region", "us-east-1", ""+
 		"Region of s3 that will access to, like us-east-1.")
 
 	fs.StringVar(&s.AccessKeyID, "s3-access-key-id", "AKIAIOSFODNN7EXAMPLE", "access key of s2i s3")
@@ -55,7 +55,7 @@ func (s *S3Options) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.Bucket, "s3-bucket", "s2i-binaries", "bucket name of s2i s3")
 
-	fs.BoolVar(&s.DisableSSL, "s3-disable-SSL", s.DisableSSL, "disable ssl")
+	fs.BoolVar(&s.DisableSSL, "s3-disable-SSL", true, "disable ssl")
 
 	fs.BoolVar(&s.ForcePathStyle, "s3-force-path-style", true, "force path style")
 }
