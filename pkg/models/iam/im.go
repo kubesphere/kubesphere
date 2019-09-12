@@ -598,15 +598,35 @@ func DeleteUser(username string) error {
 		klog.Errorln("delete user terminal pod failed", username, err)
 	}
 
+	if err := deleteUserInDevOps(username); err != nil {
+		klog.Errorln("delete user in devops failed", username, err)
+	}
+	return nil
+
+}
+
+// deleteUserInDevOps is used to clean up user data of devops, such as permission rules
+func deleteUserInDevOps(username string) error {
+
 	devopsDb, err := clientset.ClientSets().MySQL()
 	if err != nil {
+		if _, ok := err.(clientset.ClientSetNotEnabledError); ok {
+			klog.Warning("devops client is not enable")
+			return nil
+		}
 		return err
 	}
 
 	dp, err := clientset.ClientSets().Devops()
 	if err != nil {
+		if _, ok := err.(clientset.ClientSetNotEnabledError); ok {
+			klog.Warning("devops client is not enable")
+			return nil
+		}
+
 		return err
 	}
+
 	jenkinsClient := dp.Jenkins()
 
 	_, err = devopsDb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
@@ -623,9 +643,7 @@ func DeleteUser(username string) error {
 		klog.Errorf("%+v", err)
 		return err
 	}
-
 	return nil
-
 }
 
 func deleteRoleBindings(username string) error {
