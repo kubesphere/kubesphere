@@ -22,8 +22,6 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
-
-	prom "kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
 func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
@@ -34,10 +32,10 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 	nsFilter := "^(" + strings.Join(nsNameList, "|") + ")$"
 	var timeRelateParams = make(url.Values)
 
-	params := prom.MonitoringRequestParams{
+	params := MonitoringRequestParams{
 		ResourcesFilter: nsFilter,
 		Params:          timeRelateParams,
-		QueryType:       prom.DefaultQueryType,
+		QueryType:       DefaultQueryType,
 		MetricsFilter:   "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
 	}
 

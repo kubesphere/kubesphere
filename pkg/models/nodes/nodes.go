@@ -19,7 +19,7 @@ package nodes
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math"
 	"strings"
 	"time"
@@ -36,7 +36,7 @@ import (
 
 func DrainNode(nodename string) (err error) {
 
-	k8sclient := k8s.Client()
+	k8sclient := client.ClientSets().K8s().Kubernetes()
 	node, err := k8sclient.CoreV1().Nodes().Get(nodename, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func DrainNode(nodename string) (err error) {
 
 func drainEviction(nodename string, donech chan bool, errch chan error) {
 
-	k8sclient := k8s.Client()
+	k8sclient := client.ClientSets().K8s().Kubernetes()
 	var options metav1.ListOptions
 	pods := make([]v1.Pod, 0)
 	options.FieldSelector = "spec.nodeName=" + nodename
@@ -107,7 +107,6 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 
 		//create eviction
 		getPodFn := func(namespace, name string) (*v1.Pod, error) {
-			k8sclient := k8s.Client()
 			return k8sclient.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 		}
 		evicerr := evictPods(pods, 0, getPodFn)
@@ -118,9 +117,7 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 			glog.Fatal(evicerr)
 			errch <- err
 		}
-
 	}
-
 }
 
 func getPodSource(pod *v1.Pod) (string, error) {
@@ -159,7 +156,7 @@ func containDaemonset(pod v1.Pod, daemonsetList appsv1.DaemonSetList) bool {
 
 func evictPod(pod v1.Pod, GracePeriodSeconds int) error {
 
-	k8sclient := k8s.Client()
+	k8sclient := client.ClientSets().K8s().Kubernetes()
 	deleteOptions := &metav1.DeleteOptions{}
 	if GracePeriodSeconds >= 0 {
 		gracePeriodSeconds := int64(GracePeriodSeconds)

@@ -17,7 +17,11 @@
 */
 package options
 
-import "github.com/spf13/pflag"
+import (
+	"fmt"
+	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/pkg/utils/net"
+)
 
 type ServerRunOptions struct {
 	// server bind address
@@ -47,6 +51,26 @@ func NewServerRunOptions() *ServerRunOptions {
 	}
 
 	return &s
+}
+
+func (s *ServerRunOptions) Validate() []error {
+	errs := []error{}
+
+	if s.SecurePort == 0 && s.InsecurePort == 0 {
+		errs = append(errs, fmt.Errorf("insecure and secure port can not be disabled at the same time"))
+	}
+
+	if net.IsValidPort(s.SecurePort) {
+		if s.TlsCertFile == "" {
+			errs = append(errs, fmt.Errorf("tls cert file is empty while secure serving"))
+		}
+
+		if s.TlsPrivateKey == "" {
+			errs = append(errs, fmt.Errorf("tls private key file is empty while secure serving"))
+		}
+	}
+
+	return errs
 }
 
 func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {

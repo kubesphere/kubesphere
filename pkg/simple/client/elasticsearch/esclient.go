@@ -25,6 +25,30 @@ import (
 	"github.com/json-iterator/go"
 )
 
+const (
+	OperationQuery int = iota
+	OperationStatistics
+	OperationHistogram
+
+	matchPhrase = iota
+	matchPhrasePrefix
+	regexpQuery
+
+	podNameMaxLength = 63
+	// max 10 characters + 1 hyphen
+	replicaSetSuffixMaxLength = 11
+	// a unique random string as suffix, 5 characters + 1 hyphen
+	randSuffixLength = 6
+
+	fieldPodName       = "kubernetes.pod_name"
+	fieldContainerName = "kubernetes.container_name"
+	fieldLog           = "log"
+
+	fieldNamespaceNameKeyword = "kubernetes.namespace_name.keyword"
+	fieldPodNameKeyword       = "kubernetes.pod_name.keyword"
+	fieldContainerNameKeyword = "kubernetes.container_name.keyword"
+)
+
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var (
@@ -33,13 +57,6 @@ var (
 
 	client Client
 )
-
-type Config struct {
-	Host         string
-	Port         string
-	Index        string
-	VersionMajor string
-}
 
 func (cfg *Config) WriteESConfigs() {
 	mu.Lock()
@@ -55,189 +72,58 @@ func (cfg *Config) WriteESConfigs() {
 	client = NewForConfig(config)
 }
 
-type Request struct {
-	From          int64         `json:"from"`
-	Size          int64         `json:"size"`
-	Sorts         []Sort        `json:"sort,omitempty"`
-	MainQuery     BoolQuery     `json:"query"`
-	Aggs          interface{}   `json:"aggs,omitempty"`
-	MainHighLight MainHighLight `json:"highlight,omitempty"`
-}
-
-type Sort struct {
-	Order Order `json:"time"`
-}
-
-type Order struct {
-	Order string `json:"order"`
-}
-
-type BoolQuery struct {
-	BoolMusts BoolMusts `json:"bool"`
-}
-
-type BoolMusts struct {
-	Musts []interface{} `json:"must"`
-}
-
-type RangeQuery struct {
-	RangeSpec RangeSpec `json:"range"`
-}
-
-type RangeSpec struct {
-	TimeRange TimeRange `json:"time"`
-}
-
-type TimeRange struct {
-	Gte string `json:"gte,omitempty"`
-	Lte string `json:"lte,omitempty"`
-}
-
-type BoolShouldMatchPhrase struct {
-	ShouldMatchPhrase ShouldMatchPhrase `json:"bool"`
-}
-
-type ShouldMatchPhrase struct {
-	Shoulds            []interface{} `json:"should"`
-	MinimumShouldMatch int64         `json:"minimum_should_match"`
-}
-
-type MatchPhrase struct {
-	MatchPhrase interface{} `json:"match_phrase"`
-}
-
-type Match struct {
-	Match interface{} `json:"match"`
-}
-
-type QueryWord struct {
-	Word string `json:"query"`
-}
-
-type MainHighLight struct {
-	Fields       []interface{} `json:"fields,omitempty"`
-	FragmentSize int           `json:"fragment_size"`
-}
-
-type LogHighLightField struct {
-	FieldContent EmptyField `json:"log"`
-}
-
-type NamespaceHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.namespace_name.keyword"`
-}
-
-type PodHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.pod_name.keyword"`
-}
-
-type ContainerHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.container_name.keyword"`
-}
-
-type EmptyField struct {
-}
-
-// StatisticsAggs, the struct for `aggs` of type Request, holds a cardinality aggregation for distinct container counting
-type StatisticsAggs struct {
-	ContainerAgg ContainerAgg `json:"containers"`
-}
-
-type ContainerAgg struct {
-	Cardinality AggField `json:"cardinality"`
-}
-
-type AggField struct {
-	Field string `json:"field"`
-}
-
-type HistogramAggs struct {
-	HistogramAgg HistogramAgg `json:"histogram"`
-}
-
-type HistogramAgg struct {
-	DateHistogram DateHistogram `json:"date_histogram"`
-}
-
-type DateHistogram struct {
-	Field    string `json:"field"`
-	Interval string `json:"interval"`
-}
-
 func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	var request Request
-	var mainBoolQuery BoolMusts
+	var mainBoolQuery BoolFilter
 
-	if param.NamespaceFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.NamespaceWithCreationTime) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for namespace, creationTime := range param.NamespaceWithCreationTime {
-				var boolQuery BoolQuery
+	if len(param.NamespaceWithCreationTime) != 0 {
+		var boolShould BoolShould
+		for namespace, creationTime := range param.NamespaceWithCreationTime {
+			var boolFilter BoolFilter
 
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.namespace_name.keyword": QueryWord{namespace}}}
-				rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
+			matchPhrase := MatchPhrase{MatchPhrase: map[string]string{fieldNamespaceNameKeyword: namespace}}
+			rangeQuery := RangeQuery{RangeSpec{TimeRange{creationTime, ""}}}
 
-				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, matchPhrase)
-				boolQuery.BoolMusts.Musts = append(boolQuery.BoolMusts.Musts, rangeQuery)
+			boolFilter.Filter = append(boolFilter.Filter, matchPhrase)
+			boolFilter.Filter = append(boolFilter.Filter, rangeQuery)
 
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, boolQuery)
-			}
+			boolShould.Should = append(boolShould.Should, BoolQuery{Bool: boolFilter})
 		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+		boolShould.MinimumShouldMatch = 1
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, BoolQuery{Bool: boolShould})
 	}
-	if param.PodFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.Pods) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for _, pod := range param.Pods {
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.pod_name.keyword": QueryWord{pod}}}
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-			}
-		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	if param.WorkloadFilter != nil {
+		boolQuery := makeBoolShould(regexpQuery, fieldPodNameKeyword, param.WorkloadFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.ContainerFilled {
-		var shouldMatchPhrase ShouldMatchPhrase
-		if len(param.Containers) == 0 {
-			matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.key_word": QueryWord{""}}}
-			shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-		} else {
-			for _, container := range param.Containers {
-				matchPhrase := MatchPhrase{map[string]interface{}{"kubernetes.container_name.keyword": QueryWord{container}}}
-				shouldMatchPhrase.Shoulds = append(shouldMatchPhrase.Shoulds, matchPhrase)
-			}
-		}
-		shouldMatchPhrase.MinimumShouldMatch = 1
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, BoolShouldMatchPhrase{shouldMatchPhrase})
+	if param.PodFilter != nil {
+		boolQuery := makeBoolShould(matchPhrase, fieldPodNameKeyword, param.PodFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
+	}
+	if param.ContainerFilter != nil {
+		boolQuery := makeBoolShould(matchPhrase, fieldContainerNameKeyword, param.ContainerFilter)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 
-	if param.NamespaceQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.namespace_name": QueryWord{param.NamespaceQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.WorkloadQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldPodName, param.WorkloadQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.PodQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.pod_name": QueryWord{param.PodQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.PodQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldPodName, param.PodQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-	if param.ContainerQuery != "" {
-		match := Match{map[string]interface{}{"kubernetes.container_name": QueryWord{param.ContainerQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.ContainerQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldContainerName, param.ContainerQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
-
-	if param.LogQuery != "" {
-		match := Match{map[string]interface{}{"log": QueryWord{param.LogQuery}}}
-		mainBoolQuery.Musts = append(mainBoolQuery.Musts, match)
+	if param.LogQuery != nil {
+		boolQuery := makeBoolShould(matchPhrasePrefix, fieldLog, param.LogQuery)
+		mainBoolQuery.Filter = append(mainBoolQuery.Filter, boolQuery)
 	}
 
 	rangeQuery := RangeQuery{RangeSpec{TimeRange{param.StartTime, param.EndTime}}}
-	mainBoolQuery.Musts = append(mainBoolQuery.Musts, rangeQuery)
+	mainBoolQuery.Filter = append(mainBoolQuery.Filter, rangeQuery)
 
 	var operation int
 
@@ -286,127 +172,56 @@ func createQueryRequest(param QueryParameters) (int, []byte, error) {
 	return operation, queryRequest, err
 }
 
-// Fore more info, refer to https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-search-API.html
-// Response from the elasticsearch engine
-type Response struct {
-	Status       int             `json:"status"`
-	Workspace    string          `json:"workspace,omitempty"`
-	Shards       Shards          `json:"_shards"`
-	Hits         Hits            `json:"hits"`
-	Aggregations json.RawMessage `json:"aggregations"`
+func makeBoolShould(queryType int, field string, list []string) BoolQuery {
+	var should []interface{}
+	for _, phrase := range list {
+
+		var q interface{}
+
+		switch queryType {
+		case matchPhrase:
+			q = MatchPhrase{MatchPhrase: map[string]string{field: phrase}}
+		case matchPhrasePrefix:
+			q = MatchPhrasePrefix{MatchPhrasePrefix: map[string]string{field: phrase}}
+		case regexpQuery:
+			q = RegexpQuery{Regexp: map[string]string{field: makePodNameRegexp(phrase)}}
+		}
+
+		should = append(should, q)
+	}
+
+	return BoolQuery{
+		Bool: BoolShould{
+			Should:             should,
+			MinimumShouldMatch: 1,
+		},
+	}
 }
 
-type Shards struct {
-	Total      int64 `json:"total"`
-	Successful int64 `json:"successful"`
-	Skipped    int64 `json:"skipped"`
-	Failed     int64 `json:"failed"`
+func makePodNameRegexp(workloadName string) string {
+	var regexp string
+	if len(workloadName) <= podNameMaxLength-replicaSetSuffixMaxLength-randSuffixLength {
+		// match deployment pods, eg. <deploy>-579dfbcddd-24znw
+		// replicaset rand string is limited to vowels
+		// https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/util/rand/rand.go#L83
+		regexp += workloadName + "-[bcdfghjklmnpqrstvwxz2456789]{1,10}-[a-z0-9]{5}|"
+		// match statefulset pods, eg. <sts>-0
+		regexp += workloadName + "-[0-9]+|"
+		// match pods of daemonset or job, eg. <ds>-29tdk, <job>-5xqvl
+		regexp += workloadName + "-[a-z0-9]{5}"
+	} else if len(workloadName) <= podNameMaxLength-randSuffixLength {
+		replicaSetSuffixLength := podNameMaxLength - randSuffixLength - len(workloadName)
+		regexp += fmt.Sprintf("%s%d%s", workloadName+"-[bcdfghjklmnpqrstvwxz2456789]{", replicaSetSuffixLength, "}[a-z0-9]{5}|")
+		regexp += workloadName + "-[0-9]+|"
+		regexp += workloadName + "-[a-z0-9]{5}"
+	} else {
+		// Rand suffix may overwrites the workload name if the name is too long
+		// This won't happen for StatefulSet because a statefulset pod will fail to create
+		regexp += workloadName[:podNameMaxLength-randSuffixLength+1] + "[a-z0-9]{5}|"
+		regexp += workloadName + "-[0-9]+"
+	}
+	return regexp
 }
-
-type Hits struct {
-	// As of ElasticSearch v7.x, hits.total is changed
-	Total interface{} `json:"total"`
-	Hits  []Hit       `json:"hits"`
-}
-
-type Hit struct {
-	Source    Source    `json:"_source"`
-	HighLight HighLight `json:"highlight"`
-	Sort      []int64   `json:"sort"`
-}
-
-type Source struct {
-	Log        string     `json:"log"`
-	Time       string     `json:"time"`
-	Kubernetes Kubernetes `json:"kubernetes"`
-}
-
-type Kubernetes struct {
-	Namespace string `json:"namespace_name"`
-	Pod       string `json:"pod_name"`
-	Container string `json:"container_name"`
-	Host      string `json:"host"`
-}
-
-type HighLight struct {
-	LogHighLights       []string `json:"log,omitempty" description:"log messages to highlight"`
-	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty" description:"namespaces to highlight"`
-	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty" description:"pods to highlight"`
-	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty" description:"containers to highlight"`
-}
-
-type LogRecord struct {
-	Time      int64     `json:"time,omitempty" description:"log timestamp"`
-	Log       string    `json:"log,omitempty" description:"log message"`
-	Namespace string    `json:"namespace,omitempty" description:"namespace"`
-	Pod       string    `json:"pod,omitempty" description:"pod name"`
-	Container string    `json:"container,omitempty" description:"container name"`
-	Host      string    `json:"host,omitempty" description:"node id"`
-	HighLight HighLight `json:"highlight,omitempty" description:"highlighted log fragment"`
-}
-
-type ReadResult struct {
-	Total   int64       `json:"total" description:"total number of matched results"`
-	From    int64       `json:"from" description:"the offset from the result set"`
-	Size    int64       `json:"size" description:"the amount of hits to be returned"`
-	Records []LogRecord `json:"records,omitempty" description:"actual array of results"`
-}
-
-// StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
-type StatisticsResponseAggregations struct {
-	ContainerCount ContainerCount `json:"containers"`
-}
-
-type ContainerCount struct {
-	Value int64 `json:"value"`
-}
-
-type HistogramAggregations struct {
-	HistogramAggregation HistogramAggregation `json:"histogram"`
-}
-
-type HistogramAggregation struct {
-	Histograms []HistogramStatistics `json:"buckets"`
-}
-
-type HistogramStatistics struct {
-	Time  int64 `json:"key"`
-	Count int64 `json:"doc_count"`
-}
-
-type HistogramRecord struct {
-	Time  int64 `json:"time" description:"timestamp"`
-	Count int64 `json:"count" description:"total number of logs at intervals"`
-}
-
-type StatisticsResult struct {
-	Containers int64 `json:"containers" description:"total number of containers"`
-	Logs       int64 `json:"logs" description:"total number of logs"`
-}
-
-type HistogramResult struct {
-	Total      int64             `json:"total" description:"total number of logs"`
-	StartTime  int64             `json:"start_time" description:"start time"`
-	EndTime    int64             `json:"end_time" description:"end time"`
-	Interval   string            `json:"interval" description:"interval"`
-	Histograms []HistogramRecord `json:"histograms" description:"actual array of histogram results"`
-}
-
-// Wrap elasticsearch response
-type QueryResult struct {
-	Status     int               `json:"status,omitempty" description:"query status"`
-	Error      string            `json:"error,omitempty" description:"debugging information"`
-	Workspace  string            `json:"workspace,omitempty" description:"the name of the workspace where logs come from"`
-	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
-	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
-	Histogram  *HistogramResult  `json:"histogram,omitempty" description:"histogram results"`
-}
-
-const (
-	OperationQuery int = iota
-	OperationStatistics
-	OperationHistogram
-)
 
 func calcTimestamp(input string) int64 {
 	var t time.Time
@@ -513,39 +328,30 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 	}
 
 	queryResult.Status = http.StatusOK
-	queryResult.Workspace = param.Workspace
 
 	return &queryResult
-}
-
-type QueryParameters struct {
-	NamespaceFilled           bool
-	Namespaces                []string
-	NamespaceWithCreationTime map[string]string
-	PodFilled                 bool
-	Pods                      []string
-	ContainerFilled           bool
-	Containers                []string
-
-	NamespaceQuery string
-	PodQuery       string
-	ContainerQuery string
-
-	Workspace string
-
-	Operation string
-	LogQuery  string
-	Interval  string
-	StartTime string
-	EndTime   string
-	Sort      string
-	From      int64
-	Size      int64
 }
 
 func Query(param QueryParameters) *QueryResult {
 
 	var queryResult = new(QueryResult)
+
+	if param.NamespaceNotFound {
+		queryResult = new(QueryResult)
+		queryResult.Status = http.StatusOK
+		switch param.Operation {
+		case "statistics":
+			queryResult.Statistics = new(StatisticsResult)
+		case "histogram":
+			queryResult.Histogram = &HistogramResult{
+				StartTime: calcTimestamp(param.StartTime),
+				EndTime:   calcTimestamp(param.EndTime),
+				Interval:  param.Interval}
+		default:
+			queryResult.Read = new(ReadResult)
+		}
+		return queryResult
+	}
 
 	if client == nil {
 		queryResult.Status = http.StatusBadRequest

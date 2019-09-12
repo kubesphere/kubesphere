@@ -18,15 +18,12 @@
 package informers
 
 import (
+	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
+	k8sinformers "k8s.io/client-go/informers"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"sync"
 	"time"
-
-	s2iInformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
-
-	"k8s.io/client-go/informers"
-	ksInformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
 const defaultResync = 600 * time.Second
@@ -35,31 +32,31 @@ var (
 	k8sOnce            sync.Once
 	s2iOnce            sync.Once
 	ksOnce             sync.Once
-	informerFactory    informers.SharedInformerFactory
-	s2iInformerFactory s2iInformers.SharedInformerFactory
-	ksInformerFactory  ksInformers.SharedInformerFactory
+	informerFactory    k8sinformers.SharedInformerFactory
+	s2iInformerFactory s2iinformers.SharedInformerFactory
+	ksInformerFactory  ksinformers.SharedInformerFactory
 )
 
-func SharedInformerFactory() informers.SharedInformerFactory {
+func SharedInformerFactory() k8sinformers.SharedInformerFactory {
 	k8sOnce.Do(func() {
-		k8sClient := k8s.Client()
-		informerFactory = informers.NewSharedInformerFactory(k8sClient, defaultResync)
+		k8sClient := client.ClientSets().K8s().Kubernetes()
+		informerFactory = k8sinformers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return informerFactory
 }
 
-func S2iSharedInformerFactory() s2iInformers.SharedInformerFactory {
+func S2iSharedInformerFactory() s2iinformers.SharedInformerFactory {
 	s2iOnce.Do(func() {
-		k8sClient := k8s.S2iClient()
-		s2iInformerFactory = s2iInformers.NewSharedInformerFactory(k8sClient, defaultResync)
+		k8sClient := client.ClientSets().K8s().S2i()
+		s2iInformerFactory = s2iinformers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return s2iInformerFactory
 }
 
-func KsSharedInformerFactory() ksInformers.SharedInformerFactory {
+func KsSharedInformerFactory() ksinformers.SharedInformerFactory {
 	ksOnce.Do(func() {
-		k8sClient := k8s.KsClient()
-		ksInformerFactory = ksInformers.NewSharedInformerFactory(k8sClient, defaultResync)
+		k8sClient := client.ClientSets().K8s().KubeSphere()
+		ksInformerFactory = ksinformers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return ksInformerFactory
 }

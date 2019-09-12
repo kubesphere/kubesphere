@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	batchv1informers "k8s.io/client-go/informers/batch/v1"
 	batchv1listers "k8s.io/client-go/listers/batch/v1"
+	log "k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/metrics"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"time"
 
@@ -50,8 +50,6 @@ const (
 	maxRetries             = 15
 	revisionsAnnotationKey = "revisions"
 )
-
-var log = logf.Log.WithName("job-controller")
 
 type JobController struct {
 	client           clientset.Interface

@@ -19,7 +19,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubesphere/sonargo/sonar"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
 	"strings"
 	"time"
@@ -83,6 +83,7 @@ type MultiBranchPipeline struct {
 	SingleSvnSource       *SingleSvnSource       `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
 	BitbucketServerSource *BitbucketServerSource `json:"bitbucket_server_source,omitempty" description:"bitbucket server scm defile"`
 	ScriptPath            string                 `json:"script_path" mapstructure:"script_path" description:"script path in scm"`
+	MultiBranchJobTrigger *MultiBranchJobTrigger `json:"multibranch_job_triggeromitempty" mapstructure:"multibranch_job_trigger" description:"Pipeline tasks that need to be triggered when branch creation/deletion"`
 }
 
 type GitSource struct {
@@ -105,6 +106,11 @@ type GithubSource struct {
 	DiscoverPRFromForks  *DiscoverPRFromForks `json:"discover_pr_from_forks,omitempty" mapstructure:"discover_pr_from_forks" description:"Discover fork PR configuration"`
 	CloneOption          *GitCloneOption      `json:"git_clone_option,omitempty" mapstructure:"git_clone_option" description:"advavced git clone options"`
 	RegexFilter          string               `json:"regex_filter,omitempty" mapstructure:"regex_filter" description:"Regex used to match the name of the branch that needs to be run"`
+}
+
+type MultiBranchJobTrigger struct {
+	CreateActionJobsToTrigger string `json:"create_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
+	DeleteActionJobsToTrigger string `json:"delete_action_job_to_trigger,omitempty" description:"pipeline name to trigger"`
 }
 
 type BitbucketServerSource struct {
@@ -169,7 +175,7 @@ type RemoteTrigger struct {
 }
 
 func replaceXmlVersion(config, oldVersion, targetVersion string) string {
-	lines := strings.Split(string(config), "\n")
+	lines := strings.Split(config, "\n")
 	lines[0] = strings.Replace(lines[0], oldVersion, targetVersion, -1)
 	output := strings.Join(lines, "\n")
 	return output
@@ -837,6 +843,22 @@ func (s *SingleSvnSource) appendToEtree(source *etree.Element) *SingleSvnSource 
 	return s
 }
 
+func (s *MultiBranchJobTrigger) appendToEtree(properties *etree.Element) *MultiBranchJobTrigger {
+	triggerProperty := properties.CreateElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
+	triggerProperty.CreateAttr("plugin", "multibranch-action-triggers")
+	triggerProperty.CreateElement("createActionJobsToTrigger").SetText(s.CreateActionJobsToTrigger)
+	triggerProperty.CreateElement("deleteActionJobsToTrigger").SetText(s.DeleteActionJobsToTrigger)
+	return s
+}
+
+func (s *MultiBranchJobTrigger) fromEtree(properties *etree.Element) *MultiBranchJobTrigger {
+	triggerProperty := properties.SelectElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
+	if triggerProperty != nil {
+		s.CreateActionJobsToTrigger = triggerProperty.SelectElement("createActionJobsToTrigger").Text()
+		s.DeleteActionJobsToTrigger = triggerProperty.SelectElement("deleteActionJobsToTrigger").Text()
+	}
+	return s
+}
 func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranchPipeline) (string, error) {
 	doc := etree.NewDocument()
 	xmlString := `
@@ -868,6 +890,11 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 
 	project := doc.SelectElement("org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject")
 	project.CreateElement("description").SetText(pipeline.Description)
+
+	if pipeline.MultiBranchJobTrigger != nil {
+		properties := project.SelectElement("properties")
+		pipeline.MultiBranchJobTrigger.appendToEtree(properties)
+	}
 
 	if pipeline.Discarder != nil {
 		discarder := project.CreateElement("orphanedItemStrategy")
@@ -959,6 +986,14 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 	if project == nil {
 		return nil, fmt.Errorf("can not parse mutibranch pipeline config")
 	}
+	if properties := project.SelectElement("properties"); properties != nil {
+		if multibranchTrigger := properties.SelectElement(
+			"org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty"); multibranchTrigger != nil {
+			trigger := &MultiBranchJobTrigger{}
+			trigger.fromEtree(properties)
+			pipeline.MultiBranchJobTrigger = trigger
+		}
+	}
 	pipeline.Description = project.SelectElement("description").Text()
 
 	if discarder := project.SelectElement("orphanedItemStrategy"); discarder != nil {
@@ -1042,7 +1077,12 @@ func toCrontab(millis int64) string {
 }
 
 func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
-	sonarClient := sonarqube.Client()
+
+	sonarClient, err := client.ClientSets().SonarQube()
+	if err != nil {
+		return nil, err
+	}
+
 	actions := build.GetActions()
 	sonarStatuses := make([]*SonarStatus, 0)
 	for _, action := range actions {
@@ -1051,7 +1091,7 @@ func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
 			taskOptions := &sonargo.CeTaskOption{
 				Id: action.SonarTaskId,
 			}
-			ceTask, _, err := sonarClient.Ce.Task(taskOptions)
+			ceTask, _, err := sonarClient.SonarQube().Ce.Task(taskOptions)
 			if err != nil {
 				glog.Errorf("get sonar task error [%+v]", err)
 				continue
@@ -1062,7 +1102,7 @@ func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
 				AdditionalFields: SonarAdditionalFields,
 				MetricKeys:       SonarMetricKeys,
 			}
-			measures, _, err := sonarClient.Measures.Component(measuresComponentOption)
+			measures, _, err := sonarClient.SonarQube().Measures.Component(measuresComponentOption)
 			if err != nil {
 				glog.Errorf("get sonar task error [%+v]", err)
 				continue
@@ -1077,7 +1117,7 @@ func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
 				S:                "FILE_LINE",
 				Facets:           "severities,types",
 			}
-			issuesSearch, _, err := sonarClient.Issues.Search(issuesSearchOption)
+			issuesSearch, _, err := sonarClient.SonarQube().Issues.Search(issuesSearchOption)
 			sonarStatus.Issues = issuesSearch
 			jenkinsAction := action
 			sonarStatus.JenkinsAction = &jenkinsAction

@@ -28,6 +28,7 @@ const (
 	KubeSphereLoggingNamespace    = "kubesphere-logging-system"
 	KubeSphereNamespace           = "kubesphere-system"
 	KubeSphereControlNamespace    = "kubesphere-controls-system"
+	PorterNamespace               = "porter-system"
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
 	DataHome                      = "/etc/kubesphere"
@@ -80,5 +81,5 @@ const (
 
 var (
 	WorkSpaceRoles   = []string{WorkspaceAdmin, WorkspaceRegular, WorkspaceViewer}
-	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace}
+	SystemNamespaces = []string{KubeSphereNamespace, KubeSphereLoggingNamespace, KubeSphereMonitoringNamespace, OpenPitrixNamespace, KubeSystemNamespace, IstioNamespace, KubesphereDevOpsNamespace, PorterNamespace}
 )

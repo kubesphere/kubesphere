@@ -19,9 +19,9 @@ package components
 
 import (
 	"fmt"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 
 	"kubesphere.io/kubesphere/pkg/informers"
 
@@ -93,7 +93,7 @@ func GetSystemHealthStatus() (*models.HealthStatus, error) {
 
 	status := &models.HealthStatus{}
 
-	componentStatuses, err := k8s.Client().CoreV1().ComponentStatuses().List(meta_v1.ListOptions{})
+	componentStatuses, err := client.ClientSets().K8s().Kubernetes().CoreV1().ComponentStatuses().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

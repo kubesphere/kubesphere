@@ -16,43 +16,43 @@ package devops
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
-	"kubesphere.io/kubesphere/pkg/simple/client/admin_jenkins"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 )
 
 func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	jenkinsClient := devops.Jenkins()
+
 	switch pipeline.Type {
 	case NoScmPipelineType:
 
 		config, err := createPipelineConfigXml(pipeline.Pipeline)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
 		job, err := jenkinsClient.GetJob(pipeline.Pipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
-			glog.Warning(err.Error())
+			klog.Warning(err.Error())
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
 		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
 		_, err = jenkinsClient.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
@@ -60,7 +60,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 	case MultiBranchPipelineType:
 		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
@@ -68,18 +68,18 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 		job, err := jenkinsClient.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
-			glog.Warning(err.Error())
+			klog.Warning(err.Error())
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
 		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
 		_, err = jenkinsClient.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
@@ -87,52 +87,52 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 
 	default:
 		err := fmt.Errorf("error unsupport job type")
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
 }
 
 func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	_, err := jenkinsClient.DeleteJob(pipelineId, projectId)
+	jenkinsClient := devops.Jenkins()
+
+	_, err = jenkinsClient.DeleteJob(pipelineId, projectId)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	return pipelineId, nil
 }
 
 func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	jenkinsClient := devops.Jenkins()
+
 	switch pipeline.Type {
 	case NoScmPipelineType:
 
 		config, err := createPipelineConfigXml(pipeline.Pipeline)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
 		job, err := jenkinsClient.GetJob(pipelineId, projectId)
 
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
@@ -141,7 +141,7 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 
 		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
@@ -149,13 +149,13 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 		job, err := jenkinsClient.GetJob(pipelineId, projectId)
 
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
@@ -163,33 +163,33 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 
 	default:
 		err := fmt.Errorf("error unsupport job type")
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
 }
 
 func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	jenkinsClient := devops.Jenkins()
+
 	job, err := jenkinsClient.GetJob(pipelineId, projectId)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	switch job.Raw.Class {
 	case "org.jenkinsci.plugins.workflow.job.WorkflowJob":
 		config, err := job.GetConfig()
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		pipeline, err := parsePipelineConfigXml(config)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
@@ -201,12 +201,12 @@ func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) 
 	case "org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject":
 		config, err := job.GetConfig()
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		pipeline, err := parseMultiBranchPipelineConfigXml(config)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
@@ -216,50 +216,50 @@ func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) 
 		}, nil
 	default:
 		err := fmt.Errorf("error unsupport job type")
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 
 	}
 }
 
 func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	jenkinsClient := devops.Jenkins()
+
 	job, err := jenkinsClient.GetJob(pipelineId, projectId)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	build, err := job.GetLastBuild()
 	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	} else if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, nil
 	}
 
 	sonarStatus, err := getBuildSonarResults(build)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 	}
 	if len(sonarStatus) == 0 {
 		build, err := job.GetLastCompletedBuild()
 		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		} else if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, nil
 		}
 		sonarStatus, err = getBuildSonarResults(build)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(http.StatusBadRequest, err.Error())
 		}
 	}
@@ -267,43 +267,43 @@ func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {
 }
 
 func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*SonarStatus, error) {
-	jenkinsClient := admin_jenkins.Client()
-	if jenkinsClient == nil {
-		err := fmt.Errorf("could not connect to jenkins")
-		glog.Error(err)
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
+	jenkinsClient := devops.Jenkins()
+
 	job, err := jenkinsClient.GetJob(branchId, projectId, pipelineId)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	build, err := job.GetLastBuild()
 	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	} else if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, nil
 	}
 
 	sonarStatus, err := getBuildSonarResults(build)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusBadRequest, err.Error())
 	}
 	if len(sonarStatus) == 0 {
 		build, err := job.GetLastCompletedBuild()
 		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		} else if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, nil
 		}
 		sonarStatus, err = getBuildSonarResults(build)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			return nil, restful.NewError(http.StatusBadRequest, err.Error())
 		}
 	}

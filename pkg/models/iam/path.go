@@ -19,7 +19,7 @@ package iam
 
 import (
 	"fmt"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"regexp"
 	"strings"
 )
@@ -44,6 +44,10 @@ func convertDNToPath(dn string) string {
 }
 
 func splitPath(path string) (searchBase string, cn string) {
+	ldapClient, err := client.ClientSets().Ldap()
+	if err != nil {
+		return "", ""
+	}
 
 	paths := strings.Split(path, ":")
 	length := len(paths)
@@ -60,12 +64,12 @@ func splitPath(path string) (searchBase string, cn string) {
 			basePath[i], basePath[j] = basePath[j], basePath[i]
 		}
 
-		searchBase = fmt.Sprintf("%s,%s", strings.Join(basePath, ","), ldapclient.GroupSearchBase)
+		searchBase = fmt.Sprintf("%s,%s", strings.Join(basePath, ","), ldapClient.GroupSearchBase())
 	} else if length == 2 {
-		searchBase = fmt.Sprintf("cn=%s,%s", paths[0], ldapclient.GroupSearchBase)
+		searchBase = fmt.Sprintf("cn=%s,%s", paths[0], ldapClient.GroupSearchBase())
 		cn = paths[1]
 	} else {
-		searchBase = ldapclient.GroupSearchBase
+		searchBase = ldapClient.GroupSearchBase()
 		if paths[0] == "" {
 			cn = "*"
 		} else {

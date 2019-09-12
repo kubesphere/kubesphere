@@ -443,7 +443,10 @@ func GetCrumb(req *restful.Request, resp *restful.Response) {
 }
 
 func CheckScriptCompile(req *restful.Request, resp *restful.Response) {
-	resBody, err := devops.CheckScriptCompile(req.Request)
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+
+	resBody, err := devops.CheckScriptCompile(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -467,7 +470,9 @@ func CheckScriptCompile(req *restful.Request, resp *restful.Response) {
 }
 
 func CheckCron(req *restful.Request, resp *restful.Response) {
-	res, err := devops.CheckCron(req.Request)
+	projectName := req.PathParameter("devops")
+
+	res, err := devops.CheckCron(projectName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return

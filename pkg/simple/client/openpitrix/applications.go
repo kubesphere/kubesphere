@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -35,86 +34,9 @@ const (
 	StateSuffix  = "-StatefulSet"
 )
 
-type Cluster struct {
-	ClusterID       string        `json:"cluster_id"`
-	Name            string        `json:"name"`
-	AppID           string        `json:"app_id"`
-	VersionID       string        `json:"version_id"`
-	Status          string        `json:"status"`
-	UpdateTime      time.Time     `json:"status_time"`
-	CreateTime      time.Time     `json:"create_time"`
-	RunTimeId       string        `json:"runtime_id"`
-	Description     string        `json:"description"`
-	ClusterRoleSets []ClusterRole `json:"cluster_role_set"`
-}
-
-type ClusterRole struct {
-	ClusterID string `json:"cluster_id"`
-	Role      string `json:"role"`
-}
-
-type ClusterList struct {
-	Total    int       `json:"total_count"`
-	Clusters []Cluster `json:"cluster_set"`
-}
-
-type VersionList struct {
-	Total    int       `json:"total_count"`
-	Versions []version `json:"app_version_set"`
-}
-
-type version struct {
-	Name      string `json:"name"`
-	VersionID string `json:"version_id"`
-}
-
-type runtime struct {
-	RuntimeID string `json:"runtime_id"`
-	Zone      string `json:"zone"`
-}
-
-type runtimeList struct {
-	Total    int       `json:"total_count"`
-	Runtimes []runtime `json:"runtime_set"`
-}
-
-type app struct {
-	AppId     string `json:"app_id"`
-	Name      string `json:"name"`
-	ChartName string `json:"chart_name"`
-	RepoId    string `json:"repo_id"`
-}
-
-type repo struct {
-	RepoId string `json:"repo_id"`
-	Name   string `json:"name"`
-	Url    string `json:"url"`
-}
-
-type appList struct {
-	Total int   `json:"total_count"`
-	Apps  []app `json:"app_set"`
-}
-
-type repoList struct {
-	Total int    `json:"total_count"`
-	Repos []repo `json:"repo_set"`
-}
-
-type CreateClusterRequest struct {
-	AppId     string `json:"app_id" description:"ID of app to run in cluster, e.g. app-AA3A3y3zEgEM"`
-	VersionId string `json:"version_id" description:"app version, e.g. appv-154gXYx5RKRp"`
-	RuntimeId string `json:"runtime_id" description:"ID of runtime, e.g. runtime-wWwXL0LzWqEr"`
-	Conf      string `json:"conf" description:"conf a json string, include cpu, memory info of cluster"`
-}
-
-type DeleteClusterRequest struct {
-	ClusterId []string `json:"cluster_id" description:"cluster ID"`
-}
-
-func GetAppInfo(appId string) (string, string, string, error) {
-	url := fmt.Sprintf("%s/v1/apps?app_id=%s", openpitrixAPIServer, appId)
-	resp, err := makeHttpRequest("GET", url, "")
+func (c *OpenPitrixClient) GetAppInfo(appId string) (string, string, string, error) {
+	url := fmt.Sprintf("%s/v1/apps?app_id=%s", c.apiServer, appId)
+	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
 		glog.Error(err)
 		return Unknown, Unknown, Unknown, err
@@ -134,14 +56,10 @@ func GetAppInfo(appId string) (string, string, string, error) {
 	return apps.Apps[0].ChartName, apps.Apps[0].RepoId, apps.Apps[0].AppId, nil
 }
 
-func GetCluster(clusterId string) (*Cluster, error) {
-	if strings.HasSuffix(openpitrixAPIServer, "/") {
-		openpitrixAPIServer = strings.TrimSuffix(openpitrixAPIServer, "/")
-	}
+func (c *OpenPitrixClient) GetCluster(clusterId string) (*Cluster, error) {
+	url := fmt.Sprintf("%s/v1/clusters?cluster_id=%s", c.apiServer, clusterId)
 
-	url := fmt.Sprintf("%s/v1/clusters?cluster_id=%s", openpitrixAPIServer, clusterId)
-
-	resp, err := makeHttpRequest("GET", url, "")
+	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
 		glog.Error(err)
 		return nil, err
@@ -162,14 +80,11 @@ func GetCluster(clusterId string) (*Cluster, error) {
 	return &clusterList.Clusters[0], nil
 }
 
-func ListClusters(runtimeId, searchWord, status string, limit, offset int) (*ClusterList, error) {
-	if strings.HasSuffix(openpitrixAPIServer, "/") {
-		openpitrixAPIServer = strings.TrimSuffix(openpitrixAPIServer, "/")
-	}
+func (c *OpenPitrixClient) ListClusters(runtimeId, searchWord, status string, limit, offset int) (*ClusterList, error) {
 
 	defaultStatus := "status=active&status=stopped&status=pending&status=ceased"
 
-	url := fmt.Sprintf("%s/v1/clusters?limit=%s&offset=%s", openpitrixAPIServer, strconv.Itoa(limit), strconv.Itoa(offset))
+	url := fmt.Sprintf("%s/v1/clusters?limit=%s&offset=%s", c.apiServer, strconv.Itoa(limit), strconv.Itoa(offset))
 
 	if searchWord != "" {
 		url = fmt.Sprintf("%s&search_word=%s", url, searchWord)
@@ -185,7 +100,7 @@ func ListClusters(runtimeId, searchWord, status string, limit, offset int) (*Clu
 		url = fmt.Sprintf("%s&runtime_id=%s", url, runtimeId)
 	}
 
-	resp, err := makeHttpRequest("GET", url, "")
+	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
 		glog.Errorf("request %s failed, reason: %s", url, err)
 		return nil, err
@@ -201,9 +116,9 @@ func ListClusters(runtimeId, searchWord, status string, limit, offset int) (*Clu
 	return &clusterList, nil
 }
 
-func GetRepo(repoId string) (string, error) {
-	url := fmt.Sprintf("%s/v1/repos?repo_id=%s", openpitrixAPIServer, repoId)
-	resp, err := makeHttpRequest("GET", url, "")
+func (c *OpenPitrixClient) GetRepo(repoId string) (string, error) {
+	url := fmt.Sprintf("%s/v1/repos?repo_id=%s", c.apiServer, repoId)
+	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
 		glog.Error(err)
 		return Unknown, err
@@ -223,9 +138,9 @@ func GetRepo(repoId string) (string, error) {
 	return repos.Repos[0].Name, nil
 }
 
-func GetVersion(versionId string) (string, error) {
-	versionUrl := fmt.Sprintf("%s/v1/app_versions?version_id=%s", openpitrixAPIServer, versionId)
-	resp, err := makeHttpRequest("GET", versionUrl, "")
+func (c *OpenPitrixClient) GetVersion(versionId string) (string, error) {
+	versionUrl := fmt.Sprintf("%s/v1/app_versions?version_id=%s", c.apiServer, versionId)
+	resp, err := c.makeHttpRequest("GET", versionUrl, "")
 	if err != nil {
 		glog.Error(err)
 		return Unknown, err
@@ -244,10 +159,10 @@ func GetVersion(versionId string) (string, error) {
 	return versions.Versions[0].Name, nil
 }
 
-func GetRuntime(runtimeId string) (string, error) {
+func (c *OpenPitrixClient) GetRuntime(runtimeId string) (string, error) {
 
-	versionUrl := fmt.Sprintf("%s/v1/runtimes?runtime_id=%s", openpitrixAPIServer, runtimeId)
-	resp, err := makeHttpRequest("GET", versionUrl, "")
+	versionUrl := fmt.Sprintf("%s/v1/runtimes?runtime_id=%s", c.apiServer, runtimeId)
+	resp, err := c.makeHttpRequest("GET", versionUrl, "")
 	if err != nil {
 		glog.Error(err)
 		return Unknown, err
@@ -267,9 +182,9 @@ func GetRuntime(runtimeId string) (string, error) {
 	return runtimes.Runtimes[0].Zone, nil
 }
 
-func CreateCluster(request CreateClusterRequest) error {
+func (c *OpenPitrixClient) CreateCluster(request CreateClusterRequest) error {
 
-	versionUrl := fmt.Sprintf("%s/v1/clusters/create", openpitrixAPIServer)
+	versionUrl := fmt.Sprintf("%s/v1/clusters/create", c.apiServer)
 
 	data, err := json.Marshal(request)
 
@@ -278,7 +193,7 @@ func CreateCluster(request CreateClusterRequest) error {
 		return err
 	}
 
-	data, err = makeHttpRequest("POST", versionUrl, string(data))
+	data, err = c.makeHttpRequest("POST", versionUrl, string(data))
 
 	if err != nil {
 		glog.Error(err)
@@ -288,9 +203,9 @@ func CreateCluster(request CreateClusterRequest) error {
 	return nil
 }
 
-func DeleteCluster(request DeleteClusterRequest) error {
+func (c *OpenPitrixClient) DeleteCluster(request DeleteClusterRequest) error {
 
-	versionUrl := fmt.Sprintf("%s/v1/clusters/delete", openpitrixAPIServer)
+	versionUrl := fmt.Sprintf("%s/v1/clusters/delete", c.apiServer)
 
 	data, err := json.Marshal(request)
 
@@ -299,7 +214,7 @@ func DeleteCluster(request DeleteClusterRequest) error {
 		return err
 	}
 
-	data, err = makeHttpRequest("POST", versionUrl, string(data))
+	data, err = c.makeHttpRequest("POST", versionUrl, string(data))
 
 	if err != nil {
 		glog.Error(err)
@@ -309,7 +224,7 @@ func DeleteCluster(request DeleteClusterRequest) error {
 	return nil
 }
 
-func makeHttpRequest(method, url, data string) ([]byte, error) {
+func (c *OpenPitrixClient) makeHttpRequest(method, url, data string) ([]byte, error) {
 	var req *http.Request
 
 	var err error
@@ -319,7 +234,7 @@ func makeHttpRequest(method, url, data string) ([]byte, error) {
 		req, err = http.NewRequest(method, url, strings.NewReader(data))
 	}
 
-	req.Header.Add("Authorization", openpitrixProxyToken)
+	req.Header.Add("Authorization", c.token)
 
 	if err != nil {
 		glog.Error(err)
@@ -329,7 +244,7 @@ func makeHttpRequest(method, url, data string) ([]byte, error) {
 	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
-		err := fmt.Errorf("Request to %s failed, method: %s,token: %s, reason: %s ", url, method, openpitrixProxyToken, err)
+		err := fmt.Errorf("Request to %s failed, method: %s,token: %s, reason: %s ", url, method, c.apiServer, err)
 		glog.Error(err)
 		return nil, err
 	}

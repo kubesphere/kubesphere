@@ -24,7 +24,7 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"sort"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -253,7 +253,7 @@ func createRouterService(namespace string, routerType corev1.ServiceType, annota
 		return nil, fmt.Errorf("service template not loaded")
 	}
 
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 
 	service := obj.(*corev1.Service)
 
@@ -277,7 +277,7 @@ func createRouterService(namespace string, routerType corev1.ServiceType, annota
 
 func updateRouterService(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
 
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 
 	service, err := getRouterService(namespace)
 	if err != nil {
@@ -309,7 +309,7 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 		return service, err
 	}
 
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 
 	// delete controller service
 	serviceName := constants.IngressControllerPrefix + namespace
@@ -333,7 +333,7 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 
 	deployName := constants.IngressControllerPrefix + namespace
 
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deployment, err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Get(deployName, meta_v1.GetOptions{})
 
 	createDeployment := true
@@ -403,7 +403,7 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 }
 
 func deleteRouterWorkload(namespace string) error {
-	k8sClient := k8s.Client()
+	k8sClient := client.ClientSets().K8s().Kubernetes()
 
 	deleteOptions := meta_v1.DeleteOptions{}
 	// delete controller deployment

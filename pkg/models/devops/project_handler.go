@@ -19,14 +19,17 @@ import (
 	"github.com/gocraft/dbr"
 	"github.com/golang/glog"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops_mysql"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 )
 
 func GetProject(projectId string) (*DevOpsProject, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
 	project := &DevOpsProject{}
-	err := dbconn.Select(DevOpsProjectColumns...).
+	err = dbconn.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, projectId)).
 		LoadOne(project)
@@ -43,7 +46,11 @@ func GetProject(projectId string) (*DevOpsProject, error) {
 }
 
 func UpdateProject(project *DevOpsProject) (*DevOpsProject, error) {
-	dbconn := devops_mysql.OpenDatabase()
+	dbconn, err := cs.ClientSets().MySQL()
+	if err != nil {
+		return nil, err
+	}
+
 	query := dbconn.Update(DevOpsProjectTableName)
 	if !govalidator.IsNull(project.Description) {
 		query.Set(DevOpsProjectDescriptionColumn, project.Description)
@@ -65,7 +72,7 @@ func UpdateProject(project *DevOpsProject) (*DevOpsProject, error) {
 		}
 	}
 	newProject := &DevOpsProject{}
-	err := dbconn.Select(DevOpsProjectColumns...).
+	err = dbconn.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, project.ProjectId)).
 		LoadOne(newProject)

@@ -187,6 +187,8 @@ github.com/evanphx/json-patch
 github.com/fatih/structs
 # github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 => github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 github.com/flynn/go-shlex
+# github.com/fsnotify/fsnotify v1.4.7 => github.com/fsnotify/fsnotify v1.4.7
+github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0 => github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/go-acme/lego v2.5.0+incompatible => github.com/go-acme/lego v2.5.0+incompatible
@@ -240,7 +242,7 @@ github.com/gobuffalo/flect
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
-# github.com/gogo/protobuf v1.2.0 => github.com/gogo/protobuf v1.2.0
+# github.com/gogo/protobuf v1.2.1 => github.com/gogo/protobuf v1.2.0
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
@@ -304,6 +306,17 @@ github.com/hashicorp/go-version
 # github.com/hashicorp/golang-lru v0.5.1 => github.com/hashicorp/golang-lru v0.5.1
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
+# github.com/hashicorp/hcl v1.0.0 => github.com/hashicorp/hcl v1.0.0
+github.com/hashicorp/hcl
+github.com/hashicorp/hcl/hcl/ast
+github.com/hashicorp/hcl/hcl/parser
+github.com/hashicorp/hcl/hcl/printer
+github.com/hashicorp/hcl/hcl/scanner
+github.com/hashicorp/hcl/hcl/strconv
+github.com/hashicorp/hcl/hcl/token
+github.com/hashicorp/hcl/json/parser
+github.com/hashicorp/hcl/json/scanner
+github.com/hashicorp/hcl/json/token
 # github.com/hpcloud/tail v1.0.0 => github.com/hpcloud/tail v1.0.0
 github.com/hpcloud/tail
 github.com/hpcloud/tail/ratelimiter
@@ -411,6 +424,8 @@ github.com/lucas-clemente/quic-go/internal/protocol
 github.com/lucas-clemente/quic-go/internal/qerr
 github.com/lucas-clemente/quic-go/internal/utils
 github.com/lucas-clemente/quic-go/internal/wire
+# github.com/magiconair/properties v1.8.0 => github.com/magiconair/properties v1.8.0
+github.com/magiconair/properties
 # github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 => github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
@@ -464,6 +479,8 @@ github.com/mholt/certmagic
 github.com/miekg/dns
 # github.com/mitchellh/go-homedir v1.1.0 => github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
+# github.com/mitchellh/mapstructure v1.1.2 => github.com/mitchellh/mapstructure v1.1.2
+github.com/mitchellh/mapstructure
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 => github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
@@ -522,6 +539,8 @@ github.com/openshift/api/project/v1
 github.com/pborman/uuid
 # github.com/pelletier/go-buffruneio v0.2.0 => github.com/pelletier/go-buffruneio v0.2.0
 github.com/pelletier/go-buffruneio
+# github.com/pelletier/go-toml v1.2.0 => github.com/pelletier/go-toml v1.2.0
+github.com/pelletier/go-toml
 # github.com/peterbourgon/diskv v2.0.1+incompatible => github.com/peterbourgon/diskv v2.0.1+incompatible
 github.com/peterbourgon/diskv
 # github.com/pkg/errors v0.8.1 => github.com/pkg/errors v0.8.1
@@ -563,7 +582,7 @@ github.com/projectcalico/libcalico-go/lib/selector/tokenizer
 github.com/projectcalico/libcalico-go/lib/set
 github.com/projectcalico/libcalico-go/lib/validator/v3
 github.com/projectcalico/libcalico-go/lib/watch
-# github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829 => github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+# github.com/prometheus/client_golang v0.9.3 => github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1
 github.com/prometheus/client_golang/prometheus
@@ -594,10 +613,16 @@ github.com/speps/go-hashids
 # github.com/spf13/afero v1.2.2 => github.com/spf13/afero v1.2.2
 github.com/spf13/afero
 github.com/spf13/afero/mem
+# github.com/spf13/cast v1.3.0 => github.com/spf13/cast v1.3.0
+github.com/spf13/cast
 # github.com/spf13/cobra v0.0.3 => github.com/spf13/cobra v0.0.3
 github.com/spf13/cobra
+# github.com/spf13/jwalterweatherman v1.0.0 => github.com/spf13/jwalterweatherman v1.0.0
+github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.3 => github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
+# github.com/spf13/viper v1.4.0 => github.com/spf13/viper v1.4.0
+github.com/spf13/viper
 # github.com/src-d/gcfg v1.4.0 => github.com/src-d/gcfg v1.4.0
 github.com/src-d/gcfg
 github.com/src-d/gcfg/scanner
@@ -750,7 +775,7 @@ google.golang.org/appengine/urlfetch
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.19.1 => google.golang.org/grpc v1.19.1
+# google.golang.org/grpc v1.21.0 => google.golang.org/grpc v1.19.1
 google.golang.org/grpc
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
@@ -895,7 +920,7 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
-# k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628 => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+# k8s.io/apimachinery v0.0.0-20190831074630-461753078381 => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -1047,7 +1072,7 @@ k8s.io/apiserver/plugin/pkg/audit/truncate
 k8s.io/apiserver/plugin/pkg/audit/webhook
 k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
-# k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31 => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
+# k8s.io/client-go v0.0.0-20190831074946-3fe2abece89e => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/fake
 k8s.io/client-go/dynamic
@@ -1250,6 +1275,8 @@ k8s.io/code-generator/cmd/lister-gen
 k8s.io/code-generator/cmd/lister-gen/args
 k8s.io/code-generator/cmd/lister-gen/generators
 k8s.io/code-generator/pkg/util
+# k8s.io/component-base v0.0.0-20190831075413-37a093468564 => k8s.io/component-base v0.0.0-20190831075413-37a093468564
+k8s.io/component-base/cli/flag
 # k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a => k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 k8s.io/gengo/args
 k8s.io/gengo/examples/deepcopy-gen/generators
@@ -1258,7 +1285,7 @@ k8s.io/gengo/generator
 k8s.io/gengo/namer
 k8s.io/gengo/parser
 k8s.io/gengo/types
-# k8s.io/klog v0.3.1 => k8s.io/klog v0.3.1
+# k8s.io/klog v0.4.0 => k8s.io/klog v0.4.0
 k8s.io/klog
 k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5 => k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
