@@ -103,7 +103,7 @@ func searchPipelineCount(req *http.Request) (int, error) {
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
 
-	baseUrl := devops.Jenkins().Server  + SearchPipelineUrl + query.Encode()
+	baseUrl := devops.Jenkins().Server + SearchPipelineUrl + query.Encode()
 	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
