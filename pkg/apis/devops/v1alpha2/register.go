@@ -247,8 +247,14 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK, []devops.Pipeline{}).
-		Writes([]devops.Pipeline{}))
+		Returns(http.StatusOK, RespOK, struct {
+			Items []devops.Pipeline `json:"items"`
+			Total int               `json:"total_count"`
+		}{}).
+		Writes(struct {
+			Items []devops.Pipeline `json:"items"`
+			Total int               `json:"total_count"`
+		}{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
@@ -266,8 +272,22 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("branch", "the name of branch, same as repository branch, will be filtered by branch.").
 			Required(false).
 			DataFormat("branch=%s")).
-		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRun{}).
-		Writes([]devops.BranchPipelineRun{}))
+		Returns(http.StatusOK, RespOK, struct {
+			Items []devops.BranchPipelineRun `json:"items"`
+			Total int                        `json:"total_count"`
+		}{}).
+		Writes(struct {
+			Items []devops.BranchPipelineRun `json:"items"`
+			Total int                        `json:"total_count"`
+		}{}).
+		Writes(struct {
+			Items []devops.BranchPipelineRun `json:"items"`
+			Total int                        `json:"total_count"`
+		}{}).
+		Writes(struct {
+			Items []devops.BranchPipelineRun `json:"items"`
+			Total int                        `json:"total_count"`
+		}{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").

@@ -26,7 +26,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"io"
 	"io/ioutil"
-	log "k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models"
+
+	"k8s.io/klog"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 	"net/url"
@@ -50,7 +52,7 @@ func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, e
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -67,11 +69,81 @@ func SearchPipelines(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
-
+	count, err := searchPipelineCount(req)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	responseStruct := models.PageableResponse{TotalCount: count}
+	err = json.Unmarshal(res, &responseStruct.Items)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	res, err = json.Marshal(responseStruct)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 	return res, err
+}
+
+func searchPipelineCount(req *http.Request) (int, error) {
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return 0, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+
+	query, _ := parseJenkinsQuery(req.URL.RawQuery)
+	query.Set("start", "0")
+	query.Set("limit", "1000")
+	query.Set("depth", "-1")
+
+	baseUrl := devops.Jenkins().Server + SearchPipelineUrl + query.Encode()
+	klog.V(4).Info("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl, req)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	var pipelines []Pipeline
+	err = json.Unmarshal(res, &pipelines)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	return len(pipelines), nil
+}
+
+func searchPipelineRunsCount(projectName, pipelineName string, req *http.Request) (int, error) {
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return 0, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+	query, _ := parseJenkinsQuery(req.URL.RawQuery)
+	query.Set("start", "0")
+	query.Set("limit", "1000")
+	query.Set("depth", "-1")
+	baseUrl := fmt.Sprintf(devops.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
+
+	klog.V(4).Info("Jenkins-url: " + baseUrl)
+
+	res, err := sendJenkinsRequest(baseUrl+query.Encode(), req)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	var runs []PipelineRun
+	err = json.Unmarshal(res, &runs)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	return len(runs), nil
 }
 
 func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
@@ -82,12 +154,29 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 
 	baseUrl := fmt.Sprintf(devops.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
 
+	klog.V(4).Info("Jenkins-url: " + baseUrl)
+
 	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
-
+	count, err := searchPipelineRunsCount(projectName, pipelineName, req)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	responseStruct := models.PageableResponse{TotalCount: count}
+	err = json.Unmarshal(res, &responseStruct.Items)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	res, err = json.Marshal(responseStruct)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 	return res, err
 }
 
@@ -101,7 +190,7 @@ func GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, r
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -115,11 +204,11 @@ func GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId st
 	}
 
 	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
-	log.Info("Jenkins-url: " + baseUrl)
+	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -136,7 +225,7 @@ func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, step
 
 	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -153,7 +242,7 @@ func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *ht
 
 	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -170,7 +259,7 @@ func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
 	req.Method = http.MethodGet
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return resBody, err
@@ -184,19 +273,19 @@ func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
 
 	requestBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	createReq := &CreateScmServerReq{}
 	err = json.Unmarshal(requestBody, createReq)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	req.Body = nil
 	byteServers, err := GetSCMServers(scmId, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -214,7 +303,7 @@ func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
 	req.Method = http.MethodPost
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return resBody, err
@@ -231,7 +320,7 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 	req.Method = http.MethodPut
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -248,7 +337,7 @@ func GetSCMOrg(scmId string, req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -265,7 +354,7 @@ func GetOrgRepo(scmId, organizationId string, req *http.Request) ([]byte, error)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -283,7 +372,7 @@ func StopBranchPipeline(projectName, pipelineName, branchName, runId string, req
 	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -301,7 +390,7 @@ func StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([
 	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -318,7 +407,7 @@ func ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, r
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -335,7 +424,7 @@ func ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) 
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -352,7 +441,7 @@ func GetBranchRunLog(projectName, pipelineName, branchName, runId string, req *h
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -369,7 +458,7 @@ func GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]by
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -386,7 +475,7 @@ func GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -403,7 +492,7 @@ func GetArtifacts(projectName, pipelineName, runId string, req *http.Request) ([
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -420,7 +509,7 @@ func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte,
 
 	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -437,13 +526,13 @@ func SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId,
 
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	req.Body = newBody
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -460,13 +549,13 @@ func SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, re
 
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	req.Body = newBody
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -484,7 +573,7 @@ func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error
 
 	Body, err := ioutil.ReadAll(reqBody)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -522,7 +611,7 @@ func GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte,
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -539,7 +628,7 @@ func ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, er
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -556,7 +645,7 @@ func RunBranchPipeline(projectName, pipelineName, branchName string, req *http.R
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -572,7 +661,7 @@ func RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, e
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -589,7 +678,7 @@ func GetCrumb(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -606,7 +695,7 @@ func CheckScriptCompile(projectName, pipelineName string, req *http.Request) ([]
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -638,7 +727,7 @@ func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
 
 	newUrl, err := url.Parse(baseUrl)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	newUrl.RawQuery = newUrl.Query().Encode()
@@ -661,14 +750,14 @@ func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
 		}, err
 	}
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	doc.Find("div").Each(func(i int, selection *goquery.Selection) {
@@ -678,7 +767,7 @@ func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
 	if res.Result == "ok" {
 		res.LastTime, res.NextTime, err = parseCronJobTime(res.Message)
 		if err != nil {
-			log.Error(err)
+			klog.Error(err)
 			return nil, err
 		}
 	}
@@ -694,7 +783,7 @@ func parseCronJobTime(msg string) (string, string, error) {
 	lastTime := strings.SplitN(lastTmp[1], " UTC", 2)
 	lastUinx, err := time.Parse(cronJobLayout, lastTime[0])
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return "", "", err
 	}
 	last := lastUinx.Format(time.RFC3339)
@@ -703,7 +792,7 @@ func parseCronJobTime(msg string) (string, string, error) {
 	nextTime := strings.SplitN(nextTmp[2], " UTC", 2)
 	nextUinx, err := time.Parse(cronJobLayout, nextTime[0])
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return "", "", err
 	}
 	next := nextUinx.Format(time.RFC3339)
@@ -721,7 +810,7 @@ func GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) 
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -738,7 +827,7 @@ func GetBranchPipeline(projectName, pipelineName, branchName string, req *http.R
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -755,7 +844,7 @@ func GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Requ
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -772,7 +861,7 @@ func GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId str
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -789,7 +878,7 @@ func GetNodeSteps(projectName, pipelineName, runId, nodeId string, req *http.Req
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -806,7 +895,7 @@ func ToJenkinsfile(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -823,7 +912,7 @@ func ToJson(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -841,7 +930,7 @@ func GetNotifyCommit(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -858,7 +947,7 @@ func GithubWebhook(req *http.Request) ([]byte, error) {
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -872,12 +961,12 @@ func GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, r
 
 	respNodes, err := GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	err = json.Unmarshal(respNodes, &nodesDetails)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -888,7 +977,7 @@ func GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, r
 			var steps []NodeSteps
 			respSteps, err := GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId, req)
 			if err != nil {
-				log.Error(err)
+				klog.Error(err)
 				return
 			}
 			err = json.Unmarshal(respSteps, &steps)
@@ -917,12 +1006,12 @@ func GetNodesDetail(projectName, pipelineName, runId string, req *http.Request) 
 
 	respNodes, err := GetPipelineRunNodes(projectName, pipelineName, runId, req)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	err = json.Unmarshal(respNodes, &nodesDetails)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -933,7 +1022,7 @@ func GetNodesDetail(projectName, pipelineName, runId string, req *http.Request) 
 			var steps []NodeSteps
 			respSteps, err := GetNodeSteps(projectName, pipelineName, runId, nodeId, req)
 			if err != nil {
-				log.Error(err)
+				klog.Error(err)
 				return
 			}
 			err = json.Unmarshal(respSteps, &steps)
@@ -964,7 +1053,7 @@ func sendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error) {
 func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, error) {
 	newReqUrl, err := url.Parse(baseUrl)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -981,7 +1070,7 @@ func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, erro
 
 	resp, err := client.Do(newRequest)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -989,7 +1078,7 @@ func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		log.Errorf("%+v", string(resBody))
+		klog.Errorf("%+v", string(resBody))
 		jkerr := new(JkError)
 		jkerr.Code = resp.StatusCode
 		jkerr.Message = string(resBody)
@@ -1010,9 +1099,47 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 	}
 	resBody, err := ioutil.ReadAll(reader)
 	if err != nil {
-		log.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return resBody, err
 
+}
+
+// parseJenkinsQuery Parse the special query of jenkins.
+// ParseQuery in the standard library makes the query not re-encode
+func parseJenkinsQuery(query string) (url.Values, error) {
+	m := make(url.Values)
+	err := error(nil)
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		m[key] = append(m[key], value)
+	}
+	return m, err
 }
