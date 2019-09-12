@@ -20,7 +20,34 @@ import (
 	"net/http"
 )
 
-// install api for config
+// Package config saves configuration for running KubeSphere components
+//
+// Config can be configured from command line flags and configuration file.
+// Command line flags hold higher priority than configuration file. But if
+// component Endpoint/Host/APIServer was left empty, all of that component
+// command line flags will be ignored, use configuration file instead.
+// For example, we have configuration file
+//
+// mysql:
+//   host: mysql.kubesphere-system.svc
+//   username: root
+//   password: password
+//
+// At the same time, have command line flags like following:
+//
+// --mysql-host mysql.openpitrix-system.svc --mysql-username king --mysql-password 1234
+//
+// We will use `king:1234@mysql.openpitrix-system.svc` from command line flags rather
+// than `root:password@mysql.kubesphere-system.svc` from configuration file,
+// cause command line has higher priority. But if command line flags like following:
+//
+// --mysql-username root --mysql-password password
+//
+// we will `root:password@mysql.kubesphere-system.svc` as input, case
+// mysql-host is missing in command line flags, all other mysql command line flags
+// will be ignored.
+
+// InstallAPI installs api for config
 func InstallAPI(c *restful.Container) {
 	ws := runtime.NewWebService(schema.GroupVersion{
 		Group:   "",
@@ -39,7 +66,7 @@ func InstallAPI(c *restful.Container) {
 	c.Add(ws)
 }
 
-// load configuration after setup
+// Load loads configuration after setup
 func Load() error {
 	sharedConfig = newConfig()
 
@@ -69,7 +96,10 @@ func Load() error {
 }
 
 const (
+	// DefaultConfigurationName is the default name of configuration
 	DefaultConfigurationName = "kubesphere"
+
+	// DefaultConfigurationPath the default location of the configuration file
 	DefaultConfigurationPath = "/etc/kubesphere"
 )
 

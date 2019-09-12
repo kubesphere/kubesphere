@@ -25,6 +25,7 @@ func NewRedisOptions() *RedisOptions {
 	}
 }
 
+// Validate check options
 func (r *RedisOptions) Validate() []error {
 	errors := make([]error, 0)
 
@@ -34,13 +35,22 @@ func (r *RedisOptions) Validate() []error {
 		}
 	}
 
+	if r.DB < 0 {
+		errors = append(errors, fmt.Errorf("--redis-db is less than 0"))
+	}
+
 	return errors
 }
 
+// ApplyTo apply to another options if it's a enabled option(non empty host)
 func (r *RedisOptions) ApplyTo(options *RedisOptions) {
-	reflectutils.Override(options, r)
+	if r.Host != "" {
+		reflectutils.Override(options, r)
+	}
 }
 
+// AddFlags add option flags to command line flags,
+// if redis-host left empty, the following options will be ignored.
 func (r *RedisOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&r.Host, "redis-host", r.Host, ""+
 		"Redis service host address. If left blank, means redis is unnecessary, "+

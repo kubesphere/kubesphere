@@ -22,7 +22,7 @@ type KubernetesClient struct {
 	config *rest.Config
 }
 
-// NewKubernetesClient
+// NewKubernetesClientOrDie creates KubernetesClient and panic if there is an error
 func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 	config, err := clientcmd.BuildConfigFromFlags("", options.KubeConfig)
 	if err != nil {
@@ -47,6 +47,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 	return k
 }
 
+// NewKubernetesClient creates a KubernetesClient
 func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", options.KubeConfig)
 	if err != nil {

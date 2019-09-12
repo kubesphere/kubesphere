@@ -19,7 +19,9 @@ func NewOpenPitrixOptions() *OpenPitrixOptions {
 }
 
 func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
-	reflectutils.Override(options, s)
+	if s.APIServer != "" {
+		reflectutils.Override(options, s)
+	}
 }
 
 func (s *OpenPitrixOptions) Validate() []error {

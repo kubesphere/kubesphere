@@ -33,16 +33,13 @@ func (s *SonarQubeOptions) ApplyTo(options *SonarQubeOptions) {
 
 	if s.Host != "" {
 		options.Host = s.Host
-	}
-
-	if s.Token != "" {
 		options.Token = s.Token
 	}
 }
 
 func (s *SonarQubeOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Host, "sonarqube-host", s.Host, ""+
-		"Sonarqube service address if enabled.")
+		"Sonarqube service address, if left empty, following sonarqube options will be ignored.")
 
 	fs.StringVar(&s.Token, "sonarqube-token", s.Token, ""+
 		"Sonarqube service access token.")

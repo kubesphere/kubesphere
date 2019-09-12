@@ -2,7 +2,6 @@ package prometheus
 
 import (
 	"github.com/spf13/pflag"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type PrometheusOptions struct {
@@ -24,7 +23,13 @@ func (s *PrometheusOptions) Validate() []error {
 }
 
 func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
-	reflectutils.Override(options, s)
+	if s.Endpoint != "" {
+		options.Endpoint = s.Endpoint
+	}
+
+	if s.SecondaryEndpoint != "" {
+		options.SecondaryEndpoint = s.SecondaryEndpoint
+	}
 }
 
 func (s *PrometheusOptions) AddFlags(fs *pflag.FlagSet) {
