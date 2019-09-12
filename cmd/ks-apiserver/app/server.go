@@ -222,6 +222,8 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "apps", Version: "v1", Resource: "statefulsets"},
 		{Group: "apps", Version: "v1", Resource: "controllerrevisions"},
 
+		{Group: "storage.k8s.io", Version: "v1", Resource: "storageclasses"},
+
 		{Group: "batch", Version: "v1", Resource: "jobs"},
 		{Group: "batch", Version: "v1beta1", Resource: "cronjobs"},
 
