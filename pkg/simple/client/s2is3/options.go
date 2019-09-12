@@ -18,14 +18,14 @@ type S3Options struct {
 
 func NewS3Options() *S3Options {
 	return &S3Options{
-		Endpoint:        "",
-		Region:          "",
+		Endpoint:        "http://openpitrix-minio.openpitrix-system.svc:9000",
+		Region:          "us-east-1",
 		DisableSSL:      true,
 		ForcePathStyle:  true,
-		AccessKeyID:     "",
-		SecretAccessKey: "",
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 		SessionToken:    "",
-		Bucket:          "",
+		Bucket:          "s2i-binaries",
 	}
 }
 
@@ -55,7 +55,7 @@ func (s *S3Options) AddFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.Bucket, "s3-bucket", "s2i-binaries", "bucket name of s2i s3")
 
-	fs.BoolVar(&s.DisableSSL, "s3-disable-SSL", false, "disable ssl")
+	fs.BoolVar(&s.DisableSSL, "s3-disable-SSL", true, "disable ssl")
 
 	fs.BoolVar(&s.ForcePathStyle, "s3-force-path-style", true, "force path style")
 }
