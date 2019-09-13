@@ -69,7 +69,7 @@ KubeSphere 高级版 (Advanced Edition 2.0.2) 已于 2019 年 7 月 9 日 正式
 
 ```bash
 $ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz \
-&& tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/conf
+&& tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/scripts
 $ ./install.sh
 ```
 
