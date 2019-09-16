@@ -20,12 +20,12 @@ package kubectl
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math/rand"
 	"os"
 
-	"github.com/golang/glog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +53,7 @@ func GetKubectlPod(username string) (models.PodInfo, error) {
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
@@ -61,13 +61,13 @@ func GetKubectlPod(username string) (models.PodInfo, error) {
 	labelSelector := labels.Set(selectors).AsSelector().String()
 	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
 	pod, err := selectCorrectPod(namespace, podList.Items)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 

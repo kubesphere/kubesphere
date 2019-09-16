@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/operations"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"kubesphere.io/kubesphere/pkg/errors"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 

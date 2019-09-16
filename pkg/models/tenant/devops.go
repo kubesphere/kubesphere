@@ -22,12 +22,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 	"sync"
@@ -46,7 +47,7 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 		return nil, err
 	}
 
-	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, devops.DevOpsProject{})...).
+	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, v1alpha2.DevOpsProject{})...).
 		From(devops.DevOpsProjectTableName)
 	var sqconditions []dbr.Builder
 
@@ -67,7 +68,7 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	if keyword := conditions.Match["keyword"]; keyword != "" {
 		sqconditions = append(sqconditions, db.Like(devops.DevOpsProjectNameColumn, keyword))
 	}
-	projects := make([]*devops.DevOpsProject, 0)
+	projects := make([]*v1alpha2.DevOpsProject, 0)
 
 	if len(sqconditions) > 0 {
 		query.Where(db.And(sqconditions...))
@@ -115,7 +116,7 @@ func GetDevOpsProjectsCount(username string) (uint32, error) {
 		return 0, err
 	}
 
-	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, devops.DevOpsProject{})...).
+	query := dbconn.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, v1alpha2.DevOpsProject{})...).
 		From(devops.DevOpsProjectTableName)
 	var sqconditions []dbr.Builder
 
@@ -190,7 +191,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	project := &devops.DevOpsProject{}
+	project := &v1alpha2.DevOpsProject{}
 	err = devopsdb.Select(devops.DevOpsProjectColumns...).
 		From(devops.DevOpsProjectTableName).
 		Where(db.Eq(devops.DevOpsProjectIdColumn, projectId)).
@@ -202,7 +203,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 	return nil
 }
 
-func CreateDevopsProject(username string, workspace string, req *devops.DevOpsProject) (*devops.DevOpsProject, error) {
+func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 
 	dp, err := cs.ClientSets().Devops()
 	if err != nil {

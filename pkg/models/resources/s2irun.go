@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 
 	"k8s.io/apimachinery/pkg/labels"
 

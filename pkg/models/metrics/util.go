@@ -19,14 +19,13 @@
 package metrics
 
 import (
+	"k8s.io/klog"
 	"math"
 	"sort"
 	"strconv"
 	"unicode"
 
 	"runtime/debug"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -55,7 +54,7 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetric) (*FormatedLevelMetric, int) {
 	defer func() {
 		if err := recover(); err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			debug.PrintStack()
 		}
 	}()
@@ -191,7 +190,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	if pageNum != "" {
 		p, err := strconv.Atoi(pageNum)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 		} else {
 			if p > 0 {
 				page = p
@@ -207,7 +206,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	if limitNum != "" {
 		l, err := strconv.Atoi(limitNum)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 		} else {
 			if l > 0 {
 				limit = l
@@ -254,7 +253,7 @@ func ReformatJson(metric string, metricsName string, needAddParams map[string]st
 	err := jsonIter.Unmarshal([]byte(metric), &formatMetric)
 
 	if err != nil {
-		glog.Errorln("Unmarshal metric json failed", err.Error(), metric)
+		klog.Errorln("Unmarshal metric json failed", err.Error(), metric)
 	}
 	if formatMetric.MetricName == "" {
 		if metricsName != "" {

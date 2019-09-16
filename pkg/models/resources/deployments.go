@@ -20,7 +20,7 @@ package resources
 import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"

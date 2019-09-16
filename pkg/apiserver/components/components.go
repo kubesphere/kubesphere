@@ -20,8 +20,8 @@ package components
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/components"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 

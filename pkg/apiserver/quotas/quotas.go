@@ -22,7 +22,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 
 	"kubesphere.io/kubesphere/pkg/models/quotas"
 )

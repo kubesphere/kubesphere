@@ -20,8 +20,8 @@ package terminal
 import (
 	"github.com/emicklei/go-restful"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 

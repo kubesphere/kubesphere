@@ -19,7 +19,7 @@ package options
 
 import (
 	"github.com/spf13/pflag"
-	genericoptions "kubesphere.io/kubesphere/pkg/options"
+	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 )
 
 type ServerRunOptions struct {

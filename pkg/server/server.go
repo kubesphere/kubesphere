@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"net/http"
 	"runtime"
 )
@@ -18,7 +18,7 @@ func LogStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 		}
 		buffer.WriteString(fmt.Sprintf("    %s:%d\r\n", file, line))
 	}
-	glog.Error(buffer.String())
+	klog.Error(buffer.String())
 	httpWriter.WriteHeader(http.StatusInternalServerError)
 	httpWriter.Write([]byte("recover from panic situation"))
 }

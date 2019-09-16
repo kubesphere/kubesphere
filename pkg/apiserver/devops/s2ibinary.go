@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/hashutil"
 	"net/http"
 )

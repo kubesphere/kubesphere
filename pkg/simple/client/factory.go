@@ -5,6 +5,7 @@ import (
 	goredis "github.com/go-redis/redis"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -33,6 +34,7 @@ type ClientSetOptions struct {
 	s3Options         *s2is3.S3Options
 	openPitrixOptions *openpitrix.OpenPitrixOptions
 	prometheusOptions *prometheus.PrometheusOptions
+	kubesphereOptions *kubesphere.KubeSphereOptions
 }
 
 func NewClientSetOptions() *ClientSetOptions {
@@ -46,6 +48,7 @@ func NewClientSetOptions() *ClientSetOptions {
 		s3Options:         s2is3.NewS3Options(),
 		openPitrixOptions: openpitrix.NewOpenPitrixOptions(),
 		prometheusOptions: prometheus.NewPrometheusOptions(),
+		kubesphereOptions: kubesphere.NewKubeSphereOptions(),
 	}
 }
 
@@ -94,6 +97,11 @@ func (c *ClientSetOptions) SetSonarQubeOptions(options *sonarqube.SonarQubeOptio
 	return c
 }
 
+func (c *ClientSetOptions) SetKubeSphereOptions(options *kubesphere.KubeSphereOptions) *ClientSetOptions {
+	c.kubesphereOptions = options
+	return c
+}
+
 // ClientSet provide best of effort service to initialize clients,
 // but there is no guarantee to return a valid client instance,
 // so do validity check before use
@@ -111,6 +119,7 @@ type ClientSet struct {
 	s3Client         *s2is3.S3Client
 	prometheusClient *prometheus.PrometheusClient
 	openpitrixClient *openpitrix.OpenPitrixClient
+	kubesphereClient *kubesphere.KubeSphereClient
 }
 
 var mutex sync.Mutex
@@ -127,6 +136,10 @@ func NewClientSetFactory(c *ClientSetOptions, stopCh <-chan struct{}) *ClientSet
 
 	if c.kubernetesOptions != nil {
 		sharedClientSet.k8sClient = k8s.NewKubernetesClientOrDie(c.kubernetesOptions)
+	}
+
+	if c.kubesphereOptions != nil {
+		sharedClientSet.kubesphereClient = kubesphere.NewKubeSphereClient(c.kubesphereOptions)
 	}
 
 	return sharedClientSet
@@ -317,4 +330,8 @@ func (cs *ClientSet) Prometheus() (*prometheus.PrometheusClient, error) {
 		}
 		return cs.prometheusClient, nil
 	}
+}
+
+func (cs *ClientSet) KubeSphere() *kubesphere.KubeSphereClient {
+	return cs.kubesphereClient
 }

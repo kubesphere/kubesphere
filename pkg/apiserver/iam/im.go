@@ -20,7 +20,7 @@ package iam
 import (
 	"fmt"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -29,9 +29,9 @@ import (
 	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 func CreateUser(req *restful.Request, resp *restful.Response) {

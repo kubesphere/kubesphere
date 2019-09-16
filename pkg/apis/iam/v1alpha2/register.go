@@ -25,9 +25,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 	"time"
 )

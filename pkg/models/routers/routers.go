@@ -20,10 +20,10 @@ package routers
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"sort"
 
@@ -58,7 +58,7 @@ func init() {
 	routerTemplates = make(map[string]runtime.Object, 2)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 
@@ -67,7 +67,7 @@ func init() {
 		obj, _, err := decode([]byte(f), nil, nil)
 
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			continue
 		}
 
@@ -93,7 +93,7 @@ func getMasterNodeIp() string {
 		return strings.Compare(masters[i].Name, masters[j].Name) > 0
 	})
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return ""
 	}
 
@@ -120,7 +120,7 @@ func addLoadBalancerIp(service *corev1.Service) {
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer && len(service.Status.LoadBalancer.Ingress) == 0 {
 		rip := getMasterNodeIp()
 		if len(rip) == 0 {
-			glog.Info("can not get node ip")
+			klog.Info("can not get node ip")
 			return
 		}
 
@@ -143,7 +143,7 @@ func GetAllRouters() ([]*corev1.Service, error) {
 	}
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func getRouterService(namespace string) (*corev1.Service, error) {
 		if errors.IsNotFound(err) {
 			return nil, errors.NewNotFound(corev1.Resource("service"), serviceName)
 		}
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return service, nil
@@ -180,7 +180,7 @@ func LoadYamls() ([]string, error) {
 
 	files, err := ioutil.ReadDir(constants.IngressControllerFolder)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -191,7 +191,7 @@ func LoadYamls() ([]string, error) {
 		content, err := ioutil.ReadFile(constants.IngressControllerFolder + "/" + file.Name())
 
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return nil, err
 		} else {
 			yamls = append(yamls, string(content))
@@ -213,13 +213,13 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 
 	err := createOrUpdateRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, injectSidecar)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	router, err := createRouterService(namespace, routerType, annotations)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		_ = deleteRouterWorkload(namespace)
 		return nil, err
 	}
@@ -233,13 +233,13 @@ func CreateRouter(namespace string, routerType corev1.ServiceType, annotations m
 func DeleteRouter(namespace string) (*corev1.Service, error) {
 	err := deleteRouterWorkload(namespace)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 
 	router, err := deleteRouterService(namespace)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return router, err
 	}
 	return router, nil
@@ -249,7 +249,7 @@ func createRouterService(namespace string, routerType corev1.ServiceType, annota
 
 	obj, ok := routerTemplates["SERVICE"]
 	if !ok {
-		glog.Error("service template not loaded")
+		klog.Error("service template not loaded")
 		return nil, fmt.Errorf("service template not loaded")
 	}
 
@@ -268,7 +268,7 @@ func createRouterService(namespace string, routerType corev1.ServiceType, annota
 
 	service, err := k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Create(service)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -281,7 +281,7 @@ func updateRouterService(namespace string, routerType corev1.ServiceType, annota
 
 	service, err := getRouterService(namespace)
 	if err != nil {
-		glog.Error(err, "get router failed")
+		klog.Error(err, "get router failed")
 		return service, err
 	}
 
@@ -305,7 +305,7 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 	service, err := getRouterService(namespace)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return service, err
 	}
 
@@ -317,7 +317,7 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 
 	err = k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Delete(serviceName, &deleteOptions)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return service, err
 	}
 
@@ -327,7 +327,7 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 func createOrUpdateRouterWorkload(namespace string, publishService bool, servicemeshEnabled bool) error {
 	obj, ok := routerTemplates["DEPLOYMENT"]
 	if !ok {
-		glog.Error("Deployment template file not loaded")
+		klog.Error("Deployment template file not loaded")
 		return fmt.Errorf("deployment template file not loaded")
 	}
 
@@ -395,7 +395,7 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 	}
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
@@ -410,7 +410,7 @@ func deleteRouterWorkload(namespace string) error {
 	deploymentName := constants.IngressControllerPrefix + namespace
 	err := k8sClient.ExtensionsV1beta1().Deployments(constants.IngressControllerNamespace).Delete(deploymentName, &deleteOptions)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 
 	// delete replicaset if there are any
@@ -425,13 +425,13 @@ func deleteRouterWorkload(namespace string) error {
 	replicaSets, err := replicaSetLister.ReplicaSets(constants.IngressControllerNamespace).List(selector)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 
 	for i := range replicaSets {
 		err = k8sClient.AppsV1().ReplicaSets(constants.IngressControllerNamespace).Delete(replicaSets[i].Name, &deleteOptions)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 		}
 	}
 
@@ -445,7 +445,7 @@ func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations m
 	router, err := getRouterService(namespace)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return router, err
 	}
 
@@ -453,14 +453,14 @@ func UpdateRouter(namespace string, routerType corev1.ServiceType, annotations m
 
 	err = createOrUpdateRouterWorkload(namespace, routerType == corev1.ServiceTypeLoadBalancer, enableServicemesh)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return router, err
 	}
 
 	newRouter, err := updateRouterService(namespace, routerType, annotations)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return newRouter, err
 	}
 

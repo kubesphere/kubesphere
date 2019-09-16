@@ -20,9 +20,9 @@ package logging
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-	"kubesphere.io/kubesphere/pkg/errors"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/log"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
@@ -106,7 +106,7 @@ func LoggingInsertFluentbitOutput(request *restful.Request, response *restful.Re
 
 	err := request.ReadEntity(&output)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
@@ -128,7 +128,7 @@ func LoggingUpdateFluentbitOutput(request *restful.Request, response *restful.Re
 
 	err := request.ReadEntity(&output)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}

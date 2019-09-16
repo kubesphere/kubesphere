@@ -28,11 +28,11 @@ import (
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
-	"kubesphere.io/kubesphere/pkg/filter"
 	"kubesphere.io/kubesphere/pkg/informers"
 	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
+	"kubesphere.io/kubesphere/pkg/server/filter"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
@@ -187,7 +187,8 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 		SetS3Options(conf.S3Options).
 		SetOpenPitrixOptions(conf.OpenPitrixOptions).
 		SetPrometheusOptions(conf.MonitoringOptions).
-		SetRedisOptions(conf.RedisOptions)
+		SetRedisOptions(conf.RedisOptions).
+		SetKubeSphereOptions(conf.KubeSphereOptions)
 
 	client.NewClientSetFactory(csop, stopCh)
 

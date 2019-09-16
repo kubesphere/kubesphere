@@ -22,16 +22,16 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 
 	"net/http"
 )
@@ -145,15 +145,15 @@ func addWebService(c *restful.Container) error {
 		To(tenant.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create a devops project in the specified workspace").
-		Reads(devops.DevOpsProject{}).
-		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
+		Reads(devopsv1alpha2.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
 		To(tenant.DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("devops", "devops project ID")).
 		Doc("Delete the specified devops project from the workspace").
-		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/logs").
 		To(tenant.LogQuery).

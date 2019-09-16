@@ -24,7 +24,7 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 
 	"strings"
 

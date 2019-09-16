@@ -20,8 +20,8 @@ package revisions
 
 import (
 	"fmt"
+	"k8s.io/klog"
 
-	"github.com/golang/glog"
 	"k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -31,7 +31,7 @@ func GetDeployRevision(namespace, name, revision string) (*v1.ReplicaSet, error)
 	deploymentLister := informers.SharedInformerFactory().Apps().V1().Deployments().Lister()
 	deploy, err := deploymentLister.Deployments(namespace).Get(name)
 	if err != nil {
-		glog.Errorf("get deployment %s failed, reason: %s", name, err)
+		klog.Errorf("get deployment %s failed, reason: %s", name, err)
 		return nil, err
 	}
 

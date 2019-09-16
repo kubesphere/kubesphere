@@ -20,23 +20,14 @@ package kubesphere
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
 	"strings"
-	"sync"
-)
-
-var (
-	accountAPIServer string
-	ksAPIServer      string
-	once             sync.Once
-	c                client
 )
 
 type Interface interface {
@@ -45,24 +36,23 @@ type Interface interface {
 	DescribeGroup(name string) (*models.Group, error)
 	DeleteGroup(name string) error
 	ListUsers() (*models.PageableResponse, error)
-	ListWorkspaceDevOpsProjects(workspace string) (*devops.PageableDevOpsProject, error)
+	ListWorkspaceDevOpsProjects(workspace string) (*v1alpha2.PageableDevOpsProject, error)
 	DeleteWorkspaceDevOpsProjects(workspace, devops string) error
 }
 
-type client struct {
-	client http.Client
+type KubeSphereClient struct {
+	client *http.Client
+
+	apiServer     string
+	accountServer string
 }
 
-func init() {
-	flag.StringVar(&accountAPIServer, "ks-account-api-server", "http://ks-account.kubesphere-system.svc", "kubesphere account api server")
-	flag.StringVar(&ksAPIServer, "ks-api-server", "http://ks-apiserver.kubesphere-system.svc", "kubesphere api server")
-}
-
-func Client() Interface {
-	once.Do(func() {
-		c = client{client: http.Client{}}
-	})
-	return c
+func NewKubeSphereClient(options *KubeSphereOptions) *KubeSphereClient {
+	return &KubeSphereClient{
+		client:        &http.Client{},
+		apiServer:     options.APIServer,
+		accountServer: options.AccountServer,
+	}
 }
 
 type Error struct {
@@ -74,16 +64,16 @@ func (e Error) Error() string {
 	return fmt.Sprintf("status: %d,message: %s", e.status, e.message)
 }
 
-func (c client) CreateGroup(group *models.Group) (*models.Group, error) {
+func (c *KubeSphereClient) CreateGroup(group *models.Group) (*models.Group, error) {
 	data, err := json.Marshal(group)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups", accountAPIServer), bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups", c.accountServer), bytes.NewReader(data))
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -91,14 +81,14 @@ func (c client) CreateGroup(group *models.Group) (*models.Group, error) {
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -109,25 +99,25 @@ func (c client) CreateGroup(group *models.Group) (*models.Group, error) {
 	err = json.Unmarshal(data, group)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	return group, nil
 }
 
-func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
+func (c *KubeSphereClient) UpdateGroup(group *models.Group) (*models.Group, error) {
 	data, err := json.Marshal(group)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, group.Name), bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", c.accountServer, group.Name), bytes.NewReader(data))
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -141,7 +131,7 @@ func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	data, err = ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -152,32 +142,32 @@ func (c client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	err = json.Unmarshal(data, group)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	return group, nil
 }
 
-func (c client) DeleteGroup(name string) error {
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, name), nil)
+func (c *KubeSphereClient) DeleteGroup(name string) error {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", c.accountServer, name), nil)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
@@ -188,24 +178,24 @@ func (c client) DeleteGroup(name string) error {
 	return nil
 }
 
-func (c client) DescribeGroup(name string) (*models.Group, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", accountAPIServer, name), nil)
+func (c *KubeSphereClient) DescribeGroup(name string) (*models.Group, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", c.accountServer, name), nil)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -217,31 +207,31 @@ func (c client) DescribeGroup(name string) (*models.Group, error) {
 	err = json.Unmarshal(data, &group)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	return &group, nil
 }
 
-func (c client) ListUsers() (*models.PageableResponse, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/users", accountAPIServer), nil)
+func (c *KubeSphereClient) ListUsers() (*models.PageableResponse, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/users", c.accountServer), nil)
 
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Authorization", accountAPIServer)
+	req.Header.Add("Authorization", c.accountServer)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -253,78 +243,78 @@ func (c client) ListUsers() (*models.PageableResponse, error) {
 	err = json.Unmarshal(data, &result)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	return &result, nil
 }
 
-func (c client) ListWorkspaceDevOpsProjects(workspace string) (*devops.PageableDevOpsProject, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops", ksAPIServer, workspace), nil)
+func (c *KubeSphereClient) ListWorkspaceDevOpsProjects(workspace string) (*v1alpha2.PageableDevOpsProject, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops", c.apiServer, workspace), nil)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
 	req.Header.Add(constants.UserNameHeader, constants.AdminUserName)
 
-	glog.Info(req.Method, req.URL)
+	klog.Info(req.Method, req.URL)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	if resp.StatusCode > http.StatusOK {
-		glog.Error(req.Method, req.URL, resp.StatusCode, string(data))
+		klog.Error(req.Method, req.URL, resp.StatusCode, string(data))
 		return nil, Error{resp.StatusCode, string(data)}
 	}
 
-	var result devops.PageableDevOpsProject
+	var result v1alpha2.PageableDevOpsProject
 	err = json.Unmarshal(data, &result)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	return &result, nil
 
 }
 
-func (c client) DeleteWorkspaceDevOpsProjects(workspace, devops string) error {
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops/%s", ksAPIServer, workspace, devops), nil)
+func (c *KubeSphereClient) DeleteWorkspaceDevOpsProjects(workspace, devops string) error {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops/%s", c.apiServer, workspace, devops), nil)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 	req.Header.Add(constants.UserNameHeader, constants.AdminUserName)
 
-	glog.Info(req.Method, req.URL)
+	klog.Info(req.Method, req.URL)
 	resp, err := c.client.Do(req)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 	if resp.StatusCode > http.StatusOK {
-		glog.Error(req.Method, req.URL, resp.StatusCode, string(data))
+		klog.Error(req.Method, req.URL, resp.StatusCode, string(data))
 		return Error{resp.StatusCode, string(data)}
 	}
 

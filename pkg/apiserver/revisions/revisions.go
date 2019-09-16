@@ -22,8 +22,8 @@ import (
 	"strconv"
 
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/revisions"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 func GetDaemonSetRevision(req *restful.Request, resp *restful.Response) {

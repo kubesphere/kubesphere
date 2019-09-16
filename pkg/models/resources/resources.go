@@ -19,9 +19,9 @@ package resources
 
 import (
 	"fmt"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"strings"
 )
@@ -121,7 +121,7 @@ func GetResource(namespace, resource, name string) (interface{}, error) {
 	if searcher, ok := resources[resource]; ok {
 		resource, err := searcher.get(namespace, name)
 		if err != nil {
-			glog.Errorln("get resource", namespace, resource, name, err)
+			klog.Errorln("get resource", namespace, resource, name, err)
 			return nil, err
 		}
 		return resource, nil
@@ -136,19 +136,19 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 
 	// none namespace resource
 	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
-		glog.Errorln("resources not found", resource)
+		klog.Errorln("resources not found", resource)
 		return nil, fmt.Errorf("not found")
 	}
 
 	if searcher, ok := resources[resource]; ok {
 		result, err = searcher.search(namespace, conditions, orderBy, reverse)
 	} else {
-		glog.Errorln("resources not found", resource)
+		klog.Errorln("resources not found", resource)
 		return nil, fmt.Errorf("not found")
 	}
 
 	if err != nil {
-		glog.Errorln("resources search", err)
+		klog.Errorln("resources search", err)
 		return nil, err
 	}
 

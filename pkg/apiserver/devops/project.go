@@ -15,11 +15,11 @@ package devops
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 
@@ -30,14 +30,14 @@ func GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
 	project, err := devops.GetProject(projectId)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
@@ -50,24 +50,24 @@ func UpdateProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	var project *devops.DevOpsProject
+	var project *v1alpha2.DevOpsProject
 	err := request.ReadEntity(&project)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 	project.ProjectId = projectId
 	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
 	project, err = devops.UpdateProject(project)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}

@@ -18,9 +18,9 @@
 package status
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"strings"
 
 	"kubesphere.io/kubesphere/pkg/models/resources"
@@ -51,7 +51,7 @@ func GetNamespacesResourceStatus(namespace string) (*WorkLoadStatus, error) {
 		notReadyList, err = resources.ListResources(namespace, resource, &params.Conditions{Match: map[string]string{resources.Status: notReadyStatus}}, "", false, -1, 0)
 
 		if err != nil {
-			glog.Errorf("list resources failed: %+v", err)
+			klog.Errorf("list resources failed: %+v", err)
 			return nil, err
 		}
 

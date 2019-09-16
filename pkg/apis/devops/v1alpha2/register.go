@@ -22,13 +22,14 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 )
 
@@ -53,17 +54,17 @@ func addWebService(c *restful.Container) error {
 		Doc("Get the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
-		Writes(devops.DevOpsProject{}))
+		Returns(http.StatusOK, RespOK, v1alpha2.DevOpsProject{}).
+		Writes(v1alpha2.DevOpsProject{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}").
 		To(devopsapi.UpdateProjectHandler).
 		Doc("Update the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Reads(devops.DevOpsProject{}).
-		Returns(http.StatusOK, RespOK, devops.DevOpsProject{}).
-		Writes(devops.DevOpsProject{}))
+		Reads(v1alpha2.DevOpsProject{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.DevOpsProject{}).
+		Writes(v1alpha2.DevOpsProject{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/defaultroles").
 		To(devopsapi.GetDevOpsProjectDefaultRoles).

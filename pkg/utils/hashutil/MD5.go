@@ -3,8 +3,8 @@ package hashutil
 import (
 	"code.cloudfoundry.org/bytefmt"
 	"encoding/hex"
-	"github.com/golang/glog"
 	"io"
+	"k8s.io/klog"
 
 	"kubesphere.io/kubesphere/pkg/utils/readerutils"
 )
@@ -18,7 +18,7 @@ func GetMD5(reader io.ReadCloser) (string, error) {
 			if err == io.EOF {
 				break
 			}
-			glog.Error(err)
+			klog.Error(err)
 			return "", err
 		}
 	}

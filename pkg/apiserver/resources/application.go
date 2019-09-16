@@ -20,14 +20,14 @@ package resources
 import (
 	"fmt"
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/applications"
 	"kubesphere.io/kubesphere/pkg/models/resources"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"net/http"
 )
@@ -46,7 +46,7 @@ func ListApplication(req *restful.Request, resp *restful.Response) {
 	if len(clusterId) > 0 {
 		app, err := applications.GetApp(clusterId)
 		if err != nil {
-			glog.Errorln("get application error", err)
+			klog.Errorln("get application error", err)
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
@@ -77,7 +77,7 @@ func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 	if len(clusterId) > 0 {
 		app, err := applications.GetApp(clusterId)
 		if err != nil {
-			glog.Errorln("get app failed", err)
+			klog.Errorln("get app failed", err)
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
@@ -88,7 +88,7 @@ func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
 
 	if err != nil {
-		glog.Errorln("get namespace failed", err)
+		klog.Errorln("get namespace failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -100,7 +100,7 @@ func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 	}
 
 	if runtimeId == "" {
-		glog.Errorln("runtime id not found")
+		klog.Errorln("runtime id not found")
 		resp.WriteAsJson(models.PageableResponse{Items: []interface{}{}, TotalCount: 0})
 		return
 	}
@@ -108,7 +108,7 @@ func ListNamespacedApplication(req *restful.Request, resp *restful.Response) {
 	result, err := applications.ListApplication(runtimeId, conditions, limit, offset)
 
 	if err != nil {
-		glog.Errorln("list applications failed", err)
+		klog.Errorln("list applications failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -121,14 +121,14 @@ func DescribeApplication(req *restful.Request, resp *restful.Response) {
 	namespaceName := req.PathParameter("namespace")
 	app, err := applications.GetApp(clusterId)
 	if err != nil {
-		glog.Errorln("get app failed", err)
+		klog.Errorln("get app failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
 
 	if err != nil {
-		glog.Errorln("get namespace failed", err)
+		klog.Errorln("get namespace failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -140,7 +140,7 @@ func DescribeApplication(req *restful.Request, resp *restful.Response) {
 	}
 
 	if runtimeId != app.RuntimeId {
-		glog.Errorln("runtime not match", app.RuntimeId, runtimeId)
+		klog.Errorln("runtime not match", app.RuntimeId, runtimeId)
 		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.New(fmt.Sprintf("rumtime not match %s,%s", app.RuntimeId, runtimeId)))
 		return
 	}
@@ -170,14 +170,14 @@ func DeleteApplication(req *restful.Request, resp *restful.Response) {
 	namespaceName := req.PathParameter("namespace")
 	app, err := applications.GetApp(clusterId)
 	if err != nil {
-		glog.Errorln("get app failed", err)
+		klog.Errorln("get app failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
 
 	if err != nil {
-		glog.Errorln("get namespace failed", err)
+		klog.Errorln("get namespace failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
@@ -189,7 +189,7 @@ func DeleteApplication(req *restful.Request, resp *restful.Response) {
 	}
 
 	if runtimeId != app.RuntimeId {
-		glog.Errorln("runtime not match", app.RuntimeId, runtimeId)
+		klog.Errorln("runtime not match", app.RuntimeId, runtimeId)
 		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.New(fmt.Sprintf("rumtime not match %s,%s", app.RuntimeId, runtimeId)))
 		return
 	}
@@ -197,7 +197,7 @@ func DeleteApplication(req *restful.Request, resp *restful.Response) {
 	err = applications.DeleteApplication(clusterId)
 
 	if err != nil {
-		glog.Errorln("delete application failed", err)
+		klog.Errorln("delete application failed", err)
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}

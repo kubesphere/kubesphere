@@ -20,13 +20,13 @@ package iam
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 type Spec struct {
@@ -102,7 +102,7 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 	token, err := jwtutil.ValidateToken(uToken)
 
 	if err != nil {
-		glog.Errorln("token review failed", uToken, err)
+		klog.Errorln("token review failed", uToken, err)
 		failed := TokenReview{APIVersion: APIVersion,
 			Kind: KindTokenReview,
 			Status: &Status{

@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/git"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 func GitReadVerify(request *restful.Request, response *restful.Response) {

@@ -19,23 +19,22 @@ package tenant
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -91,7 +90,7 @@ func DescribeWorkspace(req *restful.Request, resp *restful.Response) {
 	result, err := tenant.DescribeWorkspace(username, workspaceName)
 
 	if err != nil {
-		glog.Errorf("describe workspace failed: %+v", err)
+		klog.Errorf("describe workspace failed: %+v", err)
 		if k8serr.IsNotFound(err) {
 			resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		} else {
@@ -229,7 +228,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -237,7 +236,7 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
@@ -266,7 +265,7 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	_, err := tenant.GetWorkspace(workspaceName)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -274,7 +273,7 @@ func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	err = tenant.DeleteDevOpsProject(projectId, username)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
@@ -287,21 +286,21 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	var devops devops.DevOpsProject
+	var devops v1alpha2.DevOpsProject
 
 	err := req.ReadEntity(&devops)
 
 	if err != nil {
-		glog.Infof("%+v", err)
+		klog.Infof("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 
-	glog.Infoln("create workspace", username, workspaceName, devops)
+	klog.Infoln("create workspace", username, workspaceName, devops)
 	project, err := tenant.CreateDevopsProject(username, workspaceName, &devops)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
@@ -331,7 +330,7 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 	rules, err := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
 		return
 	}
@@ -350,7 +349,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 	clusterRules, err := iam.GetUserClusterRules(username)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return
 	}
 
@@ -363,7 +362,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		roles, err := iam.GetUserRoles("", username)
 		if err != nil {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-			glog.Errorln(err)
+			klog.Errorln(err)
 			return
 		}
 		for _, role := range roles {

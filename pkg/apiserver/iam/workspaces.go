@@ -21,11 +21,11 @@ import (
 	"github.com/emicklei/go-restful"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 )
 

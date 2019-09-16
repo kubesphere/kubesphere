@@ -19,11 +19,11 @@ package workloads
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -49,7 +49,7 @@ func JobReRun(namespace, jobName string) error {
 	err = deleteJob(namespace, jobName)
 
 	if err != nil {
-		glog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
+		klog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
 		return fmt.Errorf("failed to rerun job %s", jobName)
 	}
 
@@ -63,7 +63,7 @@ func JobReRun(namespace, jobName string) error {
 	}
 
 	if err != nil {
-		glog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
+		klog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
 		return fmt.Errorf("failed to rerun job %s", jobName)
 	}
 
