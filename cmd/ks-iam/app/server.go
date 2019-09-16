@@ -20,7 +20,6 @@ package app
 import (
 	goflag "flag"
 	"fmt"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/cmd/ks-iam/app/options"
@@ -50,7 +49,6 @@ cluster's shared state through which all other components interact.`,
 	}
 	s.AddFlags(cmd.Flags())
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
-	glog.CopyStandardLogTo("INFO")
 
 	return cmd
 }
