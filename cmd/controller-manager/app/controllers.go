@@ -26,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
+	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 
 	//"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
@@ -119,6 +120,15 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		s2iInformer.Devops().V1alpha1().S2iRuns())
 
+	volumeExpansionController := expansion.NewVolumeExpansionController(
+		kubeClient,
+		informerFactory.Core().V1().PersistentVolumeClaims(),
+		informerFactory.Storage().V1().StorageClasses(),
+		informerFactory.Core().V1().Pods(),
+		informerFactory.Apps().V1().Deployments(),
+		informerFactory.Apps().V1().ReplicaSets(),
+		informerFactory.Apps().V1().StatefulSets())
+
 	kubesphereInformer.Start(stopCh)
 	istioInformer.Start(stopCh)
 	informerFactory.Start(stopCh)
@@ -132,6 +142,7 @@ func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{
 		"job-controller":             jobController,
 		"s2ibinary-controller":       s2iBinaryController,
 		"s2irun-controller":          s2iRunController,
+		"volumeexpansion-controller": volumeExpansionController,
 	}
 
 	for name, ctrl := range controllers {
