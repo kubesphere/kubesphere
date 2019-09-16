@@ -19,9 +19,8 @@ package workspaces
 
 import (
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/kiali/kiali/log"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -29,7 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/resources"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	clientset "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -95,7 +94,7 @@ func InviteUser(workspaceName string, user *models.User) error {
 	workspaceRole, err := iam.GetUserWorkspaceRole(workspaceName, user.Username)
 
 	if err != nil && !apierrors.IsNotFound(err) {
-		glog.Errorf("get workspace role failed: %+v", err)
+		klog.Errorf("get workspace role failed: %+v", err)
 		return err
 	}
 
@@ -108,7 +107,7 @@ func InviteUser(workspaceName string, user *models.User) error {
 	if currentWorkspaceRoleName != workspaceRoleName && currentWorkspaceRoleName != "" {
 		err := DeleteWorkspaceRoleBinding(workspaceName, user.Username, workspaceRole.Annotations[constants.DisplayNameAnnotationKey])
 		if err != nil {
-			glog.Errorf("delete workspace role binding failed: %+v", err)
+			klog.Errorf("delete workspace role binding failed: %+v", err)
 			return err
 		}
 	} else if currentWorkspaceRoleName != "" {
@@ -135,7 +134,7 @@ func CreateWorkspaceRoleBinding(workspace, username string, role string) error {
 		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
 		_, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
 		if err != nil {
-			log.Errorf("update workspace role binding failed: %+v", err)
+			klog.Errorf("update workspace role binding failed: %+v", err)
 			return err
 		}
 	}

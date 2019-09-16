@@ -9,8 +9,8 @@ import (
 type S3Options struct {
 	Endpoint        string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 	Region          string `json:"region,omitempty" yaml:"region,omitempty"`
-	DisableSSL      bool   `json:"disableSSL,omitempty" yaml:"disableSSL,omitempty"`
-	ForcePathStyle  bool   `json:"forcePathStyle,omitempty" yaml:"forePathStyle,omitempty"`
+	DisableSSL      bool   `json:"disableSSL" yaml:"disableSSL"`
+	ForcePathStyle  bool   `json:"forcePathStyle" yaml:"forePathStyle"`
 	AccessKeyID     string `json:"accessKeyID,omitempty" yaml:"accessKeyID,omitempty"`
 	SecretAccessKey string `json:"secretAccessKey,omitempty" yaml:"secretAccessKey,omitempty"`
 	SessionToken    string `json:"sessionToken,omitempty" yaml:"sessionToken,omitempty"`

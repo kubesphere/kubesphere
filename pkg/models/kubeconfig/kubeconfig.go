@@ -29,12 +29,12 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math/big"
 	rd "math/rand"
 	"time"
 
-	"github.com/golang/glog"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -111,7 +111,7 @@ func createCRT(RootCa *x509.Certificate, RootKey *rsa.PrivateKey, info CertInfor
 	Crt := newCertificate(info)
 	Key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -120,13 +120,13 @@ func createCRT(RootCa *x509.Certificate, RootKey *rsa.PrivateKey, info CertInfor
 	buf, err = x509.CreateCertificate(rand.Reader, Crt, RootCa, &Key.PublicKey, RootKey)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 	pem.Encode(&cert, &pem.Block{Type: "CERTIFICATE", Bytes: buf})
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 
@@ -139,7 +139,7 @@ func createCRT(RootCa *x509.Certificate, RootKey *rsa.PrivateKey, info CertInfor
 func Parse(crtPath, keyPath string) (rootcertificate *x509.Certificate, rootPrivateKey *rsa.PrivateKey, err error) {
 	rootcertificate, err = parseCrt(crtPath)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, nil, err
 	}
 	rootPrivateKey, err = parseKey(keyPath)
@@ -149,7 +149,7 @@ func Parse(crtPath, keyPath string) (rootcertificate *x509.Certificate, rootPriv
 func parseCrt(path string) (*x509.Certificate, error) {
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	p := &pem.Block{}
@@ -160,7 +160,7 @@ func parseCrt(path string) (*x509.Certificate, error) {
 func parseKey(path string) (*rsa.PrivateKey, error) {
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	p, buf := pem.Decode(buf)
@@ -195,12 +195,12 @@ func generateCaAndKey(user, caPath, keyPath string) (string, string, error) {
 
 	crt, pri, err := Parse(caPath, keyPath)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return "", "", err
 	}
 	cert, key, err := createCRT(crt, pri, crtInfo)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return "", "", err
 	}
 
@@ -213,7 +213,7 @@ func createKubeConfig(username string) (string, error) {
 	tmpKubeConfig := kubeConfig{ApiVersion: "v1", Kind: "Config"}
 	serverCa, err := ioutil.ReadFile(caPath)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return "", err
 	}
 	base64ServerCa := base64.StdEncoding.EncodeToString(serverCa)
@@ -251,7 +251,7 @@ func CreateKubeConfig(username string) error {
 	if errors.IsNotFound(err) {
 		config, err := createKubeConfig(username)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			return err
 		}
 
@@ -259,7 +259,7 @@ func CreateKubeConfig(username string) error {
 		configMap := v1.ConfigMap{TypeMeta: metaV1.TypeMeta{Kind: "Configmap", APIVersion: "v1"}, ObjectMeta: metaV1.ObjectMeta{Name: configName}, Data: data}
 		_, err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(&configMap)
 		if err != nil && !errors.IsAlreadyExists(err) {
-			glog.Errorf("create username %s's kubeConfig failed, reason: %v", username, err)
+			klog.Errorf("create username %s's kubeConfig failed, reason: %v", username, err)
 			return err
 		}
 	}
@@ -273,7 +273,7 @@ func GetKubeConfig(username string) (string, error) {
 	configName := fmt.Sprintf("kubeconfig-%s", username)
 	configMap, err := k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metaV1.GetOptions{})
 	if err != nil {
-		glog.Errorf("cannot get username %s's kubeConfig, reason: %v", username, err)
+		klog.Errorf("cannot get username %s's kubeConfig, reason: %v", username, err)
 		return "", err
 	}
 
@@ -281,7 +281,7 @@ func GetKubeConfig(username string) (string, error) {
 	var kubeConfig kubeConfig
 	err = yaml.Unmarshal([]byte(str), &kubeConfig)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	masterURL := client.ClientSets().K8s().Master()
@@ -291,7 +291,7 @@ func GetKubeConfig(username string) (string, error) {
 	}
 	data, err := yaml.Marshal(kubeConfig)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return "", err
 	}
 	return string(data), nil
@@ -308,7 +308,7 @@ func DelKubeConfig(username string) error {
 	deletePolicy := metaV1.DeletePropagationBackground
 	err = k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(configName, &metaV1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		glog.Errorf("delete username %s's kubeConfig failed, reason: %v", username, err)
+		klog.Errorf("delete username %s's kubeConfig failed, reason: %v", username, err)
 		return err
 	}
 	return nil

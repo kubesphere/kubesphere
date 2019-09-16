@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/glog"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -233,7 +232,7 @@ func (v *JobController) makeRevision(job *batchv1.Job) error {
 
 	revisionsByte, err := json.Marshal(revisions)
 	if err != nil {
-		glog.Error("generate reversion string failed", err)
+		log.Error("generate reversion string failed", err)
 		return nil
 	}
 

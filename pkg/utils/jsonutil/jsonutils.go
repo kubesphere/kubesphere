@@ -19,9 +19,8 @@ package jsonutil
 
 import (
 	"encoding/json"
+	"k8s.io/klog"
 	"strings"
-
-	"github.com/golang/glog"
 )
 
 type JsonRawMessage []byte
@@ -30,7 +29,7 @@ func (m JsonRawMessage) Find(key string) JsonRawMessage {
 	var objmap map[string]json.RawMessage
 	err := json.Unmarshal(m, &objmap)
 	if err != nil {
-		glog.Errorf("Resolve JSON Key failed, find key =%s, err=%s",
+		klog.Errorf("Resolve JSON Key failed, find key =%s, err=%s",
 			key, err)
 		return nil
 	}
@@ -41,7 +40,7 @@ func (m JsonRawMessage) ToList() []JsonRawMessage {
 	var lists []json.RawMessage
 	err := json.Unmarshal(m, &lists)
 	if err != nil {
-		glog.Errorf("Resolve JSON List failed, err=%s",
+		klog.Errorf("Resolve JSON List failed, err=%s",
 			err)
 		return nil
 	}

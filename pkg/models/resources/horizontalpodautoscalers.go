@@ -21,7 +21,7 @@ import (
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"

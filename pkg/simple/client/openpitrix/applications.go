@@ -20,8 +20,8 @@ package openpitrix
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
+	"k8s.io/klog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -38,14 +38,14 @@ func (c *OpenPitrixClient) GetAppInfo(appId string) (string, string, string, err
 	url := fmt.Sprintf("%s/v1/apps?app_id=%s", c.apiServer, appId)
 	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, Unknown, Unknown, err
 	}
 
 	var apps appList
 	err = json.Unmarshal(resp, &apps)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, Unknown, Unknown, err
 	}
 
@@ -61,7 +61,7 @@ func (c *OpenPitrixClient) GetCluster(clusterId string) (*Cluster, error) {
 
 	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func (c *OpenPitrixClient) GetCluster(clusterId string) (*Cluster, error) {
 	err = json.Unmarshal(resp, &clusterList)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (c *OpenPitrixClient) ListClusters(runtimeId, searchWord, status string, li
 
 	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
-		glog.Errorf("request %s failed, reason: %s", url, err)
+		klog.Errorf("request %s failed, reason: %s", url, err)
 		return nil, err
 	}
 
@@ -120,14 +120,14 @@ func (c *OpenPitrixClient) GetRepo(repoId string) (string, error) {
 	url := fmt.Sprintf("%s/v1/repos?repo_id=%s", c.apiServer, repoId)
 	resp, err := c.makeHttpRequest("GET", url, "")
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
 	var repos repoList
 	err = json.Unmarshal(resp, &repos)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
@@ -142,14 +142,14 @@ func (c *OpenPitrixClient) GetVersion(versionId string) (string, error) {
 	versionUrl := fmt.Sprintf("%s/v1/app_versions?version_id=%s", c.apiServer, versionId)
 	resp, err := c.makeHttpRequest("GET", versionUrl, "")
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
 	var versions VersionList
 	err = json.Unmarshal(resp, &versions)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
@@ -164,14 +164,14 @@ func (c *OpenPitrixClient) GetRuntime(runtimeId string) (string, error) {
 	versionUrl := fmt.Sprintf("%s/v1/runtimes?runtime_id=%s", c.apiServer, runtimeId)
 	resp, err := c.makeHttpRequest("GET", versionUrl, "")
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
 	var runtimes runtimeList
 	err = json.Unmarshal(resp, &runtimes)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return Unknown, err
 	}
 
@@ -189,14 +189,14 @@ func (c *OpenPitrixClient) CreateCluster(request CreateClusterRequest) error {
 	data, err := json.Marshal(request)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
 	data, err = c.makeHttpRequest("POST", versionUrl, string(data))
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
@@ -210,14 +210,14 @@ func (c *OpenPitrixClient) DeleteCluster(request DeleteClusterRequest) error {
 	data, err := json.Marshal(request)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
 	data, err = c.makeHttpRequest("POST", versionUrl, string(data))
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 
@@ -237,7 +237,7 @@ func (c *OpenPitrixClient) makeHttpRequest(method, url, data string) ([]byte, er
 	req.Header.Add("Authorization", c.token)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -245,7 +245,7 @@ func (c *OpenPitrixClient) makeHttpRequest(method, url, data string) ([]byte, er
 
 	if err != nil {
 		err := fmt.Errorf("Request to %s failed, method: %s,token: %s, reason: %s ", url, method, c.apiServer, err)
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 

@@ -19,12 +19,12 @@ package nodes
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math"
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
@@ -47,11 +47,10 @@ func DrainNode(nodename string) (err error) {
 	}
 
 	data := []byte(" {\"spec\":{\"unschedulable\":true}}")
-	nodestatus, err := k8sclient.CoreV1().Nodes().Patch(nodename, types.StrategicMergePatchType, data)
+	_, err = k8sclient.CoreV1().Nodes().Patch(nodename, types.StrategicMergePatchType, data)
 	if err != nil {
 		return err
 	}
-	glog.Info(nodestatus)
 	donech := make(chan bool)
 	errch := make(chan error)
 	go drainEviction(nodename, donech, errch)
@@ -74,7 +73,7 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 	options.FieldSelector = "spec.nodeName=" + nodename
 	podList, err := k8sclient.CoreV1().Pods("").List(options)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 		errch <- err
 	}
 	options.FieldSelector = ""
@@ -82,7 +81,7 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 
 	if err != nil {
 
-		glog.Fatal(err)
+		klog.Fatal(err)
 		errch <- err
 
 	}
@@ -114,7 +113,7 @@ func drainEviction(nodename string, donech chan bool, errch chan error) {
 		if evicerr == nil {
 			donech <- true
 		} else {
-			glog.Fatal(evicerr)
+			klog.Fatal(evicerr)
 			errch <- err
 		}
 	}
@@ -197,7 +196,7 @@ func evictPods(pods []v1.Pod, GracePeriodSeconds int, getPodFn func(namespace, n
 				} else if apierrors.IsNotFound(err) {
 					count = 0
 					doneCh <- true
-					glog.Info(fmt.Sprintf("pod %s evict", pod.Name))
+					klog.Info(fmt.Sprintf("pod %s evict", pod.Name))
 					return
 				} else if apierrors.IsTooManyRequests(err) {
 					count = 0
@@ -213,7 +212,7 @@ func evictPods(pods []v1.Pod, GracePeriodSeconds int, getPodFn func(namespace, n
 			_, err = waitForDelete(podArray, time.Second, time.Duration(math.MaxInt64), getPodFn)
 			if err == nil {
 				doneCh <- true
-				glog.Info(fmt.Sprintf("pod %s delete", pod.Name))
+				klog.Info(fmt.Sprintf("pod %s delete", pod.Name))
 			} else {
 				errCh <- fmt.Errorf("error when waiting for pod %q terminating: %v", pod.Name, err)
 			}

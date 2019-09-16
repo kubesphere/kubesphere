@@ -22,8 +22,8 @@ import (
 	"github.com/emicklei/go-restful"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/registries"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	log "k8s.io/klog"

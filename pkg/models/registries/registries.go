@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 )
@@ -58,7 +58,7 @@ func RegistryVerify(authInfo AuthInfo) error {
 	cli, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 
 	config := types.AuthConfig{

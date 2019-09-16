@@ -18,8 +18,8 @@
 package prometheus
 
 import (
-	"github.com/golang/glog"
 	"io/ioutil"
+	"k8s.io/klog"
 	"net/http"
 	"time"
 )
@@ -52,14 +52,14 @@ func (c *PrometheusClient) sendMonitoringRequest(endpoint string, queryType stri
 	epurl := endpoint + queryType + params
 	response, err := c.client.Get(epurl)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	} else {
 		defer response.Body.Close()
 
 		contents, err := ioutil.ReadAll(response.Body)
 
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 		}
 		return string(contents)
 	}

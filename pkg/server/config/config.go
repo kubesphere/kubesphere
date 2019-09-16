@@ -9,6 +9,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -56,7 +57,11 @@ func InstallAPI(c *restful.Container) {
 
 	ws.Route(ws.GET("/configz").
 		To(func(request *restful.Request, response *restful.Response) {
-			response.WriteAsJson(sharedConfig)
+			var conf = *sharedConfig
+
+			conf.stripEmptyOptions()
+
+			response.WriteAsJson(conf)
 		}).
 		Doc("Get system components configuration").
 		Produces(restful.MIME_JSON).
@@ -84,10 +89,19 @@ func Load() error {
 	}
 
 	conf := &Config{}
-	if err := viper.Unmarshal(&conf); err != nil {
+	if err := viper.Unmarshal(conf); err != nil {
 		klog.Error(fmt.Errorf("error unmarshal configuration %v", err))
 		return err
 	} else {
+		// make sure kubesphere options always exists
+		if conf.KubeSphereOptions == nil {
+			conf.KubeSphereOptions = kubesphere.NewKubeSphereOptions()
+		} else {
+			ksOptions := kubesphere.NewKubeSphereOptions()
+			conf.KubeSphereOptions.ApplyTo(ksOptions)
+			conf.KubeSphereOptions = ksOptions
+		}
+
 		conf.Apply(shadowConfig)
 		sharedConfig = conf
 	}
@@ -122,6 +136,7 @@ type Config struct {
 	S3Options          *s2is3.S3Options                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	OpenPitrixOptions  *openpitrix.OpenPitrixOptions   `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
 	MonitoringOptions  *prometheus.PrometheusOptions   `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
+	KubeSphereOptions  *kubesphere.KubeSphereOptions   `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
 }
 
 func newConfig() *Config {
@@ -136,6 +151,7 @@ func newConfig() *Config {
 		S3Options:          s2is3.NewS3Options(),
 		OpenPitrixOptions:  openpitrix.NewOpenPitrixOptions(),
 		MonitoringOptions:  prometheus.NewPrometheusOptions(),
+		KubeSphereOptions:  kubesphere.NewKubeSphereOptions(),
 	}
 }
 
@@ -145,6 +161,10 @@ func Get() *Config {
 
 func (c *Config) Apply(conf *Config) {
 	shadowConfig = conf
+
+	if conf.KubeSphereOptions != nil {
+		conf.KubeSphereOptions.ApplyTo(c.KubeSphereOptions)
+	}
 
 	if conf.MonitoringOptions != nil {
 		conf.MonitoringOptions.ApplyTo(c.MonitoringOptions)
@@ -184,4 +204,46 @@ func (c *Config) Apply(conf *Config) {
 	if conf.MySQLOptions != nil {
 		conf.MySQLOptions.ApplyTo(c.MySQLOptions)
 	}
+}
+
+func (c *Config) stripEmptyOptions() {
+	if c.MySQLOptions != nil && c.MySQLOptions.Host == "" {
+		c.MySQLOptions = nil
+	}
+
+	if c.RedisOptions != nil && c.RedisOptions.Host == "" {
+		c.RedisOptions = nil
+	}
+
+	if c.DevopsOptions != nil && c.DevopsOptions.Host == "" {
+		c.DevopsOptions = nil
+	}
+
+	if c.MonitoringOptions != nil && c.MonitoringOptions.Endpoint == "" &&
+		c.MonitoringOptions.SecondaryEndpoint == "" {
+		c.MonitoringOptions = nil
+	}
+
+	if c.SonarQubeOptions != nil && c.SonarQubeOptions.Host == "" {
+		c.SonarQubeOptions = nil
+	}
+
+	if c.LdapOptions != nil && c.LdapOptions.Host == "" {
+		c.LdapOptions = nil
+	}
+
+	if c.OpenPitrixOptions != nil && c.OpenPitrixOptions.APIServer == "" {
+		c.OpenPitrixOptions = nil
+	}
+
+	if c.ServiceMeshOptions != nil && c.ServiceMeshOptions.IstioPilotHost == "" &&
+		c.ServiceMeshOptions.ServicemeshPrometheusHost == "" &&
+		c.ServiceMeshOptions.JaegerQueryHost == "" {
+		c.ServiceMeshOptions = nil
+	}
+
+	if c.S3Options != nil && c.S3Options.Endpoint == "" {
+		c.S3Options = nil
+	}
+
 }

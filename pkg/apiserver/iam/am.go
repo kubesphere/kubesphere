@@ -21,13 +21,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 	"sort"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 type RoleList struct {

@@ -16,8 +16,8 @@ package devops
 import (
 	"fmt"
 	"github.com/beevik/etree"
-	"github.com/golang/glog"
 	"github.com/kubesphere/sonargo/sonar"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
@@ -1093,7 +1093,7 @@ func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
 			}
 			ceTask, _, err := sonarClient.SonarQube().Ce.Task(taskOptions)
 			if err != nil {
-				glog.Errorf("get sonar task error [%+v]", err)
+				klog.Errorf("get sonar task error [%+v]", err)
 				continue
 			}
 			sonarStatus.Task = ceTask
@@ -1104,7 +1104,7 @@ func getBuildSonarResults(build *gojenkins.Build) ([]*SonarStatus, error) {
 			}
 			measures, _, err := sonarClient.SonarQube().Measures.Component(measuresComponentOption)
 			if err != nil {
-				glog.Errorf("get sonar task error [%+v]", err)
+				klog.Errorf("get sonar task error [%+v]", err)
 				continue
 			}
 			sonarStatus.Measures = measures

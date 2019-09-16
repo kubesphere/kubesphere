@@ -19,18 +19,18 @@ package applications
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/resources"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"strings"
@@ -105,7 +105,7 @@ func GetApp(clusterId string) (*Application, error) {
 	item, err := openPitrixClient.GetCluster(clusterId)
 
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func GetApp(clusterId string) (*Application, error) {
 
 	workloads, err := getWorkLoads(app.Runtime, item.ClusterRoleSets)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return nil, err
 	}
 	app.WorkLoads = workloads
@@ -159,7 +159,7 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 					if errors.IsNotFound(err) {
 						continue
 					}
-					glog.Error(err)
+					klog.Error(err)
 					return nil, err
 				}
 
@@ -175,7 +175,7 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 					if errors.IsNotFound(err) {
 						continue
 					}
-					glog.Error(err)
+					klog.Error(err)
 					return nil, err
 				}
 				works.Daemonsets = append(works.Daemonsets, *item)
@@ -190,7 +190,7 @@ func getWorkLoads(namespace string, clusterRoles []openpitrix.ClusterRole) (*wor
 					if errors.IsNotFound(err) {
 						continue
 					}
-					glog.Error(err)
+					klog.Error(err)
 					return nil, err
 				}
 				works.Statefulsets = append(works.Statefulsets, *item)
@@ -255,7 +255,7 @@ func getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service
 		labelSelector := labels.Set(label).AsSelector().String()
 		svcs, err := k8sClient.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
 		if err != nil {
-			glog.Errorf("get app's svc failed, reason: %v", err)
+			klog.Errorf("get app's svc failed, reason: %v", err)
 		}
 		for _, item := range svcs.Items {
 			if !isExist(services, item) {
@@ -276,11 +276,11 @@ func getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
 	for _, svc := range services {
 		result, err := resources.ListResources(namespace, "ingress", &params.Conditions{Fuzzy: map[string]string{"serviceName": svc.Name}}, "", false, -1, 0)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return nil
 		}
 
-		glog.Error(result)
+		klog.Error(result)
 		for _, i := range result.Items {
 			ingress := i.(*v1beta1.Ingress)
 
@@ -316,7 +316,7 @@ func DeployApplication(namespace string, app openpitrix.CreateClusterRequest) er
 
 	ns, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(namespace)
 	if err != nil {
-		glog.Errorf("deploy application failed: %+v", err)
+		klog.Errorf("deploy application failed: %+v", err)
 		return err
 	}
 

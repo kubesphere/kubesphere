@@ -15,7 +15,7 @@ package esclient
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -64,7 +64,7 @@ func (cfg *Config) WriteESConfigs() {
 
 	config = cfg
 	if err := detectVersionMajor(config); err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		client = nil
 		return
 	}
@@ -250,7 +250,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 	var response Response
 	err := jsonIter.Unmarshal(body, &response)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return &queryResult
@@ -261,13 +261,13 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 		err := "The query failed with no response"
 		queryResult.Status = response.Status
 		queryResult.Error = err
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return &queryResult
 	}
 
 	if response.Shards.Successful != response.Shards.Total {
 		//Elastic some shards error
-		glog.Warningf("Not all shards succeed, successful shards: %d, skipped shards: %d, failed shards: %d",
+		klog.Warningf("Not all shards succeed, successful shards: %d, skipped shards: %d, failed shards: %d",
 			response.Shards.Successful, response.Shards.Skipped, response.Shards.Failed)
 	}
 
@@ -294,7 +294,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 		var statisticsResponse StatisticsResponseAggregations
 		err := jsonIter.Unmarshal(response.Aggregations, &statisticsResponse)
 		if err != nil && response.Aggregations != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
 			queryResult.Error = err.Error()
 			return &queryResult
@@ -311,7 +311,7 @@ func parseQueryResult(operation int, param QueryParameters, body []byte) *QueryR
 		var histogramAggregations HistogramAggregations
 		err := jsonIter.Unmarshal(response.Aggregations, &histogramAggregations)
 		if err != nil && response.Aggregations != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			queryResult.Status = http.StatusInternalServerError
 			queryResult.Error = err.Error()
 			return &queryResult
@@ -361,7 +361,7 @@ func Query(param QueryParameters) *QueryResult {
 
 	operation, query, err := createQueryRequest(param)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()
 		return queryResult
@@ -369,7 +369,7 @@ func Query(param QueryParameters) *QueryResult {
 
 	body, err := client.Search(query)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		queryResult = new(QueryResult)
 		queryResult.Status = http.StatusInternalServerError
 		queryResult.Error = err.Error()

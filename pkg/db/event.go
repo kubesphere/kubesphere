@@ -14,7 +14,7 @@ limitations under the License.
 package db
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // EventReceiver is a sentinel EventReceiver; use it if the caller doesn't supply one
@@ -38,8 +38,8 @@ func (n *EventReceiver) EventErr(eventName string, err error) error {
 // EventErrKv receives a notification of an error if one occurs along with
 // optional key/value data
 func (n *EventReceiver) EventErrKv(eventName string, err error, kvs map[string]string) error {
-	glog.Errorf("%+v", err)
-	glog.Errorf("%s: %+v", eventName, kvs)
+	klog.Errorf("%+v", err)
+	klog.Errorf("%s: %+v", eventName, kvs)
 	return err
 }
 
@@ -51,5 +51,5 @@ func (n *EventReceiver) Timing(eventName string, nanoseconds int64) {
 // TimingKv receives the time an event took to happen along with optional key/value data
 func (n *EventReceiver) TimingKv(eventName string, nanoseconds int64, kvs map[string]string) {
 	// TODO: Change logger level to debug
-	glog.Infof("%s spend %.2fms: %+v", eventName, float32(nanoseconds)/1000000, kvs)
+	klog.Infof("%s spend %.2fms: %+v", eventName, float32(nanoseconds)/1000000, kvs)
 }

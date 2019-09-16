@@ -23,12 +23,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"io"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 )
 
@@ -141,7 +141,7 @@ var terminalSessions = make(map[string]TerminalSession)
 
 // handleTerminalSession is Called by net/http for any new /api/sockjs connections
 func HandleTerminalSession(session sockjs.Session) {
-	glog.Infof("handleTerminalSession, ID:%s", session.ID())
+	klog.Infof("handleTerminalSession, ID:%s", session.ID())
 	var (
 		buf             string
 		err             error
@@ -151,22 +151,22 @@ func HandleTerminalSession(session sockjs.Session) {
 	)
 
 	if buf, err = session.Recv(); err != nil {
-		glog.Errorf("handleTerminalSession: can't Recv: %v", err)
+		klog.Errorf("handleTerminalSession: can't Recv: %v", err)
 		return
 	}
 
 	if err = json.Unmarshal([]byte(buf), &msg); err != nil {
-		glog.Errorf("handleTerminalSession: can't UnMarshal (%v): %s", err, buf)
+		klog.Errorf("handleTerminalSession: can't UnMarshal (%v): %s", err, buf)
 		return
 	}
 
 	if msg.Op != "bind" {
-		glog.Errorf("handleTerminalSession: expected 'bind' message, got: %s", buf)
+		klog.Errorf("handleTerminalSession: expected 'bind' message, got: %s", buf)
 		return
 	}
 
 	if terminalSession, ok = terminalSessions[msg.SessionID]; !ok {
-		glog.Errorf("handleTerminalSession: can't find session '%s'", msg.SessionID)
+		klog.Errorf("handleTerminalSession: can't find session '%s'", msg.SessionID)
 		return
 	}
 
@@ -228,7 +228,7 @@ func genTerminalSessionId() (string, error) {
 	}
 	id := make([]byte, hex.EncodedLen(len(bytes)))
 	hex.Encode(id, bytes)
-	glog.Infof("genTerminalSessionId, id:" + string(id))
+	klog.Infof("genTerminalSessionId, id:" + string(id))
 	return string(id), nil
 }
 
@@ -245,7 +245,7 @@ func isValidShell(validShells []string, shell string) bool {
 // WaitingForConnection is called from apihandler.handleAttach as a goroutine
 // Waits for the SockJS connection to be opened by the client the session to be bound in handleTerminalSession
 func WaitingForConnection(shell string, namespace, podName, containerName string, sessionId string) {
-	glog.Infof("WaitingForConnection, ID:%s", sessionId)
+	klog.Infof("WaitingForConnection, ID:%s", sessionId)
 	select {
 	case <-terminalSessions[sessionId].bound:
 		close(terminalSessions[sessionId].bound)

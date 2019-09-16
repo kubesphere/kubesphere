@@ -19,8 +19,8 @@
 package operations
 
 import (
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/workloads"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 
 	"github.com/emicklei/go-restful"

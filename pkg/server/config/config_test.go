@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -14,8 +15,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -82,6 +83,10 @@ func newTestConfig() *Config {
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
+		KubeSphereOptions: &kubesphere.KubeSphereOptions{
+			APIServer:     "http://ks-apiserver.kubesphere-system.svc",
+			AccountServer: "http://ks-account.kubesphere-system.svc",
+		},
 	}
 	return conf
 }
@@ -115,6 +120,7 @@ func cleanTestConfig(t *testing.T) {
 func TestGet(t *testing.T) {
 	conf := newTestConfig()
 	saveTestConfig(t, conf)
+	//defer cleanTestConfig(t)
 
 	err := Load()
 	if err != nil {
@@ -122,8 +128,49 @@ func TestGet(t *testing.T) {
 	}
 	conf2 := Get()
 
-	if !reflect.DeepEqual(conf2, conf) {
-		t.Fatalf("Get %v\n expected %v\n", conf2, conf)
+	if diff := reflectutils.Equal(conf, conf2); diff != nil {
+		t.Fatal(diff)
 	}
-	cleanTestConfig(t)
+}
+
+func TestKubeSphereOptions(t *testing.T) {
+	conf := newTestConfig()
+
+	t.Run("save nil kubesphere options", func(t *testing.T) {
+		savedConf := *conf
+		savedConf.KubeSphereOptions = nil
+		saveTestConfig(t, &savedConf)
+		defer cleanTestConfig(t)
+
+		err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		loadedConf := Get()
+
+		if diff := reflectutils.Equal(conf, loadedConf); diff != nil {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("save partially kubesphere options", func(t *testing.T) {
+		savedConf := *conf
+		savedConf.KubeSphereOptions.APIServer = "http://example.com"
+		savedConf.KubeSphereOptions.AccountServer = ""
+
+		saveTestConfig(t, &savedConf)
+		defer cleanTestConfig(t)
+
+		err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		loadedConf := Get()
+
+		savedConf.KubeSphereOptions.AccountServer = "http://ks-account.kubesphere-system.svc"
+
+		if diff := reflectutils.Equal(&savedConf, loadedConf); diff != nil {
+			t.Fatal(diff)
+		}
+	})
 }

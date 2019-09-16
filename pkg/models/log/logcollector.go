@@ -19,8 +19,8 @@
 package log
 
 import (
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
@@ -35,7 +35,7 @@ func MatchNamespace(nsFilter []string, nsQuery []string, wsFilter []string, wsQu
 	nsLister := informers.SharedInformerFactory().Core().V1().Namespaces().Lister()
 	nsList, err := nsLister.List(labels.Everything())
 	if err != nil {
-		glog.Errorf("failed to list namespace, error: %s", err)
+		klog.Errorf("failed to list namespace, error: %s", err)
 		return true, nil
 	}
 

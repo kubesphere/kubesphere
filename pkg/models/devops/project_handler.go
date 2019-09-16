@@ -17,35 +17,36 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
-	"github.com/golang/glog"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 )
 
-func GetProject(projectId string) (*DevOpsProject, error) {
+func GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
 	}
-	project := &DevOpsProject{}
+	project := &v1alpha2.DevOpsProject{}
 	err = dbconn.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, projectId)).
 		LoadOne(project)
 	if err != nil && err != dbr.ErrNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	if err == dbr.ErrNotFound {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 
 		return nil, restful.NewError(http.StatusNotFound, err.Error())
 	}
 	return project, nil
 }
 
-func UpdateProject(project *DevOpsProject) (*DevOpsProject, error) {
+func UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -66,18 +67,18 @@ func UpdateProject(project *DevOpsProject) (*DevOpsProject, error) {
 			Where(db.Eq(DevOpsProjectIdColumn, project.ProjectId)).Exec()
 
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 
 			return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 	}
-	newProject := &DevOpsProject{}
+	newProject := &v1alpha2.DevOpsProject{}
 	err = dbconn.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, project.ProjectId)).
 		LoadOne(newProject)
 	if err != nil {
-		glog.Errorf("%+v", err)
+		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return newProject, nil

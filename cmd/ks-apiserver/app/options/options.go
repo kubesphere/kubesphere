@@ -4,7 +4,7 @@ import (
 	"flag"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	genericoptions "kubesphere.io/kubesphere/pkg/options"
+	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"

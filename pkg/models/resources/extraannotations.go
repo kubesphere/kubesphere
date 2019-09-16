@@ -18,10 +18,10 @@
 package resources
 
 import (
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"strconv"
 )
@@ -46,7 +46,7 @@ func (i extraAnnotationInjector) injectStorageClass(item *storagev1.StorageClass
 	count, err := countPvcByStorageClass(item.Name)
 
 	if err != nil {
-		glog.Errorf("inject annotation failed %+v", err)
+		klog.Errorf("inject annotation failed %+v", err)
 		return item
 	}
 
@@ -65,7 +65,7 @@ func (i extraAnnotationInjector) injectPersistentVolumeClaim(item *corev1.Persis
 	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
 	pods, err := podLister.Pods(item.Namespace).List(labels.Everything())
 	if err != nil {
-		glog.Errorf("inject annotation failed %+v", err)
+		klog.Errorf("inject annotation failed %+v", err)
 		return item
 	}
 

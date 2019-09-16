@@ -32,6 +32,7 @@ import (
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
@@ -68,7 +69,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileWorkspace{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		recorder: mgr.GetRecorder("workspace-controller"), ksclient: kubesphere.Client()}
+		recorder: mgr.GetRecorder("workspace-controller"), ksclient: cs.ClientSets().KubeSphere()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler

@@ -24,7 +24,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
 )

@@ -23,7 +23,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 

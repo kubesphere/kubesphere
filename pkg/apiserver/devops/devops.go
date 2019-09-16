@@ -20,7 +20,7 @@ package devops
 import (
 	"encoding/json"
 	"github.com/emicklei/go-restful"
-	log "github.com/golang/glog"
+	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
 	"strings"

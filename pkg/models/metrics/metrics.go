@@ -19,10 +19,8 @@
 package metrics
 
 import (
-	"github.com/golang/glog"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"net/url"
 	"regexp"
 	"runtime/debug"
@@ -158,7 +156,7 @@ func getPodNameRegexInWorkload(res, filter string) string {
 	var dat CommonMetricsResult
 	jsonErr := jsonIter.Unmarshal(data, &dat)
 	if jsonErr != nil {
-		glog.Errorln("json parse failed", jsonErr.Error(), res)
+		klog.Errorln("json parse failed", jsonErr.Error(), res)
 	}
 	var podNames []string
 
@@ -183,7 +181,7 @@ func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			debug.PrintStack()
 		}
 	}()
@@ -303,7 +301,7 @@ func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
 	nodes, err := nodeLister.List(labels.Everything())
 
 	if err != nil {
-		glog.Errorln(err.Error())
+		klog.Errorln(err.Error())
 	}
 
 	var nodeAddress = make(map[string][]v1.NodeAddress)
@@ -405,7 +403,7 @@ func makeRequestParamString(rule string, paramValues url.Values) string {
 
 	defer func() {
 		if err := recover(); err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			debug.PrintStack()
 		}
 	}()
@@ -509,7 +507,7 @@ func collectWorkspaceMetric(monitoringRequest *MonitoringRequestParams, ws strin
 	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
 	namespaceArray, err := workspaces.WorkspaceNamespaces(ws)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 	}
 
 	// add by namespace
@@ -652,7 +650,7 @@ func GetWorkspaceLevelMetrics(monitoringRequest *MonitoringRequestParams) *Forma
 	if monitoringRequest.WsName != "" {
 		namespaceArray, err := workspaces.WorkspaceNamespaces(monitoringRequest.WsName)
 		if err != nil {
-			glog.Errorln(err.Error())
+			klog.Errorln(err.Error())
 		}
 		namespaceArray = filterNamespace(monitoringRequest.ResourcesFilter, namespaceArray)
 
@@ -1117,7 +1115,7 @@ func GetAllWorkspacesStatistics() *FormatedLevelMetric {
 	go func() {
 		orgNums, errOrg := workspaces.WorkspaceCount()
 		if errOrg != nil {
-			glog.Errorln(errOrg.Error())
+			klog.Errorln(errOrg.Error())
 		}
 		orgResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllOrganizationCount, WorkspaceResourceKindOrganization, orgNums, errOrg)
 		wg.Done()
@@ -1126,7 +1124,7 @@ func GetAllWorkspacesStatistics() *FormatedLevelMetric {
 	go func() {
 		devOpsProjectNums, errDevops := workspaces.GetAllDevOpsProjectsNums()
 		if errDevops != nil {
-			glog.Errorln(errDevops.Error())
+			klog.Errorln(errDevops.Error())
 		}
 		devopsResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllDevopsCount, WorkspaceResourceKindDevops, devOpsProjectNums, errDevops)
 		wg.Done()
@@ -1135,16 +1133,16 @@ func GetAllWorkspacesStatistics() *FormatedLevelMetric {
 	go func() {
 		projNums, errProj := workspaces.GetAllProjectNums()
 		if errProj != nil {
-			glog.Errorln(errProj.Error())
+			klog.Errorln(errProj.Error())
 		}
 		workspaceProjResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllProjectCount, WorkspaceResourceKindNamespace, projNums, errProj)
 		wg.Done()
 	}()
 
 	go func() {
-		result, errAct := kubesphere.Client().ListUsers()
+		result, errAct := cs.ClientSets().KubeSphere().ListUsers()
 		if errAct != nil {
-			glog.Errorln(errAct.Error())
+			klog.Errorln(errAct.Error())
 		}
 		accountResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllAccountCount, WorkspaceResourceKindAccount, result.TotalCount, errAct)
 		wg.Done()
@@ -1178,7 +1176,7 @@ func MonitorOneWorkspaceStatistics(wsName string) *FormatedLevelMetric {
 		namespaces, errNs := workspaces.WorkspaceNamespaces(wsName)
 
 		if errNs != nil {
-			glog.Errorln(errNs.Error())
+			klog.Errorln(errNs.Error())
 		}
 		nsMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceNamespaceCount, WorkspaceResourceKindNamespace, len(namespaces), errNs)
 		wg.Done()
@@ -1187,7 +1185,7 @@ func MonitorOneWorkspaceStatistics(wsName string) *FormatedLevelMetric {
 	go func() {
 		devOpsProjects, errDevOps := workspaces.GetDevOpsProjects(wsName)
 		if errDevOps != nil {
-			glog.Errorln(errDevOps.Error())
+			klog.Errorln(errDevOps.Error())
 		}
 		// add devops metric
 		devopsMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceDevopsCount, WorkspaceResourceKindDevops, len(devOpsProjects), errDevOps)
@@ -1197,7 +1195,7 @@ func MonitorOneWorkspaceStatistics(wsName string) *FormatedLevelMetric {
 	go func() {
 		count, errMemb := workspaces.WorkspaceUserCount(wsName)
 		if errMemb != nil {
-			glog.Errorln(errMemb.Error())
+			klog.Errorln(errMemb.Error())
 		}
 		// add member metric
 		memberMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceMemberCount, WorkspaceResourceKindMember, count, errMemb)
@@ -1207,7 +1205,7 @@ func MonitorOneWorkspaceStatistics(wsName string) *FormatedLevelMetric {
 	go func() {
 		roles, errRole := workspaces.GetOrgRoles(wsName)
 		if errRole != nil {
-			glog.Errorln(errRole.Error())
+			klog.Errorln(errRole.Error())
 		}
 		// add role metric
 		roleMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceRoleCount, WorkspaceResourceKindRole, len(roles), errRole)

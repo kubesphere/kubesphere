@@ -22,8 +22,8 @@ import (
 	"k8s.io/api/core/v1"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/storage"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 type pvcList struct {

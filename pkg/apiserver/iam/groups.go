@@ -26,9 +26,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/go-ldap/ldap"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 func CreateGroup(req *restful.Request, resp *restful.Response) {

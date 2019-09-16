@@ -18,15 +18,15 @@
 package tenant
 
 import (
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/resources"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
@@ -97,7 +97,7 @@ func (*namespaceSearcher) GetNamespaces(username string) ([]*v1.Namespace, error
 	for _, role := range roles {
 		namespace, err := namespaceLister.Get(role.Namespace)
 		if err != nil {
-			glog.Errorf("get namespace failed: %+v", err)
+			klog.Errorf("get namespace failed: %+v", err)
 			return nil, err
 		}
 		if !containsNamespace(namespaces, namespace) {

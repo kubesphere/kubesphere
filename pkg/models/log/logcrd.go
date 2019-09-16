@@ -18,7 +18,6 @@ package log
 
 import (
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/json-iterator/go"
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
@@ -77,7 +77,7 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		// If the ConfigMap doesn't exist, a new one will be created later
-		glog.Errorln(err)
+		klog.Errorln(err)
 	}
 
 	// When adding a new output for the first time, one should always set it enabled
@@ -120,7 +120,7 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		// If the ConfigMap doesn't exist, a new one will be created later
-		glog.Errorln(err)
+		klog.Errorln(err)
 	}
 
 	index := 0
@@ -228,21 +228,21 @@ func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
 	var data string
 	data, err := jsonIter.MarshalToString(outputs)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 
 	// Update the ConfigMap
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 
 	// Creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 
@@ -261,7 +261,7 @@ func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
 
 		_, err = configMapClient.Create(newConfigMap)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			return err
 		}
 	} else {
@@ -270,7 +270,7 @@ func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
 		configMap.Data = map[string]string{ConfigMapData: data}
 		_, err = configMapClient.Update(configMap)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			return err
 		}
 	}
@@ -309,7 +309,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 
 	crdcs, scheme, err := createCRDClientSet()
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 
@@ -318,14 +318,14 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 
 	fluentbit, err := crdclient.Get("fluent-bit")
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 
 	fluentbit.Spec.Output = enabledOutputs
 	_, err = crdclient.Update("fluent-bit", fluentbit)
 	if err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		return err
 	}
 

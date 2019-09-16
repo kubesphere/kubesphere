@@ -22,8 +22,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
-	"kubesphere.io/kubesphere/pkg/params"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 )
 
 func ListNamespacedResources(req *restful.Request, resp *restful.Response) {

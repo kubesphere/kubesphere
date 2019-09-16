@@ -22,8 +22,8 @@ import (
 	"github.com/emicklei/go-restful"
 	"net/http"
 
-	"kubesphere.io/kubesphere/pkg/errors"
 	"kubesphere.io/kubesphere/pkg/models/nodes"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 func DrainNode(request *restful.Request, response *restful.Response) {
