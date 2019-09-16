@@ -55,7 +55,7 @@ type DockerConfigEntry struct {
 func RegistryVerify(authInfo AuthInfo) error {
 	auth := base64.StdEncoding.EncodeToString([]byte(authInfo.Username + ":" + authInfo.Password))
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 
 	if err != nil {
 		glog.Error(err)
