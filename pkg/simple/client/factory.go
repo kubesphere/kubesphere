@@ -20,7 +20,7 @@ type ClientSetNotEnabledError struct {
 }
 
 func (e ClientSetNotEnabledError) Error() string {
-	return fmt.Sprintf("client set not enabled: %s", e.err.Error())
+	return fmt.Sprintf("client set not enabled: %v", e.err)
 }
 
 type ClientSetOptions struct {
