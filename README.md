@@ -76,7 +76,7 @@ You can deploy KubeSphere on any Kubernetes cluster，please refer to [KubeSpher
 
 ```bash
 $ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz \
-&& tar -zxf advanced-2.0.2.tar.gz && cd kubesphere-all-advanced-2.0.2/scripts
+&& tar -zxf advanced-2.0.2.tar.gz && cd ./kubesphere-all-advanced-2.0.2/scripts
 $ ./install.sh
 ```
 
