@@ -21,11 +21,11 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/log"
-	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fluentbitclient "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"net/http"
 )
@@ -66,8 +66,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -91,8 +91,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -114,8 +114,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -136,8 +136,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -156,8 +156,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -175,8 +175,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.LogQueryTag}).
-		Writes(esclient.QueryResult{}).
-		Returns(http.StatusOK, RespOK, esclient.QueryResult{})).
+		Writes(v1alpha2.QueryResult{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 

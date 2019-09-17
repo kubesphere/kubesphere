@@ -14,16 +14,16 @@ type Elastic struct {
 	index  string
 }
 
-func New(address string, index string) Elastic {
+func New(address string, index string) *Elastic {
 
 	client, _ := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{address},
 	})
 
-	return Elastic{Client: client, index: index}
+	return &Elastic{Client: client, index: index}
 }
 
-func (e Elastic) Search(body []byte) ([]byte, error) {
+func (e *Elastic) Search(body []byte) ([]byte, error) {
 
 	response, err := e.Client.Search(
 		e.Client.Search.WithContext(context.Background()),
@@ -49,7 +49,7 @@ func (e Elastic) Search(body []byte) ([]byte, error) {
 	return ioutil.ReadAll(response.Body)
 }
 
-func (e Elastic) GetTotalHitCount(v interface{}) int64 {
+func (e *Elastic) GetTotalHitCount(v interface{}) int64 {
 	f, _ := v.(float64)
 	return int64(f)
 }

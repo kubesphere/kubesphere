@@ -7,11 +7,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
@@ -136,22 +139,33 @@ type Config struct {
 	S3Options          *s2is3.S3Options                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	OpenPitrixOptions  *openpitrix.OpenPitrixOptions   `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
 	MonitoringOptions  *prometheus.PrometheusOptions   `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	KubeSphereOptions  *kubesphere.KubeSphereOptions   `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
+	LoggingOptions     *esclient.ElasticSearchOptions  `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+
+	// Options below are only loaded from configuration file, no command line flags for these options now.
+	KubeSphereOptions *kubesphere.KubeSphereOptions `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
+
+	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
+	// we can add these options to kubesphere command lines
+	AlertingOptions     *alerting.AlertingOptions         `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
+	NotificationOptions *notification.NotificationOptions `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 }
 
 func newConfig() *Config {
 	return &Config{
-		MySQLOptions:       mysql.NewMySQLOptions(),
-		DevopsOptions:      devops.NewDevopsOptions(),
-		SonarQubeOptions:   sonarqube.NewSonarQubeOptions(),
-		KubernetesOptions:  k8s.NewKubernetesOptions(),
-		ServiceMeshOptions: servicemesh.NewServiceMeshOptions(),
-		LdapOptions:        ldap.NewLdapOptions(),
-		RedisOptions:       redis.NewRedisOptions(),
-		S3Options:          s2is3.NewS3Options(),
-		OpenPitrixOptions:  openpitrix.NewOpenPitrixOptions(),
-		MonitoringOptions:  prometheus.NewPrometheusOptions(),
-		KubeSphereOptions:  kubesphere.NewKubeSphereOptions(),
+		MySQLOptions:        mysql.NewMySQLOptions(),
+		DevopsOptions:       devops.NewDevopsOptions(),
+		SonarQubeOptions:    sonarqube.NewSonarQubeOptions(),
+		KubernetesOptions:   k8s.NewKubernetesOptions(),
+		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),
+		LdapOptions:         ldap.NewLdapOptions(),
+		RedisOptions:        redis.NewRedisOptions(),
+		S3Options:           s2is3.NewS3Options(),
+		OpenPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
+		MonitoringOptions:   prometheus.NewPrometheusOptions(),
+		KubeSphereOptions:   kubesphere.NewKubeSphereOptions(),
+		AlertingOptions:     alerting.NewAlertingOptions(),
+		NotificationOptions: notification.NewNotificationOptions(),
+		LoggingOptions:      esclient.NewElasticSearchOptions(),
 	}
 }
 
@@ -161,6 +175,10 @@ func Get() *Config {
 
 func (c *Config) Apply(conf *Config) {
 	shadowConfig = conf
+
+	if conf.LoggingOptions != nil {
+		conf.LoggingOptions.ApplyTo(c.LoggingOptions)
+	}
 
 	if conf.KubeSphereOptions != nil {
 		conf.KubeSphereOptions.ApplyTo(c.KubeSphereOptions)
@@ -244,6 +262,18 @@ func (c *Config) stripEmptyOptions() {
 
 	if c.S3Options != nil && c.S3Options.Endpoint == "" {
 		c.S3Options = nil
+	}
+
+	if c.AlertingOptions != nil && c.AlertingOptions.Endpoint == "" {
+		c.AlertingOptions = nil
+	}
+
+	if c.LoggingOptions != nil && c.LoggingOptions.Host == "" {
+		c.LoggingOptions = nil
+	}
+
+	if c.NotificationOptions != nil && c.NotificationOptions.Endpoint == "" {
+		c.NotificationOptions = nil
 	}
 
 }

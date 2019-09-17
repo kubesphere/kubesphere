@@ -26,8 +26,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
-	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"net/http"
 	"strings"
@@ -102,12 +102,6 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 		return &result
 	}
 
-	// 3. If it's an configs output added, reset configs client configs
-	configs := ParseEsOutputParams(output.Parameters)
-	if configs != nil {
-		configs.WriteESConfigs()
-	}
-
 	result.Status = http.StatusOK
 	return &result
 }
@@ -153,12 +147,6 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 		result.Status = http.StatusInternalServerError
 		result.Error = err.Error()
 		return &result
-	}
-
-	// 3. If it's an configs output updated, reset configs client configs
-	configs := ParseEsOutputParams(output.Parameters)
-	if configs != nil {
-		configs.WriteESConfigs()
 	}
 
 	result.Status = http.StatusOK
@@ -333,7 +321,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 }
 
 // Parse es host, port and index
-func ParseEsOutputParams(params []fb.Parameter) *es.Config {
+func ParseEsOutputParams(params []fb.Parameter) *v1alpha2.Config {
 
 	var (
 		isEsFound bool
@@ -377,5 +365,5 @@ func ParseEsOutputParams(params []fb.Parameter) *es.Config {
 		}
 	}
 
-	return &es.Config{Host: host, Port: port, Index: index}
+	return &v1alpha2.Config{Host: host, Port: port, Index: index}
 }

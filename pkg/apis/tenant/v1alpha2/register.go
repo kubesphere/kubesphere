@@ -23,15 +23,14 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
-
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 
 	"net/http"
 )
@@ -177,8 +176,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("from", "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to query. Defaults to 0 (i.e. from the beginning of the result set).").DataType("integer").DefaultValue("0").Required(false)).
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}).
-		Writes(esclient.Response{}).
-		Returns(http.StatusOK, RespOK, esclient.Response{})).
+		Writes(v1alpha2.Response{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 

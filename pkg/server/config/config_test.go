@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
@@ -83,9 +86,23 @@ func newTestConfig() *Config {
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
+		LoggingOptions: &esclient.ElasticSearchOptions{
+			Host:           "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
+			LogstashFormat: false,
+			Index:          "",
+			LogstashPrefix: "elk",
+			Match:          "kube.*",
+			Version:        "6",
+		},
 		KubeSphereOptions: &kubesphere.KubeSphereOptions{
 			APIServer:     "http://ks-apiserver.kubesphere-system.svc",
 			AccountServer: "http://ks-account.kubesphere-system.svc",
+		},
+		AlertingOptions: &alerting.AlertingOptions{
+			Endpoint: "http://alerting.kubesphere-alerting-system.svc:9200",
+		},
+		NotificationOptions: &notification.NotificationOptions{
+			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
 		},
 	}
 	return conf
