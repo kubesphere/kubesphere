@@ -6,6 +6,7 @@ import (
 	"k8s.io/klog"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
@@ -31,6 +32,7 @@ type ServerRunOptions struct {
 	S3Options          *s2is3.S3Options
 	RedisOptions       *redis.RedisOptions
 	OpenPitrixOptions  *openpitrix.OpenPitrixOptions
+	LoggingOptions     *esclient.ElasticSearchOptions
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -47,6 +49,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		S3Options:               s2is3.NewS3Options(),
 		RedisOptions:            redis.NewRedisOptions(),
 		OpenPitrixOptions:       openpitrix.NewOpenPitrixOptions(),
+		LoggingOptions:          esclient.NewElasticSearchOptions(),
 	}
 
 	return &s
@@ -65,6 +68,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"))
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"))
+	s.LoggingOptions.AddFlags(fss.FlagSet("logging"))
 
 	fs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)

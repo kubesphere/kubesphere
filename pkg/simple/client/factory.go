@@ -4,6 +4,7 @@ import (
 	"fmt"
 	goredis "github.com/go-redis/redis"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -25,30 +26,32 @@ func (e ClientSetNotEnabledError) Error() string {
 }
 
 type ClientSetOptions struct {
-	mySQLOptions      *mysql.MySQLOptions
-	redisOptions      *redis.RedisOptions
-	kubernetesOptions *k8s.KubernetesOptions
-	devopsOptions     *devops.DevopsOptions
-	sonarqubeOptions  *sonarqube.SonarQubeOptions
-	ldapOptions       *ldap.LdapOptions
-	s3Options         *s2is3.S3Options
-	openPitrixOptions *openpitrix.OpenPitrixOptions
-	prometheusOptions *prometheus.PrometheusOptions
-	kubesphereOptions *kubesphere.KubeSphereOptions
+	mySQLOptions        *mysql.MySQLOptions
+	redisOptions        *redis.RedisOptions
+	kubernetesOptions   *k8s.KubernetesOptions
+	devopsOptions       *devops.DevopsOptions
+	sonarqubeOptions    *sonarqube.SonarQubeOptions
+	ldapOptions         *ldap.LdapOptions
+	s3Options           *s2is3.S3Options
+	openPitrixOptions   *openpitrix.OpenPitrixOptions
+	prometheusOptions   *prometheus.PrometheusOptions
+	kubesphereOptions   *kubesphere.KubeSphereOptions
+	elasticSearhOptions *esclient.ElasticSearchOptions
 }
 
 func NewClientSetOptions() *ClientSetOptions {
 	return &ClientSetOptions{
-		mySQLOptions:      mysql.NewMySQLOptions(),
-		redisOptions:      redis.NewRedisOptions(),
-		kubernetesOptions: k8s.NewKubernetesOptions(),
-		ldapOptions:       ldap.NewLdapOptions(),
-		devopsOptions:     devops.NewDevopsOptions(),
-		sonarqubeOptions:  sonarqube.NewSonarQubeOptions(),
-		s3Options:         s2is3.NewS3Options(),
-		openPitrixOptions: openpitrix.NewOpenPitrixOptions(),
-		prometheusOptions: prometheus.NewPrometheusOptions(),
-		kubesphereOptions: kubesphere.NewKubeSphereOptions(),
+		mySQLOptions:        mysql.NewMySQLOptions(),
+		redisOptions:        redis.NewRedisOptions(),
+		kubernetesOptions:   k8s.NewKubernetesOptions(),
+		ldapOptions:         ldap.NewLdapOptions(),
+		devopsOptions:       devops.NewDevopsOptions(),
+		sonarqubeOptions:    sonarqube.NewSonarQubeOptions(),
+		s3Options:           s2is3.NewS3Options(),
+		openPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
+		prometheusOptions:   prometheus.NewPrometheusOptions(),
+		kubesphereOptions:   kubesphere.NewKubeSphereOptions(),
+		elasticSearhOptions: esclient.NewElasticSearchOptions(),
 	}
 }
 
@@ -102,6 +105,11 @@ func (c *ClientSetOptions) SetKubeSphereOptions(options *kubesphere.KubeSphereOp
 	return c
 }
 
+func (c *ClientSetOptions) SetElasticSearchOptions(options *esclient.ElasticSearchOptions) *ClientSetOptions {
+	c.elasticSearhOptions = options
+	return c
+}
+
 // ClientSet provide best of effort service to initialize clients,
 // but there is no guarantee to return a valid client instance,
 // so do validity check before use
@@ -111,15 +119,16 @@ type ClientSet struct {
 
 	mySQLClient *mysql.MySQLClient
 
-	k8sClient        *k8s.KubernetesClient
-	ldapClient       *ldap.LdapClient
-	devopsClient     *devops.DevopsClient
-	sonarQubeClient  *sonarqube.SonarQubeClient
-	redisClient      *redis.RedisClient
-	s3Client         *s2is3.S3Client
-	prometheusClient *prometheus.PrometheusClient
-	openpitrixClient *openpitrix.OpenPitrixClient
-	kubesphereClient *kubesphere.KubeSphereClient
+	k8sClient           *k8s.KubernetesClient
+	ldapClient          *ldap.LdapClient
+	devopsClient        *devops.DevopsClient
+	sonarQubeClient     *sonarqube.SonarQubeClient
+	redisClient         *redis.RedisClient
+	s3Client            *s2is3.S3Client
+	prometheusClient    *prometheus.PrometheusClient
+	openpitrixClient    *openpitrix.OpenPitrixClient
+	kubesphereClient    *kubesphere.KubeSphereClient
+	elasticSearchClient *esclient.ElasticSearchClient
 }
 
 var mutex sync.Mutex
@@ -334,4 +343,28 @@ func (cs *ClientSet) Prometheus() (*prometheus.PrometheusClient, error) {
 
 func (cs *ClientSet) KubeSphere() *kubesphere.KubeSphereClient {
 	return cs.kubesphereClient
+}
+
+func (cs *ClientSet) ElasticSearch() (*esclient.ElasticSearchClient, error) {
+	var err error
+
+	if cs.csoptions.elasticSearhOptions == nil || cs.csoptions.elasticSearhOptions.Host == "" {
+		return nil, ClientSetNotEnabledError{}
+	}
+
+	if cs.elasticSearchClient != nil {
+		return cs.elasticSearchClient, nil
+	} else {
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		if cs.elasticSearchClient == nil {
+			cs.elasticSearchClient, err = esclient.NewLoggingClient(cs.csoptions.elasticSearhOptions)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return cs.elasticSearchClient, nil
+	}
 }
