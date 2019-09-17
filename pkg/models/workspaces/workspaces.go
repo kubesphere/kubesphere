@@ -168,11 +168,11 @@ func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
 	return err
 }
 
-func GetDevOpsProjects(workspaceName string) ([]string, error) {
+func GetDevOpsProjectsCount(workspaceName string) (int, error) {
 
 	dbconn, err := clientset.ClientSets().MySQL()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	query := dbconn.Select(devops.DevOpsProjectIdColumn).
@@ -183,9 +183,9 @@ func GetDevOpsProjects(workspaceName string) ([]string, error) {
 	devOpsProjects := make([]string, 0)
 
 	if _, err := query.Load(&devOpsProjects); err != nil {
-		return nil, err
+		return 0, err
 	}
-	return devOpsProjects, nil
+	return len(devOpsProjects), nil
 }
 
 func WorkspaceUserCount(workspace string) (int, error) {
@@ -196,24 +196,24 @@ func WorkspaceUserCount(workspace string) (int, error) {
 	return count, nil
 }
 
-func GetOrgRoles(name string) ([]string, error) {
-	return constants.WorkSpaceRoles, nil
+func GetOrgRolesCount(name string) (int, error) {
+	return len(constants.WorkSpaceRoles), nil
 }
 
-func WorkspaceNamespaces(workspaceName string) ([]string, error) {
+func WorkspaceNamespaceCount(workspaceName string) (int, error) {
 	ns, err := Namespaces(workspaceName)
 
 	namespaces := make([]string, 0)
 
 	if err != nil {
-		return namespaces, err
+		return 0, err
 	}
 
 	for i := 0; i < len(ns); i++ {
 		namespaces = append(namespaces, ns[i].Name)
 	}
 
-	return namespaces, nil
+	return len(namespaces), nil
 }
 
 func WorkspaceCount() (int, error) {

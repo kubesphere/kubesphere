@@ -18,11 +18,35 @@
 package prometheus
 
 import (
+	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"k8s.io/klog"
 	"net/http"
 	"time"
 )
+
+// Prometheus query api response
+type APIResponse struct {
+	Status    string      `json:"status" description:"result status, one of error, success"`
+	Data      QueryResult `json:"data" description:"actual metric result"`
+	ErrorType string      `json:"errorType,omitempty"`
+	Error     string      `json:"error,omitempty"`
+	Warnings  []string    `json:"warnings,omitempty"`
+}
+
+// QueryResult includes result data from a query.
+type QueryResult struct {
+	ResultType string       `json:"resultType" description:"result type, one of matrix, vector"`
+	Result     []QueryValue `json:"result" description:"metric data including labels, time series and values"`
+}
+
+// Time Series
+type QueryValue struct {
+	Metric map[string]string `json:"metric,omitempty" description:"time series labels"`
+	Value  []interface{}     `json:"value,omitempty" description:"time series, values of vector type"`
+	Values [][]interface{}   `json:"values,omitempty" description:"time series, values of matrix type"`
+}
 
 type PrometheusClient struct {
 	client            *http.Client
@@ -40,28 +64,40 @@ func NewPrometheusClient(options *PrometheusOptions) (*PrometheusClient, error) 
 	}, nil
 }
 
-func (c *PrometheusClient) SendMonitoringRequest(queryType string, params string) string {
-	return c.sendMonitoringRequest(c.endpoint, queryType, params)
+func (c *PrometheusClient) QueryToK8SPrometheus(queryType string, params string) (apiResponse APIResponse) {
+	return c.query(c.endpoint, queryType, params)
 }
 
-func (c *PrometheusClient) SendSecondaryMonitoringRequest(queryType string, params string) string {
-	return c.sendMonitoringRequest(c.secondaryEndpoint, queryType, params)
+func (c *PrometheusClient) QueryToK8SSystemPrometheus(queryType string, params string) (apiResponse APIResponse) {
+	return c.query(c.secondaryEndpoint, queryType, params)
 }
 
-func (c *PrometheusClient) sendMonitoringRequest(endpoint string, queryType string, params string) string {
-	epurl := endpoint + queryType + params
-	response, err := c.client.Get(epurl)
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
+
+func (c *PrometheusClient) query(endpoint string, queryType string, params string) (apiResponse APIResponse) {
+	url := fmt.Sprintf("%s/api/v1/%s?%s", endpoint, queryType, params)
+
+	response, err := c.client.Get(url)
 	if err != nil {
 		klog.Error(err)
-	} else {
-		defer response.Body.Close()
-
-		contents, err := ioutil.ReadAll(response.Body)
-
-		if err != nil {
-			klog.Error(err)
-		}
-		return string(contents)
+		apiResponse.Status = "error"
+		return apiResponse
 	}
-	return ""
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		klog.Error(err)
+		apiResponse.Status = "error"
+		return apiResponse
+	}
+
+	err = jsonIter.Unmarshal(body, &apiResponse)
+	if err != nil {
+		klog.Errorf("fail to unmarshal prometheus query result: %s", err.Error())
+		apiResponse.Status = "error"
+		return apiResponse
+	}
+
+	return apiResponse
 }

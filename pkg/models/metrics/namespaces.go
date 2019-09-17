@@ -32,29 +32,25 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 	nsFilter := "^(" + strings.Join(nsNameList, "|") + ")$"
 	var timeRelateParams = make(url.Values)
 
-	params := MonitoringRequestParams{
+	params := RequestParams{
 		ResourcesFilter: nsFilter,
-		Params:          timeRelateParams,
-		QueryType:       DefaultQueryType,
+		QueryParams:     timeRelateParams,
+		QueryType:       Query,
 		MetricsFilter:   "namespace_cpu_usage|namespace_memory_usage_wo_cache|namespace_pod_count",
 	}
 
-	rawMetrics := GetNamespaceLevelMetrics(&params)
+	rawMetrics := GetNamespaceMetrics(params)
 
 	for _, result := range rawMetrics.Results {
 		for _, data := range result.Data.Result {
-			metricDescMap, ok := data[ResultItemMetric].(map[string]interface{})
-			if ok {
-				if ns, exist := metricDescMap[ResultItemMetricResourceName]; exist {
-					timeAndValue, ok := data[ResultItemValue].([]interface{})
-					if ok && len(timeAndValue) == 2 {
-						for i := 0; i < len(namespaces); i++ {
-							if namespaces[i].Name == ns {
-								if namespaces[i].Annotations == nil {
-									namespaces[i].Annotations = make(map[string]string, 0)
-								}
-								namespaces[i].Annotations[result.MetricName] = timeAndValue[1].(string)
+			if ns, exist := data.Metric["namespace"]; exist {
+				if len(data.Value) == 2 {
+					for i := 0; i < len(namespaces); i++ {
+						if namespaces[i].Name == ns {
+							if namespaces[i].Annotations == nil {
+								namespaces[i].Annotations = make(map[string]string, 0)
 							}
+							namespaces[i].Annotations[result.MetricName] = data.Value[1].(string)
 						}
 					}
 				}

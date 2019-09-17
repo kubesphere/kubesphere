@@ -19,23 +19,33 @@
 package metrics
 
 import (
-	"k8s.io/klog"
+	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"math"
 	"sort"
 	"strconv"
-	"unicode"
 
 	"runtime/debug"
+
+	"github.com/golang/glog"
 )
 
 const (
 	DefaultPageLimit = 5
 	DefaultPage      = 1
+
+	ResultTypeVector             = "vector"
+	ResultTypeMatrix             = "matrix"
+	MetricStatusSuccess          = "success"
+	ResultItemMetricResourceName = "resource_name"
+	ResultSortTypeDesc           = "desc"
+	ResultSortTypeAsc            = "asc"
 )
 
 type FormatedMetricDataWrapper struct {
-	fmtMetricData FormatedMetricData
-	by            func(p, q *map[string]interface{}) bool
+	fmtMetricData prometheus.QueryResult
+	by            func(p, q *prometheus.QueryValue) bool
 }
 
 func (wrapper FormatedMetricDataWrapper) Len() int {
@@ -51,10 +61,10 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 }
 
 // sorted metric by ascending or descending order
-func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetric) (*FormatedLevelMetric, int) {
+func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Response, int) {
 	defer func() {
 		if err := recover(); err != nil {
-			klog.Errorln(err)
+			glog.Errorln(err)
 			debug.PrintStack()
 		}
 	}()
@@ -82,31 +92,31 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 			if metricItem.MetricName == sortMetricName {
 				if sortType == ResultSortTypeAsc {
 					// asc
-					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *map[string]interface{}) bool {
-						value1 := (*p)[ResultItemValue].([]interface{})
-						value2 := (*q)[ResultItemValue].([]interface{})
+					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *prometheus.QueryValue) bool {
+						value1 := p.Value
+						value2 := q.Value
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
-							return resourceName1.(string) < resourceName2.(string)
+							resourceName1 := p.Metric[ResultItemMetricResourceName]
+							resourceName2 := q.Metric[ResultItemMetricResourceName]
+							return resourceName1 < resourceName2
 						}
 
 						return v1 < v2
 					}})
 				} else {
 					// desc
-					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *map[string]interface{}) bool {
-						value1 := (*p)[ResultItemValue].([]interface{})
-						value2 := (*q)[ResultItemValue].([]interface{})
+					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *prometheus.QueryValue) bool {
+						value1 := p.Value
+						value2 := q.Value
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
 						v2, _ := strconv.ParseFloat(value2[len(value2)-1].(string), 64)
 
 						if v1 == v2 {
-							resourceName1 := (*p)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
-							resourceName2 := (*q)[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
-							return resourceName1.(string) > resourceName2.(string)
+							resourceName1 := p.Metric[ResultItemMetricResourceName]
+							resourceName2 := q.Metric[ResultItemMetricResourceName]
+							return resourceName1 > resourceName2
 						}
 
 						return v1 > v2
@@ -116,10 +126,10 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 				for _, r := range metricItem.Data.Result {
 					// record the ordering of resource_name to indexMap
 					// example: {"metric":{ResultItemMetricResourceName: "Deployment:xxx"},"value":[1541142931.731,"3"]}
-					resourceName, exist := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
+					resourceName, exist := r.Metric[ResultItemMetricResourceName]
 					if exist {
-						if _, exist := indexMap[resourceName.(string)]; !exist {
-							indexMap[resourceName.(string)] = i
+						if _, exist := indexMap[resourceName]; !exist {
+							indexMap[resourceName] = i
 							i = i + 1
 						}
 					}
@@ -128,9 +138,9 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 
 			// iterator all metric to find max metricItems length
 			for _, r := range metricItem.Data.Result {
-				k, ok := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
+				k, ok := r.Metric[ResultItemMetricResourceName]
 				if ok {
-					currentResourceMap[k.(string)] = 1
+					currentResourceMap[k] = 1
 				}
 			}
 
@@ -154,12 +164,12 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 	for i := 0; i < len(rawMetrics.Results); i++ {
 		re := rawMetrics.Results[i]
 		if re.Data.ResultType == ResultTypeVector && re.Status == MetricStatusSuccess {
-			sortedMetric := make([]map[string]interface{}, len(indexMap))
+			sortedMetric := make([]prometheus.QueryValue, len(indexMap))
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
-				k, exist := r[ResultItemMetric].(map[string]interface{})[ResultItemMetricResourceName]
+				k, exist := r.Metric[ResultItemMetricResourceName]
 				if exist {
-					index, exist := indexMap[k.(string)]
+					index, exist := indexMap[k]
 					if exist {
 						sortedMetric[index] = r
 					}
@@ -173,7 +183,7 @@ func Sort(sortMetricName string, sortType string, rawMetrics *FormatedLevelMetri
 	return rawMetrics, len(indexMap)
 }
 
-func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, maxLength int) interface{} {
+func (fmtLevelMetric *Response) Page(pageNum string, limitNum string, maxLength int) *Response {
 	if maxLength <= 0 {
 		return fmtLevelMetric
 	}
@@ -190,7 +200,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	if pageNum != "" {
 		p, err := strconv.Atoi(pageNum)
 		if err != nil {
-			klog.Errorln(err)
+			glog.Errorln(err)
 		} else {
 			if p > 0 {
 				page = p
@@ -206,7 +216,7 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	if limitNum != "" {
 		l, err := strconv.Atoi(limitNum)
 		if err != nil {
-			klog.Errorln(err)
+			glog.Errorln(err)
 		} else {
 			if l > 0 {
 				limit = l
@@ -245,72 +255,40 @@ func Page(pageNum string, limitNum string, fmtLevelMetric *FormatedLevelMetric, 
 	return fmtLevelMetric
 }
 
-// maybe this function is time consuming
-// The metric param is the result from Prometheus HTTP query
-func ReformatJson(metric string, metricsName string, needAddParams map[string]string, needDelParams ...string) *FormatedMetric {
-	var formatMetric FormatedMetric
-
-	err := jsonIter.Unmarshal([]byte(metric), &formatMetric)
-
+func getNodeAddressAndRole(nodeName string) (string, string) {
+	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
+	node, err := nodeLister.Get(nodeName)
 	if err != nil {
-		klog.Errorln("Unmarshal metric json failed", err.Error(), metric)
+		return "", ""
 	}
-	if formatMetric.MetricName == "" {
-		if metricsName != "" {
-			formatMetric.MetricName = metricsName
-		}
-	}
-	// retrive metrics success
-	if formatMetric.Status == MetricStatusSuccess {
-		result := formatMetric.Data.Result
-		for _, res := range result {
-			metric, exist := res[ResultItemMetric]
-			// Prometheus query result format: .data.result[].metric
-			// metricMap is the value of .data.result[].metric
-			metricMap, sure := metric.(map[string]interface{})
-			if exist && sure {
-				delete(metricMap, "__name__")
-			}
-			if len(needDelParams) > 0 {
-				for _, p := range needDelParams {
-					delete(metricMap, p)
-				}
-			}
 
-			if needAddParams != nil && len(needAddParams) > 0 {
-				for n := range needAddParams {
-					if v, ok := metricMap[n]; ok {
-						delete(metricMap, n)
-						metricMap[ResultItemMetricResourceName] = v
-					} else {
-						metricMap[ResultItemMetricResourceName] = needAddParams[n]
-					}
-				}
-			}
+	var addr string
+	for _, address := range node.Status.Addresses {
+		if address.Type == "InternalIP" {
+			addr = address.Address
+			break
 		}
 	}
 
-	return &formatMetric
+	role := "node"
+	_, exists := node.Labels["node-role.kubernetes.io/master"]
+	if exists {
+		role = "master"
+	}
+	return addr, role
 }
 
-func ReformatNodeStatusField(nodeMetric *FormatedMetric) *FormatedMetric {
-	metricCount := len(nodeMetric.Data.Result)
-	for i := 0; i < metricCount; i++ {
-		metric, exist := nodeMetric.Data.Result[i][ResultItemMetric]
-		if exist {
-			status, exist := metric.(map[string]interface{})[MetricStatus]
-			if exist {
-				status = UpperFirstLetter(status.(string))
-				metric.(map[string]interface{})[MetricStatus] = status
+func getNodeName(nodeIp string) string {
+	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
+	nodes, _ := nodeLister.List(labels.Everything())
+
+	for _, node := range nodes {
+		for _, address := range node.Status.Addresses {
+			if address.Type == "InternalIP" && address.Address == nodeIp {
+				return node.Name
 			}
 		}
 	}
-	return nodeMetric
-}
 
-func UpperFirstLetter(str string) string {
-	for i, ch := range str {
-		return string(unicode.ToUpper(ch)) + str[i+1:]
-	}
 	return ""
 }
