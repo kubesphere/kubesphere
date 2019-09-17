@@ -135,22 +135,18 @@ func CreateAPIServer(s *options.ServerRunOptions) error {
 	// install config api
 	apiserverconfig.InstallAPI(container)
 
-	for _, webservice := range container.RegisteredWebServices() {
-		for _, route := range webservice.Routes() {
-			klog.V(0).Info(route.Method, route.Path)
-		}
-	}
-
 	if s.GenericServerRunOptions.InsecurePort != 0 {
 		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
-		if err != nil {
-			klog.Infof("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
+		if err == nil {
+			klog.V(0).Infof("Server listening on insecure port %d.", s.GenericServerRunOptions.InsecurePort)
 		}
 	}
 
 	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
-		klog.Infof("Server listening on %d.", s.GenericServerRunOptions.SecurePort)
 		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
+		if err == nil {
+			klog.V(0).Infof("Server listening on secure port %d.", s.GenericServerRunOptions.SecurePort)
+		}
 	}
 
 	return err
@@ -176,8 +172,7 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 }
 
 func WaitForResourceSync(stopCh <-chan struct{}) error {
-
-	//apis.AddToScheme(scheme.Scheme)
+	klog.V(0).Info("Start cache objects")
 
 	informerFactory := informers.SharedInformerFactory()
 
@@ -261,6 +256,8 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksInformerFactory.Start(stopCh)
 	ksInformerFactory.WaitForCacheSync(stopCh)
+
+	klog.V(0).Info("Finished caching objects")
 
 	return nil
 
