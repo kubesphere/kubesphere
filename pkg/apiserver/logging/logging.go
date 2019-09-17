@@ -21,9 +21,10 @@ package logging
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	es "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"net/http"
@@ -32,7 +33,12 @@ import (
 )
 
 func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelCluster, request)
+	res, err := logQuery(log.QueryLevelCluster, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -42,7 +48,12 @@ func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
 }
 
 func LoggingQueryWorkspace(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelWorkspace, request)
+	res, err := logQuery(log.QueryLevelWorkspace, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -52,7 +63,12 @@ func LoggingQueryWorkspace(request *restful.Request, response *restful.Response)
 }
 
 func LoggingQueryNamespace(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelNamespace, request)
+	res, err := logQuery(log.QueryLevelNamespace, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -62,7 +78,11 @@ func LoggingQueryNamespace(request *restful.Request, response *restful.Response)
 }
 
 func LoggingQueryWorkload(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelWorkload, request)
+	res, err := logQuery(log.QueryLevelWorkload, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
 
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
@@ -73,7 +93,12 @@ func LoggingQueryWorkload(request *restful.Request, response *restful.Response) 
 }
 
 func LoggingQueryPod(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelPod, request)
+	res, err := logQuery(log.QueryLevelPod, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -82,7 +107,12 @@ func LoggingQueryPod(request *restful.Request, response *restful.Response) {
 }
 
 func LoggingQueryContainer(request *restful.Request, response *restful.Response) {
-	res := logQuery(log.QueryLevelContainer, request)
+	res, err := logQuery(log.QueryLevelContainer, request)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
+		return
+	}
+
 	if res.Status != http.StatusOK {
 		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
 		return
@@ -158,9 +188,14 @@ func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Re
 	response.WriteAsJson(res)
 }
 
-func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult {
+func logQuery(level log.LogQueryLevel, request *restful.Request) (*v1alpha2.QueryResult, error) {
+	es, err := cs.ClientSets().ElasticSearch()
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 
-	var param es.QueryParameters
+	var param v1alpha2.QueryParameters
 
 	switch level {
 	case log.QueryLevelCluster:
@@ -226,7 +261,6 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 	param.EndTime = request.QueryParameter("end_time")
 	param.Sort = request.QueryParameter("sort")
 
-	var err error
 	param.From, err = strconv.ParseInt(request.QueryParameter("from"), 10, 64)
 	if err != nil {
 		param.From = 0
@@ -236,5 +270,5 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) *es.QueryResult
 		param.Size = 10
 	}
 
-	return es.Query(param)
+	return es.Query(param), nil
 }

@@ -29,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/informers"
-	logging "kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/server/filter"
@@ -96,8 +95,6 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 
 	initializeServicemeshConfig(s)
 
-	initializeESClientConfig()
-
 	err = CreateAPIServer(s)
 	if err != nil {
 		return err
@@ -124,24 +121,6 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	config.ExternalServices.Istio.UrlServiceVersion = s.ServiceMeshOptions.IstioPilotHost
 
 	kconfig.Set(config)
-}
-
-func initializeESClientConfig() {
-
-	// List all outputs
-	outputs, err := logging.GetFluentbitOutputFromConfigMap()
-	if err != nil {
-		klog.Errorln(err)
-		return
-	}
-
-	// Iterate the outputs to get elasticsearch configs
-	for _, output := range outputs {
-		if configs := logging.ParseEsOutputParams(output.Parameters); configs != nil {
-			configs.WriteESConfigs()
-			return
-		}
-	}
 }
 
 //
@@ -188,7 +167,8 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 		SetOpenPitrixOptions(conf.OpenPitrixOptions).
 		SetPrometheusOptions(conf.MonitoringOptions).
 		SetRedisOptions(conf.RedisOptions).
-		SetKubeSphereOptions(conf.KubeSphereOptions)
+		SetKubeSphereOptions(conf.KubeSphereOptions).
+		SetElasticSearchOptions(conf.LoggingOptions)
 
 	client.NewClientSetFactory(csop, stopCh)
 
@@ -303,6 +283,7 @@ func Complete(s *options.ServerRunOptions) error {
 		RedisOptions:       s.RedisOptions,
 		S3Options:          s.S3Options,
 		OpenPitrixOptions:  s.OpenPitrixOptions,
+		LoggingOptions:     s.LoggingOptions,
 	})
 
 	s = &options.ServerRunOptions{
@@ -317,6 +298,7 @@ func Complete(s *options.ServerRunOptions) error {
 		RedisOptions:            conf.RedisOptions,
 		S3Options:               conf.S3Options,
 		OpenPitrixOptions:       conf.OpenPitrixOptions,
+		LoggingOptions:          conf.LoggingOptions,
 	}
 
 	return nil

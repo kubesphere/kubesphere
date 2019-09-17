@@ -24,7 +24,8 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
+	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
+	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -36,7 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 
-	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
@@ -286,7 +286,7 @@ func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	var devops v1alpha2.DevOpsProject
+	var devops devopsv1alpha2.DevOpsProject
 
 	err := req.ReadEntity(&devops)
 
@@ -374,7 +374,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		// if the user belongs to no namespace
 		// then no log visible
 		if len(namespaces) == 0 {
-			res := esclient.QueryResult{Status: http.StatusOK}
+			res := loggingv1alpha2.QueryResult{Status: http.StatusOK}
 			resp.WriteAsJson(res)
 			return
 		} else if len(queryNamespaces) == 1 && queryNamespaces[0] == "" {
@@ -382,7 +382,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		} else {
 			inter := intersection(queryNamespaces, namespaces)
 			if len(inter) == 0 {
-				res := esclient.QueryResult{Status: http.StatusOK}
+				res := loggingv1alpha2.QueryResult{Status: http.StatusOK}
 				resp.WriteAsJson(res)
 				return
 			}
