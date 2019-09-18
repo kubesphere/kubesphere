@@ -779,18 +779,22 @@ func parseCronJobTime(msg string) (string, string, error) {
 
 	times := strings.Split(msg, ";")
 
-	lastTmp := strings.SplitN(times[0], " ", 2)
-	lastTime := strings.SplitN(lastTmp[1], " UTC", 2)
-	lastUinx, err := time.Parse(cronJobLayout, lastTime[0])
+	lastTmp := strings.Split(times[0], " ")
+	lastCount := len(lastTmp)
+	lastTmp = lastTmp[lastCount-7 : lastCount-1]
+	lastTime := strings.Join(lastTmp, " ")
+	lastUinx, err := time.Parse(cronJobLayout, lastTime)
 	if err != nil {
 		klog.Error(err)
 		return "", "", err
 	}
 	last := lastUinx.Format(time.RFC3339)
 
-	nextTmp := strings.SplitN(times[1], " ", 3)
-	nextTime := strings.SplitN(nextTmp[2], " UTC", 2)
-	nextUinx, err := time.Parse(cronJobLayout, nextTime[0])
+	nextTmp := strings.Split(times[1], " ")
+	nextCount := len(nextTmp)
+	nextTmp = nextTmp[nextCount-7 : nextCount-1]
+	nextTime := strings.Join(nextTmp, " ")
+	nextUinx, err := time.Parse(cronJobLayout, nextTime)
 	if err != nil {
 		klog.Error(err)
 		return "", "", err
