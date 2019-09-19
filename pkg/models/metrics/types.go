@@ -19,7 +19,7 @@
 package metrics
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"net/url"
 )
 
@@ -47,7 +47,7 @@ type RequestParams struct {
 
 type APIResponse struct {
 	MetricName string `json:"metric_name,omitempty" description:"metric name, eg. scheduler_up_sum"`
-	prometheus.APIResponse
+	v1alpha2.APIResponse
 }
 
 type Response struct {

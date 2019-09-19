@@ -20,15 +20,14 @@ package metrics
 
 import (
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"math"
 	"sort"
 	"strconv"
 
 	"runtime/debug"
-
-	"github.com/golang/glog"
 )
 
 const (
@@ -44,8 +43,8 @@ const (
 )
 
 type FormatedMetricDataWrapper struct {
-	fmtMetricData prometheus.QueryResult
-	by            func(p, q *prometheus.QueryValue) bool
+	fmtMetricData v1alpha2.QueryResult
+	by            func(p, q *v1alpha2.QueryValue) bool
 }
 
 func (wrapper FormatedMetricDataWrapper) Len() int {
@@ -64,7 +63,7 @@ func (wrapper FormatedMetricDataWrapper) Swap(i, j int) {
 func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Response, int) {
 	defer func() {
 		if err := recover(); err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 			debug.PrintStack()
 		}
 	}()
@@ -92,7 +91,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 			if metricItem.MetricName == sortMetricName {
 				if sortType == ResultSortTypeAsc {
 					// asc
-					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *prometheus.QueryValue) bool {
+					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *v1alpha2.QueryValue) bool {
 						value1 := p.Value
 						value2 := q.Value
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
@@ -107,7 +106,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 					}})
 				} else {
 					// desc
-					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *prometheus.QueryValue) bool {
+					sort.Sort(FormatedMetricDataWrapper{metricItem.Data, func(p, q *v1alpha2.QueryValue) bool {
 						value1 := p.Value
 						value2 := q.Value
 						v1, _ := strconv.ParseFloat(value1[len(value1)-1].(string), 64)
@@ -164,7 +163,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 	for i := 0; i < len(rawMetrics.Results); i++ {
 		re := rawMetrics.Results[i]
 		if re.Data.ResultType == ResultTypeVector && re.Status == MetricStatusSuccess {
-			sortedMetric := make([]prometheus.QueryValue, len(indexMap))
+			sortedMetric := make([]v1alpha2.QueryValue, len(indexMap))
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
 				k, exist := r.Metric[ResultItemMetricResourceName]
@@ -200,7 +199,7 @@ func (fmtLevelMetric *Response) Page(pageNum string, limitNum string, maxLength 
 	if pageNum != "" {
 		p, err := strconv.Atoi(pageNum)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 		} else {
 			if p > 0 {
 				page = p
@@ -216,7 +215,7 @@ func (fmtLevelMetric *Response) Page(pageNum string, limitNum string, maxLength 
 	if limitNum != "" {
 		l, err := strconv.Atoi(limitNum)
 		if err != nil {
-			glog.Errorln(err)
+			klog.Errorln(err)
 		} else {
 			if l > 0 {
 				limit = l

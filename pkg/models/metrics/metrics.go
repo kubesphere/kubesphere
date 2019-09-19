@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/json-iterator/go"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/url"
@@ -29,8 +30,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -789,9 +788,9 @@ func GetWorkspaceStatistics(workspaceName string) *Response {
 
 func (response *APIResponse) withMetricResult(time int64, value int) {
 	response.Status = "success"
-	response.Data = prometheus.QueryResult{
+	response.Data = v1alpha2.QueryResult{
 		ResultType: "vector",
-		Result: []prometheus.QueryValue{
+		Result: []v1alpha2.QueryValue{
 			{
 				Value: []interface{}{time, value},
 			},

@@ -43,16 +43,19 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 
 	for _, result := range rawMetrics.Results {
 		for _, data := range result.Data.Result {
-			if ns, exist := data.Metric["namespace"]; exist {
-				if len(data.Value) == 2 {
-					for i := 0; i < len(namespaces); i++ {
-						if namespaces[i].Name == ns {
-							if namespaces[i].Annotations == nil {
-								namespaces[i].Annotations = make(map[string]string, 0)
-							}
-							namespaces[i].Annotations[result.MetricName] = data.Value[1].(string)
-						}
+
+			ns, exist := data.Metric["namespace"]
+
+			if !exist || len(data.Value) != 2 {
+				continue
+			}
+
+			for _, item := range namespaces {
+				if item.Name == ns {
+					if item.Annotations == nil {
+						item.Annotations = make(map[string]string, 0)
 					}
+					item.Annotations[result.MetricName] = data.Value[1].(string)
 				}
 			}
 		}
