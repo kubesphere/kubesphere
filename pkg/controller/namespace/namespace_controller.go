@@ -24,13 +24,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/apis/core"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
@@ -182,10 +180,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	if err = r.checkAndCreateRoleBindings(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err = r.checkAndCreateCephSecret(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -441,62 +435,6 @@ func (r *ReconcileNamespace) checkAndBindWorkspace(namespace *corev1.Namespace) 
 		if err != nil {
 			klog.Errorf("bind workspace namespace: %s, workspace: %s, error: %s", namespace.Name, workspaceName, err)
 			return err
-		}
-	}
-
-	return nil
-}
-
-//Create Ceph secret in the new namespace
-func (r *ReconcileNamespace) checkAndCreateCephSecret(namespace *corev1.Namespace) error {
-
-	newNsName := namespace.Name
-	scList := &v1.StorageClassList{}
-	err := r.List(context.TODO(), &client.ListOptions{}, scList)
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-	for _, sc := range scList.Items {
-		if sc.Provisioner == "kubernetes.io/rbd" {
-			if secretName, ok := sc.Parameters["userSecretName"]; ok {
-				secret := &corev1.Secret{}
-				err = r.Get(context.TODO(), types.NamespacedName{Namespace: core.NamespaceSystem, Name: secretName}, secret)
-				if err != nil {
-					if errors.IsNotFound(err) {
-						klog.Errorf("cannot find secret %s in namespace %s, error: %s", secretName, core.NamespaceSystem, err)
-						continue
-					}
-					klog.Errorf("failed to find secret in namespace %s, error: %s", core.NamespaceSystem, err)
-					continue
-				}
-
-				newSecret := &corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       secret.Kind,
-						APIVersion: secret.APIVersion,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:                       secret.GetName(),
-						Namespace:                  newNsName,
-						Labels:                     secret.GetLabels(),
-						Annotations:                secret.GetAnnotations(),
-						DeletionGracePeriodSeconds: secret.GetDeletionGracePeriodSeconds(),
-						ClusterName:                secret.GetClusterName(),
-					},
-					Data:       secret.Data,
-					StringData: secret.StringData,
-					Type:       secret.Type,
-				}
-
-				err = r.Create(context.TODO(), newSecret)
-				if err != nil {
-					klog.Errorf("failed to create secret in namespace %s,error: %s", newSecret.GetNamespace(), err)
-					continue
-				}
-			} else {
-				klog.Errorf("failed to find user secret name in storage class %s,error: %s", sc.GetName(), err)
-			}
 		}
 	}
 
