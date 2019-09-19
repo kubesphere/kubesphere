@@ -19,1259 +19,781 @@
 package metrics
 
 import (
+	"fmt"
+	"github.com/json-iterator/go"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/workspaces"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/url"
 	"regexp"
-	"runtime/debug"
-	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/json-iterator/go"
-
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-
-	"kubesphere.io/kubesphere/pkg/models/workspaces"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
-const (
-	ChannelMaxCapacityWorkspaceMetric = 800
-	ChannelMaxCapacity                = 100
-)
-
-type FormatedLevelMetric struct {
-	MetricsLevel string           `json:"metrics_level" description:"metric level, eg. cluster"`
-	Results      []FormatedMetric `json:"results" description:"actual array of results"`
-	CurrentPage  int              `json:"page,omitempty" description:"current page returned"`
-	TotalPage    int              `json:"total_page,omitempty" description:"total number of pages"`
-	TotalItem    int              `json:"total_item,omitempty" description:"page size"`
-}
-
-type FormatedMetric struct {
-	MetricName string             `json:"metric_name,omitempty" description:"metric name, eg. scheduler_up_sum"`
-	Status     string             `json:"status" description:"result status, one of error, success"`
-	Data       FormatedMetricData `json:"data,omitempty" description:"actual metric result"`
-}
-
-type FormatedMetricData struct {
-	Result     []map[string]interface{} `json:"result" description:"metric data including metric metadata, time points and values"`
-	ResultType string                   `json:"resultType" description:"result type, one of matrix, vector"`
-}
-
-type MetricResultValues []MetricResultValue
-
-type MetricResultValue struct {
-	timestamp float64
-	value     string
-}
-
-type MetricItem struct {
-	MetricLabel map[string]string `json:"metric"`
-	Value       []interface{}     `json:"value"`
-}
-
-type CommonMetricsResult struct {
-	Status string            `json:"status"`
-	Data   CommonMetricsData `json:"data"`
-}
-
-type CommonMetricsData struct {
-	Result     []CommonResultItem `json:"result"`
-	ResultType string             `json:"resultType"`
-}
-
-type CommonResultItem struct {
-	KubePodMetric KubePodMetric `json:"metric"`
-	Value         interface{}   `json:"value"`
-}
-
-type KubePodMetric struct {
-	CreatedByKind string `json:"created_by_kind"`
-	CreatedByName string `json:"created_by_name"`
-	Namespace     string `json:"namespace"`
-	Pod           string `json:"pod"`
-}
-
-type ComponentStatus struct {
-	Name            string               `json:"metric_name,omitempty"`
-	Namespace       string               `json:"namespace,omitempty"`
-	Labels          map[string]string    `json:"labels,omitempty"`
-	ComponentStatus []OneComponentStatus `json:"component"`
-}
-
-type OneComponentStatus struct {
-	// Valid value: "Healthy"
-	Type string `json:"type"`
-	// Valid values for "Healthy": "True", "False", or "Unknown".
-	Status string `json:"status"`
-	// Message about the condition for a component.
-	Message string `json:"message,omitempty"`
-	// Condition error code for a component.
-	Error string `json:"error,omitempty"`
-}
-
-func getAllWorkspaceNames(formatedMetric *FormatedMetric) map[string]int {
-
-	var wsMap = make(map[string]int)
-
-	for i := 0; i < len(formatedMetric.Data.Result); i++ {
-		// metricDesc needs clear naming
-		metricDesc := formatedMetric.Data.Result[i][ResultItemMetric]
-		metricDescMap, ensure := metricDesc.(map[string]interface{})
-		if ensure {
-			if wsLabel, exist := metricDescMap[WorkspaceJoinedKey]; exist {
-				wsMap[wsLabel.(string)] = 1
-			}
-		}
-	}
-	return wsMap
-}
-
-func getAllWorkspaces() map[string]int {
-
+func GetClusterMetrics(params RequestParams) *Response {
 	client, err := cs.ClientSets().Prometheus()
 	if err != nil {
+		klog.Error(err)
 		return nil
 	}
 
-	paramValues := make(url.Values)
-	paramValues.Set("query", WorkspaceNamespaceLabelRule)
-	params := paramValues.Encode()
-	res := client.SendSecondaryMonitoringRequest(DefaultQueryType, params)
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
 
-	metric := ReformatJson(res, "", map[string]string{"workspace": "workspace"})
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range clusterMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForCluster(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
 
-	return getAllWorkspaceNames(metric)
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelCluster,
+		Results:      apiResponse,
+	}
 }
 
-func getPodNameRegexInWorkload(res, filter string) string {
-
-	data := []byte(res)
-	var dat CommonMetricsResult
-	jsonErr := jsonIter.Unmarshal(data, &dat)
-	if jsonErr != nil {
-		klog.Errorln("json parse failed", jsonErr.Error(), res)
+func GetNodeMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
 	}
-	var podNames []string
 
-	for _, item := range dat.Data.Result {
-		podName := item.KubePodMetric.Pod
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
 
-		if filter != "" {
-			if bol, _ := regexp.MatchString(filter, podName); bol {
-				podNames = append(podNames, podName)
-			}
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range nodeMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForNode(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name, node_ip, node_role to each metric result item
+				// resouce_name serves as a unique identifier for the monitored resource
+				// it will be used during metrics sorting
+				for _, item := range response.Data.Result {
+					nodeName := item.Metric["node"]
+					item.Metric["resource_name"] = nodeName
+					item.Metric["node_ip"], item.Metric["node_role"] = getNodeAddressAndRole(nodeName)
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelNode,
+		Results:      apiResponse,
+	}
+}
+
+func GetWorkspaceMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range workspaceMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForWorkspace(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["label_kubesphere_io_workspace"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelWorkspace,
+		Results:      apiResponse,
+	}
+}
+
+func GetNamespaceMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range namespaceMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForNamespace(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["namespace"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelNamespace,
+		Results:      apiResponse,
+	}
+}
+
+func GetWorkloadMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range workloadMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForWorkload(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["workload"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelWorkload,
+		Results:      apiResponse,
+	}
+}
+
+func GetPodMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range podMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForPod(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["pod_name"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelPod,
+		Results:      apiResponse,
+	}
+}
+
+func GetContainerMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range containerMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForContainer(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["container_name"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelContainer,
+		Results:      apiResponse,
+	}
+}
+
+func GetPVCMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range pvcMetrics {
+		matched, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matched {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForPVC(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
+
+				// add label resouce_name
+				for _, item := range response.Data.Result {
+					item.Metric["resource_name"] = item.Metric["persistentvolumeclaim"]
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelPVC,
+		Results:      apiResponse,
+	}
+}
+
+func GetComponentMetrics(params RequestParams) *Response {
+	client, err := cs.ClientSets().Prometheus()
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+
+	ch := make(chan APIResponse, ChannelMaxCapacity)
+	var wg sync.WaitGroup
+
+	// for each metric, make PromQL expression and send the request to Prometheus servers
+	for _, metricName := range componentMetrics {
+		matchComponentName, _ := regexp.MatchString(params.ComponentName, metricName)
+		matchMetricsFilter, _ := regexp.MatchString(params.MetricsFilter, metricName)
+		if matchComponentName && matchMetricsFilter {
+			wg.Add(1)
+			go func(metricName string, params RequestParams) {
+				exp := makePromqlForComponent(metricName, params)
+				v := url.Values{}
+				for key, value := range params.QueryParams {
+					v[key] = value
+				}
+				v.Set("query", exp)
+				response := client.QueryToK8SSystemPrometheus(params.QueryType, v.Encode())
+
+				// add node address when queried metric is etcd_server_list
+				if metricName == "etcd_server_list" {
+					for _, item := range response.Data.Result {
+						item.Metric["node_name"] = getNodeName(item.Metric["node_ip"])
+					}
+				}
+
+				ch <- APIResponse{
+					MetricName:  metricName,
+					APIResponse: response,
+				}
+				wg.Done()
+			}(metricName, params)
+		}
+	}
+	wg.Wait()
+	close(ch)
+
+	var apiResponse []APIResponse
+	for e := range ch {
+		apiResponse = append(apiResponse, e)
+	}
+
+	return &Response{
+		MetricsLevel: MonitorLevelComponent,
+		Results:      apiResponse,
+	}
+}
+
+func makePromqlForCluster(metricName string, _ RequestParams) string {
+	return metricsPromqlMap[metricName]
+}
+
+func makePromqlForNode(metricName string, params RequestParams) string {
+	var rule = metricsPromqlMap[metricName]
+	var nodeSelector string
+
+	if params.NodeName != "" {
+		nodeSelector = fmt.Sprintf(`node="%s"`, params.NodeName)
+	} else {
+		nodeSelector = fmt.Sprintf(`node=~"%s"`, params.ResourcesFilter)
+	}
+
+	return strings.Replace(rule, "$1", nodeSelector, -1)
+}
+
+func makePromqlForWorkspace(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var workspaceSelector string
+
+	if params.WorkspaceName != "" {
+		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace="%s"`, params.WorkspaceName)
+	} else {
+		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace=~"%s"`, params.ResourcesFilter)
+	}
+
+	return strings.Replace(exp, "$1", workspaceSelector, -1)
+}
+
+func makePromqlForNamespace(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var namespaceSelector string
+
+	// For monitoring namespaces in the specific workspace
+	// GET /workspaces/{workspace}/namespaces
+	if params.WorkspaceName != "" {
+		namespaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace="%s", namespace=~"%s"`, params.WorkspaceName, params.ResourcesFilter)
+		return strings.Replace(exp, "$1", namespaceSelector, -1)
+	}
+
+	// For monitoring the specific namespaces
+	// GET /namespaces/{namespace} or
+	// GET /namespaces
+	if params.NamespaceName != "" {
+		namespaceSelector = fmt.Sprintf(`namespace="%s"`, params.NamespaceName)
+	} else {
+		namespaceSelector = fmt.Sprintf(`namespace=~"%s"`, params.ResourcesFilter)
+	}
+	return strings.Replace(exp, "$1", namespaceSelector, -1)
+}
+
+func makePromqlForWorkload(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var kind, kindSelector, workloadSelector string
+
+	switch params.WorkloadKind {
+	case "deployment":
+		kind = Deployment
+		kindSelector = fmt.Sprintf(`namespace="%s", deployment!="", deployment=~"%s"`, params.NamespaceName, params.ResourcesFilter)
+	case "statefulset":
+		kind = StatefulSet
+		kindSelector = fmt.Sprintf(`namespace="%s", statefulset!="", statefulset=~"%s"`, params.NamespaceName, params.ResourcesFilter)
+	case "daemonset":
+		kind = DaemonSet
+		kindSelector = fmt.Sprintf(`namespace="%s", daemonset!="", daemonset=~"%s"`, params.NamespaceName, params.ResourcesFilter)
+	default:
+		kind = ".*"
+		kindSelector = fmt.Sprintf(`namespace="%s"`, params.NamespaceName)
+	}
+
+	workloadSelector = fmt.Sprintf(`namespace="%s", workload=~"%s:%s"`, params.NamespaceName, kind, params.ResourcesFilter)
+	return strings.NewReplacer("$1", workloadSelector, "$2", kindSelector).Replace(exp)
+}
+
+func makePromqlForPod(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var podSelector, workloadSelector string
+
+	// For monitoriong pods of the specific workload
+	// GET /namespaces/{namespace}/workloads/{kind}/{workload}/pods
+	if params.WorkloadName != "" {
+		switch params.WorkloadKind {
+		case "deployment":
+			workloadSelector = fmt.Sprintf(`owner_kind="ReplicaSet", owner_name=~"^%s-[^-]{1,10}$"`, params.WorkloadName)
+		case "statefulset":
+			workloadSelector = fmt.Sprintf(`owner_kind="StatefulSet", owner_name="%s"`, params.WorkloadName)
+		case "daemonset":
+			workloadSelector = fmt.Sprintf(`owner_kind="DaemonSet", owner_name="%s"`, params.WorkloadName)
+		}
+	}
+
+	// For monitoring pods in the specific namespace
+	// GET /namespaces/{namespace}/workloads/{kind}/{workload}/pods or
+	// GET /namespaces/{namespace}/pods/{pod} or
+	// GET /namespaces/{namespace}/pods
+	if params.NamespaceName != "" {
+		if params.PodName != "" {
+			podSelector = fmt.Sprintf(`pod="%s", namespace="%s"`, params.PodName, params.NamespaceName)
 		} else {
-			podNames = append(podNames, podName)
-		}
-
-	}
-
-	podNamesFilter := "^(" + strings.Join(podNames, "|") + ")$"
-	return podNamesFilter
-}
-
-func unifyMetricHistoryTimeRange(fmtMetrics *FormatedMetric) {
-
-	defer func() {
-		if err := recover(); err != nil {
-			klog.Errorln(err)
-			debug.PrintStack()
-		}
-	}()
-
-	var timestampMap = make(map[float64]bool)
-
-	if fmtMetrics.Data.ResultType == ResultTypeMatrix {
-		for i := range fmtMetrics.Data.Result {
-			values, exist := fmtMetrics.Data.Result[i][ResultItemValues]
-			if exist {
-				valueArray, sure := values.([]interface{})
-				if sure {
-					for j := range valueArray {
-						timeAndValue := valueArray[j].([]interface{})
-						timestampMap[float64(timeAndValue[0].(uint64))] = true
-					}
-				}
-			}
+			podSelector = fmt.Sprintf(`pod=~"%s", namespace="%s"`, params.ResourcesFilter, params.NamespaceName)
 		}
 	}
 
-	timestampArray := make([]float64, len(timestampMap))
-	i := 0
-	for timestamp := range timestampMap {
-		timestampArray[i] = timestamp
-		i++
-	}
-	sort.Float64s(timestampArray)
-
-	if fmtMetrics.Data.ResultType == ResultTypeMatrix {
-		for i := 0; i < len(fmtMetrics.Data.Result); i++ {
-
-			values, exist := fmtMetrics.Data.Result[i][ResultItemValues]
-			if exist {
-				valueArray, sure := values.([]interface{})
-				if sure {
-
-					formatValueArray := make([][]interface{}, len(timestampArray))
-					j := 0
-
-					for k := range timestampArray {
-						valueItem, sure := valueArray[j].([]interface{})
-						if sure && float64(valueItem[0].(uint64)) == timestampArray[k] {
-							formatValueArray[k] = []interface{}{int64(timestampArray[k]), valueItem[1]}
-							j++
-						} else {
-							formatValueArray[k] = []interface{}{int64(timestampArray[k]), "-1"}
-						}
-					}
-					fmtMetrics.Data.Result[i][ResultItemValues] = formatValueArray
-				}
-			}
-		}
-	}
-}
-
-func AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string, bool) {
-
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return "", "", false
-	}
-
-	nsName := monitoringRequest.NsName
-	wlName := monitoringRequest.WorkloadName
-	podsFilter := monitoringRequest.ResourcesFilter
-
-	rule := MakeSpecificWorkloadRule(monitoringRequest.WorkloadKind, wlName, nsName)
-	paramValues := monitoringRequest.Params
-	params := makeRequestParamString(rule, paramValues)
-
-	res := client.SendMonitoringRequest(DefaultQueryType, params)
-
-	podNamesFilter := getPodNameRegexInWorkload(res, podsFilter)
-
-	queryType := monitoringRequest.QueryType
-	rule = MakePodPromQL(metricName, nsName, "", "", podNamesFilter)
-	params = makeRequestParamString(rule, paramValues)
-
-	return queryType, params, rule == ""
-}
-
-func AssembleAllWorkloadMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-
-	rule := MakeWorkloadPromQL(metricName, monitoringRequest.NsName, monitoringRequest.ResourcesFilter, monitoringRequest.WorkloadKind)
-
-	params := makeRequestParamString(rule, paramValues)
-	return queryType, params
-}
-
-func AssemblePodMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string, bool) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-
-	rule := MakePodPromQL(metricName, monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ResourcesFilter)
-	params := makeRequestParamString(rule, paramValues)
-	return queryType, params, rule == ""
-}
-
-func AssemblePVCMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string, bool) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-
-	rule := MakePVCPromQL(metricName, monitoringRequest.NsName, monitoringRequest.PVCName, monitoringRequest.StorageClassName, monitoringRequest.ResourcesFilter)
-	params := makeRequestParamString(rule, paramValues)
-	return queryType, params, rule == ""
-}
-
-func GetNodeAddressInfo() *map[string][]v1.NodeAddress {
-	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
-	nodes, err := nodeLister.List(labels.Everything())
-
-	if err != nil {
-		klog.Errorln(err.Error())
-	}
-
-	var nodeAddress = make(map[string][]v1.NodeAddress)
-
-	for _, node := range nodes {
-		nodeAddress[node.Name] = node.Status.Addresses
-	}
-	return &nodeAddress
-}
-
-func AddNodeAddressMetric(nodeMetric *FormatedMetric, nodeAddress *map[string][]v1.NodeAddress) {
-
-	for i := 0; i < len(nodeMetric.Data.Result); i++ {
-		metricDesc := nodeMetric.Data.Result[i][ResultItemMetric]
-		metricDescMap, ensure := metricDesc.(map[string]interface{})
-		if ensure {
-			if nodeId, exist := metricDescMap[ResultItemMetricResourceName]; exist {
-				addr, exist := (*nodeAddress)[nodeId.(string)]
-				if exist {
-					metricDescMap["address"] = addr
-				}
-			}
-		}
-	}
-}
-
-func MonitorContainer(monitoringRequest *MonitoringRequestParams, metricName string) *FormatedMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
-	metricsStr := client.SendMonitoringRequest(queryType, params)
-	res := ReformatJson(metricsStr, metricName, map[string]string{MetricLevelContainerName: ""})
-	return res
-}
-
-func AssembleContainerMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-	rule := MakeContainerPromQL(monitoringRequest.NsName, monitoringRequest.NodeId, monitoringRequest.PodName, monitoringRequest.ContainerName, metricName, monitoringRequest.ResourcesFilter)
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
-}
-
-func AssembleNamespaceMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-	rule := MakeNamespacePromQL(monitoringRequest.NsName, monitoringRequest.ResourcesFilter, metricName)
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
-}
-
-func AssembleNamespaceMetricRequestInfoByNamesapce(monitoringRequest *MonitoringRequestParams, namespace string, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-
-	paramValues := monitoringRequest.Params
-	rule := MakeNamespacePromQL(namespace, monitoringRequest.ResourcesFilter, metricName)
-
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
-}
-
-func AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest *MonitoringRequestParams, namespaceList []string, workspace string, metricName string) (string, string) {
-
-	nsFilter := "^(" + strings.Join(namespaceList, "|") + ")$"
-
-	queryType := monitoringRequest.QueryType
-
-	rule := MakeSpecificWorkspacePromQL(metricName, nsFilter, workspace)
-	paramValues := monitoringRequest.Params
-	params := makeRequestParamString(rule, paramValues)
-	return queryType, params
-}
-
-func AssembleAllWorkspaceMetricRequestInfo(monitoringRequest *MonitoringRequestParams, namespaceList []string, metricName string) (string, string) {
-	var nsFilter = "^()$"
-
-	if namespaceList != nil {
-		nsFilter = "^(" + strings.Join(namespaceList, "|") + ")$"
-	}
-
-	queryType := monitoringRequest.QueryType
-
-	rule := MakeAllWorkspacesPromQL(metricName, nsFilter)
-	paramValues := monitoringRequest.Params
-	params := makeRequestParamString(rule, paramValues)
-	return queryType, params
-}
-
-func makeRequestParamString(rule string, paramValues url.Values) string {
-
-	defer func() {
-		if err := recover(); err != nil {
-			klog.Errorln(err)
-			debug.PrintStack()
-		}
-	}()
-
-	var values = make(url.Values)
-	for key, v := range paramValues {
-		values.Set(key, v[0])
-	}
-
-	values.Set("query", rule)
-
-	params := values.Encode()
-
-	return params
-}
-
-func filterNamespace(nsFilter string, namespaceList []string) []string {
-	var newNSlist []string
-	if nsFilter == "" {
-		nsFilter = ".*"
-	}
-	for _, ns := range namespaceList {
-		bol, _ := regexp.MatchString(nsFilter, ns)
-		if bol {
-			newNSlist = append(newNSlist, ns)
-		}
-	}
-	return newNSlist
-}
-
-func MonitorAllWorkspaces(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	metricsFilter := monitoringRequest.MetricsFilter
-	if strings.Trim(metricsFilter, " ") == "" {
-		metricsFilter = ".*"
-	}
-	var filterMetricsName []string
-	for _, metricName := range WorkspaceMetricsNames {
-		bol, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && bol {
-			filterMetricsName = append(filterMetricsName, metricName)
+	// For monitoring pods on the specific node
+	// GET /nodes/{node}/pods/{pod}
+	if params.NodeName != "" {
+		if params.PodName != "" {
+			podSelector = fmt.Sprintf(`pod="%s", node="%s"`, params.PodName, params.NodeName)
+		} else {
+			podSelector = fmt.Sprintf(`pod=~"%s", node="%s"`, params.ResourcesFilter, params.NodeName)
 		}
 	}
 
-	var wgAll sync.WaitGroup
-	var wsAllch = make(chan *[]FormatedMetric, ChannelMaxCapacityWorkspaceMetric)
-
-	wsMap := getAllWorkspaces()
-
-	for ws := range wsMap {
-		// Only execute Prometheus queries for specific metrics on specific workspaces
-		bol, err := regexp.MatchString(monitoringRequest.ResourcesFilter, ws)
-		if err == nil && bol {
-			// a workspace
-			wgAll.Add(1)
-			go collectWorkspaceMetric(monitoringRequest, ws, filterMetricsName, &wgAll, wsAllch)
-		}
-	}
-
-	wgAll.Wait()
-	close(wsAllch)
-
-	fmtMetricMap := make(map[string]FormatedMetric)
-	for oneWsMetric := range wsAllch {
-		if oneWsMetric != nil {
-			// aggregate workspace metric
-			for _, metric := range *oneWsMetric {
-				fm, exist := fmtMetricMap[metric.MetricName]
-				if exist {
-					if metric.Status == "error" {
-						fm.Status = metric.Status
-					}
-					fm.Data.Result = append(fm.Data.Result, metric.Data.Result...)
-					fmtMetricMap[metric.MetricName] = fm
-				} else {
-					fmtMetricMap[metric.MetricName] = metric
-				}
-			}
-		}
-	}
-
-	var metricArray = make([]FormatedMetric, 0)
-	for _, metric := range fmtMetricMap {
-		metricArray = append(metricArray, metric)
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelClusterWorkspace,
-		Results:      metricArray,
-	}
+	return strings.NewReplacer("$1", workloadSelector, "$2", podSelector).Replace(exp)
 }
 
-func collectWorkspaceMetric(monitoringRequest *MonitoringRequestParams, ws string, filterMetricsName []string, wgAll *sync.WaitGroup, wsAllch chan *[]FormatedMetric) {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return
+func makePromqlForContainer(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var containerSelector string
+
+	if params.ContainerName != "" {
+		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name="%s"`, params.PodName, params.NamespaceName, params.ContainerName)
+	} else {
+		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name=~"%s"`, params.PodName, params.NamespaceName, params.ResourcesFilter)
 	}
 
-	defer wgAll.Done()
-	var wg sync.WaitGroup
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	namespaceArray, err := workspaces.WorkspaceNamespaces(ws)
-	if err != nil {
-		klog.Errorln(err)
-	}
-
-	// add by namespace
-	for _, metricName := range filterMetricsName {
-		wg.Add(1)
-		go func(metricName string) {
-
-			queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, ws, metricName)
-			metricsStr := client.SendMonitoringRequest(queryType, params)
-			ch <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: ws})
-			wg.Done()
-		}(metricName)
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			// add "workspace" to oneMetric "metric" field
-			for i := 0; i < len(oneMetric.Data.Result); i++ {
-				tmap, sure := oneMetric.Data.Result[i][ResultItemMetric].(map[string]interface{})
-				if sure {
-					tmap[MetricLevelWorkspace] = ws
-					oneMetric.Data.Result[i][ResultItemMetric] = tmap
-				}
-			}
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	wsAllch <- &metricsArray
+	return strings.Replace(exp, "$1", containerSelector, -1)
 }
 
-func GetClusterLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		return nil
-	}
+func makePromqlForPVC(metricName string, params RequestParams) string {
+	var exp = metricsPromqlMap[metricName]
+	var pvcSelector string
 
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range ClusterMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params := AssembleClusterMetricRequestInfo(monitoringRequest, metricName)
-				metricsStr := client.SendMonitoringRequest(queryType, params)
-				ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelCluster: "local"})
-				wg.Done()
-			}(metricName)
+	// For monitoring persistentvolumeclaims in the specific namespace
+	// GET /namespaces/{namespace}/persistentvolumeclaims/{persistentvolumeclaim} or
+	// GET /namespaces/{namespace}/persistentvolumeclaims
+	if params.NamespaceName != "" {
+		if params.PVCName != "" {
+			pvcSelector = fmt.Sprintf(`namespace="%s", persistentvolumeclaim="%s"`, params.NamespaceName, params.PVCName)
+		} else {
+			pvcSelector = fmt.Sprintf(`namespace="%s", persistentvolumeclaim=~"%s"`, params.NamespaceName, params.ResourcesFilter)
 		}
+		return strings.Replace(exp, "$1", pvcSelector, -1)
 	}
 
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
+	// For monitoring persistentvolumeclaims of the specific storageclass
+	// GET /storageclasses/{storageclass}/persistentvolumeclaims
+	if params.StorageClassName != "" {
+		pvcSelector = fmt.Sprintf(`storageclass="%s", persistentvolumeclaim=~"%s"`, params.StorageClassName, params.ResourcesFilter)
 	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelCluster,
-		Results:      metricsArray,
-	}
+	return strings.Replace(exp, "$1", pvcSelector, -1)
 }
 
-func GetNodeLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range NodeMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params := AssembleNodeMetricRequestInfo(monitoringRequest, metricName)
-				metricsStr := client.SendMonitoringRequest(queryType, params)
-				ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelNode: ""})
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelNode,
-		Results:      metricsArray,
-	}
+func makePromqlForComponent(metricName string, _ RequestParams) string {
+	return metricsPromqlMap[metricName]
 }
 
-func GetWorkspaceLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
+func GetClusterStatistics() *Response {
 
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
+	now := time.Now().Unix()
 
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
+	var metricsArray []APIResponse
+	workspaceStats := APIResponse{MetricName: MetricClusterWorkspaceCount}
+	devopsStats := APIResponse{MetricName: MetricClusterDevopsCount}
+	namespaceStats := APIResponse{MetricName: MetricClusterNamespaceCount}
+	accountStats := APIResponse{MetricName: MetricClusterAccountCount}
 
-	// a specific workspace's metrics
-	if monitoringRequest.WsName != "" {
-		namespaceArray, err := workspaces.WorkspaceNamespaces(monitoringRequest.WsName)
+	wg := sync.WaitGroup{}
+	wg.Add(4)
+
+	go func() {
+		num, err := workspaces.WorkspaceCount()
 		if err != nil {
-			klog.Errorln(err.Error())
-		}
-		namespaceArray = filterNamespace(monitoringRequest.ResourcesFilter, namespaceArray)
-
-		if monitoringRequest.Tp == "rank" {
-			for _, metricName := range NamespaceMetricsNames {
-				if metricName == MetricNameWorkspaceAllProjectCount {
-					continue
-				}
-
-				matched, err := regexp.MatchString(metricsFilter, metricName)
-				if err != nil || !matched {
-					continue
-				}
-
-				wg.Add(1)
-				go func(metricName string) {
-
-					var chForOneMetric = make(chan *FormatedMetric, ChannelMaxCapacity)
-					var wgForOneMetric sync.WaitGroup
-
-					for _, ns := range namespaceArray {
-						wgForOneMetric.Add(1)
-						go func(metricName string, namespace string) {
-
-							queryType, params := AssembleNamespaceMetricRequestInfoByNamesapce(monitoringRequest, namespace, metricName)
-							metricsStr := client.SendMonitoringRequest(queryType, params)
-							chForOneMetric <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: namespace})
-							wgForOneMetric.Done()
-						}(metricName, ns)
-					}
-
-					wgForOneMetric.Wait()
-					close(chForOneMetric)
-
-					// ranking is for vector type result only
-					aggregatedResult := FormatedMetric{MetricName: metricName, Status: MetricStatusSuccess, Data: FormatedMetricData{Result: []map[string]interface{}{}, ResultType: ResultTypeVector}}
-
-					for oneMetric := range chForOneMetric {
-
-						if oneMetric != nil {
-
-							// append .data.result[0]
-							if len(oneMetric.Data.Result) > 0 {
-								aggregatedResult.Data.Result = append(aggregatedResult.Data.Result, oneMetric.Data.Result[0])
-							}
-						}
-					}
-
-					ch <- &aggregatedResult
-					wg.Done()
-				}(metricName)
-
-			}
-
+			klog.Errorln(err)
+			workspaceStats.Status = "error"
 		} else {
-
-			workspace := monitoringRequest.WsName
-
-			for _, metricName := range WorkspaceMetricsNames {
-
-				if metricName == MetricNameWorkspaceAllProjectCount {
-					continue
-				}
-
-				matched, err := regexp.MatchString(metricsFilter, metricName)
-				if err == nil && matched {
-					wg.Add(1)
-					go func(metricName string, workspace string) {
-						queryType, params := AssembleSpecificWorkspaceMetricRequestInfo(monitoringRequest, namespaceArray, workspace, metricName)
-						metricsStr := client.SendMonitoringRequest(queryType, params)
-						ch <- ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: workspace})
-						wg.Done()
-					}(metricName, workspace)
-				}
-			}
+			workspaceStats.withMetricResult(now, num)
 		}
-	} else {
-		// sum all workspaces
-		for _, metricName := range WorkspaceMetricsNames {
-			matched, err := regexp.MatchString(metricsFilter, metricName)
-			if err == nil && matched {
-
-				wg.Add(1)
-
-				go func(metricName string) {
-					queryType, params := AssembleAllWorkspaceMetricRequestInfo(monitoringRequest, nil, metricName)
-					metricsStr := client.SendMonitoringRequest(queryType, params)
-					ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelWorkspace: "workspaces"})
-
-					wg.Done()
-				}(metricName)
-			}
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelWorkspace,
-		Results:      metricsArray,
-	}
-}
-
-func GetNamespaceLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range NamespaceMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-
-				queryType, params := AssembleNamespaceMetricRequestInfo(monitoringRequest, metricName)
-				metricsStr := client.SendMonitoringRequest(queryType, params)
-
-				rawResult := ReformatJson(metricsStr, metricName, map[string]string{MetricLevelNamespace: ""})
-				ch <- rawResult
-
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelNamespace,
-		Results:      metricsArray,
-	}
-}
-
-func GetWorkloadLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	if monitoringRequest.WorkloadName == "" {
-		for _, metricName := range WorkloadMetricsNames {
-			matched, err := regexp.MatchString(metricsFilter, metricName)
-			if err == nil && matched {
-				wg.Add(1)
-				go func(metricName string) {
-					queryType, params := AssembleAllWorkloadMetricRequestInfo(monitoringRequest, metricName)
-					metricsStr := client.SendMonitoringRequest(queryType, params)
-					reformattedResult := ReformatJson(metricsStr, metricName, map[string]string{MetricLevelWorkload: ""})
-					// no need to append a null result
-					ch <- reformattedResult
-					wg.Done()
-				}(metricName)
-			}
-		}
-	} else {
-		for _, metricName := range WorkloadMetricsNames {
-			bol, err := regexp.MatchString(metricsFilter, metricName)
-			if err == nil && bol {
-				wg.Add(1)
-				go func(metricName string) {
-					metricName = strings.TrimLeft(metricName, "workload_")
-					queryType, params, nullRule := AssembleSpecificWorkloadMetricRequestInfo(monitoringRequest, metricName)
-					if !nullRule {
-						metricsStr := client.SendMonitoringRequest(queryType, params)
-						fmtMetrics := ReformatJson(metricsStr, metricName, map[string]string{MetricLevelPodName: ""})
-						unifyMetricHistoryTimeRange(fmtMetrics)
-						ch <- fmtMetrics
-					}
-					wg.Done()
-				}(metricName)
-			}
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelWorkload,
-		Results:      metricsArray,
-	}
-}
-
-func GetPodLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range PodMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params, nullRule := AssemblePodMetricRequestInfo(monitoringRequest, metricName)
-				if !nullRule {
-					metricsStr := client.SendMonitoringRequest(queryType, params)
-					ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelPodName: ""})
-				} else {
-					ch <- nil
-				}
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelPod,
-		Results:      metricsArray,
-	}
-}
-
-func GetContainerLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range ContainerMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params := AssembleContainerMetricRequestInfo(monitoringRequest, metricName)
-				metricsStr := client.SendMonitoringRequest(queryType, params)
-				ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelContainerName: ""})
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelContainer,
-		Results:      metricsArray,
-	}
-}
-
-func GetPVCLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range PVCMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params, nullRule := AssemblePVCMetricRequestInfo(monitoringRequest, metricName)
-				if !nullRule {
-					metricsStr := client.SendMonitoringRequest(queryType, params)
-					ch <- ReformatJson(metricsStr, metricName, map[string]string{MetricLevelPVC: ""})
-				} else {
-					ch <- nil
-				}
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelPVC,
-		Results:      metricsArray,
-	}
-}
-
-func GetComponentLevelMetrics(monitoringRequest *MonitoringRequestParams) *FormatedLevelMetric {
-	client, err := cs.ClientSets().Prometheus()
-	if err != nil {
-		klog.Error(err)
-		return nil
-	}
-
-	metricsFilter := monitoringRequest.MetricsFilter
-	if metricsFilter == "" {
-		metricsFilter = ".*"
-	}
-
-	var ch = make(chan *FormatedMetric, ChannelMaxCapacity)
-	var wg sync.WaitGroup
-
-	for _, metricName := range ComponentMetricsNames {
-		matched, err := regexp.MatchString(metricsFilter, metricName)
-		if err == nil && matched {
-			wg.Add(1)
-			go func(metricName string) {
-				queryType, params := AssembleComponentRequestInfo(monitoringRequest, metricName)
-				metricsStr := client.SendMonitoringRequest(queryType, params)
-				formattedJson := ReformatJson(metricsStr, metricName, map[string]string{ResultItemMetricResourceName: monitoringRequest.ComponentName})
-
-				if metricName == EtcdServerList {
-
-					nodeMap := make(map[string]string, 0)
-
-					nodeAddress := GetNodeAddressInfo()
-					for nodeName, nodeInfo := range *nodeAddress {
-
-						var nodeIp string
-						for _, item := range nodeInfo {
-							if item.Type == v1.NodeInternalIP {
-								nodeIp = item.Address
-								break
-							}
-						}
-
-						nodeMap[nodeIp] = nodeName
-					}
-
-					// add node_name label to metrics
-					for i := 0; i < len(formattedJson.Data.Result); i++ {
-						metricDesc := formattedJson.Data.Result[i][ResultItemMetric]
-						metricDescMap, ensure := metricDesc.(map[string]interface{})
-						if ensure {
-							if nodeIp, exist := metricDescMap[ResultItemMetricNodeIp]; exist {
-								metricDescMap[ResultItemMetricNodeName] = nodeMap[nodeIp.(string)]
-							}
-						}
-					}
-				}
-
-				ch <- formattedJson
-				wg.Done()
-			}(metricName)
-		}
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var metricsArray []FormatedMetric
-
-	for oneMetric := range ch {
-		if oneMetric != nil {
-			metricsArray = append(metricsArray, *oneMetric)
-		}
-	}
-
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelComponent,
-		Results:      metricsArray,
-	}
-}
-
-func GetAllWorkspacesStatistics() *FormatedLevelMetric {
-
-	wg := sync.WaitGroup{}
-	var metricsArray []FormatedMetric
-	timestamp := time.Now().Unix()
-
-	var orgResultItem *FormatedMetric
-	var devopsResultItem *FormatedMetric
-	var workspaceProjResultItem *FormatedMetric
-	var accountResultItem *FormatedMetric
-
-	wg.Add(4)
-
-	go func() {
-		orgNums, errOrg := workspaces.WorkspaceCount()
-		if errOrg != nil {
-			klog.Errorln(errOrg.Error())
-		}
-		orgResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllOrganizationCount, WorkspaceResourceKindOrganization, orgNums, errOrg)
 		wg.Done()
 	}()
 
 	go func() {
-		devOpsProjectNums, errDevops := workspaces.GetAllDevOpsProjectsNums()
-		if errDevops != nil {
-			klog.Errorln(errDevops.Error())
+		num, err := workspaces.GetAllDevOpsProjectsNums()
+		if err != nil {
+			klog.Errorln(err)
+			devopsStats.Status = "error"
+		} else {
+			devopsStats.withMetricResult(now, num)
 		}
-		devopsResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllDevopsCount, WorkspaceResourceKindDevops, devOpsProjectNums, errDevops)
 		wg.Done()
 	}()
 
 	go func() {
-		projNums, errProj := workspaces.GetAllProjectNums()
-		if errProj != nil {
-			klog.Errorln(errProj.Error())
+		num, err := workspaces.GetAllProjectNums()
+		if err != nil {
+			klog.Errorln(err)
+			namespaceStats.Status = "error"
+		} else {
+			namespaceStats.withMetricResult(now, num)
 		}
-		workspaceProjResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllProjectCount, WorkspaceResourceKindNamespace, projNums, errProj)
 		wg.Done()
 	}()
 
 	go func() {
-		result, errAct := cs.ClientSets().KubeSphere().ListUsers()
-		if errAct != nil {
-			klog.Errorln(errAct.Error())
+		ret, err := cs.ClientSets().KubeSphere().ListUsers()
+		if err != nil {
+			klog.Errorln(err)
+			accountStats.Status = "error"
+		} else {
+			accountStats.withMetricResult(now, ret.TotalCount)
 		}
-		accountResultItem = getSpecificMetricItem(timestamp, MetricNameWorkspaceAllAccountCount, WorkspaceResourceKindAccount, result.TotalCount, errAct)
 		wg.Done()
 	}()
 
 	wg.Wait()
 
-	metricsArray = append(metricsArray, *orgResultItem, *devopsResultItem, *workspaceProjResultItem, *accountResultItem)
+	metricsArray = append(metricsArray, workspaceStats, devopsStats, namespaceStats, accountStats)
 
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelWorkspace,
+	return &Response{
+		MetricsLevel: MonitorLevelCluster,
 		Results:      metricsArray,
 	}
 }
 
-func MonitorOneWorkspaceStatistics(wsName string) *FormatedLevelMetric {
+func GetWorkspaceStatistics(workspaceName string) *Response {
 
-	var nsMetrics *FormatedMetric
-	var devopsMetrics *FormatedMetric
-	var memberMetrics *FormatedMetric
-	var roleMetrics *FormatedMetric
+	now := time.Now().Unix()
+
+	var metricsArray []APIResponse
+	namespaceStats := APIResponse{MetricName: MetricWorkspaceNamespaceCount}
+	devopsStats := APIResponse{MetricName: MetricWorkspaceDevopsCount}
+	memberStats := APIResponse{MetricName: MetricWorkspaceMemberCount}
+	roleStats := APIResponse{MetricName: MetricWorkspaceRoleCount}
 
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 
-	var fMetricsArray []FormatedMetric
-	timestamp := int64(time.Now().Unix())
-
 	go func() {
-		// add namespaces(project) metric
-		namespaces, errNs := workspaces.WorkspaceNamespaces(wsName)
-
-		if errNs != nil {
-			klog.Errorln(errNs.Error())
+		num, err := workspaces.WorkspaceNamespaceCount(workspaceName)
+		if err != nil {
+			klog.Errorln(err)
+			namespaceStats.Status = "error"
+		} else {
+			namespaceStats.withMetricResult(now, num)
 		}
-		nsMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceNamespaceCount, WorkspaceResourceKindNamespace, len(namespaces), errNs)
 		wg.Done()
 	}()
 
 	go func() {
-		devOpsProjects, errDevOps := workspaces.GetDevOpsProjects(wsName)
-		if errDevOps != nil {
-			klog.Errorln(errDevOps.Error())
+		num, err := workspaces.GetDevOpsProjectsCount(workspaceName)
+		if err != nil {
+			klog.Errorln(err)
+			devopsStats.Status = "error"
+		} else {
+			devopsStats.withMetricResult(now, num)
 		}
-		// add devops metric
-		devopsMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceDevopsCount, WorkspaceResourceKindDevops, len(devOpsProjects), errDevOps)
 		wg.Done()
 	}()
 
 	go func() {
-		count, errMemb := workspaces.WorkspaceUserCount(wsName)
-		if errMemb != nil {
-			klog.Errorln(errMemb.Error())
+		num, err := workspaces.WorkspaceUserCount(workspaceName)
+		if err != nil {
+			klog.Errorln(err)
+			memberStats.Status = "error"
+		} else {
+			memberStats.withMetricResult(now, num)
 		}
-		// add member metric
-		memberMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceMemberCount, WorkspaceResourceKindMember, count, errMemb)
 		wg.Done()
 	}()
 
 	go func() {
-		roles, errRole := workspaces.GetOrgRoles(wsName)
-		if errRole != nil {
-			klog.Errorln(errRole.Error())
+		num, err := workspaces.GetOrgRolesCount(workspaceName)
+		if err != nil {
+			klog.Errorln(err)
+			roleStats.Status = "error"
+		} else {
+			roleStats.withMetricResult(now, num)
 		}
-		// add role metric
-		roleMetrics = getSpecificMetricItem(timestamp, MetricNameWorkspaceRoleCount, WorkspaceResourceKindRole, len(roles), errRole)
 		wg.Done()
 	}()
 
 	wg.Wait()
 
-	fMetricsArray = append(fMetricsArray, *nsMetrics, *devopsMetrics, *memberMetrics, *roleMetrics)
+	metricsArray = append(metricsArray, namespaceStats, devopsStats, memberStats, roleStats)
 
-	return &FormatedLevelMetric{
-		MetricsLevel: MetricLevelWorkspace,
-		Results:      fMetricsArray,
+	return &Response{
+		MetricsLevel: MonitorLevelWorkspace,
+		Results:      metricsArray,
 	}
 }
 
-func getSpecificMetricItem(timestamp int64, metricName string, resource string, count int, err error, resourceType ...string) *FormatedMetric {
-	var nsMetrics FormatedMetric
-	nsMetrics.MetricName = metricName
-	nsMetrics.Data.ResultType = ResultTypeVector
-	resultItem := make(map[string]interface{})
-	tmp := make(map[string]string)
-
-	if len(resourceType) > 0 {
-		tmp[resourceType[0]] = resource
-	} else {
-		tmp[ResultItemMetricResource] = resource
+func (response *APIResponse) withMetricResult(time int64, value int) {
+	response.Status = "success"
+	response.Data = v1alpha2.QueryResult{
+		ResultType: "vector",
+		Result: []v1alpha2.QueryValue{
+			{
+				Value: []interface{}{time, value},
+			},
+		},
 	}
-
-	if err == nil {
-		nsMetrics.Status = MetricStatusSuccess
-	} else {
-		nsMetrics.Status = MetricStatusError
-		resultItem["errormsg"] = err.Error()
-	}
-
-	resultItem[ResultItemMetric] = tmp
-	resultItem[ResultItemValue] = []interface{}{timestamp, count}
-	nsMetrics.Data.Result = make([]map[string]interface{}, 1)
-	nsMetrics.Data.Result[0] = resultItem
-	return &nsMetrics
-}
-
-func AssembleClusterMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-	paramValues := monitoringRequest.Params
-	rule := MakeClusterRule(metricName)
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
-}
-
-func AssembleNodeMetricRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-	paramValues := monitoringRequest.Params
-	rule := MakeNodeRule(monitoringRequest.NodeId, monitoringRequest.ResourcesFilter, metricName)
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
-}
-
-func AssembleComponentRequestInfo(monitoringRequest *MonitoringRequestParams, metricName string) (string, string) {
-	queryType := monitoringRequest.QueryType
-	paramValues := monitoringRequest.Params
-	rule := MakeComponentRule(metricName)
-	params := makeRequestParamString(rule, paramValues)
-
-	return queryType, params
 }

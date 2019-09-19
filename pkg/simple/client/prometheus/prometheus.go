@@ -18,8 +18,11 @@
 package prometheus
 
 import (
+	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"net/http"
 	"time"
 )
@@ -40,28 +43,40 @@ func NewPrometheusClient(options *PrometheusOptions) (*PrometheusClient, error) 
 	}, nil
 }
 
-func (c *PrometheusClient) SendMonitoringRequest(queryType string, params string) string {
-	return c.sendMonitoringRequest(c.endpoint, queryType, params)
+func (c *PrometheusClient) QueryToK8SPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+	return c.query(c.endpoint, queryType, params)
 }
 
-func (c *PrometheusClient) SendSecondaryMonitoringRequest(queryType string, params string) string {
-	return c.sendMonitoringRequest(c.secondaryEndpoint, queryType, params)
+func (c *PrometheusClient) QueryToK8SSystemPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+	return c.query(c.secondaryEndpoint, queryType, params)
 }
 
-func (c *PrometheusClient) sendMonitoringRequest(endpoint string, queryType string, params string) string {
-	epurl := endpoint + queryType + params
-	response, err := c.client.Get(epurl)
+var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
+
+func (c *PrometheusClient) query(endpoint string, queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+	url := fmt.Sprintf("%s/api/v1/%s?%s", endpoint, queryType, params)
+
+	response, err := c.client.Get(url)
 	if err != nil {
 		klog.Error(err)
-	} else {
-		defer response.Body.Close()
-
-		contents, err := ioutil.ReadAll(response.Body)
-
-		if err != nil {
-			klog.Error(err)
-		}
-		return string(contents)
+		apiResponse.Status = "error"
+		return apiResponse
 	}
-	return ""
+	defer response.Body.Close()
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		klog.Error(err)
+		apiResponse.Status = "error"
+		return apiResponse
+	}
+
+	err = jsonIter.Unmarshal(body, &apiResponse)
+	if err != nil {
+		klog.Errorf("fail to unmarshal prometheus query result: %s", err.Error())
+		apiResponse.Status = "error"
+		return apiResponse
+	}
+
+	return apiResponse
 }
