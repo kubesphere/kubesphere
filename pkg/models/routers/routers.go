@@ -348,6 +348,9 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 			deployment.Spec.Selector.MatchLabels["project"] = namespace
 			deployment.Spec.Template.Labels["project"] = namespace
 
+			// Add configmap
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name)
+
 			// Isolate namespace
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
 
@@ -362,8 +365,10 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 			if deployment.Spec.Template.Spec.Containers[i].Name == "nginx-ingress-controller" {
 				var args []string
 				for j := range deployment.Spec.Template.Spec.Containers[i].Args {
-					if strings.HasPrefix("--publish-service", deployment.Spec.Template.Spec.Containers[i].Args[j]) ||
-						strings.HasPrefix("--report-node-internal-ip-address", deployment.Spec.Template.Spec.Containers[i].Args[j]) {
+					argument := deployment.Spec.Template.Spec.Containers[i].Args[j]
+					if strings.HasPrefix("--publish-service", argument) ||
+						strings.HasPrefix("--configmap", argument) ||
+						strings.HasPrefix("--report-node-internal-ip-address", argument) {
 						continue
 					}
 					args = append(args, deployment.Spec.Template.Spec.Containers[i].Args[j])
