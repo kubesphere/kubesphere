@@ -339,6 +339,23 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 }
 
 func LogQuery(req *restful.Request, resp *restful.Response) {
+	req, err := regenerateLoggingRequest(req)
+	switch {
+	case err != nil:
+		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+	case req != nil:
+		logging.LoggingQueryCluster(req, resp)
+	default:
+		if req.QueryParameter("operation") == "export" {
+			resp.Write(nil)
+		} else {
+			resp.WriteAsJson(loggingv1alpha2.QueryResult{})
+		}
+	}
+}
+
+// override namespace query conditions
+func regenerateLoggingRequest(req *restful.Request) (*restful.Request, error) {
 
 	username := req.HeaderParameter(constants.UserNameHeader)
 
@@ -348,9 +365,8 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 
 	clusterRules, err := iam.GetUserClusterRules(username)
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		klog.Errorln(err)
-		return
+		return nil, err
 	}
 
 	hasClusterLogAccess := iam.RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}})
@@ -361,9 +377,8 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		namespaces := make([]string, 0)
 		roles, err := iam.GetUserRoles("", username)
 		if err != nil {
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			klog.Errorln(err)
-			return
+			return nil, err
 		}
 		for _, role := range roles {
 			if !sliceutil.HasString(namespaces, role.Namespace) && iam.RulesMatchesRequired(role.Rules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}}) {
@@ -374,17 +389,13 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		// if the user belongs to no namespace
 		// then no log visible
 		if len(namespaces) == 0 {
-			res := loggingv1alpha2.QueryResult{Status: http.StatusOK}
-			resp.WriteAsJson(res)
-			return
+			return nil, nil
 		} else if len(queryNamespaces) == 1 && queryNamespaces[0] == "" {
 			values.Set("namespaces", strings.Join(namespaces, ","))
 		} else {
 			inter := intersection(queryNamespaces, namespaces)
 			if len(inter) == 0 {
-				res := loggingv1alpha2.QueryResult{Status: http.StatusOK}
-				resp.WriteAsJson(res)
-				return
+				return nil, nil
 			}
 			values.Set("namespaces", strings.Join(inter, ","))
 		}
@@ -394,7 +405,7 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 
 	// forward the request to logging model
 	newHttpRequest, _ := http.NewRequest(http.MethodGet, newUrl.String(), nil)
-	logging.LoggingQueryCluster(restful.NewRequest(newHttpRequest), resp)
+	return restful.NewRequest(newHttpRequest), nil
 }
 
 func intersection(s1, s2 []string) (inter []string) {

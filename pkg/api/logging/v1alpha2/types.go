@@ -2,6 +2,14 @@ package v1alpha2
 
 import (
 	"encoding/json"
+	"time"
+)
+
+const (
+	OperationQuery int = iota
+	OperationStatistics
+	OperationHistogram
+	OperationExport
 )
 
 // elasticsearch client config
@@ -28,13 +36,14 @@ type QueryParameters struct {
 	ContainerQuery  []string
 	LogQuery        []string
 
-	Operation string
-	Interval  string
-	StartTime string
-	EndTime   string
-	Sort      string
-	From      int64
-	Size      int64
+	Operation     int
+	Interval      string
+	StartTime     string
+	EndTime       string
+	Sort          string
+	From          int64
+	Size          int64
+	ScrollTimeout time.Duration
 }
 
 // elasticsearch request body
@@ -148,8 +157,7 @@ type DateHistogram struct {
 // Fore more info, refer to https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-search-API.html
 // Response body from the elasticsearch engine
 type Response struct {
-	Status       int             `json:"status"`
-	Workspace    string          `json:"workspace,omitempty"`
+	ScrollId     string          `json:"_scroll_id"`
 	Shards       Shards          `json:"_shards"`
 	Hits         Hits            `json:"hits"`
 	Aggregations json.RawMessage `json:"aggregations"`
@@ -195,7 +203,7 @@ type HighLight struct {
 }
 
 type LogRecord struct {
-	Time      int64     `json:"time,omitempty" description:"log timestamp"`
+	Time      string    `json:"time,omitempty" description:"log timestamp"`
 	Log       string    `json:"log,omitempty" description:"log message"`
 	Namespace string    `json:"namespace,omitempty" description:"namespace"`
 	Pod       string    `json:"pod,omitempty" description:"pod name"`
@@ -205,10 +213,9 @@ type LogRecord struct {
 }
 
 type ReadResult struct {
-	Total   int64       `json:"total" description:"total number of matched results"`
-	From    int64       `json:"from" description:"the offset from the result set"`
-	Size    int64       `json:"size" description:"the amount of hits to be returned"`
-	Records []LogRecord `json:"records,omitempty" description:"actual array of results"`
+	ScrollID string      `json:"_scroll_id,omitempty"`
+	Total    int64       `json:"total" description:"total number of matched results"`
+	Records  []LogRecord `json:"records,omitempty" description:"actual array of results"`
 }
 
 // StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
@@ -245,16 +252,11 @@ type StatisticsResult struct {
 
 type HistogramResult struct {
 	Total      int64             `json:"total" description:"total number of logs"`
-	StartTime  int64             `json:"start_time" description:"start time"`
-	EndTime    int64             `json:"end_time" description:"end time"`
-	Interval   string            `json:"interval" description:"interval"`
 	Histograms []HistogramRecord `json:"histograms" description:"actual array of histogram results"`
 }
 
 // Wrap elasticsearch response
 type QueryResult struct {
-	Status     int               `json:"status,omitempty" description:"query status"`
-	Error      string            `json:"error,omitempty" description:"debugging information"`
 	Read       *ReadResult       `json:"query,omitempty" description:"query results"`
 	Statistics *StatisticsResult `json:"statistics,omitempty" description:"statistics results"`
 	Histogram  *HistogramResult  `json:"histogram,omitempty" description:"histogram results"`

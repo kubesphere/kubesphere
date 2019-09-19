@@ -19,7 +19,10 @@
 package logging
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/emicklei/go-restful"
+	"io"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/log"
@@ -30,94 +33,45 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func LoggingQueryCluster(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelCluster, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
+	param := parseRequest(log.QueryLevelCluster, request)
+	if param.Operation == v1alpha2.OperationExport {
+		logExport(param, request, response)
+	} else {
+		logQuery(param, response)
 	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-
-	response.WriteAsJson(res)
 }
 
 func LoggingQueryWorkspace(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelWorkspace, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
-	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-
-	response.WriteAsJson(res)
+	param := parseRequest(log.QueryLevelWorkspace, request)
+	logQuery(param, response)
 }
 
 func LoggingQueryNamespace(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelNamespace, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
-	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-
-	response.WriteAsJson(res)
+	param := parseRequest(log.QueryLevelNamespace, request)
+	logQuery(param, response)
 }
 
 func LoggingQueryWorkload(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelWorkload, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
-	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-
-	response.WriteAsJson(res)
+	param := parseRequest(log.QueryLevelWorkload, request)
+	logQuery(param, response)
 }
 
 func LoggingQueryPod(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelPod, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
-	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-	response.WriteAsJson(res)
+	param := parseRequest(log.QueryLevelPod, request)
+	logQuery(param, response)
 }
 
 func LoggingQueryContainer(request *restful.Request, response *restful.Response) {
-	res, err := logQuery(log.QueryLevelContainer, request)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, err)
-		return
+	param := parseRequest(log.QueryLevelContainer, request)
+	if param.Operation == v1alpha2.OperationExport {
+		logExport(param, request, response)
+	} else {
+		logQuery(param, response)
 	}
-
-	if res.Status != http.StatusOK {
-		response.WriteHeaderAndEntity(res.Status, errors.New(res.Error))
-		return
-	}
-	response.WriteAsJson(res)
 }
 
 func LoggingQueryFluentbitOutputs(request *restful.Request, response *restful.Response) {
@@ -130,7 +84,6 @@ func LoggingQueryFluentbitOutputs(request *restful.Request, response *restful.Re
 }
 
 func LoggingInsertFluentbitOutput(request *restful.Request, response *restful.Response) {
-
 	var output fb.OutputPlugin
 	var res *log.FluentbitOutputsResult
 
@@ -151,7 +104,6 @@ func LoggingInsertFluentbitOutput(request *restful.Request, response *restful.Re
 }
 
 func LoggingUpdateFluentbitOutput(request *restful.Request, response *restful.Response) {
-
 	var output fb.OutputPlugin
 
 	id := request.PathParameter("output")
@@ -174,7 +126,6 @@ func LoggingUpdateFluentbitOutput(request *restful.Request, response *restful.Re
 }
 
 func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Response) {
-
 	var res *log.FluentbitOutputsResult
 
 	id := request.PathParameter("output")
@@ -188,22 +139,92 @@ func LoggingDeleteFluentbitOutput(request *restful.Request, response *restful.Re
 	response.WriteAsJson(res)
 }
 
-func logQuery(level log.LogQueryLevel, request *restful.Request) (*v1alpha2.QueryResult, error) {
+func logQuery(param v1alpha2.QueryParameters, response *restful.Response) {
 	es, err := cs.ClientSets().ElasticSearch()
 	if err != nil {
-		klog.Error(err)
-		return nil, err
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, errors.Wrap(err))
+		return
 	}
 
+	res, err := es.Query(param)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	response.WriteAsJson(res)
+}
+
+func logExport(param v1alpha2.QueryParameters, request *restful.Request, response *restful.Response) {
+	es, err := cs.ClientSets().ElasticSearch()
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusServiceUnavailable, errors.Wrap(err))
+		return
+	}
+
+	response.Header().Set("Content-Type", restful.MIME_OCTET)
+
+	// keep search context alive for 1m
+	param.ScrollTimeout = time.Minute
+	// export 1000 records in every iteration
+	param.Size = 1000
+	// from is not allowed in a scroll context
+	param.From = 0
+
+	var scrollId string
+	// limit to retrieve max 100k records
+	for i := 0; i < 100; i++ {
+		var res *v1alpha2.QueryResult
+		if scrollId == "" {
+			res, err = es.Query(param)
+			if err != nil {
+				response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+				return
+			}
+		} else {
+			res, err = es.Scroll(scrollId)
+			if err != nil {
+				break
+			}
+		}
+
+		if res.Read == nil || len(res.Read.Records) == 0 {
+			break
+		}
+		output := new(bytes.Buffer)
+		for _, r := range res.Read.Records {
+			output.WriteString(fmt.Sprintf(`%s`, stringutils.StripAnsi(r.Log)))
+		}
+		_, err = io.Copy(response, output)
+		if err != nil {
+			klog.Error(err)
+			break
+		}
+
+		scrollId = res.Read.ScrollID
+
+		select {
+		case <-request.Request.Context().Done():
+			break
+		default:
+		}
+	}
+
+	if scrollId != "" {
+		es.ClearScroll(scrollId)
+	}
+}
+
+func parseRequest(level log.LogQueryLevel, request *restful.Request) v1alpha2.QueryParameters {
 	var param v1alpha2.QueryParameters
 
 	switch level {
 	case log.QueryLevelCluster:
 		var namespaces []string
 		param.NamespaceNotFound, namespaces = log.MatchNamespace(stringutils.Split(request.QueryParameter("namespaces"), ","),
-			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","), // case-insensitive
+			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","),
 			stringutils.Split(request.QueryParameter("workspaces"), ","),
-			stringutils.Split(strings.ToLower(request.QueryParameter("workspace_query")), ",")) // case-insensitive
+			stringutils.Split(strings.ToLower(request.QueryParameter("workspace_query")), ","))
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
 		param.WorkloadFilter = stringutils.Split(request.QueryParameter("workloads"), ",")
 		param.WorkloadQuery = stringutils.Split(request.QueryParameter("workload_query"), ",")
@@ -214,8 +235,8 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) (*v1alpha2.Quer
 	case log.QueryLevelWorkspace:
 		var namespaces []string
 		param.NamespaceNotFound, namespaces = log.MatchNamespace(stringutils.Split(request.QueryParameter("namespaces"), ","),
-			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","), // case-insensitive
-			stringutils.Split(request.PathParameter("workspace"), ","), nil)                    // case-insensitive
+			stringutils.Split(strings.ToLower(request.QueryParameter("namespace_query")), ","),
+			stringutils.Split(request.PathParameter("workspace"), ","), nil)
 		param.NamespaceWithCreationTime = log.MakeNamespaceCreationTimeMap(namespaces)
 		param.WorkloadFilter = stringutils.Split(request.QueryParameter("workloads"), ",")
 		param.WorkloadQuery = stringutils.Split(request.QueryParameter("workload_query"), ",")
@@ -254,21 +275,31 @@ func logQuery(level log.LogQueryLevel, request *restful.Request) (*v1alpha2.Quer
 	}
 
 	param.LogQuery = stringutils.Split(request.QueryParameter("log_query"), ",")
-
-	param.Operation = request.QueryParameter("operation")
 	param.Interval = request.QueryParameter("interval")
 	param.StartTime = request.QueryParameter("start_time")
 	param.EndTime = request.QueryParameter("end_time")
 	param.Sort = request.QueryParameter("sort")
+	switch request.QueryParameter("operation") {
+	case "statistics":
+		param.Operation = v1alpha2.OperationStatistics
+	case "histogram":
+		param.Operation = v1alpha2.OperationHistogram
+	case "export":
+		param.Operation = v1alpha2.OperationExport
+	default:
+		param.Operation = v1alpha2.OperationQuery
+	}
 
+	var err error
 	param.From, err = strconv.ParseInt(request.QueryParameter("from"), 10, 64)
 	if err != nil {
 		param.From = 0
 	}
+
 	param.Size, err = strconv.ParseInt(request.QueryParameter("size"), 10, 64)
 	if err != nil {
 		param.Size = 10
 	}
 
-	return es.Query(param), nil
+	return param
 }

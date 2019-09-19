@@ -47,7 +47,7 @@ func addWebService(c *restful.Container) error {
 
 	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
 		Doc("Query logs against the cluster.").
-		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
+		Param(ws.QueryParameter("operation", "Operation type. This can be one of four types: query (for querying logs), statistics (for retrieving statistical data), histogram (for displaying log count by time interval) and export (for exporting logs). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspaces", "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspace_query", "A comma-separated list of keywords. Differing from **workspaces**, this field performs fuzzy matching on workspaces. For example, the following value limits the query to workspaces whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("namespaces", "A comma-separated list of namespaces. This field restricts the query to specified namespaces. For example, the following filter matches the namespace my-ns and demo-ns: `my-ns,demo-ns`").DataType("string").Required(false)).
@@ -69,7 +69,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.QueryResult{}).
 		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
+		Produces(restful.MIME_JSON, restful.MIME_OCTET)
 
 	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
 		Doc("Query logs against the specific workspace.").
@@ -166,7 +166,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
 		Param(ws.PathParameter("container", "Container name.").DataType("string").Required(true)).
-		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
+		Param(ws.QueryParameter("operation", "Operation type. This can be one of four types: query (for querying logs), statistics (for retrieving statistical data), histogram (for displaying log count by time interval) and export (for exporting logs). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
 		Param(ws.QueryParameter("log_query", "A comma-separated list of keywords. The query returns logs which contain at least one keyword. Case-insensitive matching. For example, if the field is set to `err,INFO`, the query returns any log containing err(ERR,Err,...) *OR* INFO(info,InFo,...).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("interval", "Time interval. It requires **operation** is set to histogram. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).").DefaultValue("15m").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start_time", "Start time of query. Default to 0. The format is a string representing milliseconds since the epoch, eg. 1559664000000.").DataType("string").Required(false)).
@@ -178,7 +178,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.QueryResult{}).
 		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON)
+		Produces(restful.MIME_JSON, restful.MIME_OCTET)
 
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
 		Doc("List all Fluent bit output plugins.").

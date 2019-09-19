@@ -14,11 +14,16 @@ limitations under the License.
 package stringutils
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/asaskevich/govalidator"
 )
+
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var re = regexp.MustCompile(ansi)
 
 // Creates an slice of slice values not included in the other given slice.
 func Diff(base, exclude []string) (result []string) {
@@ -82,4 +87,8 @@ func Split(str string, sep string) []string {
 		return nil
 	}
 	return strings.Split(str, sep)
+}
+
+func StripAnsi(str string) string {
+	return re.ReplaceAllString(str, "")
 }
