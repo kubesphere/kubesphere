@@ -484,7 +484,7 @@ func (v *VirtualServiceController) addStrategy(obj interface{}) {
 }
 
 func (v *VirtualServiceController) handleErr(err error, key interface{}) {
-	if err != nil {
+	if err == nil {
 		v.queue.Forget(key)
 		return
 	}

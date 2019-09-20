@@ -170,6 +170,7 @@ func (v *JobController) syncJob(key string) error {
 
 	if err != nil {
 		log.Error(err, "make job revision failed", "namespace", namespace, "name", name)
+		return err
 	}
 
 	return nil
@@ -186,7 +187,7 @@ func (v *JobController) addJob(obj interface{}) {
 }
 
 func (v *JobController) handleErr(err error, key interface{}) {
-	if err != nil {
+	if err == nil {
 		v.queue.Forget(key)
 		return
 	}
