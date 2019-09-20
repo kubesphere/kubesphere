@@ -18,6 +18,7 @@
 package ldap
 
 import (
+	"fmt"
 	"github.com/go-ldap/ldap"
 	"k8s.io/klog"
 )
@@ -58,24 +59,26 @@ func NewLdapClient(options *LdapOptions, stopCh <-chan struct{}) (*LdapClient, e
 	return client, nil
 }
 
-func (l *LdapClient) Ldap() ldap.Client {
-	if l.pool != nil {
-		conn, err := l.pool.Get()
-		if err != nil {
-			klog.Error(err)
-			return nil
-		}
-
-		err = conn.Bind(l.options.ManagerDN, l.options.ManagerPassword)
-		if err != nil {
-			conn.Close()
-			klog.Error(err)
-			return nil
-		}
-		return conn
+func (l *LdapClient) NewConn() (ldap.Client, error) {
+	if l.pool == nil {
+		err := fmt.Errorf("ldap connection pool is not initialized")
+		klog.Errorln(err)
+		return nil, err
 	}
 
-	return nil
+	conn, err := l.pool.Get()
+	// cannot connect to ldap server or pool is closed
+	if err != nil {
+		klog.Errorln(err)
+		return nil, err
+	}
+	err = conn.Bind(l.options.ManagerDN, l.options.ManagerPassword)
+	if err != nil {
+		conn.Close()
+		klog.Error(err)
+		return nil, err
+	}
+	return conn, nil
 }
 
 func (l *LdapClient) GroupSearchBase() string {
