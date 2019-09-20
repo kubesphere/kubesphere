@@ -55,9 +55,15 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 func (s *KubeSphereControllerManagerOptions) Validate() []error {
 	var errs []error
 
-	errs = append(errs, s.DevopsOptions.Validate()...)
-	errs = append(errs, s.KubernetesOptions.Validate()...)
-	errs = append(errs, s.S3Options.Validate()...)
+	if s.DevopsOptions != nil {
+		errs = append(errs, s.DevopsOptions.Validate()...)
+	}
+	if s.KubernetesOptions != nil {
+		errs = append(errs, s.KubernetesOptions.Validate()...)
+	}
+	if s.S3Options != nil {
+		errs = append(errs, s.S3Options.Validate()...)
+	}
 
 	return errs
 }

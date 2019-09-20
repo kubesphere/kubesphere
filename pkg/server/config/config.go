@@ -106,7 +106,7 @@ func Load() error {
 		}
 
 		conf.Apply(shadowConfig)
-		sharedConfig = conf
+		sharedConfig.Apply(conf)
 	}
 
 	return nil

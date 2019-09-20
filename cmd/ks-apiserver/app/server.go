@@ -52,10 +52,7 @@ cluster's shared state through which all other components interact.`,
 				return err
 			}
 
-			err = Complete(s)
-			if err != nil {
-				return err
-			}
+			s = Complete(s)
 
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
@@ -264,27 +261,27 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 }
 
 // apply server run options to configuration
-func Complete(s *options.ServerRunOptions) error {
+func Complete(in *options.ServerRunOptions) *options.ServerRunOptions {
 
 	// loading configuration file
 	conf := apiserverconfig.Get()
 
 	conf.Apply(&apiserverconfig.Config{
-		MySQLOptions:       s.MySQLOptions,
-		DevopsOptions:      s.DevopsOptions,
-		SonarQubeOptions:   s.SonarQubeOptions,
-		KubernetesOptions:  s.KubernetesOptions,
-		ServiceMeshOptions: s.ServiceMeshOptions,
-		MonitoringOptions:  s.MonitoringOptions,
-		LdapOptions:        s.LdapOptions,
-		RedisOptions:       s.RedisOptions,
-		S3Options:          s.S3Options,
-		OpenPitrixOptions:  s.OpenPitrixOptions,
-		LoggingOptions:     s.LoggingOptions,
+		MySQLOptions:       in.MySQLOptions,
+		DevopsOptions:      in.DevopsOptions,
+		SonarQubeOptions:   in.SonarQubeOptions,
+		KubernetesOptions:  in.KubernetesOptions,
+		ServiceMeshOptions: in.ServiceMeshOptions,
+		MonitoringOptions:  in.MonitoringOptions,
+		LdapOptions:        in.LdapOptions,
+		RedisOptions:       in.RedisOptions,
+		S3Options:          in.S3Options,
+		OpenPitrixOptions:  in.OpenPitrixOptions,
+		LoggingOptions:     in.LoggingOptions,
 	})
 
-	s = &options.ServerRunOptions{
-		GenericServerRunOptions: s.GenericServerRunOptions,
+	out := &options.ServerRunOptions{
+		GenericServerRunOptions: in.GenericServerRunOptions,
 		KubernetesOptions:       conf.KubernetesOptions,
 		DevopsOptions:           conf.DevopsOptions,
 		SonarQubeOptions:        conf.SonarQubeOptions,
@@ -298,5 +295,5 @@ func Complete(s *options.ServerRunOptions) error {
 		LoggingOptions:          conf.LoggingOptions,
 	}
 
-	return nil
+	return out
 }

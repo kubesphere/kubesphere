@@ -37,12 +37,16 @@ func In(value interface{}, container interface{}) bool {
 }
 
 func Override(left interface{}, right interface{}) {
-	if left == nil || right == nil {
+	if reflect.ValueOf(left).IsNil() || reflect.ValueOf(right).IsNil() {
 		return
 	}
 
 	if reflect.ValueOf(left).Type().Kind() != reflect.Ptr ||
 		reflect.ValueOf(right).Type().Kind() != reflect.Ptr {
+		return
+	}
+
+	if reflect.ValueOf(left).Type() != reflect.ValueOf(right).Type() {
 		return
 	}
 

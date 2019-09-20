@@ -49,10 +49,7 @@ func NewControllerManagerCommand() *cobra.Command {
 				os.Exit(1)
 			}
 
-			err = Complete(s)
-			if err != nil {
-				os.Exit(1)
-			}
+			s = Complete(s)
 
 			if errs := s.Validate(); len(errs) != 0 {
 				klog.Error(utilerrors.NewAggregate(errs))
@@ -81,22 +78,22 @@ func NewControllerManagerCommand() *cobra.Command {
 	return cmd
 }
 
-func Complete(s *options.KubeSphereControllerManagerOptions) error {
+func Complete(in *options.KubeSphereControllerManagerOptions) *options.KubeSphereControllerManagerOptions {
 	conf := controllerconfig.Get()
 
 	conf.Apply(&controllerconfig.Config{
-		DevopsOptions:     s.DevopsOptions,
-		KubernetesOptions: s.KubernetesOptions,
-		S3Options:         s.S3Options,
+		DevopsOptions:     in.DevopsOptions,
+		KubernetesOptions: in.KubernetesOptions,
+		S3Options:         in.S3Options,
 	})
 
-	s = &options.KubeSphereControllerManagerOptions{
+	out := &options.KubeSphereControllerManagerOptions{
 		KubernetesOptions: conf.KubernetesOptions,
 		DevopsOptions:     conf.DevopsOptions,
 		S3Options:         conf.S3Options,
 	}
 
-	return nil
+	return out
 }
 
 func CreateClientSet(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
