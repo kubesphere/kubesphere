@@ -46,8 +46,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 )
@@ -78,19 +76,15 @@ func Init(email, password string, expireTime time.Duration, authRateLimit string
 	adminPassword = password
 	tokenExpireTime = expireTime
 	maxAuthFailed, authTimeInterval = parseAuthRateLimit(authRateLimit)
-	conn, err := clientset.ClientSets().Ldap()
-	if err != nil {
-		return err
-	}
 
-	err = checkAndCreateDefaultUser(conn)
+	err := checkAndCreateDefaultUser()
 
 	if err != nil {
 		klog.Errorln("create default users", err)
 		return err
 	}
 
-	err = checkAndCreateDefaultGroup(conn)
+	err = checkAndCreateDefaultGroup()
 
 	if err != nil {
 		klog.Errorln("create default groups", err)
@@ -117,22 +111,32 @@ func parseAuthRateLimit(authRateLimit string) (int, time.Duration) {
 	return maxCount, timeInterval
 }
 
-func checkAndCreateDefaultGroup(conn *ldapclient.LdapClient) error {
+func checkAndCreateDefaultGroup() error {
+
+	client, err := clientset.ClientSets().Ldap()
+	if err != nil {
+		return err
+	}
+	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	groupSearchRequest := ldap.NewSearchRequest(
-		conn.GroupSearchBase(),
+		client.GroupSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(&(objectClass=posixGroup))",
 		nil,
 		nil,
 	)
 
-	_, err := conn.Ldap().Search(groupSearchRequest)
+	_, err = conn.Search(groupSearchRequest)
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
-		err = createGroupsBaseDN(conn)
+		err = createGroupsBaseDN()
 		if err != nil {
-			return fmt.Errorf("GroupBaseDN %s create failed: %s\n", conn.GroupSearchBase(), err)
+			return fmt.Errorf("GroupBaseDN %s create failed: %s\n", client.GroupSearchBase(), err)
 		}
 	}
 
@@ -143,22 +147,32 @@ func checkAndCreateDefaultGroup(conn *ldapclient.LdapClient) error {
 	return nil
 }
 
-func checkAndCreateDefaultUser(conn *ldapclient.LdapClient) error {
+func checkAndCreateDefaultUser() error {
+
+	client, err := clientset.ClientSets().Ldap()
+	if err != nil {
+		return err
+	}
+	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	userSearchRequest := ldap.NewSearchRequest(
-		conn.GroupSearchBase(),
+		client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(&(objectClass=inetOrgPerson))",
 		[]string{"uid"},
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
-		err = createUserBaseDN(conn)
+		err = createUserBaseDN()
 		if err != nil {
-			return fmt.Errorf("UserBaseDN %s create failed: %s\n", conn.UserSearchBase(), err)
+			return fmt.Errorf("UserBaseDN %s create failed: %s\n", client.UserSearchBase(), err)
 		}
 	}
 
@@ -195,19 +209,32 @@ func containsUser(entries []*ldap.Entry, user initUser) bool {
 	return false
 }
 
-func createUserBaseDN(conn *ldapclient.LdapClient) error {
+func createUserBaseDN() error {
+	client, err := clientset.ClientSets().Ldap()
 
-	groupsCreateRequest := ldap.NewAddRequest(conn.UserSearchBase(), nil)
+	if err != nil {
+		return err
+	}
+	conn, err := client.NewConn()
+	defer conn.Close()
+	groupsCreateRequest := ldap.NewAddRequest(client.UserSearchBase(), nil)
 	groupsCreateRequest.Attribute("objectClass", []string{"organizationalUnit", "top"})
 	groupsCreateRequest.Attribute("ou", []string{"Users"})
-	return conn.Ldap().Add(groupsCreateRequest)
+	return conn.Add(groupsCreateRequest)
 }
 
-func createGroupsBaseDN(conn *ldapclient.LdapClient) error {
-	groupsCreateRequest := ldap.NewAddRequest(conn.GroupSearchBase(), nil)
+func createGroupsBaseDN() error {
+	client, err := clientset.ClientSets().Ldap()
+
+	if err != nil {
+		return err
+	}
+	conn, err := client.NewConn()
+	defer conn.Close()
+	groupsCreateRequest := ldap.NewAddRequest(client.GroupSearchBase(), nil)
 	groupsCreateRequest.Attribute("objectClass", []string{"organizationalUnit", "top"})
 	groupsCreateRequest.Attribute("ou", []string{"Groups"})
-	return conn.Ldap().Add(groupsCreateRequest)
+	return conn.Add(groupsCreateRequest)
 }
 
 // User login
@@ -229,21 +256,25 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 		return nil, restful.NewError(http.StatusTooManyRequests, "auth rate limit exceeded")
 	}
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	userSearchRequest := ldap.NewSearchRequest(
-		conn.UserSearchBase(),
+		client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", username, username),
 		[]string{"uid", "mail"},
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
 		return nil, err
@@ -258,7 +289,7 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 	dn := result.Entries[0].DN
 
 	// bind as the user to verify their password
-	err = conn.Ldap().Bind(dn, password)
+	err = conn.Bind(dn, password)
 
 	if err != nil {
 		klog.Infoln("auth failed", username, err)
@@ -314,11 +345,15 @@ func LoginLog(username string) ([]string, error) {
 
 func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	pageControl := ldap.NewControlPaging(1000)
 
@@ -348,14 +383,14 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 	for {
 		userSearchRequest := ldap.NewSearchRequest(
-			conn.UserSearchBase(),
+			client.UserSearchBase(),
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 			filter,
 			[]string{"uid", "mail", "description", "preferredLanguage", "createTimestamp"},
 			[]ldap.Control{pageControl},
 		)
 
-		response, err := conn.Ldap().Search(userSearchRequest)
+		response, err := conn.Search(userSearchRequest)
 
 		if err != nil {
 			klog.Errorln("search user", err)
@@ -453,21 +488,25 @@ func DescribeUser(username string) (*models.User, error) {
 // Get user info only included email description & lang
 func GetUserInfo(username string) (*models.User, error) {
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	userSearchRequest := ldap.NewSearchRequest(
-		conn.UserSearchBase(),
+		client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(uid=%s))", username),
 		[]string{"mail", "description", "preferredLanguage", "createTimestamp"},
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
 		klog.Errorln("search user", err)
@@ -490,22 +529,25 @@ func GetUserInfo(username string) (*models.User, error) {
 }
 
 func GetUserGroups(username string) ([]string, error) {
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	groupSearchRequest := ldap.NewSearchRequest(
-		conn.GroupSearchBase(),
+		client.GroupSearchBase(),
 		ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=posixGroup)(memberUid=%s))", username),
 		nil,
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(groupSearchRequest)
+	result, err := conn.Search(groupSearchRequest)
 
 	if err != nil {
 		return nil, err
@@ -573,15 +615,19 @@ func getAvatar(username string) string {
 
 func DeleteUser(username string) error {
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
-	deleteRequest := ldap.NewDelRequest(fmt.Sprintf("uid=%s,%s", username, conn.UserSearchBase()), nil)
+	deleteRequest := ldap.NewDelRequest(fmt.Sprintf("uid=%s,%s", username, client.UserSearchBase()), nil)
 
-	if err = conn.Ldap().Del(deleteRequest); err != nil {
+	if err = conn.Del(deleteRequest); err != nil {
 		klog.Errorln("delete user", err)
 		return err
 	}
@@ -728,24 +774,26 @@ func isWorkspaceRoleBinding(clusterRoleBinding *rbacv1.ClusterRoleBinding) bool 
 
 func UserCreateCheck(check string) (exist bool, err error) {
 
-	// bind root DN
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return false, err
 	}
-
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
 
 	// search for the given username
 	userSearchRequest := ldap.NewSearchRequest(
-		conn.UserSearchBase(),
+		client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", check, check),
 		[]string{"uid", "mail"},
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
 		klog.Errorln("search user", err)
@@ -761,21 +809,25 @@ func CreateUser(user *models.User) (*models.User, error) {
 	user.Password = strings.TrimSpace(user.Password)
 	user.Description = strings.TrimSpace(user.Description)
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	userSearchRequest := ldap.NewSearchRequest(
-		conn.UserSearchBase(),
+		client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", user.Username, user.Email),
 		[]string{"uid", "mail"},
 		nil,
 	)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
 		klog.Errorln("search user", err)
@@ -786,7 +838,7 @@ func CreateUser(user *models.User) (*models.User, error) {
 		return nil, ldap.NewError(ldap.LDAPResultEntryAlreadyExists, fmt.Errorf("username or email already exists"))
 	}
 
-	maxUid, err := getMaxUid(conn)
+	maxUid, err := getMaxUid()
 
 	if err != nil {
 		klog.Errorln("get max uid", err)
@@ -795,7 +847,7 @@ func CreateUser(user *models.User) (*models.User, error) {
 
 	maxUid += 1
 
-	userCreateRequest := ldap.NewAddRequest(fmt.Sprintf("uid=%s,%s", user.Username, conn.UserSearchBase()), nil)
+	userCreateRequest := ldap.NewAddRequest(fmt.Sprintf("uid=%s,%s", user.Username, client.UserSearchBase()), nil)
 	userCreateRequest.Attribute("objectClass", []string{"inetOrgPerson", "posixAccount", "top"})
 	userCreateRequest.Attribute("cn", []string{user.Username})                       // RFC4519: common name(s) for which the entity is known by
 	userCreateRequest.Attribute("sn", []string{" "})                                 // RFC2256: last (family) name(s) for which the entity is known by
@@ -817,7 +869,7 @@ func CreateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 
-	err = conn.Ldap().Add(userCreateRequest)
+	err = conn.Add(userCreateRequest)
 
 	if err != nil {
 		klog.Errorln("create user", err)
@@ -840,14 +892,24 @@ func CreateUser(user *models.User) (*models.User, error) {
 	return DescribeUser(user.Username)
 }
 
-func getMaxUid(conn *ldapclient.LdapClient) (int, error) {
-	userSearchRequest := ldap.NewSearchRequest(conn.UserSearchBase(),
+func getMaxUid() (int, error) {
+	client, err := clientset.ClientSets().Ldap()
+	if err != nil {
+		return 0, err
+	}
+	conn, err := client.NewConn()
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	userSearchRequest := ldap.NewSearchRequest(client.UserSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(&(objectClass=inetOrgPerson))",
 		[]string{"uidNumber"},
 		nil)
 
-	result, err := conn.Ldap().Search(userSearchRequest)
+	result, err := conn.Search(userSearchRequest)
 
 	if err != nil {
 		return 0, err
@@ -869,15 +931,25 @@ func getMaxUid(conn *ldapclient.LdapClient) (int, error) {
 	return maxUid, nil
 }
 
-func getMaxGid(conn *ldapclient.LdapClient) (int, error) {
+func getMaxGid() (int, error) {
 
-	groupSearchRequest := ldap.NewSearchRequest(conn.GroupSearchBase(),
+	client, err := clientset.ClientSets().Ldap()
+	if err != nil {
+		return 0, err
+	}
+	conn, err := client.NewConn()
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	groupSearchRequest := ldap.NewSearchRequest(client.GroupSearchBase(),
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		"(&(objectClass=posixGroup))",
 		[]string{"gidNumber"},
 		nil)
 
-	result, err := conn.Ldap().Search(groupSearchRequest)
+	result, err := conn.Search(groupSearchRequest)
 
 	if err != nil {
 		return 0, err
@@ -901,24 +973,27 @@ func getMaxGid(conn *ldapclient.LdapClient) (int, error) {
 
 func UpdateUser(user *models.User) (*models.User, error) {
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
-		klog.Error(err)
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
-	dn := fmt.Sprintf("uid=%s,%s", user.Username, conn.UserSearchBase())
+	dn := fmt.Sprintf("uid=%s,%s", user.Username, client.UserSearchBase())
 	userModifyRequest := ldap.NewModifyRequest(dn, nil)
 	if user.Email != "" {
 		userSearchRequest := ldap.NewSearchRequest(
-			conn.UserSearchBase(),
+			client.UserSearchBase(),
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 			fmt.Sprintf("(&(objectClass=inetOrgPerson)(mail=%s))", user.Email),
 			[]string{"uid", "mail"},
 			nil,
 		)
-		result, err := conn.Ldap().Search(userSearchRequest)
+		result, err := conn.Search(userSearchRequest)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
@@ -956,7 +1031,7 @@ func UpdateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 
-	err = conn.Ldap().Modify(userModifyRequest)
+	err = conn.Modify(userModifyRequest)
 
 	if err != nil {
 		klog.Error(err)
@@ -988,17 +1063,20 @@ func UpdateUser(user *models.User) (*models.User, error) {
 }
 func DeleteGroup(path string) error {
 
-	// bind root DN
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	searchBase, cn := splitPath(path)
 
 	groupDeleteRequest := ldap.NewDelRequest(fmt.Sprintf("cn=%s,%s", cn, searchBase), nil)
-	err = conn.Ldap().Del(groupDeleteRequest)
+	err = conn.Del(groupDeleteRequest)
 
 	if err != nil {
 		klog.Errorln("delete user group", err)
@@ -1010,13 +1088,17 @@ func DeleteGroup(path string) error {
 
 func CreateGroup(group *models.Group) (*models.Group, error) {
 
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
-	maxGid, err := getMaxGid(conn)
+	maxGid, err := getMaxGid()
 
 	if err != nil {
 		klog.Errorln("get max gid", err)
@@ -1044,7 +1126,7 @@ func CreateGroup(group *models.Group) (*models.Group, error) {
 		groupCreateRequest.Attribute("memberUid", group.Members)
 	}
 
-	err = conn.Ldap().Add(groupCreateRequest)
+	err = conn.Add(groupCreateRequest)
 
 	if err != nil {
 		klog.Errorln("create group", err)
@@ -1058,12 +1140,15 @@ func CreateGroup(group *models.Group) (*models.Group, error) {
 
 func UpdateGroup(group *models.Group) (*models.Group, error) {
 
-	// bind root DN
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	old, err := DescribeGroup(group.Path)
 
@@ -1091,7 +1176,7 @@ func UpdateGroup(group *models.Group) (*models.Group, error) {
 		groupUpdateRequest.Replace("memberUid", group.Members)
 	}
 
-	err = conn.Ldap().Modify(groupUpdateRequest)
+	err = conn.Modify(groupUpdateRequest)
 
 	if err != nil {
 		klog.Errorln("update group", err)
@@ -1103,16 +1188,19 @@ func UpdateGroup(group *models.Group) (*models.Group, error) {
 
 func ChildList(path string) ([]models.Group, error) {
 
-	// bind root DN
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
 
 	var groupSearchRequest *ldap.SearchRequest
 	if path == "" {
-		groupSearchRequest = ldap.NewSearchRequest(conn.GroupSearchBase(),
+		groupSearchRequest = ldap.NewSearchRequest(client.GroupSearchBase(),
 			ldap.ScopeSingleLevel, ldap.NeverDerefAliases, 0, 0, false,
 			"(&(objectClass=posixGroup))",
 			[]string{"cn", "gidNumber", "memberUid", "description"},
@@ -1126,7 +1214,7 @@ func ChildList(path string) ([]models.Group, error) {
 			nil)
 	}
 
-	result, err := conn.Ldap().Search(groupSearchRequest)
+	result, err := conn.Search(groupSearchRequest)
 
 	if err != nil {
 		return nil, err
@@ -1149,7 +1237,7 @@ func ChildList(path string) ([]models.Group, error) {
 			[]string{""},
 			nil)
 
-		result, err = conn.Ldap().Search(childSearchRequest)
+		result, err = conn.Search(childSearchRequest)
 
 		if err != nil {
 			return nil, err
@@ -1171,14 +1259,17 @@ func ChildList(path string) ([]models.Group, error) {
 }
 
 func DescribeGroup(path string) (*models.Group, error) {
-
-	searchBase, cn := splitPath(path)
-
-	conn, err := clientset.ClientSets().Ldap()
+	client, err := clientset.ClientSets().Ldap()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Ldap().Close()
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	searchBase, cn := splitPath(path)
 
 	groupSearchRequest := ldap.NewSearchRequest(searchBase,
 		ldap.ScopeSingleLevel, ldap.NeverDerefAliases, 0, 0, false,
@@ -1186,7 +1277,7 @@ func DescribeGroup(path string) (*models.Group, error) {
 		[]string{"cn", "gidNumber", "memberUid", "description"},
 		nil)
 
-	result, err := conn.Ldap().Search(groupSearchRequest)
+	result, err := conn.Search(groupSearchRequest)
 
 	if err != nil {
 		klog.Errorln("search group", err)
