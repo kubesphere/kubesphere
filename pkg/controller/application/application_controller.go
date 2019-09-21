@@ -242,7 +242,7 @@ func (v *ApplicationController) enqueueObject(obj interface{}) {
 }
 
 func (v *ApplicationController) handleErr(err error, key interface{}) {
-	if err != nil {
+	if err == nil {
 		v.queue.Forget(key)
 		return
 	}

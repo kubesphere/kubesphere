@@ -471,7 +471,7 @@ func (v *DestinationRuleController) addServicePolicy(obj interface{}) {
 }
 
 func (v *DestinationRuleController) handleErr(err error, key interface{}) {
-	if err != nil {
+	if err == nil {
 		v.queue.Forget(key)
 		return
 	}
