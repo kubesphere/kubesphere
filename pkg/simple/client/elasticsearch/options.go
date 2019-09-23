@@ -26,6 +26,11 @@ func NewElasticSearchOptions() *ElasticSearchOptions {
 }
 
 func (s *ElasticSearchOptions) ApplyTo(options *ElasticSearchOptions) {
+	if options == nil {
+		options = s
+		return
+	}
+
 	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}

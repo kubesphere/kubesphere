@@ -40,6 +40,11 @@ func (s *S3Options) Validate() []error {
 
 // ApplyTo overrides options if it's valid, which endpoint is not empty
 func (s *S3Options) ApplyTo(options *S3Options) {
+	if options == nil {
+		options = s
+		return
+	}
+
 	if s.Endpoint != "" {
 		reflectutils.Override(options, s)
 	}

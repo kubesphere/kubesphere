@@ -31,6 +31,11 @@ func (l *LdapOptions) Validate() []error {
 }
 
 func (l *LdapOptions) ApplyTo(options *LdapOptions) {
+	if options == nil {
+		options = l
+		return
+	}
+
 	if l.Host != "" {
 		reflectutils.Override(options, l)
 	}

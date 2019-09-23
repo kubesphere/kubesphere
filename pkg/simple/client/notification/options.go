@@ -11,6 +11,11 @@ func NewNotificationOptions() *NotificationOptions {
 }
 
 func (s *NotificationOptions) ApplyTo(options *NotificationOptions) {
+	if options == nil {
+		options = s
+		return
+	}
+
 	if s.Endpoint != "" {
 		options.Endpoint = s.Endpoint
 	}

@@ -28,6 +28,7 @@ func (s *SonarQubeOptions) Validate() []error {
 
 func (s *SonarQubeOptions) ApplyTo(options *SonarQubeOptions) {
 	if options == nil {
+		options = s
 		return
 	}
 

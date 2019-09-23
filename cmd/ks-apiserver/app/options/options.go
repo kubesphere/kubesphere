@@ -8,11 +8,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
@@ -28,9 +26,7 @@ type ServerRunOptions struct {
 	ServiceMeshOptions *servicemesh.ServiceMeshOptions
 	MySQLOptions       *mysql.MySQLOptions
 	MonitoringOptions  *prometheus.PrometheusOptions
-	LdapOptions        *ldap.LdapOptions
 	S3Options          *s2is3.S3Options
-	RedisOptions       *redis.RedisOptions
 	OpenPitrixOptions  *openpitrix.OpenPitrixOptions
 	LoggingOptions     *esclient.ElasticSearchOptions
 }
@@ -45,9 +41,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		ServiceMeshOptions:      servicemesh.NewServiceMeshOptions(),
 		MySQLOptions:            mysql.NewMySQLOptions(),
 		MonitoringOptions:       prometheus.NewPrometheusOptions(),
-		LdapOptions:             ldap.NewLdapOptions(),
 		S3Options:               s2is3.NewS3Options(),
-		RedisOptions:            redis.NewRedisOptions(),
 		OpenPitrixOptions:       openpitrix.NewOpenPitrixOptions(),
 		LoggingOptions:          esclient.NewElasticSearchOptions(),
 	}
@@ -59,12 +53,10 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 
 	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"))
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
-	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))
 	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"))
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"))
 	s.S3Options.AddFlags(fss.FlagSet("s3"))
-	s.RedisOptions.AddFlags(fss.FlagSet("redis"))
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"))
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"))
