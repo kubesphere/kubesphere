@@ -11,6 +11,11 @@ func NewAlertingOptions() *AlertingOptions {
 }
 
 func (s *AlertingOptions) ApplyTo(options *AlertingOptions) {
+	if options == nil {
+		options = s
+		return
+	}
+
 	if s.Endpoint != "" {
 		options.Endpoint = s.Endpoint
 	}

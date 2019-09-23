@@ -46,6 +46,10 @@ func (k *KubernetesOptions) Validate() []error {
 }
 
 func (k *KubernetesOptions) ApplyTo(options *KubernetesOptions) {
+	if options == nil {
+		options = k
+		return
+	}
 	reflectutils.Override(options, k)
 }
 

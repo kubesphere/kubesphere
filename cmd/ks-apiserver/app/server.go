@@ -162,7 +162,6 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 		SetS3Options(conf.S3Options).
 		SetOpenPitrixOptions(conf.OpenPitrixOptions).
 		SetPrometheusOptions(conf.MonitoringOptions).
-		SetRedisOptions(conf.RedisOptions).
 		SetKubeSphereOptions(conf.KubeSphereOptions).
 		SetElasticSearchOptions(conf.LoggingOptions)
 
@@ -276,8 +275,6 @@ func Complete(s *options.ServerRunOptions) error {
 		KubernetesOptions:  s.KubernetesOptions,
 		ServiceMeshOptions: s.ServiceMeshOptions,
 		MonitoringOptions:  s.MonitoringOptions,
-		LdapOptions:        s.LdapOptions,
-		RedisOptions:       s.RedisOptions,
 		S3Options:          s.S3Options,
 		OpenPitrixOptions:  s.OpenPitrixOptions,
 		LoggingOptions:     s.LoggingOptions,
@@ -291,8 +288,6 @@ func Complete(s *options.ServerRunOptions) error {
 		ServiceMeshOptions:      conf.ServiceMeshOptions,
 		MySQLOptions:            conf.MySQLOptions,
 		MonitoringOptions:       conf.MonitoringOptions,
-		LdapOptions:             conf.LdapOptions,
-		RedisOptions:            conf.RedisOptions,
 		S3Options:               conf.S3Options,
 		OpenPitrixOptions:       conf.OpenPitrixOptions,
 		LoggingOptions:          conf.LoggingOptions,

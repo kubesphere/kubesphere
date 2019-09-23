@@ -25,7 +25,12 @@ func NewDevopsOptions() *DevopsOptions {
 
 // ApplyTo apply configuration to another options
 func (s *DevopsOptions) ApplyTo(options *DevopsOptions) {
-	if s.Host != "" && options != nil {
+	if options == nil {
+		options = s
+		return
+	}
+
+	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}
 }

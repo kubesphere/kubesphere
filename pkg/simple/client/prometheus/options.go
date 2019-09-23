@@ -23,6 +23,11 @@ func (s *PrometheusOptions) Validate() []error {
 }
 
 func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
+	if options == nil {
+		options = s
+		return
+	}
+
 	if s.Endpoint != "" {
 		options.Endpoint = s.Endpoint
 	}

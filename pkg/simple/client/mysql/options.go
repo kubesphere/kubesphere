@@ -34,6 +34,10 @@ func (m *MySQLOptions) Validate() []error {
 }
 
 func (m *MySQLOptions) ApplyTo(options *MySQLOptions) {
+	if options == nil {
+		options = m
+		return
+	}
 	reflectutils.Override(options, m)
 }
 
