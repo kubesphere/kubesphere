@@ -31,6 +31,7 @@ func (s *ServiceMeshOptions) Validate() []error {
 
 func (s *ServiceMeshOptions) ApplyTo(options *ServiceMeshOptions) {
 	if options == nil {
+		options = s
 		return
 	}
 

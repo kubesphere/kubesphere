@@ -16,6 +16,10 @@ func NewKubeSphereOptions() *KubeSphereOptions {
 }
 
 func (s *KubeSphereOptions) ApplyTo(options *KubeSphereOptions) {
+	if options == nil {
+		options = s
+		return
+	}
 	if s.AccountServer != "" {
 		options.AccountServer = s.AccountServer
 	}
