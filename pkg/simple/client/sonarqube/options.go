@@ -5,8 +5,8 @@ import (
 )
 
 type SonarQubeOptions struct {
-	Host  string `json:",omitempty" yaml:",omitempty" description:"SonarQube service host address"`
-	Token string `json:",omitempty" yaml:",omitempty" description:"SonarQube service token"`
+	Host  string `json:",omitempty" yaml:"host" description:"SonarQube service host address"`
+	Token string `json:",omitempty" yaml:"token" description:"SonarQube service token"`
 }
 
 func NewSonarQubeOptions() *SonarQubeOptions {
@@ -27,11 +27,6 @@ func (s *SonarQubeOptions) Validate() []error {
 }
 
 func (s *SonarQubeOptions) ApplyTo(options *SonarQubeOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.Host != "" {
 		options.Host = s.Host
 		options.Token = s.Token

@@ -280,7 +280,7 @@ func Complete(s *options.ServerRunOptions) error {
 		LoggingOptions:     s.LoggingOptions,
 	})
 
-	s = &options.ServerRunOptions{
+	*s = options.ServerRunOptions{
 		GenericServerRunOptions: s.GenericServerRunOptions,
 		KubernetesOptions:       conf.KubernetesOptions,
 		DevopsOptions:           conf.DevopsOptions,

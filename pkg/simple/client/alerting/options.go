@@ -1,7 +1,7 @@
 package alerting
 
 type AlertingOptions struct {
-	Endpoint string
+	Endpoint string `json:"endpoint" yaml:"endpoint"`
 }
 
 func NewAlertingOptions() *AlertingOptions {

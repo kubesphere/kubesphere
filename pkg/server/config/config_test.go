@@ -70,8 +70,8 @@ func newTestConfig() *Config {
 		},
 		S3Options: &s2is3.S3Options{
 			Endpoint:        "http://minio.openpitrix-system.svc",
-			Region:          "us-east-1",
-			DisableSSL:      true,
+			Region:          "",
+			DisableSSL:      false,
 			ForcePathStyle:  false,
 			AccessKeyID:     "ABCDEFGHIJKLMN",
 			SecretAccessKey: "OPQRSTUVWXYZ",
@@ -137,7 +137,7 @@ func cleanTestConfig(t *testing.T) {
 func TestGet(t *testing.T) {
 	conf := newTestConfig()
 	saveTestConfig(t, conf)
-	//defer cleanTestConfig(t)
+	defer cleanTestConfig(t)
 
 	err := Load()
 	if err != nil {

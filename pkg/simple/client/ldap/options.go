@@ -6,11 +6,11 @@ import (
 )
 
 type LdapOptions struct {
-	Host            string `json:"host,omitempty" yaml:"host,omitempty"`
-	ManagerDN       string `json:"managerDN,omitempty" yaml:"managerDN,omitempty"`
-	ManagerPassword string `json:"managerPassword,omitempty" yaml:"managerPassword,omitempty"`
-	UserSearchBase  string `json:"userSearchBase,omitempty" yaml:"userSearchBase,omitempty"`
-	GroupSearchBase string `json:"groupSearchBase,omitempty" yaml:"groupSearchBase,omitempty"`
+	Host            string `json:"host,omitempty" yaml:"host"`
+	ManagerDN       string `json:"managerDN,omitempty" yaml:"managerDN"`
+	ManagerPassword string `json:"managerPassword,omitempty" yaml:"managerPassword"`
+	UserSearchBase  string `json:"userSearchBase,omitempty" yaml:"userSearchBase"`
+	GroupSearchBase string `json:"groupSearchBase,omitempty" yaml:"groupSearchBase"`
 }
 
 // NewLdapOptions return a default option
@@ -31,11 +31,6 @@ func (l *LdapOptions) Validate() []error {
 }
 
 func (l *LdapOptions) ApplyTo(options *LdapOptions) {
-	if options == nil {
-		options = l
-		return
-	}
-
 	if l.Host != "" {
 		reflectutils.Override(options, l)
 	}
