@@ -39,6 +39,7 @@ const (
 	persistentvolumeclaimsKey = "persistentvolumeclaims"
 	jobsKey                   = "count/jobs.batch"
 	cronJobsKey               = "count/cronjobs.batch"
+	s2iBuilders               = "count/s2ibuilders.devops.kubesphere.io"
 )
 
 type NamespacedResourceQuota struct {
@@ -63,7 +64,9 @@ var (
 		persistentvolumeclaimsKey: resources.PersistentVolumeClaims,
 		podsKey:                   resources.Pods,
 		jobsKey:                   resources.Jobs,
-		cronJobsKey:               resources.CronJobs}
+		cronJobsKey:               resources.CronJobs,
+		s2iBuilders:               resources.S2iBuilders,
+	}
 )
 
 func getUsage(namespace, resource string) (int, error) {
