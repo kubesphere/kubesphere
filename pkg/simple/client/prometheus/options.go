@@ -5,8 +5,8 @@ import (
 )
 
 type PrometheusOptions struct {
-	Endpoint          string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	SecondaryEndpoint string `json:"secondaryEndpoint,omitempty" yaml:"secondaryEndpoint,omitempty"`
+	Endpoint          string `json:"endpoint,omitempty" yaml:"endpoint"`
+	SecondaryEndpoint string `json:"secondaryEndpoint,omitempty" yaml:"secondaryEndpoint"`
 }
 
 func NewPrometheusOptions() *PrometheusOptions {
@@ -23,11 +23,6 @@ func (s *PrometheusOptions) Validate() []error {
 }
 
 func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.Endpoint != "" {
 		options.Endpoint = s.Endpoint
 	}

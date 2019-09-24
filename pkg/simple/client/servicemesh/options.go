@@ -5,13 +5,13 @@ import "github.com/spf13/pflag"
 type ServiceMeshOptions struct {
 
 	// istio pilot discovery service url
-	IstioPilotHost string `json:"istioPilotHost,omitempty" yaml:"istioPilotHost,omitempty"`
+	IstioPilotHost string `json:"istioPilotHost,omitempty" yaml:"istioPilotHost"`
 
 	// jaeger query service url
-	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost,omitempty"`
+	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost"`
 
 	// prometheus service url for servicemesh metrics
-	ServicemeshPrometheusHost string `json:"servicemeshPrometheusHost,omitempty" yaml:"servicemeshPrometheusHost,omitempty"`
+	ServicemeshPrometheusHost string `json:"servicemeshPrometheusHost,omitempty" yaml:"servicemeshPrometheusHost"`
 }
 
 // NewServiceMeshOptions returns a `zero` instance
@@ -30,11 +30,6 @@ func (s *ServiceMeshOptions) Validate() []error {
 }
 
 func (s *ServiceMeshOptions) ApplyTo(options *ServiceMeshOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.ServicemeshPrometheusHost != "" {
 		options.ServicemeshPrometheusHost = s.ServicemeshPrometheusHost
 	}

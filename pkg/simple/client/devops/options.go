@@ -7,10 +7,10 @@ import (
 )
 
 type DevopsOptions struct {
-	Host           string `json:",omitempty" yaml:",omitempty" description:"Jenkins service host address"`
-	Username       string `json:",omitempty" yaml:",omitempty" description:"Jenkins admin username"`
-	Password       string `json:",omitempty" yaml:",omitempty" description:"Jenkins admin password"`
-	MaxConnections int    `json:"maxConnections,omitempty" yaml:"maxConnections,omitempty" description:"Maximum connections allowed to connect to Jenkins"`
+	Host           string `json:",omitempty" yaml:"host" description:"Jenkins service host address"`
+	Username       string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
+	Password       string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
+	MaxConnections int    `json:"maxConnections,omitempty" yaml:"maxConnections" description:"Maximum connections allowed to connect to Jenkins"`
 }
 
 // NewDevopsOptions returns a `zero` instance
@@ -25,11 +25,6 @@ func NewDevopsOptions() *DevopsOptions {
 
 // ApplyTo apply configuration to another options
 func (s *DevopsOptions) ApplyTo(options *DevopsOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}

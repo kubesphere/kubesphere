@@ -3,8 +3,8 @@ package kubesphere
 import "github.com/spf13/pflag"
 
 type KubeSphereOptions struct {
-	APIServer     string
-	AccountServer string
+	APIServer     string `json:"apiServer" yaml:"apiServer"`
+	AccountServer string `json:"accountServer" yaml:"accountServer"`
 }
 
 // NewKubeSphereOptions create a default options
@@ -16,10 +16,6 @@ func NewKubeSphereOptions() *KubeSphereOptions {
 }
 
 func (s *KubeSphereOptions) ApplyTo(options *KubeSphereOptions) {
-	if options == nil {
-		options = s
-		return
-	}
 	if s.AccountServer != "" {
 		options.AccountServer = s.AccountServer
 	}

@@ -44,11 +44,6 @@ func (r *RedisOptions) Validate() []error {
 
 // ApplyTo apply to another options if it's a enabled option(non empty host)
 func (r *RedisOptions) ApplyTo(options *RedisOptions) {
-	if options == nil {
-		options = r
-		return
-	}
-
 	if r.Host != "" {
 		reflectutils.Override(options, r)
 	}

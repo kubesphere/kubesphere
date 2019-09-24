@@ -7,12 +7,12 @@ import (
 )
 
 type MySQLOptions struct {
-	Host                  string        `json:"host,omitempty" yaml:"host,omitempty" description:"MySQL service host address"`
-	Username              string        `json:"username,omitempty" yaml:"username,omitempty"`
-	Password              string        `json:"-" yaml:"password,omitempty"`
-	MaxIdleConnections    int           `json:"maxIdleConnections,omitempty" yaml:"maxIdleConnections,omitempty"`
-	MaxOpenConnections    int           `json:"maxOpenConnections,omitempty" yaml:"maxOpenConnections,omitempty"`
-	MaxConnectionLifeTime time.Duration `json:"maxConnectionLifeTime,omitempty" yaml:"maxConnectionLifeTime,omitempty"`
+	Host                  string        `json:"host,omitempty" yaml:"host" description:"MySQL service host address"`
+	Username              string        `json:"username,omitempty" yaml:"username"`
+	Password              string        `json:"-" yaml:"password"`
+	MaxIdleConnections    int           `json:"maxIdleConnections,omitempty" yaml:"maxIdleConnections"`
+	MaxOpenConnections    int           `json:"maxOpenConnections,omitempty" yaml:"maxOpenConnections"`
+	MaxConnectionLifeTime time.Duration `json:"maxConnectionLifeTime,omitempty" yaml:"maxConnectionLifeTime"`
 }
 
 // NewMySQLOptions create a `zero` value instance
@@ -34,10 +34,6 @@ func (m *MySQLOptions) Validate() []error {
 }
 
 func (m *MySQLOptions) ApplyTo(options *MySQLOptions) {
-	if options == nil {
-		options = m
-		return
-	}
 	reflectutils.Override(options, m)
 }
 

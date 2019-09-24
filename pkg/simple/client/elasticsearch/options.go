@@ -6,12 +6,12 @@ import (
 )
 
 type ElasticSearchOptions struct {
-	Host           string `json:"host,omitempty" yaml:"host,omitempty"`
-	LogstashFormat bool   `json:"logstashFormat,omitempty" yaml:"logstashFormat,omitempty"`
-	Index          string `json:",omitempty" yaml:",omitempty"`
-	LogstashPrefix string `json:"logstashPrefix,omitempty" yaml:"logstashPrefix,omitempty"`
-	Match          string `json:",omitempty" yaml:",omitempty"`
-	Version        string `json:",omitempty" yaml:",omitempty"`
+	Host           string `json:"host" yaml:"host"`
+	LogstashFormat bool   `json:"logstashFormat" yaml:"logstashFormat"`
+	Index          string `json:"index" yaml:"index"`
+	LogstashPrefix string `json:"logstashPrefix,omitempty" yaml:"logstashPrefix"`
+	Match          string `json:"match" yaml:"match"`
+	Version        string `json:"version" yaml:"version"`
 }
 
 func NewElasticSearchOptions() *ElasticSearchOptions {
@@ -26,11 +26,6 @@ func NewElasticSearchOptions() *ElasticSearchOptions {
 }
 
 func (s *ElasticSearchOptions) ApplyTo(options *ElasticSearchOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}

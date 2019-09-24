@@ -7,14 +7,14 @@ import (
 
 // S3Options contains configuration to access a s3 service
 type S3Options struct {
-	Endpoint        string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Region          string `json:"region,omitempty" yaml:"region,omitempty"`
+	Endpoint        string `json:"endpoint,omitempty" yaml:"endpoint"`
+	Region          string `json:"region,omitempty" yaml:"region"`
 	DisableSSL      bool   `json:"disableSSL" yaml:"disableSSL"`
-	ForcePathStyle  bool   `json:"forcePathStyle" yaml:"forePathStyle"`
-	AccessKeyID     string `json:"accessKeyID,omitempty" yaml:"accessKeyID,omitempty"`
-	SecretAccessKey string `json:"secretAccessKey,omitempty" yaml:"secretAccessKey,omitempty"`
-	SessionToken    string `json:"sessionToken,omitempty" yaml:"sessionToken,omitempty"`
-	Bucket          string `json:"bucket,omitempty" yaml:"bucket,omitempty"`
+	ForcePathStyle  bool   `json:"forcePathStyle" yaml:"forcePathStyle"`
+	AccessKeyID     string `json:"accessKeyID,omitempty" yaml:"accessKeyID"`
+	SecretAccessKey string `json:"secretAccessKey,omitempty" yaml:"secretAccessKey"`
+	SessionToken    string `json:"sessionToken,omitempty" yaml:"sessionToken"`
+	Bucket          string `json:"bucket,omitempty" yaml:"bucket"`
 }
 
 // NewS3Options creates a default disabled S3Options(empty endpoint)
@@ -40,11 +40,6 @@ func (s *S3Options) Validate() []error {
 
 // ApplyTo overrides options if it's valid, which endpoint is not empty
 func (s *S3Options) ApplyTo(options *S3Options) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.Endpoint != "" {
 		reflectutils.Override(options, s)
 	}

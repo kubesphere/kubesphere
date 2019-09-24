@@ -91,7 +91,7 @@ func Load() error {
 		}
 	}
 
-	conf := &Config{}
+	conf := newConfig()
 	if err := viper.Unmarshal(conf); err != nil {
 		klog.Error(fmt.Errorf("error unmarshal configuration %v", err))
 		return err

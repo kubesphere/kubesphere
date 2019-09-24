@@ -7,8 +7,8 @@ import (
 )
 
 type OpenPitrixOptions struct {
-	APIServer string `json:"apiServer,omitempty" yaml:"apiServer,omitempty"`
-	Token     string `json:"token,omitempty" yaml:"token,omitempty"`
+	APIServer string `json:"apiServer,omitempty" yaml:"apiServer"`
+	Token     string `json:"token,omitempty" yaml:"token"`
 }
 
 func NewOpenPitrixOptions() *OpenPitrixOptions {
@@ -19,11 +19,6 @@ func NewOpenPitrixOptions() *OpenPitrixOptions {
 }
 
 func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
-	if options == nil {
-		options = s
-		return
-	}
-
 	if s.APIServer != "" {
 		reflectutils.Override(options, s)
 	}

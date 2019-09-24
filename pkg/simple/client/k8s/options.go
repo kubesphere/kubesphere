@@ -14,15 +14,15 @@ type KubernetesOptions struct {
 	// kubernetes apiserver public address, used to generate kubeconfig
 	// for downloading, default to host defined in kubeconfig
 	// +optional
-	Master string `json:"master,omitempty" yaml:"master,omitempty"`
+	Master string `json:"master,omitempty" yaml:"master"`
 
 	// kubernetes clientset qps
 	// +optional
-	QPS float32 `json:"qps,omitemtpy" yaml:"qps,omitempty"`
+	QPS float32 `json:"qps,omitemtpy" yaml:"qps"`
 
 	// kubernetes clientset burst
 	// +optional
-	Burst int `json:"burst,omitempty" yaml:"burst,omitempty"`
+	Burst int `json:"burst,omitempty" yaml:"burst"`
 }
 
 // NewKubernetesOptions returns a `zero` instance
@@ -46,10 +46,6 @@ func (k *KubernetesOptions) Validate() []error {
 }
 
 func (k *KubernetesOptions) ApplyTo(options *KubernetesOptions) {
-	if options == nil {
-		options = k
-		return
-	}
 	reflectutils.Override(options, k)
 }
 
