@@ -24,6 +24,8 @@ import (
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"strings"
 )
 
@@ -31,6 +33,8 @@ type ServerRunOptions struct {
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 	KubernetesOptions       *k8s.KubernetesOptions
 	LdapOptions             *ldap.LdapOptions
+	RedisOptions            *redis.RedisOptions
+	MySQLOptions            *mysql.MySQLOptions
 	AdminEmail              string
 	AdminPassword           string
 	TokenExpireTime         string
@@ -43,6 +47,8 @@ func NewServerRunOptions() *ServerRunOptions {
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
 		KubernetesOptions:       k8s.NewKubernetesOptions(),
 		LdapOptions:             ldap.NewLdapOptions(),
+		MySQLOptions:            mysql.NewMySQLOptions(),
+		RedisOptions:            redis.NewRedisOptions(),
 	}
 	return s
 }
@@ -51,15 +57,17 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 
 	fs := fss.FlagSet("generic")
 
+	s.GenericServerRunOptions.AddFlags(fs)
 	fs.StringVar(&s.AdminEmail, "admin-email", "admin@kubesphere.io", "default administrator's email")
 	fs.StringVar(&s.AdminPassword, "admin-password", "passw0rd", "default administrator's password")
 	fs.StringVar(&s.TokenExpireTime, "token-expire-time", "2h", "token expire time,valid time units are \"ns\",\"us\",\"ms\",\"s\",\"m\",\"h\"")
 	fs.StringVar(&s.JWTSecret, "jwt-secret", "", "jwt secret")
 	fs.StringVar(&s.AuthRateLimit, "auth-rate-limit", "5/30m", "specifies the maximum number of authentication attempts permitted and time interval,valid time units are \"s\",\"m\",\"h\"")
 
-	s.GenericServerRunOptions.AddFlags(fs)
-
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
+	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))
+	s.RedisOptions.AddFlags(fss.FlagSet("redis"))
+	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
