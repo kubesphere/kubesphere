@@ -18,19 +18,22 @@
 package app
 
 import (
-	goflag "flag"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-iam/app/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server"
+	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/server/filter"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
-	"log"
+	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
 	"time"
 )
@@ -40,25 +43,50 @@ func NewAPIServerCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use: "ks-iam",
-		Long: `The KubeSphere API server validates and configures data
+		Long: `The KubeSphere account server validates and configures data
 for the api objects. The API Server services REST operations and provides the frontend to the
 cluster's shared state through which all other components interact.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Run(s)
+
+			err := apiserverconfig.Load()
+			if err != nil {
+				return err
+			}
+
+			err = Complete(s)
+			if err != nil {
+				return err
+			}
+
+			if errs := s.Validate(); len(errs) != 0 {
+				return utilerrors.NewAggregate(errs)
+			}
+
+			return Run(s, signals.SetupSignalHandler())
 		},
 	}
-	s.AddFlags(cmd.Flags())
-	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
+
+	fs := cmd.Flags()
+	namedFlagSets := s.Flags()
+
+	for _, f := range namedFlagSets.FlagSets {
+		fs.AddFlagSet(f)
+	}
+
+	usageFmt := "Usage:\n  %s\n"
+	cols, _, _ := term.TerminalSize(cmd.OutOrStdout())
+	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\n\n"+usageFmt, cmd.Long, cmd.UseLine())
+		cliflag.PrintSections(cmd.OutOrStdout(), namedFlagSets, cols)
+	})
 
 	return cmd
 }
 
-func Run(s *options.ServerRunOptions) error {
-	pflag.VisitAll(func(flag *pflag.Flag) {
-		log.Printf("FLAG: --%s=%q", flag.Name, flag.Value)
-	})
-
-	var err error
+func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
+	csop := client.NewClientSetOptions()
+	csop.SetKubernetesOptions(s.KubernetesOptions).SetLdapOptions(s.LdapOptions)
+	client.NewClientSetFactory(csop, stopChan)
 
 	expireTime, err := time.ParseDuration(s.TokenExpireTime)
 
@@ -66,7 +94,7 @@ func Run(s *options.ServerRunOptions) error {
 		return err
 	}
 
-	waitForResourceSync()
+	waitForResourceSync(stopChan)
 
 	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime, s.AuthRateLimit)
 	jwtutil.Setup(s.JWTSecret)
@@ -80,27 +108,34 @@ func Run(s *options.ServerRunOptions) error {
 	container.DoNotRecover(false)
 	container.RecoverHandler(server.LogStackOnRecover)
 
-	for _, webservice := range container.RegisteredWebServices() {
-		for _, route := range webservice.Routes() {
-			log.Println(route.Method, route.Path)
-		}
-	}
-
 	if s.GenericServerRunOptions.InsecurePort != 0 {
-		log.Printf("Server listening on %d.", s.GenericServerRunOptions.InsecurePort)
+		klog.Infof("Server listening on %s:%d ", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort)
 		err = http.ListenAndServe(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort), container)
 	}
 
 	if s.GenericServerRunOptions.SecurePort != 0 && len(s.GenericServerRunOptions.TlsCertFile) > 0 && len(s.GenericServerRunOptions.TlsPrivateKey) > 0 {
-		log.Printf("Server listening on %d.", s.GenericServerRunOptions.SecurePort)
+		klog.Infof("Server listening on %s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort)
 		err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.SecurePort), s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey, container)
 	}
 
 	return err
 }
 
-func waitForResourceSync() {
-	stopChan := signals.SetupSignalHandler()
+func Complete(s *options.ServerRunOptions) error {
+	conf := apiserverconfig.Get()
+
+	conf.Apply(&apiserverconfig.Config{
+		KubernetesOptions: s.KubernetesOptions,
+		LdapOptions:       s.LdapOptions,
+	})
+
+	s.KubernetesOptions = conf.KubernetesOptions
+	s.LdapOptions = conf.LdapOptions
+
+	return nil
+}
+
+func waitForResourceSync(stopCh <-chan struct{}) {
 
 	informerFactory := informers.SharedInformerFactory()
 	informerFactory.Rbac().V1().Roles().Lister()
@@ -110,13 +145,12 @@ func waitForResourceSync() {
 
 	informerFactory.Core().V1().Namespaces().Lister()
 
-	informerFactory.Start(stopChan)
-	informerFactory.WaitForCacheSync(stopChan)
+	informerFactory.Start(stopCh)
+	informerFactory.WaitForCacheSync(stopCh)
 
 	ksInformerFactory := informers.KsSharedInformerFactory()
 	ksInformerFactory.Tenant().V1alpha1().Workspaces().Lister()
 
-	ksInformerFactory.Start(stopChan)
-	ksInformerFactory.WaitForCacheSync(stopChan)
-	log.Println("resources sync success")
+	ksInformerFactory.Start(stopCh)
+	ksInformerFactory.WaitForCacheSync(stopCh)
 }
