@@ -518,7 +518,7 @@ func makePromqlForWorkspace(metricName string, params RequestParams) string {
 	if params.WorkspaceName != "" {
 		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace="%s"`, params.WorkspaceName)
 	} else {
-		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace=~"%s"`, params.ResourcesFilter)
+		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace=~"%s", label_kubesphere_io_workspace!=""`, params.ResourcesFilter)
 	}
 
 	return strings.Replace(exp, "$1", workspaceSelector, -1)
