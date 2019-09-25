@@ -13,10 +13,34 @@
 
 [KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform that built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage computing resources with a few clicks, which reduces the learning curve and empowers the DevOps teams. It greatly reduces the complexity of the daily work of development, testing, operation and maintenance, aiming to alleviate the pain points of Kubernetes' storage, network, security and ease of use, etc.
 
-> See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
+> All versions are 100% open source, see this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
 
-![Dashboard](docs/images/dashboard.png)
+<!-- ![Dashboard](docs/images/dashboard.png) -->
 
+## Screenshots
+
+> Note: See the [Screenshots](docs/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
+
+
+<table>
+  <tr>
+      <td width="50%" align="center"><b>KubeSphere Dashboard</b></td>
+      <td width="50%" align="center"><b>Project Resources</b></td>
+  </tr>
+  <tr>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003707.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003504.png"/></td>
+  </tr>
+  <tr>
+      <td width="50%" align="center"><b>CI/CD Pipeline</b></td>
+      <td width="50%" align="center"><b>Application Template</b></td>
+  </tr>
+  <tr>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925231623.png"/></td>
+  </tr>
+</table>
+ 
 ## Features
 
 KubeSphere Advanced Edition 2.0.2 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
@@ -38,9 +62,7 @@ KubeSphere Advanced Edition 2.0.2 provides an easy-to-use console with the aweso
 
 It also supports multiple open source storage and high-performance cloud storage as the persistent storage services, as well as supports multiple open source network plugins.
 
-> Note:
-> - See the [Screenshots](docs/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
-> - See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
+> Note: See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
 
 ----
 
@@ -83,18 +105,22 @@ $ ./install.sh
 Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
 
 > Note: 
-> - In a formal environment, it's highly recommended to install KubeSphere with [Multi-Node Installation](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
 > - Click [here](https://asciinema.org/~lilin) to preview the installation demo.
+> - In a formal environment, it's highly recommended to install KubeSphere with [Multi-Node Installation](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
+
 
 ## To start using KubeSphere
 
 ### Quick Start
 
-The [Quick Start Guide](https://docs.kubesphere.io/advanced-v2.0/quick-start/admin-quick-start/) provides 12 quick-start tutorials to walk you through the process and common manipulation in KubeSphere, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
+KubeSphere provides 12 quick-start tutorials to walk you through the process and common manipulation, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
+
+- [Get Started - 中](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/quick-start-guide/)
+- [Get Started - En](https://github.com/kubesphere/kubesphere.github.io/tree/master/blog/advanced-2.0/en)
 
 ### Documentation
 
-- [KubeSphere Documentation (En/中) ](https://docs.kubesphere.io/)
+- [KubeSphere Documentation (En/中) ](https://kubesphere.io/docs)
 - [KubeSphere Documentation (PDF)](https://docs.kubesphere.io/KubeSphere-advanced-v2.0.pdf)
 - [API Documentation](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
 
@@ -109,7 +135,18 @@ Currently, KubeSphere has released the following 4 major editions. The future re
 
 **Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
 
-![Roadmap](docs/images/roadmap-2.0.2-en.png)
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
+
+## Landscapes
+
+<p align="center">
+<br/><br/>
+<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>&nbsp;&nbsp;<img src="https://www.cncf.io/wp-content/uploads/2017/11/certified_kubernetes_color.png" height="40" width="30"/>
+<br/><br/>
+KubeSphere is a member of CNCF and a <a href="https://www.cncf.io/certification/software-conformance/#logos">Kubernetes Conformance Certified platform
+</a>, which enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.
+</a>
+</p>
 
 
 ## Support, Discussion, and Community

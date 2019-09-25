@@ -17,7 +17,27 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 
 > 说明：KubeSphere 目前最新的版本为高级版 2.0.2，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [产品介绍](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/)。
 
-![Dashboard](docs/images/dashboard-zh.png)
+
+点击 [KubeSphere 快览](docs/screenshots.md) 快速查看 KubeSphere UI；
+
+<table>
+  <tr>
+      <td width="50%" align="center"><b>KubeSphere 控制台</b></td>
+      <td width="50%" align="center"><b>项目资源管理</b></td>
+  </tr>
+  <tr>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003707.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003504.png"/></td>
+  </tr>
+  <tr>
+      <td width="50%" align="center"><b>CI/CD 流水线</b></td>
+      <td width="50%" align="center"><b>应用模板</b></td>
+  </tr>
+  <tr>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925231623.png"/></td>
+  </tr>
+</table>
 
 ## 核心功能
 
@@ -35,9 +55,7 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 - 支持 GPU 节点
 
 
-> 说明
-> - 点击 [KubeSphere 快览](docs/screenshots.md) 快速查看 KubeSphere UI；
-> - 更多详细的功能解读与说明，请查阅 [产品功能](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/)。
+> 更多详细的功能解读与说明，请查阅 [产品功能](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/)。
 
 ----
 
@@ -106,8 +124,18 @@ KubeSphere 支持部署在现有的 Kubernetes 集群之上，请参考 [KubeSph
 
 **Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
 
-![Roadmap](docs/images/roadmap-2.0.2-zh.png)
+![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000514.png)
 
+## Landscapes
+
+<p align="center">
+<br/><br/>
+<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>&nbsp;&nbsp;<img src="https://www.cncf.io/wp-content/uploads/2017/11/certified_kubernetes_color.png" height="40" width="30"/>
+<br/><br/>
+KubeSphere 是 CNCF 基金会成员并且通过了 <a href="https://www.cncf.io/certification/software-conformance/#logos">Kubernetes 一致性认证
+</a>，进一步丰富了 <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF 云原生的生态。
+</a>
+</p>
 
 ## 技术社区
 
