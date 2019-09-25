@@ -121,12 +121,12 @@ func GetResource(namespace, resource, name string) (interface{}, error) {
 	if searcher, ok := resources[resource]; ok {
 		resource, err := searcher.get(namespace, name)
 		if err != nil {
-			klog.Errorln("get resource", namespace, resource, name, err)
+			klog.Errorf("resource %s.%s.%s not found: %s", namespace, resource, name, err)
 			return nil, err
 		}
 		return resource, nil
 	}
-	return nil, fmt.Errorf("resource %s not found", resource)
+	return nil, fmt.Errorf("resource %s.%s.%s not found", namespace, resource, name)
 }
 
 func ListResources(namespace, resource string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
@@ -136,19 +136,21 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 
 	// none namespace resource
 	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
-		klog.Errorln("resources not found", resource)
-		return nil, fmt.Errorf("not found")
+		err = fmt.Errorf("namespaced resource %s not found", resource)
+		klog.Errorln(err)
+		return nil, err
 	}
 
 	if searcher, ok := resources[resource]; ok {
 		result, err = searcher.search(namespace, conditions, orderBy, reverse)
 	} else {
-		klog.Errorln("resources not found", resource)
-		return nil, fmt.Errorf("not found")
+		err = fmt.Errorf("namespaced resource %s not found", resource)
+		klog.Errorln(err)
+		return nil, err
 	}
 
 	if err != nil {
-		klog.Errorln("resources search", err)
+		klog.Errorln(err)
 		return nil, err
 	}
 

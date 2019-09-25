@@ -35,13 +35,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/workloadstatuses"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/applications"
 	gitmodel "kubesphere.io/kubesphere/pkg/models/git"
 	registriesmodel "kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/models/status"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"net/http"
 )
 
@@ -109,61 +107,6 @@ func addWebService(c *restful.Container) error {
 		Doc("remove a node from service, safely evict all of your pods from a node and you can power down the node. More info: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/").
 		Param(webservice.PathParameter("node", "node name")).
 		Returns(http.StatusOK, ok, errors.Error{}))
-
-	webservice.Route(webservice.GET("/applications").
-		To(resources.ListApplication).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
-		Doc("List applications in cluster").
-		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
-			Required(false).
-			DataFormat("key=value,key~value").
-			DefaultValue("")).
-		Param(webservice.QueryParameter("cluster_id", "equivalent to application unique ID")).
-		Param(webservice.QueryParameter("runtime_id", "runtime id initialization when namespace is created, means which namespace")).
-		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
-			Required(false).
-			DataFormat("limit=%d,page=%d").
-			DefaultValue("limit=10,page=1")))
-
-	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
-		To(resources.ListNamespacedApplication).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("List all applications within the specified namespace").
-		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
-			Required(false).
-			DataFormat("key=value,key~value").
-			DefaultValue("")).
-		Param(webservice.PathParameter("namespace", "the name of the project")).
-		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
-			Required(false).
-			DataFormat("limit=%d,page=%d").
-			DefaultValue("limit=10,page=1")))
-
-	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{application}").
-		To(resources.DescribeApplication).
-		Returns(http.StatusOK, ok, applications.Application{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("Describe the specified application of the namespace").
-		Param(webservice.PathParameter("namespace", "the name of the project")).
-		Param(webservice.PathParameter("application", "application ID")))
-
-	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
-		To(resources.DeployApplication).
-		Doc("Deploy a new application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Reads(openpitrix.CreateClusterRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
-		Param(webservice.PathParameter("namespace", "the name of the project")))
-
-	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
-		To(resources.DeleteApplication).
-		Doc("Delete the specified application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
-		Param(webservice.PathParameter("namespace", "the name of the project")).
-		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.GET("/users/{user}/kubectl").
 		To(resources.GetKubectl).

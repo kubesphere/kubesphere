@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -79,8 +79,12 @@ func newTestConfig() *Config {
 			Bucket:          "ssss",
 		},
 		OpenPitrixOptions: &openpitrix.OpenPitrixOptions{
-			APIServer: "http://api-gateway.openpitrix-system.svc",
-			Token:     "ABCDEFGHIJKLMN",
+			RuntimeManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9103",
+			ClusterManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9104",
+			RepoManagerEndpoint:       "openpitrix-hyperpitrix.openpitrix-system.svc:9101",
+			AppManagerEndpoint:        "openpitrix-hyperpitrix.openpitrix-system.svc:9102",
+			CategoryManagerEndpoint:   "openpitrix-hyperpitrix.openpitrix-system.svc:9113",
+			AttachmentManagerEndpoint: "openpitrix-hyperpitrix.openpitrix-system.svc:9122",
 		},
 		MonitoringOptions: &prometheus.PrometheusOptions{
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",

@@ -250,7 +250,7 @@ func (c *Config) stripEmptyOptions() {
 		c.LdapOptions = nil
 	}
 
-	if c.OpenPitrixOptions != nil && c.OpenPitrixOptions.APIServer == "" {
+	if c.OpenPitrixOptions != nil && len(c.OpenPitrixOptions.Validate()) > 0 {
 		c.OpenPitrixOptions = nil
 	}
 

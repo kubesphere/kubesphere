@@ -56,6 +56,7 @@ const (
 	NamespaceResourcesTag      = "Namespace Resources"
 	ClusterResourcesTag        = "Cluster Resources"
 	ComponentStatusTag         = "Component Status"
+	OpenpitrixTag              = "Openpitrix Resources"
 	VerificationTag            = "Verification"
 	RegistryTag                = "Docker Registry"
 	UserResourcesTag           = "User Resources"
