@@ -85,7 +85,11 @@ cluster's shared state through which all other components interact.`,
 
 func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
 	csop := client.NewClientSetOptions()
-	csop.SetKubernetesOptions(s.KubernetesOptions).SetLdapOptions(s.LdapOptions)
+	csop.SetKubernetesOptions(s.KubernetesOptions).
+		SetLdapOptions(s.LdapOptions).
+		SetRedisOptions(s.RedisOptions).
+		SetMySQLOptions(s.MySQLOptions)
+
 	client.NewClientSetFactory(csop, stopChan)
 
 	expireTime, err := time.ParseDuration(s.TokenExpireTime)
@@ -127,10 +131,14 @@ func Complete(s *options.ServerRunOptions) error {
 	conf.Apply(&apiserverconfig.Config{
 		KubernetesOptions: s.KubernetesOptions,
 		LdapOptions:       s.LdapOptions,
+		RedisOptions:      s.RedisOptions,
+		MySQLOptions:      s.MySQLOptions,
 	})
 
 	s.KubernetesOptions = conf.KubernetesOptions
 	s.LdapOptions = conf.LdapOptions
+	s.RedisOptions = conf.RedisOptions
+	s.MySQLOptions = conf.MySQLOptions
 
 	return nil
 }
