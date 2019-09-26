@@ -107,7 +107,7 @@ func generateSwaggerJson() {
 		},
 	})
 
-	data, _ := json.Marshal(swagger)
+	data, _ := json.MarshalIndent(swagger, "", "  ")
 	err := ioutil.WriteFile(output, data, 420)
 	if err != nil {
 		log.Fatal(err)

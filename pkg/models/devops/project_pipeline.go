@@ -83,7 +83,7 @@ type MultiBranchPipeline struct {
 	SingleSvnSource       *SingleSvnSource       `json:"single_svn_source,omitempty" description:"single branch svn scm define"`
 	BitbucketServerSource *BitbucketServerSource `json:"bitbucket_server_source,omitempty" description:"bitbucket server scm defile"`
 	ScriptPath            string                 `json:"script_path" mapstructure:"script_path" description:"script path in scm"`
-	MultiBranchJobTrigger *MultiBranchJobTrigger `json:"multibranch_job_triggeromitempty" mapstructure:"multibranch_job_trigger" description:"Pipeline tasks that need to be triggered when branch creation/deletion"`
+	MultiBranchJobTrigger *MultiBranchJobTrigger `json:"multibranch_job_trigger,omitempty" mapstructure:"multibranch_job_trigger" description:"Pipeline tasks that need to be triggered when branch creation/deletion"`
 }
 
 type GitSource struct {
