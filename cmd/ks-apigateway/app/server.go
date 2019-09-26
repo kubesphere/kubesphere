@@ -1,6 +1,7 @@
 package app
 
 import (
+	"flag"
 	"github.com/mholt/caddy/caddy/caddymain"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
 	"github.com/spf13/cobra"
@@ -27,6 +28,8 @@ Kubernetes API Server for KubeSphere authorization purpose.
 			return Run(signals.SetupSignalHandler())
 		},
 	}
+
+	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	return cmd
 }
