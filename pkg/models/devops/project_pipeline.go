@@ -420,6 +420,7 @@ func (s *GitSource) appendToEtree(source *etree.Element) *GitSource {
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
 		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
 		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
+		cloneExtension.CreateElement("honorRefspec").SetText(strconv.FormatBool(true))
 		cloneExtension.CreateElement("reference")
 		if s.CloneOption.Timeout >= 0 {
 			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
@@ -599,6 +600,7 @@ func (s *GithubSource) appendToEtree(source *etree.Element) *GithubSource {
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
 		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
 		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
+		cloneExtension.CreateElement("honorRefspec").SetText(strconv.FormatBool(true))
 		cloneExtension.CreateElement("reference")
 		if s.CloneOption.Timeout >= 0 {
 			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
@@ -732,6 +734,7 @@ func (s *BitbucketServerSource) appendToEtree(source *etree.Element) *BitbucketS
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
 		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
 		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
+		cloneExtension.CreateElement("honorRefspec").SetText(strconv.FormatBool(true))
 		cloneExtension.CreateElement("reference")
 		if s.CloneOption.Timeout >= 0 {
 			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
