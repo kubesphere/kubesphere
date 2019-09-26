@@ -34,10 +34,12 @@ import (
 	_ "kubesphere.io/kubesphere/pkg/apis/iam/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/openpitrix/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
 	_ "kubesphere.io/kubesphere/pkg/apis/tenant/install"
+	_ "kubesphere.io/kubesphere/pkg/apis/terminal/install"
 )
 
 var output string

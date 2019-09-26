@@ -31,10 +31,16 @@ var Container = restful.NewContainer()
 
 type ContainerBuilder []func(c *restful.Container) error
 
-//
+const MimeMergePatchJson = "application/merge-patch+json"
+const MimeJsonPatchJson = "application/json-patch+json"
+
+func init() {
+	restful.RegisterEntityAccessor(MimeMergePatchJson, restful.NewEntityAccessorJSON(restful.MIME_JSON))
+	restful.RegisterEntityAccessor(MimeJsonPatchJson, restful.NewEntityAccessorJSON(restful.MIME_JSON))
+}
+
 func NewWebService(gv schema.GroupVersion) *restful.WebService {
 	webservice := restful.WebService{}
-
 	webservice.Path(ApiRootPath + "/" + gv.String()).
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)

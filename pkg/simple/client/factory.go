@@ -302,7 +302,14 @@ func (cs *ClientSet) S3() (*s2is3.S3Client, error) {
 func (cs *ClientSet) OpenPitrix() (*openpitrix.OpenPitrixClient, error) {
 	var err error
 
-	if cs.csoptions.openPitrixOptions == nil || cs.csoptions.openPitrixOptions.APIServer == "" {
+	if cs.csoptions.openPitrixOptions == nil ||
+		cs.csoptions.openPitrixOptions.RepoManagerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.RuntimeManagerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.ClusterManagerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.AppManagerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.AttachmentManagerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.RepoIndexerEndpoint == "" ||
+		cs.csoptions.openPitrixOptions.CategoryManagerEndpoint == "" {
 		return nil, ClientSetNotEnabledError{}
 	}
 

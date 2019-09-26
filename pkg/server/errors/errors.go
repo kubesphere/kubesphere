@@ -18,8 +18,6 @@
 package errors
 
 import (
-	"encoding/json"
-	"errors"
 	"github.com/emicklei/go-restful"
 	"net/http"
 )
@@ -40,20 +38,6 @@ func Wrap(err error) Error {
 
 func New(message string) Error {
 	return Error{Message: message}
-}
-
-func Parse(data []byte) error {
-	var j map[string]string
-	err := json.Unmarshal(data, &j)
-	if err != nil {
-		return errors.New(string(data))
-	} else if message := j["message"]; message != "" {
-		return errors.New(message)
-	} else if message := j["Error"]; message != "" {
-		return errors.New(message)
-	} else {
-		return errors.New(string(data))
-	}
 }
 
 func ParseSvcErr(err error, resp *restful.Response) {
