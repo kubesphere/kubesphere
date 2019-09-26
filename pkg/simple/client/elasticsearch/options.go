@@ -21,7 +21,7 @@ func NewElasticSearchOptions() *ElasticSearchOptions {
 		Index:          "fluentbit",
 		LogstashPrefix: "",
 		Match:          "kube.*",
-		Version:        "6",
+		Version:        "",
 	}
 }
 
