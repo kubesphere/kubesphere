@@ -60,7 +60,7 @@ type ElasticSearchClient struct {
 }
 
 func NewLoggingClient(options *ElasticSearchOptions) (*ElasticSearchClient, error) {
-	version := "6"
+	var version, index string
 	esClient := &ElasticSearchClient{}
 
 	if options.Version == "" {
@@ -69,23 +69,25 @@ func NewLoggingClient(options *ElasticSearchOptions) (*ElasticSearchClient, erro
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		version = options.Version
 	}
 
 	if options.LogstashFormat {
 		if options.LogstashPrefix != "" {
-			options.Index = options.LogstashPrefix
+			index = options.LogstashPrefix
 		} else {
-			options.Index = "logstash"
+			index = "logstash"
 		}
 	}
 
 	switch version {
 	case ElasticV5:
-		esClient.client = v5.New(options.Host, options.Index)
+		esClient.client = v5.New(options.Host, index)
 	case ElasticV6:
-		esClient.client = v6.New(options.Host, options.Index)
+		esClient.client = v6.New(options.Host, index)
 	case ElasticV7:
-		esClient.client = v7.New(options.Host, options.Index)
+		esClient.client = v7.New(options.Host, index)
 	default:
 		return nil, fmt.Errorf("unsupported elasticsearch version %s", version)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"io/ioutil"
+	"k8s.io/klog"
 	"time"
 )
 
@@ -17,9 +18,13 @@ type Elastic struct {
 }
 
 func New(address string, index string) *Elastic {
-	client, _ := elasticsearch.NewClient(elasticsearch.Config{
+	client, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{address},
 	})
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
 
 	return &Elastic{client: client, index: index}
 }
