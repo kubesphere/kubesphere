@@ -250,7 +250,7 @@ func (c *Config) stripEmptyOptions() {
 		c.LdapOptions = nil
 	}
 
-	if c.OpenPitrixOptions != nil && len(c.OpenPitrixOptions.Validate()) > 0 {
+	if c.OpenPitrixOptions != nil && c.OpenPitrixOptions.IsEmpty() {
 		c.OpenPitrixOptions = nil
 	}
 
