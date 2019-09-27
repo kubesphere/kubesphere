@@ -37,16 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
 
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/apis/devops/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/logging/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/monitoring/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/openpitrix/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/operations/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/resources/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/servicemesh/metrics/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/tenant/install"
-	_ "kubesphere.io/kubesphere/pkg/apis/terminal/install"
+	"kubesphere.io/kubesphere/pkg/apis"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -142,6 +133,8 @@ func CreateAPIServer(s *options.ServerRunOptions) error {
 	container.DoNotRecover(false)
 	container.Filter(filter.Logging)
 	container.RecoverHandler(server.LogStackOnRecover)
+
+	apis.InstallAPIs(container)
 
 	// install config api
 	apiserverconfig.InstallAPI(container)

@@ -20,8 +20,6 @@ package main
 import (
 	"kubesphere.io/kubesphere/cmd/ks-iam/app"
 	"log"
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/apis/iam/install"
 )
 
 func main() {

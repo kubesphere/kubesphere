@@ -8,6 +8,8 @@ import (
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
+
+	"kubesphere.io/kubesphere/pkg/apigateway"
 )
 
 func NewAPIGatewayCommand() *cobra.Command {
@@ -24,6 +26,8 @@ Kubernetes API Server for KubeSphere authorization purpose.
 			if err != nil {
 				return err
 			}
+
+			apigateway.RegisterPlugins()
 
 			return Run(signals.SetupSignalHandler())
 		},

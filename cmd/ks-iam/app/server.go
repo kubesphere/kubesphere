@@ -36,6 +36,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
 	"time"
+
+	"kubesphere.io/kubesphere/pkg/apis"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -111,6 +113,8 @@ func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
 	container.Filter(filter.Logging)
 	container.DoNotRecover(false)
 	container.RecoverHandler(server.LogStackOnRecover)
+
+	apis.InstallAuthorizationAPIs(container)
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
 		klog.Infof("Server listening on %s:%d ", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort)
