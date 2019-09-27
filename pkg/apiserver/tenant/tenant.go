@@ -339,6 +339,7 @@ func ListDevopsRules(req *restful.Request, resp *restful.Response) {
 }
 
 func LogQuery(req *restful.Request, resp *restful.Response) {
+	operation := req.QueryParameter("operation")
 	req, err := regenerateLoggingRequest(req)
 	switch {
 	case err != nil:
@@ -346,10 +347,11 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 	case req != nil:
 		logging.LoggingQueryCluster(req, resp)
 	default:
-		if req.QueryParameter("operation") == "export" {
+		if operation == "export" {
+			resp.Header().Set("Content-Type", restful.MIME_OCTET)
 			resp.Write(nil)
 		} else {
-			resp.WriteAsJson(loggingv1alpha2.QueryResult{})
+			resp.WriteAsJson(loggingv1alpha2.QueryResult{Read: new(loggingv1alpha2.ReadResult)})
 		}
 	}
 }
