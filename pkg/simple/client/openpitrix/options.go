@@ -30,6 +30,16 @@ func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
 	}
 }
 
+func (s *OpenPitrixOptions) IsEmpty() bool {
+	return s.RuntimeManagerEndpoint == "" &&
+		s.ClusterManagerEndpoint == "" &&
+		s.RepoManagerEndpoint == "" &&
+		s.AppManagerEndpoint == "" &&
+		s.CategoryManagerEndpoint == "" &&
+		s.AttachmentManagerEndpoint == "" &&
+		s.RepoIndexerEndpoint == ""
+}
+
 func (s *OpenPitrixOptions) Validate() []error {
 	var errs []error
 
