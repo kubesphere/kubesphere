@@ -405,6 +405,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 		kubesphereRuntimeCredentialId = resp.GetRuntimeCredentialId().GetValue()
 	}
 
+	// TODO runtime id is invalid when recreate runtime
 	runtimeId, err := openPitrixClient.Runtime().CreateRuntime(openpitrix.SystemContext(), &pb.CreateRuntimeRequest{
 		Name:                &wrappers.StringValue{Value: namespace.Name},
 		RuntimeCredentialId: &wrappers.StringValue{Value: kubesphereRuntimeCredentialId},
