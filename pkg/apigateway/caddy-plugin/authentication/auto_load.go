@@ -27,13 +27,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
-func init() {
-	caddy.RegisterPlugin("authentication", caddy.Plugin{
-		ServerType: "http",
-		Action:     Setup,
-	})
-}
-
 // Setup is called by Caddy to parse the config block
 func Setup(c *caddy.Controller) error {
 

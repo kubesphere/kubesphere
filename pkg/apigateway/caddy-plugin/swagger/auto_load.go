@@ -25,13 +25,6 @@ import (
 	"github.com/mholt/caddy/caddyhttp/httpserver"
 )
 
-func init() {
-	caddy.RegisterPlugin("swagger", caddy.Plugin{
-		ServerType: "http",
-		Action:     Setup,
-	})
-}
-
 func Setup(c *caddy.Controller) error {
 
 	handler, err := parse(c)

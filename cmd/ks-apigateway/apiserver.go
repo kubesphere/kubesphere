@@ -20,11 +20,6 @@ package main
 import (
 	"kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 	"os"
-
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authenticate"
-	_ "kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authentication"
-	_ "kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/swagger"
 )
 
 func main() {
