@@ -741,7 +741,7 @@ type CreateScmServerReq struct {
 
 type CheckPlayloadParameters struct {
 	Name  string `json:"name,omitempty" description:"name"`
-	Value string `json:"value,omitempty" description:"value"`
+	Value interface{} `json:"value,omitempty" description:"value"`
 }
 
 // Getcrumb
