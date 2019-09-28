@@ -740,7 +740,7 @@ type CreateScmServerReq struct {
 }
 
 type CheckPlayloadParameters struct {
-	Name  string `json:"name,omitempty" description:"name"`
+	Name  string      `json:"name,omitempty" description:"name"`
 	Value interface{} `json:"value,omitempty" description:"value"`
 }
 
