@@ -172,14 +172,20 @@ func Validate(req *restful.Request, resp *restful.Response) {
 
 	res, err := devops.Validate(scmId, req.Request)
 	if err != nil {
-		parseErr(err, resp)
+		log.Error(err)
+		if jErr, ok := err.(*devops.JkError); ok {
+			if jErr.Code != http.StatusUnauthorized {
+				resp.WriteError(jErr.Code, err)
+			} else {
+				resp.WriteHeader(http.StatusPreconditionRequired)
+			}
+		} else {
+			resp.WriteError(http.StatusInternalServerError, err)
+		}
 		return
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	if resp.StatusCode() == http.StatusUnauthorized {
-		resp.WriteHeader(http.StatusPreconditionRequired)
-	}
 	resp.Write(res)
 }
 
