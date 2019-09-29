@@ -4,6 +4,8 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
@@ -14,6 +16,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/metrics"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -241,6 +244,42 @@ func (c *S2iRunController) DeleteS2iBinary(s2irun *s2iv1alpha1.S2iRun) error {
 		klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s ", s2irun.Namespace, s2iBinName))
 		return err
 	}
+	if err = c.cleanOtherS2iBinary(s2irun.Namespace); err != nil {
+		klog.Error(err, fmt.Sprintf("failed to clean s2ibinary in %s", s2irun.Namespace))
+	}
 
+	return nil
+}
+
+// cleanOtherS2iBinary clean up s2ibinary created for more than 24 hours without associated s2irun
+func (c *S2iRunController) cleanOtherS2iBinary(namespace string) error {
+	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(nil)
+	if err != nil {
+		klog.Error(err, fmt.Sprintf("failed to list s2ibin in %s ", namespace))
+		return err
+	}
+	now := time.Now()
+	dayBefore := metav1.NewTime(now.Add(time.Hour * 24 * -1))
+	for _, s2iBin := range s2iBins {
+		if s2iBin.Status.Phase != devopsv1alpha1.StatusReady && s2iBin.CreationTimestamp.Before(&dayBefore) {
+
+			runs, err := c.s2iRunLister.S2iRuns(namespace).List(labels.SelectorFromSet(labels.Set{devopsv1alpha1.S2iBinaryLabelKey: s2iBin.Name}))
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to list s2irun in  %s ", namespace))
+				return err
+			}
+			if len(runs) == 0 {
+				err = c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Delete(s2iBin.Name, nil)
+				if err != nil {
+					if errors.IsNotFound(err) {
+						klog.Info(fmt.Sprintf("s2ibin '%s/%s' has been delted ", namespace, s2iBin.Name))
+						return nil
+					}
+					klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s ", namespace, s2iBin.Name))
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
