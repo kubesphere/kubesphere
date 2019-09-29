@@ -32,6 +32,11 @@ import (
 	"strings"
 )
 
+const (
+	BuiltinRepoId = "repo-helm"
+	StatusActive  = "active"
+)
+
 func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	client, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
@@ -53,7 +58,12 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 		describeAppsRequest.CategoryId = strings.Split(categoryId, "|")
 	}
 	if repoId := conditions.Match["repo"]; repoId != "" {
-		describeAppsRequest.RepoId = strings.Split(repoId, "|")
+		// hard code, app template in built-in repo has no repo_id attribute
+		if repoId == BuiltinRepoId {
+			describeAppsRequest.RepoId = []string{"\u0000"}
+		} else {
+			describeAppsRequest.RepoId = strings.Split(repoId, "|")
+		}
 	}
 	if status := conditions.Match["status"]; status != "" {
 		describeAppsRequest.Status = strings.Split(status, "|")
