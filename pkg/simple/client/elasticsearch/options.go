@@ -6,22 +6,16 @@ import (
 )
 
 type ElasticSearchOptions struct {
-	Host           string `json:"host" yaml:"host"`
-	LogstashFormat bool   `json:"logstashFormat" yaml:"logstashFormat"`
-	Index          string `json:"index" yaml:"index"`
-	LogstashPrefix string `json:"logstashPrefix,omitempty" yaml:"logstashPrefix"`
-	Match          string `json:"match" yaml:"match"`
-	Version        string `json:"version" yaml:"version"`
+	Host        string `json:"host" yaml:"host"`
+	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
+	Version     string `json:"version" yaml:"version"`
 }
 
 func NewElasticSearchOptions() *ElasticSearchOptions {
 	return &ElasticSearchOptions{
-		Host:           "",
-		LogstashFormat: false,
-		Index:          "fluentbit",
-		LogstashPrefix: "",
-		Match:          "kube.*",
-		Version:        "",
+		Host:        "",
+		IndexPrefix: "fluentbit",
+		Version:     "",
 	}
 }
 
@@ -43,19 +37,8 @@ func (s *ElasticSearchOptions) AddFlags(fs *pflag.FlagSet) {
 		"if this filed left blank, KubeSphere will use kubernetes builtin log API instead, and"+
 		" the following elastic search options will be ignored.")
 
-	fs.BoolVar(&s.LogstashFormat, "logstash-format", s.LogstashFormat, ""+
-		"Whether to toggle logstash format compatibility.")
-
-	fs.StringVar(&s.LogstashPrefix, "logstash-prefix", s.LogstashPrefix, ""+
-		"If logstash-format is enabled, the Index name is composed using a prefix and the date,"+
-		"e.g: If logstash-prefix is equals to 'mydata' your index will become 'mydata-YYYY.MM.DD'."+
-		"The last string appended belongs to the date when the data is being generated.")
-
-	fs.StringVar(&s.Match, "elasticsearch-match", s.Match, ""+
-		"The regex match for index, eg. kube.*")
-
-	fs.StringVar(&s.Index, "elasticsearch-index", s.Index, ""+
-		"Index name.")
+	fs.StringVar(&s.IndexPrefix, "index-prefix", s.IndexPrefix, ""+
+		"Index name prefix. KubeSphere will retrieve logs against indices matching the prefix.")
 
 	fs.StringVar(&s.Version, "elasticsearch-version", s.Version, ""+
 		"ElasticSearch major version, e.g. 5/6/7, if left blank, will detect automatically."+

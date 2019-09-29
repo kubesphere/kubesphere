@@ -73,12 +73,10 @@ func NewLoggingClient(options *ElasticSearchOptions) (*ElasticSearchClient, erro
 		version = options.Version
 	}
 
-	if options.LogstashFormat {
-		if options.LogstashPrefix != "" {
-			index = options.LogstashPrefix
-		} else {
-			index = "logstash"
-		}
+	if options.IndexPrefix != "" {
+		index = options.IndexPrefix
+	} else {
+		index = "logstash"
 	}
 
 	switch version {
