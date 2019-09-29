@@ -91,12 +91,9 @@ func newTestConfig() *Config {
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
 		LoggingOptions: &esclient.ElasticSearchOptions{
-			Host:           "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
-			LogstashFormat: false,
-			Index:          "",
-			LogstashPrefix: "elk",
-			Match:          "kube.*",
-			Version:        "6",
+			Host:        "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
+			IndexPrefix: "elk",
+			Version:     "6",
 		},
 		KubeSphereOptions: &kubesphere.KubeSphereOptions{
 			APIServer:     "http://ks-apiserver.kubesphere-system.svc",
