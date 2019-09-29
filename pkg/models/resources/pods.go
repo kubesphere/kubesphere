@@ -140,7 +140,7 @@ func podBelongToService(item *v1.Pod, serviceName string) bool {
 	}
 
 	selector := labels.Set(service.Spec.Selector).AsSelectorPreValidated()
-	if !selector.Matches(labels.Set(item.Labels)) {
+	if selector.Empty() || !selector.Matches(labels.Set(item.Labels)) {
 		return false
 	}
 	return true
