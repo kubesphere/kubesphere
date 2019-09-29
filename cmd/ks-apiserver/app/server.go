@@ -177,6 +177,25 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 func WaitForResourceSync(stopCh <-chan struct{}) error {
 	klog.V(0).Info("Start cache objects")
 
+	discoveryClient := client.ClientSets().K8s().Discovery()
+	apiResourcesList, err := discoveryClient.ServerResources()
+	if err != nil {
+		return err
+	}
+
+	isResourceExists := func(resource schema.GroupVersionResource) bool {
+		for _, apiResource := range apiResourcesList {
+			if apiResource.GroupVersion == resource.GroupVersion().String() {
+				for _, rsc := range apiResource.APIResources {
+					if rsc.Name == resource.Resource {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+
 	informerFactory := informers.SharedInformerFactory()
 
 	// resources we have to create informer first
@@ -212,10 +231,14 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	}
 
 	for _, gvr := range k8sGVRs {
-		_, err := informerFactory.ForResource(gvr)
-		if err != nil {
-			klog.Errorf("cannot create informer for %s", gvr)
-			return err
+		if !isResourceExists(gvr) {
+			klog.Warningf("resource %s not exists in the cluster", gvr)
+		} else {
+			_, err := informerFactory.ForResource(gvr)
+			if err != nil {
+				klog.Errorf("cannot create informer for %s", gvr)
+				return err
+			}
 		}
 	}
 
@@ -231,9 +254,13 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	}
 
 	for _, gvr := range s2iGVRs {
-		_, err := s2iInformerFactory.ForResource(gvr)
-		if err != nil {
-			return err
+		if !isResourceExists(gvr) {
+			klog.Warningf("resource %s not exists in the cluster", gvr)
+		} else {
+			_, err := s2iInformerFactory.ForResource(gvr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -251,9 +278,13 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	}
 
 	for _, gvr := range ksGVRs {
-		_, err := ksInformerFactory.ForResource(gvr)
-		if err != nil {
-			return err
+		if !isResourceExists(gvr) {
+			klog.Warningf("resource %s not exists in the cluster", gvr)
+		} else {
+			_, err := ksInformerFactory.ForResource(gvr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

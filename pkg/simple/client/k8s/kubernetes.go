@@ -2,6 +2,7 @@ package k8s
 
 import (
 	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -11,6 +12,9 @@ import (
 type KubernetesClient struct {
 	// kubernetes client interface
 	k8s *kubernetes.Clientset
+
+	// discovery client
+	discoveryClient *discovery.DiscoveryClient
 
 	// generated clientset
 	ks *kubesphere.Clientset
@@ -33,11 +37,12 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 	config.Burst = options.Burst
 
 	k := &KubernetesClient{
-		k8s:    kubernetes.NewForConfigOrDie(config),
-		ks:     kubesphere.NewForConfigOrDie(config),
-		s2i:    s2i.NewForConfigOrDie(config),
-		master: config.Host,
-		config: config,
+		k8s:             kubernetes.NewForConfigOrDie(config),
+		discoveryClient: discovery.NewDiscoveryClientForConfigOrDie(config),
+		ks:              kubesphere.NewForConfigOrDie(config),
+		s2i:             s2i.NewForConfigOrDie(config),
+		master:          config.Host,
+		config:          config,
 	}
 
 	if options.Master != "" {
@@ -81,6 +86,10 @@ func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) 
 
 func (k *KubernetesClient) Kubernetes() kubernetes.Interface {
 	return k.k8s
+}
+
+func (k *KubernetesClient) Discovery() discovery.DiscoveryInterface {
+	return k.discoveryClient
 }
 
 func (k *KubernetesClient) KubeSphere() kubesphere.Interface {
