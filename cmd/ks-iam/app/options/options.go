@@ -37,9 +37,10 @@ type ServerRunOptions struct {
 	MySQLOptions            *mysql.MySQLOptions
 	AdminEmail              string
 	AdminPassword           string
-	TokenExpireTime         string
+	TokenIdleTimeout        string
 	JWTSecret               string
 	AuthRateLimit           string
+	EnableMultiLogin        bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -60,9 +61,10 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.GenericServerRunOptions.AddFlags(fs)
 	fs.StringVar(&s.AdminEmail, "admin-email", "admin@kubesphere.io", "default administrator's email")
 	fs.StringVar(&s.AdminPassword, "admin-password", "passw0rd", "default administrator's password")
-	fs.StringVar(&s.TokenExpireTime, "token-expire-time", "2h", "token expire time,valid time units are \"ns\",\"us\",\"ms\",\"s\",\"m\",\"h\"")
+	fs.StringVar(&s.TokenIdleTimeout, "token-idle-timeout", "30m", "tokens that are idle beyond that time will expire,0s means the token has no expiration time. valid time units are \"ns\",\"us\",\"ms\",\"s\",\"m\",\"h\"")
 	fs.StringVar(&s.JWTSecret, "jwt-secret", "", "jwt secret")
 	fs.StringVar(&s.AuthRateLimit, "auth-rate-limit", "5/30m", "specifies the maximum number of authentication attempts permitted and time interval,valid time units are \"s\",\"m\",\"h\"")
+	fs.BoolVar(&s.EnableMultiLogin, "enable-multi-login", false, "allow one account to have multiple sessions")
 
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))

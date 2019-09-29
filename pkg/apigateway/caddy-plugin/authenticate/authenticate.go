@@ -20,13 +20,16 @@ package authenticate
 import (
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/klog"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
@@ -38,9 +41,12 @@ type Auth struct {
 }
 
 type Rule struct {
-	Secret       []byte
-	Path         string
-	ExceptedPath []string
+	Secret           []byte
+	Path             string
+	RedisOptions     *redis.Options
+	TokenIdleTimeout time.Duration
+	RedisClient      *redis.Client
+	ExceptedPath     []string
 }
 
 type User struct {
@@ -87,7 +93,7 @@ func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error
 
 func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request, error) {
 
-	payLoad, ok := token.Claims.(jwt.MapClaims)
+	payload, ok := token.Claims.(jwt.MapClaims)
 
 	if !ok {
 		return nil, errors.New("invalid payload")
@@ -101,14 +107,14 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 
 	usr := &user.DefaultInfo{}
 
-	username, ok := payLoad["username"].(string)
+	username, ok := payload["username"].(string)
 
 	if ok && username != "" {
 		req.Header.Set("X-Token-Username", username)
 		usr.Name = username
 	}
 
-	uid := payLoad["uid"]
+	uid := payload["uid"]
 
 	if uid != nil {
 		switch uid.(type) {
@@ -123,7 +129,7 @@ func (h Auth) InjectContext(req *http.Request, token *jwt.Token) (*http.Request,
 		}
 	}
 
-	groups, ok := payLoad["groups"].([]string)
+	groups, ok := payload["groups"].([]string)
 	if ok && len(groups) > 0 {
 		req.Header.Set("X-Token-Groups", strings.Join(groups, ","))
 		usr.Groups = groups
@@ -160,10 +166,46 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 	token, err := jwt.Parse(uToken, h.ProvideKey)
 
 	if err != nil {
+		klog.Errorln(err)
 		return nil, err
 	}
 
-	return token, nil
+	payload, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		err := fmt.Errorf("invalid payload")
+		klog.Errorln(err)
+		return nil, err
+	}
+
+	username, ok := payload["username"].(string)
+
+	if !ok {
+		err := fmt.Errorf("invalid payload")
+		klog.Errorln(err)
+		return nil, err
+	}
+
+	if _, ok = payload["exp"]; ok {
+		// allow static token when contain expiration time
+		return token, nil
+	}
+
+	tokenKey := fmt.Sprintf("kubesphere:users:%s:token:%s", username, uToken)
+
+	exist, err := h.Rule.RedisClient.Exists(tokenKey).Result()
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if exist == 1 {
+		// reset expiration time if token exist
+		h.Rule.RedisClient.Expire(tokenKey, h.Rule.TokenIdleTimeout)
+		return token, nil
+	} else {
+		return nil, errors.New("illegal token")
+	}
 }
 
 func (h Auth) HandleUnauthorized(w http.ResponseWriter, err error) int {

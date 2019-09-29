@@ -19,7 +19,9 @@ package authenticate
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
 	"strings"
+	"time"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
@@ -33,9 +35,18 @@ func Setup(c *caddy.Controller) error {
 		return err
 	}
 
+	rule.RedisClient = redis.NewClient(rule.RedisOptions)
+
 	c.OnStartup(func() error {
+		if err := rule.RedisClient.Ping().Err(); err != nil {
+			return err
+		}
 		fmt.Println("Authenticate middleware is initiated")
 		return nil
+	})
+
+	c.OnShutdown(func() error {
+		return rule.RedisClient.Close()
 	})
 
 	httpserver.GetConfig(c).AddMiddleware(func(next httpserver.Handler) httpserver.Handler {
@@ -44,6 +55,7 @@ func Setup(c *caddy.Controller) error {
 
 	return nil
 }
+
 func parse(c *caddy.Controller) (Rule, error) {
 
 	rule := Rule{ExceptedPath: make([]string, 0)}
@@ -60,6 +72,34 @@ func parse(c *caddy.Controller) (Rule, error) {
 					}
 
 					rule.Path = c.Val()
+
+					if c.NextArg() {
+						return rule, c.ArgErr()
+					}
+				case "token-idle-timeout":
+					if !c.NextArg() {
+						return rule, c.ArgErr()
+					}
+
+					if timeout, err := time.ParseDuration(c.Val()); err != nil {
+						return rule, c.ArgErr()
+					} else {
+						rule.TokenIdleTimeout = timeout
+					}
+
+					if c.NextArg() {
+						return rule, c.ArgErr()
+					}
+				case "redis-url":
+					if !c.NextArg() {
+						return rule, c.ArgErr()
+					}
+
+					if redisOptions, err := redis.ParseURL(c.Val()); err != nil {
+						return rule, c.ArgErr()
+					} else {
+						rule.RedisOptions = redisOptions
+					}
 
 					if c.NextArg() {
 						return rule, c.ArgErr()
