@@ -43,7 +43,7 @@
  
 ## Features
 
-KubeSphere Advanced Edition 2.0.2 provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
+KubeSphere provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
 
 
 - Workload management
@@ -74,7 +74,7 @@ KubeSphere adopts the separation of front and back ends, each component is drawn
 
 ## Latest Release
 
-KubeSphere Advanced Edition 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/zh-CN/release/release-v202/) to preview the updates.
+KubeSphere 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/zh-CN/release/release-v202/) to preview the updates.
 
 ## Installation
 
@@ -131,9 +131,9 @@ The [development guide](CONTRIBUTING.md) hosts all information about building Ku
 
 ## RoadMap
 
-Currently, KubeSphere has released the following 4 major editions. The future releases will include Big data, AI, Multicluster, QingCloud SDN, etc.
+Currently, KubeSphere has released the following 2 major editions. The future releases will include Big data, AI, Multicluster, QingCloud SDN, etc.
 
-**Community Edition** => **Express Edition** => **Advanced Edition 1.0.0** => **Advanced Edition 2.0.x**
+**1.0.0** => **2.0.x**
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
 
