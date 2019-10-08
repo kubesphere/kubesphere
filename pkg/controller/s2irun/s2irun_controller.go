@@ -271,7 +271,7 @@ func (c *S2iRunController) cleanOtherS2iBinary(namespace string) error {
 				err = c.devopsClient.DevopsV1alpha1().S2iBinaries(namespace).Delete(s2iBin.Name, nil)
 				if err != nil {
 					if errors.IsNotFound(err) {
-						klog.Info(fmt.Sprintf("s2ibin '%s/%s' has been delted ", namespace, s2iBin.Name))
+						klog.Info(fmt.Sprintf("s2ibin '%s/%s' has been deleted ", namespace, s2iBin.Name))
 						return nil
 					}
 					klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s ", namespace, s2iBin.Name))
