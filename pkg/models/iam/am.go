@@ -513,12 +513,16 @@ func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule
 			{Name: "devops", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "projects", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "roles", Actions: []string{"view"}},
+			{Name: "apps", Actions: []string{"view", "create", "manage"}},
+			{Name: "repos", Actions: []string{"view", "manage"}},
 		}
 	case constants.WorkspaceRegular:
 		workspaceRules = []models.SimpleRule{
 			{Name: "members", Actions: []string{"view"}},
-			{Name: "devops", Actions: []string{"create"}},
-			{Name: "projects", Actions: []string{"create"}},
+			{Name: "devops", Actions: []string{"view", "create"}},
+			{Name: "projects", Actions: []string{"view", "create"}},
+			{Name: "apps", Actions: []string{"view", "create"}},
+			{Name: "repos", Actions: []string{"view"}},
 		}
 	case constants.WorkspaceViewer:
 		workspaceRules = []models.SimpleRule{
@@ -527,6 +531,8 @@ func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule
 			{Name: "devops", Actions: []string{"view"}},
 			{Name: "projects", Actions: []string{"view"}},
 			{Name: "roles", Actions: []string{"view"}},
+			{Name: "apps", Actions: []string{"view"}},
+			{Name: "repos", Actions: []string{"view"}},
 		}
 	}
 
