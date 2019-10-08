@@ -135,21 +135,20 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: adminBinding.Name}, found)
 
 		if errors.IsNotFound(err) {
-			log.V(4).Info("Creating default role binding", "namespace", namespace.Name, "name", adminBinding.Name)
 			err = r.Create(context.TODO(), adminBinding)
 			if err != nil {
-				log.Error(err, "default role binding create failed", "namespace", namespace.Name, "name", adminBinding.Name)
+				log.Error(err)
 			}
 			return err
 		} else if err != nil {
-			log.Error(err, "default role binding not found", "namespace", namespace.Name, "name", adminBinding.Name)
+			log.Error(err)
 			return err
 		}
 
 		if !reflect.DeepEqual(found.RoleRef, adminBinding.RoleRef) {
-			log.V(4).Info("Deleting conflict role binding", "namespace", namespace.Name, "name", adminBinding.Name)
 			err = r.Delete(context.TODO(), found)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
 			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, adminBinding.Name)
@@ -157,9 +156,9 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 
 		if !reflect.DeepEqual(found.Subjects, adminBinding.Subjects) {
 			found.Subjects = adminBinding.Subjects
-			log.V(4).Info("Updating role binding", "namespace", namespace.Name, "name", adminBinding.Name)
 			err = r.Update(context.TODO(), found)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
 		}
@@ -178,17 +177,20 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: viewerBinding.Name}, found)
 
 		if errors.IsNotFound(err) {
-			log.Info("Creating default role binding", "namespace", namespace.Name, "name", viewerBinding.Name)
 			err = r.Create(context.TODO(), viewerBinding)
+			if err != nil {
+				log.Error(err)
+			}
 			return err
 		} else if err != nil {
+			log.Error(err)
 			return err
 		}
 
 		if !reflect.DeepEqual(found.RoleRef, viewerBinding.RoleRef) {
-			log.Info("Deleting conflict role binding", "namespace", namespace.Name, "name", viewerBinding.Name)
 			err = r.Delete(context.TODO(), found)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
 			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, viewerBinding.Name)
@@ -196,9 +198,9 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 
 		if !reflect.DeepEqual(found.Subjects, viewerBinding.Subjects) {
 			found.Subjects = viewerBinding.Subjects
-			log.Info("Updating role binding", "namespace", namespace.Name, "name", viewerBinding.Name)
 			err = r.Update(context.TODO(), found)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
 		}
