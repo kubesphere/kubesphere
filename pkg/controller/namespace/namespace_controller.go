@@ -215,18 +215,18 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 				role.Namespace = namespace.Name
 				err = r.Create(context.TODO(), role)
 				if err != nil {
-					klog.Errorf("creating role namespace: %s,role: %s,error: %s", namespace.Name, role.Name, err)
-					return err
+					klog.Error(err)
 				}
+				return err
 			} else {
-				klog.Errorf("get role namespace: %s,role: %s,error: %s", namespace.Name, role.Name, err)
+				klog.Error(err)
 				return err
 			}
 		}
 		if !reflect.DeepEqual(found.Rules, role.Rules) {
 			found.Rules = role.Rules
 			if err := r.Update(context.TODO(), found); err != nil {
-				klog.Errorf("updating default role namespace: %s, role: %s,error: %s", namespace.Name, role.Name, err)
+				klog.Error(err)
 				return err
 			}
 		}
