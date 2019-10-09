@@ -190,7 +190,7 @@ type BranchPipelineRunNodes struct {
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
 	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS. e.g. SUCCESS"`
 	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
 	State              string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
@@ -229,7 +229,7 @@ type BranchPipelineRunNodes struct {
 		DisplayName        string      `json:"displayName,omitempty" description:"display name"`
 		DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in millis"`
 		ID                 string      `json:"id,omitempty" description:"id"`
-		Input              Input       `json:"input,omitempty" description:"the action should user input"`
+		Input              *Input      `json:"input,omitempty" description:"the action should user input"`
 		Result             string      `json:"result,omitempty" description:"result"`
 		StartTime          string      `json:"startTime,omitempty" description:"the time of start"`
 		State              string      `json:"state,omitempty" description:"run state. e.g. RUNNING"`
@@ -680,7 +680,7 @@ type NodeStatus struct {
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
 	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
 	State              string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
@@ -719,7 +719,7 @@ type NodeStatus struct {
 		DisplayName        string      `json:"displayName,omitempty" description:"display name"`
 		DurationInMillis   int         `json:"durationInMillis,omitempty" description:"duration time in millis"`
 		ID                 string      `json:"id,omitempty" description:"id"`
-		Input              Input       `json:"input,omitempty" description:"the action should user input"`
+		Input              *Input      `json:"input,omitempty" description:"the action should user input"`
 		Result             string      `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 		StartTime          string      `json:"startTime,omitempty" description:"the time of start"`
 		State              string      `json:"state,omitempty" description:"run state. e.g. RUNNING"`
@@ -995,7 +995,7 @@ type PipelineRunNodes struct {
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in mullis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
 	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
 	State              string        `json:"state,omitempty" description:"run state. e.g. FINISHED"`
@@ -1033,7 +1033,7 @@ type NodeSteps struct {
 	DisplayName        string `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int    `json:"durationInMillis,omitempty" description:"duration time in mullis"`
 	ID                 string `json:"id,omitempty" description:"id"`
-	Input              Input  `json:"input,omitempty" description:"the action should user input"`
+	Input              *Input `json:"input,omitempty" description:"the action should user input"`
 	Result             string `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	StartTime          string `json:"startTime,omitempty" description:"the time of starts"`
 	State              string `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
@@ -1110,7 +1110,7 @@ type NodesDetail struct {
 	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
 	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
 	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              Input         `json:"input,omitempty" description:"the action should user input"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
 	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
 	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
 	State              string        `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
@@ -1133,8 +1133,8 @@ type NodesStepsIndex struct {
 
 type Input struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-	Links struct {
-		Self struct {
+	Links *struct {
+		Self *struct {
 			Class string `json:"_class,omitempty"`
 			Href  string `json:"href,omitempty"`
 		} `json:"self,omitempty"`
