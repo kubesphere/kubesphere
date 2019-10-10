@@ -560,6 +560,11 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 			APIGroups: []string{"iam.kubesphere.io"},
 			Resources: []string{"users"},
 		},
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{"openpitrix.io"},
+			Resources: []string{"applications", "apps", "apps/versions", "apps/events", "apps/action", "apps/audits", "repos", "repos/action", "categories", "attachments"},
+		},
 	}
 
 	return admin
@@ -588,6 +593,17 @@ func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 			ResourceNames: []string{workspaceName},
 			Resources:     []string{"workspaces/members"},
 		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"openpitrix.io"},
+			Resources: []string{"apps/events", "apps/action", "apps/audits"},
+		},
+
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{"openpitrix.io"},
+			Resources: []string{"applications", "apps", "apps/versions", "repos", "repos/action", "categories", "attachments"},
+		},
 	}
 
 	return regular
@@ -604,6 +620,11 @@ func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 			APIGroups:     []string{"*"},
 			ResourceNames: []string{workspaceName},
 			Resources:     []string{"workspaces", "workspaces/*"},
+		},
+		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"openpitrix.io"},
+			Resources: []string{"applications", "apps", "apps/versions", "repos", "categories", "attachments"},
 		},
 	}
 	return viewer
