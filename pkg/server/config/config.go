@@ -22,6 +22,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 // Package config saves configuration for running KubeSphere components
@@ -64,7 +66,7 @@ func InstallAPI(c *restful.Container) {
 
 			conf.stripEmptyOptions()
 
-			response.WriteAsJson(conf)
+			response.WriteAsJson(convertToMap(&conf))
 		}).
 		Doc("Get system components configuration").
 		Produces(restful.MIME_JSON).
@@ -72,6 +74,33 @@ func InstallAPI(c *restful.Container) {
 		Returns(http.StatusOK, "ok", Config{}))
 
 	c.Add(ws)
+}
+
+// convertToMap simply converts config to map[string]bool
+// to hide sensitive information
+func convertToMap(conf *Config) map[string]bool {
+	result := make(map[string]bool, 0)
+
+	if conf == nil {
+		return result
+	}
+
+	c := reflect.Indirect(reflect.ValueOf(conf))
+
+	for i := 0; i < c.NumField(); i++ {
+		name := strings.Split(c.Type().Field(i).Tag.Get("json"), ",")[0]
+		if strings.HasPrefix(name, "-") {
+			continue
+		}
+
+		if c.Field(i).IsNil() {
+			result[name] = false
+		} else {
+			result[name] = true
+		}
+	}
+
+	return result
 }
 
 // Load loads configuration after setup
