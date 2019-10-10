@@ -36,9 +36,9 @@ const (
 	IngressControllerPrefix       = "kubesphere-router-"
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
-	DisplayNameAnnotationKey       = "displayName"
-	DescriptionAnnotationKey       = "desc"
-	CreatorAnnotationKey           = "creator"
+	DisplayNameAnnotationKey       = "kubesphere.io/alias-name"
+	DescriptionAnnotationKey       = "kubesphere.io/description"
+	CreatorAnnotationKey           = "kubesphere.io/creator"
 	System                         = "system"
 	OpenPitrixRuntimeAnnotationKey = "openpitrix_runtime"
 	WorkspaceAdmin                 = "workspace-admin"
