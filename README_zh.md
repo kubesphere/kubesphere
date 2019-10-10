@@ -44,7 +44,7 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 - Kubernetes 资源管理：纳管多种类型的 K8s 资源，提供易用友好的向导式 UI
 - 应用编排与管理：包括**一键部署应用**、**Helm Chart 可视化管理**、**应用生命周期管理**，后续将支持计量计费
 - 微服务治理：基于 Istio 提供可视化无代码侵入的**灰度发布、熔断、流量管控、Tracing**，兼容**Spring Cloud & Dubbo**
-- 容器化 DevOps：提供**可视化编辑 CI/CD 流水线**，包括从开发测试到持续部署上线的**全流程管理**，提供 [S2i](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/source-to-image/)
+- 容器化 DevOps：提供**可视化编辑 CI/CD 流水线**，包括从开发测试到持续部署上线的**全流程管理**，提供 [S2i](https://kubesphere.io/docs/v2.0/zh-CN/quick-start/source-to-image/)
 - 多租户管理：提供基于角色的细粒度**多租户统一认证**，支持**对接企业 LDAP/AD**，提供多层级的权限管理满足多组织架构的企业用户
 - 日志查询与收集：提供基于多租户和多维度的日志查询，并支持快速对接多种日志收集平台
 - 多维度监控：提供集群与应用级别多项监控指标，提供按节点、企业空间、项目等资源用量的排行
