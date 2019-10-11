@@ -98,20 +98,21 @@ func Complete(s *options.KubeSphereControllerManagerOptions) *options.KubeSphere
 	return out
 }
 
-func CreateClientSet(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
+func CreateClientSet(conf *controllerconfig.Config, stopCh <-chan struct{}) error {
 	csop := &client.ClientSetOptions{}
 
-	csop.SetKubernetesOptions(s.KubernetesOptions).
-		SetDevopsOptions(s.DevopsOptions).
-		SetS3Options(s.S3Options).
-		SetOpenPitrixOptions(s.OpenPitrixOptions)
+	csop.SetKubernetesOptions(conf.KubernetesOptions).
+		SetDevopsOptions(conf.DevopsOptions).
+		SetS3Options(conf.S3Options).
+		SetOpenPitrixOptions(conf.OpenPitrixOptions).
+		SetKubeSphereOptions(conf.KubeSphereOptions)
 	client.NewClientSetFactory(csop, stopCh)
 
 	return nil
 }
 
 func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
-	err := CreateClientSet(s, stopCh)
+	err := CreateClientSet(controllerconfig.Get(), stopCh)
 	if err != nil {
 		klog.Error(err)
 		return err
