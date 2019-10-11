@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	"strings"
 )
 
 type KubernetesClient struct {
@@ -48,7 +49,12 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 	if options.Master != "" {
 		k.master = options.Master
 	}
-
+	// The https prefix is automatically added when using sa.
+	// But it will not be set automatically when reading from kubeconfig
+	// which may cause some problems in the client of other languages.
+	if !strings.HasPrefix(k.master, "http://") && !strings.HasPrefix(k.master, "https://") {
+		k.master = "https://" + k.master
+	}
 	return k
 }
 
