@@ -216,8 +216,8 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 				err = r.Create(context.TODO(), role)
 				if err != nil {
 					klog.Error(err)
+					return err
 				}
-				return err
 			} else {
 				klog.Error(err)
 				return err
