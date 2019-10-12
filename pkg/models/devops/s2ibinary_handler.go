@@ -90,7 +90,6 @@ func UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHead
 		Bucket:             s3Client.Bucket(),
 		Key:                aws.String(fmt.Sprintf("%s-%s", namespace, name)),
 		Body:               binFile,
-		ContentMD5:         aws.String(md5),
 		ContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", copy.Spec.FileName)),
 	})
 
