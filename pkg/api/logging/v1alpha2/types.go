@@ -48,12 +48,11 @@ type QueryParameters struct {
 
 // elasticsearch request body
 type Request struct {
-	From          int64         `json:"from"`
-	Size          int64         `json:"size"`
-	Sorts         []Sort        `json:"sort,omitempty"`
-	MainQuery     BoolQuery     `json:"query"`
-	Aggs          interface{}   `json:"aggs,omitempty"`
-	MainHighLight MainHighLight `json:"highlight,omitempty"`
+	From      int64       `json:"from"`
+	Size      int64       `json:"size"`
+	Sorts     []Sort      `json:"sort,omitempty"`
+	MainQuery BoolQuery   `json:"query"`
+	Aggs      interface{} `json:"aggs,omitempty"`
 }
 
 type Sort struct {
@@ -102,30 +101,6 @@ type MatchPhrasePrefix struct {
 
 type RegexpQuery struct {
 	Regexp interface{} `json:"regexp"`
-}
-
-type MainHighLight struct {
-	Fields       []interface{} `json:"fields,omitempty"`
-	FragmentSize int           `json:"fragment_size"`
-}
-
-type LogHighLightField struct {
-	FieldContent EmptyField `json:"log"`
-}
-
-type NamespaceHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.namespace_name.keyword"`
-}
-
-type PodHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.pod_name.keyword"`
-}
-
-type ContainerHighLightField struct {
-	FieldContent EmptyField `json:"kubernetes.container_name.keyword"`
-}
-
-type EmptyField struct {
 }
 
 // StatisticsAggs, the struct for `aggs` of type Request, holds a cardinality aggregation for distinct container counting
@@ -177,9 +152,8 @@ type Hits struct {
 }
 
 type Hit struct {
-	Source    Source    `json:"_source"`
-	HighLight HighLight `json:"highlight"`
-	Sort      []int64   `json:"sort"`
+	Source Source  `json:"_source"`
+	Sort   []int64 `json:"sort"`
 }
 
 type Source struct {
@@ -195,21 +169,13 @@ type Kubernetes struct {
 	Host      string `json:"host"`
 }
 
-type HighLight struct {
-	LogHighLights       []string `json:"log,omitempty" description:"log messages to highlight"`
-	NamespaceHighLights []string `json:"kubernetes.namespace_name.keyword,omitempty" description:"namespaces to highlight"`
-	PodHighLights       []string `json:"kubernetes.pod_name.keyword,omitempty" description:"pods to highlight"`
-	ContainerHighLights []string `json:"kubernetes.container_name.keyword,omitempty" description:"containers to highlight"`
-}
-
 type LogRecord struct {
-	Time      string    `json:"time,omitempty" description:"log timestamp"`
-	Log       string    `json:"log,omitempty" description:"log message"`
-	Namespace string    `json:"namespace,omitempty" description:"namespace"`
-	Pod       string    `json:"pod,omitempty" description:"pod name"`
-	Container string    `json:"container,omitempty" description:"container name"`
-	Host      string    `json:"host,omitempty" description:"node id"`
-	HighLight HighLight `json:"highlight,omitempty" description:"highlighted log fragment"`
+	Time      string `json:"time,omitempty" description:"log timestamp"`
+	Log       string `json:"log,omitempty" description:"log message"`
+	Namespace string `json:"namespace,omitempty" description:"namespace"`
+	Pod       string `json:"pod,omitempty" description:"pod name"`
+	Container string `json:"container,omitempty" description:"container name"`
+	Host      string `json:"host,omitempty" description:"node id"`
 }
 
 type ReadResult struct {
