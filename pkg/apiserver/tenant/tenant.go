@@ -167,11 +167,6 @@ func CreateNamespace(req *restful.Request, resp *restful.Response) {
 	err = checkResourceQuotas(workspace)
 
 	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(err))
-		return
-	}
-
-	if err != nil {
 		if k8serr.IsNotFound(err) {
 			resp.WriteHeaderAndEntity(http.StatusForbidden, errors.Wrap(err))
 		} else {
@@ -184,12 +179,13 @@ func CreateNamespace(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if k8serr.IsAlreadyExists(err) {
-			resp.WriteHeaderAndEntity(http.StatusConflict, err)
+			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
 		} else {
-			resp.WriteHeaderAndEntity(http.StatusInternalServerError, err)
+			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		}
 		return
 	}
+
 	resp.WriteAsJson(created)
 }
 

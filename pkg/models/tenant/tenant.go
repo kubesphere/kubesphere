@@ -18,7 +18,10 @@
 package tenant
 
 import (
+	"fmt"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -43,8 +46,29 @@ func CreateNamespace(workspaceName string, namespace *v1.Namespace, username str
 	}
 
 	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName
+	created, err := client.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Create(namespace)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 
-	return client.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Create(namespace)
+	timeout := int64(10)
+	w, err := client.ClientSets().K8s().Kubernetes().RbacV1().RoleBindings(namespace.Name).Watch(metav1.ListOptions{TimeoutSeconds: &timeout})
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	_, ok := <-w.ResultChan()
+
+	if !ok {
+		err := fmt.Errorf("role binding timeout")
+		klog.Error(err)
+		return nil, err
+	}
+
+	return created, nil
 }
 
 func DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
