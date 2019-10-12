@@ -87,8 +87,7 @@ type ReconcileClusterRoleBinding struct {
 func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Namespace instance
 	instance := &rbac.ClusterRoleBinding{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
+	if err := r.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -104,13 +103,16 @@ func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reco
 			instance.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
 			nsList := &corev1.NamespaceList{}
 			options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspaceName})}
-			err = r.List(context.TODO(), &options, nsList)
-			if err != nil {
+
+			if err := r.List(context.TODO(), &options, nsList); err != nil {
 				return reconcile.Result{}, err
 			}
 			for _, ns := range nsList.Items {
-				err = r.updateRoleBindings(instance, &ns)
-				if err != nil {
+				if !ns.DeletionTimestamp.IsZero() {
+					// skip if the namespace is being deleted
+					continue
+				}
+				if err := r.updateRoleBindings(instance, &ns); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
