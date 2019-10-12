@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -170,6 +171,10 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 		err = r.deleteRoleBindings(instance)
 
+		return reconcile.Result{}, err
+	}
+
+	if err = r.checkAndCreateQuotas(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -545,5 +550,43 @@ func (r *ReconcileNamespace) deleteRoleBindings(namespace *corev1.Namespace) err
 		klog.Errorf("deleting role binding namespace: %s,role binding: %s,error: %s", namespace.Name, viewerBinding.Name, err)
 		return err
 	}
+	return nil
+}
+
+func (r *ReconcileNamespace) checkAndCreateQuotas(namespace *corev1.Namespace) error {
+
+	// skip system namespaces
+	if sliceutil.HasString(constants.SystemNamespaces, namespace.Name) {
+		return nil
+	}
+
+	// skip namespace not create by kubesphere
+	if namespace.Labels[constants.CreatorAnnotationKey] == "" {
+		return nil
+	}
+
+	quota := &corev1.ResourceQuota{}
+	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: namespace.Name}, quota); err != nil {
+
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
+
+		quota.Name = namespace.Name
+		quota.Namespace = namespace.Name
+		quota.Spec.Hard = corev1.ResourceList{
+			"requests.cpu":    resource.MustParse("8"),
+			"requests.memory": resource.MustParse("16Gi"),
+			"limits.cpu":      resource.MustParse("8"),
+			"limits.memory":   resource.MustParse("16Gi"),
+			"count/pods":      resource.MustParse("100"),
+		}
+		if err := r.Create(context.TODO(), quota); err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
 	return nil
 }
