@@ -20,11 +20,11 @@ package authenticate
 import (
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"log"
 	"net/http"
 	"strconv"
@@ -43,9 +43,9 @@ type Auth struct {
 type Rule struct {
 	Secret           []byte
 	Path             string
-	RedisOptions     *redis.Options
+	RedisOptions     *redis.RedisOptions
 	TokenIdleTimeout time.Duration
-	RedisClient      *redis.Client
+	RedisClient      *redis.RedisClient
 	ExceptedPath     []string
 }
 
@@ -187,13 +187,13 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 	}
 
 	if _, ok = payload["exp"]; ok {
-		// allow static token when contain expiration time
+		// allow static token has expiration time
 		return token, nil
 	}
 
 	tokenKey := fmt.Sprintf("kubesphere:users:%s:token:%s", username, uToken)
 
-	exist, err := h.Rule.RedisClient.Exists(tokenKey).Result()
+	exist, err := h.Rule.RedisClient.Redis().Exists(tokenKey).Result()
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -201,7 +201,7 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 
 	if exist == 1 {
 		// reset expiration time if token exist
-		h.Rule.RedisClient.Expire(tokenKey, h.Rule.TokenIdleTimeout)
+		h.Rule.RedisClient.Redis().Expire(tokenKey, h.Rule.TokenIdleTimeout)
 		return token, nil
 	} else {
 		return nil, errors.New("illegal token")

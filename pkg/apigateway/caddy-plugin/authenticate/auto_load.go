@@ -19,7 +19,8 @@ package authenticate
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
+	"kubesphere.io/kubesphere/pkg/simple/client/redis"
+
 	"strings"
 	"time"
 
@@ -35,10 +36,9 @@ func Setup(c *caddy.Controller) error {
 		return err
 	}
 
-	rule.RedisClient = redis.NewClient(rule.RedisOptions)
-
 	c.OnStartup(func() error {
-		if err := rule.RedisClient.Ping().Err(); err != nil {
+		rule.RedisClient, err = redis.NewRedisClient(rule.RedisOptions, nil)
+		if err != nil {
 			return err
 		}
 		fmt.Println("Authenticate middleware is initiated")
@@ -46,7 +46,7 @@ func Setup(c *caddy.Controller) error {
 	})
 
 	c.OnShutdown(func() error {
-		return rule.RedisClient.Close()
+		return rule.RedisClient.Redis().Close()
 	})
 
 	httpserver.GetConfig(c).AddMiddleware(func(next httpserver.Handler) httpserver.Handler {
@@ -95,10 +95,12 @@ func parse(c *caddy.Controller) (Rule, error) {
 						return rule, c.ArgErr()
 					}
 
-					if redisOptions, err := redis.ParseURL(c.Val()); err != nil {
+					options := &redis.RedisOptions{RedisURL: c.Val()}
+
+					if err := options.Validate(); len(err) > 0 {
 						return rule, c.ArgErr()
 					} else {
-						rule.RedisOptions = redisOptions
+						rule.RedisOptions = options
 					}
 
 					if c.NextArg() {
