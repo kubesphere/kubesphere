@@ -68,7 +68,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 		}
 	}()
 
-	if sortMetricName == "" {
+	if sortMetricName == "" || rawMetrics == nil {
 		return rawMetrics, -1
 	}
 
