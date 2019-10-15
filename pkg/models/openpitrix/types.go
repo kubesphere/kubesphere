@@ -288,6 +288,8 @@ type CreateAppRequest struct {
 
 	// optional, vmbased/helm
 	VersionType string `json:"version_type,omitempty"`
+
+	Username string `json:"-"`
 }
 
 type CreateAppResponse struct {
@@ -413,6 +415,8 @@ type CreateAppVersionRequest struct {
 
 	// optional: vmbased/helm
 	Type string `json:"type,omitempty"`
+
+	Username string `json:"-"`
 }
 
 type GetAppVersionFilesRequest struct {

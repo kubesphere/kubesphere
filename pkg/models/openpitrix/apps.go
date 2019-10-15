@@ -152,7 +152,7 @@ func CreateApp(request *CreateAppRequest) (*CreateAppResponse, error) {
 	if request.Isv != "" {
 		createAppRequest.Isv = &wrappers.StringValue{Value: request.Isv}
 	}
-	resp, err := op.App().CreateApp(openpitrix.SystemContext(), createAppRequest)
+	resp, err := op.App().CreateApp(openpitrix.ContextWithUsername(request.Username), createAppRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -254,7 +254,7 @@ func CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionRespon
 		createAppVersionRequest.Package = &wrappers.BytesValue{Value: request.Package}
 	}
 
-	resp, err := op.App().CreateAppVersion(openpitrix.SystemContext(), createAppVersionRequest)
+	resp, err := op.App().CreateAppVersion(openpitrix.ContextWithUsername(request.Username), createAppVersionRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
