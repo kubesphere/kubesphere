@@ -782,6 +782,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	webservice.Route(webservice.POST("/webhook/github").
 		To(devopsapi.GithubWebhook).
+		Consumes("application/x-www-form-urlencoded", "application/json").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification. Github webhook will request here."))
 
