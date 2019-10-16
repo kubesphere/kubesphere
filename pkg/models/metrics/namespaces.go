@@ -40,6 +40,9 @@ func GetNamespacesWithMetrics(namespaces []*v1.Namespace) []*v1.Namespace {
 	}
 
 	rawMetrics := GetNamespaceMetrics(params)
+	if rawMetrics == nil {
+		return namespaces
+	}
 
 	for _, result := range rawMetrics.Results {
 		for _, data := range result.Data.Result {
