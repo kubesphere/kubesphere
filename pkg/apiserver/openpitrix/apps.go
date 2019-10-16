@@ -391,6 +391,8 @@ func CreateApp(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
+	createAppRequest.Username = req.HeaderParameter(constants.UserNameHeader)
+
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 
 	var result interface{}
@@ -431,8 +433,8 @@ func CreateAppVersion(req *restful.Request, resp *restful.Response) {
 		return
 	}
 	// override app id
-	appId := req.PathParameter("app")
-	createAppVersionRequest.AppId = appId
+	createAppVersionRequest.AppId = req.PathParameter("app")
+	createAppVersionRequest.Username = req.HeaderParameter(constants.UserNameHeader)
 
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 
