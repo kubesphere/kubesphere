@@ -221,6 +221,14 @@ func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
 
 func (*podSearcher) compare(a, b *v1.Pod, orderBy string) bool {
 	switch orderBy {
+	case StartTime:
+		if a.Status.StartTime == nil {
+			return false
+		}
+		if b.Status.StartTime == nil {
+			return true
+		}
+		return a.Status.StartTime.Before(b.Status.StartTime)
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case Name:
