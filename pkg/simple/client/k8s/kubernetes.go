@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +23,8 @@ type KubernetesClient struct {
 
 	s2i *s2i.Clientset
 
+	application *applicationclientset.Clientset
+
 	master string
 
 	config *rest.Config
@@ -42,6 +45,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 		discoveryClient: discovery.NewDiscoveryClientForConfigOrDie(config),
 		ks:              kubesphere.NewForConfigOrDie(config),
 		s2i:             s2i.NewForConfigOrDie(config),
+		application:     applicationclientset.NewForConfigOrDie(config),
 		master:          config.Host,
 		config:          config,
 	}
@@ -84,6 +88,11 @@ func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) 
 		return nil, err
 	}
 
+	k.application, err = applicationclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	k.master = options.Master
 	k.config = config
 
@@ -104,6 +113,10 @@ func (k *KubernetesClient) KubeSphere() kubesphere.Interface {
 
 func (k *KubernetesClient) S2i() s2i.Interface {
 	return k.s2i
+}
+
+func (k *KubernetesClient) Application() applicationclientset.Interface {
+	return k.application
 }
 
 // master address used to generate kubeconfig for downloading
