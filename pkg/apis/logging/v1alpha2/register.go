@@ -69,7 +69,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.QueryResult{}).
 		Returns(http.StatusOK, RespOK, v1alpha2.QueryResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON, restful.MIME_OCTET)
+		Produces(restful.MIME_JSON, "text/plain")
 
 	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
 		Doc("Query logs against the specific workspace.").
