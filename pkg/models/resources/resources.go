@@ -67,6 +67,7 @@ const (
 	Role                     = "role"
 	CreateTime               = "createTime"
 	UpdateTime               = "updateTime"
+	StartTime                = "startTime"
 	LastScheduleTime         = "lastScheduleTime"
 	chart                    = "chart"
 	release                  = "release"

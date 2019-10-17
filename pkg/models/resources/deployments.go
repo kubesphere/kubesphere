@@ -24,6 +24,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -108,15 +109,27 @@ func (*deploymentSearcher) fuzzy(fuzzy map[string]string, item *v1.Deployment) b
 	return true
 }
 
-func (*deploymentSearcher) compare(a, b *v1.Deployment, orderBy string) bool {
+func (s *deploymentSearcher) compare(a, b *v1.Deployment, orderBy string) bool {
 	switch orderBy {
 	case CreateTime:
 		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
+	case UpdateTime:
+		return s.lastUpdateTime(a).Before(s.lastUpdateTime(b))
 	case Name:
 		fallthrough
 	default:
 		return strings.Compare(a.Name, b.Name) <= 0
 	}
+}
+
+func (s *deploymentSearcher) lastUpdateTime(deployment *v1.Deployment) time.Time {
+	lastUpdateTime := deployment.CreationTimestamp.Time
+	for _, condition := range deployment.Status.Conditions {
+		if condition.LastUpdateTime.After(lastUpdateTime) {
+			lastUpdateTime = condition.LastUpdateTime.Time
+		}
+	}
+	return lastUpdateTime
 }
 
 func (s *deploymentSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
