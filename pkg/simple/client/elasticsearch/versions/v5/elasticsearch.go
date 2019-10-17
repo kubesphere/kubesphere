@@ -83,6 +83,6 @@ func parseError(response *esapi.Response) error {
 	} else {
 		// Print the response status and error information.
 		e, _ := e["error"].(map[string]interface{})
-		return fmt.Errorf("%s: %s", e["type"], e["reason"])
+		return fmt.Errorf("type: %v, reason: %v", e["type"], e["reason"])
 	}
 }
