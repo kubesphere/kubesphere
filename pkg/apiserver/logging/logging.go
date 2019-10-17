@@ -162,7 +162,8 @@ func logExport(param v1alpha2.QueryParameters, request *restful.Request, respons
 		return
 	}
 
-	response.Header().Set("Content-Type", restful.MIME_OCTET)
+	response.Header().Set(restful.HEADER_ContentType, "text/plain")
+	response.Header().Set("Content-Disposition", "attachment")
 
 	// keep search context alive for 1m
 	param.ScrollTimeout = time.Minute

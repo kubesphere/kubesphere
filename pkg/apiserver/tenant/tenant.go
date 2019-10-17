@@ -348,7 +348,8 @@ func LogQuery(req *restful.Request, resp *restful.Response) {
 		logging.LoggingQueryCluster(req, resp)
 	default:
 		if operation == "export" {
-			resp.Header().Set("Content-Type", restful.MIME_OCTET)
+			resp.Header().Set(restful.HEADER_ContentType, "text/plain")
+			resp.Header().Set("Content-Disposition", "attachment")
 			resp.Write(nil)
 		} else {
 			resp.WriteAsJson(loggingv1alpha2.QueryResult{Read: new(loggingv1alpha2.ReadResult)})

@@ -179,7 +179,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.Response{}).
 		Returns(http.StatusOK, RespOK, v1alpha2.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
-		Produces(restful.MIME_JSON, restful.MIME_OCTET)
+		Produces(restful.MIME_JSON, "text/plain")
 
 	c.Add(ws)
 	return nil
