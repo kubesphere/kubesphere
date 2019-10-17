@@ -679,7 +679,9 @@ func GetClusterStatistics() *Response {
 	go func() {
 		num, err := workspaces.GetAllDevOpsProjectsNums()
 		if err != nil {
-			klog.Errorln(err)
+			if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
+				klog.Errorln(err)
+			}
 			devopsStats.Status = "error"
 		} else {
 			devopsStats.withMetricResult(now, num)
@@ -746,7 +748,9 @@ func GetWorkspaceStatistics(workspaceName string) *Response {
 	go func() {
 		num, err := workspaces.GetDevOpsProjectsCount(workspaceName)
 		if err != nil {
-			klog.Errorln(err)
+			if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
+				klog.Errorln(err)
+			}
 			devopsStats.Status = "error"
 		} else {
 			devopsStats.withMetricResult(now, num)

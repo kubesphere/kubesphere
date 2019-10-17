@@ -169,6 +169,10 @@ func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
 }
 
 func GetDevOpsProjectsCount(workspaceName string) (int, error) {
+	_, err := clientset.ClientSets().Devops()
+	if _, notEnabled := err.(clientset.ClientSetNotEnabledError); notEnabled {
+		return 0, err
+	}
 
 	dbconn, err := clientset.ClientSets().MySQL()
 	if err != nil {
@@ -237,6 +241,11 @@ func GetAllProjectNums() (int, error) {
 }
 
 func GetAllDevOpsProjectsNums() (int, error) {
+	_, err := clientset.ClientSets().Devops()
+	if _, notEnabled := err.(clientset.ClientSetNotEnabledError); notEnabled {
+		return 0, err
+	}
+
 	dbconn, err := clientset.ClientSets().MySQL()
 	if err != nil {
 		return 0, err
