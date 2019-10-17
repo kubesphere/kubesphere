@@ -117,7 +117,7 @@ func detectVersionMajor(host string) (string, error) {
 	if res.IsError() {
 		// Print the response status and error information.
 		e, _ := b["error"].(map[string]interface{})
-		return "", fmt.Errorf("[%s] %s: %s", res.Status(), e["type"], e["reason"])
+		return "", fmt.Errorf("[%s] type: %v, reason: %v", res.Status(), e["type"], e["reason"])
 	}
 
 	// get the major version
