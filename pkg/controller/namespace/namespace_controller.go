@@ -56,7 +56,9 @@ const (
 var (
 	admin    = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
 	operator = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
-		{Verbs: []string{"*"}, APIGroups: []string{"", "apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "resources.kubesphere.io", "autoscaling", "alerting.kubesphere.io", "app.k8s.io", "servicemesh.kubesphere.io", "operations.kubesphere.io", "devops.kubesphere.io"}, Resources: []string{"*"}}}}
+		{Verbs: []string{"*"}, APIGroups: []string{"apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "autoscaling", "alerting.kubesphere.io", "openpitrix.io", "app.k8s.io", "servicemesh.kubesphere.io", "operations.kubesphere.io", "devops.kubesphere.io"}, Resources: []string{"*"}},
+		{Verbs: []string{"*"}, APIGroups: []string{"", "resources.kubesphere.io"}, Resources: []string{"jobs", "cronjobs", "daemonsets", "deployments", "horizontalpodautoscalers", "ingresses", "endpoints", "configmaps", "events", "persistentvolumeclaims", "pods", "podtemplates", "pods", "secrets", "services"}},
+	}}
 	viewer       = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
 	defaultRoles = []rbac.Role{admin, operator, viewer}
 )
