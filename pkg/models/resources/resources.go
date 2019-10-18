@@ -42,6 +42,7 @@ func init() {
 	resources[S2iBuilders] = &s2iBuilderSearcher{}
 	resources[S2iRuns] = &s2iRunSearcher{}
 	resources[HorizontalPodAutoscalers] = &hpaSearcher{}
+	resources[Applications] = &appSearcher{}
 
 	resources[Nodes] = &nodeSearcher{}
 	resources[Namespaces] = &namespaceSearcher{}
@@ -104,6 +105,7 @@ const (
 	Services                 = "services"
 	StatefulSets             = "statefulsets"
 	HorizontalPodAutoscalers = "horizontalpodautoscalers"
+	Applications             = "applications"
 	Nodes                    = "nodes"
 	Namespaces               = "namespaces"
 	StorageClasses           = "storageclasses"

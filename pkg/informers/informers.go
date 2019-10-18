@@ -18,6 +18,7 @@
 package informers
 
 import (
+	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -32,9 +33,11 @@ var (
 	k8sOnce            sync.Once
 	s2iOnce            sync.Once
 	ksOnce             sync.Once
+	appOnce            sync.Once
 	informerFactory    k8sinformers.SharedInformerFactory
 	s2iInformerFactory s2iinformers.SharedInformerFactory
 	ksInformerFactory  ksinformers.SharedInformerFactory
+	appInformerFactory applicationinformers.SharedInformerFactory
 )
 
 func SharedInformerFactory() k8sinformers.SharedInformerFactory {
@@ -59,4 +62,12 @@ func KsSharedInformerFactory() ksinformers.SharedInformerFactory {
 		ksInformerFactory = ksinformers.NewSharedInformerFactory(k8sClient, defaultResync)
 	})
 	return ksInformerFactory
+}
+
+func AppSharedInformerFactory() applicationinformers.SharedInformerFactory {
+	appOnce.Do(func() {
+		appClient := client.ClientSets().K8s().Application()
+		appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
+	})
+	return appInformerFactory
 }
