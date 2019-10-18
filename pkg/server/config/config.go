@@ -258,7 +258,7 @@ func (c *Config) stripEmptyOptions() {
 		c.MySQLOptions = nil
 	}
 
-	if c.RedisOptions != nil && c.RedisOptions.Host == "" {
+	if c.RedisOptions != nil && c.RedisOptions.RedisURL == "" {
 		c.RedisOptions = nil
 	}
 

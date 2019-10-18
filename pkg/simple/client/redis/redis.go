@@ -18,7 +18,6 @@
 package redis
 
 import (
-	"fmt"
 	"github.com/go-redis/redis"
 	"k8s.io/klog"
 )
@@ -39,11 +38,14 @@ func NewRedisClientOrDie(options *RedisOptions, stopCh <-chan struct{}) *RedisCl
 func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (*RedisClient, error) {
 	var r RedisClient
 
-	r.client = redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", option.Host, option.Port),
-		Password: option.Password,
-		DB:       option.DB,
-	})
+	options, err := redis.ParseURL(option.RedisURL)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	r.client = redis.NewClient(options)
 
 	if err := r.client.Ping().Err(); err != nil {
 		klog.Error("unable to reach redis host", err)
@@ -51,12 +53,14 @@ func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (*RedisClient,
 		return nil, err
 	}
 
-	go func() {
-		<-stopCh
-		if err := r.client.Close(); err != nil {
-			klog.Error(err)
-		}
-	}()
+	if stopCh != nil {
+		go func() {
+			<-stopCh
+			if err := r.client.Close(); err != nil {
+				klog.Error(err)
+			}
+		}()
+	}
 
 	return &r, nil
 }

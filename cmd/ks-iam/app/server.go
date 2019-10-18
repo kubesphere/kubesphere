@@ -24,6 +24,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-iam/app/options"
+	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
@@ -35,9 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
-	"time"
-
-	"kubesphere.io/kubesphere/pkg/apis"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -94,15 +92,10 @@ func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
 
 	client.NewClientSetFactory(csop, stopChan)
 
-	expireTime, err := time.ParseDuration(s.TokenExpireTime)
-
-	if err != nil {
-		return err
-	}
-
 	waitForResourceSync(stopChan)
 
-	err = iam.Init(s.AdminEmail, s.AdminPassword, expireTime, s.AuthRateLimit)
+	err := iam.Init(s.AdminEmail, s.AdminPassword, s.AuthRateLimit, s.TokenIdleTimeout, s.EnableMultiLogin)
+
 	jwtutil.Setup(s.JWTSecret)
 
 	if err != nil {

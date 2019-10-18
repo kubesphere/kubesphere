@@ -53,10 +53,11 @@ import (
 var (
 	adminEmail       string
 	adminPassword    string
-	tokenExpireTime  time.Duration
+	tokenIdleTimeout time.Duration
 	maxAuthFailed    int
 	authTimeInterval time.Duration
 	initUsers        []initUser
+	enableMultiLogin bool
 )
 
 type initUser struct {
@@ -71,11 +72,12 @@ const (
 	defaultAuthTimeInterval = 30 * time.Minute
 )
 
-func Init(email, password string, expireTime time.Duration, authRateLimit string) error {
+func Init(email, password, authRateLimit string, idleTimeout time.Duration, multiLogin bool) error {
 	adminEmail = email
 	adminPassword = password
-	tokenExpireTime = expireTime
+	tokenIdleTimeout = idleTimeout
 	maxAuthFailed, authTimeInterval = parseAuthRateLimit(authRateLimit)
+	enableMultiLogin = multiLogin
 
 	err := checkAndCreateDefaultUser()
 
@@ -216,6 +218,9 @@ func createUserBaseDN() error {
 		return err
 	}
 	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 	groupsCreateRequest := ldap.NewAddRequest(client.UserSearchBase(), nil)
 	groupsCreateRequest.Attribute("objectClass", []string{"organizationalUnit", "top"})
@@ -230,6 +235,9 @@ func createGroupsBaseDN() error {
 		return err
 	}
 	conn, err := client.NewConn()
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 	groupsCreateRequest := ldap.NewAddRequest(client.GroupSearchBase(), nil)
 	groupsCreateRequest.Attribute("objectClass", []string{"organizationalUnit", "top"})
@@ -237,8 +245,151 @@ func createGroupsBaseDN() error {
 	return conn.Add(groupsCreateRequest)
 }
 
+func RefreshToken(refreshToken string) (*models.AuthGrantResponse, error) {
+	validRefreshToken, err := jwtutil.ValidateToken(refreshToken)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	payload, ok := validRefreshToken.Claims.(jwt.MapClaims)
+
+	if !ok {
+		err = errors.New("invalid payload")
+		klog.Error(err)
+		return nil, err
+	}
+
+	claims := jwt.MapClaims{}
+
+	// token with expiration time will not auto sliding
+	claims["username"] = payload["username"]
+	claims["email"] = payload["email"]
+	claims["iat"] = time.Now().Unix()
+	claims["exp"] = time.Now().Add(tokenIdleTimeout * 4).Unix()
+
+	token := jwtutil.MustSigned(claims)
+
+	claims = jwt.MapClaims{}
+	claims["username"] = payload["username"]
+	claims["email"] = payload["email"]
+	claims["iat"] = time.Now().Unix()
+	claims["type"] = "refresh_token"
+	claims["exp"] = time.Now().Add(tokenIdleTimeout * 5).Unix()
+
+	refreshToken = jwtutil.MustSigned(claims)
+
+	return &models.AuthGrantResponse{TokenType: "jwt", Token: token, RefreshToken: refreshToken, ExpiresIn: (tokenIdleTimeout * 4).Seconds()}, nil
+}
+
+func PasswordCredentialGrant(username, password, ip string) (*models.AuthGrantResponse, error) {
+	redisClient, err := clientset.ClientSets().Redis()
+	if err != nil {
+		return nil, err
+	}
+
+	records, err := redisClient.Keys(fmt.Sprintf("kubesphere:authfailed:%s:*", username)).Result()
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if len(records) >= maxAuthFailed {
+		return nil, restful.NewError(http.StatusTooManyRequests, "auth rate limit exceeded")
+	}
+
+	client, err := clientset.ClientSets().Ldap()
+	if err != nil {
+		return nil, err
+	}
+	conn, err := client.NewConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	userSearchRequest := ldap.NewSearchRequest(
+		client.UserSearchBase(),
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", username, username),
+		[]string{"uid", "mail"},
+		nil,
+	)
+
+	result, err := conn.Search(userSearchRequest)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Entries) != 1 {
+		return nil, ldap.NewError(ldap.LDAPResultInvalidCredentials, errors.New("incorrect password"))
+	}
+
+	uid := result.Entries[0].GetAttributeValue("uid")
+	email := result.Entries[0].GetAttributeValue("mail")
+	dn := result.Entries[0].DN
+
+	// bind as the user to verify their password
+	err = conn.Bind(dn, password)
+
+	if err != nil {
+		klog.Infoln("auth failed", username, err)
+
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+			loginFailedRecord := fmt.Sprintf("kubesphere:authfailed:%s:%d", uid, time.Now().UnixNano())
+			redisClient.Set(loginFailedRecord, "", authTimeInterval)
+		}
+
+		return nil, err
+	}
+
+	claims := jwt.MapClaims{}
+
+	// token with expiration time will not auto sliding
+	claims["username"] = uid
+	claims["email"] = email
+	claims["iat"] = time.Now().Unix()
+	claims["exp"] = time.Now().Add(tokenIdleTimeout * 4).Unix()
+
+	token := jwtutil.MustSigned(claims)
+
+	if !enableMultiLogin {
+		// multi login not allowed, remove the previous token
+		sessions, err := redisClient.Keys(fmt.Sprintf("kubesphere:users:%s:token:*", uid)).Result()
+
+		if err != nil {
+			klog.Errorln(err)
+			return nil, err
+		}
+
+		if len(sessions) > 0 {
+			klog.V(4).Infoln("revoke token", sessions)
+			err = redisClient.Del(sessions...).Err()
+			if err != nil {
+				klog.Errorln(err)
+				return nil, err
+			}
+		}
+	}
+
+	claims = jwt.MapClaims{}
+	claims["username"] = uid
+	claims["email"] = email
+	claims["iat"] = time.Now().Unix()
+	claims["type"] = "refresh_token"
+	claims["exp"] = time.Now().Add(tokenIdleTimeout * 5).Unix()
+
+	refreshToken := jwtutil.MustSigned(claims)
+
+	loginLog(uid, ip)
+
+	return &models.AuthGrantResponse{TokenType: "jwt", Token: token, RefreshToken: refreshToken, ExpiresIn: (tokenIdleTimeout * 4).Seconds()}, nil
+}
+
 // User login
-func Login(username string, password string, ip string) (*models.Token, error) {
+func Login(username, password, ip string) (*models.AuthGrantResponse, error) {
 
 	redisClient, err := clientset.ClientSets().Redis()
 	if err != nil {
@@ -295,7 +446,7 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 		klog.Infoln("auth failed", username, err)
 
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
-			loginFailedRecord := fmt.Sprintf("kubesphere:authfailed:%s:%d", username, time.Now().UnixNano())
+			loginFailedRecord := fmt.Sprintf("kubesphere:authfailed:%s:%d", uid, time.Now().UnixNano())
 			redisClient.Set(loginFailedRecord, "", authTimeInterval)
 		}
 
@@ -304,17 +455,41 @@ func Login(username string, password string, ip string) (*models.Token, error) {
 
 	claims := jwt.MapClaims{}
 
-	if tokenExpireTime > 0 {
-		claims["exp"] = time.Now().Add(tokenExpireTime).Unix()
-	}
+	// token without expiration time will auto sliding
 	claims["username"] = uid
 	claims["email"] = email
+	claims["iat"] = time.Now().Unix()
 
 	token := jwtutil.MustSigned(claims)
 
+	if !enableMultiLogin {
+		// multi login not allowed, remove the previous token
+		sessions, err := redisClient.Keys(fmt.Sprintf("kubesphere:users:%s:token:*", uid)).Result()
+
+		if err != nil {
+			klog.Errorln(err)
+			return nil, err
+		}
+
+		if len(sessions) > 0 {
+			klog.V(4).Infoln("revoke token", sessions)
+			err = redisClient.Del(sessions...).Err()
+			if err != nil {
+				klog.Errorln(err)
+				return nil, err
+			}
+		}
+	}
+
+	// cache token with expiration time
+	if err = redisClient.Set(fmt.Sprintf("kubesphere:users:%s:token:%s", uid, token), token, tokenIdleTimeout).Err(); err != nil {
+		klog.Errorln(err)
+		return nil, err
+	}
+
 	loginLog(uid, ip)
 
-	return &models.Token{Token: token}, nil
+	return &models.AuthGrantResponse{Token: token}, nil
 }
 
 func loginLog(uid, ip string) {
@@ -443,7 +618,6 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 		if i >= offset && len(items) < limit {
 
-			user.AvatarUrl = getAvatar(user.Username)
 			user.LastLoginTime = getLastLoginTime(user.Username)
 			clusterRole, err := GetUserClusterRole(user.Username)
 			if err != nil {
@@ -479,8 +653,6 @@ func DescribeUser(username string) (*models.User, error) {
 	if err == nil {
 		user.Groups = groups
 	}
-
-	user.AvatarUrl = getAvatar(username)
 
 	return user, nil
 }
@@ -577,37 +749,6 @@ func getLastLoginTime(username string) string {
 
 	if len(lastLogin) > 0 {
 		return strings.Split(lastLogin[0], ",")[0]
-	}
-
-	return ""
-}
-
-func setAvatar(username, avatar string) error {
-	redis, err := clientset.ClientSets().Redis()
-	if err != nil {
-		return err
-	}
-
-	_, err = redis.HMSet("kubesphere:users:avatar", map[string]interface{}{"username": avatar}).Result()
-	return err
-}
-
-func getAvatar(username string) string {
-	redis, err := clientset.ClientSets().Redis()
-	if err != nil {
-		return ""
-	}
-
-	avatar, err := redis.HMGet("kubesphere:users:avatar", username).Result()
-
-	if err != nil {
-		return ""
-	}
-
-	if len(avatar) > 0 {
-		if url, ok := avatar[0].(string); ok {
-			return url
-		}
 	}
 
 	return ""
@@ -876,10 +1017,6 @@ func CreateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 
-	if user.AvatarUrl != "" {
-		setAvatar(user.Username, user.AvatarUrl)
-	}
-
 	if user.ClusterRole != "" {
 		err := CreateClusterRoleBinding(user.Username, user.ClusterRole)
 
@@ -1020,15 +1157,6 @@ func UpdateUser(user *models.User) (*models.User, error) {
 
 	if user.Password != "" {
 		userModifyRequest.Replace("userPassword", []string{user.Password})
-	}
-
-	if user.AvatarUrl != "" {
-		err = setAvatar(user.Username, user.AvatarUrl)
-	}
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
 	}
 
 	err = conn.Modify(userModifyRequest)

@@ -19,7 +19,10 @@ package authenticate
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/redis"
+
 	"strings"
+	"time"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
@@ -34,8 +37,16 @@ func Setup(c *caddy.Controller) error {
 	}
 
 	c.OnStartup(func() error {
+		rule.RedisClient, err = redis.NewRedisClient(rule.RedisOptions, nil)
+		if err != nil {
+			return err
+		}
 		fmt.Println("Authenticate middleware is initiated")
 		return nil
+	})
+
+	c.OnShutdown(func() error {
+		return rule.RedisClient.Redis().Close()
 	})
 
 	httpserver.GetConfig(c).AddMiddleware(func(next httpserver.Handler) httpserver.Handler {
@@ -44,6 +55,7 @@ func Setup(c *caddy.Controller) error {
 
 	return nil
 }
+
 func parse(c *caddy.Controller) (Rule, error) {
 
 	rule := Rule{ExceptedPath: make([]string, 0)}
@@ -60,6 +72,36 @@ func parse(c *caddy.Controller) (Rule, error) {
 					}
 
 					rule.Path = c.Val()
+
+					if c.NextArg() {
+						return rule, c.ArgErr()
+					}
+				case "token-idle-timeout":
+					if !c.NextArg() {
+						return rule, c.ArgErr()
+					}
+
+					if timeout, err := time.ParseDuration(c.Val()); err != nil {
+						return rule, c.ArgErr()
+					} else {
+						rule.TokenIdleTimeout = timeout
+					}
+
+					if c.NextArg() {
+						return rule, c.ArgErr()
+					}
+				case "redis-url":
+					if !c.NextArg() {
+						return rule, c.ArgErr()
+					}
+
+					options := &redis.RedisOptions{RedisURL: c.Val()}
+
+					if err := options.Validate(); len(err) > 0 {
+						return rule, c.ArgErr()
+					} else {
+						rule.RedisOptions = options
+					}
 
 					if c.NextArg() {
 						return rule, c.ArgErr()

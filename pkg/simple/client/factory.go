@@ -181,7 +181,7 @@ func (cs *ClientSet) MySQL() (*mysql.Database, error) {
 func (cs *ClientSet) Redis() (*goredis.Client, error) {
 	var err error
 
-	if cs.csoptions.redisOptions == nil || cs.csoptions.redisOptions.Host == "" {
+	if cs.csoptions.redisOptions == nil || cs.csoptions.redisOptions.RedisURL == "" {
 		return nil, ClientSetNotEnabledError{}
 	}
 

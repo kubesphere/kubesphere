@@ -18,15 +18,16 @@
 package iam
 
 import (
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
-
-	"kubesphere.io/kubesphere/pkg/models/iam"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 )
 
 type Spec struct {
@@ -50,8 +51,14 @@ type LoginRequest struct {
 	Password string `json:"password" description:"password"`
 }
 
+type OAuthRequest struct {
+	GrantType    string `json:"grant_type"`
+	Username     string `json:"username,omitempty" description:"username"`
+	Password     string `json:"password,omitempty" description:"password"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+}
+
 const (
-	APIVersion      = "authentication.k8s.io/v1beta1"
 	KindTokenReview = "TokenReview"
 )
 
@@ -81,6 +88,39 @@ func Login(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(token)
 }
 
+func OAuth(req *restful.Request, resp *restful.Response) {
+
+	authRequest := &OAuthRequest{}
+
+	err := req.ReadEntity(authRequest)
+
+	if err != nil {
+		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	var result *models.AuthGrantResponse
+	switch authRequest.GrantType {
+	case "refresh_token":
+		result, err = iam.RefreshToken(authRequest.RefreshToken)
+	case "password":
+		ip := iputil.RemoteIp(req.Request)
+		result, err = iam.PasswordCredentialGrant(authRequest.Username, authRequest.Password, ip)
+	default:
+		resp.Header().Set("WWW-Authenticate", "grant_type is not supported")
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.Wrap(fmt.Errorf("grant_type is not supported")))
+		return
+	}
+
+	if err != nil {
+		resp.Header().Set("WWW-Authenticate", err.Error())
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.Wrap(err))
+		return
+	}
+
+	resp.WriteEntity(result)
+
+}
+
 // k8s token review
 func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 	var tokenReview TokenReview
@@ -103,7 +143,7 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.Errorln("token review failed", uToken, err)
-		failed := TokenReview{APIVersion: APIVersion,
+		failed := TokenReview{APIVersion: tokenReview.APIVersion,
 			Kind: KindTokenReview,
 			Status: &Status{
 				Authenticated: false,
@@ -138,7 +178,7 @@ func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 
 	user.Groups = groups
 
-	success := TokenReview{APIVersion: APIVersion,
+	success := TokenReview{APIVersion: tokenReview.APIVersion,
 		Kind: KindTokenReview,
 		Status: &Status{
 			Authenticated: true,

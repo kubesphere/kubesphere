@@ -130,7 +130,13 @@ func addWebService(c *restful.Container) error {
 		To(iam.Login).
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
 		Reads(iam.LoginRequest{}).
-		Returns(http.StatusOK, ok, models.Token{}).
+		Returns(http.StatusOK, ok, models.AuthGrantResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+	ws.Route(ws.POST("/token").
+		To(iam.OAuth).
+		Doc("OAuth API,only support resource owner password credentials grant").
+		Reads(iam.LoginRequest{}).
+		Returns(http.StatusOK, ok, models.AuthGrantResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.GET("/users/{user}").
 		To(iam.DescribeUser).

@@ -1,27 +1,20 @@
 package redis
 
 import (
-	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/spf13/pflag"
-	"kubesphere.io/kubesphere/pkg/utils/net"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type RedisOptions struct {
-	Host     string
-	Port     int
-	Password string
-	DB       int
+	RedisURL string
 }
 
 // NewRedisOptions returns options points to nowhere,
 // because redis is not required for some components
 func NewRedisOptions() *RedisOptions {
 	return &RedisOptions{
-		Host:     "",
-		Port:     6379,
-		Password: "",
-		DB:       0,
+		RedisURL: "",
 	}
 }
 
@@ -29,14 +22,10 @@ func NewRedisOptions() *RedisOptions {
 func (r *RedisOptions) Validate() []error {
 	errors := make([]error, 0)
 
-	if r.Host != "" {
-		if !net.IsValidPort(r.Port) {
-			errors = append(errors, fmt.Errorf("--redis-port is out of range"))
-		}
-	}
+	_, err := redis.ParseURL(r.RedisURL)
 
-	if r.DB < 0 {
-		errors = append(errors, fmt.Errorf("--redis-db is less than 0"))
+	if err != nil {
+		errors = append(errors, err)
 	}
 
 	return errors
@@ -44,7 +33,7 @@ func (r *RedisOptions) Validate() []error {
 
 // ApplyTo apply to another options if it's a enabled option(non empty host)
 func (r *RedisOptions) ApplyTo(options *RedisOptions) {
-	if r.Host != "" {
+	if r.RedisURL != "" {
 		reflectutils.Override(options, r)
 	}
 }
@@ -52,16 +41,6 @@ func (r *RedisOptions) ApplyTo(options *RedisOptions) {
 // AddFlags add option flags to command line flags,
 // if redis-host left empty, the following options will be ignored.
 func (r *RedisOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&r.Host, "redis-host", r.Host, ""+
-		"Redis service host address. If left blank, means redis is unnecessary, "+
-		"redis will be disabled")
-
-	fs.IntVar(&r.Port, "redis-port", r.Port, ""+
-		"Redis service port number.")
-
-	fs.StringVar(&r.Password, "redis-password", r.Password, ""+
-		"Redis service password if necessary, default to empty")
-
-	fs.IntVar(&r.DB, "redis-db", r.DB, ""+
-		"Redis service database index, default to 0.")
+	fs.StringVar(&r.RedisURL, "redis-url", "", "Redis connection URL. If left blank, means redis is unnecessary, "+
+		"redis will be disabled. e.g. redis://:password@host:port/db")
 }
