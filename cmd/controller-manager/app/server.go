@@ -19,13 +19,20 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/controller"
 	controllerconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"
@@ -93,6 +100,7 @@ func Complete(s *options.KubeSphereControllerManagerOptions) *options.KubeSphere
 		DevopsOptions:     conf.DevopsOptions,
 		S3Options:         conf.S3Options,
 		OpenPitrixOptions: conf.OpenPitrixOptions,
+		LeaderElection:    s.LeaderElection,
 	}
 
 	return out
@@ -120,35 +128,86 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	config := client.ClientSets().K8s().Config()
 
-	klog.Info("setting up manager")
-	mgr, err := manager.New(config, manager.Options{})
+	run := func(ctx context.Context) {
+		klog.V(0).Info("setting up manager")
+		mgr, err := manager.New(config, manager.Options{})
+		if err != nil {
+			klog.Fatalf("unable to set up overall controller manager: %v", err)
+		}
+
+		klog.V(0).Info("setting up scheme")
+		if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+			klog.Fatalf("unable add APIs to scheme: %v", err)
+		}
+
+		klog.V(0).Info("Setting up controllers")
+		if err := controller.AddToManager(mgr); err != nil {
+			klog.Fatalf("unable to register controllers to the manager: %v", err)
+		}
+
+		if err := AddControllers(mgr, config, stopCh); err != nil {
+			klog.Fatalf("unable to register controllers to the manager: %v", err)
+		}
+
+		klog.V(0).Info("Starting the Cmd.")
+		if err := mgr.Start(stopCh); err != nil {
+			klog.Fatalf("unable to run the manager: %v", err)
+		}
+
+		select {}
+	}
+
+	if !s.LeaderElection.LeaderElect {
+		run(context.TODO())
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		<-stopCh
+		cancel()
+	}()
+
+	id, err := os.Hostname()
 	if err != nil {
-		klog.Error(err, "unable to set up overall controller manager")
 		return err
 	}
 
-	klog.Info("setting up scheme")
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		klog.Error(err, "unable add APIs to scheme")
-		return err
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id = id + "_" + string(uuid.NewUUID())
+
+	// TODO: change lockType to lease
+	// once we finished moving to Kubernetes v1.16+, we
+	// change lockType to lease
+	lock, err := resourcelock.New("endpoints",
+		"kubesphere-system",
+		s.LeaderElection.ResourceLock,
+		client.ClientSets().K8s().Kubernetes().CoreV1(),
+		resourcelock.ResourceLockConfig{
+			Identity: id,
+			EventRecorder: record.NewBroadcaster().NewRecorder(scheme.Scheme, v1.EventSource{
+				Component: "ks-controller-manager",
+			}),
+		})
+
+	if err != nil {
+		klog.Fatalf("error creating lock: %v", err)
 	}
 
-	klog.Info("Setting up controllers")
-	if err := controller.AddToManager(mgr); err != nil {
-		klog.Error(err, "unable to register controllers to the manager")
-		return err
-	}
-
-	if err := AddControllers(mgr, config, stopCh); err != nil {
-		klog.Error(err, "unable to register controllers to the manager")
-		return err
-	}
-
-	klog.Info("Starting the Cmd.")
-	if err := mgr.Start(stopCh); err != nil {
-		klog.Error(err, "unable to run the manager")
-		return err
-	}
+	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+		Lock:          lock,
+		LeaseDuration: s.LeaderElection.LeaseDuration.Duration,
+		RenewDeadline: s.LeaderElection.RenewDeadline.Duration,
+		RetryPeriod:   s.LeaderElection.RetryPeriod.Duration,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: run,
+			OnStoppedLeading: func() {
+				klog.Errorf("leadership lost")
+				os.Exit(0)
+			},
+		},
+	})
 
 	return nil
 }

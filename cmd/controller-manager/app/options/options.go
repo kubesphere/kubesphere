@@ -2,14 +2,18 @@ package options
 
 import (
 	"flag"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apiserverconfig "k8s.io/apiserver/pkg/apis/config"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/client/leaderelectionconfig"
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"strings"
+	"time"
 )
 
 type KubeSphereControllerManagerOptions struct {
@@ -17,6 +21,8 @@ type KubeSphereControllerManagerOptions struct {
 	DevopsOptions     *devops.DevopsOptions
 	S3Options         *s2is3.S3Options
 	OpenPitrixOptions *openpitrix.OpenPitrixOptions
+
+	LeaderElection *apiserverconfig.LeaderElectionConfiguration
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
@@ -25,6 +31,13 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		DevopsOptions:     devops.NewDevopsOptions(),
 		S3Options:         s2is3.NewS3Options(),
 		OpenPitrixOptions: openpitrix.NewOpenPitrixOptions(),
+		LeaderElection: &apiserverconfig.LeaderElectionConfiguration{
+			LeaderElect:   false,
+			LeaseDuration: v1.Duration{Duration: 30 * time.Second},
+			RenewDeadline: v1.Duration{Duration: 15 * time.Second},
+			RetryPeriod:   v1.Duration{Duration: 5 * time.Second},
+			ResourceLock:  "ks-controller-manager-leader-election",
+		},
 	}
 
 	return s
@@ -45,12 +58,15 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.S3Options.AddFlags(fss.FlagSet("s3"))
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
 
-	fs := fss.FlagSet("klog")
+	fs := fss.FlagSet("leaderelection")
+	leaderelectionconfig.BindFlags(s.LeaderElection, fs)
+
+	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(local)
 	local.VisitAll(func(fl *flag.Flag) {
 		fl.Name = strings.Replace(fl.Name, "_", "-", -1)
-		fs.AddGoFlag(fl)
+		kfs.AddGoFlag(fl)
 	})
 
 	return fss
