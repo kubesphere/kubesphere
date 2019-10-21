@@ -39,6 +39,8 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
 	namespaceName := req.PathParameter("namespace")
 	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	orderBy := req.QueryParameter(params.OrderByParam)
+	reverse := params.ParseReverse(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -67,7 +69,7 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 		}
 	}
 
-	result, err := openpitrix.ListApplications(conditions, limit, offset)
+	result, err := openpitrix.ListApplications(conditions, limit, offset, orderBy, reverse)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
