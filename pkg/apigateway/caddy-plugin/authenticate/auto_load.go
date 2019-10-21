@@ -38,6 +38,7 @@ func Setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		rule.RedisClient, err = redis.NewRedisClient(rule.RedisOptions, nil)
+		// ensure redis is connected  when startup
 		if err != nil {
 			return err
 		}
@@ -56,9 +57,9 @@ func Setup(c *caddy.Controller) error {
 	return nil
 }
 
-func parse(c *caddy.Controller) (Rule, error) {
+func parse(c *caddy.Controller) (*Rule, error) {
 
-	rule := Rule{ExceptedPath: make([]string, 0)}
+	rule := &Rule{ExceptedPath: make([]string, 0)}
 
 	if c.Next() {
 		args := c.RemainingArgs()
@@ -68,57 +69,57 @@ func parse(c *caddy.Controller) (Rule, error) {
 				switch c.Val() {
 				case "path":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
 					rule.Path = c.Val()
 
 					if c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 				case "token-idle-timeout":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
 					if timeout, err := time.ParseDuration(c.Val()); err != nil {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					} else {
 						rule.TokenIdleTimeout = timeout
 					}
 
 					if c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 				case "redis-url":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
 					options := &redis.RedisOptions{RedisURL: c.Val()}
 
 					if err := options.Validate(); len(err) > 0 {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					} else {
 						rule.RedisOptions = options
 					}
 
 					if c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 				case "secret":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
 					rule.Secret = []byte(c.Val())
 
 					if c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 				case "except":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
 					rule.ExceptedPath = strings.Split(c.Val(), ",")
@@ -128,17 +129,21 @@ func parse(c *caddy.Controller) (Rule, error) {
 					}
 
 					if c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 				}
 			}
 		default:
-			return rule, c.ArgErr()
+			return nil, c.ArgErr()
 		}
 	}
 
 	if c.Next() {
-		return rule, c.ArgErr()
+		return nil, c.ArgErr()
+	}
+
+	if rule.RedisOptions == nil {
+		return nil, c.Err("redis-url must be specified")
 	}
 
 	return rule, nil

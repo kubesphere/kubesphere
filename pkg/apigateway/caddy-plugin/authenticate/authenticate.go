@@ -36,7 +36,7 @@ import (
 )
 
 type Auth struct {
-	Rule Rule
+	Rule *Rule
 	Next httpserver.Handler
 }
 
