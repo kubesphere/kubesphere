@@ -56,7 +56,7 @@ type workLoads struct {
 	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
 }
 
-func ListApplications(conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {
+func ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
 	client, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -80,6 +80,10 @@ func ListApplications(conditions *params.Conditions, limit, offset int) (*models
 	if status := conditions.Match["status"]; status != "" {
 		describeClustersRequest.Status = strings.Split(status, "|")
 	}
+	if orderBy != "" {
+		describeClustersRequest.SortKey = &wrappers.StringValue{Value: orderBy}
+	}
+	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: reverse}
 	resp, err := client.Cluster().DescribeClusters(openpitrix.SystemContext(), describeClustersRequest)
 	if err != nil {
 		klog.Errorln(err)
