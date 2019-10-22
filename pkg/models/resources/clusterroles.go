@@ -58,7 +58,7 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
-		case "userfacing":
+		case UserFacing:
 			if v == "true" {
 				if !isUserFacingClusterRole(item) {
 					return false
@@ -145,6 +145,7 @@ func (s *clusterRoleSearcher) search(namespace string, conditions *params.Condit
 	return r, nil
 }
 
+// cluster role created by user from kubesphere dashboard
 func isUserFacingClusterRole(role *rbac.ClusterRole) bool {
 	if role.Annotations[constants.CreatorAnnotationKey] != "" && role.Labels[constants.WorkspaceLabelKey] == "" {
 		return true

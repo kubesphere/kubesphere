@@ -74,6 +74,7 @@ const (
 	release                  = "release"
 	annotation               = "annotation"
 	Keyword                  = "keyword"
+	UserFacing               = "userfacing"
 	Status                   = "status"
 	includeCronJob           = "includeCronJob"
 	storageClassName         = "storageClassName"

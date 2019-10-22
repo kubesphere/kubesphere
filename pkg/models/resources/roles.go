@@ -49,6 +49,12 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
+		case UserFacing:
+			if v == "true" {
+				if !isUserFacingRole(item) {
+					return false
+				}
+			}
 		default:
 			// label not exist or value not equal
 			if val, ok := item.Labels[k]; !ok || val != v {
@@ -128,4 +134,12 @@ func (s *roleSearcher) search(namespace string, conditions *params.Conditions, o
 		r = append(r, i)
 	}
 	return r, nil
+}
+
+// role created by user from kubesphere dashboard
+func isUserFacingRole(role *rbac.Role) bool {
+	if role.Annotations[constants.CreatorAnnotationKey] != "" {
+		return true
+	}
+	return false
 }
