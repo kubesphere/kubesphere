@@ -624,7 +624,7 @@ func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 		{
 			Verbs:     []string{"get", "list"},
 			APIGroups: []string{"openpitrix.io"},
-			Resources: []string{"applications", "apps", "apps/versions", "repos", "categories", "attachments"},
+			Resources: []string{"applications", "apps", "apps/events", "apps/action", "apps/audits", "apps/versions", "repos", "categories", "attachments"},
 		},
 	}
 	return viewer
