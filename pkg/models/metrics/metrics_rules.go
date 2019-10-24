@@ -162,6 +162,7 @@ var namespaceMetrics = []string{
 	"namespace_replicaset_count",
 	"namespace_service_count",
 	"namespace_secret_count",
+	"namespace_configmap_count",
 	"namespace_ingresses_extensions_count",
 	"namespace_s2ibuilder_count",
 }
@@ -401,6 +402,7 @@ var metricsPromqlMap = map[string]string{
 	"namespace_replicaset_count":           `count by (namespace) (kube_replicaset_created{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_service_count":              `sum by (namespace) (kube_service_info{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_secret_count":               `sum by (namespace) (kube_secret_info{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
+	"namespace_configmap_count":            `sum by (namespace) (kube_configmap_info{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_ingresses_extensions_count": `sum by (namespace) (kube_ingress_labels{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_s2ibuilder_count":           `sum by (namespace) (s2i_s2ibuilder_created{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 
