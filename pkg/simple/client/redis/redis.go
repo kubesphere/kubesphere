@@ -18,8 +18,16 @@
 package redis
 
 import (
+	"crypto/tls"
+	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
 	"k8s.io/klog"
+	"net"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type RedisClient struct {
@@ -35,10 +43,140 @@ func NewRedisClientOrDie(options *RedisOptions, stopCh <-chan struct{}) *RedisCl
 	return client
 }
 
+// ref https://github.com/go-redis/redis/blob/v6.15.2/options.go#L163
+func parseURL(redisURL string) (*redis.Options, error) {
+	o := &redis.Options{Network: "tcp"}
+	u, err := url.Parse(redisURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Scheme != "redis" && u.Scheme != "rediss" {
+		return nil, errors.New("invalid redis URL scheme: " + u.Scheme)
+	}
+
+	if u.User != nil {
+		if p, ok := u.User.Password(); ok {
+			o.Password = p
+		}
+	}
+
+	if val := u.Query().Get("maxRetries"); val != "" {
+		if maxRetries, err := strconv.Atoi(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.MaxRetries = maxRetries
+		}
+	}
+
+	if val := u.Query().Get("minIdleConns"); val != "" {
+		if minIdleConns, err := strconv.Atoi(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.MinIdleConns = minIdleConns
+		}
+	}
+
+	if val := u.Query().Get("idleTimeout"); val != "" {
+		if idleTimeout, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.IdleTimeout = idleTimeout
+		}
+	}
+
+	if val := u.Query().Get("idleCheckFrequency"); val != "" {
+		if idleCheckFrequency, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.IdleCheckFrequency = idleCheckFrequency
+		}
+	}
+
+	if val := u.Query().Get("dialTimeout"); val != "" {
+		if dialTimeout, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.DialTimeout = dialTimeout
+		}
+	}
+
+	if val := u.Query().Get("poolTimeout"); val != "" {
+		if poolTimeout, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.PoolTimeout = poolTimeout
+		}
+	}
+
+	if val := u.Query().Get("poolSize"); val != "" {
+		if poolSize, err := strconv.Atoi(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.PoolSize = poolSize
+		}
+	}
+
+	if val := u.Query().Get("readTimeout"); val != "" {
+		if readTimeout, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.ReadTimeout = readTimeout
+		}
+	}
+
+	if val := u.Query().Get("maxRetryBackoff"); val != "" {
+		if maxRetryBackoff, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.MaxRetryBackoff = maxRetryBackoff
+		}
+	}
+
+	if val := u.Query().Get("maxConnAge"); val != "" {
+		if maxConnAge, err := time.ParseDuration(val); err != nil {
+			return nil, errors.New("invalid options")
+		} else {
+			o.MaxConnAge = maxConnAge
+		}
+	}
+
+	h, p, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		h = u.Host
+	}
+	if h == "" {
+		h = "localhost"
+	}
+	if p == "" {
+		p = "6379"
+	}
+	o.Addr = net.JoinHostPort(h, p)
+
+	f := strings.FieldsFunc(u.Path, func(r rune) bool {
+		return r == '/'
+	})
+	switch len(f) {
+	case 0:
+		o.DB = 0
+	case 1:
+		if o.DB, err = strconv.Atoi(f[0]); err != nil {
+			return nil, fmt.Errorf("invalid redis database number: %q", f[0])
+		}
+	default:
+		return nil, errors.New("invalid redis URL path: " + u.Path)
+	}
+
+	if u.Scheme == "rediss" {
+		o.TLSConfig = &tls.Config{ServerName: h}
+	}
+	return o, nil
+}
+
 func NewRedisClient(option *RedisOptions, stopCh <-chan struct{}) (*RedisClient, error) {
 	var r RedisClient
 
-	options, err := redis.ParseURL(option.RedisURL)
+	options, err := parseURL(option.RedisURL)
 
 	if err != nil {
 		klog.Error(err)

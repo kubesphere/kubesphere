@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"github.com/go-redis/redis"
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
@@ -22,7 +21,7 @@ func NewRedisOptions() *RedisOptions {
 func (r *RedisOptions) Validate() []error {
 	errors := make([]error, 0)
 
-	_, err := redis.ParseURL(r.RedisURL)
+	_, err := parseURL(r.RedisURL)
 
 	if err != nil {
 		errors = append(errors, err)
