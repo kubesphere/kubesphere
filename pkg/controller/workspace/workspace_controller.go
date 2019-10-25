@@ -324,6 +324,15 @@ func (r *ReconcileWorkspace) deleteGroup(instance *tenantv1alpha1.Workspace) err
 }
 
 func (r *ReconcileWorkspace) deleteDevOpsProjects(instance *tenantv1alpha1.Workspace) error {
+	if _, err := cs.ClientSets().Devops(); err != nil {
+		// skip if devops is not enabled
+		if _, notEnabled := err.(cs.ClientSetNotEnabledError); notEnabled {
+			return nil
+		} else {
+			log.Error(err, "")
+			return err
+		}
+	}
 	var wg sync.WaitGroup
 
 	log.Info("Delete DevOps Projects")
