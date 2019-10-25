@@ -160,6 +160,7 @@ func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error
 	csop := &client.ClientSetOptions{}
 
 	csop.SetDevopsOptions(conf.DevopsOptions).
+		SetSonarQubeOptions(conf.SonarQubeOptions).
 		SetKubernetesOptions(conf.KubernetesOptions).
 		SetMySQLOptions(conf.MySQLOptions).
 		SetLdapOptions(conf.LdapOptions).
