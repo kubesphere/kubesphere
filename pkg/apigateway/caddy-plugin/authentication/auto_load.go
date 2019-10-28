@@ -19,10 +19,10 @@ package authentication
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
+	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
 	"kubesphere.io/kubesphere/pkg/informers"
 )
@@ -59,10 +59,10 @@ func Setup(c *caddy.Controller) error {
 	return nil
 }
 
-func parse(c *caddy.Controller) (Rule, error) {
+func parse(c *caddy.Controller) (*Rule, error) {
 
-	rule := Rule{ExceptedPath: make([]string, 0)}
-
+	rule := &Rule{}
+	rule.ExclusionRules = make([]internal.ExclusionRule, 0)
 	if c.Next() {
 		args := c.RemainingArgs()
 		switch len(args) {
@@ -83,17 +83,18 @@ func parse(c *caddy.Controller) (Rule, error) {
 					break
 				case "except":
 					if !c.NextArg() {
-						return rule, c.ArgErr()
+						return nil, c.ArgErr()
 					}
 
-					rule.ExceptedPath = strings.Split(c.Val(), ",")
+					method := c.Val()
 
-					for i := 0; i < len(rule.ExceptedPath); i++ {
-						rule.ExceptedPath[i] = strings.TrimSpace(rule.ExceptedPath[i])
+					if !sliceutil.HasString(internal.HttpMethods, method) {
+						return nil, c.ArgErr()
 					}
 
-					if c.NextArg() {
-						return rule, c.ArgErr()
+					for c.NextArg() {
+						path := c.Val()
+						rule.ExclusionRules = append(rule.ExclusionRules, internal.ExclusionRule{Method: method, Path: path})
 					}
 					break
 				}

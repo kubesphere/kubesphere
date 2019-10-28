@@ -24,6 +24,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"log"
 	"net/http"
@@ -46,7 +47,7 @@ type Rule struct {
 	RedisOptions     *redis.RedisOptions
 	TokenIdleTimeout time.Duration
 	RedisClient      *redis.RedisClient
-	ExceptedPath     []string
+	ExclusionRules   []internal.ExclusionRule
 }
 
 type User struct {
@@ -61,8 +62,8 @@ var requestInfoFactory = request.RequestInfoFactory{
 	GrouplessAPIPrefixes: sets.NewString("api")}
 
 func (h Auth) ServeHTTP(resp http.ResponseWriter, req *http.Request) (int, error) {
-	for _, path := range h.Rule.ExceptedPath {
-		if httpserver.Path(req.URL.Path).Matches(path) {
+	for _, rule := range h.Rule.ExclusionRules {
+		if httpserver.Path(req.URL.Path).Matches(rule.Path) && (rule.Method == internal.AllMethod || req.Method == rule.Method) {
 			return h.Next.ServeHTTP(resp, req)
 		}
 	}

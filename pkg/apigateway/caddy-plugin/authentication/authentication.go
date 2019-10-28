@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"log"
 	"net/http"
@@ -38,21 +39,21 @@ import (
 )
 
 type Authentication struct {
-	Rule Rule
+	Rule *Rule
 	Next httpserver.Handler
 }
 
 type Rule struct {
-	Path         string
-	ExceptedPath []string
+	Path           string
+	ExclusionRules []internal.ExclusionRule
 }
 
 func (c Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
 
 	if httpserver.Path(r.URL.Path).Matches(c.Rule.Path) {
 
-		for _, path := range c.Rule.ExceptedPath {
-			if httpserver.Path(r.URL.Path).Matches(path) {
+		for _, rule := range c.Rule.ExclusionRules {
+			if httpserver.Path(r.URL.Path).Matches(rule.Path) && (rule.Method == internal.AllMethod || r.Method == rule.Method) {
 				return c.Next.ServeHTTP(w, r)
 			}
 		}
