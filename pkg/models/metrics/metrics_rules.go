@@ -168,13 +168,15 @@ var namespaceMetrics = []string{
 }
 
 var workloadMetrics = []string{
-	// TODO: the following four metrics are deprecated.
+	// TODO: the following five metrics are deprecated.
 	"workload_pod_cpu_usage",
+	"workload_pod_memory_usage",
 	"workload_pod_memory_usage_wo_cache",
 	"workload_pod_net_bytes_transmitted",
 	"workload_pod_net_bytes_received",
 
 	"workload_cpu_usage",
+	"workload_memory_usage",
 	"workload_memory_usage_wo_cache",
 	"workload_net_bytes_transmitted",
 	"workload_net_bytes_received",
@@ -407,13 +409,15 @@ var metricsPromqlMap = map[string]string{
 	"namespace_s2ibuilder_count":           `sum by (namespace) (s2i_s2ibuilder_created{namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 
 	// workload
-	// TODO: the following four metrics are deprecated.
+	// TODO: the following five metrics are deprecated.
 	"workload_pod_cpu_usage":             `round(namespace:workload_cpu_usage:sum{$1}, 0.001)`,
+	"workload_pod_memory_usage":          `namespace:workload_memory_usage:sum{$1}`,
 	"workload_pod_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{$1}`,
 	"workload_pod_net_bytes_transmitted": `namespace:workload_net_bytes_transmitted:sum_irate{$1}`,
 	"workload_pod_net_bytes_received":    `namespace:workload_net_bytes_received:sum_irate{$1}`,
 
 	"workload_cpu_usage":             `round(namespace:workload_cpu_usage:sum{$1}, 0.001)`,
+	"workload_memory_usage":          `namespace:workload_memory_usage:sum{$1}`,
 	"workload_memory_usage_wo_cache": `namespace:workload_memory_usage_wo_cache:sum{$1}`,
 	"workload_net_bytes_transmitted": `namespace:workload_net_bytes_transmitted:sum_irate{$1}`,
 	"workload_net_bytes_received":    `namespace:workload_net_bytes_received:sum_irate{$1}`,
