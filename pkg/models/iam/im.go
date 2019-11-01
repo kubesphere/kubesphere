@@ -1166,11 +1166,13 @@ func UpdateUser(user *models.User) (*models.User, error) {
 		return nil, err
 	}
 
-	err = CreateClusterRoleBinding(user.Username, user.ClusterRole)
+	if user.ClusterRole != "" {
+		err = CreateClusterRoleBinding(user.Username, user.ClusterRole)
 
-	if err != nil {
-		klog.Errorln("create cluster role binding filed", err)
-		return nil, err
+		if err != nil {
+			klog.Errorln(err)
+			return nil, err
+		}
 	}
 
 	// clear auth failed record

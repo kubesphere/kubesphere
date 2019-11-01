@@ -160,6 +160,11 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 		}
 	}
 
+	if usernameInHeader == user.Username {
+		// change cluster role by self is not permitted
+		user.ClusterRole = ""
+	}
+
 	result, err := iam.UpdateUser(&user)
 
 	if err != nil {
