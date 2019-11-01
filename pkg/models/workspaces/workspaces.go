@@ -70,7 +70,7 @@ func DeleteNamespace(workspace string, namespaceName string) error {
 		return err
 	}
 	if namespace.Labels[constants.WorkspaceLabelKey] == workspace {
-		deletePolicy := metav1.DeletePropagationForeground
+		deletePolicy := metav1.DeletePropagationBackground
 		return clientset.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	} else {
 		return errors.New("resource not found")

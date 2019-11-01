@@ -38,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
-	"time"
 )
 
 const (
@@ -668,24 +667,20 @@ func CreateClusterRoleBinding(username string, clusterRoleName string) error {
 
 	// cluster role changed
 	if found.RoleRef.Name != clusterRoleName {
-		deletePolicy := metav1.DeletePropagationForeground
+		deletePolicy := metav1.DeletePropagationBackground
 		gracePeriodSeconds := int64(0)
 		deleteOption := &metav1.DeleteOptions{PropagationPolicy: &deletePolicy, GracePeriodSeconds: &gracePeriodSeconds}
 		err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Delete(found.Name, deleteOption)
 		if err != nil {
-			klog.Errorln("delete cluster role binding", err)
+			klog.Errorln(err)
 			return err
 		}
-		maxRetries := 3
-		for i := 0; i < maxRetries; i++ {
-			_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
-			if err == nil {
-				return nil
-			}
-			time.Sleep(300 * time.Millisecond)
+		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		if err != nil {
+			klog.Errorln(err)
+			return err
 		}
-		klog.Errorln("create cluster role binding", err)
-		return err
+		return nil
 	}
 
 	if !k8sutil.ContainsUser(found.Subjects, username) {
