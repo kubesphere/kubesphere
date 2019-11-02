@@ -486,7 +486,7 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 		APIGroups: []string{"*"},
 		Resources: []string{"workspaces", "workspaces/*"},
 	}) {
-		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
+		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspacesManager), nil
 	}
 
 	workspaceRole, err := GetUserWorkspaceRole(workspace, username)
@@ -532,6 +532,12 @@ func GetWorkspaceRoleSimpleRules(workspace, roleName string) []models.SimpleRule
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "apps", Actions: []string{"view"}},
 			{Name: "repos", Actions: []string{"view"}},
+		}
+	case constants.WorkspacesManager:
+		workspaceRules = []models.SimpleRule{
+			{Name: "workspaces", Actions: []string{"edit", "delete", "view"}},
+			{Name: "members", Actions: []string{"edit", "delete", "create", "view"}},
+			{Name: "roles", Actions: []string{"view"}},
 		}
 	}
 

@@ -565,6 +565,11 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 			Resources:     []string{"workspaces", "workspaces/*"},
 		},
 		{
+			Verbs:     []string{"watch"},
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
+		},
+		{
 			Verbs:     []string{"list"},
 			APIGroups: []string{"iam.kubesphere.io"},
 			Resources: []string{"users"},
@@ -629,6 +634,11 @@ func getWorkspaceViewer(workspaceName string) *rbac.ClusterRole {
 			APIGroups:     []string{"*"},
 			ResourceNames: []string{workspaceName},
 			Resources:     []string{"workspaces", "workspaces/*"},
+		},
+		{
+			Verbs:     []string{"watch"},
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
 		},
 		{
 			Verbs:     []string{"get", "list"},
