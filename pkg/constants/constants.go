@@ -45,6 +45,7 @@ const (
 	ClusterAdmin                   = "cluster-admin"
 	WorkspaceRegular               = "workspace-regular"
 	WorkspaceViewer                = "workspace-viewer"
+	WorkspacesManager              = "workspaces-manager"
 	DevopsOwner                    = "owner"
 	DevopsReporter                 = "reporter"
 
