@@ -855,7 +855,7 @@ func deleteRoleBindings(username string) error {
 		length2 := len(roleBinding.Subjects)
 
 		if length2 == 0 {
-			deletePolicy := metav1.DeletePropagationForeground
+			deletePolicy := metav1.DeletePropagationBackground
 			err = clientset.ClientSets().K8s().Kubernetes().RbacV1().RoleBindings(roleBinding.Namespace).Delete(roleBinding.Name, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 
 			if err != nil {
@@ -890,7 +890,7 @@ func deleteRoleBindings(username string) error {
 			if isWorkspaceRoleBinding(clusterRoleBinding) {
 				_, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(clusterRoleBinding)
 			} else {
-				deletePolicy := metav1.DeletePropagationForeground
+				deletePolicy := metav1.DeletePropagationBackground
 				err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 			}
 			if err != nil {
