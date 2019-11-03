@@ -12,9 +12,9 @@ KubeSphere development is based on [Kubernetes](https://github.com/kubernetes/ku
 |----------------|-------------|
 | 1.13+          | >= 1.12     |
 
-> Tips: 
+> Tips:
 > - Ensure your GOPATH and PATH have been configured in accordance with the Go
-environment instructions. 
+environment instructions.
 > - It's recommended to install [macOS GNU tools](https://www.topbug.net/blog/2013/04/14/install-and-use-gnu-command-line-tools-in-mac-os-x) for Mac OS.
 
 ### Docker
@@ -33,7 +33,7 @@ KubeSphere uses [Go Modules](https://github.com/golang/go/wiki/Modules) to manag
 - [Alert](https://github.com/kubesphere/alert): Alert is an enterprise-grade general-purpose high-performance alerting system.
 - [Notification](https://github.com/openpitrix/notification): Notification is an enterprise-grade general-purpose high-performance notification system, it provides email notification service for KubeSphere currently.
 - [OpenPitrix](https://github.com/openpitrix/openpitrix): Application management platform on multi-cloud environment, it provides application template and application management for KubeSphere currently.
-- [SonarQube](https://github.com/SonarSource/sonarqube): Integrated in KubeSphere DevOps, it provides the capability to not only show health of an application but also to highlight issues newly introduced. 
+- [SonarQube](https://github.com/SonarSource/sonarqube): Integrated in KubeSphere DevOps, it provides the capability to not only show health of an application but also to highlight issues newly introduced.
 
 ## Building KubeSphere on a local OS/shell environment
 
@@ -48,7 +48,7 @@ echo 'replace (
       	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3
       	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7
       )' >> go.mod
-      
+
 GO111MODULE=on go get kubesphere.io/kubesphere@d649e3d0bbc64bfba18816c904819e4850d021e0
 GO111MODULE=on go build -o ks-apiserver kubesphere.io/kubesphere/cmd/ks-apiserver # build ks-apiserver
 GO111MODULE=on go build -o ks-apigateway kubesphere.io/kubesphere/cmd/ks-apigateway # build ks-apigateway
@@ -56,7 +56,7 @@ GO111MODULE=on go build -o ks-controller-manager kubesphere.io/kubesphere/cmd/co
 GO111MODULE=on go build -o ks-iam kubesphere.io/kubesphere/cmd/ks-iam # build ks-iam
 ```
 
-### For Building KubeSphere Images 
+### For Building KubeSphere Images
 
 KubeSphere components are often deployed as a container in a kubernetes cluster, you may need to build a Docker image locally.
 
@@ -96,7 +96,7 @@ In the development process, it is recommended to use local Kubernetes clusters, 
 
 ### 2 Clone fork to local storage
 
-Per Go's [workspace instructions][https://golang.org/doc/code.html#Workspaces], place KubeSphere' code on your `GOPATH` using the following cloning procedure.
+Per Go's [workspace instructions](https://golang.org/doc/code.html#Workspaces), place KubeSphere' code on your `GOPATH` using the following cloning procedure.
 
 1. Define a local working directory:
 
