@@ -31,11 +31,11 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
   </tr>
   <tr>
       <td width="50%" align="center"><b>CI/CD 流水线</b></td>
-      <td width="50%" align="center"><b>应用模板</b></td>
+      <td width="50%" align="center"><b>应用商店</b></td>
   </tr>
   <tr>
      <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925231623.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191103144559.png"/></td>
   </tr>
 </table>
 
