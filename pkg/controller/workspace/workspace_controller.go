@@ -575,9 +575,14 @@ func getWorkspaceAdmin(workspaceName string) *rbac.ClusterRole {
 			Resources: []string{"users"},
 		},
 		{
+			Verbs:     []string{"get", "list"},
+			APIGroups: []string{"openpitrix.io"},
+			Resources: []string{"categories"},
+		},
+		{
 			Verbs:     []string{"*"},
 			APIGroups: []string{"openpitrix.io"},
-			Resources: []string{"applications", "apps", "apps/versions", "apps/events", "apps/action", "apps/audits", "repos", "repos/action", "categories", "attachments"},
+			Resources: []string{"applications", "apps", "apps/versions", "apps/events", "apps/action", "apps/audits", "repos", "repos/action", "attachments"},
 		},
 	}
 
@@ -610,13 +615,13 @@ func getWorkspaceRegular(workspaceName string) *rbac.ClusterRole {
 		{
 			Verbs:     []string{"get", "list"},
 			APIGroups: []string{"openpitrix.io"},
-			Resources: []string{"apps/events", "apps/action", "apps/audits"},
+			Resources: []string{"apps/events", "apps/action", "apps/audits", "categories"},
 		},
 
 		{
 			Verbs:     []string{"*"},
 			APIGroups: []string{"openpitrix.io"},
-			Resources: []string{"applications", "apps", "apps/versions", "repos", "repos/action", "categories", "attachments"},
+			Resources: []string{"applications", "apps", "apps/versions", "repos", "repos/action", "attachments"},
 		},
 	}
 
