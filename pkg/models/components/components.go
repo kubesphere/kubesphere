@@ -19,12 +19,9 @@ package components
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -92,12 +89,6 @@ func isAllContainersReady(pod *corev1.Pod) bool {
 func GetSystemHealthStatus() (*models.HealthStatus, error) {
 
 	status := &models.HealthStatus{}
-
-	componentStatuses, err := client.ClientSets().K8s().Kubernetes().CoreV1().ComponentStatuses().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	status.KubernetesComponents = append(status.KubernetesComponents, componentStatuses.Items...)
 
 	// get kubesphere-system components
 	components, err := GetAllComponentsStatus()
