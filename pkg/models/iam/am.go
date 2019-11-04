@@ -481,7 +481,16 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 		return nil, err
 	}
 
-	// workspace manager
+	// cluster-admin
+	if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
+		Verbs:     []string{"*"},
+		APIGroups: []string{"*"},
+		Resources: []string{"*"},
+	}) {
+		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
+	}
+
+	// workspaces-manager
 	if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
 		Verbs:     []string{"*"},
 		APIGroups: []string{"*"},
@@ -498,6 +507,7 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 		}
 		return nil, err
 	}
+
 	return GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Annotations[constants.DisplayNameAnnotationKey]), nil
 }
 
