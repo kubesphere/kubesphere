@@ -96,9 +96,8 @@ type NodeStatus struct {
 }
 
 type HealthStatus struct {
-	KubeSphereComponents []ComponentStatus        `json:"kubesphereStatus" description:"kubesphere components status"`
-	KubernetesComponents []corev1.ComponentStatus `json:"kubernetesStatus" description:"kubernetes components status"`
-	NodeStatus           NodeStatus               `json:"nodeStatus" description:"nodes status"`
+	KubeSphereComponents []ComponentStatus `json:"kubesphereStatus" description:"kubesphere components status"`
+	NodeStatus           NodeStatus        `json:"nodeStatus" description:"nodes status"`
 }
 
 type PodInfo struct {
