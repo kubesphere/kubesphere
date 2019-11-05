@@ -37,12 +37,9 @@ func ParsePaging(paging string) (limit, offset int) {
 
 	limit = 10
 	offset = 0
-	if groups := regexp.MustCompile(`^limit=(\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
+	if groups := regexp.MustCompile(`^limit=(-?\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
 		limit, _ = strconv.Atoi(groups[1])
 		page, _ := strconv.Atoi(groups[2])
-		if page < 0 {
-			page = 1
-		}
 		offset = (page - 1) * limit
 	}
 	return
