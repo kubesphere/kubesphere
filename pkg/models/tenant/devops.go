@@ -43,6 +43,10 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
+		if _, ok := err.(cs.ClientSetNotEnabledError); ok {
+			klog.V(4).Info("devops client is not enable")
+			return nil, err
+		}
 		klog.Error(err)
 		return nil, err
 	}
