@@ -36,7 +36,7 @@ type PrometheusClient struct {
 func NewPrometheusClient(options *PrometheusOptions) (*PrometheusClient, error) {
 	return &PrometheusClient{
 		client: &http.Client{
-			Timeout: time.Duration(3) * time.Second,
+			Timeout: 10 * time.Second,
 		},
 		endpoint:          options.Endpoint,
 		secondaryEndpoint: options.SecondaryEndpoint,
