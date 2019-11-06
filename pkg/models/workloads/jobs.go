@@ -19,21 +19,30 @@ package workloads
 
 import (
 	"fmt"
+	"k8s.io/api/batch/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strings"
 	"time"
-
-	"k8s.io/api/batch/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const retryTimes = 3
 
-func JobReRun(namespace, jobName string) error {
+func JobReRun(namespace, jobName, resourceVersion string) error {
 	k8sClient := client.ClientSets().K8s().Kubernetes()
 	job, err := k8sClient.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
+		return err
+	}
+	// do not rerun job if resourceVersion not match
+	if job.GetObjectMeta().GetResourceVersion() != resourceVersion {
+		err := k8serr.NewConflict(schema.GroupResource{
+			Group: job.GetObjectKind().GroupVersionKind().Group, Resource: "job",
+		}, jobName, fmt.Errorf("please apply your changes to the latest version and try again"))
+		klog.Warning(err)
 		return err
 	}
 
