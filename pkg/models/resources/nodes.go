@@ -37,6 +37,36 @@ func (*nodeSearcher) get(namespace, name string) (interface{}, error) {
 	return informers.SharedInformerFactory().Core().V1().Nodes().Lister().Get(name)
 }
 
+func getNodeStatus(node *v1.Node) string {
+	if node.Spec.Unschedulable {
+		return StatusUnschedulable
+	}
+	for _, condition := range node.Status.Conditions {
+		if isUnhealthStatus(condition) {
+			return StatusWarning
+		}
+	}
+
+	return StatusRunning
+}
+
+const NodeConfigOK v1.NodeConditionType = "ConfigOK"
+const NodeKubeletReady v1.NodeConditionType = "KubeletReady"
+
+var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{v1.NodeOutOfDisk: v1.ConditionFalse,
+	v1.NodeMemoryPressure: v1.ConditionFalse, v1.NodeDiskPressure: v1.ConditionFalse, v1.NodePIDPressure: v1.ConditionFalse,
+	v1.NodeNetworkUnavailable: v1.ConditionFalse, NodeConfigOK: v1.ConditionTrue, NodeKubeletReady: v1.ConditionTrue,
+	v1.NodeReady: v1.ConditionTrue,
+}
+
+func isUnhealthStatus(condition v1.NodeCondition) bool {
+	expectedStatus := expectedConditions[condition.Type]
+	if expectedStatus != "" && condition.Status != expectedStatus {
+		return true
+	}
+	return false
+}
+
 // exactly Match
 func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 	for k, v := range match {
@@ -49,6 +79,10 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 		case Role:
 			labelKey := fmt.Sprintf("node-role.kubernetes.io/%s", v)
 			if _, ok := item.Labels[labelKey]; !ok {
+				return false
+			}
+		case Status:
+			if getNodeStatus(item) != v {
 				return false
 			}
 		case Keyword:

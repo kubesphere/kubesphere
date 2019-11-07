@@ -90,6 +90,8 @@ const (
 	StatusBound              = "bound"
 	StatusLost               = "lost"
 	StatusComplete           = "complete"
+	StatusWarning            = "warning"
+	StatusUnschedulable      = "unschedulable"
 	app                      = "app"
 	Deployments              = "deployments"
 	DaemonSets               = "daemonsets"
