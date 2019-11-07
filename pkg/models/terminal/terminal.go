@@ -26,6 +26,7 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"time"
 )
@@ -129,11 +130,7 @@ func (t TerminalSession) Toast(p string) error {
 // Can happen if the process exits or if there is an error starting up the process
 // For now the status code is unused and reason is shown to the user (unless "")
 func (t TerminalSession) Close(status uint32, reason string) {
-	data, _ := json.Marshal(struct {
-		Status uint32 `json:"status"`
-		Reason string `json:"reason"`
-	}{Status: status, Reason: reason})
-	t.conn.WriteMessage(websocket.TextMessage, data)
+	klog.Warning(status, reason)
 	t.conn.Close()
 }
 
@@ -193,7 +190,7 @@ func HandleSession(shell, namespace, podName, containerName string, conn *websoc
 	var err error
 	validShells := []string{"sh", "bash"}
 
-	session := &TerminalSession{conn: conn}
+	session := &TerminalSession{conn: conn, sizeChan: make(chan remotecommand.TerminalSize)}
 
 	if isValidShell(validShells, shell) {
 		cmd := []string{shell}
