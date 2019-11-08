@@ -190,7 +190,7 @@ func ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limi
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: reverse}
+	req.Reverse = &wrappers.BoolValue{Value: !reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
 	resp, err := client.Repo().DescribeRepos(openpitrix.SystemContext(), req)

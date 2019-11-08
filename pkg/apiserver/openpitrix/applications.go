@@ -42,6 +42,11 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 	orderBy := req.QueryParameter(params.OrderByParam)
 	reverse := params.ParseReverse(req)
 
+	if orderBy == "" {
+		orderBy = "create_time"
+		reverse = true
+	}
+
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return

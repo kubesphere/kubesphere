@@ -587,7 +587,7 @@ func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse
 	if orderBy != "" {
 		describeAppVersionAudits.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: reverse}
+	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: !reverse}
 	describeAppVersionAudits.Limit = uint32(limit)
 	describeAppVersionAudits.Offset = uint32(offset)
 	resp, err := client.App().DescribeAppVersionAudits(openpitrix.SystemContext(), describeAppVersionAudits)
@@ -626,7 +626,7 @@ func ListAppVersionReviews(conditions *params.Conditions, orderBy string, revers
 	if orderBy != "" {
 		describeAppVersionReviews.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: reverse}
+	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: !reverse}
 	describeAppVersionReviews.Limit = uint32(limit)
 	describeAppVersionReviews.Offset = uint32(offset)
 	// TODO icon is needed
@@ -669,7 +669,7 @@ func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool
 	if orderBy != "" {
 		describeAppVersionsRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: reverse}
+	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: !reverse}
 	describeAppVersionsRequest.Limit = uint32(limit)
 	describeAppVersionsRequest.Offset = uint32(offset)
 	resp, err := client.App().DescribeAppVersions(openpitrix.SystemContext(), describeAppVersionsRequest)
