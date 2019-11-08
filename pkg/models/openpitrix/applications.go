@@ -83,7 +83,7 @@ func ListApplications(conditions *params.Conditions, limit, offset int, orderBy 
 	if orderBy != "" {
 		describeClustersRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: reverse}
+	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: !reverse}
 	resp, err := client.Cluster().DescribeClusters(openpitrix.SystemContext(), describeClustersRequest)
 	if err != nil {
 		klog.Errorln(err)
