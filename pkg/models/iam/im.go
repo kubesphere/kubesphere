@@ -51,13 +51,14 @@ import (
 )
 
 var (
-	adminEmail       string
-	adminPassword    string
-	tokenIdleTimeout time.Duration
-	maxAuthFailed    int
-	authTimeInterval time.Duration
-	initUsers        []initUser
-	enableMultiLogin bool
+	adminEmail         string
+	adminPassword      string
+	tokenIdleTimeout   time.Duration
+	maxAuthFailed      int
+	authTimeInterval   time.Duration
+	initUsers          []initUser
+	enableMultiLogin   bool
+	generateKubeConfig bool
 )
 
 type initUser struct {
@@ -72,12 +73,13 @@ const (
 	defaultAuthTimeInterval = 30 * time.Minute
 )
 
-func Init(email, password, authRateLimit string, idleTimeout time.Duration, multiLogin bool) error {
+func Init(email, password, authRateLimit string, idleTimeout time.Duration, multiLogin bool, isGeneratingKubeConfig bool) error {
 	adminEmail = email
 	adminPassword = password
 	tokenIdleTimeout = idleTimeout
 	maxAuthFailed, authTimeInterval = parseAuthRateLimit(authRateLimit)
 	enableMultiLogin = multiLogin
+	generateKubeConfig = isGeneratingKubeConfig
 
 	err := checkAndCreateDefaultUser()
 
@@ -1005,9 +1007,11 @@ func CreateUser(user *models.User) (*models.User, error) {
 		userCreateRequest.Attribute("description", []string{user.Description}) // RFC4519: descriptive information
 	}
 
-	if err := kubeconfig.CreateKubeConfig(user.Username); err != nil {
-		klog.Errorln("create user kubeconfig failed", user.Username, err)
-		return nil, err
+	if generateKubeConfig {
+		if err = kubeconfig.CreateKubeConfig(user.Username); err != nil {
+			klog.Errorln("create user kubeconfig failed", user.Username, err)
+			return nil, err
+		}
 	}
 
 	err = conn.Add(userCreateRequest)
