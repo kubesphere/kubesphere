@@ -99,7 +99,6 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 func CreateKubectlDeploy(username string) error {
 	k8sClient := client.ClientSets().K8s().Kubernetes()
 	deployName := fmt.Sprintf("kubectl-%s", username)
-	configName := fmt.Sprintf("kubeconfig-%s", username)
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err == nil {
 		return nil
@@ -107,7 +106,6 @@ func CreateKubectlDeploy(username string) error {
 
 	replica := int32(1)
 	selector := metav1.LabelSelector{MatchLabels: map[string]string{"username": username}}
-	config := v1.ConfigMapVolumeSource{Items: []v1.KeyToPath{{Key: "config", Path: "config"}}, LocalObjectReference: v1.LocalObjectReference{Name: configName}}
 	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deployName,
@@ -124,11 +122,10 @@ func CreateKubectlDeploy(username string) error {
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{Name: "kubectl",
-							Image:        DefaultImage,
-							VolumeMounts: []v1.VolumeMount{{Name: "kubeconfig", MountPath: "/root/.kube"}},
+							Image: DefaultImage,
 						},
 					},
-					Volumes: []v1.Volume{{Name: "kubeconfig", VolumeSource: v1.VolumeSource{ConfigMap: &config}}},
+					ServiceAccountName: "kubesphere-cluster-admin",
 				},
 			},
 		},
