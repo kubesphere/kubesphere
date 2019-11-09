@@ -42,6 +42,7 @@ type ServerRunOptions struct {
 	JWTSecret               string
 	AuthRateLimit           string
 	EnableMultiLogin        bool
+	GenerateKubeConfig      bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -66,6 +67,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	fs.StringVar(&s.JWTSecret, "jwt-secret", "", "jwt secret")
 	fs.StringVar(&s.AuthRateLimit, "auth-rate-limit", "5/30m", "specifies the maximum number of authentication attempts permitted and time interval,valid time units are \"s\",\"m\",\"h\"")
 	fs.BoolVar(&s.EnableMultiLogin, "enable-multi-login", false, "allow one account to have multiple sessions")
+	fs.BoolVar(&s.GenerateKubeConfig, "generate-kubeconfig", true, "generate kubeconfig for new users, kubeconfig is required in devops pipeline, set to false if you don't need devops.")
 
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"))
