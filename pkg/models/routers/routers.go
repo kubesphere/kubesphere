@@ -287,13 +287,7 @@ func updateRouterService(namespace string, routerType corev1.ServiceType, annota
 
 	service.Spec.Type = routerType
 
-	originalAnnotations := service.GetAnnotations()
-
-	for key, val := range annotations {
-		originalAnnotations[key] = val
-	}
-
-	service.SetAnnotations(originalAnnotations)
+	service.SetAnnotations(annotations)
 
 	service, err = k8sClient.CoreV1().Services(constants.IngressControllerNamespace).Update(service)
 
