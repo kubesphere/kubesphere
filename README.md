@@ -13,9 +13,6 @@
 
 [KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform that built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage computing resources with a few clicks, which reduces the learning curve and empowers the DevOps teams. It greatly reduces the complexity of the daily work of development, testing, operation and maintenance, aiming to alleviate the pain points of Kubernetes' storage, network, security and ease of use, etc.
 
-> All versions are 100% open source, see this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/) that describes the KubeSphere landscape and details.
-
-<!-- ![Dashboard](docs/images/dashboard.png) -->
 
 ## Screenshots
 
@@ -28,19 +25,23 @@
       <td width="50%" align="center"><b>Project Resources</b></td>
   </tr>
   <tr>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003707.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925003504.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094014.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094426.png"/></td>
   </tr>
   <tr>
       <td width="50%" align="center"><b>CI/CD Pipeline</b></td>
-      <td width="50%" align="center"><b>Application Template</b></td>
+      <td width="50%" align="center"><b>Application Store</b></td>
   </tr>
   <tr>
      <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925231623.png"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112095006.png"/></td>
   </tr>
 </table>
- 
+
+## Video on Youtube
+
+[![KubeSphere](https://pek3b.qingstor.com/kubesphere-docs/png/20191112093503.png)](https://youtu.be/u5lQvhi_Xlc)
+
 ## Features
 
 KubeSphere provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
@@ -74,13 +75,27 @@ KubeSphere adopts the separation of front and back ends, each component is drawn
 
 ## Latest Release
 
-KubeSphere 2.0.2 was released on **July 9th, 2019**. See the [Release Notes For 2.0.2](https://docs.kubesphere.io/advanced-v2.0/zh-CN/release/release-v202/) to preview the updates.
+KubeSphere 2.1.0 was released on **November 12nd, 2019**. See the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) to preview the updates.
 
 ## Installation
 
+> Attention: Following section is only used for minimal installation by default, KubeSphere has decoupled some core components in v2.1.0, for more pluggable components installation, see `Enable Pluggable Components` below.
+
 ### Deploy On Kubernetes
 
-You can deploy KubeSphere on any Kubernetes cluster，please refer to [KubeSphere on Kubernetes](https://github.com/kubesphere/ks-installer).
+**Prerequisites**
+
+> - `Kubernetes version`： `1.13.0 ≤ K8s version < 1.16`;
+> - `Helm version` >= `2.10.0`，see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/);
+> - CPU > 1 Core，Memory > 2 G;
+> - An existing Storage Class in your Kubernetes clusters, use `kubectl get sc` to verify it.
+
+When all Pods of KubeSphere are running, it means the installation is successsful. Then you can use `http://IP:30880` to access the dashboard with default account `admin/P@88w0rd`.
+
+```yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-minimal.yaml
+```
+
 
 ### Deploy on Linux
 
@@ -90,24 +105,29 @@ You can deploy KubeSphere on any Kubernetes cluster，please refer to [KubeSpher
    - Red Hat Enterprise Linux Server 7.4 (64 bit)
    - Debian Stretch 9.5 (64 bit)
 - Hardware
-   - CPU：8 Core,  Memory：16 G, Disk Space：100 G
+   - CPU：2 Core,  Memory：4 G, Disk Space：100 G
 
 ### All-in-One
 
-[All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/): For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
+For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
 
 ```bash
-$ curl -L https://kubesphere.io/download/stable/advanced-2.0.2 > advanced-2.0.2.tar.gz \
-&& tar -zxf advanced-2.0.2.tar.gz && cd ./kubesphere-all-advanced-2.0.2/scripts
+$ curl -L https://kubesphere.io/download/stable/v2.1.0 > installer.tar.gz \
+&& tar -zxf installer.tar.gz && cd kubesphere-all-v2.1.0/scripts
 $ ./install.sh
 ```
 
-Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration. For details please reference [All-in-One](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/all-in-one/).
+Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration..
 
-> Note: 
-> - Click [here](https://asciinema.org/~lilin) to preview the installation demo.
-> - In a formal environment, it's highly recommended to install KubeSphere with [Multi-Node Installation](https://docs.kubesphere.io/advanced-v2.0/zh-CN/installation/multi-node/).
+> Note: In a formal environment, it's highly recommended to install KubeSphere with Multi-Node Installation.
 
+### Enable Pluggable Components
+
+The above two methods is only used for minimal installation by default, execute following command to enable more pluggable components installation, make sure your cluster has enough CPU and memory in advance.
+
+```
+$ kubectl edit cm -n kubesphere-system ks-installer
+```
 
 ## To start using KubeSphere
 
@@ -115,13 +135,13 @@ Choose `"1) All-in-one"` to trigger the installation. Generally, you can install
 
 KubeSphere provides 12 quick-start tutorials to walk you through the process and common manipulation, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
 
-- [Get Started - 中](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/quick-start-guide/)
 - [Get Started - En](https://github.com/kubesphere/kubesphere.github.io/tree/master/blog/advanced-2.0/en)
+- [Get Started - 中](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/quick-start-guide/)
+
 
 ### Documentation
 
 - [KubeSphere Documentation (En/中) ](https://kubesphere.io/docs)
-- [KubeSphere Documentation (PDF)](https://docs.kubesphere.io/KubeSphere-advanced-v2.0.pdf)
 - [API Documentation](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
 
 
@@ -131,9 +151,9 @@ The [development guide](CONTRIBUTING.md) hosts all information about building Ku
 
 ## RoadMap
 
-Currently, KubeSphere has released the following 2 major editions. The future releases will include Big data, AI, Multicluster, QingCloud SDN, etc.
+Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc.
 
-**1.0.0** => **2.0.x**
+**Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0**
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
 
@@ -160,6 +180,3 @@ Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere G
 All members of the KubeSphere community must abide by [Code of Conduct](docs/code-of-conduct.md). Only by respecting each other can we develop a productive, collaborative community.
 
 How to submit a pull request to KubeSphere? See [Pull Request Instruction](docs/pull-requests.md).
-
-
-
