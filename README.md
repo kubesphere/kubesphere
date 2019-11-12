@@ -75,9 +75,11 @@ KubeSphere adopts the separation of front and back ends, each component is drawn
 
 ## Latest Release
 
-KubeSphere 2.1.0 was released on **July 9th, 2019**. See the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) to preview the updates.
+KubeSphere 2.1.0 was released on **November 12nd, 2019**. See the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) to preview the updates.
 
 ## Installation
+
+> Attention: Following section is only used for minimal installation by default, KubeSphere has decoupled some core components in v2.1.0, for more pluggable components installation, see `Enable Pluggable Components` below.
 
 ### Deploy On Kubernetes
 
@@ -93,6 +95,7 @@ When all Pods of KubeSphere are running, it means the installation is successsfu
 ```yaml
 $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-minimal.yaml
 ```
+
 
 ### Deploy on Linux
 
@@ -118,6 +121,13 @@ Choose `"1) All-in-one"` to trigger the installation. Generally, you can install
 
 > Note: In a formal environment, it's highly recommended to install KubeSphere with Multi-Node Installation.
 
+### Enable Pluggable Components
+
+The above two methods is only used for minimal installation by default, execute following command to enable more pluggable components installation, make sure your cluster has enough CPU and memory in advance.
+
+```
+$ kubectl edit cm -n kubesphere-system ks-installer
+```
 
 ## To start using KubeSphere
 

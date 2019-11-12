@@ -108,10 +108,16 @@ $ ./install.sh
 > - 集群的可用 CPU > 1 C，可用内存 > 2 G；且集群能够访问外网
 > - 集群已有存储类型（StorageClass）；
 
-1. 可参考 [前提条件](https://kubesphere.io/docs/v2.1/zh-CN/installation/prerequisites/) 验证，若待安装的环境满足以上条件则可以开始部署 KubeSphere，当 KubeSphere 的所有 Pod 都为 RRunning 则说明安装成功。使用 `http://IP:30880` 访问 Dashboard，默认账号为 `admin/P@88w0rd`。
+可参考 [前提条件](https://kubesphere.io/docs/v2.1/zh-CN/installation/prerequisites/) 验证，若待安装的环境满足以上条件则可以开始部署 KubeSphere，当 KubeSphere 的所有 Pod 都为 RRunning 则说明安装成功。使用 `http://IP:30880` 访问 Dashboard，默认账号为 `admin/P@88w0rd`。
 
 ```yaml
 $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-minimal.yaml
+```
+
+注意，以上两种安装方式默认是 **最小化安装**，由于 2.1.0 已对大部分功能组件解耦，实现了功能组件的可插拔，因此可在 **安装完成后** 执行以下命令开启可插拔功能组件的安装，开启安装前确认您的机器资源已符合 [资源最低要求](https://kubesphere.io/docs/v2.1/zh-CN/installation/intro/#%E5%8F%AF%E6%8F%92%E6%8B%94%E5%8A%9F%E8%83%BD%E7%BB%84%E4%BB%B6%E5%88%97%E8%A1%A8)。
+
+```
+$ kubectl edit cm -n kubesphere-system ks-installer
 ```
 
 ## 开始使用 KubeSphere
