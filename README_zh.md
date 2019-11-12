@@ -27,7 +27,7 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
   </tr>
   <tr>
      <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094014.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094426"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094426.png"/></td>
   </tr>
   <tr>
       <td width="50%" align="center"><b>CI/CD Pipeline</b></td>
@@ -35,7 +35,7 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
   </tr>
   <tr>
      <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112095006"/></td>
+     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112095006.png"/></td>
   </tr>
 </table>
 
