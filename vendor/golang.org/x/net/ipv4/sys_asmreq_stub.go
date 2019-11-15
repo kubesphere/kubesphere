@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !aix,!darwin,!dragonfly,!freebsd,!netbsd,!openbsd,!solaris,!windows
+// +build !darwin,!dragonfly,!freebsd,!netbsd,!openbsd,!solaris,!windows
 
 package ipv4
 
@@ -13,13 +13,13 @@ import (
 )
 
 func (so *sockOpt) setIPMreq(c *socket.Conn, ifi *net.Interface, grp net.IP) error {
-	return errNotImplemented
+	return errOpNoSupport
 }
 
 func (so *sockOpt) getMulticastIf(c *socket.Conn) (*net.Interface, error) {
-	return nil, errNotImplemented
+	return nil, errOpNoSupport
 }
 
 func (so *sockOpt) setMulticastIf(c *socket.Conn, ifi *net.Interface) error {
-	return errNotImplemented
+	return errOpNoSupport
 }

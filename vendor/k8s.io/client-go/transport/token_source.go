@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+
 	"k8s.io/klog"
 )
 
@@ -47,15 +48,24 @@ func TokenSourceWrapTransport(ts oauth2.TokenSource) func(http.RoundTripper) htt
 func NewCachedFileTokenSource(path string) oauth2.TokenSource {
 	return &cachingTokenSource{
 		now:    time.Now,
-		leeway: 1 * time.Minute,
+		leeway: 10 * time.Second,
 		base: &fileTokenSource{
 			path: path,
-			// This period was picked because it is half of the minimum validity
-			// duration for a token provisioned by they TokenRequest API. This is
-			// unsophisticated and should induce rotation at a frequency that should
-			// work with the token volume source.
-			period: 5 * time.Minute,
+			// This period was picked because it is half of the duration between when the kubelet
+			// refreshes a projected service account token and when the original token expires.
+			// Default token lifetime is 10 minutes, and the kubelet starts refreshing at 80% of lifetime.
+			// This should induce re-reading at a frequency that works with the token volume source.
+			period: time.Minute,
 		},
+	}
+}
+
+// NewCachedTokenSource returns a oauth2.TokenSource reads a token from a
+// designed TokenSource. The ts would provide the source of token.
+func NewCachedTokenSource(ts oauth2.TokenSource) oauth2.TokenSource {
+	return &cachingTokenSource{
+		now:  time.Now,
+		base: ts,
 	}
 }
 
@@ -70,6 +80,14 @@ func (tst *tokenSourceTransport) RoundTrip(req *http.Request) (*http.Response, e
 		return tst.base.RoundTrip(req)
 	}
 	return tst.ort.RoundTrip(req)
+}
+
+func (tst *tokenSourceTransport) CancelRequest(req *http.Request) {
+	if req.Header.Get("Authorization") != "" {
+		tryCancelRequest(tst.base, req)
+		return
+	}
+	tryCancelRequest(tst.ort, req)
 }
 
 type fileTokenSource struct {

@@ -177,7 +177,7 @@ func NewRawConn(c net.PacketConn) (*RawConn, error) {
 	}
 	so, ok := sockOpts[ssoHeaderPrepend]
 	if !ok {
-		return nil, errNotImplemented
+		return nil, errOpNoSupport
 	}
 	if err := so.SetInt(r.dgramOpt.Conn, boolint(true)); err != nil {
 		return nil, err

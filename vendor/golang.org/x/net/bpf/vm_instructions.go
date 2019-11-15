@@ -129,8 +129,7 @@ func loadIndirect(ins LoadIndirect, in []byte, regX uint32) (uint32, bool) {
 func loadMemShift(ins LoadMemShift, in []byte) (uint32, bool) {
 	offset := int(ins.Off)
 
-	// Size of LoadMemShift is always 1 byte
-	if !inBounds(len(in), offset, 1) {
+	if !inBounds(len(in), offset, 0) {
 		return 0, false
 	}
 

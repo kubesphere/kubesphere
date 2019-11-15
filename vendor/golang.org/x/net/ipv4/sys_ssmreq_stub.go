@@ -13,9 +13,9 @@ import (
 )
 
 func (so *sockOpt) setGroupReq(c *socket.Conn, ifi *net.Interface, grp net.IP) error {
-	return errNotImplemented
+	return errOpNoSupport
 }
 
 func (so *sockOpt) setGroupSourceReq(c *socket.Conn, ifi *net.Interface, grp, src net.IP) error {
-	return errNotImplemented
+	return errOpNoSupport
 }

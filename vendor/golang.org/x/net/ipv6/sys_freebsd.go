@@ -51,7 +51,7 @@ func init() {
 		archs, _ := syscall.Sysctl("kern.supported_archs")
 		for _, s := range strings.Fields(archs) {
 			if s == "amd64" {
-				compatFreeBSD32 = true
+				freebsd32o64 = true
 				break
 			}
 		}

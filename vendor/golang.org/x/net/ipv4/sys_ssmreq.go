@@ -13,6 +13,8 @@ import (
 	"golang.org/x/net/internal/socket"
 )
 
+var freebsd32o64 bool
+
 func (so *sockOpt) setGroupReq(c *socket.Conn, ifi *net.Interface, grp net.IP) error {
 	var gr groupReq
 	if ifi != nil {
@@ -20,7 +22,7 @@ func (so *sockOpt) setGroupReq(c *socket.Conn, ifi *net.Interface, grp net.IP) e
 	}
 	gr.setGroup(grp)
 	var b []byte
-	if compatFreeBSD32 {
+	if freebsd32o64 {
 		var d [sizeofGroupReq + 4]byte
 		s := (*[sizeofGroupReq]byte)(unsafe.Pointer(&gr))
 		copy(d[:4], s[:4])
@@ -39,7 +41,7 @@ func (so *sockOpt) setGroupSourceReq(c *socket.Conn, ifi *net.Interface, grp, sr
 	}
 	gsr.setSourceGroup(grp, src)
 	var b []byte
-	if compatFreeBSD32 {
+	if freebsd32o64 {
 		var d [sizeofGroupSourceReq + 4]byte
 		s := (*[sizeofGroupSourceReq]byte)(unsafe.Pointer(&gsr))
 		copy(d[:4], s[:4])

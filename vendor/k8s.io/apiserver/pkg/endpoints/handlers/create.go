@@ -17,13 +17,16 @@ limitations under the License.
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -37,13 +40,13 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/dryrun"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	utiltrace "k8s.io/apiserver/pkg/util/trace"
+	utiltrace "k8s.io/utils/trace"
 )
 
-func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Interface, includeName bool) http.HandlerFunc {
+func createHandler(r rest.NamedCreater, scope *RequestScope, admit admission.Interface, includeName bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		// For performance tracking purposes.
-		trace := utiltrace.New("Create " + req.URL.Path)
+		trace := utiltrace.New("Create", utiltrace.Field{"url", req.URL.Path})
 		defer trace.LogIfLong(500 * time.Millisecond)
 
 		if isDryRun(req.URL) && !utilfeature.DefaultFeatureGate.Enabled(features.DryRun) {
@@ -54,22 +57,30 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 		// TODO: we either want to remove timeout or document it (if we document, move timeout out of this function and declare it in api_installer)
 		timeout := parseTimeout(req.URL.Query().Get("timeout"))
 
-		var (
-			namespace, name string
-			err             error
-		)
-		if includeName {
-			namespace, name, err = scope.Namer.Name(req)
-		} else {
+		namespace, name, err := scope.Namer.Name(req)
+		if err != nil {
+			if includeName {
+				// name was required, return
+				scope.err(err, w, req)
+				return
+			}
+
+			// otherwise attempt to look up the namespace
 			namespace, err = scope.Namer.Namespace(req)
+			if err != nil {
+				scope.err(err, w, req)
+				return
+			}
 		}
+
+		ctx, cancel := context.WithTimeout(req.Context(), timeout)
+		defer cancel()
+		ctx = request.WithNamespace(ctx, namespace)
+		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, scope)
 		if err != nil {
 			scope.err(err, w, req)
 			return
 		}
-
-		ctx := req.Context()
-		ctx = request.WithNamespace(ctx, namespace)
 
 		gv := scope.Kind.GroupVersion()
 		s, err := negotiation.NegotiateInputSerializer(req, false, scope.Serializer)
@@ -77,6 +88,7 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 			scope.err(err, w, req)
 			return
 		}
+
 		decoder := scope.Serializer.DecoderToVersion(s.Serializer, scope.HubGroupVersion)
 
 		body, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
@@ -97,6 +109,7 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 			scope.err(err, w, req)
 			return
 		}
+		options.TypeMeta.SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("CreateOptions"))
 
 		defaultGVK := scope.Kind
 		original := r.New()
@@ -119,11 +132,30 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 		audit.LogRequestObject(ae, obj, scope.Resource, scope.Subresource, scope.Serializer)
 
 		userInfo, _ := request.UserFrom(ctx)
-		admissionAttributes := admission.NewAttributesRecord(obj, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, dryrun.IsDryRun(options.DryRun), userInfo)
+
+		// On create, get name from new object if unset
+		if len(name) == 0 {
+			_, name, _ = scope.Namer.ObjectName(obj)
+		}
+		admissionAttributes := admission.NewAttributesRecord(obj, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, options, dryrun.IsDryRun(options.DryRun), userInfo)
 		if mutatingAdmission, ok := admit.(admission.MutationInterface); ok && mutatingAdmission.Handles(admission.Create) {
-			err = mutatingAdmission.Admit(admissionAttributes)
+			err = mutatingAdmission.Admit(ctx, admissionAttributes, scope)
 			if err != nil {
 				scope.err(err, w, req)
+				return
+			}
+		}
+
+		if scope.FieldManager != nil {
+			liveObj, err := scope.Creater.New(scope.Kind)
+			if err != nil {
+				scope.err(fmt.Errorf("failed to create new object (Create for %v): %v", scope.Kind, err), w, req)
+				return
+			}
+
+			obj, err = scope.FieldManager.Update(liveObj, obj, managerOrUserAgent(options.FieldManager, req.UserAgent()))
+			if err != nil {
+				scope.err(fmt.Errorf("failed to update object (Create for %v) managed fields: %v", scope.Kind, err), w, req)
 				return
 			}
 		}
@@ -134,7 +166,7 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 				ctx,
 				name,
 				obj,
-				rest.AdmissionToValidateObjectFunc(admit, admissionAttributes),
+				rest.AdmissionToValidateObjectFunc(admit, admissionAttributes, scope),
 				options,
 			)
 		})
@@ -144,41 +176,23 @@ func createHandler(r rest.NamedCreater, scope RequestScope, admit admission.Inte
 		}
 		trace.Step("Object stored in database")
 
-		requestInfo, ok := request.RequestInfoFrom(ctx)
-		if !ok {
-			scope.err(fmt.Errorf("missing requestInfo"), w, req)
-			return
-		}
-		if err := setSelfLink(result, requestInfo, scope.Namer); err != nil {
-			scope.err(err, w, req)
-			return
-		}
-		trace.Step("Self-link added")
-
-		// If the object is partially initialized, always indicate it via StatusAccepted
 		code := http.StatusCreated
-		if accessor, err := meta.Accessor(result); err == nil {
-			if accessor.GetInitializers() != nil {
-				code = http.StatusAccepted
-			}
-		}
 		status, ok := result.(*metav1.Status)
 		if ok && err == nil && status.Code == 0 {
 			status.Code = int32(code)
 		}
 
-		scope.Trace = trace
-		transformResponseObject(ctx, scope, req, w, code, result)
+		transformResponseObject(ctx, scope, trace, req, w, code, outputMediaType, result)
 	}
 }
 
 // CreateNamedResource returns a function that will handle a resource creation with name.
-func CreateNamedResource(r rest.NamedCreater, scope RequestScope, admission admission.Interface) http.HandlerFunc {
+func CreateNamedResource(r rest.NamedCreater, scope *RequestScope, admission admission.Interface) http.HandlerFunc {
 	return createHandler(r, scope, admission, true)
 }
 
 // CreateResource returns a function that will handle a resource creation.
-func CreateResource(r rest.Creater, scope RequestScope, admission admission.Interface) http.HandlerFunc {
+func CreateResource(r rest.Creater, scope *RequestScope, admission admission.Interface) http.HandlerFunc {
 	return createHandler(&namedCreaterAdapter{r}, scope, admission, false)
 }
 
@@ -188,4 +202,33 @@ type namedCreaterAdapter struct {
 
 func (c *namedCreaterAdapter) Create(ctx context.Context, name string, obj runtime.Object, createValidatingAdmission rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	return c.Creater.Create(ctx, obj, createValidatingAdmission, options)
+}
+
+// manager is assumed to be already a valid value, we need to make
+// userAgent into a valid value too.
+func managerOrUserAgent(manager, userAgent string) string {
+	if manager != "" {
+		return manager
+	}
+	return prefixFromUserAgent(userAgent)
+}
+
+// prefixFromUserAgent takes the characters preceding the first /, quote
+// unprintable character and then trim what's beyond the
+// FieldManagerMaxLength limit.
+func prefixFromUserAgent(u string) string {
+	m := strings.Split(u, "/")[0]
+	buf := bytes.NewBuffer(nil)
+	for _, r := range m {
+		// Ignore non-printable characters
+		if !unicode.IsPrint(r) {
+			continue
+		}
+		// Only append if we have room for it
+		if buf.Len()+utf8.RuneLen(r) > validation.FieldManagerMaxLength {
+			break
+		}
+		buf.WriteRune(r)
+	}
+	return buf.String()
 }

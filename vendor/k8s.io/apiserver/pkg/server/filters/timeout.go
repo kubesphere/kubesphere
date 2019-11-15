@@ -58,7 +58,7 @@ func WithTimeoutForNonLongRunningRequests(handler http.Handler, longRunning apir
 
 		postTimeoutFn := func() {
 			cancel()
-			metrics.Record(req, requestInfo, "", http.StatusGatewayTimeout, 0, 0)
+			metrics.Record(req, requestInfo, metrics.APIServerComponent, "", http.StatusGatewayTimeout, 0, 0)
 		}
 		return req, time.After(timeout), postTimeoutFn, apierrors.NewTimeoutError(fmt.Sprintf("request did not complete within %s", timeout), 0)
 	}
@@ -92,23 +92,28 @@ func (t *timeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errCh := make(chan interface{})
+	// resultCh is used as both errCh and stopCh
+	resultCh := make(chan interface{})
 	tw := newTimeoutWriter(w)
 	go func() {
 		defer func() {
 			err := recover()
-			if err != nil {
+			// do not wrap the sentinel ErrAbortHandler panic value
+			if err != nil && err != http.ErrAbortHandler {
+				// Same as stdlib http server code. Manually allocate stack
+				// trace buffer size to prevent excessively large logs
 				const size = 64 << 10
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
 				err = fmt.Sprintf("%v\n%s", err, buf)
 			}
-			errCh <- err
+			resultCh <- err
 		}()
 		t.handler.ServeHTTP(tw, r)
 	}()
 	select {
-	case err := <-errCh:
+	case err := <-resultCh:
+		// panic if error occurs; stop otherwise
 		if err != nil {
 			panic(err)
 		}

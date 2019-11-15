@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !aix,!darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows
+// +build !darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows
 
 package socket
 
 import (
+	"errors"
 	"net"
 	"runtime"
 	"unsafe"
@@ -35,29 +36,29 @@ func marshalInetAddr(ip net.IP, port int, zone string) []byte {
 }
 
 func parseInetAddr(b []byte, network string) (net.Addr, error) {
-	return nil, errNotImplemented
+	return nil, errors.New("not implemented")
 }
 
 func getsockopt(s uintptr, level, name int, b []byte) (int, error) {
-	return 0, errNotImplemented
+	return 0, errors.New("not implemented")
 }
 
 func setsockopt(s uintptr, level, name int, b []byte) error {
-	return errNotImplemented
+	return errors.New("not implemented")
 }
 
 func recvmsg(s uintptr, h *msghdr, flags int) (int, error) {
-	return 0, errNotImplemented
+	return 0, errors.New("not implemented")
 }
 
 func sendmsg(s uintptr, h *msghdr, flags int) (int, error) {
-	return 0, errNotImplemented
+	return 0, errors.New("not implemented")
 }
 
 func recvmmsg(s uintptr, hs []mmsghdr, flags int) (int, error) {
-	return 0, errNotImplemented
+	return 0, errors.New("not implemented")
 }
 
 func sendmmsg(s uintptr, hs []mmsghdr, flags int) (int, error) {
-	return 0, errNotImplemented
+	return 0, errors.New("not implemented")
 }
