@@ -18,7 +18,7 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 > 说明：KubeSphere 目前最新的版本为高级版 2.0.2，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [产品介绍](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/)。
 
 
-点击 [KubeSphere 快览](docs/screenshots.md) 快速查看 KubeSphere UI；
+点击 [KubeSphere 快览](docs/en/guides/screenshots.md) 快速查看 KubeSphere UI；
 
 <table>
   <tr>

@@ -42,23 +42,23 @@ endef
 all: hypersphere ks-apiserver ks-apigateway ks-iam controller-manager
 
 # Build ks-apiserver binary
-ks-apiserver: test
+ks-apiserver:
 	hack/gobuild.sh cmd/ks-apiserver
 
 # Build ks-apigateway binary
-ks-apigateway: test
+ks-apigateway:
 	hack/gobuild.sh cmd/ks-apigateway
 
 # Build ks-iam binary
-ks-iam: test
+ks-iam:
 	hack/gobuild.sh cmd/ks-iam
 
 # Build controller-manager binary
-controller-manager: test
+controller-manager:
 	hack/gobuild.sh cmd/controller-manager
 
 # Build hypersphere binary
-hypersphere: test
+hypersphere:
 	hack/gobuild.sh cmd/hypersphere
 
 # Run go fmt against code 
