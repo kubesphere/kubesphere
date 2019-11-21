@@ -25,9 +25,6 @@ script:
   - make openapi
   - make all
 
-install:
-  - go get golang.org/x/lint/golint
-
 deploy:
   skip_cleanup: true
   provider: script
