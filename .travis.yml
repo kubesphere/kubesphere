@@ -23,7 +23,7 @@ before_script:
 script:
   - diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools)
   - make openapi
-  - make all && $HOME/gopath/bin/goveralls -coverprofile=cover.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  - make all && $HOME/gopath/bin/goveralls -coverprofile=cover.out -service=travis-ci -repotoken=$COVERALLS_TOKEN
 
 install:
   - go get golang.org/x/tools/cmd/cover
