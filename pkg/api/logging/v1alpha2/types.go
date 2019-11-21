@@ -184,7 +184,7 @@ type ReadResult struct {
 	Records  []LogRecord `json:"records,omitempty" description:"actual array of results"`
 }
 
-// StatisticsResponseAggregations, the struct for `aggregations` of type Reponse, holds return results from the aggregation StatisticsAggs
+// StatisticsResponseAggregations, the struct for `aggregations` of type Response, holds return results from the aggregation StatisticsAggs
 type StatisticsResponseAggregations struct {
 	ContainerCount ContainerCount `json:"containers"`
 }

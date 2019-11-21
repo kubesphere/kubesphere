@@ -146,7 +146,7 @@ type SingleSvnSource struct {
 }
 
 type DiscoverPRFromForks struct {
-	Strategy int `json:"strategy,omitempty" mapstructure:"strategy" description:"github discover startegy"`
+	Strategy int `json:"strategy,omitempty" mapstructure:"strategy" description:"github discover strategy"`
 	Trust    int `json:"trust,omitempty" mapstructure:"trust" description:"trust user type"`
 }
 
