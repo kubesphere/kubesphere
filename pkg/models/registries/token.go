@@ -140,7 +140,7 @@ func parseChallenge(challengeHeader string) (*authService, error) {
 		case "scope":
 			scope = strings.Fields(value)
 		default:
-			return nil, fmt.Errorf("unknown field in challege header %s: %v", key, challengeHeader)
+			return nil, fmt.Errorf("unknown field in challenge header %s: %v", key, challengeHeader)
 		}
 	}
 	parsedRealm, err := url.Parse(realm)
