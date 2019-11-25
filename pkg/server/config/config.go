@@ -104,10 +104,17 @@ func convertToMap(conf *Config) map[string]bool {
 }
 
 // Load loads configuration after setup
-func Load() error {
+// configName is the name of the configuration file, you do not need to pass this parameter by default.
+// To avoid conflicts with the default configuration, we pass this parameter when execute test.
+func Load(configName ...string) error {
 	sharedConfig = newConfig()
 
-	viper.SetConfigName(DefaultConfigurationName)
+	if len(configName) == 0 {
+		viper.SetConfigName(DefaultConfigurationName)
+	} else {
+		viper.SetConfigName(configName[0])
+	}
+
 	viper.AddConfigPath(DefaultConfigurationPath)
 	viper.AddConfigPath(".")
 

@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+const DefaultTestConfigurationName = "kubesphere_test"
+
 func newTestConfig() *Config {
 	conf := &Config{
 		MySQLOptions: &mysql.MySQLOptions{
@@ -112,14 +114,14 @@ func saveTestConfig(t *testing.T, conf *Config) {
 		t.Fatalf("error marshal config. %v", err)
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", DefaultConfigurationName), content, 0640)
+	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", DefaultTestConfigurationName), content, 0640)
 	if err != nil {
 		t.Fatalf("error write configuration file, %v", err)
 	}
 }
 
 func cleanTestConfig(t *testing.T) {
-	file := fmt.Sprintf("%s.yaml", DefaultConfigurationName)
+	file := fmt.Sprintf("%s.yaml", DefaultTestConfigurationName)
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		t.Log("file not exists, skipping")
 		return
@@ -137,7 +139,7 @@ func TestGet(t *testing.T) {
 	saveTestConfig(t, conf)
 	defer cleanTestConfig(t)
 
-	err := Load()
+	err := Load(DefaultTestConfigurationName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +159,7 @@ func TestKubeSphereOptions(t *testing.T) {
 		saveTestConfig(t, &savedConf)
 		defer cleanTestConfig(t)
 
-		err := Load()
+		err := Load(DefaultTestConfigurationName)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +178,7 @@ func TestKubeSphereOptions(t *testing.T) {
 		saveTestConfig(t, &savedConf)
 		defer cleanTestConfig(t)
 
-		err := Load()
+		err := Load(DefaultTestConfigurationName)
 		if err != nil {
 			t.Fatal(err)
 		}
