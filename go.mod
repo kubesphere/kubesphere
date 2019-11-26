@@ -424,7 +424,6 @@ replace (
 	openpitrix.io/logger v0.1.0 => github.com/openpitrix/logger v0.1.0
 	openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
 	rsc.io/goversion => rsc.io/goversion v1.0.0
-	sigs.k8s.io/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.2
 	sigs.k8s.io/structured-merge-diff => sigs.k8s.io/structured-merge-diff v0.0.0-20190817042607-6149e4549fca

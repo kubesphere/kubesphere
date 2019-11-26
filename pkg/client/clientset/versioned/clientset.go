@@ -19,6 +19,8 @@ limitations under the License.
 package versioned
 
 import (
+	"fmt"
+
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -31,17 +33,9 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Devops() devopsv1alpha1.DevopsV1alpha1Interface
 	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Network() networkv1alpha1.NetworkV1alpha1Interface
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Tenant() tenantv1alpha1.TenantV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -59,20 +53,8 @@ func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
 	return c.devopsV1alpha1
 }
 
-// Deprecated: Devops retrieves the default version of DevopsClient.
-// Please explicitly pick a version.
-func (c *Clientset) Devops() devopsv1alpha1.DevopsV1alpha1Interface {
-	return c.devopsV1alpha1
-}
-
 // NetworkV1alpha1 retrieves the NetworkV1alpha1Client
 func (c *Clientset) NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface {
-	return c.networkV1alpha1
-}
-
-// Deprecated: Network retrieves the default version of NetworkClient.
-// Please explicitly pick a version.
-func (c *Clientset) Network() networkv1alpha1.NetworkV1alpha1Interface {
 	return c.networkV1alpha1
 }
 
@@ -81,20 +63,8 @@ func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha
 	return c.servicemeshV1alpha2
 }
 
-// Deprecated: Servicemesh retrieves the default version of ServicemeshClient.
-// Please explicitly pick a version.
-func (c *Clientset) Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface {
-	return c.servicemeshV1alpha2
-}
-
 // TenantV1alpha1 retrieves the TenantV1alpha1Client
 func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
-	return c.tenantV1alpha1
-}
-
-// Deprecated: Tenant retrieves the default version of TenantClient.
-// Please explicitly pick a version.
-func (c *Clientset) Tenant() tenantv1alpha1.TenantV1alpha1Interface {
 	return c.tenantV1alpha1
 }
 
@@ -107,9 +77,14 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 // NewForConfig creates a new Clientset for the given config.
+// If config's RateLimiter is not set and QPS and Burst are acceptable,
+// NewForConfig will generate a rate-limiter in configShallowCopy.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
 	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
+		if configShallowCopy.Burst <= 0 {
+			return nil, fmt.Errorf("Burst is required to be greater than 0 when RateLimiter is not set and QPS is set to greater than 0")
+		}
 		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
 	}
 	var cs Clientset
