@@ -33,6 +33,10 @@ During the development of KubeSphere apiserver, you must configure at least the 
 
 Below is a sample configuration of Kubesphere apiserver:
 
+> Note: In the default configuration, we use kubernetes service name to access the service. 
+> In a remote cluster, you may need to use external network exposure to connect to the cluster's internal services.
+> Or you can refer to the [documentation](How-to-connect-remote-service.md) to use `telepresence` to connect to remote services
+
 ```yaml
 kubernetes:
   kubeconfig: "/Users/kubesphere/.kube/config"
