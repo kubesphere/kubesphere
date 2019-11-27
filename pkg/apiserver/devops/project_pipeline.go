@@ -35,7 +35,7 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -67,7 +67,7 @@ func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -106,7 +106,7 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -139,7 +139,7 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -168,7 +168,7 @@ func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Respo
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -195,7 +195,7 @@ func GetMultiBranchesPipelineSonarStatusHandler(request *restful.Request, resp *
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}

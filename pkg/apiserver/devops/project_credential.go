@@ -37,7 +37,7 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -76,7 +76,7 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -115,7 +115,7 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -150,7 +150,7 @@ func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.R
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
@@ -180,7 +180,7 @@ func GetDevOpsProjectCredentialsHandler(request *restful.Request, resp *restful.
 	xuseranme, xpassword, ok := request.Request.BasicAuth()
 	if !ok {
 		err := fmt.Errorf("basic auth not found")
-		klog.Error("%+v", err)
+		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
