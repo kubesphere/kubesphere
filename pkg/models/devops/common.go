@@ -15,13 +15,16 @@ package devops
 
 import (
 	"fmt"
+	"github.com/emicklei/go-restful"
 	"github.com/fatih/structs"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"net/http"
 )
 
 func GetColumnsFromStruct(s interface{}) []string {
@@ -361,4 +364,24 @@ func GetProjectUserRole(username, projectId string) (string, error) {
 	}
 
 	return membership.Role, nil
+}
+
+type Server struct {
+	Username                   string
+	Token                      string
+	JenkinsClientWithUserAuth  *gojenkins.Jenkins
+	JenkinsClientWithAdminAuth *gojenkins.Jenkins
+}
+
+func NewServer(username, token string) (*Server, error) {
+	devops, err := cs.ClientSets().Devops()
+	if err != nil {
+		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+	}
+	return &Server{
+		Username:                   username,
+		Token:                      token,
+		JenkinsClientWithUserAuth:  gojenkins.CreateJenkins(nil, devops.Jenkins().Server, 10, username, token),
+		JenkinsClientWithAdminAuth: devops.Jenkins(),
+	}, nil
 }

@@ -29,15 +29,9 @@ import (
 	"strings"
 )
 
-func CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
+func (s *Server) CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
 
-	jenkinsClient := devops.Jenkins()
-
-	err = checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.Id)
+	err := s.checkJenkinsCredentialExists(projectId, credentialRequest.Domain, credentialRequest.Id)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return "", err
@@ -50,7 +44,7 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.CreateUsernamePasswordCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.CreateUsernamePasswordCredentialInFolder(credentialRequest.Domain,
 			credentialRequest.Id,
 			credentialRequest.UsernamePasswordCredential.Username,
 			credentialRequest.UsernamePasswordCredential.Password,
@@ -72,7 +66,7 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.CreateSshCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.CreateSshCredentialInFolder(credentialRequest.Domain,
 			credentialRequest.Id,
 			credentialRequest.SshCredential.Username,
 			credentialRequest.SshCredential.Passphrase,
@@ -97,7 +91,7 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
 
-		credentialId, err := jenkinsClient.CreateSecretTextCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.CreateSecretTextCredentialInFolder(credentialRequest.Domain,
 			credentialRequest.Id,
 			credentialRequest.SecretTextCredential.Secret,
 			credentialRequest.Description,
@@ -119,7 +113,7 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.CreateKubeconfigCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.CreateKubeconfigCredentialInFolder(credentialRequest.Domain,
 			credentialRequest.Id,
 			credentialRequest.KubeconfigCredential.Content,
 			credentialRequest.Description,
@@ -143,14 +137,9 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 
 }
 
-func UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	jenkinsClient := devops.Jenkins()
+func (s *Server) UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 
-	jenkinsCredential, err := jenkinsClient.GetCredentialInFolder(credentialRequest.Domain,
+	jenkinsCredential, err := s.JenkinsClientWithUserAuth.GetCredentialInFolder(credentialRequest.Domain,
 		credentialId,
 		projectId)
 	if err != nil {
@@ -165,7 +154,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.UpdateUsernamePasswordCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.UpdateUsernamePasswordCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.UsernamePasswordCredential.Username,
 			credentialRequest.UsernamePasswordCredential.Password,
@@ -183,7 +172,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.UpdateSshCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.UpdateSshCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.SshCredential.Username,
 			credentialRequest.SshCredential.Passphrase,
@@ -202,7 +191,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.UpdateSecretTextCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.UpdateSecretTextCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.SecretTextCredential.Secret,
 			credentialRequest.Description,
@@ -218,7 +207,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 			klog.Error(err)
 			return "", restful.NewError(http.StatusBadRequest, err.Error())
 		}
-		credentialId, err := jenkinsClient.UpdateKubeconfigCredentialInFolder(credentialRequest.Domain,
+		credentialId, err := s.JenkinsClientWithUserAuth.UpdateKubeconfigCredentialInFolder(credentialRequest.Domain,
 			credentialId,
 			credentialRequest.KubeconfigCredential.Content,
 			credentialRequest.Description,
@@ -237,19 +226,13 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 
 }
 
-func DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	jenkinsClient := devops.Jenkins()
-
+func (s *Server) DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 	dbClient, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	_, err = jenkinsClient.GetCredentialInFolder(credentialRequest.Domain,
+	_, err = s.JenkinsClientWithUserAuth.GetCredentialInFolder(credentialRequest.Domain,
 		credentialId,
 		projectId)
 	if err != nil {
@@ -257,7 +240,7 @@ func DeleteProjectCredential(projectId, credentialId string, credentialRequest *
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	id, err := jenkinsClient.DeleteCredentialInFolder(credentialRequest.Domain, credentialId, projectId)
+	id, err := s.JenkinsClientWithUserAuth.DeleteCredentialInFolder(credentialRequest.Domain, credentialId, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -281,18 +264,12 @@ func DeleteProjectCredential(projectId, credentialId string, credentialRequest *
 
 }
 
-func GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	jenkinsClient := devops.Jenkins()
-
+func (s *Server) GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error) {
 	dbClient, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsResponse, err := jenkinsClient.GetCredentialInFolder(domain,
+	jenkinsResponse, err := s.JenkinsClientWithUserAuth.GetCredentialInFolder(domain,
 		credentialId,
 		projectId)
 	if err != nil {
@@ -314,7 +291,7 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 
 	response := formatCredentialResponse(jenkinsResponse, projectCredential)
 	if getContent != "" {
-		stringBody, err := jenkinsClient.GetCredentialContentInFolder(jenkinsResponse.Domain, credentialId, projectId)
+		stringBody, err := s.JenkinsClientWithUserAuth.GetCredentialContentInFolder(jenkinsResponse.Domain, credentialId, projectId)
 		if err != nil {
 			klog.Errorf("%+v", err)
 			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -359,18 +336,13 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 
 }
 
-func GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	jenkinsClient := devops.Jenkins()
+func (s *Server) GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error) {
 
 	dbClient, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsCredentialResponses, err := jenkinsClient.GetCredentialsInFolder(domain, projectId)
+	jenkinsCredentialResponses, err := s.JenkinsClientWithUserAuth.GetCredentialsInFolder(domain, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -406,15 +378,9 @@ func insertCredentialToDb(projectId, credentialId, domain, username string) erro
 	return nil
 }
 
-func checkJenkinsCredentialExists(projectId, domain, credentialId string) error {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
+func (s *Server) checkJenkinsCredentialExists(projectId, domain, credentialId string) error {
 
-	jenkinsClient := devops.Jenkins()
-
-	credential, err := jenkinsClient.GetCredentialInFolder(domain, credentialId, projectId)
+	credential, err := s.JenkinsClientWithUserAuth.GetCredentialInFolder(domain, credentialId, projectId)
 	if credential != nil {
 		err := fmt.Errorf("credential id [%s] has been used", credential.Id)
 		klog.Warning(err.Error())

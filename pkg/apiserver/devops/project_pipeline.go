@@ -14,9 +14,9 @@ limitations under the License.
 package devops
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
@@ -25,7 +25,6 @@ import (
 func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	var pipeline *devops.ProjectPipeline
 	err := request.ReadEntity(&pipeline)
 	if err != nil {
@@ -33,13 +32,21 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.CreateProjectPipeline(projectId, pipeline)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	pipelineName, err := server.CreateProjectPipeline(projectId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -55,16 +62,23 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 
 func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.DeleteProjectPipeline(projectId, pipelineId)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	pipelineName, err := server.DeleteProjectPipeline(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -81,7 +95,6 @@ func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 	var pipeline *devops.ProjectPipeline
 	err := request.ReadEntity(&pipeline)
@@ -90,13 +103,21 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.UpdateProjectPipeline(projectId, pipelineId, pipeline)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	pipelineName, err := server.UpdateProjectPipeline(projectId, pipelineId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -113,16 +134,23 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	pipeline, err := devops.GetProjectPipeline(projectId, pipelineId)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	pipeline, err := server.GetProjectPipeline(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -136,15 +164,22 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 
 func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	sonarStatus, err := devops.GetPipelineSonar(projectId, pipelineId)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	sonarStatus, err := server.GetPipelineSonar(projectId, pipelineId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
@@ -155,16 +190,23 @@ func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Respo
 
 func GetMultiBranchesPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 	branchId := request.PathParameter("branch")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	sonarStatus, err := devops.GetMultiBranchPipelineSonar(projectId, pipelineId, branchId)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	sonarStatus, err := server.GetMultiBranchPipelineSonar(projectId, pipelineId, branchId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

@@ -14,6 +14,7 @@ limitations under the License.
 package devops
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -33,13 +34,21 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	credentialId, err := devops.CreateProjectCredential(projectId, username, credential)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	credentialId, err := server.CreateProjectCredential(projectId, username, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -56,7 +65,6 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
 	var credential *devops.JenkinsCredential
 	err := request.ReadEntity(&credential)
@@ -65,13 +73,21 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	credentialId, err = devops.UpdateProjectCredential(projectId, credentialId, credential)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	credentialId, err = server.UpdateProjectCredential(projectId, credentialId, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -88,7 +104,6 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
 	var credential *devops.JenkinsCredential
 	err := request.ReadEntity(&credential)
@@ -97,13 +112,21 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	credentialId, err = devops.DeleteProjectCredential(projectId, credentialId, credential)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	credentialId, err = server.DeleteProjectCredential(projectId, credentialId, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -120,18 +143,25 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
 	getContent := request.QueryParameter("content")
 	domain := request.QueryParameter("domain")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	response, err := devops.GetProjectCredential(projectId, credentialId, domain, getContent)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+	response, err := server.GetProjectCredential(projectId, credentialId, domain, getContent)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -145,16 +175,24 @@ func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.R
 
 func GetDevOpsProjectCredentialsHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	domain := request.QueryParameter("domain")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+	xuseranme, xpassword, ok := request.Request.BasicAuth()
+	if !ok {
+		err := fmt.Errorf("basic auth not found")
+		klog.Error("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	jenkinsCredentials, err := devops.GetProjectCredentials(projectId, domain)
+
+	server, err := devops.NewServer(xuseranme, xpassword)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(err, resp)
+		return
+	}
+
+	jenkinsCredentials, err := server.GetProjectCredentials(projectId, domain)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

@@ -34,10 +34,9 @@ func NewDevopsClient(options *DevopsOptions) (*DevopsClient, error) {
 	jenkins := gojenkins.CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
 	jenkins, err := jenkins.Init()
 	if err != nil {
-		klog.Errorf("failed to connecto to jenkins role, %+v", err)
+		klog.Errorf("failed to connect to jenkins role, %+v", err)
 		return nil, err
 	}
-
 	d.jenkinsClient = jenkins
 
 	err = d.initializeJenkins()
