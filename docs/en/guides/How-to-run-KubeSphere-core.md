@@ -7,11 +7,9 @@ This document will explain how to run KubeSphere apiserver locally.
 
 ## Prepare: Build KubeSphere Core component
 
-In the document [How-to-build](How-to-build.md) We learned how to build KubeSphere locally. 
+In the document [How-to-build](How-to-build.md) We learned how to build KubeSphere locally. Make sure you could build KubeSphere Core modules accordingly.
 
-Make sure you and the previous documentation can build KubeSphere Core modules.
-
-## 1. Set up a k8s cluster with KubeSphere installed
+## 1. Set up a Kubernetes cluster with KubeSphere installed
 
 KubeSphere relies on some external modules during development, and these modules are already included in the installed KubeSphere.
 
@@ -27,13 +25,13 @@ KubeSphere uses [viper](https://github.com/spf13/viper) to manage the configurat
 
 > We recommend that you use a configuration file for configuration during local development.
 
-KubeSphere apiserver needs to communicate with many modules. When you need to run Kubesphere, you can choose to configure only the modules you care about.
+KubeSphere apiserver needs to communicate with many modules. When you run Kubesphere, you can choose to configure the seperate modules only you care about.
 
-During the development of KubeSphere apiserver, you must configure at least the relevant part of kubernetes to ensure that kubesphere apiserver can be started.
+During the development of KubeSphere apiserver, you must configure at least the relevant part of Kubernetes to ensure that KubeSphere apiserver can be started.
 
-Below is a sample configuration of Kubesphere apiserver:
+Below is a sample configuration of KubeSphere apiserver:
 
-> Note: In the default configuration, we use kubernetes service name to access the service. 
+> Note: In the default configuration, we use Kubernetes service name to access the service. 
 > In a remote cluster, you may need to use external network exposure to connect to the cluster's internal services.
 > Or you can refer to the [documentation](How-to-connect-remote-service.md) to use `telepresence` to connect to remote services
 
@@ -106,11 +104,11 @@ notification:
 
 ## 4. Set Up KubeSphere Core's configuration
 
-The KubeSphere Core module will read the `kubesphere.yaml` file in the current directory and the `kubesphere.yaml` file in the `/etc/kubesphere` directory to load the configuration at startup.
+The KubeSphere Core module will read the `kubesphere.yaml` file in the current directory and the `kubesphere.yaml` file in the `/etc/kubesphere` directory, then load the configuration at startup.
 You can choose a path to set your configuration locally.
 
 ## 5. Run KubeSphere apiserver 
 
-You can execute `go run cmd/ks-apiserver/apiserver.go` in the `$GOPATH/src/kubesphere.io/kubesphere` directory to start Kubesphere apiserver
+You can execute `go run cmd/ks-apiserver/apiserver.go` in the `$GOPATH/src/kubesphere.io/kubesphere` directory to start KubeSphere apiserver
 
 > If you want to understand the specific meaning of each configuration, you can view it by `go run cmd/ks-apiserver/apiserver.go --help` or read the module's design and developer documentation.
