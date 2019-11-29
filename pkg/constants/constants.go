@@ -36,6 +36,7 @@ const (
 	IngressControllerPrefix       = "kubesphere-router-"
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
+	DevOpsProjectLabelKey          = "kubesphere.io/devops"
 	DisplayNameAnnotationKey       = "kubesphere.io/alias-name"
 	DescriptionAnnotationKey       = "kubesphere.io/description"
 	CreatorAnnotationKey           = "kubesphere.io/creator"

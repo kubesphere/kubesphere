@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const DevOpsProjectRoleJenkinsFinalizerName = "devopsprojectrole.finalizers.kubesphere.io/jenkins"
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -63,5 +65,3 @@ type DevOpsProjectRoleList struct {
 func init() {
 	SchemeBuilder.Register(&DevOpsProjectRole{}, &DevOpsProjectRoleList{})
 }
-
-
