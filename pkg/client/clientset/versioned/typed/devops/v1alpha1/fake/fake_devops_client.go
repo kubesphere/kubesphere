@@ -28,6 +28,18 @@ type FakeDevopsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeDevopsV1alpha1) DevOpsProjects() v1alpha1.DevOpsProjectInterface {
+	return &FakeDevOpsProjects{c}
+}
+
+func (c *FakeDevopsV1alpha1) DevOpsProjectRoles() v1alpha1.DevOpsProjectRoleInterface {
+	return &FakeDevOpsProjectRoles{c}
+}
+
+func (c *FakeDevopsV1alpha1) DevOpsProjectRoleBindings() v1alpha1.DevOpsProjectRoleBindingInterface {
+	return &FakeDevOpsProjectRoleBindings{c}
+}
+
 func (c *FakeDevopsV1alpha1) S2iBinaries(namespace string) v1alpha1.S2iBinaryInterface {
 	return &FakeS2iBinaries{c, namespace}
 }

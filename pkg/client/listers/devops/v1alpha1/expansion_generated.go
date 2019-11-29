@@ -18,6 +18,18 @@ limitations under the License.
 
 package v1alpha1
 
+// DevOpsProjectListerExpansion allows custom methods to be added to
+// DevOpsProjectLister.
+type DevOpsProjectListerExpansion interface{}
+
+// DevOpsProjectRoleListerExpansion allows custom methods to be added to
+// DevOpsProjectRoleLister.
+type DevOpsProjectRoleListerExpansion interface{}
+
+// DevOpsProjectRoleBindingListerExpansion allows custom methods to be added to
+// DevOpsProjectRoleBindingLister.
+type DevOpsProjectRoleBindingListerExpansion interface{}
+
 // S2iBinaryListerExpansion allows custom methods to be added to
 // S2iBinaryLister.
 type S2iBinaryListerExpansion interface{}

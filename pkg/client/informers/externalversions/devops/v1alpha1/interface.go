@@ -24,6 +24,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// DevOpsProjects returns a DevOpsProjectInformer.
+	DevOpsProjects() DevOpsProjectInformer
+	// DevOpsProjectRoles returns a DevOpsProjectRoleInformer.
+	DevOpsProjectRoles() DevOpsProjectRoleInformer
+	// DevOpsProjectRoleBindings returns a DevOpsProjectRoleBindingInformer.
+	DevOpsProjectRoleBindings() DevOpsProjectRoleBindingInformer
 	// S2iBinaries returns a S2iBinaryInformer.
 	S2iBinaries() S2iBinaryInformer
 }
@@ -37,6 +43,21 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// DevOpsProjects returns a DevOpsProjectInformer.
+func (v *version) DevOpsProjects() DevOpsProjectInformer {
+	return &devOpsProjectInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// DevOpsProjectRoles returns a DevOpsProjectRoleInformer.
+func (v *version) DevOpsProjectRoles() DevOpsProjectRoleInformer {
+	return &devOpsProjectRoleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// DevOpsProjectRoleBindings returns a DevOpsProjectRoleBindingInformer.
+func (v *version) DevOpsProjectRoleBindings() DevOpsProjectRoleBindingInformer {
+	return &devOpsProjectRoleBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // S2iBinaries returns a S2iBinaryInformer.

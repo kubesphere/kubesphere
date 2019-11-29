@@ -18,4 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+type DevOpsProjectExpansion interface{}
+
+type DevOpsProjectRoleExpansion interface{}
+
+type DevOpsProjectRoleBindingExpansion interface{}
+
 type S2iBinaryExpansion interface{}

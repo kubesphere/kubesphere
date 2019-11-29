@@ -27,12 +27,27 @@ import (
 
 type DevopsV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	DevOpsProjectsGetter
+	DevOpsProjectRolesGetter
+	DevOpsProjectRoleBindingsGetter
 	S2iBinariesGetter
 }
 
 // DevopsV1alpha1Client is used to interact with features provided by the devops.kubesphere.io group.
 type DevopsV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *DevopsV1alpha1Client) DevOpsProjects() DevOpsProjectInterface {
+	return newDevOpsProjects(c)
+}
+
+func (c *DevopsV1alpha1Client) DevOpsProjectRoles() DevOpsProjectRoleInterface {
+	return newDevOpsProjectRoles(c)
+}
+
+func (c *DevopsV1alpha1Client) DevOpsProjectRoleBindings() DevOpsProjectRoleBindingInterface {
+	return newDevOpsProjectRoleBindings(c)
 }
 
 func (c *DevopsV1alpha1Client) S2iBinaries(namespace string) S2iBinaryInterface {
