@@ -43,6 +43,10 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 
 [![KubeSphere](https://pek3b.qingstor.com/kubesphere-docs/png/20191112093503.png)](https://youtu.be/u5lQvhi_Xlc)
 
+## 体验环境
+
+使用体验账号 `demo1 / Demo123` 登录 [Demo 环境](https://demo.kubesphere.io/)，该账号仅授予了 viewer 权限，建议自行安装体验完整的管理功能。
+
 ## 核心功能
 
 - Kubernetes 资源管理：纳管多种类型的 K8s 资源，提供易用友好的向导式 UI
