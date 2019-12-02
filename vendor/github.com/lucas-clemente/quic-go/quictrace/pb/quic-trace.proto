@@ -1,0 +1,204 @@
+// copied from https://github.com/google/quic-trace/
+// Only changed the package name.
+
+syntax = "proto2";
+
+package pb;
+
+enum FrameType {
+  UNKNOWN_FRAME = 0;
+
+  STREAM = 1;
+  ACK = 2;
+  RESET_STREAM = 3;
+  CONNECTION_CLOSE = 4;
+  MAX_DATA = 5;
+  MAX_STREAM_DATA = 6;
+  PING = 7;
+  BLOCKED = 8;
+  STREAM_BLOCKED = 9;
+  PADDING = 10;
+  CRYPTO = 11;
+};
+
+// Metadata for STREAM frames.
+message StreamFrameInfo {
+  optional uint64 stream_id = 1;
+  optional bool fin = 2;
+  optional uint64 length = 3;
+  optional uint64 offset = 4;
+};
+
+// Metadata for CRYPTO frames.
+message CryptoFrameInfo {
+  optional uint64 length = 1;
+  optional uint64 offset = 2;
+}
+
+// The intervals are closed, i.e. the interval represented here is
+// [first_packet, last_packet].
+message AckBlock {
+  optional uint64 first_packet = 1;
+  optional uint64 last_packet = 2;
+};
+
+// Metadata for ACK frames.
+message AckInfo {
+  repeated AckBlock acked_packets = 1;
+  optional uint64 ack_delay_us = 2;
+};
+
+// Metadata for RST_STREAM frames.
+message ResetStreamInfo {
+  optional uint64 stream_id = 1;
+  optional uint32 application_error_code = 2;
+  optional uint64 final_offset = 3;
+};
+
+// Metadata for CONNECTION_CLOSE frames.
+// Close_type will indicate whether the close is a Google QUIC close,
+// IETF QUIC Transport CONNECTION CLOSE, or IETF QUIC Application
+// Connection Close, frame.
+enum CloseType {
+  GOOGLE_QUIC_CONNECTION_CLOSE = 0;
+  IETF_QUIC_TRANSPORT_CONNECTION_CLOSE = 1;
+  IETF_QUIC_APPLICATION_CONNECTION_CLOSE = 2;
+};
+
+// Metadata for CONNECTION_CLOSE/APPLICATION_CLOSE frames.
+message CloseInfo {
+  optional uint32 error_code = 1;
+  optional string reason_phrase = 2;
+  optional CloseType close_type = 3;
+  optional uint64 transport_close_frame_type = 4;
+};
+
+// Metadata for MAX_DATA/MAX_STREAM_DATA frames.
+message FlowControlInfo {
+  optional uint64 max_data = 1;
+  optional uint64 stream_id = 2;
+};
+
+// A message representing a frame, either sent or received.
+message Frame {
+  optional FrameType frame_type = 1;
+
+  optional StreamFrameInfo stream_frame_info = 2;
+  optional AckInfo ack_info = 3;
+  optional ResetStreamInfo reset_stream_info = 4;
+  optional CloseInfo close_info = 5;
+  optional FlowControlInfo flow_control_info = 6;
+  optional CryptoFrameInfo crypto_frame_info = 7;
+};
+
+// Metadata that represents transport stack's understanding of the current state
+// of the transport channel.
+message TransportState {
+  optional uint64 min_rtt_us = 1;
+  // Smoothed RTT, usually computed using EWMA.
+  optional uint64 smoothed_rtt_us = 2;
+  // The latest RTT measureent available.
+  optional uint64 last_rtt_us = 3;
+
+  optional uint64 in_flight_bytes = 4;
+  optional uint64 cwnd_bytes = 5;
+  // Pacing rate, in bits per second.
+  optional uint64 pacing_rate_bps = 6;
+
+  // Any arbitrary information about congestion control state that is not
+  // representable via parameters above.
+  optional string congestion_control_state = 7;
+};
+
+// Documents external network parameters supplied to the sender.  Typically not
+// all of those would be supplied (e.g. if bandwidth and RTT are supplied, you
+// can infer the suggested CWND), but there are no restrictions on which fields
+// may or may not be set.
+message ExternalNetworkParameters {
+  optional uint64 bandwidth_bps = 1;  // in bits per second
+  optional uint64 rtt_us = 2;
+  optional uint64 cwnd_bytes = 3;
+};
+
+enum EncryptionLevel {
+  ENCRYPTION_UNKNOWN = 0;
+
+  ENCRYPTION_INITIAL = 1;
+  ENCRYPTION_0RTT = 2;
+  ENCRYPTION_1RTT = 3;
+  ENCRYPTION_HANDSHAKE = 4;
+};
+
+enum EventType {
+  UNKNOWN_EVENT = 0;
+
+  PACKET_SENT = 1;
+  PACKET_RECEIVED = 2;
+  PACKET_LOST = 3;
+
+  // An APPLICATION_LIMITED event occurs when the sender is capable of sending
+  // more data and tries to send it, but discovers that it does not have any
+  // outstanding data to send.  Such events are important to some congestion
+  // control algorithms (for example, BBR) since they are trying to measure the
+  // largest achievable throughput, but it is impossible to measure it when the
+  // application does not send anything.
+  APPLICATION_LIMITED = 4;
+
+  // Record when external information about expected network conditions
+  // (available bandwidth, RTT, congestion window, etc) is supplied to the
+  // sender.
+  EXTERNAL_PARAMETERS = 5;
+};
+
+enum TransmissionReason {
+  // Indicates that there was not any particular special reason the packet was
+  // sent.
+  NORMAL_TRANSMISSION = 0;
+
+  // Indicates that the packet sent is a tail loss probe, cf.
+  // https://tools.ietf.org/html/draft-ietf-quic-recovery-14#section-4.3.2
+  TAIL_LOSS_PROBE = 1;
+
+  // Indicates that the packet is sent due to retransmission timeout, cf
+  // https://tools.ietf.org/html/draft-ietf-quic-recovery-14#section-4.3.3
+  RTO_TRANSMISSION = 2;
+
+  // Indicates that the packet is sent in order to probe whether there is extra
+  // bandwidth available in cases where the sender needs an estimate of
+  // available bandwidth, but the application does not provide enough data for
+  // such estimate to become naturally available.  This is usually only used in
+  // real-time protocols.
+  PROBING_TRANSMISSION = 3;
+};
+
+// An event that has occurred over duration of the connection.
+message Event {
+  optional uint64 time_us = 1;
+  optional EventType event_type = 2;
+
+  optional uint64 packet_number = 3;
+  repeated Frame frames = 4;
+  optional uint64 packet_size = 5;
+  optional EncryptionLevel encryption_level = 6;
+  // State of the transport stack after the event has happened.
+  optional TransportState transport_state = 7;
+  // For event_type = EXTERNAL_PARAMETERS, record parameters specified.
+  optional ExternalNetworkParameters external_network_parameters = 8;
+
+  // For sent packets, indicate if there is a special reason for why the packet
+  // in question was transmitted.
+  optional TransmissionReason transmission_reason = 9
+      [default = NORMAL_TRANSMISSION];
+};
+
+message Trace {
+  // QUIC version tag, as represented on wire.  Should be always 4 bytes long.
+  optional bytes protocol_version = 1;
+
+  // Source and destination connection ID.  If multiple connection IDs are used,
+  // record the first one used with short-form header.
+  optional bytes source_connection_id = 2;
+  optional bytes destination_connection_id = 3;
+
+  repeated Event events = 4;
+};

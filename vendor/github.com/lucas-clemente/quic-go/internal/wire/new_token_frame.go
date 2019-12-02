@@ -2,6 +2,7 @@ package wire
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
@@ -23,6 +24,9 @@ func parseNewTokenFrame(r *bytes.Reader, _ protocol.VersionNumber) (*NewTokenFra
 	}
 	if uint64(r.Len()) < tokenLen {
 		return nil, io.EOF
+	}
+	if tokenLen == 0 {
+		return nil, errors.New("token must not be empty")
 	}
 	token := make([]byte, int(tokenLen))
 	if _, err := io.ReadFull(r, token); err != nil {

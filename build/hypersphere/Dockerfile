@@ -5,7 +5,7 @@
 # Copyright 2018 The KubeSphere Authors. All rights reserved.
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
-FROM golang:1.12 as hypersphere-builder
+FROM golang:1.13 as hypersphere-builder
 
 COPY / /go/src/kubesphere.io/kubesphere
 

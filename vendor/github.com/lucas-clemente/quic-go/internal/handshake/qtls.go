@@ -51,6 +51,10 @@ func (c *clientSessionCache) Get(sessionKey string) (*qtls.ClientSessionState, b
 }
 
 func (c *clientSessionCache) Put(sessionKey string, cs *qtls.ClientSessionState) {
+	if cs == nil {
+		c.ClientSessionCache.Put(sessionKey, nil)
+		return
+	}
 	// qtls.ClientSessionState is identical to the tls.ClientSessionState.
 	// In order to allow users of quic-go to use a tls.Config,
 	// we need this workaround to use the ClientSessionCache.
@@ -110,6 +114,7 @@ func tlsConfigToQtlsConfig(
 		VerifyPeerCertificate:       c.VerifyPeerCertificate,
 		RootCAs:                     c.RootCAs,
 		NextProtos:                  c.NextProtos,
+		EnforceNextProtoSelection:   true,
 		ServerName:                  c.ServerName,
 		ClientAuth:                  c.ClientAuth,
 		ClientCAs:                   c.ClientCAs,
@@ -128,5 +133,18 @@ func tlsConfigToQtlsConfig(
 		AlternativeRecordLayer: recordLayer,
 		GetExtensions:          extHandler.GetExtensions,
 		ReceivedExtensions:     extHandler.ReceivedExtensions,
+	}
+}
+
+func cipherSuiteName(id uint16) string {
+	switch id {
+	case qtls.TLS_AES_128_GCM_SHA256:
+		return "TLS_AES_128_GCM_SHA256"
+	case qtls.TLS_CHACHA20_POLY1305_SHA256:
+		return "TLS_CHACHA20_POLY1305_SHA256"
+	case qtls.TLS_AES_256_GCM_SHA384:
+		return "TLS_AES_256_GCM_SHA384"
+	default:
+		return "unknown cipher suite"
 	}
 }

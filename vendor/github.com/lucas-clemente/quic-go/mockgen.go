@@ -19,3 +19,4 @@ package quic
 //go:generate sh -c "./mockgen_private.sh quic mock_unknown_packet_handler_test.go github.com/lucas-clemente/quic-go unknownPacketHandler"
 //go:generate sh -c "./mockgen_private.sh quic mock_packet_handler_manager_test.go github.com/lucas-clemente/quic-go packetHandlerManager"
 //go:generate sh -c "./mockgen_private.sh quic mock_multiplexer_test.go github.com/lucas-clemente/quic-go multiplexer"
+//go:generate sh -c "mockgen -package quic -destination mock_token_store_test.go github.com/lucas-clemente/quic-go TokenStore && sed -i '' 's/quic_go.//g' mock_token_store_test.go && goimports -w mock_token_store_test.go"

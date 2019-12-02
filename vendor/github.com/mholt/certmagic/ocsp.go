@@ -35,7 +35,10 @@ import (
 //
 // Errors here are not necessarily fatal, it could just be that the
 // certificate doesn't have an issuer URL.
-func stapleOCSP(storage Storage, cert *Certificate, pemBundle []byte) error {
+//
+// If a status was received, it returns that status. Note that the
+// returned status is not always stapled to the certificate.
+func stapleOCSP(storage Storage, cert *Certificate, pemBundle []byte) (*ocsp.Response, error) {
 	if pemBundle == nil {
 		// we need a PEM encoding only for some function calls below
 		bundle := new(bytes.Buffer)
@@ -85,7 +88,7 @@ func stapleOCSP(storage Storage, cert *Certificate, pemBundle []byte) error {
 			// not contain a link to an OCSP server. But we should log it anyway.
 			// There's nothing else we can do to get OCSP for this certificate,
 			// so we can return here with the error.
-			return fmt.Errorf("no OCSP stapling for %v: %v", cert.Names, ocspErr)
+			return nil, fmt.Errorf("no OCSP stapling for %v: %v", cert.Names, ocspErr)
 		}
 		gotNewOCSP = true
 	}
@@ -98,20 +101,20 @@ func stapleOCSP(storage Storage, cert *Certificate, pemBundle []byte) error {
 			// uh oh, this OCSP response expires AFTER the certificate does, that's kinda bogus.
 			// it was the reason a lot of Symantec-validated sites (not Caddy) went down
 			// in October 2017. https://twitter.com/mattiasgeniar/status/919432824708648961
-			return fmt.Errorf("invalid: OCSP response for %v valid after certificate expiration (%s)",
+			return ocspResp, fmt.Errorf("invalid: OCSP response for %v valid after certificate expiration (%s)",
 				cert.Names, cert.NotAfter.Sub(ocspResp.NextUpdate))
 		}
 		cert.Certificate.OCSPStaple = ocspBytes
-		cert.OCSP = ocspResp
+		cert.ocsp = ocspResp
 		if gotNewOCSP {
 			err := storage.Store(ocspStapleKey, ocspBytes)
 			if err != nil {
-				return fmt.Errorf("unable to write OCSP staple file for %v: %v", cert.Names, err)
+				return ocspResp, fmt.Errorf("unable to write OCSP staple file for %v: %v", cert.Names, err)
 			}
 		}
 	}
 
-	return nil
+	return ocspResp, nil
 }
 
 // getOCSPForCert takes a PEM encoded cert or cert bundle returning the raw OCSP response,

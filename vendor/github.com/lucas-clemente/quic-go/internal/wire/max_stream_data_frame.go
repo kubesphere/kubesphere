@@ -13,7 +13,7 @@ type MaxStreamDataFrame struct {
 	ByteOffset protocol.ByteCount
 }
 
-func parseMaxStreamDataFrame(r *bytes.Reader, version protocol.VersionNumber) (*MaxStreamDataFrame, error) {
+func parseMaxStreamDataFrame(r *bytes.Reader, _ protocol.VersionNumber) (*MaxStreamDataFrame, error) {
 	if _, err := r.ReadByte(); err != nil {
 		return nil, err
 	}

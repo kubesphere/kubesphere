@@ -3,6 +3,7 @@ package congestion
 import (
 	"time"
 
+	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
@@ -21,6 +22,8 @@ type RTTStats struct {
 	latestRTT     time.Duration
 	smoothedRTT   time.Duration
 	meanDeviation time.Duration
+
+	maxAckDelay time.Duration
 }
 
 // NewRTTStats makes a properly initialized RTTStats object
@@ -40,17 +43,17 @@ func (r *RTTStats) LatestRTT() time.Duration { return r.latestRTT }
 // May return Zero if no valid updates have occurred.
 func (r *RTTStats) SmoothedRTT() time.Duration { return r.smoothedRTT }
 
-// SmoothedOrInitialRTT returns the EWMA smoothed RTT for the connection.
-// If no valid updates have occurred, it returns the initial RTT.
-func (r *RTTStats) SmoothedOrInitialRTT() time.Duration {
-	if r.smoothedRTT != 0 {
-		return r.smoothedRTT
-	}
-	return defaultInitialRTT
-}
-
 // MeanDeviation gets the mean deviation
 func (r *RTTStats) MeanDeviation() time.Duration { return r.meanDeviation }
+
+func (r *RTTStats) MaxAckDelay() time.Duration { return r.maxAckDelay }
+
+func (r *RTTStats) PTO() time.Duration {
+	if r.SmoothedRTT() == 0 {
+		return 2 * defaultInitialRTT
+	}
+	return r.SmoothedRTT() + utils.MaxDuration(4*r.MeanDeviation(), protocol.TimerGranularity) + r.MaxAckDelay()
+}
 
 // UpdateRTT updates the RTT based on a new sample.
 func (r *RTTStats) UpdateRTT(sendDelta, ackDelay time.Duration, now time.Time) {
@@ -82,6 +85,10 @@ func (r *RTTStats) UpdateRTT(sendDelta, ackDelay time.Duration, now time.Time) {
 		r.meanDeviation = time.Duration(oneMinusBeta*float32(r.meanDeviation/time.Microsecond)+rttBeta*float32(utils.AbsDuration(r.smoothedRTT-sample)/time.Microsecond)) * time.Microsecond
 		r.smoothedRTT = time.Duration((float32(r.smoothedRTT/time.Microsecond)*oneMinusAlpha)+(float32(sample/time.Microsecond)*rttAlpha)) * time.Microsecond
 	}
+}
+
+func (r *RTTStats) SetMaxAckDelay(mad time.Duration) {
+	r.maxAckDelay = mad
 }
 
 // OnConnectionMigration is called when connection migrates and rtt measurement needs to be reset.

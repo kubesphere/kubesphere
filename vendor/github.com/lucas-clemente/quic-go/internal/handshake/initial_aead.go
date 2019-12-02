@@ -2,16 +2,22 @@ package handshake
 
 import (
 	"crypto"
-	"crypto/aes"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/marten-seemann/qtls"
 )
 
-var quicVersion1Salt = []byte{0xef, 0x4f, 0xb0, 0xab, 0xb4, 0x74, 0x70, 0xc4, 0x1b, 0xef, 0xcf, 0x80, 0x31, 0x33, 0x4f, 0xae, 0x48, 0x5e, 0x09, 0xa0}
+var quicVersion1Salt = []byte{0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7, 0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02}
+
+var initialSuite = &qtls.CipherSuiteTLS13{
+	ID:     qtls.TLS_AES_128_GCM_SHA256,
+	KeyLen: 16,
+	AEAD:   qtls.AEADAESGCMTLS13,
+	Hash:   crypto.SHA256,
+}
 
 // NewInitialAEAD creates a new AEAD for Initial encryption / decryption.
-func NewInitialAEAD(connID protocol.ConnectionID, pers protocol.Perspective) (Sealer, Opener, error) {
+func NewInitialAEAD(connID protocol.ConnectionID, pers protocol.Perspective) (LongHeaderSealer, LongHeaderOpener) {
 	clientSecret, serverSecret := computeSecrets(connID)
 	var mySecret, otherSecret []byte
 	if pers == protocol.PerspectiveClient {
@@ -21,20 +27,14 @@ func NewInitialAEAD(connID protocol.ConnectionID, pers protocol.Perspective) (Se
 		mySecret = serverSecret
 		otherSecret = clientSecret
 	}
-	myKey, myHPKey, myIV := computeInitialKeyAndIV(mySecret)
-	otherKey, otherHPKey, otherIV := computeInitialKeyAndIV(otherSecret)
+	myKey, myIV := computeInitialKeyAndIV(mySecret)
+	otherKey, otherIV := computeInitialKeyAndIV(otherSecret)
 
 	encrypter := qtls.AEADAESGCMTLS13(myKey, myIV)
-	hpEncrypter, err := aes.NewCipher(myHPKey)
-	if err != nil {
-		return nil, nil, err
-	}
 	decrypter := qtls.AEADAESGCMTLS13(otherKey, otherIV)
-	hpDecrypter, err := aes.NewCipher(otherHPKey)
-	if err != nil {
-		return nil, nil, err
-	}
-	return newSealer(encrypter, hpEncrypter, false), newOpener(decrypter, hpDecrypter, false), nil
+
+	return newLongHeaderSealer(encrypter, newHeaderProtector(initialSuite, mySecret, true)),
+		newLongHeaderOpener(decrypter, newAESHeaderProtector(initialSuite, otherSecret, true))
 }
 
 func computeSecrets(connID protocol.ConnectionID) (clientSecret, serverSecret []byte) {
@@ -44,9 +44,8 @@ func computeSecrets(connID protocol.ConnectionID) (clientSecret, serverSecret []
 	return
 }
 
-func computeInitialKeyAndIV(secret []byte) (key, hpKey, iv []byte) {
+func computeInitialKeyAndIV(secret []byte) (key, iv []byte) {
 	key = qtls.HkdfExpandLabel(crypto.SHA256, secret, []byte{}, "quic key", 16)
-	hpKey = qtls.HkdfExpandLabel(crypto.SHA256, secret, []byte{}, "quic hp", 16)
 	iv = qtls.HkdfExpandLabel(crypto.SHA256, secret, []byte{}, "quic iv", 12)
 	return
 }

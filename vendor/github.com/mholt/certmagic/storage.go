@@ -15,10 +15,12 @@
 package certmagic
 
 import (
+	"log"
 	"net/url"
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -239,6 +241,51 @@ func (keys KeyBuilder) Safe(str string) string {
 	// finally remove all non-word characters
 	return safeKeyRE.ReplaceAllLiteralString(str, "")
 }
+
+// CleanUpOwnLocks immediately cleans up all
+// current locks obtained by this process. Since
+// this does not cancel the operations that
+// the locks are synchronizing, this should be
+// called only immediately before process exit.
+// TODO: have a way to properly cancel the active operations
+func CleanUpOwnLocks() {
+	locksMu.Lock()
+	defer locksMu.Unlock()
+	for lockKey, storage := range locks {
+		err := storage.Unlock(lockKey)
+		if err == nil {
+			delete(locks, lockKey)
+		} else {
+			log.Printf("[ERROR] Unable to clean up lock: %v (lock=%s storage=%s)",
+				err, lockKey, storage)
+		}
+	}
+}
+
+func obtainLock(storage Storage, lockKey string) error {
+	err := storage.Lock(lockKey)
+	if err == nil {
+		locksMu.Lock()
+		locks[lockKey] = storage
+		locksMu.Unlock()
+	}
+	return err
+}
+
+func releaseLock(storage Storage, lockKey string) error {
+	err := storage.Unlock(lockKey)
+	if err == nil {
+		locksMu.Lock()
+		delete(locks, lockKey)
+		locksMu.Unlock()
+	}
+	return err
+}
+
+// locks stores a reference to all the current
+// locks obtained by this process.
+var locks = make(map[string]Storage)
+var locksMu sync.Mutex
 
 // StorageKeys provides methods for accessing
 // keys and key prefixes for items in a Storage.

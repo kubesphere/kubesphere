@@ -12,7 +12,7 @@ type PathResponseFrame struct {
 	Data [8]byte
 }
 
-func parsePathResponseFrame(r *bytes.Reader, version protocol.VersionNumber) (*PathResponseFrame, error) {
+func parsePathResponseFrame(r *bytes.Reader, _ protocol.VersionNumber) (*PathResponseFrame, error) {
 	if _, err := r.ReadByte(); err != nil {
 		return nil, err
 	}

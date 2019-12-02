@@ -2,24 +2,53 @@ package handshake
 
 import (
 	"crypto/tls"
-	"crypto/x509"
+	"errors"
 	"io"
+	"time"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/marten-seemann/qtls"
 )
 
-// Opener opens a packet
-type Opener interface {
-	Open(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) ([]byte, error)
+var (
+	// ErrOpenerNotYetAvailable is returned when an opener is requested for an encryption level,
+	// but the corresponding opener has not yet been initialized
+	// This can happen when packets arrive out of order.
+	ErrOpenerNotYetAvailable = errors.New("CryptoSetup: opener at this encryption level not yet available")
+	// ErrKeysDropped is returned when an opener or a sealer is requested for an encryption level,
+	// but the corresponding keys have already been dropped.
+	ErrKeysDropped = errors.New("CryptoSetup: keys were already dropped")
+	// ErrDecryptionFailed is returned when the AEAD fails to open the packet.
+	ErrDecryptionFailed = errors.New("decryption failed")
+)
+
+type headerDecryptor interface {
 	DecryptHeader(sample []byte, firstByte *byte, pnBytes []byte)
 }
 
-// Sealer seals a packet
-type Sealer interface {
+// LongHeaderOpener opens a long header packet
+type LongHeaderOpener interface {
+	headerDecryptor
+	Open(dst, src []byte, pn protocol.PacketNumber, associatedData []byte) ([]byte, error)
+}
+
+// ShortHeaderOpener opens a short header packet
+type ShortHeaderOpener interface {
+	headerDecryptor
+	Open(dst, src []byte, rcvTime time.Time, pn protocol.PacketNumber, kp protocol.KeyPhaseBit, associatedData []byte) ([]byte, error)
+}
+
+// LongHeaderSealer seals a long header packet
+type LongHeaderSealer interface {
 	Seal(dst, src []byte, packetNumber protocol.PacketNumber, associatedData []byte) []byte
 	EncryptHeader(sample []byte, firstByte *byte, pnBytes []byte)
 	Overhead() int
+}
+
+// ShortHeaderSealer seals a short header packet
+type ShortHeaderSealer interface {
+	LongHeaderSealer
+	KeyPhase() protocol.KeyPhaseBit
 }
 
 // A tlsExtensionHandler sends and received the QUIC TLS extension.
@@ -29,24 +58,28 @@ type tlsExtensionHandler interface {
 	TransportParameters() <-chan []byte
 }
 
-// CryptoSetup handles the handshake and protecting / unprotecting packets
-type CryptoSetup interface {
-	RunHandshake() error
-	io.Closer
-	ChangeConnectionID(protocol.ConnectionID) error
-
-	HandleMessage([]byte, protocol.EncryptionLevel) bool
-	ConnectionState() tls.ConnectionState
-
-	GetSealer() (protocol.EncryptionLevel, Sealer)
-	GetSealerWithEncryptionLevel(protocol.EncryptionLevel) (Sealer, error)
-	GetOpener(protocol.EncryptionLevel) (Opener, error)
+type handshakeRunner interface {
+	OnReceivedParams([]byte)
+	OnHandshakeComplete()
+	OnError(error)
+	DropKeys(protocol.EncryptionLevel)
 }
 
-// ConnectionState records basic details about the QUIC connection.
-// Warning: This API should not be considered stable and might change soon.
-type ConnectionState struct {
-	HandshakeComplete bool                // handshake is complete
-	ServerName        string              // server name requested by client, if any (server side only)
-	PeerCertificates  []*x509.Certificate // certificate chain presented by remote peer
+// CryptoSetup handles the handshake and protecting / unprotecting packets
+type CryptoSetup interface {
+	RunHandshake()
+	io.Closer
+	ChangeConnectionID(protocol.ConnectionID)
+
+	HandleMessage([]byte, protocol.EncryptionLevel) bool
+	SetLargest1RTTAcked(protocol.PacketNumber)
+	ConnectionState() tls.ConnectionState
+
+	GetInitialOpener() (LongHeaderOpener, error)
+	GetHandshakeOpener() (LongHeaderOpener, error)
+	Get1RTTOpener() (ShortHeaderOpener, error)
+
+	GetInitialSealer() (LongHeaderSealer, error)
+	GetHandshakeSealer() (LongHeaderSealer, error)
+	Get1RTTSealer() (ShortHeaderSealer, error)
 }

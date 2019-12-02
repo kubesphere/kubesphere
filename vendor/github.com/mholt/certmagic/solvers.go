@@ -20,8 +20,8 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/go-acme/lego/challenge"
-	"github.com/go-acme/lego/challenge/tlsalpn01"
+	"github.com/go-acme/lego/v3/challenge"
+	"github.com/go-acme/lego/v3/challenge/tlsalpn01"
 )
 
 // tlsALPNSolver is a type that can solve TLS-ALPN challenges using
@@ -41,7 +41,7 @@ func (s tlsALPNSolver) Present(domain, token, keyAuth string) error {
 	s.certCache.cache[tlsALPNCertKeyName(domain)] = Certificate{
 		Certificate: *cert,
 		Names:       []string{domain},
-		Hash:        certHash, // perhaps not necesssary
+		hash:        certHash, // perhaps not necesssary
 	}
 	s.certCache.mu.Unlock()
 	return nil

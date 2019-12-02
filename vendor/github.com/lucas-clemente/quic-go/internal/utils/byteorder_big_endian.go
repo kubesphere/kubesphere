@@ -44,6 +44,22 @@ func (bigEndian) ReadUint32(b io.ByteReader) (uint32, error) {
 	return uint32(b1) + uint32(b2)<<8 + uint32(b3)<<16 + uint32(b4)<<24, nil
 }
 
+// ReadUint24 reads a uint24
+func (bigEndian) ReadUint24(b io.ByteReader) (uint32, error) {
+	var b1, b2, b3 uint8
+	var err error
+	if b3, err = b.ReadByte(); err != nil {
+		return 0, err
+	}
+	if b2, err = b.ReadByte(); err != nil {
+		return 0, err
+	}
+	if b1, err = b.ReadByte(); err != nil {
+		return 0, err
+	}
+	return uint32(b1) + uint32(b2)<<8 + uint32(b3)<<16, nil
+}
+
 // ReadUint16 reads a uint16
 func (bigEndian) ReadUint16(b io.ByteReader) (uint16, error) {
 	var b1, b2 uint8
@@ -57,15 +73,14 @@ func (bigEndian) ReadUint16(b io.ByteReader) (uint16, error) {
 	return uint16(b1) + uint16(b2)<<8, nil
 }
 
-func (bigEndian) WriteUintN(b *bytes.Buffer, length uint8, i uint64) {
-	for j := length; j > 0; j-- {
-		b.WriteByte(uint8(i >> (8 * (j - 1))))
-	}
-}
-
 // WriteUint32 writes a uint32
 func (bigEndian) WriteUint32(b *bytes.Buffer, i uint32) {
 	b.Write([]byte{uint8(i >> 24), uint8(i >> 16), uint8(i >> 8), uint8(i)})
+}
+
+// WriteUint24 writes a uint24
+func (bigEndian) WriteUint24(b *bytes.Buffer, i uint32) {
+	b.Write([]byte{uint8(i >> 16), uint8(i >> 8), uint8(i)})
 }
 
 // WriteUint16 writes a uint16

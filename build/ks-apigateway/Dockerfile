@@ -6,7 +6,7 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
-FROM golang:1.12 as ks-apigateway-builder
+FROM golang:1.13 as ks-apigateway-builder
 
 COPY / /go/src/kubesphere.io/kubesphere
 WORKDIR /go/src/kubesphere.io/kubesphere

@@ -33,6 +33,7 @@ type receiveStream struct {
 	finalOffset protocol.ByteCount
 
 	currentFrame       []byte
+	currentFrameDone   func()
 	currentFrameIsLast bool // is the currentFrame the last frame on this stream
 	readPosInFrame     int
 
@@ -83,7 +84,7 @@ func (s *receiveStream) Read(p []byte) (int, error) {
 	s.mutex.Unlock()
 
 	if completed {
-		s.streamCompleted()
+		s.sender.onStreamCompleted(s.streamID)
 	}
 	return n, err
 }
@@ -185,7 +186,11 @@ func (s *receiveStream) readImpl(p []byte) (bool /*stream completed */, int, err
 
 func (s *receiveStream) dequeueNextFrame() {
 	var offset protocol.ByteCount
-	offset, s.currentFrame = s.frameQueue.Pop()
+	// We're done with the last frame. Release the buffer.
+	if s.currentFrameDone != nil {
+		s.currentFrameDone()
+	}
+	offset, s.currentFrame, s.currentFrameDone = s.frameQueue.Pop()
 	s.currentFrameIsLast = offset+protocol.ByteCount(len(s.currentFrame)) >= s.finalOffset
 	s.readPosInFrame = 0
 }
@@ -196,7 +201,8 @@ func (s *receiveStream) CancelRead(errorCode protocol.ApplicationErrorCode) {
 	s.mutex.Unlock()
 
 	if completed {
-		s.streamCompleted()
+		s.flowController.Abandon()
+		s.sender.onStreamCompleted(s.streamID)
 	}
 }
 
@@ -221,7 +227,8 @@ func (s *receiveStream) handleStreamFrame(frame *wire.StreamFrame) error {
 	s.mutex.Unlock()
 
 	if completed {
-		s.streamCompleted()
+		s.flowController.Abandon()
+		s.sender.onStreamCompleted(s.streamID)
 	}
 	return err
 }
@@ -231,13 +238,15 @@ func (s *receiveStream) handleStreamFrameImpl(frame *wire.StreamFrame) (bool /* 
 	if err := s.flowController.UpdateHighestReceived(maxOffset, frame.FinBit); err != nil {
 		return false, err
 	}
+	var newlyRcvdFinalOffset bool
 	if frame.FinBit {
+		newlyRcvdFinalOffset = s.finalOffset == protocol.MaxByteCount
 		s.finalOffset = maxOffset
 	}
 	if s.canceledRead {
-		return frame.FinBit, nil
+		return newlyRcvdFinalOffset, nil
 	}
-	if err := s.frameQueue.Push(frame.Data, frame.Offset); err != nil {
+	if err := s.frameQueue.Push(frame.Data, frame.Offset, frame.PutBack); err != nil {
 		return false, err
 	}
 	s.signalRead()
@@ -250,7 +259,8 @@ func (s *receiveStream) handleResetStreamFrame(frame *wire.ResetStreamFrame) err
 	s.mutex.Unlock()
 
 	if completed {
-		s.streamCompleted()
+		s.flowController.Abandon()
+		s.sender.onStreamCompleted(s.streamID)
 	}
 	return err
 }
@@ -262,6 +272,7 @@ func (s *receiveStream) handleResetStreamFrameImpl(frame *wire.ResetStreamFrame)
 	if err := s.flowController.UpdateHighestReceived(frame.ByteOffset, true); err != nil {
 		return false, err
 	}
+	newlyRcvdFinalOffset := s.finalOffset == protocol.MaxByteCount
 	s.finalOffset = frame.ByteOffset
 
 	// ignore duplicate RESET_STREAM frames for this stream (after checking their final offset)
@@ -271,10 +282,10 @@ func (s *receiveStream) handleResetStreamFrameImpl(frame *wire.ResetStreamFrame)
 	s.resetRemotely = true
 	s.resetRemotelyErr = streamCanceledError{
 		errorCode: frame.ErrorCode,
-		error:     fmt.Errorf("Stream %d was reset with error code %d", s.streamID, frame.ErrorCode),
+		error:     fmt.Errorf("stream %d was reset with error code %d", s.streamID, frame.ErrorCode),
 	}
 	s.signalRead()
-	return true, nil
+	return newlyRcvdFinalOffset, nil
 }
 
 func (s *receiveStream) CloseRemote(offset protocol.ByteCount) {
@@ -302,17 +313,6 @@ func (s *receiveStream) closeForShutdown(err error) {
 
 func (s *receiveStream) getWindowUpdate() protocol.ByteCount {
 	return s.flowController.GetWindowUpdate()
-}
-
-func (s *receiveStream) streamCompleted() {
-	s.mutex.Lock()
-	finRead := s.finRead
-	s.mutex.Unlock()
-
-	if !finRead {
-		s.flowController.Abandon()
-	}
-	s.sender.onStreamCompleted(s.streamID)
 }
 
 // signalRead performs a non-blocking send on the readChan

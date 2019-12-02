@@ -57,8 +57,11 @@ const MaxTrackedSkippedPackets = 10
 // If the queue is full, new connection attempts will be rejected.
 const MaxAcceptQueueSize = 32
 
-// CookieExpiryTime is the valid time of a cookie
-const CookieExpiryTime = 24 * time.Hour
+// TokenValidity is the duration that a (non-retry) token is considered valid
+const TokenValidity = 24 * time.Hour
+
+// RetryTokenValidity is the duration that a retry token is considered valid
+const RetryTokenValidity = 10 * time.Second
 
 // MaxOutstandingSentPackets is maximum number of packets saved for retransmission.
 // When reached, it imposes a soft limit on sending new packets:
@@ -70,15 +73,18 @@ const MaxOutstandingSentPackets = 2 * defaultMaxCongestionWindowPackets
 // This value *must* be larger than MaxOutstandingSentPackets.
 const MaxTrackedSentPackets = MaxOutstandingSentPackets * 5 / 4
 
-// MaxTrackedReceivedAckRanges is the maximum number of ACK ranges tracked
-const MaxTrackedReceivedAckRanges = defaultMaxCongestionWindowPackets
-
-// MaxNonRetransmittableAcks is the maximum number of packets containing an ACK, but no retransmittable frames, that we send in a row
-const MaxNonRetransmittableAcks = 19
+// MaxNonAckElicitingAcks is the maximum number of packets containing an ACK,
+// but no ack-eliciting frames, that we send in a row
+const MaxNonAckElicitingAcks = 19
 
 // MaxStreamFrameSorterGaps is the maximum number of gaps between received StreamFrames
 // prevents DoS attacks against the streamFrameSorter
 const MaxStreamFrameSorterGaps = 1000
+
+// MinStreamFrameBufferSize is the minimum data length of a received STREAM frame
+// that we use the buffer for. This protects against a DoS where an attacker would send us
+// very small STREAM frames to consume a lot of memory.
+const MinStreamFrameBufferSize = 128
 
 // MaxCryptoStreamOffset is the maximum offset allowed on any of the crypto streams.
 // This limits the size of the ClientHello and Certificates that can be received.
@@ -113,6 +119,11 @@ const MaxPostHandshakeCryptoFrameSize ByteCount = 1000
 // but must ensure that a maximum size ACK frame fits into one packet.
 const MaxAckFrameSize ByteCount = 1000
 
+// MaxNumAckRanges is the maximum number of ACK ranges that we send in an ACK frame.
+// It also serves as a limit for the packet history.
+// If at any point we keep track of more ranges, old ranges are discarded.
+const MaxNumAckRanges = 500
+
 // MinPacingDelay is the minimum duration that is used for packet pacing
 // If the packet packing frequency is higher, multiple packets might be sent at once.
 // Example: For a packet pacing delay of 20 microseconds, we would send 5 packets at once, wait for 100 microseconds, and so forth.
@@ -122,5 +133,29 @@ const MinPacingDelay time.Duration = 100 * time.Microsecond
 // if no other value is configured.
 const DefaultConnectionIDLength = 4
 
+// MaxActiveConnectionIDs is the number of connection IDs that we're storing.
+const MaxActiveConnectionIDs = 4
+
+// MaxIssuedConnectionIDs is the maximum number of connection IDs that we're issuing at the same time.
+const MaxIssuedConnectionIDs = 6
+
+// PacketsPerConnectionID is the number of packets we send using one connection ID.
+// If the peer provices us with enough new connection IDs, we switch to a new connection ID.
+const PacketsPerConnectionID = 10000
+
 // AckDelayExponent is the ack delay exponent used when sending ACKs.
 const AckDelayExponent = 3
+
+// Estimated timer granularity.
+// The loss detection timer will not be set to a value smaller than granularity.
+const TimerGranularity = time.Millisecond
+
+// MaxAckDelay is the maximum time by which we delay sending ACKs.
+const MaxAckDelay = 25 * time.Millisecond
+
+// MaxAckDelayInclGranularity is the max_ack_delay including the timer granularity.
+// This is the value that should be advertised to the peer.
+const MaxAckDelayInclGranularity = MaxAckDelay + TimerGranularity
+
+// KeyUpdateInterval is the maximum number of packets we send or receive before initiating a key udpate.
+const KeyUpdateInterval = 100 * 1000

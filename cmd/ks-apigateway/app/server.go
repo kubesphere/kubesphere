@@ -2,8 +2,8 @@ package app
 
 import (
 	"flag"
-	"github.com/mholt/caddy/caddy/caddymain"
-	"github.com/mholt/caddy/caddyhttp/httpserver"
+	"github.com/caddyserver/caddy/caddy/caddymain"
+	"github.com/caddyserver/caddy/caddyhttp/httpserver"
 	"github.com/spf13/cobra"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client"

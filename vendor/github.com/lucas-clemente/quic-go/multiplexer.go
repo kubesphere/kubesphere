@@ -30,7 +30,7 @@ type connManager struct {
 type connMultiplexer struct {
 	mutex sync.Mutex
 
-	conns                   map[net.PacketConn]connManager
+	conns                   map[string] /* LocalAddr().String() */ connManager
 	newPacketHandlerManager func(net.PacketConn, int, []byte, utils.Logger) packetHandlerManager // so it can be replaced in the tests
 
 	logger utils.Logger
@@ -41,7 +41,7 @@ var _ multiplexer = &connMultiplexer{}
 func getMultiplexer() multiplexer {
 	connMuxerOnce.Do(func() {
 		connMuxer = &connMultiplexer{
-			conns:                   make(map[net.PacketConn]connManager),
+			conns:                   make(map[string]connManager),
 			logger:                  utils.DefaultLogger.WithPrefix("muxer"),
 			newPacketHandlerManager: newPacketHandlerMap,
 		}
@@ -57,7 +57,8 @@ func (m *connMultiplexer) AddConn(
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	p, ok := m.conns[c]
+	connIndex := c.LocalAddr().Network() + " " + c.LocalAddr().String()
+	p, ok := m.conns[connIndex]
 	if !ok {
 		manager := m.newPacketHandlerManager(c, connIDLen, statelessResetKey, m.logger)
 		p = connManager{
@@ -65,7 +66,7 @@ func (m *connMultiplexer) AddConn(
 			statelessResetKey: statelessResetKey,
 			manager:           manager,
 		}
-		m.conns[c] = p
+		m.conns[connIndex] = p
 	}
 	if p.connIDLen != connIDLen {
 		return nil, fmt.Errorf("cannot use %d byte connection IDs on a connection that is already using %d byte connction IDs", connIDLen, p.connIDLen)
@@ -80,10 +81,11 @@ func (m *connMultiplexer) RemoveConn(c net.PacketConn) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if _, ok := m.conns[c]; !ok {
+	connIndex := c.LocalAddr().Network() + " " + c.LocalAddr().String()
+	if _, ok := m.conns[connIndex]; !ok {
 		return fmt.Errorf("cannote remove connection, connection is unknown")
 	}
 
-	delete(m.conns, c)
+	delete(m.conns, connIndex)
 	return nil
 }

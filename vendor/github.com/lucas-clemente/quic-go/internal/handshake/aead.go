@@ -5,100 +5,143 @@ import (
 	"encoding/binary"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/marten-seemann/qtls"
 )
 
-type sealer struct {
-	aead        cipher.AEAD
-	hpEncrypter cipher.Block
+func createAEAD(suite *qtls.CipherSuiteTLS13, trafficSecret []byte) cipher.AEAD {
+	key := qtls.HkdfExpandLabel(suite.Hash, trafficSecret, []byte{}, "quic key", suite.KeyLen)
+	iv := qtls.HkdfExpandLabel(suite.Hash, trafficSecret, []byte{}, "quic iv", suite.IVLen())
+	return suite.AEAD(key, iv)
+}
+
+type longHeaderSealer struct {
+	aead            cipher.AEAD
+	headerProtector headerProtector
 
 	// use a single slice to avoid allocations
 	nonceBuf []byte
-	hpMask   []byte
-
-	// short headers protect 5 bits in the first byte, long headers only 4
-	is1RTT bool
 }
 
-var _ Sealer = &sealer{}
+var _ LongHeaderSealer = &longHeaderSealer{}
 
-func newSealer(aead cipher.AEAD, hpEncrypter cipher.Block, is1RTT bool) Sealer {
-	return &sealer{
-		aead:        aead,
-		nonceBuf:    make([]byte, aead.NonceSize()),
-		is1RTT:      is1RTT,
-		hpEncrypter: hpEncrypter,
-		hpMask:      make([]byte, hpEncrypter.BlockSize()),
+func newLongHeaderSealer(aead cipher.AEAD, headerProtector headerProtector) LongHeaderSealer {
+	return &longHeaderSealer{
+		aead:            aead,
+		headerProtector: headerProtector,
+		nonceBuf:        make([]byte, aead.NonceSize()),
 	}
 }
 
-func (s *sealer) Seal(dst, src []byte, pn protocol.PacketNumber, ad []byte) []byte {
+func (s *longHeaderSealer) Seal(dst, src []byte, pn protocol.PacketNumber, ad []byte) []byte {
 	binary.BigEndian.PutUint64(s.nonceBuf[len(s.nonceBuf)-8:], uint64(pn))
 	// The AEAD we're using here will be the qtls.aeadAESGCM13.
 	// It uses the nonce provided here and XOR it with the IV.
 	return s.aead.Seal(dst, s.nonceBuf, src, ad)
 }
 
-func (s *sealer) EncryptHeader(sample []byte, firstByte *byte, pnBytes []byte) {
-	if len(sample) != s.hpEncrypter.BlockSize() {
-		panic("invalid sample size")
-	}
-	s.hpEncrypter.Encrypt(s.hpMask, sample)
-	if s.is1RTT {
-		*firstByte ^= s.hpMask[0] & 0x1f
-	} else {
-		*firstByte ^= s.hpMask[0] & 0xf
-	}
-	for i := range pnBytes {
-		pnBytes[i] ^= s.hpMask[i+1]
-	}
+func (s *longHeaderSealer) EncryptHeader(sample []byte, firstByte *byte, pnBytes []byte) {
+	s.headerProtector.EncryptHeader(sample, firstByte, pnBytes)
 }
 
-func (s *sealer) Overhead() int {
+func (s *longHeaderSealer) Overhead() int {
 	return s.aead.Overhead()
 }
 
-type opener struct {
-	aead        cipher.AEAD
-	pnDecrypter cipher.Block
+type longHeaderOpener struct {
+	aead            cipher.AEAD
+	headerProtector headerProtector
 
 	// use a single slice to avoid allocations
 	nonceBuf []byte
-	hpMask   []byte
-
-	// short headers protect 5 bits in the first byte, long headers only 4
-	is1RTT bool
 }
 
-var _ Opener = &opener{}
+var _ LongHeaderOpener = &longHeaderOpener{}
 
-func newOpener(aead cipher.AEAD, pnDecrypter cipher.Block, is1RTT bool) Opener {
-	return &opener{
-		aead:        aead,
-		nonceBuf:    make([]byte, aead.NonceSize()),
-		is1RTT:      is1RTT,
-		pnDecrypter: pnDecrypter,
-		hpMask:      make([]byte, pnDecrypter.BlockSize()),
+func newLongHeaderOpener(aead cipher.AEAD, headerProtector headerProtector) LongHeaderOpener {
+	return &longHeaderOpener{
+		aead:            aead,
+		headerProtector: headerProtector,
+		nonceBuf:        make([]byte, aead.NonceSize()),
 	}
 }
 
-func (o *opener) Open(dst, src []byte, pn protocol.PacketNumber, ad []byte) ([]byte, error) {
+func (o *longHeaderOpener) Open(dst, src []byte, pn protocol.PacketNumber, ad []byte) ([]byte, error) {
 	binary.BigEndian.PutUint64(o.nonceBuf[len(o.nonceBuf)-8:], uint64(pn))
 	// The AEAD we're using here will be the qtls.aeadAESGCM13.
 	// It uses the nonce provided here and XOR it with the IV.
-	return o.aead.Open(dst, o.nonceBuf, src, ad)
+	dec, err := o.aead.Open(dst, o.nonceBuf, src, ad)
+	if err != nil {
+		err = ErrDecryptionFailed
+	}
+	return dec, err
 }
 
-func (o *opener) DecryptHeader(sample []byte, firstByte *byte, pnBytes []byte) {
-	if len(sample) != o.pnDecrypter.BlockSize() {
-		panic("invalid sample size")
+func (o *longHeaderOpener) DecryptHeader(sample []byte, firstByte *byte, pnBytes []byte) {
+	o.headerProtector.DecryptHeader(sample, firstByte, pnBytes)
+}
+
+type handshakeSealer struct {
+	LongHeaderSealer
+
+	dropInitialKeys func()
+	dropped         bool
+}
+
+func newHandshakeSealer(
+	aead cipher.AEAD,
+	headerProtector headerProtector,
+	dropInitialKeys func(),
+	perspective protocol.Perspective,
+) LongHeaderSealer {
+	sealer := newLongHeaderSealer(aead, headerProtector)
+	// The client drops Initial keys when sending the first Handshake packet.
+	if perspective == protocol.PerspectiveServer {
+		return sealer
 	}
-	o.pnDecrypter.Encrypt(o.hpMask, sample)
-	if o.is1RTT {
-		*firstByte ^= o.hpMask[0] & 0x1f
-	} else {
-		*firstByte ^= o.hpMask[0] & 0xf
+	return &handshakeSealer{
+		LongHeaderSealer: sealer,
+		dropInitialKeys:  dropInitialKeys,
 	}
-	for i := range pnBytes {
-		pnBytes[i] ^= o.hpMask[i+1]
+}
+
+func (s *handshakeSealer) Seal(dst, src []byte, pn protocol.PacketNumber, ad []byte) []byte {
+	data := s.LongHeaderSealer.Seal(dst, src, pn, ad)
+	if !s.dropped {
+		s.dropInitialKeys()
+		s.dropped = true
 	}
+	return data
+}
+
+type handshakeOpener struct {
+	LongHeaderOpener
+
+	dropInitialKeys func()
+	dropped         bool
+}
+
+func newHandshakeOpener(
+	aead cipher.AEAD,
+	headerProtector headerProtector,
+	dropInitialKeys func(),
+	perspective protocol.Perspective,
+) LongHeaderOpener {
+	opener := newLongHeaderOpener(aead, headerProtector)
+	// The server drops Initial keys when first successfully processing a Handshake packet.
+	if perspective == protocol.PerspectiveClient {
+		return opener
+	}
+	return &handshakeOpener{
+		LongHeaderOpener: opener,
+		dropInitialKeys:  dropInitialKeys,
+	}
+}
+
+func (o *handshakeOpener) Open(dst, src []byte, pn protocol.PacketNumber, ad []byte) ([]byte, error) {
+	dec, err := o.LongHeaderOpener.Open(dst, src, pn, ad)
+	if err == nil && !o.dropped {
+		o.dropInitialKeys()
+		o.dropped = true
+	}
+	return dec, err
 }

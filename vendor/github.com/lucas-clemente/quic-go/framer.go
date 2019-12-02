@@ -3,16 +3,18 @@ package quic
 import (
 	"sync"
 
+	"github.com/lucas-clemente/quic-go/internal/ackhandler"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/internal/wire"
 )
 
 type framer interface {
 	QueueControlFrame(wire.Frame)
-	AppendControlFrames([]wire.Frame, protocol.ByteCount) ([]wire.Frame, protocol.ByteCount)
+	AppendControlFrames([]ackhandler.Frame, protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount)
 
 	AddActiveStream(protocol.StreamID)
-	AppendStreamFrames([]wire.Frame, protocol.ByteCount) []wire.Frame
+	AppendStreamFrames([]ackhandler.Frame, protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount)
 }
 
 type framerI struct {
@@ -47,7 +49,7 @@ func (f *framerI) QueueControlFrame(frame wire.Frame) {
 	f.controlFrameMutex.Unlock()
 }
 
-func (f *framerI) AppendControlFrames(frames []wire.Frame, maxLen protocol.ByteCount) ([]wire.Frame, protocol.ByteCount) {
+func (f *framerI) AppendControlFrames(frames []ackhandler.Frame, maxLen protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount) {
 	var length protocol.ByteCount
 	f.controlFrameMutex.Lock()
 	for len(f.controlFrames) > 0 {
@@ -56,7 +58,7 @@ func (f *framerI) AppendControlFrames(frames []wire.Frame, maxLen protocol.ByteC
 		if length+frameLen > maxLen {
 			break
 		}
-		frames = append(frames, frame)
+		frames = append(frames, ackhandler.Frame{Frame: frame})
 		length += frameLen
 		f.controlFrames = f.controlFrames[:len(f.controlFrames)-1]
 	}
@@ -73,13 +75,14 @@ func (f *framerI) AddActiveStream(id protocol.StreamID) {
 	f.mutex.Unlock()
 }
 
-func (f *framerI) AppendStreamFrames(frames []wire.Frame, maxLen protocol.ByteCount) []wire.Frame {
+func (f *framerI) AppendStreamFrames(frames []ackhandler.Frame, maxLen protocol.ByteCount) ([]ackhandler.Frame, protocol.ByteCount) {
 	var length protocol.ByteCount
+	var lastFrame *ackhandler.Frame
 	f.mutex.Lock()
 	// pop STREAM frames, until less than MinStreamFrameSize bytes are left in the packet
 	numActiveStreams := len(f.streamQueue)
 	for i := 0; i < numActiveStreams; i++ {
-		if maxLen-length < protocol.MinStreamFrameSize {
+		if protocol.MinStreamFrameSize+length > maxLen {
 			break
 		}
 		id := f.streamQueue[0]
@@ -92,18 +95,33 @@ func (f *framerI) AppendStreamFrames(frames []wire.Frame, maxLen protocol.ByteCo
 			delete(f.activeStreams, id)
 			continue
 		}
-		frame, hasMoreData := str.popStreamFrame(maxLen - length)
+		remainingLen := maxLen - length
+		// For the last STREAM frame, we'll remove the DataLen field later.
+		// Therefore, we can pretend to have more bytes available when popping
+		// the STREAM frame (which will always have the DataLen set).
+		remainingLen += utils.VarIntLen(uint64(remainingLen))
+		frame, hasMoreData := str.popStreamFrame(remainingLen)
 		if hasMoreData { // put the stream back in the queue (at the end)
 			f.streamQueue = append(f.streamQueue, id)
 		} else { // no more data to send. Stream is not active any more
 			delete(f.activeStreams, id)
 		}
-		if frame == nil { // can happen if the receiveStream was canceled after it said it had data
+		// The frame can be nil
+		// * if the receiveStream was canceled after it said it had data
+		// * the remaining size doesn't allow us to add another STREAM frame
+		if frame == nil {
 			continue
 		}
-		frames = append(frames, frame)
+		frames = append(frames, *frame)
 		length += frame.Length(f.version)
+		lastFrame = frame
 	}
 	f.mutex.Unlock()
-	return frames
+	if lastFrame != nil {
+		lastFrameLen := lastFrame.Length(f.version)
+		// account for the smaller size of the last STREAM frame
+		lastFrame.Frame.(*wire.StreamFrame).DataLenPresent = false
+		length += lastFrame.Length(f.version) - lastFrameLen
+	}
+	return frames, length
 }

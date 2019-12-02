@@ -1,3 +1,14 @@
 debug
 debug.test
 main
+*.qtr
+
+fuzzing/*/*.zip
+fuzzing/*/coverprofile
+fuzzing/*/crashers
+fuzzing/*/sonarprofile
+fuzzing/*/suppressions
+fuzzing/*/corpus/
+!fuzzing/frames/single-frame*
+!fuzzing/frames/multiple-frame*
+!fuzzing/header/header*

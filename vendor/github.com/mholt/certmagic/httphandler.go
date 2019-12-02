@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-acme/lego/challenge/http01"
+	"github.com/go-acme/lego/v3/challenge/http01"
 )
 
 // HTTPChallengeHandler wraps h in a handler that can solve the ACME

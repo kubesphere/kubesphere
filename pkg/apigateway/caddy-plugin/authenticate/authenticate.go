@@ -32,8 +32,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caddyserver/caddy/caddyhttp/httpserver"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/mholt/caddy/caddyhttp/httpserver"
 )
 
 type Auth struct {

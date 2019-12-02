@@ -10,8 +10,6 @@ const (
 	SendNone SendMode = iota
 	// SendAck means an ACK-only packet should be sent
 	SendAck
-	// SendRetransmission means that retransmissions should be sent
-	SendRetransmission
 	// SendPTO means that a probe packet should be sent
 	SendPTO
 	// SendAny means that any packet should be sent
@@ -24,8 +22,6 @@ func (s SendMode) String() string {
 		return "none"
 	case SendAck:
 		return "ack"
-	case SendRetransmission:
-		return "retransmission"
 	case SendPTO:
 		return "pto"
 	case SendAny:

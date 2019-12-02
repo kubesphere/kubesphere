@@ -16,6 +16,7 @@ package certmagic
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -175,16 +176,16 @@ func (certCache *Cache) cacheCertificate(cert Certificate) {
 // a write lock on certCache.mu first.
 func (certCache *Cache) unsyncedCacheCertificate(cert Certificate) {
 	// no-op if this certificate already exists in the cache
-	if _, ok := certCache.cache[cert.Hash]; ok {
+	if _, ok := certCache.cache[cert.hash]; ok {
 		return
 	}
 
 	// store the certificate
-	certCache.cache[cert.Hash] = cert
+	certCache.cache[cert.hash] = cert
 
 	// update the index so we can access it by name
 	for _, name := range cert.Names {
-		certCache.cacheIndex[name] = append(certCache.cacheIndex[name], cert.Hash)
+		certCache.cacheIndex[name] = append(certCache.cacheIndex[name], cert.hash)
 	}
 }
 
@@ -197,7 +198,7 @@ func (certCache *Cache) removeCertificate(cert Certificate) {
 	for _, name := range cert.Names {
 		keyList := certCache.cacheIndex[name]
 		for i, cacheKey := range keyList {
-			if cacheKey == cert.Hash {
+			if cacheKey == cert.hash {
 				keyList = append(keyList[:i], keyList[i+1:]...)
 			}
 		}
@@ -209,7 +210,7 @@ func (certCache *Cache) removeCertificate(cert Certificate) {
 	}
 
 	// delete the actual cert from the cache
-	delete(certCache.cache, cert.Hash)
+	delete(certCache.cache, cert.hash)
 }
 
 // replaceCertificate atomically replaces oldCert with newCert in
@@ -224,21 +225,13 @@ func (certCache *Cache) replaceCertificate(oldCert, newCert Certificate) {
 }
 
 func (certCache *Cache) getFirstMatchingCert(name string) (Certificate, bool) {
-	certCache.mu.RLock()
-	defer certCache.mu.RUnlock()
-
-	allCertKeys := certCache.cacheIndex[name]
-	if len(allCertKeys) == 0 {
-		return Certificate{}, false
+	all := certCache.getAllMatchingCerts(name)
+	if len(all) == 0 {
+		return all[0], true
 	}
-
-	cert, ok := certCache.cache[allCertKeys[0]]
-	return cert, ok
+	return Certificate{}, false
 }
 
-// TODO: This seems unused (but could be useful if TLS
-// handshakes serve up different certs for a single
-// name depending on other properties such as key type)
 func (certCache *Cache) getAllMatchingCerts(name string) []Certificate {
 	certCache.mu.RLock()
 	defer certCache.mu.RUnlock()
@@ -263,6 +256,25 @@ func (certCache *Cache) getConfig(cert Certificate) (*Config, error) {
 			cert.Names, cfg.certCache, certCache)
 	}
 	return New(certCache, cfg), nil
+}
+
+// AllMatchingCertificates returns a list of all certificates that could
+// be used to serve the given SNI name, including exact SAN matches and
+// wildcard matches.
+func (certCache *Cache) AllMatchingCertificates(name string) []Certificate {
+	// get exact matches first
+	certs := certCache.getAllMatchingCerts(name)
+
+	// then look for wildcard matches by replacing each
+	// label of the domain name with wildcards
+	labels := strings.Split(name, ".")
+	for i := range labels {
+		labels[i] = "*"
+		candidate := strings.Join(labels, ".")
+		certs = append(certs, certCache.getAllMatchingCerts(candidate)...)
+	}
+
+	return certs
 }
 
 var (

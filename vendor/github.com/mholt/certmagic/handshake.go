@@ -22,10 +22,9 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/go-acme/lego/challenge/tlsalpn01"
+	"github.com/go-acme/lego/v3/challenge/tlsalpn01"
 )
 
 // GetCertificate gets a certificate to satisfy clientHello. In getting
@@ -94,8 +93,6 @@ func (cfg *Config) GetCertificate(clientHello *tls.ClientHelloInfo) (*tls.Certif
 func (cfg *Config) getCertificate(hello *tls.ClientHelloInfo) (cert Certificate, matched, defaulted bool) {
 	name := NormalizedName(hello.ServerName)
 
-	var ok bool
-
 	if name == "" {
 		// if SNI is empty, prefer matching IP address
 		if hello.Conn != nil {
@@ -104,8 +101,8 @@ func (cfg *Config) getCertificate(hello *tls.ClientHelloInfo) (cert Certificate,
 			if err == nil {
 				addr = ip
 			}
-			if cert, ok = cfg.certCache.getFirstMatchingCert(addr); ok {
-				matched = true
+			cert, matched = cfg.selectCert(hello, addr)
+			if matched {
 				return
 			}
 		}
@@ -113,15 +110,15 @@ func (cfg *Config) getCertificate(hello *tls.ClientHelloInfo) (cert Certificate,
 		// fall back to a "default" certificate, if specified
 		if cfg.DefaultServerName != "" {
 			normDefault := NormalizedName(cfg.DefaultServerName)
-			if cert, ok = cfg.certCache.getFirstMatchingCert(normDefault); ok {
-				defaulted = true
+			cert, defaulted = cfg.selectCert(hello, normDefault)
+			if defaulted {
 				return
 			}
 		}
 	} else {
 		// if SNI is specified, try an exact match first
-		if cert, ok = cfg.certCache.getFirstMatchingCert(name); ok {
-			matched = true
+		cert, matched = cfg.selectCert(hello, name)
+		if matched {
 			return
 		}
 
@@ -131,8 +128,8 @@ func (cfg *Config) getCertificate(hello *tls.ClientHelloInfo) (cert Certificate,
 		for i := range labels {
 			labels[i] = "*"
 			candidate := strings.Join(labels, ".")
-			if cert, ok = cfg.certCache.getFirstMatchingCert(candidate); ok {
-				matched = true
+			cert, matched = cfg.selectCert(hello, candidate)
+			if matched {
 				return
 			}
 		}
@@ -163,6 +160,30 @@ func (cfg *Config) getCertificate(hello *tls.ClientHelloInfo) (cert Certificate,
 	// "0.0.0.0:443")
 
 	return
+}
+
+// selectCert uses hello to select a certificate from the
+// cache for name. If cfg.CertSelection is set, it will be
+// used to make the decision. Otherwise, the first matching
+// unexpired cert is returned.
+func (cfg *Config) selectCert(hello *tls.ClientHelloInfo, name string) (Certificate, bool) {
+	choices := cfg.certCache.getAllMatchingCerts(name)
+	if len(choices) == 0 {
+		return Certificate{}, false
+	}
+	if cfg.CertSelection == nil {
+		// by default, choose first non-expired cert
+		now := time.Now()
+		for _, choice := range choices {
+			if now.Before(choice.NotAfter) {
+				return choice, true
+			}
+		}
+		// all matching certs are expired, oh well
+		return choices[0], true
+	}
+	cert, err := cfg.CertSelection.SelectCertificate(hello, choices)
+	return cert, err == nil
 }
 
 // getCertDuringHandshake will get a certificate for hello. It first tries
@@ -224,14 +245,21 @@ func (cfg *Config) getCertDuringHandshake(hello *tls.ClientHelloInfo, loadIfNece
 	return Certificate{}, fmt.Errorf("no certificate available for '%s'", name)
 }
 
-// checkIfCertShouldBeObtained checks to see if an on-demand tls certificate
-// should be obtained for a given domain based upon the config settings.  If
+// checkIfCertShouldBeObtained checks to see if an on-demand TLS certificate
+// should be obtained for a given domain based upon the config settings. If
 // a non-nil error is returned, do not issue a new certificate for name.
 func (cfg *Config) checkIfCertShouldBeObtained(name string) error {
 	if cfg.OnDemand == nil {
 		return fmt.Errorf("not configured for on-demand certificate issuance")
 	}
-	return cfg.OnDemand.Allowed(name)
+	if cfg.OnDemand.DecisionFunc != nil {
+		return cfg.OnDemand.DecisionFunc(name)
+	}
+	if len(cfg.OnDemand.hostWhitelist) > 0 &&
+		!cfg.OnDemand.whitelistContains(name) {
+		return fmt.Errorf("certificate for '%s' is not managed", name)
+	}
+	return nil
 }
 
 // obtainOnDemandCertificate obtains a certificate for hello.
@@ -272,27 +300,12 @@ func (cfg *Config) obtainOnDemandCertificate(hello *tls.ClientHelloInfo) (Certif
 	obtainCertWaitChansMu.Unlock()
 
 	if err != nil {
-		// Failed to solve challenge, so don't allow another on-demand
-		// issue for this name to be attempted for a little while.
-		failedIssuanceMu.Lock()
-		failedIssuance[name] = time.Now()
-		go func(name string) {
-			time.Sleep(5 * time.Minute)
-			failedIssuanceMu.Lock()
-			delete(failedIssuance, name)
-			failedIssuanceMu.Unlock()
-		}(name)
-		failedIssuanceMu.Unlock()
+		// shucks; failed to solve challenge on-demand
 		return Certificate{}, err
 	}
 
-	// Success - update counters and stuff
-	atomic.AddInt32(&cfg.OnDemand.obtainedCount, 1)
-	lastIssueTimeMu.Lock()
-	lastIssueTime = time.Now()
-	lastIssueTimeMu.Unlock()
-
-	// certificate is already on disk; now just start over to load it and serve it
+	// success; certificate was just placed on disk, so
+	// we need only restart serving the certificate
 	return cfg.getCertDuringHandshake(hello, true, false)
 }
 
@@ -308,17 +321,17 @@ func (cfg *Config) handshakeMaintenance(hello *tls.ClientHelloInfo, cert Certifi
 	}
 
 	// Check OCSP staple validity
-	if cert.OCSP != nil {
-		refreshTime := cert.OCSP.ThisUpdate.Add(cert.OCSP.NextUpdate.Sub(cert.OCSP.ThisUpdate) / 2)
+	if cert.ocsp != nil {
+		refreshTime := cert.ocsp.ThisUpdate.Add(cert.ocsp.NextUpdate.Sub(cert.ocsp.ThisUpdate) / 2)
 		if time.Now().After(refreshTime) {
-			err := stapleOCSP(cfg.Storage, &cert, nil)
+			_, err := stapleOCSP(cfg.Storage, &cert, nil)
 			if err != nil {
 				// An error with OCSP stapling is not the end of the world, and in fact, is
 				// quite common considering not all certs have issuer URLs that support it.
 				log.Printf("[ERROR] Getting OCSP for %s: %v", hello.ServerName, err)
 			}
 			cfg.certCache.mu.Lock()
-			cfg.certCache.cache[cert.Hash] = cert
+			cfg.certCache.cache[cert.hash] = cert
 			cfg.certCache.mu.Unlock()
 		}
 	}

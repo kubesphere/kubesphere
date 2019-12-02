@@ -13,7 +13,7 @@ type MaxDataFrame struct {
 }
 
 // parseMaxDataFrame parses a MAX_DATA frame
-func parseMaxDataFrame(r *bytes.Reader, version protocol.VersionNumber) (*MaxDataFrame, error) {
+func parseMaxDataFrame(r *bytes.Reader, _ protocol.VersionNumber) (*MaxDataFrame, error) {
 	if _, err := r.ReadByte(); err != nil {
 		return nil, err
 	}

@@ -2,10 +2,8 @@ package protocol
 
 import (
 	"fmt"
+	"time"
 )
-
-// A PacketNumber in QUIC
-type PacketNumber uint64
 
 // The PacketType is the Long Header Type
 type PacketType uint8
@@ -43,7 +41,7 @@ type ByteCount uint64
 const MaxByteCount = ByteCount(1<<62 - 1)
 
 // An ApplicationErrorCode is an application-defined error code.
-type ApplicationErrorCode uint16
+type ApplicationErrorCode uint64
 
 // MaxReceivePacketSize maximum packet size of any QUIC packet, based on
 // ethernet's max size, minus the IP and UDP headers. IPv6 has a 40 byte header,
@@ -58,18 +56,23 @@ const DefaultTCPMSS ByteCount = 1460
 // MinInitialPacketSize is the minimum size an Initial packet is required to have.
 const MinInitialPacketSize = 1200
 
-// MinStatelessResetSize is the minimum size of a stateless reset packet
-const MinStatelessResetSize = 1 /* first byte */ + 22 /* random bytes */ + 16 /* token */
+// MinStatelessResetSize is the minimum size of a stateless reset packet that we send
+const MinStatelessResetSize = 1 /* first byte */ + 20 /* max. conn ID length */ + 4 /* max. packet number length */ + 1 /* min. payload length */ + 16 /* token */
 
 // MinConnectionIDLenInitial is the minimum length of the destination connection ID on an Initial packet.
 const MinConnectionIDLenInitial = 8
-
-// MaxStreamCount is the maximum stream count value that can be sent in MAX_STREAMS frames
-// and as the stream count in the transport parameters
-const MaxStreamCount = 1 << 60
 
 // DefaultAckDelayExponent is the default ack delay exponent
 const DefaultAckDelayExponent = 3
 
 // MaxAckDelayExponent is the maximum ack delay exponent
 const MaxAckDelayExponent = 20
+
+// DefaultMaxAckDelay is the default max_ack_delay
+const DefaultMaxAckDelay = 25 * time.Millisecond
+
+// MaxMaxAckDelay is the maximum max_ack_delay
+const MaxMaxAckDelay = 1 << 14 * time.Millisecond
+
+// MaxConnIDLen is the maximum length of the connection ID
+const MaxConnIDLen = 20

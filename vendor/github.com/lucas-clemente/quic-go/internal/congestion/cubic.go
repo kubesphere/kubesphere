@@ -21,7 +21,7 @@ const cubeScale = 40
 const cubeCongestionWindowScale = 410
 const cubeFactor protocol.ByteCount = 1 << cubeScale / cubeCongestionWindowScale / protocol.DefaultTCPMSS
 
-const defaultNumConnections = 2
+const defaultNumConnections = 1
 
 // Default Cubic backoff factor
 const beta float32 = 0.7

@@ -2,7 +2,9 @@ package wire
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/qerr"
@@ -29,7 +31,11 @@ func (p *frameParser) ParseNext(r *bytes.Reader, encLevel protocol.EncryptionLev
 		}
 		r.UnreadByte()
 
-		return p.parseFrame(r, typeByte, encLevel)
+		f, err := p.parseFrame(r, typeByte, encLevel)
+		if err != nil {
+			return nil, qerr.ErrorWithFrameType(qerr.FrameEncodingError, uint64(typeByte), err.Error())
+		}
+		return f, nil
 	}
 	return nil, nil
 }
@@ -39,57 +45,70 @@ func (p *frameParser) parseFrame(r *bytes.Reader, typeByte byte, encLevel protoc
 	var err error
 	if typeByte&0xf8 == 0x8 {
 		frame, err = parseStreamFrame(r, p.version)
-		if err != nil {
-			return nil, qerr.Error(qerr.FrameEncodingError, err.Error())
+	} else {
+		switch typeByte {
+		case 0x1:
+			frame, err = parsePingFrame(r, p.version)
+		case 0x2, 0x3:
+			ackDelayExponent := p.ackDelayExponent
+			if encLevel != protocol.Encryption1RTT {
+				ackDelayExponent = protocol.DefaultAckDelayExponent
+			}
+			frame, err = parseAckFrame(r, ackDelayExponent, p.version)
+		case 0x4:
+			frame, err = parseResetStreamFrame(r, p.version)
+		case 0x5:
+			frame, err = parseStopSendingFrame(r, p.version)
+		case 0x6:
+			frame, err = parseCryptoFrame(r, p.version)
+		case 0x7:
+			frame, err = parseNewTokenFrame(r, p.version)
+		case 0x10:
+			frame, err = parseMaxDataFrame(r, p.version)
+		case 0x11:
+			frame, err = parseMaxStreamDataFrame(r, p.version)
+		case 0x12, 0x13:
+			frame, err = parseMaxStreamsFrame(r, p.version)
+		case 0x14:
+			frame, err = parseDataBlockedFrame(r, p.version)
+		case 0x15:
+			frame, err = parseStreamDataBlockedFrame(r, p.version)
+		case 0x16, 0x17:
+			frame, err = parseStreamsBlockedFrame(r, p.version)
+		case 0x18:
+			frame, err = parseNewConnectionIDFrame(r, p.version)
+		case 0x19:
+			frame, err = parseRetireConnectionIDFrame(r, p.version)
+		case 0x1a:
+			frame, err = parsePathChallengeFrame(r, p.version)
+		case 0x1b:
+			frame, err = parsePathResponseFrame(r, p.version)
+		case 0x1c, 0x1d:
+			frame, err = parseConnectionCloseFrame(r, p.version)
+		default:
+			err = errors.New("unknown frame type")
 		}
-		return frame, nil
-	}
-	switch typeByte {
-	case 0x1:
-		frame, err = parsePingFrame(r, p.version)
-	case 0x2, 0x3:
-		ackDelayExponent := p.ackDelayExponent
-		if encLevel != protocol.Encryption1RTT {
-			ackDelayExponent = protocol.DefaultAckDelayExponent
-		}
-		frame, err = parseAckFrame(r, ackDelayExponent, p.version)
-	case 0x4:
-		frame, err = parseResetStreamFrame(r, p.version)
-	case 0x5:
-		frame, err = parseStopSendingFrame(r, p.version)
-	case 0x6:
-		frame, err = parseCryptoFrame(r, p.version)
-	case 0x7:
-		frame, err = parseNewTokenFrame(r, p.version)
-	case 0x10:
-		frame, err = parseMaxDataFrame(r, p.version)
-	case 0x11:
-		frame, err = parseMaxStreamDataFrame(r, p.version)
-	case 0x12, 0x13:
-		frame, err = parseMaxStreamsFrame(r, p.version)
-	case 0x14:
-		frame, err = parseDataBlockedFrame(r, p.version)
-	case 0x15:
-		frame, err = parseStreamDataBlockedFrame(r, p.version)
-	case 0x16, 0x17:
-		frame, err = parseStreamsBlockedFrame(r, p.version)
-	case 0x18:
-		frame, err = parseNewConnectionIDFrame(r, p.version)
-	case 0x19:
-		frame, err = parseRetireConnectionIDFrame(r, p.version)
-	case 0x1a:
-		frame, err = parsePathChallengeFrame(r, p.version)
-	case 0x1b:
-		frame, err = parsePathResponseFrame(r, p.version)
-	case 0x1c, 0x1d:
-		frame, err = parseConnectionCloseFrame(r, p.version)
-	default:
-		err = fmt.Errorf("unknown type byte 0x%x", typeByte)
 	}
 	if err != nil {
-		return nil, qerr.Error(qerr.FrameEncodingError, err.Error())
+		return nil, err
+	}
+	if !p.isAllowedAtEncLevel(frame, encLevel) {
+		return nil, fmt.Errorf("%s not allowed at encryption level %s", reflect.TypeOf(frame).Elem().Name(), encLevel)
 	}
 	return frame, nil
+}
+
+func (p *frameParser) isAllowedAtEncLevel(f Frame, encLevel protocol.EncryptionLevel) bool {
+	switch encLevel {
+	case protocol.EncryptionInitial, protocol.EncryptionHandshake:
+		switch f.(type) {
+		case *CryptoFrame, *AckFrame, *ConnectionCloseFrame, *PingFrame:
+			return true
+		}
+	case protocol.Encryption1RTT:
+		return true
+	}
+	return false
 }
 
 func (p *frameParser) SetAckDelayExponent(exp uint8) {

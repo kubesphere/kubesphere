@@ -35,18 +35,17 @@
 package certmagic
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/go-acme/lego/certcrypto"
+	"github.com/go-acme/lego/v3/certcrypto"
 )
 
 // HTTPS serves mux for all domainNames using the HTTP
@@ -73,7 +72,7 @@ func HTTPS(domainNames []string, mux http.Handler) error {
 	Default.Agreed = true
 	cfg := NewDefault()
 
-	err := cfg.Manage(domainNames)
+	err := cfg.ManageSync(domainNames)
 	if err != nil {
 		return err
 	}
@@ -174,7 +173,7 @@ func TLS(domainNames []string) (*tls.Config, error) {
 	Default.Agreed = true
 	Default.DisableHTTPChallenge = true
 	cfg := NewDefault()
-	return cfg.TLSConfig(), cfg.Manage(domainNames)
+	return cfg.TLSConfig(), cfg.ManageSync(domainNames)
 }
 
 // Listen manages certificates for domainName and returns a
@@ -191,14 +190,14 @@ func Listen(domainNames []string) (net.Listener, error) {
 	Default.Agreed = true
 	Default.DisableHTTPChallenge = true
 	cfg := NewDefault()
-	err := cfg.Manage(domainNames)
+	err := cfg.ManageSync(domainNames)
 	if err != nil {
 		return nil, err
 	}
 	return tls.Listen("tcp", fmt.Sprintf(":%d", HTTPSPort), cfg.TLSConfig())
 }
 
-// Manage obtains certificates for domainNames and keeps them
+// ManageSync obtains certificates for domainNames and keeps them
 // renewed using the Default config.
 //
 // This is a slightly lower-level function; you will need to
@@ -219,162 +218,72 @@ func Listen(domainNames []string) (net.Listener, error) {
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
-func Manage(domainNames []string) error {
+func ManageSync(domainNames []string) error {
 	Default.Agreed = true
-	return NewDefault().Manage(domainNames)
+	return NewDefault().ManageSync(domainNames)
 }
 
-// OnDemandConfig contains some state relevant for providing
-// on-demand TLS. Important note: If you are using the
-// MaxObtain property to limit the maximum number of certs
-// to be issued, the count of how many certs were issued
-// will be reset if this struct gets garbage-collected.
+// ManageAsync is the same as ManageSync, except that
+// certificates are managed asynchronously. This means
+// that the function will return before certificates
+// are ready, and errors that occur during certificate
+// obtain or renew operations are only logged. It is
+// vital that you monitor the logs if using this method,
+// which is only recommended for automated/non-interactive
+// environments.
+func ManageAsync(ctx context.Context, domainNames []string) error {
+	Default.Agreed = true
+	return NewDefault().ManageAsync(ctx, domainNames)
+}
+
+// OnDemandConfig configures on-demand TLS (certificate
+// operations as-needed, like during TLS handshakes,
+// rather than immediately).
+//
+// When this package's high-level convenience functions
+// are used (HTTPS, Manage, etc., where the Default
+// config is used as a template), this struct regulates
+// certificate operations using an implicit whitelist
+// containing the names passed into those functions if
+// no DecisionFunc is set. This ensures some degree of
+// control by default to avoid certificate operations for
+// aribtrary domain names. To override this whitelist,
+// manually specify a DecisionFunc. To impose rate limits,
+// specify your own DecisionFunc.
 type OnDemandConfig struct {
-	// If set, this function will be the absolute
-	// authority on whether the hostname (according
-	// to SNI) is allowed to try to get a cert.
+	// If set, this function will be called to determine
+	// whether a certificate can be obtained or renewed
+	// for the given name. If an error is returned, the
+	// request will be denied.
 	DecisionFunc func(name string) error
 
-	// If no DecisionFunc is set, this whitelist
-	// is the absolute authority as to whether
-	// a certificate should be allowed to be tried.
-	// Names are compared against SNI value.
-	HostWhitelist []string
-
-	// If no DecisionFunc or HostWhitelist are set,
-	// then an HTTP request will be made to AskURL
-	// to determine if a certificate should be
-	// obtained. If the request fails or the response
-	// is anything other than 2xx status code, the
-	// issuance will be denied.
-	AskURL *url.URL
-
-	// If no DecisionFunc, HostWhitelist, or AskURL
-	// are set, then only this many certificates may
-	// be obtained on-demand; this field is required
-	// if all others are empty, otherwise, all cert
-	// issuances will fail.
-	MaxObtain int32
-
-	// The number of certificates that have been issued on-demand
-	// by this config. It is only safe to modify this count atomically.
-	// If it reaches MaxObtain, on-demand issuances must fail.
-	// Note that this will necessarily be reset to 0 if the
-	// struct leaves scope and/or gets garbage-collected.
-	obtainedCount int32
-}
-
-// Allowed returns whether the issuance for name is allowed according to o.
-func (o *OnDemandConfig) Allowed(name string) error {
-	// The decision function has absolute authority, if set
-	if o.DecisionFunc != nil {
-		return o.DecisionFunc(name)
-	}
-
-	// Otherwise, the host whitelist has decision authority
-	if len(o.HostWhitelist) > 0 {
-		return o.checkWhitelistForObtainingNewCerts(name)
-	}
-
-	// Otherwise, a URL is checked for permission to issue this cert
-	if o.AskURL != nil {
-		return o.checkURLForObtainingNewCerts(name)
-	}
-
-	// Otherwise use the limit defined by the "max_certs" setting
-	return o.checkLimitsForObtainingNewCerts(name)
+	// List of whitelisted hostnames (SNI values) for
+	// deferred (on-demand) obtaining of certificates.
+	// Used only by higher-level functions in this
+	// package to persist the list of hostnames that
+	// the config is supposed to manage. This is done
+	// because it seems reasonable that if you say
+	// "Manage [domain names...]", then only those
+	// domain names should be able to have certs;
+	// we don't NEED this feature, but it makes sense
+	// for higher-level convenience functions to be
+	// able to retain their convenience (alternative
+	// is: the user manually creates a DecisionFunc
+	// that whitelists the same names it already
+	// passed into Manage) and without letting clients
+	// have their run of any domain names they want.
+	// Only enforced if len > 0.
+	hostWhitelist []string
 }
 
 func (o *OnDemandConfig) whitelistContains(name string) bool {
-	for _, n := range o.HostWhitelist {
+	for _, n := range o.hostWhitelist {
 		if strings.ToLower(n) == strings.ToLower(name) {
 			return true
 		}
 	}
 	return false
 }
-
-func (o *OnDemandConfig) checkWhitelistForObtainingNewCerts(name string) error {
-	if !o.whitelistContains(name) {
-		return fmt.Errorf("%s: name is not whitelisted", name)
-	}
-	return nil
-}
-
-func (o *OnDemandConfig) checkURLForObtainingNewCerts(name string) error {
-	client := http.Client{
-		Timeout: 10 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return fmt.Errorf("following http redirects is not allowed")
-		},
-	}
-
-	// Copy the URL from the config in order to modify it for this request
-	askURL := new(url.URL)
-	*askURL = *o.AskURL
-
-	query := askURL.Query()
-	query.Set("domain", name)
-	askURL.RawQuery = query.Encode()
-
-	resp, err := client.Get(askURL.String())
-	if err != nil {
-		return fmt.Errorf("error checking %v to deterine if certificate for hostname '%s' should be allowed: %v", o.AskURL, name, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("certificate for hostname '%s' not allowed, non-2xx status code %d returned from %v", name, resp.StatusCode, o.AskURL)
-	}
-
-	return nil
-}
-
-// checkLimitsForObtainingNewCerts checks to see if name can be issued right
-// now according the maximum count defined in the configuration. If a non-nil
-// error is returned, do not issue a new certificate for name.
-func (o *OnDemandConfig) checkLimitsForObtainingNewCerts(name string) error {
-	if o.MaxObtain == 0 {
-		return fmt.Errorf("%s: no certificates allowed to be issued on-demand", name)
-	}
-
-	// User can set hard limit for number of certs for the process to issue
-	if o.MaxObtain > 0 &&
-		atomic.LoadInt32(&o.obtainedCount) >= o.MaxObtain {
-		return fmt.Errorf("%s: maximum certificates issued (%d)", name, o.MaxObtain)
-	}
-
-	// Make sure name hasn't failed a challenge recently
-	failedIssuanceMu.RLock()
-	when, ok := failedIssuance[name]
-	failedIssuanceMu.RUnlock()
-	if ok {
-		return fmt.Errorf("%s: throttled; refusing to issue cert since last attempt on %s failed", name, when.String())
-	}
-
-	// Make sure, if we've issued a few certificates already, that we haven't
-	// issued any recently
-	lastIssueTimeMu.Lock()
-	since := time.Since(lastIssueTime)
-	lastIssueTimeMu.Unlock()
-	if atomic.LoadInt32(&o.obtainedCount) >= 10 && since < 10*time.Minute {
-		return fmt.Errorf("%s: throttled; last certificate was obtained %v ago", name, since)
-	}
-
-	// Good to go 👍
-	return nil
-}
-
-// failedIssuance is a set of names that we recently failed to get a
-// certificate for from the ACME CA. They are removed after some time.
-// When a name is in this map, do not issue a certificate for it on-demand.
-var failedIssuance = make(map[string]time.Time)
-var failedIssuanceMu sync.RWMutex
-
-// lastIssueTime records when we last obtained a certificate successfully.
-// If this value is recent, do not make any on-demand certificate requests.
-var lastIssueTime time.Time
-var lastIssueTimeMu sync.Mutex
 
 // isLoopback returns true if the hostname of addr looks
 // explicitly like a common local hostname. addr must only
@@ -436,11 +345,10 @@ func isInternal(addr string) bool {
 // cache). This is the only Config which can access
 // the default certificate cache.
 var Default = Config{
-	CA:                           LetsEncryptProductionCA,
-	RenewDurationBefore:          DefaultRenewDurationBefore,
-	RenewDurationBeforeAtStartup: DefaultRenewDurationBeforeAtStartup,
-	KeyType:                      certcrypto.EC256,
-	Storage:                      defaultFileStorage,
+	CA:                  LetsEncryptProductionCA,
+	RenewDurationBefore: DefaultRenewDurationBefore,
+	KeyType:             certcrypto.EC256,
+	Storage:             defaultFileStorage,
 }
 
 const (

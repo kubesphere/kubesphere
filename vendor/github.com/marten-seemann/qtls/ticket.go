@@ -13,6 +13,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"io"
+	"time"
 
 	"golang.org/x/crypto/cryptobyte"
 )
@@ -212,4 +213,42 @@ func (c *Conn) decryptTicket(encrypted []byte) (plaintext []byte, usedOldKey boo
 	cipher.NewCTR(block, iv).XORKeyStream(plaintext, ciphertext)
 
 	return plaintext, keyIndex > 0
+}
+
+// GetSessionTicket generates a new session ticket.
+// It should only be called after the handshake completes.
+// It can only be used for servers, and only if the alternative record layer is set.
+// The ticket may be nil if config.SessionTicketsDisabled is set,
+// or if the client isn't able to receive session tickets.
+func (c *Conn) GetSessionTicket() ([]byte, error) {
+	if c.isClient || !c.handshakeComplete() || c.config.AlternativeRecordLayer == nil {
+		return nil, errors.New("GetSessionTicket is only valid for servers after completion of the handshake, and if an alternative record layer is set.")
+	}
+	if c.config.SessionTicketsDisabled {
+		return nil, nil
+	}
+
+	m := new(newSessionTicketMsgTLS13)
+
+	var certsFromClient [][]byte
+	for _, cert := range c.peerCertificates {
+		certsFromClient = append(certsFromClient, cert.Raw)
+	}
+	state := sessionStateTLS13{
+		cipherSuite:      c.cipherSuite,
+		createdAt:        uint64(c.config.time().Unix()),
+		resumptionSecret: c.resumptionSecret,
+		certificate: Certificate{
+			Certificate:                 certsFromClient,
+			OCSPStaple:                  c.ocspResponse,
+			SignedCertificateTimestamps: c.scts,
+		},
+	}
+	var err error
+	m.label, err = c.encryptTicket(state.marshal())
+	if err != nil {
+		return nil, err
+	}
+	m.lifetime = uint32(maxSessionTicketLifetime / time.Second)
+	return m.marshal(), nil
 }

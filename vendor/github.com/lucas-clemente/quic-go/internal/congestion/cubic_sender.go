@@ -20,7 +20,8 @@ type cubicSender struct {
 	stats           connectionStats
 	cubic           *Cubic
 
-	reno bool
+	noPRR bool
+	reno  bool
 
 	// Track the largest packet that has been sent.
 	largestSentPacketNumber protocol.PacketNumber
@@ -63,12 +64,15 @@ type cubicSender struct {
 }
 
 var _ SendAlgorithm = &cubicSender{}
-var _ SendAlgorithmWithDebugInfo = &cubicSender{}
+var _ SendAlgorithmWithDebugInfos = &cubicSender{}
 
 // NewCubicSender makes a new cubic sender
-func NewCubicSender(clock Clock, rttStats *RTTStats, reno bool, initialCongestionWindow, initialMaxCongestionWindow protocol.ByteCount) SendAlgorithmWithDebugInfo {
+func NewCubicSender(clock Clock, rttStats *RTTStats, reno bool, initialCongestionWindow, initialMaxCongestionWindow protocol.ByteCount) *cubicSender {
 	return &cubicSender{
 		rttStats:                   rttStats,
+		largestSentPacketNumber:    protocol.InvalidPacketNumber,
+		largestAckedPacketNumber:   protocol.InvalidPacketNumber,
+		largestSentAtLastCutback:   protocol.InvalidPacketNumber,
 		initialCongestionWindow:    initialCongestionWindow,
 		initialMaxCongestionWindow: initialMaxCongestionWindow,
 		congestionWindow:           initialCongestionWindow,
@@ -83,7 +87,7 @@ func NewCubicSender(clock Clock, rttStats *RTTStats, reno bool, initialCongestio
 
 // TimeUntilSend returns when the next packet should be sent.
 func (c *cubicSender) TimeUntilSend(bytesInFlight protocol.ByteCount) time.Duration {
-	if c.InRecovery() {
+	if !c.noPRR && c.InRecovery() {
 		// PRR is used when in recovery.
 		if c.prr.CanSend(c.GetCongestionWindow(), bytesInFlight, c.GetSlowStartThreshold()) {
 			return 0
@@ -110,8 +114,15 @@ func (c *cubicSender) OnPacketSent(
 	c.hybridSlowStart.OnPacketSent(packetNumber)
 }
 
+func (c *cubicSender) CanSend(bytesInFlight protocol.ByteCount) bool {
+	if !c.noPRR && c.InRecovery() {
+		return c.prr.CanSend(c.GetCongestionWindow(), bytesInFlight, c.GetSlowStartThreshold())
+	}
+	return bytesInFlight < c.GetCongestionWindow()
+}
+
 func (c *cubicSender) InRecovery() bool {
-	return c.largestAckedPacketNumber <= c.largestSentAtLastCutback && c.largestAckedPacketNumber != 0
+	return c.largestAckedPacketNumber != protocol.InvalidPacketNumber && c.largestAckedPacketNumber <= c.largestSentAtLastCutback
 }
 
 func (c *cubicSender) InSlowStart() bool {
@@ -149,7 +160,9 @@ func (c *cubicSender) OnPacketAcked(
 	c.largestAckedPacketNumber = utils.MaxPacketNumber(ackedPacketNumber, c.largestAckedPacketNumber)
 	if c.InRecovery() {
 		// PRR is used when in recovery.
-		c.prr.OnPacketAcked(ackedBytes)
+		if !c.noPRR {
+			c.prr.OnPacketAcked(ackedBytes)
+		}
 		return
 	}
 	c.maybeIncreaseCwnd(ackedPacketNumber, ackedBytes, priorInFlight, eventTime)
@@ -182,7 +195,9 @@ func (c *cubicSender) OnPacketLost(
 		c.stats.slowstartPacketsLost++
 	}
 
-	c.prr.OnPacketLost(priorInFlight)
+	if !c.noPRR {
+		c.prr.OnPacketLost(priorInFlight)
+	}
 
 	// TODO(chromium): Separate out all of slow start into a separate class.
 	if c.slowStartLargeReduction && c.InSlowStart() {
@@ -216,7 +231,7 @@ func (c *cubicSender) RenoBeta() float32 {
 // Called when we receive an ack. Normal TCP tracks how many packets one ack
 // represents, but quic has a separate ack for each packet.
 func (c *cubicSender) maybeIncreaseCwnd(
-	ackedPacketNumber protocol.PacketNumber,
+	_ protocol.PacketNumber,
 	ackedBytes protocol.ByteCount,
 	priorInFlight protocol.ByteCount,
 	eventTime time.Time,
@@ -283,7 +298,7 @@ func (c *cubicSender) SetNumEmulatedConnections(n int) {
 
 // OnRetransmissionTimeout is called on an retransmission timeout
 func (c *cubicSender) OnRetransmissionTimeout(packetsRetransmitted bool) {
-	c.largestSentAtLastCutback = 0
+	c.largestSentAtLastCutback = protocol.InvalidPacketNumber
 	if !packetsRetransmitted {
 		return
 	}
@@ -297,9 +312,9 @@ func (c *cubicSender) OnRetransmissionTimeout(packetsRetransmitted bool) {
 func (c *cubicSender) OnConnectionMigration() {
 	c.hybridSlowStart.Restart()
 	c.prr = PrrSender{}
-	c.largestSentPacketNumber = 0
-	c.largestAckedPacketNumber = 0
-	c.largestSentAtLastCutback = 0
+	c.largestSentPacketNumber = protocol.InvalidPacketNumber
+	c.largestAckedPacketNumber = protocol.InvalidPacketNumber
+	c.largestSentAtLastCutback = protocol.InvalidPacketNumber
 	c.lastCutbackExitedSlowstart = false
 	c.cubic.Reset()
 	c.numAckedPackets = 0

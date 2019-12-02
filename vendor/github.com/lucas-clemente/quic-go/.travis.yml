@@ -1,10 +1,10 @@
-dist: trusty
+dist: xenial
 group: travis_latest
 
 language: go
 
 go:
-  - "1.12.x"
+  - "1.13.x"
 
 # first part of the GOARCH workaround
 # setting the GOARCH directly doesn't work, since the value will be overwritten later
@@ -13,8 +13,11 @@ env:
   global:
     - TIMESCALE_FACTOR=20
     - GO111MODULE=on
+    # FUZZIT_API_KEY
+    - secure: "eb4Z/iUit+B6KTcKOKxfBQUyTUK+X2HiEXmT8pdReDnC1Q4ciq7NaW/v0nYq6aGMhbOFCVb1XEpST99+LlCxSyJYfH5ZYe/QtwT6/SoRkHyREhkk5UHxu/6CCozgZum9LN1YIi9piUMSKuC6Vh1hiRk5/DQUtTGukbiSmynj+PZddeO71f75EuZpa45cT0kd62HCcr6GRAtkx4BIH00JaMRihWwtFs6WaZG5N9pjV/FPCp+q/J5mKaSUKvCNv2sgwkKC/VqG8XOxBjrhI2Z9s/wGgpf4/BiTrN3D9+qodql2OfhHmRC65CRzOmXxdwXGj0zqWB2mtjcY3tws4XxuDkiChxTanwqDQQ92WLIgCkyazEaLDaFvfCMSkHuLcpWHSIrs1yeKJ2ko5vrvKQ1fsWgyXXtDaG+sq6YymHrCFtL83YY1aFbDt0q22+HFvhEqYdkKIglTpYdcyM+UoT57UagGwU81crXKyYqyCfvsHQM5ieNTBg01ZKEZYiie731ytB4W7duhp5dz5ZkezeZLtjX4NTbOtRRq8qhh9fDMAcuuCbLC/hkhBL9oRRlcPJaRdQKQd8QryS/pxwTrqtlNZ6X+GFjNls49kahdMThaigyocCzAsVFVXQTCUluGIqjDLTFlYxfDkGfkFK3k3bT6KkM5rQbfWIjdpkMRJyO0jR4="
   matrix:
     - TRAVIS_GOARCH=amd64 TESTMODE=lint
+    - TRAVIS_GOARCH=amd64 TESTMODE=fuzz
     - TRAVIS_GOARCH=amd64 TESTMODE=unit
     - TRAVIS_GOARCH=amd64 TESTMODE=integration
     - TRAVIS_GOARCH=386 TESTMODE=unit
@@ -24,16 +27,22 @@ env:
 # second part of the GOARCH workaround
 # now actually set the GOARCH env variable to the value of the temporary variable set earlier
 before_install:
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/onsi/ginkgo/ginkgo
-  - go get github.com/onsi/gomega
+  - travis_retry go get golang.org/x/tools/cmd/cover
+  - travis_retry go get github.com/onsi/ginkgo/ginkgo
+  - travis_retry go get github.com/onsi/gomega
   - export GOARCH=$TRAVIS_GOARCH
   - go env # for debugging
+  - travis_retry go get -t ./...
   - "export DISPLAY=:99.0"
   - "Xvfb $DISPLAY &> /dev/null &"
 
 script:
+  - | 
+    if [ ${TESTMODE} == "lint" ]; then
+      travis_retry curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.18.0
+    fi
   - .travis/script.sh
+
 
 after_success:
   - .travis/after_success.sh

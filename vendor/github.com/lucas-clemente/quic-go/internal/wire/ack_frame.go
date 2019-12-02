@@ -19,7 +19,7 @@ type AckFrame struct {
 }
 
 // parseAckFrame reads an ACK frame
-func parseAckFrame(r *bytes.Reader, ackDelayExponent uint8, version protocol.VersionNumber) (*AckFrame, error) {
+func parseAckFrame(r *bytes.Reader, ackDelayExponent uint8, _ protocol.VersionNumber) (*AckFrame, error) {
 	typeByte, err := r.ReadByte()
 	if err != nil {
 		return nil, err
@@ -37,7 +37,13 @@ func parseAckFrame(r *bytes.Reader, ackDelayExponent uint8, version protocol.Ver
 	if err != nil {
 		return nil, err
 	}
-	frame.DelayTime = time.Duration(delay*1<<ackDelayExponent) * time.Microsecond
+
+	delayTime := time.Duration(delay*1<<ackDelayExponent) * time.Microsecond
+	if delayTime < 0 {
+		// If the delay time overflows, set it to the maximum encodable value.
+		delayTime = utils.InfDuration
+	}
+	frame.DelayTime = delayTime
 
 	numBlocks, err := utils.ReadVarInt(r)
 	if err != nil {

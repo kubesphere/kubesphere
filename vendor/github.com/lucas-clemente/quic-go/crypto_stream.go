@@ -80,11 +80,11 @@ func (s *cryptoStreamImpl) HandleCryptoFrame(f *wire.CryptoFrame) error {
 		return nil
 	}
 	s.highestOffset = utils.MaxByteCount(s.highestOffset, highestOffset)
-	if err := s.queue.Push(f.Data, f.Offset); err != nil {
+	if err := s.queue.Push(f.Data, f.Offset, nil); err != nil {
 		return err
 	}
 	for {
-		_, data := s.queue.Pop()
+		_, data, _ := s.queue.Pop()
 		if data == nil {
 			return nil
 		}

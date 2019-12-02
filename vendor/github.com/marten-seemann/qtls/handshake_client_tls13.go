@@ -10,6 +10,7 @@ import (
 	"crypto/hmac"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"hash"
 	"sync/atomic"
 	"time"
@@ -346,11 +347,11 @@ func (hs *clientHandshakeStateTLS13) establishHandshakeKeys() error {
 
 	clientSecret := hs.suite.deriveSecret(handshakeSecret,
 		clientHandshakeTrafficLabel, hs.transcript)
-	c.out.exportKey(hs.suite, clientSecret)
+	c.out.exportKey(EncryptionHandshake, hs.suite, clientSecret)
 	c.out.setTrafficSecret(hs.suite, clientSecret)
 	serverSecret := hs.suite.deriveSecret(handshakeSecret,
 		serverHandshakeTrafficLabel, hs.transcript)
-	c.in.exportKey(hs.suite, serverSecret)
+	c.in.exportKey(EncryptionHandshake, hs.suite, serverSecret)
 	c.in.setTrafficSecret(hs.suite, serverSecret)
 
 	err := c.config.writeKeyLog(keyLogLabelClientHandshake, hs.hello.random, clientSecret)
@@ -391,6 +392,18 @@ func (hs *clientHandshakeStateTLS13) readServerParameters() error {
 	if len(encryptedExtensions.alpnProtocol) != 0 && len(hs.hello.alpnProtocols) == 0 {
 		c.sendAlert(alertUnsupportedExtension)
 		return errors.New("tls: server advertised unrequested ALPN extension")
+	}
+	if c.config.EnforceNextProtoSelection {
+		if len(encryptedExtensions.alpnProtocol) == 0 {
+			// the server didn't select an ALPN
+			c.sendAlert(alertNoApplicationProtocol)
+			return errors.New("ALPN negotiation failed. Server didn't offer any protocols")
+		}
+		if _, fallback := mutualProtocol([]string{encryptedExtensions.alpnProtocol}, hs.c.config.NextProtos); fallback {
+			// the protocol selected by the server was not offered
+			c.sendAlert(alertNoApplicationProtocol)
+			return fmt.Errorf("ALPN negotiation failed. Server offered: %q", encryptedExtensions.alpnProtocol)
+		}
 	}
 	c.clientProtocol = encryptedExtensions.alpnProtocol
 
@@ -467,10 +480,9 @@ func (hs *clientHandshakeStateTLS13) readServerCertificate() error {
 		c.sendAlert(alertIllegalParameter)
 		return errors.New("tls: invalid certificate signature algorithm")
 	}
-	h := sigHash.New()
-	writeSignedMessage(h, serverSignatureContext, hs.transcript)
+	signed := signedMessage(sigHash, serverSignatureContext, hs.transcript)
 	if err := verifyHandshakeSignature(sigType, c.peerCertificates[0].PublicKey,
-		sigHash, h.Sum(nil), certVerify.signature); err != nil {
+		sigHash, signed, certVerify.signature); err != nil {
 		c.sendAlert(alertDecryptError)
 		return errors.New("tls: invalid certificate signature")
 	}
@@ -508,7 +520,7 @@ func (hs *clientHandshakeStateTLS13) readServerFinished() error {
 		clientApplicationTrafficLabel, hs.transcript)
 	serverSecret := hs.suite.deriveSecret(hs.masterSecret,
 		serverApplicationTrafficLabel, hs.transcript)
-	c.in.exportKey(hs.suite, serverSecret)
+	c.in.exportKey(EncryptionApplication, hs.suite, serverSecret)
 	c.in.setTrafficSecret(hs.suite, serverSecret)
 
 	err = c.config.writeKeyLog(keyLogLabelClientTraffic, hs.hello.random, hs.trafficSecret)
@@ -586,14 +598,13 @@ func (hs *clientHandshakeStateTLS13) sendClientCertificate() error {
 	if sigType == 0 || err != nil {
 		return c.sendAlert(alertInternalError)
 	}
-	h := sigHash.New()
-	writeSignedMessage(h, clientSignatureContext, hs.transcript)
 
+	signed := signedMessage(sigHash, clientSignatureContext, hs.transcript)
 	signOpts := crypto.SignerOpts(sigHash)
 	if sigType == signatureRSAPSS {
 		signOpts = &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: sigHash}
 	}
-	sig, err := cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), h.Sum(nil), signOpts)
+	sig, err := cert.PrivateKey.(crypto.Signer).Sign(c.config.rand(), signed, signOpts)
 	if err != nil {
 		c.sendAlert(alertInternalError)
 		return errors.New("tls: failed to sign handshake: " + err.Error())
@@ -620,7 +631,7 @@ func (hs *clientHandshakeStateTLS13) sendClientFinished() error {
 		return err
 	}
 
-	c.out.exportKey(hs.suite, hs.trafficSecret)
+	c.out.exportKey(EncryptionApplication, hs.suite, hs.trafficSecret)
 	c.out.setTrafficSecret(hs.suite, hs.trafficSecret)
 
 	if !c.config.SessionTicketsDisabled && c.config.ClientSessionCache != nil {

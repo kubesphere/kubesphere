@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.13.0 (unreleased)
+
+- Add an `EarlyListener` that allows sending of 0.5-RTT data.
+- Add a `TokenStore` to store address validation tokens.
+
+## v0.12.0 (2019-08-05)
+
+- Implement HTTP/3.
+- Rename `quic.Cookie` to `quic.Token` and `quic.Config.AcceptCookie` to `quic.Config.AcceptToken`.
+- Distinguish between Retry tokens and tokens sent in NEW_TOKEN frames.
+- Enforce application protocol negotiation (via `tls.Config.NextProtos`).
+- Use a varint for error codes.
+- Add support for [quic-trace](https://github.com/google/quic-trace).
+- Add a context to `Listener.Accept`, `Session.Accept{Uni}Stream` and `Session.Open{Uni}StreamSync`.
+- Implement TLS key updates.
+
 ## v0.11.0 (2019-04-05)
 
 - Drop support for gQUIC. For qQUIC support, please switch to the *gquic* branch.

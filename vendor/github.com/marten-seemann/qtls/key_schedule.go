@@ -8,6 +8,7 @@ import (
 	"crypto"
 	"crypto/elliptic"
 	"crypto/hmac"
+	"crypto/subtle"
 	"errors"
 	"hash"
 	"io"
@@ -209,8 +210,16 @@ func (p *x25519Parameters) SharedKey(peerPublicKey []byte) []byte {
 	if len(peerPublicKey) != 32 {
 		return nil
 	}
+
 	var theirPublicKey, sharedKey [32]byte
 	copy(theirPublicKey[:], peerPublicKey)
 	curve25519.ScalarMult(&sharedKey, &p.privateKey, &theirPublicKey)
+
+	// Check for low-order inputs. See RFC 8422, Section 5.11.
+	var allZeroes [32]byte
+	if subtle.ConstantTimeCompare(allZeroes[:], sharedKey[:]) == 1 {
+		return nil
+	}
+
 	return sharedKey[:]
 }

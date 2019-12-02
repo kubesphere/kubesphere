@@ -1,7 +1,7 @@
 package apigateway
 
 import (
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authenticate"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/authentication"
