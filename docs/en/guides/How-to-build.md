@@ -36,6 +36,12 @@ KubeSphere uses [Go Modules](https://github.com/golang/go/wiki/Modules) to manag
 
 When you go get KubeSphere, you can choose the version you want to get: `go get kubesphere.io/kubesphere@version-you-want`
 
+>For modules stored in source control repositories, the version suffix can
+ also be a commit hash, branch identifier, or other syntax known to the
+ source control system, as in 'go get golang.org/x/text@master'.
+ The version suffix @latest explicitly requests the default behavior
+ described above.
+
 > Note: Before getting KubeSphere, you need to synchronize the contents of the `replace` section of the go.mod file of the KubeSphere you want to version.
 
 ```bash
