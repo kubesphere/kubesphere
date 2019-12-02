@@ -223,7 +223,7 @@ func (c *DevopsProjectRoleController) checkDevopsRoleExistsInJenkins(role *devop
 		return false, err
 	}
 
-	roleType, err := devopsrbac.GetRoleTypeByName(role.GetName())
+	roleType, err := devopsrbac.GetRoleTypeByRoleName(role.GetName())
 	if err != nil {
 		klog.Error(err)
 		return false, err
@@ -258,7 +258,7 @@ func (c *DevopsProjectRoleController) deleteDevopsRoleInJenkins(role *devopsv1al
 		return err
 	}
 
-	roleType, err := devopsrbac.GetRoleTypeByName(role.GetName())
+	roleType, err := devopsrbac.GetRoleTypeByRoleName(role.GetName())
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -284,7 +284,7 @@ func (c *DevopsProjectRoleController) addDevopsRoleInJenkins(role *devopsv1alpha
 		return err
 	}
 
-	roleType, err := devopsrbac.GetRoleTypeByName(role.GetName())
+	roleType, err := devopsrbac.GetRoleTypeByRoleName(role.GetName())
 	if err != nil {
 		klog.Error(err)
 		return err

@@ -2,6 +2,7 @@ package devopsrbac
 
 import (
 	"fmt"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -30,7 +31,7 @@ func GetJenkinsRolePrefix(object metav1.Object) (string, error) {
 
 // getRoleTypeByName get role's type by DevOpsProjectRoleName
 // valid name should be workspace-devopsproject-developer/workspace-devopsproject-owner……
-func GetRoleTypeByName(name string) (string, error) {
+func GetRoleTypeByRoleName(name string) (string, error) {
 	parts := strings.Split(name, "-")
 	if len(parts) < 3 {
 		err := fmt.Errorf("%s is not a valid role name", name)
@@ -43,4 +44,16 @@ func GetRoleTypeByName(name string) (string, error) {
 		klog.Errorf("%+v", err)
 	}
 	return parts[len(parts)-1], nil
+}
+
+func RBACSubjectsToStringSlice(subjects []rbacv1.Subject) []string {
+	var result []string
+	if len(subjects) == 0 {
+		return make([]string, 0)
+	}
+	for _, subject := range subjects {
+		result = append(result, subject.Name)
+	}
+	return result
+
 }

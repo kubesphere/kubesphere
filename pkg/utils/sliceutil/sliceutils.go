@@ -35,3 +35,31 @@ func HasString(slice []string, str string) bool {
 	}
 	return false
 }
+
+// StringDiff calculate the difference between two string slices.
+// `more` returns elements that are present in the second slice but not present in the first slice.
+// `less` returns elements that are not present in the second slice but are present in the first slice.
+func StringDiff(slice1 []string, slice2 []string) (more []string, less []string) {
+	more = make([]string, 0)
+	less = make([]string, 0)
+	for i := 0; i < 2; i++ {
+		m := make(map[string]bool)
+		for _, item := range slice1 {
+			m[item] = true
+		}
+
+		for _, item := range slice2 {
+			if _, ok := m[item]; !ok {
+				if i == 0 {
+					more = append(more, item)
+				} else {
+					less = append(less, item)
+				}
+			}
+		}
+		if i == 0 {
+			slice1, slice2 = slice2, slice1
+		}
+	}
+	return
+}
