@@ -29,7 +29,7 @@ const DevOpsProjectRoleJenkinsFinalizerName = "devopsprojectrole.finalizers.kube
 // DevOpsProjectRoleSpec defines the desired state of DevOpsProjectRole
 type DevOpsProjectRoleSpec struct {
 	// Rules holds all the PolicyRules for this Role
-	Rules []rbacv1.PolicyRule `json:"rules"`
+	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
 }
 
 // DevOpsProjectRoleStatus defines the observed state of DevOpsProjectRole

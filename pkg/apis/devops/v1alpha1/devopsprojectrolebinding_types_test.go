@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/rbac/v1"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -32,6 +33,13 @@ func TestStorageDevOpsProjectRoleBinding(t *testing.T) {
 	created := &DevOpsProjectRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
+		},
+		Spec: DevOpsProjectRoleBindingSpec{
+			RoleRef: v1.RoleRef{
+				APIGroup: "devops.kubesphere.io",
+				Kind:     "DevOpsProjectRoleBinding",
+				Name:     "foo",
+			},
 		}}
 	g := gomega.NewGomegaWithT(t)
 

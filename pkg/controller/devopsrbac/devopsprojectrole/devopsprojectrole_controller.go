@@ -215,6 +215,7 @@ func (c *DevopsProjectRoleController) syncHandler(key string) error {
 	return nil
 }
 
+// checkDevopsRoleExistsInJenkins used to check if roles has been written to jenkins
 func (c *DevopsProjectRoleController) checkDevopsRoleExistsInJenkins(role *devopsv1alpha1.DevOpsProjectRole) (bool, error) {
 	devops, err := client.ClientSets().Devops()
 	if err != nil {
@@ -228,6 +229,7 @@ func (c *DevopsProjectRoleController) checkDevopsRoleExistsInJenkins(role *devop
 		return false, err
 	}
 	prefix, err := devopsrbac.GetJenkinsRolePrefix(role)
+
 	pipelineRoleName := devopsmodel.GetPipelineRoleName(prefix, roleType)
 	projectRoleName := devopsmodel.GetProjectRoleName(prefix, roleType)
 
@@ -248,6 +250,7 @@ func (c *DevopsProjectRoleController) checkDevopsRoleExistsInJenkins(role *devop
 	}
 }
 
+// deleteDevopsRoleInJenkins used to delete roles in jenkins
 func (c *DevopsProjectRoleController) deleteDevopsRoleInJenkins(role *devopsv1alpha1.DevOpsProjectRole) error {
 	devops, err := client.ClientSets().Devops()
 	if err != nil {
@@ -272,6 +275,7 @@ func (c *DevopsProjectRoleController) deleteDevopsRoleInJenkins(role *devopsv1al
 	return nil
 }
 
+// addDevopsRoleInJenkins used to add roles to jenkins
 func (c *DevopsProjectRoleController) addDevopsRoleInJenkins(role *devopsv1alpha1.DevOpsProjectRole) error {
 
 	devops, err := client.ClientSets().Devops()
@@ -289,6 +293,9 @@ func (c *DevopsProjectRoleController) addDevopsRoleInJenkins(role *devopsv1alpha
 	pipelineRoleName := devopsmodel.GetPipelineRoleName(prefix, roleType)
 	projectRoleName := devopsmodel.GetProjectRoleName(prefix, roleType)
 
+	// Each devops project role corresponds to two roles in the jenkins role strategy.
+	// A role is used to match "^workspace/devopsproject$" to indicate the availability of folders in jenkins
+	// Another role is used to match "^workspace/devopsproject/.*" to illustrate the availability of the pipeline under the folder in jenkins
 	_, err = devops.Jenkins().AddProjectRole(
 		projectRoleName, devopsmodel.GetProjectRolePattern(prefix), devopsmodel.JenkinsProjectPermissionMap[roleType], true)
 	if err != nil {

@@ -33,8 +33,6 @@ spec:
               items:
                 type: object
               type: array
-          required:
-          - rules
           type: object
         status:
           type: object
