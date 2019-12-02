@@ -23,6 +23,7 @@ import (
 	"k8s.io/klog"
 
 	"k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
 )
@@ -45,7 +46,7 @@ func GetDeployRevision(namespace, name, revision string) (*v1.ReplicaSet, error)
 	}
 
 	for _, rs := range rsList {
-		if rs.Annotations["deployment.kubernetes.io/revision"] == revision {
+		if metav1.IsControlledBy(rs, deploy) && rs.Annotations["deployment.kubernetes.io/revision"] == revision {
 			return rs, nil
 		}
 	}
@@ -61,23 +62,7 @@ func GetDaemonSetRevision(namespace, name string, revisionInt int) (*v1.Controll
 		return nil, err
 	}
 
-	labels := ds.Spec.Template.Labels
-
-	return getControllerRevision(namespace, name, labels, revisionInt)
-}
-
-func GetStatefulSetRevision(namespace, name string, revisionInt int) (*v1.ControllerRevision, error) {
-	statefulSetLister := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister()
-	st, err := statefulSetLister.StatefulSets(namespace).Get(name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return getControllerRevision(namespace, name, st.Spec.Template.Labels, revisionInt)
-}
-
-func getControllerRevision(namespace, name string, labelMap map[string]string, revision int) (*v1.ControllerRevision, error) {
+	labelMap := ds.Spec.Template.Labels
 
 	labelSelector := labels.Set(labelMap).AsSelector()
 	controllerRevisionLister := informers.SharedInformerFactory().Apps().V1().ControllerRevisions().Lister()
@@ -88,10 +73,36 @@ func getControllerRevision(namespace, name string, labelMap map[string]string, r
 	}
 
 	for _, controllerRevision := range revisions {
-		if controllerRevision.Revision == int64(revision) {
+		if controllerRevision.Revision == int64(revisionInt) && metav1.IsControlledBy(controllerRevision, ds) {
+			return controllerRevision, nil
+		}
+	}
+	return nil, fmt.Errorf("revision not found %v#%v", name, revisionInt)
+}
+
+func GetStatefulSetRevision(namespace, name string, revisionInt int) (*v1.ControllerRevision, error) {
+	statefulSetLister := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister()
+	st, err := statefulSetLister.StatefulSets(namespace).Get(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	labelMap := st.Spec.Template.Labels
+
+	labelSelector := labels.Set(labelMap).AsSelector()
+	controllerRevisionLister := informers.SharedInformerFactory().Apps().V1().ControllerRevisions().Lister()
+	revisions, err := controllerRevisionLister.ControllerRevisions(namespace).List(labelSelector)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, controllerRevision := range revisions {
+		if controllerRevision.Revision == int64(revisionInt) && metav1.IsControlledBy(controllerRevision, st) {
 			return controllerRevision, nil
 		}
 	}
 
-	return nil, fmt.Errorf("revision not found %v#%v", name, revision)
+	return nil, fmt.Errorf("revision not found %v#%v", name, revisionInt)
 }
