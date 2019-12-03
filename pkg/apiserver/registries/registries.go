@@ -21,6 +21,7 @@ package registries
 import (
 	"github.com/emicklei/go-restful"
 	"net/http"
+	"strings"
 
 	"kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/server/errors"
@@ -68,6 +69,25 @@ func RegistryImageBlob(request *restful.Request, response *restful.Response) {
 		return
 	}
 
+	// default use ssl
+	checkSSl := func(serverAddress string) bool {
+		if strings.HasPrefix(serverAddress, "http://") {
+			return false
+		} else {
+			return true
+		}
+	}
+
+	if strings.HasPrefix(imageName, "http") {
+		dockerurl, err := registries.ParseDockerURL(imageName)
+		if err != nil {
+			log.Errorf("%+v", err)
+			errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), response)
+			return
+		}
+		imageName = dockerurl.StringWithoutScheme()
+	}
+
 	// parse image
 	image, err := registries.ParseImage(imageName)
 	if err != nil {
@@ -76,8 +96,10 @@ func RegistryImageBlob(request *restful.Request, response *restful.Response) {
 		return
 	}
 
+	useSSL := checkSSl(entry.ServerAddress)
+
 	// Create the registry client.
-	r, err := registries.CreateRegistryClient(entry.Username, entry.Password, image.Domain)
+	r, err := registries.CreateRegistryClient(entry.Username, entry.Password, image.Domain, useSSL)
 	if err != nil {
 		log.Errorf("%+v", err)
 		response.WriteAsJson(&registries.ImageDetails{Status: registries.StatusFailed, Message: err.Error()})

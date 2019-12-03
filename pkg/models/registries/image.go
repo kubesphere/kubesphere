@@ -2,9 +2,11 @@ package registries
 
 import (
 	"fmt"
-
 	"github.com/docker/distribution/reference"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
+	log "k8s.io/klog"
+	"net/url"
+	"strings"
 )
 
 // Image holds information about an image.
@@ -30,9 +32,28 @@ func (i *Image) Reference() string {
 	return i.Tag
 }
 
+type DockerURL struct {
+	*url.URL
+}
+
+func (u *DockerURL) StringWithoutScheme() string {
+	u.Scheme = ""
+	s := u.String()
+	return strings.Trim(s, "//")
+}
+
+func ParseDockerURL(rawurl string) (*DockerURL, error) {
+	url, err := url.Parse(rawurl)
+	if err != nil {
+		log.Errorf("%+v", err)
+		return nil, err
+	}
+	return &DockerURL{URL: url}, nil
+}
+
 // ParseImage returns an Image struct with all the values filled in for a given image.
 // example : localhost:5000/nginx:latest, nginx:perl etc.
-func ParseImage(image string) (Image, error) {
+func ParseImage(image string) (i Image, err error) {
 	// Parse the image name and tag.
 	named, err := reference.ParseNormalizedNamed(image)
 	if err != nil {
@@ -41,7 +62,7 @@ func ParseImage(image string) (Image, error) {
 	// Add the latest lag if they did not provide one.
 	named = reference.TagNameOnly(named)
 
-	i := Image{
+	i = Image{
 		named:  named,
 		Domain: reference.Domain(named),
 		Path:   reference.Path(named),
