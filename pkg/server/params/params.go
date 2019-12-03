@@ -89,3 +89,11 @@ type Conditions struct {
 	Match map[string]string
 	Fuzzy map[string]string
 }
+
+func GetStringValueWithDefault(req *restful.Request, name string, dv string) string {
+	v := req.QueryParameter(name)
+	if v == "" {
+		v = dv
+	}
+	return v
+}
