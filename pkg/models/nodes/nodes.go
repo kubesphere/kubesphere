@@ -24,10 +24,8 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math"
-	"strings"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -82,6 +80,17 @@ func getNodePods(client kubernetes.Interface, node v1.Node) (*v1.PodList, error)
 	})
 }
 
+// FilterPodsByControllerRef returns a subset of pods controlled by given controller resource, excluding deployments.
+func FilterPodsByControllerRef(owner metav1.Object, allPods []v1.Pod) []v1.Pod {
+	var matchingPods []v1.Pod
+	for _, pod := range allPods {
+		if metav1.IsControlledBy(&pod, owner) {
+			matchingPods = append(matchingPods, pod)
+		}
+	}
+	return matchingPods
+}
+
 func drainEviction(nodeName string, doneCh chan bool, errCh chan error) {
 	k8sClient := client.ClientSets().K8s().Kubernetes()
 
@@ -100,23 +109,26 @@ func drainEviction(nodeName string, doneCh chan bool, errCh chan error) {
 	if err != nil {
 		klog.Fatal(err)
 		errCh <- err
+	}
 
+	filterPods := make([]v1.Pod, 0)
+
+	if podList != nil {
+		for _, daemonSet := range daemonSetList.Items {
+			filterPods = append(filterPods, FilterPodsByControllerRef(&daemonSet, podList.Items)...)
+		}
 	}
 
 	pods := make([]v1.Pod, 0)
 	// remove mirror pod static pod
-	if len(podList.Items) > 0 {
-		for _, pod := range podList.Items {
-			if !containDaemonset(pod, *daemonSetList) {
-				//static or mirror pod
-				if isStaticPod(&pod) || isMirrorPod(&pod) {
-					continue
-				} else {
-					pods = append(pods, pod)
-				}
-			}
+	for _, pod := range filterPods {
+		if isStaticPod(&pod) || isMirrorPod(&pod) {
+			continue
+		} else {
+			pods = append(pods, pod)
 		}
 	}
+
 	if len(pods) == 0 {
 		doneCh <- true
 	} else {
@@ -124,11 +136,11 @@ func drainEviction(nodeName string, doneCh chan bool, errCh chan error) {
 		getPodFn := func(namespace, name string) (*v1.Pod, error) {
 			return k8sClient.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 		}
-		evicerr := evictPods(pods, 0, getPodFn)
-		if evicerr == nil {
+		evicErr := evictPods(pods, 0, getPodFn)
+		if evicErr == nil {
 			doneCh <- true
 		} else {
-			klog.Fatal(evicerr)
+			klog.Fatal(evicErr)
 			errCh <- err
 		}
 	}
@@ -151,16 +163,6 @@ func isStaticPod(pod *v1.Pod) bool {
 func isMirrorPod(pod *v1.Pod) bool {
 	_, ok := pod.Annotations[v1.MirrorPodAnnotationKey]
 	return ok
-}
-
-func containDaemonset(pod v1.Pod, daemonsetList appsv1.DaemonSetList) bool {
-	flag := false
-	for _, daemonset := range daemonsetList.Items {
-		if strings.Contains(pod.Name, daemonset.Name) {
-			flag = true
-		}
-	}
-	return flag
 }
 
 func evictPod(pod v1.Pod, GracePeriodSeconds int) error {
