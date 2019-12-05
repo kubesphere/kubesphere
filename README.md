@@ -17,7 +17,7 @@
 
 ## Screenshots
 
-> Note: See the [Screenshots](docs/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
+> Note: See the [Screenshots](docs/en/guides/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
 
 
 <table>
@@ -178,6 +178,7 @@ Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere G
 
 ## Contributing to the project
 
-All members of the KubeSphere community must abide by [Code of Conduct](docs/code-of-conduct.md). Only by respecting each other can we develop a productive, collaborative community.
+This [document](docs/en/guides/README.md) walks you through how to get started contributing KubeSphere.
 
-How to submit a pull request to KubeSphere? See [Pull Request Instruction](docs/pull-requests.md).
+
+
