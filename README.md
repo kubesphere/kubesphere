@@ -43,6 +43,10 @@
 
 [![KubeSphere](https://pek3b.qingstor.com/kubesphere-docs/png/20191112093503.png)](https://youtu.be/u5lQvhi_Xlc)
 
+## Demo Environment
+
+Using account `demo1 / Demo123` to log in to [Demo environment](https://demo.kubesphere.io/), this account has been only granted viewer access.
+
 ## Features
 
 KubeSphere provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
@@ -50,14 +54,14 @@ KubeSphere provides an easy-to-use console with the awesome user experience that
 
 - Workload management
 - Service mesh (Istio-based)
-- DevOps
-- Source to Image
+- DevOps (CI/CD Pipeline)
+- Source to Image, Binary to Image
 - Multi-tenant management
 - Multi-dimensional and Multi-tenant Monitoring, Logging, Alerting, Notification
 - Service and network management
-- Application template and repository
-- Infrastructure management, image registry management
-- Integrate Harbor and GitLab
+- Application Store and Application lifecycle management
+- Node and Storage Class management, image registry management
+- Integrate Harbor, GitLab, SonarQube
 - LB controller for Kubernetes on bare metal ([Porter](https://github.com/kubesphere/porter)), [cloud LB plugin](https://github.com/yunify/qingcloud-cloud-controller-manager)
 - Support GPU node
 
