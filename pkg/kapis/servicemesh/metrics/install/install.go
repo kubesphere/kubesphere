@@ -4,7 +4,7 @@ import (
 	"github.com/emicklei/go-restful"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	v1alpha22 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 )
 
 func init() {
@@ -12,5 +12,5 @@ func init() {
 }
 
 func Install(c *restful.Container) {
-	urlruntime.Must(v1alpha22.AddToContainer(c))
+	urlruntime.Must(v1alpha2.AddToContainer(c))
 }
