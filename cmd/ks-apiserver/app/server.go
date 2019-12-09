@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/kapis"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/server/filter"
@@ -36,8 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
-
-	"kubesphere.io/kubesphere/pkg/apis"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -134,7 +133,7 @@ func CreateAPIServer(s *options.ServerRunOptions) error {
 	container.Filter(filter.Logging)
 	container.RecoverHandler(server.LogStackOnRecover)
 
-	apis.InstallAPIs(container)
+	kapis.InstallAPIs(container)
 
 	// install config api
 	apiserverconfig.InstallAPI(container)
