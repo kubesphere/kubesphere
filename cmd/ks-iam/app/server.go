@@ -24,9 +24,9 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-iam/app/options"
-	"kubesphere.io/kubesphere/pkg/apis"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/kapis"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
@@ -107,7 +107,7 @@ func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
 	container.DoNotRecover(false)
 	container.RecoverHandler(server.LogStackOnRecover)
 
-	apis.InstallAuthorizationAPIs(container)
+	kapis.InstallAuthorizationAPIs(container)
 
 	if s.GenericServerRunOptions.InsecurePort != 0 {
 		klog.Infof("Server listening on %s:%d ", s.GenericServerRunOptions.BindAddress, s.GenericServerRunOptions.InsecurePort)
