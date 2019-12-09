@@ -160,10 +160,13 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 		return nil, err
 	}
 
-	for i, item := range result {
-		if i >= offset && (limit == -1 || len(items) < limit) {
-			items = append(items, injector.addExtraAnnotations(item))
-		}
+	if limit == -1 || limit+offset > len(result) {
+		limit = len(result) - offset
+	}
+
+	result = result[offset : offset+limit]
+	for _, item := range result {
+		items = append(items, injector.addExtraAnnotations(item))
 	}
 
 	return &models.PageableResponse{TotalCount: len(result), Items: items}, nil
