@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -59,10 +58,6 @@ func NewController(devopsclientset devopsclient.Interface, s2iclientset s2iclien
 	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "s2irun-controller"})
-
-	if client != nil && client.CoreV1().RESTClient().GetRateLimiter() != nil {
-		metrics.RegisterMetricAndTrackRateLimiterUsage("s2irun_controller", client.CoreV1().RESTClient().GetRateLimiter())
-	}
 
 	v := &S2iRunController{
 		client:           client,

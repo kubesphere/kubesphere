@@ -1320,13 +1320,7 @@ k8s.io/kube-openapi/pkg/handler
 k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
-# k8s.io/kubernetes v1.13.6 => k8s.io/kubernetes v1.13.6
-k8s.io/kubernetes/pkg/client/leaderelectionconfig
-k8s.io/kubernetes/pkg/util/metrics
 # openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
-openpitrix.io/openpitrix/pkg/client
-openpitrix.io/openpitrix/pkg/client/access
-openpitrix.io/openpitrix/pkg/client/account
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

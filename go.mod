@@ -141,7 +141,6 @@ require (
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a // indirect
 	k8s.io/klog v0.4.0
 	k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
-	k8s.io/kubernetes v1.13.6
 	kubesphere.io/im v0.1.0 // indirect
 	openpitrix.io/iam v0.1.0 // indirect
 	openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
@@ -423,7 +422,6 @@ replace (
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 	k8s.io/klog => k8s.io/klog v0.4.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
-	k8s.io/kubernetes => k8s.io/kubernetes v1.13.6
 	k8s.io/utils => k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
 	kubesphere.io/im => kubesphere.io/im v0.1.0
 	openpitrix.io/iam => openpitrix.io/iam v0.1.0

@@ -2,11 +2,11 @@ package options
 
 import (
 	"flag"
+	"github.com/spf13/pflag"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiserverconfig "k8s.io/apiserver/pkg/apis/config"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/client/leaderelectionconfig"
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -59,7 +59,7 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
 
 	fs := fss.FlagSet("leaderelection")
-	leaderelectionconfig.BindFlags(s.LeaderElection, fs)
+	s.bindLeaderElectionFlags(s.LeaderElection, fs)
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -79,4 +79,27 @@ func (s *KubeSphereControllerManagerOptions) Validate() []error {
 	errs = append(errs, s.S3Options.Validate()...)
 	errs = append(errs, s.OpenPitrixOptions.Validate()...)
 	return errs
+}
+
+func (s *KubeSphereControllerManagerOptions) bindLeaderElectionFlags(l *apiserverconfig.LeaderElectionConfiguration, fs *pflag.FlagSet) {
+	fs.BoolVar(&l.LeaderElect, "leader-elect", l.LeaderElect, ""+
+		"Start a leader election client and gain leadership before "+
+		"executing the main loop. Enable this when running replicated "+
+		"components for high availability.")
+	fs.DurationVar(&l.LeaseDuration.Duration, "leader-elect-lease-duration", l.LeaseDuration.Duration, ""+
+		"The duration that non-leader candidates will wait after observing a leadership "+
+		"renewal until attempting to acquire leadership of a led but unrenewed leader "+
+		"slot. This is effectively the maximum duration that a leader can be stopped "+
+		"before it is replaced by another candidate. This is only applicable if leader "+
+		"election is enabled.")
+	fs.DurationVar(&l.RenewDeadline.Duration, "leader-elect-renew-deadline", l.RenewDeadline.Duration, ""+
+		"The interval between attempts by the acting master to renew a leadership slot "+
+		"before it stops leading. This must be less than or equal to the lease duration. "+
+		"This is only applicable if leader election is enabled.")
+	fs.DurationVar(&l.RetryPeriod.Duration, "leader-elect-retry-period", l.RetryPeriod.Duration, ""+
+		"The duration the clients should wait between attempting acquisition and renewal "+
+		"of a leadership. This is only applicable if leader election is enabled.")
+	fs.StringVar(&l.ResourceLock, "leader-elect-resource-lock", l.ResourceLock, ""+
+		"The type of resource object that is used for locking during "+
+		"leader election. Supported options are `endpoints` (default) and `configmaps`.")
 }
