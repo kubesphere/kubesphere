@@ -182,9 +182,11 @@ type FelixConfigurationSpec struct {
 	HealthHost    *string `json:"healthHost,omitempty"`
 	HealthPort    *int    `json:"healthPort,omitempty"`
 
-	// PrometheusMetricsEnabled enables the experimental Prometheus metrics server in Felix if set to true. [Default: false]
+	// PrometheusMetricsEnabled enables the Prometheus metrics server in Felix if set to true. [Default: false]
 	PrometheusMetricsEnabled *bool `json:"prometheusMetricsEnabled,omitempty"`
-	// PrometheusMetricsPort is the TCP port that the experimental Prometheus metrics server should bind to. [Default:9091]
+	// PrometheusMetricsHost is the host that the Prometheus metrics server should bind to. [Default: empty]
+	PrometheusMetricsHost string `json:"prometheusMetricsHost,omitempty" validate:"omitempty,prometheusHost"`
+	// PrometheusMetricsPort is the TCP port that the Prometheus metrics server should bind to. [Default: 9091]
 	PrometheusMetricsPort *int `json:"prometheusMetricsPort,omitempty"`
 	// PrometheusGoMetricsEnabled disables Go runtime metrics collection, which the Prometheus client does by default, when
 	// set to false. This reduces the number of metrics reported, reducing Prometheus load. [Default: true]
@@ -230,6 +232,17 @@ type FelixConfigurationSpec struct {
 	// is leaving the network. By default the address used is an address on the interface the traffic is leaving on
 	// (ie it uses the iptables MASQUERADE target)
 	NATOutgoingAddress string `json:"natOutgoingAddress,omitempty"`
+
+	// This is the source address to use on programmed device routes. By default the source address is left blank,
+	// leaving the kernel to choose the source address used.
+	DeviceRouteSourceAddress string `json:"deviceRouteSourceAddress,omitempty"`
+
+	// This defines the route protocol added to programmed device routes, by default this will be RTPROT_BOOT
+	// when left blank.
+	DeviceRouteProtocol *int `json:"deviceRouteProtocol,omitempty"`
+	// Whether or not to remove device routes that have not been programmed by Felix. Disabling this will allow external
+	// applications to also add device routes. This is enabled by default which means we will remove externally added routes.
+	RemoveExternalRoutes *bool `json:"removeExternalRoutes,omitempty"`
 
 	// ExternalNodesCIDRList is a list of CIDR's of external-non-calico-nodes which may source tunnel traffic and have
 	// the tunneled traffic be accepted at calico nodes.

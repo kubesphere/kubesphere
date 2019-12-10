@@ -619,7 +619,6 @@ func (c Converter) k8sPeerToCalicoFields(peer *networkingv1.NetworkPolicyPeer, n
 		nets = []string{ipNet.String()}
 
 		// Convert the CIDRs to exclude.
-		notNets = []string{}
 		for _, exception := range peer.IPBlock.Except {
 			_, ipNet, err = cnet.ParseCIDR(exception)
 			if err != nil {

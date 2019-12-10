@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 
 	"github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"

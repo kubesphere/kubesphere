@@ -157,10 +157,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		select {}
 	}
 
-	if !s.LeaderElection.LeaderElect {
-		run(context.TODO())
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -180,10 +176,11 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	// TODO: change lockType to lease
 	// once we finished moving to Kubernetes v1.16+, we
 	// change lockType to lease
-	lock, err := resourcelock.New("endpoints",
+	lock, err := resourcelock.New(resourcelock.LeasesResourceLock,
 		"kubesphere-system",
-		s.LeaderElection.ResourceLock,
+		"ks-controller-manager",
 		client.ClientSets().K8s().Kubernetes().CoreV1(),
+		client.ClientSets().K8s().Kubernetes().CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity: id,
 			EventRecorder: record.NewBroadcaster().NewRecorder(scheme.Scheme, v1.EventSource{
@@ -197,9 +194,9 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
 		Lock:          lock,
-		LeaseDuration: s.LeaderElection.LeaseDuration.Duration,
-		RenewDeadline: s.LeaderElection.RenewDeadline.Duration,
-		RetryPeriod:   s.LeaderElection.RetryPeriod.Duration,
+		LeaseDuration: s.LeaderElection.LeaseDuration,
+		RenewDeadline: s.LeaderElection.RenewDeadline,
+		RetryPeriod:   s.LeaderElection.RetryPeriod,
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: run,
 			OnStoppedLeading: func() {

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projectcalico/libcalico-go/lib/apis/v3"
+	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
 	"github.com/projectcalico/libcalico-go/lib/net"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/types"

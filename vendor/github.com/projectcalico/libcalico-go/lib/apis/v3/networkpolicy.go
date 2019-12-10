@@ -71,7 +71,7 @@ type NetworkPolicySpec struct {
 	// 	type in {"frontend", "backend"}
 	// 	deployment != "dev"
 	// 	! has(label_name)
-	Selector string `json:"selector" validate:"selector"`
+	Selector string `json:"selector,omitempty" validate:"selector"`
 	// Types indicates whether this policy applies to ingress, or to egress, or to both.  When
 	// not explicitly specified (and so the value on creation is empty or nil), Calico defaults
 	// Types according to what Ingress and Egress are present in the policy.  The
@@ -87,6 +87,9 @@ type NetworkPolicySpec struct {
 	// When the policy is read back again, Types will always be one of these values, never empty
 	// or nil.
 	Types []PolicyType `json:"types,omitempty" validate:"omitempty,dive,policyType"`
+
+	// ServiceAccountSelector is an optional field for an expression used to select a pod based on service accounts.
+	ServiceAccountSelector string `json:"serviceAccountSelector,omitempty" validate:"selector"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

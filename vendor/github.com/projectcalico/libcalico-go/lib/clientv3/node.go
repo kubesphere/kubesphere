@@ -115,6 +115,32 @@ func (r nodes) Delete(ctx context.Context, name string, opts options.DeleteOptio
 			}
 		}
 	}
+
+	// Add in tunnel addresses if they exist for the node.
+	if n, err := r.client.Nodes().Get(ctx, name, options.GetOptions{}); err != nil {
+		if _, ok := err.(errors.ErrorResourceDoesNotExist); !ok {
+			return nil, err
+		}
+		// Resource does not exist, carry on and clean up as much as we can.
+	} else {
+		if n.Spec.BGP != nil && n.Spec.BGP.IPv4IPIPTunnelAddr != "" {
+			ipAddr, _, err := cnet.ParseCIDROrIP(n.Spec.BGP.IPv4IPIPTunnelAddr)
+			if err == nil {
+				ips = append(ips, *ipAddr)
+			} else {
+				log.WithError(err).Warnf("Failed to parse IPIP tunnel address CIDR: %s", n.Spec.BGP.IPv4IPIPTunnelAddr)
+			}
+		}
+		if n.Spec.IPv4VXLANTunnelAddr != "" {
+			ipAddr, _, err := cnet.ParseCIDROrIP(n.Spec.IPv4VXLANTunnelAddr)
+			if err == nil {
+				ips = append(ips, *ipAddr)
+			} else {
+				log.WithError(err).Warnf("Failed to parse VXLAN tunnel address CIDR: %s", n.Spec.IPv4VXLANTunnelAddr)
+			}
+		}
+	}
+
 	_, err = r.client.IPAM().ReleaseIPs(context.Background(), ips)
 	switch err.(type) {
 	case nil, errors.ErrorResourceDoesNotExist, errors.ErrorOperationNotSupported:

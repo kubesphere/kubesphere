@@ -74,12 +74,12 @@ func (r *StandardStorage) Update(ctx context.Context, name string, objInfo rest.
 }
 
 // GracefulDeleter
-func (r *StandardStorage) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+func (r *StandardStorage) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	return r.New(), true, nil
 }
 
 // CollectionDeleter
-func (r *StandardStorage) DeleteCollection(ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
+func (r *StandardStorage) DeleteCollection(ctx context.Context, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
 	return r.NewList(), nil
 }
 

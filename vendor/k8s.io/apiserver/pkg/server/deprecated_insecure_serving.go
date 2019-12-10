@@ -29,6 +29,8 @@ import (
 )
 
 // DeprecatedInsecureServingInfo is the main context object for the insecure http server.
+// HTTP does NOT include authentication or authorization.
+// You shouldn't be using this.  It makes sig-auth sad.
 type DeprecatedInsecureServingInfo struct {
 	// Listener is the secure server network listener.
 	Listener net.Listener
@@ -50,7 +52,9 @@ func (s *DeprecatedInsecureServingInfo) Serve(handler http.Handler, shutdownTime
 	} else {
 		klog.Infof("Serving insecurely on %s", s.Listener.Addr())
 	}
-	return RunServer(insecureServer, s.Listener, shutdownTimeout, stopCh)
+	_, err := RunServer(insecureServer, s.Listener, shutdownTimeout, stopCh)
+	// NOTE: we do not handle stoppedCh returned by RunServer for graceful termination here
+	return err
 }
 
 func (s *DeprecatedInsecureServingInfo) NewLoopbackClientConfig() (*rest.Config, error) {

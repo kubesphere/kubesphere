@@ -41,10 +41,30 @@ type BGPConfiguration struct {
 type BGPConfigurationSpec struct {
 	// LogSeverityScreen is the log severity above which logs are sent to the stdout. [Default: INFO]
 	LogSeverityScreen string `json:"logSeverityScreen,omitempty" validate:"omitempty,logLevel" confignamev1:"loglevel"`
+
 	// NodeToNodeMeshEnabled sets whether full node to node BGP mesh is enabled. [Default: true]
 	NodeToNodeMeshEnabled *bool `json:"nodeToNodeMeshEnabled,omitempty" validate:"omitempty" confignamev1:"node_mesh"`
+
 	// ASNumber is the default AS number used by a node. [Default: 64512]
 	ASNumber *numorstring.ASNumber `json:"asNumber,omitempty" validate:"omitempty" confignamev1:"as_num"`
+
+	// ServiceExternalIPs are the CIDR blocks for Kubernetes Service External IPs.
+	// Kubernetes Service ExternalIPs will only be advertised if they are within one of these blocks.
+	ServiceExternalIPs []ServiceExternalIPBlock `json:"serviceExternalIPs,omitempty" validate:"omitempty,dive" confignamev1:"svc_external_ips"`
+
+	// ServiceClusterIPs are the CIDR blocks from which service cluster IPs are allocated.
+	// If specified, Calico will advertise these blocks, as well as any cluster IPs within them.
+	ServiceClusterIPs []ServiceClusterIPBlock `json:"serviceClusterIPs,omitempty" validate:"omitempty,dive" confignamev1:"svc_cluster_ips"`
+}
+
+// ServiceExternalIPBlock represents a single whitelisted CIDR External IP block.
+type ServiceExternalIPBlock struct {
+	CIDR string `json:"cidr,omitempty" validate:"omitempty,net"`
+}
+
+// ServiceClusterIPBlock represents a single whitelisted CIDR block for ClusterIPs.
+type ServiceClusterIPBlock struct {
+	CIDR string `json:"cidr,omitempty" validate:"omitempty,net"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

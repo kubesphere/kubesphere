@@ -15,7 +15,6 @@
 package backend
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/projectcalico/libcalico-go/lib/apiconfig"
@@ -34,8 +33,8 @@ func NewClient(config apiconfig.CalicoAPIConfig) (c bapi.Client, err error) {
 	case apiconfig.Kubernetes:
 		c, err = k8s.NewKubeClient(&config.Spec)
 	default:
-		err = errors.New(fmt.Sprintf("Unknown datastore type: %v",
-			config.Spec.DatastoreType))
+		err = fmt.Errorf("unknown datastore type: %v",
+			config.Spec.DatastoreType)
 	}
 	return
 }

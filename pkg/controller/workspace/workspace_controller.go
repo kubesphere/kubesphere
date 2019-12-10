@@ -69,7 +69,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileWorkspace{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		recorder: mgr.GetRecorder("workspace-controller"), ksclient: cs.ClientSets().KubeSphere()}
+		recorder: mgr.GetEventRecorderFor("workspace-controller"), ksclient: cs.ClientSets().KubeSphere()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -498,7 +498,7 @@ func (r *ReconcileWorkspace) bindNamespaces(instance *tenantv1alpha1.Workspace) 
 
 	nsList := &corev1.NamespaceList{}
 	options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: instance.Name})}
-	err := r.List(context.TODO(), &options, nsList)
+	err := r.List(context.TODO(), nsList, &options)
 
 	if err != nil {
 		log.Error(err, fmt.Sprintf("list workspace %s namespace failed", instance.Name))
