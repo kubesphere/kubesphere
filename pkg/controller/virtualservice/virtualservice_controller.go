@@ -17,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	log "k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/metrics"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 
 	istioclient "github.com/knative/pkg/client/clientset/versioned"
@@ -86,10 +85,6 @@ func NewVirtualServiceController(serviceInformer coreinformers.ServiceInformer,
 	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "virtualservice-controller"})
-
-	if client != nil && client.CoreV1().RESTClient().GetRateLimiter() != nil {
-		metrics.RegisterMetricAndTrackRateLimiterUsage("virtualservice_controller", client.CoreV1().RESTClient().GetRateLimiter())
-	}
 
 	v := &VirtualServiceController{
 		client:               client,

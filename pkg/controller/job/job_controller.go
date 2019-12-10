@@ -30,8 +30,6 @@ import (
 	batchv1informers "k8s.io/client-go/informers/batch/v1"
 	batchv1listers "k8s.io/client-go/listers/batch/v1"
 	log "k8s.io/klog"
-	"k8s.io/kubernetes/pkg/util/metrics"
-
 	"time"
 
 	clientset "k8s.io/client-go/kubernetes"
@@ -64,11 +62,6 @@ type JobController struct {
 }
 
 func NewJobController(jobInformer batchv1informers.JobInformer, client clientset.Interface) *JobController {
-
-	if client != nil && client.CoreV1().RESTClient().GetRateLimiter() != nil {
-		metrics.RegisterMetricAndTrackRateLimiterUsage("job_controller", client.CoreV1().RESTClient().GetRateLimiter())
-	}
-
 	v := &JobController{
 		client:           client,
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "job"),
