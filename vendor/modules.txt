@@ -940,7 +940,7 @@ k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
-# k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655 => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+# k8s.io/apimachinery v0.0.0-20190831074630-461753078381 => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -1093,7 +1093,7 @@ k8s.io/apiserver/plugin/pkg/audit/truncate
 k8s.io/apiserver/plugin/pkg/audit/webhook
 k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
-# k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
+# k8s.io/client-go v0.0.0-20190831074946-3fe2abece89e => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 k8s.io/client-go/discovery
 k8s.io/client-go/discovery/fake
 k8s.io/client-go/dynamic
@@ -1296,7 +1296,7 @@ k8s.io/code-generator/cmd/lister-gen
 k8s.io/code-generator/cmd/lister-gen/args
 k8s.io/code-generator/cmd/lister-gen/generators
 k8s.io/code-generator/pkg/util
-# k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090 => k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
+# k8s.io/component-base v0.0.0-20190831075413-37a093468564 => k8s.io/component-base v0.0.0-20190831075413-37a093468564
 k8s.io/component-base/cli/flag
 # k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a => k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 k8s.io/gengo/args

@@ -133,11 +133,11 @@ require (
 	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
-	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
+	k8s.io/apimachinery v0.0.0-20190831074630-461753078381
 	k8s.io/apiserver v0.0.0-20190507070644-e9c02aff496d
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	k8s.io/client-go v0.0.0-20190831074946-3fe2abece89e
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
-	k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
+	k8s.io/component-base v0.0.0-20190831075413-37a093468564
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a // indirect
 	k8s.io/klog v0.4.0
 	k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
@@ -418,7 +418,7 @@ replace (
 	k8s.io/apiserver => k8s.io/apiserver v0.0.0-20190507070644-e9c02aff496d
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
-	k8s.io/component-base => k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
+	k8s.io/component-base => k8s.io/component-base v0.0.0-20190831075413-37a093468564
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 	k8s.io/klog => k8s.io/klog v0.4.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20181109181836-c59034cc13d5
