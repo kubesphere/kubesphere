@@ -104,7 +104,7 @@ func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reco
 			nsList := &corev1.NamespaceList{}
 			options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspaceName})}
 
-			if err := r.List(context.TODO(), &options, nsList); err != nil {
+			if err := r.List(context.TODO(), nsList, &options); err != nil {
 				return reconcile.Result{}, err
 			}
 			for _, ns := range nsList.Items {

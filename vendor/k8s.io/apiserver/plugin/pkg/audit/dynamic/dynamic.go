@@ -28,6 +28,7 @@ import (
 	auditregv1alpha1 "k8s.io/api/auditregistration/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
 	auditinstall "k8s.io/apiserver/pkg/apis/audit/install"
@@ -101,7 +102,7 @@ func NewBackend(c *Config) (audit.Backend, error) {
 	if c.BufferedConfig == nil {
 		c.BufferedConfig = NewDefaultWebhookBatchConfig()
 	}
-	cm, err := webhook.NewClientManager(auditv1.SchemeGroupVersion, func(s *runtime.Scheme) error {
+	cm, err := webhook.NewClientManager([]schema.GroupVersion{auditv1.SchemeGroupVersion}, func(s *runtime.Scheme) error {
 		auditinstall.Install(s)
 		return nil
 	})
@@ -286,7 +287,9 @@ func (b *backend) updateSink(oldSink, newSink *auditregv1alpha1.AuditSink) {
 		delete(delegates, oldSink.UID)
 		delegates[newSink.UID] = d
 		b.setDelegates(delegates)
-		oldDelegate.gracefulShutdown()
+
+		// graceful shutdown in goroutine as to not block
+		go oldDelegate.gracefulShutdown()
 	}
 
 	klog.V(2).Infof("Updated audit sink: %s", newSink.Name)
@@ -305,7 +308,9 @@ func (b *backend) deleteSink(sink *auditregv1alpha1.AuditSink) {
 	}
 	delete(delegates, sink.UID)
 	b.setDelegates(delegates)
-	delegate.gracefulShutdown()
+
+	// graceful shutdown in goroutine as to not block
+	go delegate.gracefulShutdown()
 	klog.V(2).Infof("Deleted audit sink: %s", sink.Name)
 	klog.V(2).Infof("Current audit sinks: %v", delegates.Names())
 }

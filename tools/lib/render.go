@@ -71,7 +71,7 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 
 	serverConfig := genericapiserver.NewRecommendedConfig(cfg.Codecs)
 
-	if err := recommendedOptions.ApplyTo(serverConfig, cfg.Scheme); err != nil {
+	if err := recommendedOptions.ApplyTo(serverConfig); err != nil {
 		log.Fatal(err)
 		return "", err
 	}

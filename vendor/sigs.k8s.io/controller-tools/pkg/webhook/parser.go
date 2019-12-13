@@ -14,223 +14,237 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package webhook contains libraries for generating webhookconfig manifests
+// from markers in Go source files.
+//
+// The markers take the form:
+//
+//  +kubebuilder:webhook:failurePolicy=<string>,groups=<[]string>,resources=<[]string>,verbs=<[]string>,versions=<[]string>,name=<string>,path=<string>,mutating=<bool>
 package webhook
 
 import (
-	"errors"
 	"fmt"
-	"log"
-	"strconv"
 	"strings"
 
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"sigs.k8s.io/controller-tools/pkg/internal/general"
-)
+	admissionreg "k8s.io/api/admissionregistration/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-const webhookAnnotationPrefix = "kubebuilder:webhook"
+	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/markers"
+)
 
 var (
-	webhookTags = sets.NewString([]string{"groups", "versions", "resources", "verbs", "type", "name", "path", "failure-policy"}...)
-	serverTags  = sets.NewString([]string{"port", "cert-dir", "service", "selector", "secret", "host", "mutating-webhook-config-name", "validating-webhook-config-name"}...)
+	// ConfigDefinition s a marker for defining Webhook manifests.
+	// Call ToWebhook on the value to get a Kubernetes Webhook.
+	ConfigDefinition = markers.Must(markers.MakeDefinition("kubebuilder:webhook", markers.DescribesPackage, Config{}))
 )
 
-// parseAnnotation parses webhook annotations
-func (o *Options) parseAnnotation(commentText string) error {
-	webhookKVMap, serverKVMap := map[string]string{}, map[string]string{}
-	for _, comment := range strings.Split(commentText, "\n") {
-		comment := strings.TrimSpace(comment)
-		anno := general.GetAnnotation(comment, webhookAnnotationPrefix)
-		if len(anno) == 0 {
-			continue
-		}
-		for _, elem := range strings.Split(anno, ",") {
-			key, value, err := general.ParseKV(elem)
-			if err != nil {
-				log.Fatalf("// +kubebuilder:webhook: tags must be key value pairs. Example "+
-					"keys [groups=<group1;group2>,resources=<resource1;resource2>,verbs=<verb1;verb2>] "+
-					"Got string: [%s]", anno)
-			}
-			switch {
-			case webhookTags.Has(key):
-				webhookKVMap[key] = value
-			case serverTags.Has(key):
-				serverKVMap[key] = value
-			}
-		}
-	}
+// +controllertools:marker:generateHelp:category=Webhook
 
-	if err := o.parseWebhookAnnotation(webhookKVMap); err != nil {
-		return err
-	}
-	return o.parseServerAnnotation(serverKVMap)
+// Config specifies how a webhook should be served.
+//
+// It specifies only the details that are intrinsic to the application serving
+// it (e.g. the resources it can handle, or the path it serves on).
+type Config struct {
+	// Mutating marks this as a mutating webhook (it's validating only if false)
+	//
+	// Mutating webhooks are allowed to change the object in their response,
+	// and are called *before* all validating webhooks.  Mutating webhooks may
+	// choose to reject an object, similarly to a validating webhook.
+	Mutating bool
+	// FailurePolicy specifies what should happen if the API server cannot reach the webhook.
+	//
+	// It may be either "ignore" (to skip the webhook and continue on) or "fail" (to reject
+	// the object in question).
+	FailurePolicy string
+
+	// Groups specifies the API groups that this webhook receives requests for.
+	Groups []string
+	// Resources specifies the API resources that this webhook receives requests for.
+	Resources []string
+	// Verbs specifies the Kubernetes API verbs that this webhook receives requests for.
+	//
+	// Only modification-like verbs may be specified.
+	// May be "create", "update", "delete", "connect", or "*" (for all).
+	Verbs []string
+	// Versions specifies the API versions that this webhook receives requests for.
+	Versions []string
+
+	// Name indicates the name of this webhook configuration.
+	Name string
+	// Path specifies that path that the API server should connect to this webhook on.
+	Path string
 }
 
-// parseWebhookAnnotation parses webhook annotations in the same comment group
-// nolint: gocyclo
-func (o *Options) parseWebhookAnnotation(kvMap map[string]string) error {
-	if len(kvMap) == 0 {
-		return nil
+// verbToAPIVariant converts a marker's verb to the proper value for the API.
+// Unrecognized verbs are passed through.
+func verbToAPIVariant(verbRaw string) admissionreg.OperationType {
+	switch strings.ToLower(verbRaw) {
+	case strings.ToLower(string(admissionreg.Create)):
+		return admissionreg.Create
+	case strings.ToLower(string(admissionreg.Update)):
+		return admissionreg.Update
+	case strings.ToLower(string(admissionreg.Delete)):
+		return admissionreg.Delete
+	case strings.ToLower(string(admissionreg.Connect)):
+		return admissionreg.Connect
+	case strings.ToLower(string(admissionreg.OperationAll)):
+		return admissionreg.OperationAll
+	default:
+		return admissionreg.OperationType(verbRaw)
 	}
-	rule := admissionregistrationv1beta1.RuleWithOperations{}
-	w := &admissionWebhook{}
-	for key, value := range kvMap {
-		switch key {
-		case "groups":
-			values := strings.Split(value, ";")
-			normalized := []string{}
-			for _, v := range values {
-				if v == "core" {
-					normalized = append(normalized, "")
-				} else {
-					normalized = append(normalized, v)
-				}
-			}
-			rule.APIGroups = values
+}
 
-		case "versions":
-			values := strings.Split(value, ";")
-			rule.APIVersions = values
+// ToMutatingWebhook converts this rule to its Kubernetes API form.
+func (c Config) ToMutatingWebhook() (admissionreg.MutatingWebhook, error) {
+	if !c.Mutating {
+		return admissionreg.MutatingWebhook{}, fmt.Errorf("%s is a validating webhook", c.Name)
+	}
 
-		case "resources":
-			values := strings.Split(value, ";")
-			rule.Resources = values
+	return admissionreg.MutatingWebhook{
+		Name:          c.Name,
+		Rules:         c.rules(),
+		FailurePolicy: c.failurePolicy(),
+		ClientConfig:  c.clientConfig(),
+	}, nil
+}
 
-		case "verbs":
-			values := strings.Split(value, ";")
-			var ops []admissionregistrationv1beta1.OperationType
-			for _, v := range values {
-				switch strings.ToLower(v) {
-				case strings.ToLower(string(admissionregistrationv1beta1.Create)):
-					ops = append(ops, admissionregistrationv1beta1.Create)
-				case strings.ToLower(string(admissionregistrationv1beta1.Update)):
-					ops = append(ops, admissionregistrationv1beta1.Update)
-				case strings.ToLower(string(admissionregistrationv1beta1.Delete)):
-					ops = append(ops, admissionregistrationv1beta1.Delete)
-				case strings.ToLower(string(admissionregistrationv1beta1.Connect)):
-					ops = append(ops, admissionregistrationv1beta1.Connect)
-				case strings.ToLower(string(admissionregistrationv1beta1.OperationAll)):
-					ops = append(ops, admissionregistrationv1beta1.OperationAll)
-				default:
-					return fmt.Errorf("unknown operation: %v", v)
-				}
-			}
-			rule.Operations = ops
+// ToValidatingWebhook converts this rule to its Kubernetes API form.
+func (c Config) ToValidatingWebhook() (admissionreg.ValidatingWebhook, error) {
+	if c.Mutating {
+		return admissionreg.ValidatingWebhook{}, fmt.Errorf("%s is a mutating webhook", c.Name)
+	}
 
-		case "type":
-			switch strings.ToLower(value) {
-			case "mutating":
-				w.typ = mutatingWebhook
-			case "validating":
-				w.typ = validatingWebhook
-			default:
-				return fmt.Errorf("unknown webhook type: %v", value)
-			}
+	return admissionreg.ValidatingWebhook{
+		Name:          c.Name,
+		Rules:         c.rules(),
+		FailurePolicy: c.failurePolicy(),
+		ClientConfig:  c.clientConfig(),
+	}, nil
+}
 
-		case "name":
-			w.name = value
+// rules returns the configuration of what operations on what
+// resources/subresources a webhook should care about.
+func (c Config) rules() []admissionreg.RuleWithOperations {
+	whConfig := admissionreg.RuleWithOperations{
+		Rule: admissionreg.Rule{
+			APIGroups:   c.Groups,
+			APIVersions: c.Versions,
+			Resources:   c.Resources,
+		},
+		Operations: make([]admissionreg.OperationType, len(c.Verbs)),
+	}
 
-		case "path":
-			w.path = value
+	for i, verbRaw := range c.Verbs {
+		whConfig.Operations[i] = verbToAPIVariant(verbRaw)
+	}
 
-		case "failure-policy":
-			switch strings.ToLower(value) {
-			case strings.ToLower(string(admissionregistrationv1beta1.Ignore)):
-				fp := admissionregistrationv1beta1.Ignore
-				w.failurePolicy = &fp
-			case strings.ToLower(string(admissionregistrationv1beta1.Fail)):
-				fp := admissionregistrationv1beta1.Fail
-				w.failurePolicy = &fp
-			default:
-				return fmt.Errorf("unknown webhook failure policy: %v", value)
-			}
+	// fix the group names, since letting people type "core" is nice
+	for i, group := range whConfig.APIGroups {
+		if group == "core" {
+			whConfig.APIGroups[i] = ""
 		}
 	}
-	w.rules = []admissionregistrationv1beta1.RuleWithOperations{rule}
-	if o.webhooks == nil {
-		o.webhooks = map[string]webhook{}
+
+	return []admissionreg.RuleWithOperations{whConfig}
+}
+
+// failurePolicy converts the string value to the proper value for the API.
+// Unrecognized values are passed through.
+func (c Config) failurePolicy() *admissionreg.FailurePolicyType {
+	var failurePolicy admissionreg.FailurePolicyType
+	switch strings.ToLower(c.FailurePolicy) {
+	case strings.ToLower(string(admissionreg.Ignore)):
+		failurePolicy = admissionreg.Ignore
+	case strings.ToLower(string(admissionreg.Fail)):
+		failurePolicy = admissionreg.Fail
+	default:
+		failurePolicy = admissionreg.FailurePolicyType(c.FailurePolicy)
 	}
-	o.webhooks[w.path] = w
+	return &failurePolicy
+}
+
+// clientConfig returns the client config for a webhook.
+func (c Config) clientConfig() admissionreg.WebhookClientConfig {
+	path := c.Path
+	return admissionreg.WebhookClientConfig{
+		Service: &admissionreg.ServiceReference{
+			Name:      "webhook-service",
+			Namespace: "system",
+			Path:      &path,
+		},
+		// OpenAPI marks the field as required before 1.13 because of a bug that got fixed in
+		// https://github.com/kubernetes/api/commit/e7d9121e9ffd63cea0288b36a82bcc87b073bd1b
+		// Put "\n" as an placeholder as a workaround til 1.13+ is almost everywhere.
+		CABundle: []byte("\n"),
+	}
+}
+
+// +controllertools:marker:generateHelp
+
+// Generator generates (partial) {Mutating,Validating}WebhookConfiguration objects.
+type Generator struct{}
+
+func (Generator) RegisterMarkers(into *markers.Registry) error {
+	if err := into.Register(ConfigDefinition); err != nil {
+		return err
+	}
+	into.AddHelp(ConfigDefinition, Config{}.Help())
 	return nil
 }
 
-// parseWebhookAnnotation parses webhook server annotations in the same comment group
-// nolint: gocyclo
-func (o *Options) parseServerAnnotation(kvMap map[string]string) error {
-	if len(kvMap) == 0 {
-		return nil
-	}
-	for key, value := range kvMap {
-		switch key {
-		case "port":
-			port, err := strconv.Atoi(value)
-			if err != nil {
-				return err
-			}
-			o.port = int32(port)
-		case "cert-dir":
-			o.certDir = value
-		case "service":
-			// format: <service=namespace:name>
-			split := strings.Split(value, ":")
-			if len(split) != 2 || len(split[0]) == 0 || len(split[1]) == 0 {
-				return fmt.Errorf("invalid service format: expect <namespace:name>, but got %q", value)
-			}
-			if o.service == nil {
-				o.service = &service{}
-			}
-			o.service.namespace = split[0]
-			o.service.name = split[1]
-		case "selector":
-			// selector of the service. Format: <selector=label1:value1;label2:value2>
-			split := strings.Split(value, ";")
-			if len(split) == 0 {
-				return fmt.Errorf("invalid selector format: expect <label1:value1;label2:value2>, but got %q", value)
-			}
-			if o.service == nil {
-				o.service = &service{}
-			}
-			for _, v := range split {
-				l := strings.Split(v, ":")
-				if len(l) != 2 || len(l[0]) == 0 || len(l[1]) == 0 {
-					return fmt.Errorf("invalid selector format: expect <label1:value1;label2:value2>, but got %q", value)
-				}
-				if o.service.selectors == nil {
-					o.service.selectors = map[string]string{}
-				}
-				o.service.selectors[l[0]] = l[1]
-			}
-		case "host":
-			if len(value) == 0 {
-				return errors.New("host should not be empty if specified")
-			}
-			o.host = &value
+func (Generator) Generate(ctx *genall.GenerationContext) error {
+	var mutatingCfgs []admissionreg.MutatingWebhook
+	var validatingCfgs []admissionreg.ValidatingWebhook
+	for _, root := range ctx.Roots {
+		markerSet, err := markers.PackageMarkers(ctx.Collector, root)
+		if err != nil {
+			root.AddError(err)
+		}
 
-		case "mutating-webhook-config-name":
-			if len(value) == 0 {
-				return errors.New("mutating-webhook-config-name should not be empty if specified")
+		for _, cfg := range markerSet[ConfigDefinition.Name] {
+			cfg := cfg.(Config)
+			if cfg.Mutating {
+				w, _ := cfg.ToMutatingWebhook()
+				mutatingCfgs = append(mutatingCfgs, w)
+			} else {
+				w, _ := cfg.ToValidatingWebhook()
+				validatingCfgs = append(validatingCfgs, w)
 			}
-			o.mutatingWebhookConfigName = value
-
-		case "validating-webhook-config-name":
-			if len(value) == 0 {
-				return errors.New("validating-webhook-config-name should not be empty if specified")
-			}
-			o.validatingWebhookConfigName = value
-
-		case "secret":
-			// format: <secret=namespace:name>
-			split := strings.Split(value, ":")
-			if len(split) != 2 || len(split[0]) == 0 || len(split[1]) == 0 {
-				return fmt.Errorf("invalid secret format: expect <namespace:name>, but got %q", value)
-			}
-			if o.secret == nil {
-				o.secret = &types.NamespacedName{}
-			}
-			o.secret.Namespace = split[0]
-			o.secret.Name = split[1]
 		}
 	}
+
+	var objs []interface{}
+	if len(mutatingCfgs) > 0 {
+		objs = append(objs, &admissionreg.MutatingWebhookConfiguration{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "MutatingWebhookConfiguration",
+				APIVersion: admissionreg.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mutating-webhook-configuration",
+			},
+			Webhooks: mutatingCfgs,
+		})
+	}
+
+	if len(validatingCfgs) > 0 {
+		objs = append(objs, &admissionreg.ValidatingWebhookConfiguration{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ValidatingWebhookConfiguration",
+				APIVersion: admissionreg.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "validating-webhook-configuration",
+			},
+			Webhooks: validatingCfgs,
+		})
+
+	}
+
+	if err := ctx.WriteYAML("manifests.yaml", objs...); err != nil {
+		return err
+	}
+
 	return nil
 }

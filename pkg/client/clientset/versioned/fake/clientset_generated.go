@@ -47,7 +47,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 		}
 	}
 
-	cs := &Clientset{}
+	cs := &Clientset{tracker: o}
 	cs.discovery = &fakediscovery.FakeDiscovery{Fake: &cs.Fake}
 	cs.AddReactor("*", "*", testing.ObjectReaction(o))
 	cs.AddWatchReactor("*", func(action testing.Action) (handled bool, ret watch.Interface, err error) {
@@ -69,10 +69,15 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 type Clientset struct {
 	testing.Fake
 	discovery *fakediscovery.FakeDiscovery
+	tracker   testing.ObjectTracker
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	return c.discovery
+}
+
+func (c *Clientset) Tracker() testing.ObjectTracker {
+	return c.tracker
 }
 
 var _ clientset.Interface = &Clientset{}
@@ -82,18 +87,8 @@ func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
 	return &fakedevopsv1alpha1.FakeDevopsV1alpha1{Fake: &c.Fake}
 }
 
-// Devops retrieves the DevopsV1alpha1Client
-func (c *Clientset) Devops() devopsv1alpha1.DevopsV1alpha1Interface {
-	return &fakedevopsv1alpha1.FakeDevopsV1alpha1{Fake: &c.Fake}
-}
-
 // NetworkV1alpha1 retrieves the NetworkV1alpha1Client
 func (c *Clientset) NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface {
-	return &fakenetworkv1alpha1.FakeNetworkV1alpha1{Fake: &c.Fake}
-}
-
-// Network retrieves the NetworkV1alpha1Client
-func (c *Clientset) Network() networkv1alpha1.NetworkV1alpha1Interface {
 	return &fakenetworkv1alpha1.FakeNetworkV1alpha1{Fake: &c.Fake}
 }
 
@@ -102,17 +97,7 @@ func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha
 	return &fakeservicemeshv1alpha2.FakeServicemeshV1alpha2{Fake: &c.Fake}
 }
 
-// Servicemesh retrieves the ServicemeshV1alpha2Client
-func (c *Clientset) Servicemesh() servicemeshv1alpha2.ServicemeshV1alpha2Interface {
-	return &fakeservicemeshv1alpha2.FakeServicemeshV1alpha2{Fake: &c.Fake}
-}
-
 // TenantV1alpha1 retrieves the TenantV1alpha1Client
 func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
-	return &faketenantv1alpha1.FakeTenantV1alpha1{Fake: &c.Fake}
-}
-
-// Tenant retrieves the TenantV1alpha1Client
-func (c *Clientset) Tenant() tenantv1alpha1.TenantV1alpha1Interface {
 	return &faketenantv1alpha1.FakeTenantV1alpha1{Fake: &c.Fake}
 }

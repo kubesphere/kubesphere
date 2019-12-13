@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	"istio.io/api/networking/v1alpha3"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -93,7 +93,7 @@ type VirtualServiceTemplateSpec struct {
 
 	// Spec indicates the behavior of a virtual service.
 	// +optional
-	Spec v1alpha3.VirtualServiceSpec `json:"spec,omitempty"`
+	Spec v1alpha3.VirtualService `json:"spec,omitempty"`
 }
 
 // StrategyStatus defines the observed state of Strategy

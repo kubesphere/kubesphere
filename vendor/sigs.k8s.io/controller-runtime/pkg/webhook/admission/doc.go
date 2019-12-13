@@ -17,85 +17,12 @@ limitations under the License.
 /*
 Package admission provides implementation for admission webhook and methods to implement admission webhook handlers.
 
-The following snippet is an example implementation of mutating handler.
-
-	type Mutator struct {
-		client  client.Client
-		decoder types.Decoder
-	}
-
-	func (m *Mutator) mutatePodsFn(ctx context.Context, pod *corev1.Pod) error {
-		// your logic to mutate the passed-in pod.
-	}
-
-	func (m *Mutator) Handle(ctx context.Context, req types.Request) types.Response {
-		pod := &corev1.Pod{}
-		err := m.decoder.Decode(req, pod)
-		if err != nil {
-			return admission.ErrorResponse(http.StatusBadRequest, err)
-		}
-		// Do deepcopy before actually mutate the object.
-		copy := pod.DeepCopy()
-		err = m.mutatePodsFn(ctx, copy)
-		if err != nil {
-			return admission.ErrorResponse(http.StatusInternalServerError, err)
-		}
-		return admission.PatchResponse(pod, copy)
-	}
-
-	// InjectClient is called by the Manager and provides a client.Client to the Mutator instance.
-	func (m *Mutator) InjectClient(c client.Client) error {
-		h.client = c
-		return nil
-	}
-
-	// InjectDecoder is called by the Manager and provides a types.Decoder to the Mutator instance.
-	func (m *Mutator) InjectDecoder(d types.Decoder) error {
-		h.decoder = d
-		return nil
-	}
-
-The following snippet is an example implementation of validating handler.
-
-	type Handler struct {
-		client  client.Client
-		decoder types.Decoder
-	}
-
-	func (v *Validator) validatePodsFn(ctx context.Context, pod *corev1.Pod) (bool, string, error) {
-		// your business logic
-	}
-
-	func (v *Validator) Handle(ctx context.Context, req types.Request) types.Response {
-		pod := &corev1.Pod{}
-		err := h.decoder.Decode(req, pod)
-		if err != nil {
-			return admission.ErrorResponse(http.StatusBadRequest, err)
-		}
-
-		allowed, reason, err := h.validatePodsFn(ctx, pod)
-		if err != nil {
-			return admission.ErrorResponse(http.StatusInternalServerError, err)
-		}
-		return admission.ValidationResponse(allowed, reason)
-	}
-
-	// InjectClient is called by the Manager and provides a client.Client to the Validator instance.
-	func (v *Validator) InjectClient(c client.Client) error {
-		h.client = c
-		return nil
-	}
-
-	// InjectDecoder is called by the Manager and provides a types.Decoder to the Validator instance.
-	func (v *Validator) InjectDecoder(d types.Decoder) error {
-		h.decoder = d
-		return nil
-	}
+See examples/mutatingwebhook.go and examples/validatingwebhook.go for examples of admission webhooks.
 */
 package admission
 
 import (
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
-var log = logf.KBLog.WithName("admission")
+var log = logf.RuntimeLog.WithName("admission")

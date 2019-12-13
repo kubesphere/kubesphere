@@ -18,6 +18,8 @@ limitations under the License.
 package versioned
 
 import (
+	"fmt"
+
 	devopsv1alpha1 "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/typed/devops/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -27,8 +29,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Devops() devopsv1alpha1.DevopsV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -43,12 +43,6 @@ func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
 	return c.devopsV1alpha1
 }
 
-// Deprecated: Devops retrieves the default version of DevopsClient.
-// Please explicitly pick a version.
-func (c *Clientset) Devops() devopsv1alpha1.DevopsV1alpha1Interface {
-	return c.devopsV1alpha1
-}
-
 // Discovery retrieves the DiscoveryClient
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	if c == nil {
@@ -58,9 +52,14 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 }
 
 // NewForConfig creates a new Clientset for the given config.
+// If config's RateLimiter is not set and QPS and Burst are acceptable,
+// NewForConfig will generate a rate-limiter in configShallowCopy.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
 	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
+		if configShallowCopy.Burst <= 0 {
+			return nil, fmt.Errorf("Burst is required to be greater than 0 when RateLimiter is not set and QPS is set to greater than 0")
+		}
 		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
 	}
 	var cs Clientset

@@ -140,12 +140,11 @@ func pretty(value interface{}) string {
 
 func (l klogger) Info(msg string, kvList ...interface{}) {
 	if l.Enabled() {
-		lvlStr := flatten("level", l.level)
 		msgStr := flatten("msg", msg)
 		trimmed := trimDuplicates(l.values, kvList)
 		fixedStr := flatten(trimmed[0]...)
 		userStr := flatten(trimmed[1]...)
-		klog.InfoDepth(framesToCaller(), l.prefix, " ", lvlStr, " ", msgStr, " ", fixedStr, " ", userStr)
+		klog.InfoDepth(framesToCaller(), l.prefix, " ", msgStr, " ", fixedStr, " ", userStr)
 	}
 }
 

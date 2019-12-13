@@ -56,7 +56,7 @@ func ProtocolV3FromProtocolV1(p Protocol) Protocol {
 	}
 
 	for _, n := range allProtocolNames {
-		if strings.ToLower(n) == strings.ToLower(p.StrVal) {
+		if strings.EqualFold(n, p.StrVal) {
 			return Protocol(
 				Uint8OrString{Type: NumOrStringString, StrVal: n},
 			)
@@ -69,7 +69,7 @@ func ProtocolV3FromProtocolV1(p Protocol) Protocol {
 // ProtocolFromString creates a Protocol struct from a string value.
 func ProtocolFromString(p string) Protocol {
 	for _, n := range allProtocolNames {
-		if strings.ToLower(n) == strings.ToLower(p) {
+		if strings.EqualFold(n, p) {
 			return Protocol(
 				Uint8OrString{Type: NumOrStringString, StrVal: n},
 			)

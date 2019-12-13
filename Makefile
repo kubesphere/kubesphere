@@ -98,7 +98,7 @@ docker-build: all
 
 # Run tests
 test: fmt vet
-	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test -v ./pkg/... ./cmd/... -covermode=count -coverprofile cover.out
+	export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=1m; go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 
 .PHONY: clean
 clean:

@@ -14,72 +14,45 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package log contains utilities for fetching a new logger
-// when one is not already available.
+// Package log contains (deprecated) utilities for fetching a new logger when
+// one is not already available.
+//
+// Deprecated: use pkg/log
 package log
 
 import (
-	"io"
-	"os"
-	"time"
-
 	"github.com/go-logr/logr"
-	"github.com/go-logr/zapr"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-// ZapLogger is a Logger implementation.
-// If development is true, a Zap development config will be used
-// (stacktraces on warnings, no sampling), otherwise a Zap production
-// config will be used (stacktraces on errors, sampling).
-func ZapLogger(development bool) logr.Logger {
-	return ZapLoggerTo(os.Stderr, development)
-}
+var (
+	// ZapLogger is a Logger implementation.
+	// If development is true, a Zap development config will be used
+	// (stacktraces on warnings, no sampling), otherwise a Zap production
+	// config will be used (stacktraces on errors, sampling).
+	ZapLogger = zap.Logger
 
-// ZapLoggerTo returns a new Logger implementation using Zap which logs
-// to the given destination, instead of stderr.  It otherise behaves like
-// ZapLogger.
-func ZapLoggerTo(destWriter io.Writer, development bool) logr.Logger {
-	// this basically mimics New<type>Config, but with a custom sink
-	sink := zapcore.AddSync(destWriter)
+	// ZapLoggerTo returns a new Logger implementation using Zap which logs
+	// to the given destination, instead of stderr.  It otherwise behaves like
+	// ZapLogger.
+	ZapLoggerTo = zap.LoggerTo
 
-	var enc zapcore.Encoder
-	var lvl zap.AtomicLevel
-	var opts []zap.Option
-	if development {
-		encCfg := zap.NewDevelopmentEncoderConfig()
-		enc = zapcore.NewConsoleEncoder(encCfg)
-		lvl = zap.NewAtomicLevelAt(zap.DebugLevel)
-		opts = append(opts, zap.Development(), zap.AddStacktrace(zap.ErrorLevel))
-	} else {
-		encCfg := zap.NewProductionEncoderConfig()
-		enc = zapcore.NewJSONEncoder(encCfg)
-		lvl = zap.NewAtomicLevelAt(zap.InfoLevel)
-		opts = append(opts, zap.AddStacktrace(zap.WarnLevel),
-			zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-				return zapcore.NewSampler(core, time.Second, 100, 100)
-			}))
-	}
-	opts = append(opts, zap.AddCallerSkip(1), zap.ErrorOutput(sink))
-	log := zap.New(zapcore.NewCore(&KubeAwareEncoder{Encoder: enc, Verbose: development}, sink, lvl))
-	log = log.WithOptions(opts...)
-	return zapr.NewLogger(log)
-}
+	// SetLogger sets a concrete logging implementation for all deferred Loggers.
+	SetLogger = log.SetLogger
 
-// SetLogger sets a concrete logging implementation for all deferred Loggers.
-func SetLogger(l logr.Logger) {
-	Log.Fulfill(l)
-}
+	// Log is the base logger used by kubebuilder.  It delegates
+	// to another logr.Logger.  You *must* call SetLogger to
+	// get any actual logging.
+	Log = log.Log
 
-// Log is the base logger used by kubebuilder.  It delegates
-// to another logr.Logger.  You *must* call SetLogger to
-// get any actual logging.
-var Log = NewDelegatingLogger(NullLogger{})
-
-// KBLog is a base parent logger.
-var KBLog logr.Logger
+	// KBLog is a base parent logger for use inside controller-runtime.
+	// Deprecated: don't use this outside controller-runtime
+	// (inside CR, use pkg/internal/log.RuntimeLog)
+	KBLog logr.Logger
+)
 
 func init() {
-	KBLog = Log.WithName("kubebuilder")
+	KBLog = log.Log.WithName("controller-runtime")
 }

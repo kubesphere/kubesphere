@@ -18,10 +18,10 @@ package predicate
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
-var log = logf.KBLog.WithName("predicate").WithName("eventFilters")
+var log = logf.RuntimeLog.WithName("predicate").WithName("eventFilters")
 
 // Predicate filters events before enqueuing the keys.
 type Predicate interface {
@@ -40,6 +40,7 @@ type Predicate interface {
 
 var _ Predicate = Funcs{}
 var _ Predicate = ResourceVersionChangedPredicate{}
+var _ Predicate = GenerationChangedPredicate{}
 
 // Funcs is a function that implements Predicate.
 type Funcs struct {
@@ -112,6 +113,50 @@ func (ResourceVersionChangedPredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 	if e.MetaNew.GetResourceVersion() == e.MetaOld.GetResourceVersion() {
+		return false
+	}
+	return true
+}
+
+// GenerationChangedPredicate implements a default update predicate function on Generation change.
+//
+// This predicate will skip update events that have no change in the object's metadata.generation field.
+// The metadata.generation field of an object is incremented by the API server when writes are made to the spec field of an object.
+// This allows a controller to ignore update events where the spec is unchanged, and only the metadata and/or status fields are changed.
+//
+// For CustomResource objects the Generation is only incremented when the status subresource is enabled.
+//
+// Caveats:
+//
+// * The assumption that the Generation is incremented only on writing to the spec does not hold for all APIs.
+// E.g For Deployment objects the Generation is also incremented on writes to the metadata.annotations field.
+// For object types other than CustomResources be sure to verify which fields will trigger a Generation increment when they are written to.
+//
+// * With this predicate, any update events with writes only to the status field will not be reconciled.
+// So in the event that the status block is overwritten or wiped by someone else the controller will not self-correct to restore the correct status.
+type GenerationChangedPredicate struct {
+	Funcs
+}
+
+// Update implements default UpdateEvent filter for validating generation change
+func (GenerationChangedPredicate) Update(e event.UpdateEvent) bool {
+	if e.MetaOld == nil {
+		log.Error(nil, "Update event has no old metadata", "event", e)
+		return false
+	}
+	if e.ObjectOld == nil {
+		log.Error(nil, "Update event has no old runtime object to update", "event", e)
+		return false
+	}
+	if e.ObjectNew == nil {
+		log.Error(nil, "Update event has no new runtime object for update", "event", e)
+		return false
+	}
+	if e.MetaNew == nil {
+		log.Error(nil, "Update event has no new metadata", "event", e)
+		return false
+	}
+	if e.MetaNew.GetGeneration() == e.MetaOld.GetGeneration() {
 		return false
 	}
 	return true

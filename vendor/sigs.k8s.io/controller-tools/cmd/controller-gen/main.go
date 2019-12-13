@@ -16,195 +16,248 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
-	crdgenerator "sigs.k8s.io/controller-tools/pkg/crd/generator"
+
+	"sigs.k8s.io/controller-tools/pkg/crd"
+	"sigs.k8s.io/controller-tools/pkg/deepcopy"
+	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/genall/help"
+	prettyhelp "sigs.k8s.io/controller-tools/pkg/genall/help/pretty"
+	"sigs.k8s.io/controller-tools/pkg/markers"
 	"sigs.k8s.io/controller-tools/pkg/rbac"
+	"sigs.k8s.io/controller-tools/pkg/schemapatcher"
+	"sigs.k8s.io/controller-tools/pkg/version"
 	"sigs.k8s.io/controller-tools/pkg/webhook"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:   "controller-gen",
-		Short: "A reference implementation generation tool for Kubernetes APIs.",
-		Long:  `A reference implementation generation tool for Kubernetes APIs.`,
-		Example: `	# Generate RBAC manifests for a project
-	controller-gen rbac
-	
-	# Generate CRD manifests for a project
-	controller-gen crd 
+//go:generate go run ../helpgen/main.go paths=../../pkg/... generate:headerFile=../../boilerplate.go.txt,year=2019
 
-	# Run all the generators for a given project
-	controller-gen all
-`,
+// Options are specified to controller-gen by turning generators and output rules into
+// markers, and then parsing them using the standard registry logic (without the "+").
+// Each marker and output rule should thus be usable as a marker target.
+
+var (
+	// allGenerators maintains the list of all known generators, giving
+	// them names for use on the command line.
+	// each turns into a command line option,
+	// and has options for output forms.
+	allGenerators = map[string]genall.Generator{
+		"crd":         crd.Generator{},
+		"rbac":        rbac.Generator{},
+		"object":      deepcopy.Generator{},
+		"webhook":     webhook.Generator{},
+		"schemapatch": schemapatcher.Generator{},
 	}
 
-	rootCmd.AddCommand(
-		newRBACCmd(),
-		newCRDCmd(),
-		newWebhookCmd(),
-		newAllSubCmd(),
-	)
+	// allOutputRules defines the list of all known output rules, giving
+	// them names for use on the command line.
+	// Each output rule turns into two command line options:
+	// - output:<generator>:<form> (per-generator output)
+	// - output:<form> (default output)
+	allOutputRules = map[string]genall.OutputRule{
+		"dir":       genall.OutputToDirectory(""),
+		"none":      genall.OutputToNothing,
+		"stdout":    genall.OutputToStdout,
+		"artifacts": genall.OutputArtifacts{},
+	}
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+	// optionsRegistry contains all the marker definitions used to process command line options
+	optionsRegistry = &markers.Registry{}
+)
+
+func init() {
+	for genName, gen := range allGenerators {
+		// make the generator options marker itself
+		defn := markers.Must(markers.MakeDefinition(genName, markers.DescribesPackage, gen))
+		if err := optionsRegistry.Register(defn); err != nil {
+			panic(err)
+		}
+		if helpGiver, hasHelp := gen.(genall.HasHelp); hasHelp {
+			if help := helpGiver.Help(); help != nil {
+				optionsRegistry.AddHelp(defn, help)
+			}
+		}
+
+		// make per-generation output rule markers
+		for ruleName, rule := range allOutputRules {
+			ruleMarker := markers.Must(markers.MakeDefinition(fmt.Sprintf("output:%s:%s", genName, ruleName), markers.DescribesPackage, rule))
+			if err := optionsRegistry.Register(ruleMarker); err != nil {
+				panic(err)
+			}
+			if helpGiver, hasHelp := rule.(genall.HasHelp); hasHelp {
+				if help := helpGiver.Help(); help != nil {
+					optionsRegistry.AddHelp(ruleMarker, help)
+				}
+			}
+		}
+	}
+
+	// make "default output" output rule markers
+	for ruleName, rule := range allOutputRules {
+		ruleMarker := markers.Must(markers.MakeDefinition("output:"+ruleName, markers.DescribesPackage, rule))
+		if err := optionsRegistry.Register(ruleMarker); err != nil {
+			panic(err)
+		}
+		if helpGiver, hasHelp := rule.(genall.HasHelp); hasHelp {
+			if help := helpGiver.Help(); help != nil {
+				optionsRegistry.AddHelp(ruleMarker, help)
+			}
+		}
+	}
+
+	// add in the common options markers
+	if err := genall.RegisterOptionsMarkers(optionsRegistry); err != nil {
+		panic(err)
+	}
+}
+
+// noUsageError suppresses usage printing when it occurs
+// (since cobra doesn't provide a good way to avoid printing
+// out usage in only certain situations).
+type noUsageError struct{ error }
+
+func main() {
+	helpLevel := 0
+	whichLevel := 0
+	showVersion := false
+
+	cmd := &cobra.Command{
+		Use:   "controller-gen",
+		Short: "Generate Kubernetes API extension resources and code.",
+		Long:  "Generate Kubernetes API extension resources and code.",
+		Example: `	# Generate RBAC manifests and crds for all types under apis/,
+	# outputting crds to /tmp/crds and everything else to stdout
+	controller-gen rbac:roleName=<role name> crd paths=./apis/... output:crd:dir=/tmp/crds output:stdout
+
+	# Generate deepcopy/runtime.Object implementations for a particular file
+	controller-gen object paths=./apis/v1beta1/some_types.go
+
+	# Generate OpenAPI v3 schemas for API packages and merge them into existing CRD manifests
+	controller-gen schemapatch:manifests=./manifests output:dir=./manifests paths=./pkg/apis/... 
+
+	# Run all the generators for a given project
+	controller-gen paths=./apis/...
+
+	# Explain the markers for generating CRDs, and their arguments
+	controller-gen crd -ww
+`,
+		RunE: func(c *cobra.Command, rawOpts []string) error {
+			// print version if asked for it
+			if showVersion {
+				version.Print()
+				return nil
+			}
+
+			// print the help if we asked for it (since we've got a different help flag :-/), then bail
+			if helpLevel > 0 {
+				return c.Usage()
+			}
+
+			// print the marker docs if we asked for them, then bail
+			if whichLevel > 0 {
+				return printMarkerDocs(c, rawOpts, whichLevel)
+			}
+
+			// otherwise, set up the runtime for actually running the generators
+			rt, err := genall.FromOptions(optionsRegistry, rawOpts)
+			if err != nil {
+				return err
+			}
+			if len(rt.Generators) == 0 {
+				return fmt.Errorf("no generators specified")
+			}
+
+			if hadErrs := rt.Run(); hadErrs {
+				// don't obscure the actual error with a bunch of usage
+				return noUsageError{fmt.Errorf("not all generators ran successfully")}
+			}
+			return nil
+		},
+		SilenceUsage: true, // silence the usage, then print it out ourselves if it wasn't suppressed
+	}
+	cmd.Flags().CountVarP(&whichLevel, "which-markers", "w", "print out all markers available with the requested generators\n(up to -www for the most detailed output, or -wwww for json output)")
+	cmd.Flags().CountVarP(&helpLevel, "detailed-help", "h", "print out more detailed help\n(up to -hhh for the most detailed output, or -hhhh for json output)")
+	cmd.Flags().BoolVar(&showVersion, "version", false, "show version")
+	cmd.Flags().Bool("help", false, "print out usage and a summary of options")
+	oldUsage := cmd.UsageFunc()
+	cmd.SetUsageFunc(func(c *cobra.Command) error {
+		if err := oldUsage(c); err != nil {
+			return err
+		}
+		if helpLevel == 0 {
+			helpLevel = summaryHelp
+		}
+		fmt.Fprintf(c.OutOrStderr(), "\n\nOptions\n\n")
+		return helpForLevels(c.OutOrStdout(), c.OutOrStderr(), helpLevel, optionsRegistry, help.SortByOption)
+	})
+
+	if err := cmd.Execute(); err != nil {
+		if _, noUsage := err.(noUsageError); !noUsage {
+			// print the usage unless we suppressed it
+			if err := cmd.Usage(); err != nil {
+				panic(err)
+			}
+		}
+		fmt.Fprintf(cmd.OutOrStderr(), "run `%[1]s %[2]s -w` to see all available markers, or `%[1]s %[2]s -h` for usage\n", cmd.CalledAs(), strings.Join(os.Args[1:], " "))
 		os.Exit(1)
 	}
 }
 
-func newRBACCmd() *cobra.Command {
-	o := &rbac.ManifestOptions{}
-	o.SetDefaults()
-
-	cmd := &cobra.Command{
-		Use:   "rbac",
-		Short: "Generates RBAC manifests",
-		Long: `Generate RBAC manifests from the RBAC annotations in Go source files.
-Usage:
-# controller-gen rbac [--name manager] [--input-dir input_dir] [--output-dir output_dir]
-`,
-		Run: func(_ *cobra.Command, _ []string) {
-			if err := rbac.Generate(o); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("RBAC manifests generated under '%s' directory\n", o.OutputDir)
-		},
+// printMarkerDocs prints out marker help for the given generators specified in
+// the rawOptions, at the given level.
+func printMarkerDocs(c *cobra.Command, rawOptions []string, whichLevel int) error {
+	// just grab a registry so we don't lag while trying to load roots
+	// (like we'd do if we just constructed the full runtime).
+	reg, err := genall.RegistryFromOptions(optionsRegistry, rawOptions)
+	if err != nil {
+		return err
 	}
 
-	f := cmd.Flags()
-	f.StringVar(&o.Name, "name", o.Name, "name to be used as prefix in identifier for manifests")
-	f.StringVar(&o.ServiceAccount, "service-account", o.ServiceAccount, "service account to bind the role to")
-	f.StringVar(&o.Namespace, "service-account-namespace", o.Namespace, "namespace of the service account to bind the role to")
-	f.StringVar(&o.InputDir, "input-dir", o.InputDir, "input directory pointing to Go source files")
-	f.StringVar(&o.OutputDir, "output-dir", o.OutputDir, "output directory where generated manifests will be saved")
-	f.StringVar(&o.RoleFile, "role-file", o.RoleFile, "output file for the role manifest")
-	f.StringVar(&o.BindingFile, "binding-file", o.BindingFile, "output file for the role binding manifest")
-
-	return cmd
+	return helpForLevels(c.OutOrStdout(), c.OutOrStderr(), whichLevel, reg, help.SortByCategory)
 }
 
-func newCRDCmd() *cobra.Command {
-	g := &crdgenerator.Generator{}
-
-	cmd := &cobra.Command{
-		Use:   "crd",
-		Short: "Generates CRD manifests",
-		Long: `Generate CRD manifests from the Type definitions in Go source files.
-Usage:
-# controller-gen crd [--domain k8s.io] [--root-path input_dir] [--output-dir output_dir]
-`,
-		Run: func(_ *cobra.Command, _ []string) {
-			if err := g.ValidateAndInitFields(); err != nil {
-				log.Fatal(err)
+func helpForLevels(mainOut io.Writer, errOut io.Writer, whichLevel int, reg *markers.Registry, sorter help.SortGroup) error {
+	helpInfo := help.ByCategory(reg, sorter)
+	switch whichLevel {
+	case jsonHelp:
+		if err := json.NewEncoder(mainOut).Encode(helpInfo); err != nil {
+			return err
+		}
+	case detailedHelp, fullHelp:
+		fullDetail := whichLevel == fullHelp
+		for _, cat := range helpInfo {
+			if cat.Category == "" {
+				continue
 			}
-			if err := g.Do(); err != nil {
-				log.Fatal(err)
+			contents := prettyhelp.MarkersDetails(fullDetail, cat.Category, cat.Markers)
+			if err := contents.WriteTo(errOut); err != nil {
+				return err
 			}
-			fmt.Printf("CRD files generated, files can be found under path %s.\n", g.OutputDir)
-		},
+		}
+	case summaryHelp:
+		for _, cat := range helpInfo {
+			if cat.Category == "" {
+				continue
+			}
+			contents := prettyhelp.MarkersSummary(cat.Category, cat.Markers)
+			if err := contents.WriteTo(errOut); err != nil {
+				return err
+			}
+		}
 	}
-
-	f := cmd.Flags()
-	f.StringVar(&g.RootPath, "root-path", "", "working dir, must have PROJECT file under the path or parent path if domain not set")
-	f.StringVar(&g.OutputDir, "output-dir", "", "output directory, default to 'config/crds' under root path")
-	f.StringVar(&g.Domain, "domain", "", "domain of the resources, will try to fetch it from PROJECT file if not specified")
-	f.StringVar(&g.Namespace, "namespace", "", "CRD namespace, treat it as cluster scoped if not set")
-	f.BoolVar(&g.SkipMapValidation, "skip-map-validation", true, "if set to true, skip generating OpenAPI validation schema for map type in CRD.")
-	f.StringVar(&g.APIsPath, "apis-path", "pkg/apis", "the path to search for apis relative to the current directory")
-	f.StringVar(&g.APIsPkg, "apis-pkg", "", "the absolute Go pkg name for current project's api pkg.")
-
-	return cmd
+	return nil
 }
 
-func newAllSubCmd() *cobra.Command {
-	var (
-		projectDir, namespace string
-	)
-
-	cmd := &cobra.Command{
-		Use:   "all",
-		Short: "runs all generators for a project",
-		Long: `Run all available generators for a given project
-Usage:
-# controller-gen all
-`,
-		Run: func(_ *cobra.Command, _ []string) {
-			if projectDir == "" {
-				currDir, err := os.Getwd()
-				if err != nil {
-					log.Fatalf("project-dir missing, failed to use current directory: %v", err)
-				}
-				projectDir = currDir
-			}
-			crdGen := &crdgenerator.Generator{
-				RootPath:          projectDir,
-				OutputDir:         filepath.Join(projectDir, "config", "crds"),
-				Namespace:         namespace,
-				SkipMapValidation: true,
-			}
-			if err := crdGen.ValidateAndInitFields(); err != nil {
-				log.Fatal(err)
-			}
-			if err := crdGen.Do(); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("CRD manifests generated under '%s' \n", crdGen.OutputDir)
-
-			// RBAC generation
-			rbacOptions := &rbac.ManifestOptions{}
-			rbacOptions.SetDefaults()
-			if err := rbac.Generate(rbacOptions); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("RBAC manifests generated under '%s' \n", rbacOptions.OutputDir)
-
-			o := &webhook.Options{
-				WriterOptions: webhook.WriterOptions{
-					InputDir:       filepath.Join(projectDir, "pkg"),
-					OutputDir:      filepath.Join(projectDir, "config", "webhook"),
-					PatchOutputDir: filepath.Join(projectDir, "config", "default"),
-				},
-			}
-			o.SetDefaults()
-			if err := webhook.Generate(o); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("webhook manifests generated under '%s' directory\n", o.OutputDir)
-		},
-	}
-	f := cmd.Flags()
-	f.StringVar(&projectDir, "project-dir", "", "project directory, it must have PROJECT file")
-	f.StringVar(&namespace, "namespace", "", "CRD namespace, treat it as cluster scoped if not set")
-	return cmd
-}
-
-func newWebhookCmd() *cobra.Command {
-	o := &webhook.Options{}
-	o.SetDefaults()
-
-	cmd := &cobra.Command{
-		Use:   "webhook",
-		Short: "Generates webhook related manifests",
-		Long: `Generate webhook related manifests from the webhook annotations in Go source files.
-Usage:
-# controller-gen webhook [--input-dir input_dir] [--output-dir output_dir] [--patch-output-dir patch-output_dir]
-`,
-		Run: func(_ *cobra.Command, _ []string) {
-			if err := webhook.Generate(o); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("webhook manifests generated under '%s' directory\n", o.OutputDir)
-		},
-	}
-
-	f := cmd.Flags()
-	f.StringVar(&o.InputDir, "input-dir", o.InputDir, "input directory pointing to Go source files")
-	f.StringVar(&o.OutputDir, "output-dir", o.OutputDir, "output directory where generated manifests will be saved.")
-	f.StringVar(&o.PatchOutputDir, "patch-output-dir", o.PatchOutputDir, "output directory where generated kustomize patch will be saved.")
-
-	return cmd
-}
+const (
+	_ = iota
+	summaryHelp
+	detailedHelp
+	fullHelp
+	jsonHelp
+)

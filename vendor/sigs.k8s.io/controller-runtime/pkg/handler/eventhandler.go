@@ -33,7 +33,7 @@ import (
 // * Use EnqueueRequestForOwner to reconcile the owner of the object the event is for
 // - do this for events for the types the Controller creates.  (e.g. ReplicaSets created by a Deployment Controller)
 //
-// * Use EnqueueRequestFromMapFunc to transform an event for an object to a reconcile of an object
+// * Use EnqueueRequestsFromMapFunc to transform an event for an object to a reconcile of an object
 // of a different type - do this for events for types the Controller may be interested in, but doesn't create.
 // (e.g. If Foo responds to cluster size events, map Node events to Foo objects.)
 //

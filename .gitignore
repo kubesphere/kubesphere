@@ -28,5 +28,7 @@ apiserver.local.config
 .DS_Store
 api.json
 *.coverprofile
+cover.out
+coverage.txt
 
 kustomize/network/etcd

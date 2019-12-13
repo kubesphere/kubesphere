@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
+	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,9 +23,9 @@ import (
 
 	"time"
 
-	istioclientset "github.com/knative/pkg/client/clientset/versioned"
-	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
-	istiolisters "github.com/knative/pkg/client/listers/istio/v1alpha3"
+	istioclientset "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
+	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	informersv1 "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -244,7 +245,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 		return err
 	}
 
-	subsets := make([]v1alpha3.Subset, 0)
+	subsets := make([]*apinetworkingv1alpha3.Subset, 0)
 	for _, deployment := range deployments {
 
 		// not a valid deployment we required
@@ -262,7 +263,7 @@ func (v *DestinationRuleController) syncService(key string) error {
 			continue
 		}
 
-		subset := v1alpha3.Subset{
+		subset := &apinetworkingv1alpha3.Subset{
 			Name: util.NormalizeVersionName(version),
 			Labels: map[string]string{
 				util.VersionLabel: version,
@@ -275,12 +276,12 @@ func (v *DestinationRuleController) syncService(key string) error {
 	currentDestinationRule, err := v.destinationRuleLister.DestinationRules(namespace).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			currentDestinationRule = &v1alpha3.DestinationRule{
+			currentDestinationRule = &clientgonetworkingv1alpha3.DestinationRule{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   service.Name,
 					Labels: service.Labels,
 				},
-				Spec: v1alpha3.DestinationRuleSpec{
+				Spec: apinetworkingv1alpha3.DestinationRule{
 					Host: name,
 				},
 			}

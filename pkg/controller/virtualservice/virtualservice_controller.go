@@ -5,7 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
+	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,9 +20,9 @@ import (
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 
-	istioclient "github.com/knative/pkg/client/clientset/versioned"
-	istioinformers "github.com/knative/pkg/client/informers/externalversions/istio/v1alpha3"
-	istiolisters "github.com/knative/pkg/client/listers/istio/v1alpha3"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions/networking/v1alpha3"
+	istiolisters "istio.io/client-go/pkg/listers/networking/v1alpha3"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -284,7 +285,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	currentVirtualService, err := v.virtualServiceLister.VirtualServices(namespace).Get(appName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			currentVirtualService = &v1alpha3.VirtualService{
+			currentVirtualService = &clientgonetworkingv1alpha3.VirtualService{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      appName,
 					Namespace: namespace,
@@ -305,13 +306,13 @@ func (v *VirtualServiceController) syncService(key string) error {
 
 	// check if service has TCP protocol ports
 	for _, port := range service.Spec.Ports {
-		var route v1alpha3.DestinationWeight
+		var route apinetworkingv1alpha3.HTTPRouteDestination
 		if port.Protocol == v1.ProtocolTCP {
-			route = v1alpha3.DestinationWeight{
-				Destination: v1alpha3.Destination{
+			route = apinetworkingv1alpha3.HTTPRouteDestination{
+				Destination: &apinetworkingv1alpha3.Destination{
 					Host:   name,
 					Subset: subsets[0].Name,
-					Port: v1alpha3.PortSelector{
+					Port: &apinetworkingv1alpha3.PortSelector{
 						Number: uint32(port.Port),
 					},
 				},
@@ -320,12 +321,20 @@ func (v *VirtualServiceController) syncService(key string) error {
 
 			// a http port, add to HTTPRoute
 			if len(port.Name) > 0 && (port.Name == "http" || strings.HasPrefix(port.Name, "http-")) {
-				vs.Spec.Http = []v1alpha3.HTTPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
+				vs.Spec.Http = []*apinetworkingv1alpha3.HTTPRoute{{Route: []*apinetworkingv1alpha3.HTTPRouteDestination{&route}}}
 				break
 			}
 
 			// everything else treated as TCPRoute
-			vs.Spec.Tcp = []v1alpha3.TCPRoute{{Route: []v1alpha3.DestinationWeight{route}}}
+			tcpRoute := apinetworkingv1alpha3.TCPRoute{
+				Route: []*apinetworkingv1alpha3.RouteDestination{
+					{
+						Destination: route.Destination,
+						Weight:      route.Weight,
+					},
+				},
+			}
+			vs.Spec.Tcp = []*apinetworkingv1alpha3.TCPRoute{&tcpRoute}
 		}
 	}
 
@@ -407,7 +416,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 // When a destinationrule is added, figure out which service it will be used
 // and enqueue it. obj must have *v1alpha3.DestinationRule type
 func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
-	dr := obj.(*v1alpha3.DestinationRule)
+	dr := obj.(*clientgonetworkingv1alpha3.DestinationRule)
 	service, err := v.serviceLister.Services(dr.Namespace).Get(dr.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -523,17 +532,17 @@ func (v *VirtualServiceController) getSubsets(strategy *servicemeshv1alpha2.Stra
 	return set
 }
 
-func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicemeshv1alpha2.Strategy, service *v1.Service) *v1alpha3.VirtualService {
+func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicemeshv1alpha2.Strategy, service *v1.Service) *clientgonetworkingv1alpha3.VirtualService {
 
 	// Define VirtualService to be created
-	vs := &v1alpha3.VirtualService{
+	vs := &clientgonetworkingv1alpha3.VirtualService{
 		Spec: strategy.Spec.Template.Spec,
 	}
 
 	// one version rules them all
 	if len(strategy.Spec.GovernorVersion) > 0 {
-		governorDestinationWeight := v1alpha3.DestinationWeight{
-			Destination: v1alpha3.Destination{
+		governorDestinationWeight := apinetworkingv1alpha3.HTTPRouteDestination{
+			Destination: &apinetworkingv1alpha3.Destination{
 				Host:   service.Name,
 				Subset: strategy.Spec.GovernorVersion,
 			},
@@ -541,16 +550,26 @@ func (v *VirtualServiceController) generateVirtualServiceSpec(strategy *servicem
 		}
 
 		if len(strategy.Spec.Template.Spec.Http) > 0 {
-			governorRoute := v1alpha3.HTTPRoute{
-				Route: []v1alpha3.DestinationWeight{governorDestinationWeight},
+			governorRoute := apinetworkingv1alpha3.HTTPRoute{
+				Route: []*apinetworkingv1alpha3.HTTPRouteDestination{&governorDestinationWeight},
 			}
 
-			vs.Spec.Http = []v1alpha3.HTTPRoute{governorRoute}
+			vs.Spec.Http = []*apinetworkingv1alpha3.HTTPRoute{&governorRoute}
 		} else if len(strategy.Spec.Template.Spec.Tcp) > 0 {
-			governorRoute := v1alpha3.TCPRoute{
-				Route: []v1alpha3.DestinationWeight{governorDestinationWeight},
+			tcpRoute := apinetworkingv1alpha3.TCPRoute{
+				Route: []*apinetworkingv1alpha3.RouteDestination{
+					{
+						Destination: &apinetworkingv1alpha3.Destination{
+							Host:   governorDestinationWeight.Destination.Host,
+							Subset: governorDestinationWeight.Destination.Subset,
+						},
+						Weight: governorDestinationWeight.Weight,
+					},
+				},
 			}
-			vs.Spec.Tcp = []v1alpha3.TCPRoute{governorRoute}
+
+			//governorRoute := v1alpha3.TCPRoute{tcpRoute}
+			vs.Spec.Tcp = []*apinetworkingv1alpha3.TCPRoute{&tcpRoute}
 		}
 
 	}

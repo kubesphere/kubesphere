@@ -39,14 +39,13 @@ type provider struct {
 }
 
 // NewProvider create a new Provider instance.
-func NewProvider(config *rest.Config, scheme *runtime.Scheme, logger logr.Logger) (recorder.Provider, error) {
+func NewProvider(config *rest.Config, scheme *runtime.Scheme, logger logr.Logger, broadcaster record.EventBroadcaster) (recorder.Provider, error) {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init clientSet: %v", err)
 	}
 
-	p := &provider{scheme: scheme, logger: logger}
-	p.eventBroadcaster = record.NewBroadcaster()
+	p := &provider{scheme: scheme, logger: logger, eventBroadcaster: broadcaster}
 	p.eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: clientSet.CoreV1().Events("")})
 	p.eventBroadcaster.StartEventWatcher(
 		func(e *corev1.Event) {
