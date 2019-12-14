@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,7 +86,6 @@ type StrategySpec struct {
 
 // VirtualServiceTemplateSpec
 type VirtualServiceTemplateSpec struct {
-
 	// Metadata of the virtual services created from this template
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`

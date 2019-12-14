@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ const (
 
 // ServicePolicySpec defines the desired state of ServicePolicy
 type ServicePolicySpec struct {
-
 	// Label selector for destination rules.
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
@@ -44,7 +43,6 @@ type ServicePolicySpec struct {
 }
 
 type DestinationRuleSpecTemplate struct {
-
 	// Metadata of the virtual services created from this template
 	// +optional
 	metav1.ObjectMeta
