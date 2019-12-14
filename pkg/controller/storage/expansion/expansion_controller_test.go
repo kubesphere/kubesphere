@@ -200,7 +200,7 @@ func getFakeReplicaSet(rsName string, ownerRef *metav1.OwnerReference, uid types
 }
 
 func getFakeDeployment(deployName string, uid types.UID, replicas int32, mountPVC *v1.PersistentVolumeClaim) *appsv1.
-Deployment {
+	Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deployName,
@@ -227,7 +227,7 @@ Deployment {
 }
 
 func getFakeStatefulSet(stsName string, uid types.UID, replicas int32, mountPVC *v1.PersistentVolumeClaim) *appsv1.
-StatefulSet {
+	StatefulSet {
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      stsName,
