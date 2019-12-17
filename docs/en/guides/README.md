@@ -56,7 +56,9 @@ TODO(@magicsong)
 
 ### KubeSphere DevOps developer
 
-TODO(@runzexia)
+Users who are interested in DevOps Pipeline, you can read the documentation according to the [guidelines above](README.md#for-code-developer).
+
+The function of KubeSphere DevOps is mainly provided by KubeSphere apiserver.
 
 ### KubeSphere S2I/B2I developer
 
