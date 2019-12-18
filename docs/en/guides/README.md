@@ -68,7 +68,9 @@ TODO(@huanggze)
 
 ### KubeSphere Logging developer
 
-TODO(@huanggze)
+1. Read kubesphere's [Concepts And Designs for Logging](../concepts-and-designs/kubesphere-logging.md). Understand KubeSphere's logging stack.
+2. Find the component you are interested in and start from its own repo: [Fluent Bit](https://github.com/kubesphere/fluent-bit), [Fluent-bit Operator](https://github.com/kubesphere/fluentbit-operator) and [Logsidecar Injector](https://github.com/kubesphere/logsidecar-injector).
+3. For developers who are interested in KubeSphere logging backend, read [Development Guide for Logging](kubesphere-logging-devlopment-guide.md) and [API doc](https://kubesphere.com.cn/docs/v2.1/api/kubesphere#tag/Log-Query).
 
 ### KubeSphere Altering developer
 
