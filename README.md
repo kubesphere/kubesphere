@@ -45,7 +45,7 @@
 
 ## Demo Environment
 
-Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Pleae note the account is granted viewer access.
+Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted viewer access.
 
 ## Features
 
@@ -143,13 +143,13 @@ $ kubectl edit cm -n kubesphere-system ks-installer
 KubeSphere provides 12 quick-start tutorials to walk you through the platform.
 
 - [Get Started - En](https://github.com/kubesphere/kubesphere.github.io/tree/master/blog/advanced-2.0/en)
-- [Get Started - 中](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/quick-start-guide/)
+- [Get Started - 中](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/admin-quick-start/)
 
 
 ### Documentation
 
-- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.io/docs/zh-CN/)）
-- [API Documentation](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
+- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.com.cn/docs/zh-CN/)）
+- [API Documentation](https://kubesphere.io/docs/v2.1/api/kubesphere)
 
 
 ## To start developing KubeSphere
@@ -158,7 +158,7 @@ The [development guide](CONTRIBUTING.md) hosts all information about building Ku
 
 ## RoadMap
 
-Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc.
+Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc. See [Plans for 2.1.1 and 3.0.0](https://github.com/kubesphere/kubesphere/issues/1368) for more details.
 
 **Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0**
 
