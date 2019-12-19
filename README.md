@@ -12,12 +12,12 @@
 
 > English | [中文](README_zh.md)
 
-[KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform that built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage computing resources with a few clicks, which reduces the learning curve and empowers the DevOps teams. It greatly reduces the complexity of the daily work of development, testing, operation and maintenance, aiming to alleviate the pain points of Kubernetes' storage, network, security and ease of use, etc.
+[KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage application workloads and computing resources with a few clicks, which greatly reduces the learning curve and the complexity of daily work such as development, testing, operation and maintenance. KubeSphere aims to alleviate the pain points of Kubernetes including storage, network, security and ease of use, etc.
 
 
 ## Screenshots
 
-> Note: See the [Screenshots](docs/en/guides/screenshots.md) of KubeSphere to have a most intuitive understanding of KubeSphere dashboard and features.
+> Note: The [Screenshots](docs/en/guides/screenshots.md) give a close insight into KubeSphere.
 
 
 <table>
@@ -45,11 +45,11 @@
 
 ## Demo Environment
 
-Using account `demo1 / Demo123` to log in to [Demo environment](https://demo.kubesphere.io/), this account has been only granted viewer access.
+Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted viewer access.
 
 ## Features
 
-KubeSphere provides an easy-to-use console with the awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports following core features:
+KubeSphere provides an easy-to-use console with awesome user experience that allows you to quickly get started with a container management platform. KubeSphere provides and supports the following major features:
 
 
 - Workload management
@@ -57,36 +57,36 @@ KubeSphere provides an easy-to-use console with the awesome user experience that
 - DevOps (CI/CD Pipeline)
 - Source to Image, Binary to Image
 - Multi-tenant management
-- Multi-dimensional and Multi-tenant Monitoring, Logging, Alerting, Notification
+- Multi-dimensional and multi-tenant monitoring, logging, alerting, notification
 - Service and network management
-- Application Store and Application lifecycle management
-- Node and Storage Class management, image registry management
-- Integrate Harbor, GitLab, SonarQube
+- Application store and application lifecycle management
+- Node and storage class management, image registry management
+- Integrated Harbor, GitLab, SonarQube
 - LB controller for Kubernetes on bare metal ([Porter](https://github.com/kubesphere/porter)), [cloud LB plugin](https://github.com/yunify/qingcloud-cloud-controller-manager)
 - Support GPU node
 
 
-It also supports multiple open source storage and high-performance cloud storage as the persistent storage services, as well as supports multiple open source network plugins.
+It also supports a variety of open source storage solutions and cloud storage products as the persistent storage services, as well as supports multiple open source network plugins.
 
-> Note: See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) that elaborates on the KubeSphere features and services from a professional point of view.
+> Note: See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) which elaborates on the KubeSphere features and services.
 
 ----
 
 ## Architecture
 
-KubeSphere adopts the separation of front and back ends, each component is drawn in the architecture diagram below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution.
+KubeSphere separates [frontend](https://github.com/kubesphere/console) and [backend](https://github.com/kubesphere/kubesphere) as shows below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution. Please check the [installation guide](https://github.com/kubesphere/ks-installer).
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190810073322.png)
 
 ## Latest Release
 
-KubeSphere 2.1.0 was released on **November 12nd, 2019**. See the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) to preview the updates.
+KubeSphere 2.1.0 was released on **November 12nd, 2019**. Check the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) for the updates.
 
 ## Installation
 
-> Attention: Following section is only used for minimal installation by default, KubeSphere has decoupled some core components in v2.1.0, for more pluggable components installation, see `Enable Pluggable Components` below.
+> Attention: The following section is only used for minimal installation by default, KubeSphere has decoupled some core components in v2.1.0. For pluggable components installation, see `Enable Pluggable Components` below.
 
-### Deploy On Kubernetes
+### Deploy on Existing Kubernetes
 
 **Prerequisites**
 
@@ -95,7 +95,7 @@ KubeSphere 2.1.0 was released on **November 12nd, 2019**. See the [Release Notes
 > - CPU > 1 Core，Memory > 2 G;
 > - An existing Storage Class in your Kubernetes clusters, use `kubectl get sc` to verify it.
 
-When all Pods of KubeSphere are running, it means the installation is successsful. Then you can use `http://IP:30880` to access the dashboard with default account `admin/P@88w0rd`.
+Run the following command. When all Pods of KubeSphere are running, it means the installation is successsful. Then you can use `http://<IP>:30880` to access the dashboard with default account `admin/P@88w0rd`.
 
 ```yaml
 $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-minimal.yaml
@@ -103,6 +103,8 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/mas
 
 
 ### Deploy on Linux
+
+The installation is going to install KubeSphere and Kubernetes on your linux machines. It provides All-in-One and Multi-Node installation options.
 
 - Operating Systems
    - CentOS 7.5 (64 bit)
@@ -112,9 +114,9 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/mas
 - Hardware
    - CPU：2 Core,  Memory：4 G, Disk Space：100 G
 
-### All-in-One
+##### All-in-One
 
-For those who are new to KubeSphere and looking for the fastest way to install and experience the dashboard. Execute following commands to download and install KubeSphere in a single node.
+For those who are new to KubeSphere and looking for the easiest way to install and experience the dashboard. Execute the following commands to download and install KubeSphere in a single node.
 
 ```bash
 $ curl -L https://kubesphere.io/download/stable/v2.1.0 > installer.tar.gz \
@@ -122,13 +124,13 @@ $ curl -L https://kubesphere.io/download/stable/v2.1.0 > installer.tar.gz \
 $ ./install.sh
 ```
 
-Choose `"1) All-in-one"` to trigger the installation. Generally, you can install it directly without any configuration..
+Choose `"1) All-in-one"` to start the installation without changing any configuration.
 
-> Note: In a formal environment, it's highly recommended to install KubeSphere with Multi-Node Installation.
+> Note: In a development or production environment, it's highly recommended to install Multi-Node KubeSphere.
 
 ### Enable Pluggable Components
 
-The above two methods is only used for minimal installation by default, execute following command to enable more pluggable components installation, make sure your cluster has enough CPU and memory in advance.
+If you want to use optional components after the minimal installation as shown above, please execute following command to enable the pluggable components you prefer to start the installation. Make sure your cluster has enough CPU and memory in advance.
 
 ```
 $ kubectl edit cm -n kubesphere-system ks-installer
@@ -138,16 +140,16 @@ $ kubectl edit cm -n kubesphere-system ks-installer
 
 ### Quick Start
 
-KubeSphere provides 12 quick-start tutorials to walk you through the process and common manipulation, with a quick overview of the core features of KubeSphere that helps you to get familiar with it.
+KubeSphere provides 12 quick-start tutorials to walk you through the platform.
 
 - [Get Started - En](https://github.com/kubesphere/kubesphere.github.io/tree/master/blog/advanced-2.0/en)
-- [Get Started - 中](https://kubesphere.io/docs/advanced-v2.0/zh-CN/quick-start/quick-start-guide/)
+- [Get Started - 中](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/admin-quick-start/)
 
 
 ### Documentation
 
-- [KubeSphere Documentation (En/中) ](https://kubesphere.io/docs)
-- [API Documentation](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
+- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.com.cn/docs/zh-CN/)）
+- [API Documentation](https://kubesphere.io/docs/v2.1/api/kubesphere)
 
 
 ## To start developing KubeSphere
@@ -156,7 +158,7 @@ The [development guide](CONTRIBUTING.md) hosts all information about building Ku
 
 ## RoadMap
 
-Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc.
+Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc. See [Plans for 2.1.1 and 3.0.0](https://github.com/kubesphere/kubesphere/issues/1368) for more details.
 
 **Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0**
 
