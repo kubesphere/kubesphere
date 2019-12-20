@@ -175,6 +175,10 @@ KubeSphere is a member of CNCF and a <a href="https://www.cncf.io/certification/
 </a>
 </p>
 
+## Who Uses KubeSphere
+
+The [Powered by KubeSphere](docs/powered-by-kubesphere.md) page includes users list of the project. You can submit your institution name and homepage if you are using KubeSphere.
+
 
 ## Support, Discussion, and Community
 
@@ -185,6 +189,3 @@ Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere G
 ## Contributing to the project
 
 This [document](docs/en/guides/README.md) walks you through how to get started contributing KubeSphere.
-
-
-
