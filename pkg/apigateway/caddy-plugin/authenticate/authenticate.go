@@ -20,17 +20,18 @@ package authenticate
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"log"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mholt/caddy/caddyhttp/httpserver"

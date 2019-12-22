@@ -20,16 +20,17 @@ package metrics
 
 import (
 	"fmt"
-	"github.com/json-iterator/go"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/models/workspaces"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/workspaces"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -103,8 +104,8 @@ func GetNodeMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name, node_ip, node_role to each metric result item
-				// resouce_name serves as a unique identifier for the monitored resource
+				// add label resource_name, node_ip, node_role to each metric result item
+				// resource_name serves as a unique identifier for the monitored resource
 				// it will be used during metrics sorting
 				for _, item := range response.Data.Result {
 					nodeName := item.Metric["node"]
@@ -158,7 +159,7 @@ func GetWorkspaceMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["label_kubesphere_io_workspace"]
 				}
@@ -209,7 +210,7 @@ func GetNamespaceMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["namespace"]
 				}
@@ -260,7 +261,7 @@ func GetWorkloadMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["workload"]
 				}
@@ -311,7 +312,7 @@ func GetPodMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["pod_name"]
 				}
@@ -362,7 +363,7 @@ func GetContainerMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["container_name"]
 				}
@@ -413,7 +414,7 @@ func GetPVCMetrics(params RequestParams) *Response {
 				v.Set("query", exp)
 				response := client.QueryToK8SPrometheus(params.QueryType, v.Encode())
 
-				// add label resouce_name
+				// add label resource_name
 				for _, item := range response.Data.Result {
 					item.Metric["resource_name"] = item.Metric["persistentvolumeclaim"]
 				}

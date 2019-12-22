@@ -14,6 +14,8 @@ limitations under the License.
 package devops
 
 import (
+	"net/http"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
@@ -21,7 +23,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
 )
 
 func GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {

@@ -19,6 +19,8 @@ package iam
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
@@ -27,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
-	"net/http"
 )
 
 type Spec struct {

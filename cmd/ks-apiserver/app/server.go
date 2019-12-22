@@ -19,6 +19,8 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+
 	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	"net/http"
 )
 
 func NewAPIServerCommand() *cobra.Command {

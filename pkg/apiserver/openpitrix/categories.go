@@ -19,6 +19,9 @@
 package openpitrix
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,8 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
-	"strconv"
 )
 
 func CreateCategory(req *restful.Request, resp *restful.Response) {

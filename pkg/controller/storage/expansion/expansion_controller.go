@@ -21,6 +21,8 @@ package expansion
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +47,6 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"time"
 )
 
 const controllerAgentName = "expansion-controller"

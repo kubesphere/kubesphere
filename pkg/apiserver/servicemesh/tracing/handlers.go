@@ -2,10 +2,11 @@ package tracing
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
 )
 
 var JaegerQueryUrl = "http://jaeger-query.istio-system.svc:16686/jaeger"

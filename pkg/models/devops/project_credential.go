@@ -14,8 +14,9 @@ limitations under the License.
 package devops
 
 import (
-	"github.com/asaskevich/govalidator"
 	"time"
+
+	"github.com/asaskevich/govalidator"
 )
 
 const (

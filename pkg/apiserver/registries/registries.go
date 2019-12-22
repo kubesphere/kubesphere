@@ -19,8 +19,9 @@
 package registries
 
 import (
-	"github.com/emicklei/go-restful"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/server/errors"

@@ -14,9 +14,10 @@ limitations under the License.
 package devops
 
 import (
+	"time"
+
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/utils/idutils"
-	"time"
 )
 
 var DevOpsProjectColumns = GetColumnsFromStruct(&v1alpha2.DevOpsProject{})

@@ -19,9 +19,10 @@ package iam
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"regexp"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 func convertDNToPath(dn string) string {

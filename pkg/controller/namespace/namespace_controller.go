@@ -21,6 +21,8 @@ package namespace
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +39,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"openpitrix.io/openpitrix/pkg/pb"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

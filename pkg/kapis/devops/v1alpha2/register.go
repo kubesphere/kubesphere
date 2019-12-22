@@ -20,7 +20,7 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
@@ -29,8 +29,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 
-	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
+
+	"kubesphere.io/kubesphere/pkg/server/params"
 )
 
 const (

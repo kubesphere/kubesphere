@@ -19,12 +19,13 @@ package prometheus
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"net/http"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 )
 
 type PrometheusClient struct {

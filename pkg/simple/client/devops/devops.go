@@ -15,9 +15,10 @@ package devops
 
 import (
 	"fmt"
+	"sync"
+
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
-	"sync"
 )
 
 const (

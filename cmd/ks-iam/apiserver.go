@@ -18,8 +18,9 @@
 package main
 
 import (
-	"kubesphere.io/kubesphere/cmd/ks-iam/app"
 	"log"
+
+	"kubesphere.io/kubesphere/cmd/ks-iam/app"
 )
 
 func main() {

@@ -4,15 +4,16 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"io"
 	"io/ioutil"
-	log "k8s.io/klog"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/docker/docker/api/types"
+	log "k8s.io/klog"
 )
 
 const (

@@ -18,9 +18,10 @@
 package resources
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models/resources"
-	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"

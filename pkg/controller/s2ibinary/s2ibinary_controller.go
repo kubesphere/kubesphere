@@ -2,6 +2,8 @@ package s2ibinary
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -18,7 +20,6 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"time"
 
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	devopsclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"

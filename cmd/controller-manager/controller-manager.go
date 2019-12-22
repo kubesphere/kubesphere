@@ -1,8 +1,9 @@
 package main
 
 import (
-	"kubesphere.io/kubesphere/cmd/controller-manager/app"
 	"os"
+
+	"kubesphere.io/kubesphere/cmd/controller-manager/app"
 )
 
 func main() {

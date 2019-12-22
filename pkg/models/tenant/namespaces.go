@@ -18,7 +18,10 @@
 package tenant
 
 import (
-	"k8s.io/api/core/v1"
+	"sort"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
@@ -28,8 +31,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
 )
 
 type namespaceSearcher struct {

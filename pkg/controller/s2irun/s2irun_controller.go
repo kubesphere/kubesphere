@@ -2,6 +2,8 @@ package s2irun
 
 import (
 	"fmt"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +18,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"time"
 
 	s2iv1alpha1 "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
 	s2iclient "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"

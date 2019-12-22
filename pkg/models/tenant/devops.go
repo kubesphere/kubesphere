@@ -19,6 +19,9 @@ package tenant
 
 import (
 	"fmt"
+	"net/http"
+	"sync"
+
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
@@ -30,8 +33,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
-	"sync"
 )
 
 type DevOpsProjectRoleResponse struct {

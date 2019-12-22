@@ -19,6 +19,8 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -35,7 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	"net/http"
 )
 
 func NewAPIServerCommand() *cobra.Command {

@@ -19,14 +19,15 @@
 package log
 
 import (
+	"strconv"
+	"strings"
+	"time"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // list namespaces that match search conditions

@@ -15,14 +15,15 @@ package devops
 
 import (
 	"fmt"
-	"github.com/beevik/etree"
-	"github.com/kubesphere/sonargo/sonar"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/beevik/etree"
+	sonargo "github.com/kubesphere/sonargo/sonar"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/gojenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 const (

@@ -21,14 +21,15 @@ package terminal
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"io"
-	"k8s.io/api/core/v1"
+	"time"
+
+	"github.com/gorilla/websocket"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"time"
 )
 
 const (

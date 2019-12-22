@@ -19,13 +19,14 @@
 package openpitrix
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
 )
 
 func DescribeAttachment(req *restful.Request, resp *restful.Response) {

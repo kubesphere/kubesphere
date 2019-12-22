@@ -18,8 +18,10 @@
 package v1alpha2
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,7 +42,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/status"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"net/http"
 )
 
 const GroupName = "resources.kubesphere.io"

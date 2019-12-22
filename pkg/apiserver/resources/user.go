@@ -18,10 +18,11 @@
 package resources
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
-	"net/http"
 
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"

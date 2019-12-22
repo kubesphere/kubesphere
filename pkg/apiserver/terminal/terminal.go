@@ -18,11 +18,12 @@
 package terminal
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"github.com/gorilla/websocket"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/terminal"
-	"net/http"
 )
 
 var upgrader = websocket.Upgrader{

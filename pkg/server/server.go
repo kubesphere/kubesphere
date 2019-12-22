@@ -3,9 +3,10 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"k8s.io/klog"
 	"net/http"
 	"runtime"
+
+	"k8s.io/klog"
 )
 
 func LogStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) {

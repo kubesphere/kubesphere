@@ -1,8 +1,9 @@
 package registries
 
 import (
-	"github.com/opencontainers/go-digest"
 	"time"
+
+	"github.com/opencontainers/go-digest"
 )
 
 type AuthInfo struct {

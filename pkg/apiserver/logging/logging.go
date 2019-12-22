@@ -21,8 +21,13 @@ package logging
 import (
 	"bytes"
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"io"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/log"
@@ -30,10 +35,6 @@ import (
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func LoggingQueryCluster(request *restful.Request, response *restful.Response) {

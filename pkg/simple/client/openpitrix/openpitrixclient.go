@@ -20,13 +20,14 @@ package openpitrix
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"k8s.io/klog"
 	"openpitrix.io/openpitrix/pkg/manager"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"openpitrix.io/openpitrix/pkg/sender"
 	"openpitrix.io/openpitrix/pkg/util/ctxutil"
-	"strconv"
-	"strings"
 )
 
 const (

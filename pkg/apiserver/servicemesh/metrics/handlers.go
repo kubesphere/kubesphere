@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+
 	"github.com/emicklei/go-restful"
 	"github.com/kiali/kiali/handlers"
 )

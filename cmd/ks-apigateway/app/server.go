@@ -2,6 +2,7 @@ package app
 
 import (
 	"flag"
+
 	"github.com/mholt/caddy/caddy/caddymain"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
 	"github.com/spf13/cobra"

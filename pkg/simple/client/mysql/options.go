@@ -1,9 +1,10 @@
 package mysql
 
 import (
+	"time"
+
 	"github.com/spf13/pflag"
 	reflectutils "kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"time"
 )
 
 type MySQLOptions struct {

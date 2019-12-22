@@ -2,6 +2,8 @@ package client
 
 import (
 	"fmt"
+	"sync"
+
 	goredis "github.com/go-redis/redis"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
@@ -14,7 +16,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"sync"
 )
 
 type ClientSetNotEnabledError struct {

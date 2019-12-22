@@ -2,6 +2,8 @@ package destinationrule
 
 import (
 	"fmt"
+	"testing"
+
 	apiv1alpha3 "istio.io/api/networking/v1alpha3"
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
@@ -19,7 +21,6 @@ import (
 	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"testing"
 )
 
 var (

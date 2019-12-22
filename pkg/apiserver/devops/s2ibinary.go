@@ -1,14 +1,15 @@
 package devops
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"fmt"
+	"net/http"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/hashutil"
-	"net/http"
 )
 
 func UploadS2iBinary(req *restful.Request, resp *restful.Response) {

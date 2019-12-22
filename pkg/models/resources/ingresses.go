@@ -18,12 +18,13 @@
 package resources
 
 import (
+	"sort"
+	"strings"
+
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
 
 	extensions "k8s.io/api/extensions/v1beta1"
 

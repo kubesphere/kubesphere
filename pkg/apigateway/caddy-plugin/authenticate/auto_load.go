@@ -19,10 +19,11 @@ package authenticate
 
 import (
 	"fmt"
+	"time"
+
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"time"
 
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"

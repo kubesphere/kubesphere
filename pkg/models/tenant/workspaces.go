@@ -18,6 +18,9 @@
 package tenant
 
 import (
+	"sort"
+	"strings"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
@@ -27,8 +30,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
 )
 
 type workspaceSearcher struct {

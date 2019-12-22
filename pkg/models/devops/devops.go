@@ -22,19 +22,21 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/emicklei/go-restful"
 	"io"
 	"io/ioutil"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models"
 
-	"k8s.io/klog"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/klog"
+	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 
 const (

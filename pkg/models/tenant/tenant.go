@@ -18,7 +18,9 @@
 package tenant
 
 import (
-	"k8s.io/api/core/v1"
+	"strconv"
+
+	v1 "k8s.io/api/core/v1"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -26,7 +28,6 @@ import (
 	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"strconv"
 )
 
 var (

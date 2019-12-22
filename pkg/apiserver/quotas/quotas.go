@@ -19,8 +19,9 @@
 package quotas
 
 import (
-	"github.com/emicklei/go-restful"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/server/errors"
 

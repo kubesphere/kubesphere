@@ -19,11 +19,12 @@ package devops
 
 import (
 	"encoding/json"
+	"net/http"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	"net/http"
-	"strings"
 )
 
 const jenkinsHeaderPre = "X-"

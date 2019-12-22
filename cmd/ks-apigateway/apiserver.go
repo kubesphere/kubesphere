@@ -18,8 +18,9 @@
 package main
 
 import (
-	"kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 	"os"
+
+	"kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 )
 
 func main() {

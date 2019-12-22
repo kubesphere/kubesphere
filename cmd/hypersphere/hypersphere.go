@@ -2,8 +2,11 @@ package main
 
 import (
 	goflag "flag"
-	cliflag "k8s.io/component-base/cli/flag"
 	"path/filepath"
+
+	cliflag "k8s.io/component-base/cli/flag"
+
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -11,7 +14,6 @@ import (
 	ksapigateway "kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 	ksapiserver "kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 	ksaiam "kubesphere.io/kubesphere/cmd/ks-iam/app"
-	"os"
 )
 
 func main() {

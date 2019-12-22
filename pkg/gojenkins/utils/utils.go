@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/asaskevich/govalidator"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"net/http"
 	"strconv"
+
+	"github.com/asaskevich/govalidator"
+	"kubesphere.io/kubesphere/pkg/gojenkins"
 )
 
 func GetJenkinsStatusCode(jenkinsErr error) int {

@@ -18,13 +18,14 @@
 package informers
 
 import (
+	"sync"
+	"time"
+
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"sync"
-	"time"
 )
 
 const defaultResync = 600 * time.Second

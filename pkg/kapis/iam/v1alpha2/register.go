@@ -18,8 +18,11 @@
 package v1alpha2
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/iam"
@@ -28,8 +31,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"net/http"
-	"time"
 )
 
 const GroupName = "iam.kubesphere.io"

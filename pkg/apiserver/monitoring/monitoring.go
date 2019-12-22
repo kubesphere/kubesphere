@@ -18,12 +18,13 @@
 package monitoring
 
 import (
-	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/emicklei/go-restful"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 )
 
 func MonitorCluster(request *restful.Request, response *restful.Response) {

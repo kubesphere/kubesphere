@@ -19,6 +19,8 @@
 package openpitrix
 
 import (
+	"strings"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc/codes"
@@ -29,7 +31,6 @@ import (
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
-	"strings"
 )
 
 const (

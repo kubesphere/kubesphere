@@ -17,9 +17,13 @@ limitations under the License.
 package log
 
 import (
+	"net/http"
+	"strings"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,9 +33,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
 	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-	"net/http"
-	"strings"
-	"time"
 )
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -20,6 +20,8 @@ package openpitrix
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,7 +31,6 @@ import (
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
-	"strings"
 )
 
 func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {

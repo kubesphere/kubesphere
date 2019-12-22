@@ -18,8 +18,10 @@
 package v1
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/openpitrix"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -28,7 +30,6 @@ import (
 	opmodels "kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"net/http"
 )
 
 const GroupName = "openpitrix.io"

@@ -19,10 +19,11 @@
 package components
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"net/http"
 )
 
 func GetSystemHealthStatus(request *restful.Request, response *restful.Response) {

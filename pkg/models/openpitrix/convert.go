@@ -19,9 +19,10 @@
 package openpitrix
 
 import (
+	"time"
+
 	"github.com/go-openapi/strfmt"
 	"openpitrix.io/openpitrix/pkg/pb"
-	"time"
 )
 
 func convertApp(in *pb.App) *App {

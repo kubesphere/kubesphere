@@ -19,6 +19,8 @@ package workspaces
 
 import (
 	"fmt"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -32,12 +34,12 @@ import (
 	clientset "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"strings"
 
 	core "k8s.io/api/core/v1"
 
 	"errors"
-	"k8s.io/api/rbac/v1"
+
+	v1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"

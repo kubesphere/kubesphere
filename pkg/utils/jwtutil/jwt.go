@@ -19,6 +19,7 @@ package jwtutil
 
 import (
 	"fmt"
+
 	"github.com/dgrijalva/jwt-go"
 )
 

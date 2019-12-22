@@ -19,7 +19,7 @@ package tenant
 
 import (
 	"github.com/emicklei/go-restful"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/net"
@@ -37,9 +37,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
+
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 func ListWorkspaceRules(req *restful.Request, resp *restful.Response) {

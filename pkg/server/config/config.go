@@ -2,6 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net/http"
+	"reflect"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -9,7 +13,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
+	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -21,9 +25,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/http"
-	"reflect"
-	"strings"
 )
 
 // Package config saves configuration for running KubeSphere components

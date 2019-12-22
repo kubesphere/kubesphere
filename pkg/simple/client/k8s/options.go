@@ -1,9 +1,10 @@
 package k8s
 
 import (
+	"os"
+
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"os"
 )
 
 type KubernetesOptions struct {

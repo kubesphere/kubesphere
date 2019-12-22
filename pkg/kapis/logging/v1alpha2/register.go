@@ -18,8 +18,10 @@
 package v1alpha2
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
@@ -27,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/log"
 	fluentbitclient "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-	"net/http"
 )
 
 const (

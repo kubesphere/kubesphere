@@ -19,6 +19,9 @@ package iam
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,8 +39,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
 )
 
 const (

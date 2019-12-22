@@ -18,10 +18,11 @@
 package models
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"time"
 
-	"k8s.io/api/rbac/v1"
+	corev1 "k8s.io/api/core/v1"
+
+	v1 "k8s.io/api/rbac/v1"
 )
 
 type PageableResponse struct {

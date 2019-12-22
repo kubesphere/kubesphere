@@ -15,18 +15,20 @@ package devops
 
 import (
 	"fmt"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
 
+	"net/http"
+	"strings"
+
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
-	"strings"
 )
 
 func CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {

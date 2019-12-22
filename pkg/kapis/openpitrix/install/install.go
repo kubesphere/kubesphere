@@ -21,7 +21,7 @@ import (
 	"github.com/emicklei/go-restful"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
+	v1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 )
 
 func init() {

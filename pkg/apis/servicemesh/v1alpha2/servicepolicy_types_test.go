@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"istio.io/api/networking/v1alpha3"
 	"testing"
+
+	"istio.io/api/networking/v1alpha3"
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"

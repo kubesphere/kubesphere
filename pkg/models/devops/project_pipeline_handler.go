@@ -15,11 +15,12 @@ package devops
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
 )
 
 func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {

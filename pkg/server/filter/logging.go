@@ -19,10 +19,11 @@
 package filter
 
 import (
-	"k8s.io/klog"
 	"net"
 	"strings"
 	"time"
+
+	"k8s.io/klog"
 
 	"github.com/emicklei/go-restful"
 )

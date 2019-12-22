@@ -19,8 +19,9 @@
 package metrics
 
 import (
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"net/url"
+
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 )
 
 type RequestParams struct {

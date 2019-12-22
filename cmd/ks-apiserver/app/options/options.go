@@ -2,6 +2,8 @@ package options
 
 import (
 	"flag"
+	"strings"
+
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -14,7 +16,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"strings"
 )
 
 type ServerRunOptions struct {

@@ -20,9 +20,10 @@ package revisions
 
 import (
 	"fmt"
+
 	"k8s.io/klog"
 
-	"k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
 )

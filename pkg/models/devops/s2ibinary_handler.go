@@ -1,8 +1,13 @@
 package devops
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"fmt"
+	"mime/multipart"
+	"net/http"
+	"reflect"
+	"time"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -14,10 +19,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"mime/multipart"
-	"net/http"
-	"reflect"
-	"time"
 )
 
 const (

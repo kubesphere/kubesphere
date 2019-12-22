@@ -19,8 +19,9 @@
 package workloadstatuses
 
 import (
-	"github.com/emicklei/go-restful"
 	"net/http"
+
+	"github.com/emicklei/go-restful"
 
 	"kubesphere.io/kubesphere/pkg/models/status"
 	"kubesphere.io/kubesphere/pkg/server/errors"

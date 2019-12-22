@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"strings"
+
 	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	"k8s.io/client-go/discovery"
@@ -8,7 +10,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	"strings"
 )
 
 type KubernetesClient struct {

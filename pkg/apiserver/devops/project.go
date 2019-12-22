@@ -14,13 +14,14 @@ limitations under the License.
 package devops
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"net/http"
 )
 
 func GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {

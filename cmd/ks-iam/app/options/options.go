@@ -19,6 +19,9 @@ package options
 
 import (
 	"flag"
+	"strings"
+	"time"
+
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -26,8 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"strings"
-	"time"
 )
 
 type ServerRunOptions struct {

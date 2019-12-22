@@ -19,13 +19,14 @@
 package metrics
 
 import (
+	"math"
+	"sort"
+	"strconv"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"math"
-	"sort"
-	"strconv"
 
 	"runtime/debug"
 )

@@ -15,6 +15,8 @@ package devops
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
@@ -23,7 +25,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"net/http"
 )
 
 func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {

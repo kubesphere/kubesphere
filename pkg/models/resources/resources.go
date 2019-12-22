@@ -19,11 +19,12 @@ package resources
 
 import (
 	"fmt"
+	"strings"
+
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"strings"
 )
 
 func init() {

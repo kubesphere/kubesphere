@@ -19,6 +19,10 @@
 package openpitrix
 
 import (
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,9 +32,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 func GetAppVersionPackage(req *restful.Request, resp *restful.Response) {
