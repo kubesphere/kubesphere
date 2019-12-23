@@ -1,22 +1,27 @@
-# DevOps Pipeline Overview
+# KubeSphere DevOps Pipeline Overview
 
-KubeSphere Pipeline DevOps aims to complex CI / CD requirements on Kubernetes.
+KubeSphere DevOps Pipeline is aimed to meet the complex CI/CD requirements on Kubernetes.
 
-With the KubeSphere DevOps Pipeline, you can complete the construction of the CI / CD process by interacting with the KubeSphere console.
+With the KubeSphere DevOps Pipeline, you can quickly construct a complete CI/CD workflow and architecture by manipulating with the KubeSphere console.
 
 
 ## DevOps Pipeline Capabilities
 
-* Multi-tenant isolation
-* Build, Deploy, Launch things in kubernetes 
-* Use kubernetes dynamic agent to release the ability of kubernetes to dynamically expand
+* Build, Deploy, Launch services in Kubernetes 
+* Use Kubernetes dynamic agent to release the ability of Kubernetes to dynamically expand
 * In SCM Pipeline and Out of SCM Pipeline 
-* Easy-to-use pipeline graphical editing
+* Easy-to-use graphical pipeline editing panel 
+* Multi-tenant isolation
 
 
 ### DevOps Pipeline API
 
-The KubeSphere DevOps Pipeline API will encapsulate the following APIs (Jenkins Core API / Jenkins BlueOcean API / Sonarqube API / Other Plugins API) to provide a standardized REST API.
+The KubeSphere DevOps Pipeline API will encapsulate the following APIs to provide a standardized REST API:
+
+- Jenkins Core API
+- Jenkins BlueOcean API
+- Sonarqube API
+- Other Plugins API
 
 KubeSphere apiserver will provide multi-tenant API, pipeline API, credential API, code quality analysis API, etc.
 
@@ -27,7 +32,7 @@ KubeSphere apiserver will provide multi-tenant API, pipeline API, credential API
 
 In the current version (v2.1.0), multi-tenancy in the DevOps part is done with the ability of the [role-strategy-plugin](https://github.com/jenkinsci/role-strategy-plugin) plugin. KubeSphere will automatically synchronize permission rules in this plugin.
 
-In the future, kubesphere devops will authentication based on [OPA](https://www.openpolicyagent.org/).
+In the future, KubeSphere DevOps will authentication based on [OPA](https://www.openpolicyagent.org/).
 
 ### Integration with Jenkins
 
@@ -39,7 +44,7 @@ To meet the needs of users in private cloud environments, KubeSphere uses the bu
 
 #### Jenkins configuration
 
-KubeSphere uses Docker Image + Jenkins update Center + Helm Chart to distribute Jenkins。
+KubeSphere uses Docker Image, Jenkins update Center and Helm Chart to distribute Jenkins。
 
 The list of plugins and configuration required by Jenkins will be provided by [Helm Chart](https://github.com/kubesphere/ks-installer/tree/master/roles/ks-devops/jenkins).
 
@@ -48,9 +53,9 @@ We use [Groovy Script](https://wiki.jenkins.io/display/JENKINS/Groovy+Hook+Scrip
 
 ### Pipeline Builder Image And Jenkins PodTemplate
 
-Jenkins does not include any agent configuration by default, KubeSphere will provide some default agents (including docker image and podTemplate configuration).
+Jenkins does not include any agent configuration by default, KubeSphere provides some default agents (including docker image and podTemplate configuration).
 
-The default agent image will be built based on the [builder base](https://github.com/kubesphere/builder-base), you can search `builder xxx` repositories in kubesphere github.
+The default agent image will be built based on the [builder base](https://github.com/kubesphere/builder-base), you can search the keyword of repository `builder xxx`  in KubeSphere [github](https://github.com/kubesphere/).
 
 ### In SCM Pipeline and Out of SCM Pipeline 
 
@@ -58,7 +63,7 @@ KubeSphere's pipeline syntax will be fully compatible with Jenkins' pipeline syn
 
 We will provide a plug-in SCM API, allowing users to graphically edit Jenkinsfile, Dockerfile and other configurations in SCM on KubeSphere.
 
-### Sonarqube integration
+### Sonarqube Integration
 
 KubeSphere will retrieve Jenkins pipelines that have performed Sonarqube code analysis. And provide API to access analysis report.
 
