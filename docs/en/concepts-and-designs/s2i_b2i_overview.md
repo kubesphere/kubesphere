@@ -25,9 +25,9 @@ Besides, the S2I stack includes following CRD resources:
 2. s2ibuilders: all configuration information used in building are stored in this CRD.
 3. s2iruns: defines an action about build
 
-Here is a Architecture to figout relationship about all CRD:
+Here is a graph that describes the relationship about all CRD within S2I architecture:
 
-​	![](../../images/s2i_arch.png)
+​![](../../images/s2i_arch.png)
 
 Also you can install S2I component in any kubernetes cluster without KubeSphere.
 
