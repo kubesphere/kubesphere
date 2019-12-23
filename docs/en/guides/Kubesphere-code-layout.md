@@ -72,7 +72,7 @@ This document describes the directory structure of the KubeSphere repository.
 │   │   ├── terminal
 │   │   ├── workloadstatuses
 │   │   └── workspaces
-│   ├── client //aAutomatically generated CRD client
+│   ├── client //Automatically generated CRD client
 │   │   ├── clientset
 │   │   ├── informers
 │   │   └── listers
