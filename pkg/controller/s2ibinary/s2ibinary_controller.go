@@ -2,9 +2,6 @@ package s2ibinary
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -16,7 +13,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -39,6 +36,8 @@ type S2iBinaryController struct {
 	workqueue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
+
+	s3Client s3.Interface
 }
 
 func NewController(devopsclientset devopsclient.Interface,
@@ -205,29 +204,12 @@ func (c *S2iBinaryController) syncHandler(key string) error {
 }
 
 func (c *S2iBinaryController) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
-	s3Client, err := client.ClientSets().S3()
+
+	key := fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)
+	err := c.s3Client.Delete(key)
 	if err != nil {
-		return err
+		klog.Errorf("error happened while deleting %s, %v", key, err)
 	}
 
-	input := &s3.DeleteObjectInput{
-		Bucket: s3Client.Bucket(),
-		Key:    aws.String(fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)),
-	}
-	_, err = s3Client.Client().DeleteObject(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeNoSuchKey:
-				return nil
-			default:
-				klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s in s3", s2ibin.Namespace, s2ibin.Name))
-				return err
-			}
-		} else {
-			klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s in s3", s2ibin.Namespace, s2ibin.Name))
-			return err
-		}
-	}
 	return nil
 }

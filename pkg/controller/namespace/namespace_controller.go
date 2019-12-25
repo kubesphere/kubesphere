@@ -32,7 +32,6 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -101,7 +100,8 @@ var _ reconcile.Reconciler = &ReconcileNamespace{}
 // ReconcileNamespace reconciles a Namespace object
 type ReconcileNamespace struct {
 	client.Client
-	scheme *runtime.Scheme
+	openpitrixClient *openpitrix.Client
+	scheme           *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
@@ -359,18 +359,9 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 		return nil
 	}
 
-	openPitrixClient, err := cs.ClientSets().OpenPitrix()
-
-	if _, notEnabled := err.(cs.ClientSetNotEnabledError); notEnabled {
-		return nil
-	} else if err != nil {
-		klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
-		return err
-	}
-
 	adminKubeConfigName := fmt.Sprintf("kubeconfig-%s", constants.AdminUserName)
 
-	runtimeCredentials, err := openPitrixClient.Runtime().DescribeRuntimeCredentials(openpitrix.SystemContext(), &pb.DescribeRuntimeCredentialsRequest{SearchWord: &wrappers.StringValue{Value: adminKubeConfigName}, Limit: 1})
+	runtimeCredentials, err := r.openpitrixClient.Runtime().DescribeRuntimeCredentials(openpitrix.SystemContext(), &pb.DescribeRuntimeCredentialsRequest{SearchWord: &wrappers.StringValue{Value: adminKubeConfigName}, Limit: 1})
 
 	if err != nil {
 		klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
@@ -391,7 +382,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 			return err
 		}
 
-		resp, err := openPitrixClient.Runtime().CreateRuntimeCredential(openpitrix.SystemContext(), &pb.CreateRuntimeCredentialRequest{
+		resp, err := r.openpitrixClient.Runtime().CreateRuntimeCredential(openpitrix.SystemContext(), &pb.CreateRuntimeCredentialRequest{
 			Name:                     &wrappers.StringValue{Value: adminKubeConfigName},
 			Provider:                 &wrappers.StringValue{Value: "kubernetes"},
 			Description:              &wrappers.StringValue{Value: "kubeconfig"},
@@ -408,7 +399,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 	}
 
 	// TODO runtime id is invalid when recreate runtime
-	runtimeId, err := openPitrixClient.Runtime().CreateRuntime(openpitrix.SystemContext(), &pb.CreateRuntimeRequest{
+	runtimeId, err := r.openpitrixClient.Runtime().CreateRuntime(openpitrix.SystemContext(), &pb.CreateRuntimeRequest{
 		Name:                &wrappers.StringValue{Value: namespace.Name},
 		RuntimeCredentialId: &wrappers.StringValue{Value: kubesphereRuntimeCredentialId},
 		Provider:            &wrappers.StringValue{Value: openpitrix.KubernetesProvider},
@@ -429,17 +420,7 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
 
 	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
-
-		openPitrixClient, err := cs.ClientSets().OpenPitrix()
-
-		if _, notEnabled := err.(cs.ClientSetNotEnabledError); notEnabled {
-			return nil
-		} else if err != nil {
-			klog.Errorf("delete openpitrix runtime: %s, error: %s", runtimeId, err)
-			return err
-		}
-
-		_, err = openPitrixClient.Runtime().DeleteRuntimes(openpitrix.SystemContext(), &pb.DeleteRuntimesRequest{RuntimeId: []string{runtimeId}, Force: &wrappers.BoolValue{Value: true}})
+		_, err := r.openpitrixClient.Runtime().DeleteRuntimes(openpitrix.SystemContext(), &pb.DeleteRuntimesRequest{RuntimeId: []string{runtimeId}, Force: &wrappers.BoolValue{Value: true}})
 
 		if err == nil || openpitrix.IsNotFound(err) || openpitrix.IsDeleted(err) {
 			return nil

@@ -21,15 +21,15 @@ import (
 )
 
 const (
-	JenkinsAllUserRoleName = "kubesphere-user"
+	jenkinsAllUserRoleName = "kubesphere-user"
 )
 
-type DevopsClient struct {
+type Client struct {
 	jenkinsClient *gojenkins.Jenkins
 }
 
-func NewDevopsClient(options *DevopsOptions) (*DevopsClient, error) {
-	var d DevopsClient
+func NewDevopsClient(options *Options) (*Client, error) {
+	var d Client
 
 	jenkins := gojenkins.CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
 	jenkins, err := jenkins.Init()
@@ -49,34 +49,13 @@ func NewDevopsClient(options *DevopsOptions) (*DevopsClient, error) {
 	return &d, nil
 }
 
-func NewDevopsClientOrDie(options *DevopsOptions) *DevopsClient {
-	jenkins := gojenkins.CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
-	jenkins, err := jenkins.Init()
-	if err != nil {
-		klog.Errorf("failed to connecto to jenkins role, %+v", err)
-		panic(err)
-	}
-
-	d := &DevopsClient{
-		jenkinsClient: jenkins,
-	}
-
-	err = d.initializeJenkins()
-	if err != nil {
-		klog.Error(err)
-		panic(err)
-	}
-
-	return d
-}
-
-func (c *DevopsClient) Jenkins() *gojenkins.Jenkins {
+func (c *Client) Jenkins() *gojenkins.Jenkins {
 	return c.jenkinsClient
 }
 
 var mutex = sync.Mutex{}
 
-func (c *DevopsClient) initializeJenkins() error {
+func (c *Client) initializeJenkins() error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -84,7 +63,7 @@ func (c *DevopsClient) initializeJenkins() error {
 		return fmt.Errorf("jenkins intialization failed")
 	}
 
-	globalRole, err := c.jenkinsClient.GetGlobalRole(JenkinsAllUserRoleName)
+	globalRole, err := c.jenkinsClient.GetGlobalRole(jenkinsAllUserRoleName)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -92,14 +71,14 @@ func (c *DevopsClient) initializeJenkins() error {
 
 	// Jenkins uninitialized, create global role
 	if globalRole == nil {
-		_, err := c.jenkinsClient.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{GlobalRead: true}, true)
+		_, err := c.jenkinsClient.AddGlobalRole(jenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{GlobalRead: true}, true)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 	}
 
-	_, err = c.jenkinsClient.AddProjectRole(JenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{SCMTag: true}, true)
+	_, err = c.jenkinsClient.AddProjectRole(jenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{SCMTag: true}, true)
 	if err != nil {
 		klog.Error(err)
 		return err

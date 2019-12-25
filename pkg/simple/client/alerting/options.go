@@ -1,16 +1,16 @@
 package alerting
 
-type AlertingOptions struct {
+type Options struct {
 	Endpoint string `json:"endpoint" yaml:"endpoint"`
 }
 
-func NewAlertingOptions() *AlertingOptions {
-	return &AlertingOptions{
+func NewAlertingOptions() *Options {
+	return &Options{
 		Endpoint: "",
 	}
 }
 
-func (s *AlertingOptions) ApplyTo(options *AlertingOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if options == nil {
 		options = s
 		return

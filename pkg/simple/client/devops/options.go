@@ -6,7 +6,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
-type DevopsOptions struct {
+type Options struct {
 	Host           string `json:",omitempty" yaml:"host" description:"Jenkins service host address"`
 	Username       string `json:",omitempty" yaml:"username" description:"Jenkins admin username"`
 	Password       string `json:",omitempty" yaml:"password" description:"Jenkins admin password"`
@@ -14,8 +14,8 @@ type DevopsOptions struct {
 }
 
 // NewDevopsOptions returns a `zero` instance
-func NewDevopsOptions() *DevopsOptions {
-	return &DevopsOptions{
+func NewDevopsOptions() *Options {
+	return &Options{
 		Host:           "",
 		Username:       "",
 		Password:       "",
@@ -24,15 +24,15 @@ func NewDevopsOptions() *DevopsOptions {
 }
 
 // ApplyTo apply configuration to another options
-func (s *DevopsOptions) ApplyTo(options *DevopsOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if s.Host != "" {
 		reflectutils.Override(options, s)
 	}
 }
 
 // Validate check if there is misconfiguration in options
-func (s *DevopsOptions) Validate() []error {
-	errors := []error{}
+func (s *Options) Validate() []error {
+	var errors []error
 
 	// devops is not needed, ignore rest options
 	if s.Host == "" {
@@ -50,18 +50,18 @@ func (s *DevopsOptions) Validate() []error {
 	return errors
 }
 
-func (s *DevopsOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.Host, "jenkins-host", s.Host, ""+
+func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
+	fs.StringVar(&s.Host, "jenkins-host", c.Host, ""+
 		"Jenkins service host address. If left blank, means Jenkins "+
 		"is unnecessary.")
 
-	fs.StringVar(&s.Username, "jenkins-username", s.Username, ""+
+	fs.StringVar(&s.Username, "jenkins-username", c.Username, ""+
 		"Username for access to Jenkins service. Leave it blank if there isn't any.")
 
-	fs.StringVar(&s.Password, "jenkins-password", s.Password, ""+
+	fs.StringVar(&s.Password, "jenkins-password", c.Password, ""+
 		"Password for access to Jenkins service, used pair with username.")
 
-	fs.IntVar(&s.MaxConnections, "jenkins-max-connections", s.MaxConnections, ""+
+	fs.IntVar(&s.MaxConnections, "jenkins-max-connections", c.MaxConnections, ""+
 		"Maximum allowed connections to Jenkins. ")
 
 }

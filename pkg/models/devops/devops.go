@@ -42,6 +42,12 @@ const (
 	cronJobLayout      = "Monday, January 2, 2006 15:04:05 PM"
 )
 
+type DevopsOperator interface {
+}
+
+type devopsOperator struct {
+}
+
 func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {

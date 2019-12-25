@@ -1,8 +1,8 @@
 package client
 
 import (
-	"fmt"
-	goredis "github.com/go-redis/redis"
+	"errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -11,43 +11,36 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"sync"
 )
 
-type ClientSetNotEnabledError struct {
-	err error
-}
-
-func (e ClientSetNotEnabledError) Error() string {
-	return fmt.Sprintf("client set not enabled: %v", e.err)
-}
+var ErrClientSetNotEnabled = errors.New("client set not enabled")
 
 type ClientSetOptions struct {
-	mySQLOptions        *mysql.MySQLOptions
-	redisOptions        *redis.RedisOptions
+	mySQLOptions        *mysql.Options
+	redisOptions        *cache.Options
 	kubernetesOptions   *k8s.KubernetesOptions
-	devopsOptions       *devops.DevopsOptions
-	sonarqubeOptions    *sonarqube.SonarQubeOptions
-	ldapOptions         *ldap.LdapOptions
-	s3Options           *s2is3.S3Options
-	openPitrixOptions   *openpitrix.OpenPitrixOptions
-	prometheusOptions   *prometheus.PrometheusOptions
-	kubesphereOptions   *kubesphere.KubeSphereOptions
-	elasticSearhOptions *esclient.ElasticSearchOptions
+	devopsOptions       *devops.Options
+	sonarqubeOptions    *sonarqube.Options
+	ldapOptions         *ldap.Options
+	s3Options           *s3.Options
+	openPitrixOptions   *openpitrix.Options
+	prometheusOptions   *prometheus.Options
+	kubesphereOptions   *kubesphere.Options
+	elasticSearhOptions *esclient.Options
 }
 
 func NewClientSetOptions() *ClientSetOptions {
 	return &ClientSetOptions{
 		mySQLOptions:        mysql.NewMySQLOptions(),
-		redisOptions:        redis.NewRedisOptions(),
+		redisOptions:        cache.NewRedisOptions(),
 		kubernetesOptions:   k8s.NewKubernetesOptions(),
 		ldapOptions:         ldap.NewLdapOptions(),
 		devopsOptions:       devops.NewDevopsOptions(),
 		sonarqubeOptions:    sonarqube.NewSonarQubeOptions(),
-		s3Options:           s2is3.NewS3Options(),
+		s3Options:           s3.NewS3Options(),
 		openPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
 		prometheusOptions:   prometheus.NewPrometheusOptions(),
 		kubesphereOptions:   kubesphere.NewKubeSphereOptions(),
@@ -55,12 +48,12 @@ func NewClientSetOptions() *ClientSetOptions {
 	}
 }
 
-func (c *ClientSetOptions) SetMySQLOptions(options *mysql.MySQLOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetMySQLOptions(options *mysql.Options) *ClientSetOptions {
 	c.mySQLOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetRedisOptions(options *redis.RedisOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetRedisOptions(options *cache.Options) *ClientSetOptions {
 	c.redisOptions = options
 	return c
 }
@@ -70,42 +63,42 @@ func (c *ClientSetOptions) SetKubernetesOptions(options *k8s.KubernetesOptions) 
 	return c
 }
 
-func (c *ClientSetOptions) SetDevopsOptions(options *devops.DevopsOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetDevopsOptions(options *devops.Options) *ClientSetOptions {
 	c.devopsOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetLdapOptions(options *ldap.LdapOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetLdapOptions(options *ldap.Options) *ClientSetOptions {
 	c.ldapOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetS3Options(options *s2is3.S3Options) *ClientSetOptions {
+func (c *ClientSetOptions) SetS3Options(options *s3.Options) *ClientSetOptions {
 	c.s3Options = options
 	return c
 }
 
-func (c *ClientSetOptions) SetOpenPitrixOptions(options *openpitrix.OpenPitrixOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetOpenPitrixOptions(options *openpitrix.Options) *ClientSetOptions {
 	c.openPitrixOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetPrometheusOptions(options *prometheus.PrometheusOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetPrometheusOptions(options *prometheus.Options) *ClientSetOptions {
 	c.prometheusOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetSonarQubeOptions(options *sonarqube.SonarQubeOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetSonarQubeOptions(options *sonarqube.Options) *ClientSetOptions {
 	c.sonarqubeOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetKubeSphereOptions(options *kubesphere.KubeSphereOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetKubeSphereOptions(options *kubesphere.Options) *ClientSetOptions {
 	c.kubesphereOptions = options
 	return c
 }
 
-func (c *ClientSetOptions) SetElasticSearchOptions(options *esclient.ElasticSearchOptions) *ClientSetOptions {
+func (c *ClientSetOptions) SetElasticSearchOptions(options *esclient.Options) *ClientSetOptions {
 	c.elasticSearhOptions = options
 	return c
 }
@@ -117,17 +110,17 @@ type ClientSet struct {
 	csoptions *ClientSetOptions
 	stopCh    <-chan struct{}
 
-	mySQLClient *mysql.MySQLClient
+	mySQLClient *mysql.Client
 
-	k8sClient           *k8s.KubernetesClient
-	ldapClient          *ldap.LdapClient
-	devopsClient        *devops.DevopsClient
-	sonarQubeClient     *sonarqube.SonarQubeClient
-	redisClient         *redis.RedisClient
-	s3Client            *s2is3.S3Client
-	prometheusClient    *prometheus.PrometheusClient
-	openpitrixClient    *openpitrix.OpenPitrixClient
-	kubesphereClient    *kubesphere.KubeSphereClient
+	k8sClient           k8s.Client
+	ldapClient          *ldap.Client
+	devopsClient        *devops.Client
+	sonarQubeClient     *sonarqube.Client
+	redisClient         cache.Interface
+	s3Client            s3.Interface
+	prometheusClient    *prometheus.Client
+	openpitrixClient    *openpitrix.Client
+	kubesphereClient    *kubesphere.Client
 	elasticSearchClient *esclient.ElasticSearchClient
 }
 
@@ -159,7 +152,7 @@ func (cs *ClientSet) MySQL() (*mysql.Database, error) {
 	var err error
 
 	if cs.csoptions.mySQLOptions == nil || cs.csoptions.mySQLOptions.Host == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.mySQLClient != nil {
@@ -178,34 +171,34 @@ func (cs *ClientSet) MySQL() (*mysql.Database, error) {
 	}
 }
 
-func (cs *ClientSet) Redis() (*goredis.Client, error) {
+func (cs *ClientSet) Cache() (cache.Interface, error) {
 	var err error
 
 	if cs.csoptions.redisOptions == nil || cs.csoptions.redisOptions.RedisURL == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.redisClient != nil {
-		return cs.redisClient.Redis(), nil
+		return cs.redisClient, nil
 	} else {
 		mutex.Lock()
 		defer mutex.Unlock()
 		if cs.redisClient == nil {
-			cs.redisClient, err = redis.NewRedisClient(cs.csoptions.redisOptions, cs.stopCh)
+			cs.redisClient, err = cache.NewRedisClient(cs.csoptions.redisOptions, cs.stopCh)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		return cs.redisClient.Redis(), nil
+		return cs.redisClient, nil
 	}
 }
 
-func (cs *ClientSet) Devops() (*devops.DevopsClient, error) {
+func (cs *ClientSet) Devops() (*devops.Client, error) {
 	var err error
 
 	if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.devopsClient != nil {
@@ -224,11 +217,11 @@ func (cs *ClientSet) Devops() (*devops.DevopsClient, error) {
 	}
 }
 
-func (cs *ClientSet) SonarQube() (*sonarqube.SonarQubeClient, error) {
+func (cs *ClientSet) SonarQube() (*sonarqube.Client, error) {
 	var err error
 
 	if cs.csoptions.sonarqubeOptions == nil || cs.csoptions.sonarqubeOptions.Host == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.sonarQubeClient != nil {
@@ -247,11 +240,11 @@ func (cs *ClientSet) SonarQube() (*sonarqube.SonarQubeClient, error) {
 	}
 }
 
-func (cs *ClientSet) Ldap() (*ldap.LdapClient, error) {
+func (cs *ClientSet) Ldap() (*ldap.Client, error) {
 	var err error
 
 	if cs.csoptions.ldapOptions == nil || cs.csoptions.ldapOptions.Host == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.ldapClient != nil {
@@ -272,15 +265,15 @@ func (cs *ClientSet) Ldap() (*ldap.LdapClient, error) {
 
 // since kubernetes client is required, we will
 // create it on setup
-func (cs *ClientSet) K8s() *k8s.KubernetesClient {
+func (cs *ClientSet) K8s() k8s.Client {
 	return cs.k8sClient
 }
 
-func (cs *ClientSet) S3() (*s2is3.S3Client, error) {
+func (cs *ClientSet) S3() (s3.Interface, error) {
 	var err error
 
 	if cs.csoptions.s3Options == nil || cs.csoptions.s3Options.Endpoint == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.s3Client != nil {
@@ -290,7 +283,7 @@ func (cs *ClientSet) S3() (*s2is3.S3Client, error) {
 		defer mutex.Unlock()
 
 		if cs.s3Client == nil {
-			cs.s3Client, err = s2is3.NewS3Client(cs.csoptions.s3Options)
+			cs.s3Client, err = s3.NewS3Client(cs.csoptions.s3Options)
 			if err != nil {
 				return nil, err
 			}
@@ -299,7 +292,7 @@ func (cs *ClientSet) S3() (*s2is3.S3Client, error) {
 	}
 }
 
-func (cs *ClientSet) OpenPitrix() (*openpitrix.OpenPitrixClient, error) {
+func (cs *ClientSet) OpenPitrix() (*openpitrix.Client, error) {
 	var err error
 
 	if cs.csoptions.openPitrixOptions == nil ||
@@ -310,7 +303,7 @@ func (cs *ClientSet) OpenPitrix() (*openpitrix.OpenPitrixClient, error) {
 		cs.csoptions.openPitrixOptions.AttachmentManagerEndpoint == "" ||
 		cs.csoptions.openPitrixOptions.RepoIndexerEndpoint == "" ||
 		cs.csoptions.openPitrixOptions.CategoryManagerEndpoint == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.openpitrixClient != nil {
@@ -325,11 +318,11 @@ func (cs *ClientSet) OpenPitrix() (*openpitrix.OpenPitrixClient, error) {
 	}
 }
 
-func (cs *ClientSet) Prometheus() (*prometheus.PrometheusClient, error) {
+func (cs *ClientSet) Prometheus() (*prometheus.Client, error) {
 	var err error
 
 	if cs.csoptions.prometheusOptions == nil || cs.csoptions.prometheusOptions.Endpoint == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.prometheusClient != nil {
@@ -348,7 +341,7 @@ func (cs *ClientSet) Prometheus() (*prometheus.PrometheusClient, error) {
 	}
 }
 
-func (cs *ClientSet) KubeSphere() *kubesphere.KubeSphereClient {
+func (cs *ClientSet) KubeSphere() *kubesphere.Client {
 	return cs.kubesphereClient
 }
 
@@ -356,7 +349,7 @@ func (cs *ClientSet) ElasticSearch() (*esclient.ElasticSearchClient, error) {
 	var err error
 
 	if cs.csoptions.elasticSearhOptions == nil || cs.csoptions.elasticSearhOptions.Host == "" {
-		return nil, ClientSetNotEnabledError{}
+		return nil, ErrClientSetNotEnabled
 	}
 
 	if cs.elasticSearchClient != nil {

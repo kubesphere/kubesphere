@@ -93,7 +93,7 @@ func (in *ServicePolicyCondition) DeepCopy() *ServicePolicyCondition {
 func (in *ServicePolicyList) DeepCopyInto(out *ServicePolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ServicePolicy, len(*in))
@@ -225,7 +225,7 @@ func (in *StrategyCondition) DeepCopy() *StrategyCondition {
 func (in *StrategyList) DeepCopyInto(out *StrategyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Strategy, len(*in))

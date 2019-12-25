@@ -799,8 +799,8 @@ func deleteUserInDevOps(username string) error {
 
 	devopsDb, err := clientset.ClientSets().MySQL()
 	if err != nil {
-		if _, ok := err.(clientset.ClientSetNotEnabledError); ok {
-			klog.Warning("devops client is not enable")
+		if err == clientset.ErrClientSetNotEnabled {
+			klog.Warning("mysql is not enable")
 			return nil
 		}
 		return err
@@ -808,11 +808,10 @@ func deleteUserInDevOps(username string) error {
 
 	dp, err := clientset.ClientSets().Devops()
 	if err != nil {
-		if _, ok := err.(clientset.ClientSetNotEnabledError); ok {
+		if err == clientset.ErrClientSetNotEnabled {
 			klog.Warning("devops client is not enable")
 			return nil
 		}
-
 		return err
 	}
 

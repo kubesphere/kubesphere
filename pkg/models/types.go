@@ -18,7 +18,6 @@
 package models
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"k8s.io/api/rbac/v1"
@@ -81,25 +80,6 @@ type Group struct {
 	Description string   `json:"description"`
 }
 
-type ComponentStatus struct {
-	Name            string      `json:"name" description:"component name"`
-	Namespace       string      `json:"namespace" description:"the name of the namespace"`
-	SelfLink        string      `json:"selfLink" description:"self link"`
-	Label           interface{} `json:"label" description:"labels"`
-	StartedAt       time.Time   `json:"startedAt" description:"started time"`
-	TotalBackends   int         `json:"totalBackends" description:"the total replicas of each backend system component"`
-	HealthyBackends int         `json:"healthyBackends" description:"the number of healthy backend components"`
-}
-type NodeStatus struct {
-	TotalNodes   int `json:"totalNodes" description:"total number of nodes"`
-	HealthyNodes int `json:"healthyNodes" description:"the number of healthy nodes"`
-}
-
-type HealthStatus struct {
-	KubeSphereComponents []ComponentStatus `json:"kubesphereStatus" description:"kubesphere components status"`
-	NodeStatus           NodeStatus        `json:"nodeStatus" description:"nodes status"`
-}
-
 type PodInfo struct {
 	Namespace string `json:"namespace" description:"namespace"`
 	Pod       string `json:"pod" description:"pod name"`
@@ -111,9 +91,4 @@ type AuthGrantResponse struct {
 	Token        string  `json:"access_token" description:"access token"`
 	ExpiresIn    float64 `json:"expires_in,omitempty"`
 	RefreshToken string  `json:"refresh_token,omitempty"`
-}
-
-type ResourceQuota struct {
-	Namespace string                     `json:"namespace" description:"namespace"`
-	Data      corev1.ResourceQuotaStatus `json:"data" description:"resource quota status"`
 }

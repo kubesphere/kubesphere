@@ -168,7 +168,7 @@ func (in *NamespaceNetworkPolicy) DeepCopyObject() runtime.Object {
 func (in *NamespaceNetworkPolicyList) DeepCopyInto(out *NamespaceNetworkPolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]NamespaceNetworkPolicy, len(*in))
@@ -398,7 +398,7 @@ func (in *WorkspaceNetworkPolicyIngressRule) DeepCopy() *WorkspaceNetworkPolicyI
 func (in *WorkspaceNetworkPolicyList) DeepCopyInto(out *WorkspaceNetworkPolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]WorkspaceNetworkPolicy, len(*in))

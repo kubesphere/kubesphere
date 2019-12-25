@@ -26,7 +26,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/log"
-	fluentbitclient "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"net/http"
 )
 

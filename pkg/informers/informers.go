@@ -18,56 +18,67 @@
 package informers
 
 import (
+	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
+	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-	"sync"
 	"time"
 )
 
 const defaultResync = 600 * time.Second
 
-var (
-	k8sOnce            sync.Once
-	s2iOnce            sync.Once
-	ksOnce             sync.Once
-	appOnce            sync.Once
+type InformerFactory interface {
+	KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory
+	S2iSharedInformerFactory() s2iinformers.SharedInformerFactory
+	KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory
+	ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory
+}
+
+type informerFactories struct {
 	informerFactory    k8sinformers.SharedInformerFactory
 	s2iInformerFactory s2iinformers.SharedInformerFactory
 	ksInformerFactory  ksinformers.SharedInformerFactory
 	appInformerFactory applicationinformers.SharedInformerFactory
-)
-
-func SharedInformerFactory() k8sinformers.SharedInformerFactory {
-	k8sOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().Kubernetes()
-		informerFactory = k8sinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return informerFactory
 }
 
-func S2iSharedInformerFactory() s2iinformers.SharedInformerFactory {
-	s2iOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().S2i()
-		s2iInformerFactory = s2iinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return s2iInformerFactory
+func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, s2iClient s2i.Interface, appClient applicationclient.Interface) InformerFactory {
+	factory := &informerFactories{}
+
+	if client != nil {
+		factory.informerFactory = k8sinformers.NewSharedInformerFactory(client, defaultResync)
+	}
+
+	if ksClient != nil {
+		factory.ksInformerFactory = ksinformers.NewSharedInformerFactory(ksClient, defaultResync)
+	}
+
+	if s2iClient != nil {
+		factory.s2iInformerFactory = s2iinformers.NewSharedInformerFactory(s2iClient, defaultResync)
+	}
+
+	if appClient != nil {
+		factory.appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
+	}
+
+	return factory
 }
 
-func KsSharedInformerFactory() ksinformers.SharedInformerFactory {
-	ksOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().KubeSphere()
-		ksInformerFactory = ksinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return ksInformerFactory
+func (f *informerFactories) KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory {
+	return f.informerFactory
 }
 
-func AppSharedInformerFactory() applicationinformers.SharedInformerFactory {
-	appOnce.Do(func() {
-		appClient := client.ClientSets().K8s().Application()
-		appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
-	})
-	return appInformerFactory
+func (f *informerFactories) S2iSharedInformerFactory() s2iinformers.SharedInformerFactory {
+	return f.s2iInformerFactory
+}
+
+func (f *informerFactories) KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory {
+	return f.ksInformerFactory
+}
+
+func (f *informerFactories) ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory {
+	return f.appInformerFactory
 }

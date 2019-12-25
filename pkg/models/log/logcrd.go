@@ -28,7 +28,6 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
-	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"net/http"
 	"strings"
 	"time"

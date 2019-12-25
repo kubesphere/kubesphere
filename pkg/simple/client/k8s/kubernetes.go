@@ -11,7 +11,17 @@ import (
 	"strings"
 )
 
-type KubernetesClient struct {
+type Client interface {
+	Kubernetes() kubernetes.Interface
+	KubeSphere() kubesphere.Interface
+	S2i() s2i.Interface
+	Application() applicationclientset.Interface
+	Discovery() discovery.DiscoveryInterface
+	Master() string
+	Config() *rest.Config
+}
+
+type kubernetesClient struct {
 	// kubernetes client interface
 	k8s *kubernetes.Clientset
 
@@ -31,7 +41,7 @@ type KubernetesClient struct {
 }
 
 // NewKubernetesClientOrDie creates KubernetesClient and panic if there is an error
-func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
+func NewKubernetesClientOrDie(options *KubernetesOptions) Client {
 	config, err := clientcmd.BuildConfigFromFlags("", options.KubeConfig)
 	if err != nil {
 		panic(err)
@@ -40,7 +50,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 	config.QPS = options.QPS
 	config.Burst = options.Burst
 
-	k := &KubernetesClient{
+	k := &kubernetesClient{
 		k8s:             kubernetes.NewForConfigOrDie(config),
 		discoveryClient: discovery.NewDiscoveryClientForConfigOrDie(config),
 		ks:              kubesphere.NewForConfigOrDie(config),
@@ -63,7 +73,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 }
 
 // NewKubernetesClient creates a KubernetesClient
-func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) {
+func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", options.KubeConfig)
 	if err != nil {
 		return nil, err
@@ -72,7 +82,7 @@ func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) 
 	config.QPS = options.QPS
 	config.Burst = options.Burst
 
-	var k KubernetesClient
+	var k kubernetesClient
 	k.k8s, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -99,31 +109,31 @@ func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) 
 	return &k, nil
 }
 
-func (k *KubernetesClient) Kubernetes() kubernetes.Interface {
+func (k *kubernetesClient) Kubernetes() kubernetes.Interface {
 	return k.k8s
 }
 
-func (k *KubernetesClient) Discovery() discovery.DiscoveryInterface {
+func (k *kubernetesClient) Discovery() discovery.DiscoveryInterface {
 	return k.discoveryClient
 }
 
-func (k *KubernetesClient) KubeSphere() kubesphere.Interface {
+func (k *kubernetesClient) KubeSphere() kubesphere.Interface {
 	return k.ks
 }
 
-func (k *KubernetesClient) S2i() s2i.Interface {
+func (k *kubernetesClient) S2i() s2i.Interface {
 	return k.s2i
 }
 
-func (k *KubernetesClient) Application() applicationclientset.Interface {
+func (k *kubernetesClient) Application() applicationclientset.Interface {
 	return k.application
 }
 
 // master address used to generate kubeconfig for downloading
-func (k *KubernetesClient) Master() string {
+func (k *kubernetesClient) Master() string {
 	return k.master
 }
 
-func (k *KubernetesClient) Config() *rest.Config {
+func (k *kubernetesClient) Config() *rest.Config {
 	return k.config
 }

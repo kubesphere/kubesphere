@@ -8,6 +8,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -17,8 +18,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
@@ -158,25 +158,25 @@ var (
 )
 
 type Config struct {
-	MySQLOptions       *mysql.MySQLOptions             `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
-	DevopsOptions      *devops.DevopsOptions           `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
-	SonarQubeOptions   *sonarqube.SonarQubeOptions     `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
-	KubernetesOptions  *k8s.KubernetesOptions          `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
-	ServiceMeshOptions *servicemesh.ServiceMeshOptions `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
-	LdapOptions        *ldap.LdapOptions               `json:"ldap,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
-	RedisOptions       *redis.RedisOptions             `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
-	S3Options          *s2is3.S3Options                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
-	OpenPitrixOptions  *openpitrix.OpenPitrixOptions   `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
-	MonitoringOptions  *prometheus.PrometheusOptions   `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	LoggingOptions     *esclient.ElasticSearchOptions  `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+	MySQLOptions       *mysql.Options         `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
+	DevopsOptions      *devops.Options        `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
+	SonarQubeOptions   *sonarqube.Options     `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
+	KubernetesOptions  *k8s.KubernetesOptions `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
+	ServiceMeshOptions *servicemesh.Options   `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
+	LdapOptions        *ldap.Options          `json:"ldap,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
+	RedisOptions       *cache.Options         `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
+	S3Options          *s3.Options            `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
+	OpenPitrixOptions  *openpitrix.Options    `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
+	MonitoringOptions  *prometheus.Options    `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
+	LoggingOptions     *esclient.Options      `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
 
 	// Options below are only loaded from configuration file, no command line flags for these options now.
-	KubeSphereOptions *kubesphere.KubeSphereOptions `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
+	KubeSphereOptions *kubesphere.Options `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
 
 	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
 	// we can add these options to kubesphere command lines
-	AlertingOptions     *alerting.AlertingOptions         `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
-	NotificationOptions *notification.NotificationOptions `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
+	AlertingOptions     *alerting.Options     `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
+	NotificationOptions *notification.Options `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 }
 
 func newConfig() *Config {
@@ -187,8 +187,8 @@ func newConfig() *Config {
 		KubernetesOptions:   k8s.NewKubernetesOptions(),
 		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),
 		LdapOptions:         ldap.NewLdapOptions(),
-		RedisOptions:        redis.NewRedisOptions(),
-		S3Options:           s2is3.NewS3Options(),
+		RedisOptions:        cache.NewRedisOptions(),
+		S3Options:           s3.NewS3Options(),
 		OpenPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
 		MonitoringOptions:   prometheus.NewPrometheusOptions(),
 		KubeSphereOptions:   kubesphere.NewKubeSphereOptions(),

@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"log"
 	"net/http"
@@ -34,21 +36,22 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 )
 
 type Authentication struct {
-	Rule *Rule
-	Next httpserver.Handler
+	Rule            *Rule
+	Next            httpserver.Handler
+	informerFactory informers.SharedInformerFactory
 }
 
 type Rule struct {
-	Path           string
-	ExclusionRules []internal.ExclusionRule
+	Path              string
+	KubernetesOptions *k8s.KubernetesOptions
+	ExclusionRules    []internal.ExclusionRule
 }
 
-func (c Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
+func (c *Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
 
 	if httpserver.Path(r.URL.Path).Matches(c.Rule.Path) {
 
@@ -65,7 +68,7 @@ func (c Authentication) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, 
 			return c.Next.ServeHTTP(w, r)
 		}
 
-		permitted, err := permissionValidate(attrs)
+		permitted, err := c.permissionValidate(attrs)
 
 		if err != nil {
 			return http.StatusInternalServerError, err
@@ -88,13 +91,13 @@ func handleForbidden(w http.ResponseWriter, err error) int {
 	return http.StatusForbidden
 }
 
-func permissionValidate(attrs authorizer.Attributes) (bool, error) {
+func (c *Authentication) permissionValidate(attrs authorizer.Attributes) (bool, error) {
 
 	if attrs.GetResource() == "users" && attrs.GetUser().GetName() == attrs.GetName() {
 		return true, nil
 	}
 
-	permitted, err := clusterRoleValidate(attrs)
+	permitted, err := c.clusterRoleValidate(attrs)
 
 	if err != nil {
 		log.Println("lister error", err)
@@ -106,7 +109,7 @@ func permissionValidate(attrs authorizer.Attributes) (bool, error) {
 	}
 
 	if attrs.GetNamespace() != "" {
-		permitted, err = roleValidate(attrs)
+		permitted, err = c.roleValidate(attrs)
 
 		if err != nil {
 			log.Println("lister error", err)
@@ -121,9 +124,9 @@ func permissionValidate(attrs authorizer.Attributes) (bool, error) {
 	return false, nil
 }
 
-func roleValidate(attrs authorizer.Attributes) (bool, error) {
-	roleBindingLister := informers.SharedInformerFactory().Rbac().V1().RoleBindings().Lister()
-	roleLister := informers.SharedInformerFactory().Rbac().V1().Roles().Lister()
+func (c *Authentication) roleValidate(attrs authorizer.Attributes) (bool, error) {
+	roleBindingLister := c.informerFactory.Rbac().V1().RoleBindings().Lister()
+	roleLister := c.informerFactory.Rbac().V1().Roles().Lister()
 	roleBindings, err := roleBindingLister.RoleBindings(attrs.GetNamespace()).List(labels.Everything())
 
 	if err != nil {
@@ -158,10 +161,10 @@ func roleValidate(attrs authorizer.Attributes) (bool, error) {
 	return false, nil
 }
 
-func clusterRoleValidate(attrs authorizer.Attributes) (bool, error) {
-	clusterRoleBindingLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
+func (c *Authentication) clusterRoleValidate(attrs authorizer.Attributes) (bool, error) {
+	clusterRoleBindingLister := c.informerFactory.Rbac().V1().ClusterRoleBindings().Lister()
 	clusterRoleBindings, err := clusterRoleBindingLister.List(labels.Everything())
-	clusterRoleLister := informers.SharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+	clusterRoleLister := c.informerFactory.Rbac().V1().ClusterRoles().Lister()
 	if err != nil {
 		return false, err
 	}

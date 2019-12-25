@@ -40,15 +40,15 @@ type Interface interface {
 	DeleteWorkspaceDevOpsProjects(workspace, devops string) error
 }
 
-type KubeSphereClient struct {
+type Client struct {
 	client *http.Client
 
 	apiServer     string
 	accountServer string
 }
 
-func NewKubeSphereClient(options *KubeSphereOptions) *KubeSphereClient {
-	return &KubeSphereClient{
+func NewKubeSphereClient(options *Options) *Client {
+	return &Client{
 		client:        &http.Client{},
 		apiServer:     options.APIServer,
 		accountServer: options.AccountServer,
@@ -64,7 +64,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("status: %d,message: %s", e.status, e.message)
 }
 
-func (c *KubeSphereClient) CreateGroup(group *models.Group) (*models.Group, error) {
+func (c *Client) CreateGroup(group *models.Group) (*models.Group, error) {
 	data, err := json.Marshal(group)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (c *KubeSphereClient) CreateGroup(group *models.Group) (*models.Group, erro
 	return group, nil
 }
 
-func (c *KubeSphereClient) UpdateGroup(group *models.Group) (*models.Group, error) {
+func (c *Client) UpdateGroup(group *models.Group) (*models.Group, error) {
 	data, err := json.Marshal(group)
 
 	if err != nil {
@@ -149,7 +149,7 @@ func (c *KubeSphereClient) UpdateGroup(group *models.Group) (*models.Group, erro
 	return group, nil
 }
 
-func (c *KubeSphereClient) DeleteGroup(name string) error {
+func (c *Client) DeleteGroup(name string) error {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", c.accountServer, name), nil)
 
 	if err != nil {
@@ -178,7 +178,7 @@ func (c *KubeSphereClient) DeleteGroup(name string) error {
 	return nil
 }
 
-func (c *KubeSphereClient) DescribeGroup(name string) (*models.Group, error) {
+func (c *Client) DescribeGroup(name string) (*models.Group, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/groups/%s", c.accountServer, name), nil)
 
 	if err != nil {
@@ -214,7 +214,7 @@ func (c *KubeSphereClient) DescribeGroup(name string) (*models.Group, error) {
 	return &group, nil
 }
 
-func (c *KubeSphereClient) ListUsers() (*models.PageableResponse, error) {
+func (c *Client) ListUsers() (*models.PageableResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/iam.kubesphere.io/v1alpha2/users", c.accountServer), nil)
 
 	if err != nil {
@@ -250,7 +250,7 @@ func (c *KubeSphereClient) ListUsers() (*models.PageableResponse, error) {
 	return &result, nil
 }
 
-func (c *KubeSphereClient) ListWorkspaceDevOpsProjects(workspace string) (*v1alpha2.PageableDevOpsProject, error) {
+func (c *Client) ListWorkspaceDevOpsProjects(workspace string) (*v1alpha2.PageableDevOpsProject, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops", c.apiServer, workspace), nil)
 
 	if err != nil {
@@ -290,7 +290,7 @@ func (c *KubeSphereClient) ListWorkspaceDevOpsProjects(workspace string) (*v1alp
 
 }
 
-func (c *KubeSphereClient) DeleteWorkspaceDevOpsProjects(workspace, devops string) error {
+func (c *Client) DeleteWorkspaceDevOpsProjects(workspace, devops string) error {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kapis/tenant.kubesphere.io/v1alpha2/workspaces/%s/devops/%s", c.apiServer, workspace, devops), nil)
 
 	if err != nil {

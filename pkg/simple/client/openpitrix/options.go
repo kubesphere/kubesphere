@@ -6,7 +6,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
-type OpenPitrixOptions struct {
+type Options struct {
 	RuntimeManagerEndpoint    string `json:"runtimeManagerEndpoint,omitempty" yaml:"runtimeManagerEndpoint,omitempty"`
 	ClusterManagerEndpoint    string `json:"clusterManagerEndpoint,omitempty" yaml:"clusterManagerEndpoint,omitempty"`
 	RepoManagerEndpoint       string `json:"repoManagerEndpoint,omitempty" yaml:"repoManagerEndpoint,omitempty"`
@@ -16,11 +16,11 @@ type OpenPitrixOptions struct {
 	RepoIndexerEndpoint       string `json:"repoIndexerEndpoint,omitempty" yaml:"repoIndexerEndpoint,omitempty"`
 }
 
-func NewOpenPitrixOptions() *OpenPitrixOptions {
-	return &OpenPitrixOptions{}
+func NewOpenPitrixOptions() *Options {
+	return &Options{}
 }
 
-func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if options == nil {
 		options = s
 		return
@@ -30,7 +30,7 @@ func (s *OpenPitrixOptions) ApplyTo(options *OpenPitrixOptions) {
 	}
 }
 
-func (s *OpenPitrixOptions) IsEmpty() bool {
+func (s *Options) IsEmpty() bool {
 	return s.RuntimeManagerEndpoint == "" &&
 		s.ClusterManagerEndpoint == "" &&
 		s.RepoManagerEndpoint == "" &&
@@ -40,7 +40,7 @@ func (s *OpenPitrixOptions) IsEmpty() bool {
 		s.RepoIndexerEndpoint == ""
 }
 
-func (s *OpenPitrixOptions) Validate() []error {
+func (s *Options) Validate() []error {
 	var errs []error
 
 	if s.RuntimeManagerEndpoint != "" {
@@ -89,25 +89,25 @@ func (s *OpenPitrixOptions) Validate() []error {
 	return errs
 }
 
-func (s *OpenPitrixOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.RuntimeManagerEndpoint, "openpitrix-runtime-manager-endpoint", s.RuntimeManagerEndpoint, ""+
+func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
+	fs.StringVar(&s.RuntimeManagerEndpoint, "openpitrix-runtime-manager-endpoint", c.RuntimeManagerEndpoint, ""+
 		"OpenPitrix runtime manager endpoint")
 
-	fs.StringVar(&s.AppManagerEndpoint, "openpitrix-app-manager-endpoint", s.AppManagerEndpoint, ""+
+	fs.StringVar(&s.AppManagerEndpoint, "openpitrix-app-manager-endpoint", c.AppManagerEndpoint, ""+
 		"OpenPitrix app manager endpoint")
 
-	fs.StringVar(&s.ClusterManagerEndpoint, "openpitrix-cluster-manager-endpoint", s.ClusterManagerEndpoint, ""+
+	fs.StringVar(&s.ClusterManagerEndpoint, "openpitrix-cluster-manager-endpoint", c.ClusterManagerEndpoint, ""+
 		"OpenPitrix cluster manager endpoint")
 
-	fs.StringVar(&s.CategoryManagerEndpoint, "openpitrix-category-manager-endpoint", s.CategoryManagerEndpoint, ""+
+	fs.StringVar(&s.CategoryManagerEndpoint, "openpitrix-category-manager-endpoint", c.CategoryManagerEndpoint, ""+
 		"OpenPitrix category manager endpoint")
 
-	fs.StringVar(&s.RepoManagerEndpoint, "openpitrix-repo-manager-endpoint", s.RepoManagerEndpoint, ""+
+	fs.StringVar(&s.RepoManagerEndpoint, "openpitrix-repo-manager-endpoint", c.RepoManagerEndpoint, ""+
 		"OpenPitrix repo manager endpoint")
 
-	fs.StringVar(&s.RepoIndexerEndpoint, "openpitrix-repo-indexer-endpoint", s.RepoIndexerEndpoint, ""+
+	fs.StringVar(&s.RepoIndexerEndpoint, "openpitrix-repo-indexer-endpoint", c.RepoIndexerEndpoint, ""+
 		"OpenPitrix repo indexer endpoint")
 
-	fs.StringVar(&s.AttachmentManagerEndpoint, "openpitrix-attachment-manager-endpoint", s.AttachmentManagerEndpoint, ""+
+	fs.StringVar(&s.AttachmentManagerEndpoint, "openpitrix-attachment-manager-endpoint", c.AttachmentManagerEndpoint, ""+
 		"OpenPitrix attachment manager endpoint")
 }

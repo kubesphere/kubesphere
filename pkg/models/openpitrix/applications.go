@@ -28,17 +28,36 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"strings"
 )
+
+type Interface interface {
+	List(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
+	Get(namespace, clusterID string) (*Application, error)
+	Create(namespace string, request CreateClusterRequest) error
+	Patch(request ModifyClusterAttributesRequest) error
+	Delete(id string) error
+}
+
+type applicationOperator struct {
+	informers informers.SharedInformerFactory
+	opClient  pb.ClusterManagerClient
+}
+
+func NewApplicaitonOperator(informers informers.SharedInformerFactory, client pb.ClusterManagerClient) Interface {
+	return &applicationOperator{
+		informers: informers,
+		opClient:  client,
+	}
+}
 
 type Application struct {
 	Name      string            `json:"name" description:"application name"`
@@ -56,7 +75,7 @@ type workLoads struct {
 	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
 }
 
-func ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
+func (c *applicationOperator) List(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
 	client, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -92,7 +111,7 @@ func ListApplications(conditions *params.Conditions, limit, offset int, orderBy 
 	result := models.PageableResponse{TotalCount: int(resp.TotalCount)}
 	result.Items = make([]interface{}, 0)
 	for _, cluster := range resp.ClusterSet {
-		app, err := describeApplication(cluster)
+		app, err := c.describeApplication(cluster)
 		if err != nil {
 			klog.Errorln(err)
 			return nil, err
@@ -103,7 +122,7 @@ func ListApplications(conditions *params.Conditions, limit, offset int, orderBy 
 	return &result, nil
 }
 
-func describeApplication(cluster *pb.Cluster) (*Application, error) {
+func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Application, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -131,15 +150,9 @@ func describeApplication(cluster *pb.Cluster) (*Application, error) {
 	return &app, nil
 }
 
-func DescribeApplication(namespace string, clusterId string) (*Application, error) {
+func (c *applicationOperator) Get(namespace string, clusterId string) (*Application, error) {
 
-	client, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	clusters, err := client.Cluster().DescribeClusters(openpitrix.SystemContext(), &pb.DescribeClustersRequest{ClusterId: []string{clusterId}, Limit: 1})
+	clusters, err := c.opClient.DescribeClusters(openpitrix.SystemContext(), &pb.DescribeClustersRequest{ClusterId: []string{clusterId}, Limit: 1})
 
 	if err != nil {
 		klog.Errorln(err)
@@ -154,26 +167,26 @@ func DescribeApplication(namespace string, clusterId string) (*Application, erro
 		klog.Errorln(err)
 		return nil, err
 	}
-	app, err := describeApplication(cluster)
+	app, err := c.describeApplication(cluster)
 	if err != nil {
 		klog.Errorln(err)
 		return nil, err
 	}
 
-	workloads, err := getWorkLoads(namespace, cluster.ClusterRoleSet)
+	workloads, err := c.getWorkLoads(namespace, cluster.ClusterRoleSet)
 
 	if err != nil {
 		klog.Errorln(err)
 		return nil, err
 	}
 	app.WorkLoads = workloads
-	workloadLabels := getLabels(namespace, app.WorkLoads)
-	app.Services = getSvcs(namespace, workloadLabels)
-	app.Ingresses = getIng(namespace, app.Services)
+	workloadLabels := c.getLabels(namespace, app.WorkLoads)
+	app.Services = c.getSvcs(namespace, workloadLabels)
+	app.Ingresses = c.getIng(namespace, app.Services)
 	return app, nil
 }
 
-func getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads, error) {
+func (c *applicationOperator) getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads, error) {
 
 	var works workLoads
 	for _, clusterRole := range clusterRoles {
@@ -182,7 +195,7 @@ func getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads,
 			if strings.HasSuffix(workLoadName, openpitrix.DeploySuffix) {
 				name := strings.Split(workLoadName, openpitrix.DeploySuffix)[0]
 
-				item, err := informers.SharedInformerFactory().Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
+				item, err := c.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
 
 				if err != nil {
 					// app not ready
@@ -199,7 +212,7 @@ func getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads,
 
 			if strings.HasSuffix(workLoadName, openpitrix.DaemonSuffix) {
 				name := strings.Split(workLoadName, openpitrix.DaemonSuffix)[0]
-				item, err := informers.SharedInformerFactory().Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
+				item, err := c.informers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(name)
 				if err != nil {
 					// app not ready
 					if errors.IsNotFound(err) {
@@ -214,7 +227,7 @@ func getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads,
 
 			if strings.HasSuffix(workLoadName, openpitrix.StateSuffix) {
 				name := strings.Split(workLoadName, openpitrix.StateSuffix)[0]
-				item, err := informers.SharedInformerFactory().Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
+				item, err := c.informers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(name)
 				if err != nil {
 					// app not ready
 					if errors.IsNotFound(err) {
@@ -231,8 +244,7 @@ func getWorkLoads(namespace string, clusterRoles []*pb.ClusterRole) (*workLoads,
 	return &works, nil
 }
 
-func getLabels(namespace string, workloads *workLoads) *[]map[string]string {
-	k8sClient := cs.ClientSets().K8s().Kubernetes()
+func (c *applicationOperator) getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 
 	var workloadLabels []map[string]string
 	if workloads == nil {
@@ -240,7 +252,7 @@ func getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	}
 
 	for _, workload := range workloads.Deployments {
-		deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(workload.Name, metav1.GetOptions{})
+		deploy, err := c.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(workload.Name)
 		if errors.IsNotFound(err) {
 			continue
 		}
@@ -248,7 +260,7 @@ func getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	}
 
 	for _, workload := range workloads.Daemonsets {
-		daemonset, err := k8sClient.AppsV1().DaemonSets(namespace).Get(workload.Name, metav1.GetOptions{})
+		daemonset, err := c.informers.Apps().V1().DaemonSets().Lister().DaemonSets(namespace).Get(workload.Name)
 		if errors.IsNotFound(err) {
 			continue
 		}
@@ -256,7 +268,7 @@ func getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	}
 
 	for _, workload := range workloads.Statefulsets {
-		statefulset, err := k8sClient.AppsV1().StatefulSets(namespace).Get(workload.Name, metav1.GetOptions{})
+		statefulset, err := c.informers.Apps().V1().StatefulSets().Lister().StatefulSets(namespace).Get(workload.Name)
 		if errors.IsNotFound(err) {
 			continue
 		}
@@ -266,7 +278,7 @@ func getLabels(namespace string, workloads *workLoads) *[]map[string]string {
 	return &workloadLabels
 }
 
-func isExist(svcs []v1.Service, svc v1.Service) bool {
+func (c *applicationOperator) isExist(svcs []v1.Service, svc v1.Service) bool {
 	for _, item := range svcs {
 		if item.Name == svc.Name && item.Namespace == svc.Namespace {
 			return true
@@ -275,7 +287,7 @@ func isExist(svcs []v1.Service, svc v1.Service) bool {
 	return false
 }
 
-func getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service {
+func (c *applicationOperator) getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service {
 	if len(*workLoadLabels) == 0 {
 		return nil
 	}
@@ -288,7 +300,7 @@ func getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service
 			klog.Errorf("get app's svc failed, reason: %v", err)
 		}
 		for _, item := range svcs.Items {
-			if !isExist(services, item) {
+			if !c.isExist(services, item) {
 				services = append(services, item)
 			}
 		}
@@ -297,21 +309,23 @@ func getSvcs(namespace string, workLoadLabels *[]map[string]string) []v1.Service
 	return services
 }
 
-func getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
+func (c *applicationOperator) getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
 	if services == nil {
 		return nil
 	}
 
 	var ings []v1beta1.Ingress
 	for _, svc := range services {
-		result, err := resources.ListResources(namespace, "ingress", &params.Conditions{Fuzzy: map[string]string{"serviceName": svc.Name}}, "", false, -1, 0)
+		ingresses, err := c.informers.Extensions().V1beta1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
 		if err != nil {
-			klog.Errorln(err)
-			return nil
+			klog.Error(err)
+			return ings
 		}
 
-		for _, i := range result.Items {
-			ingress := i.(*v1beta1.Ingress)
+		for _, ingress := range ingresses {
+			if ingress.Spec.Backend.ServiceName != svc.Name {
+				continue
+			}
 
 			exist := false
 			var tmpRules []v1beta1.IngressRule
@@ -322,7 +336,6 @@ func getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
 						tmpRules = append(tmpRules, rule)
 					}
 				}
-
 			}
 
 			if exist {
@@ -337,8 +350,8 @@ func getIng(namespace string, services []v1.Service) []v1beta1.Ingress {
 	return ings
 }
 
-func CreateApplication(namespace string, request CreateClusterRequest) error {
-	ns, err := informers.SharedInformerFactory().Core().V1().Namespaces().Lister().Get(namespace)
+func (c *applicationOperator) Create(namespace string, request CreateClusterRequest) error {
+	ns, err := c.informers.Core().V1().Namespaces().Lister().Get(namespace)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -372,7 +385,7 @@ func CreateApplication(namespace string, request CreateClusterRequest) error {
 	return nil
 }
 
-func PatchApplication(request *ModifyClusterAttributesRequest) error {
+func (c *applicationOperator) Patch(request ModifyClusterAttributesRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -397,15 +410,8 @@ func PatchApplication(request *ModifyClusterAttributesRequest) error {
 	return nil
 }
 
-func DeleteApplication(clusterId string) error {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	_, err = client.Cluster().DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
+func (c *applicationOperator) Delete(clusterId string) error {
+	_, err := c.opClient.DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
 
 	if err != nil {
 		klog.Errorln(err)

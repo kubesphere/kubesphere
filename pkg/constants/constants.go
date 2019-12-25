@@ -31,8 +31,6 @@ const (
 	PorterNamespace               = "porter-system"
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
-	DataHome                      = "/etc/kubesphere"
-	IngressControllerFolder       = DataHome + "/ingress-controller"
 	IngressControllerPrefix       = "kubesphere-router-"
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"

@@ -28,7 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
-	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
@@ -53,7 +53,7 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 	}
 
 	if namespaceName != "" {
-		namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+		namespace, err := v1alpha2.GetResource("", v1alpha2.Namespaces, namespaceName)
 
 		if err != nil {
 			klog.Errorln(err)
@@ -109,7 +109,7 @@ func DescribeApplication(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+	namespace, err := resources.GetResource("", v1alpha2.Namespaces, namespaceName)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -186,7 +186,7 @@ func ModifyApplication(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+	namespace, err := resources.GetResource("", v1alpha2.Namespaces, namespaceName)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -243,7 +243,7 @@ func DeleteApplication(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
+	namespace, err := resources.GetResource("", v1alpha2.Namespaces, namespaceName)
 
 	if err != nil {
 		klog.Errorln(err)

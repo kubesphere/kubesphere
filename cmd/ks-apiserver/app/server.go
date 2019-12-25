@@ -26,14 +26,18 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
+	"kubesphere.io/kubesphere/pkg/apiserver"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
-	"kubesphere.io/kubesphere/pkg/informers"
+	kinformers "kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/kapis"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/server/filter"
 	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"net/http"
@@ -48,16 +52,6 @@ func NewAPIServerCommand() *cobra.Command {
 The API Server services REST operations and provides the frontend to the
 cluster's shared state through which all other components interact.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := apiserverconfig.Load()
-			if err != nil {
-				return err
-			}
-
-			err = Complete(s)
-			if err != nil {
-				return err
-			}
-
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
@@ -66,8 +60,10 @@ cluster's shared state through which all other components interact.`,
 		},
 	}
 
+	configOptions := load()
+
 	fs := cmd.Flags()
-	namedFlagSets := s.Flags()
+	namedFlagSets := s.Flags(configOptions)
 
 	for _, f := range namedFlagSets.FlagSets {
 		fs.AddFlagSet(f)
@@ -125,8 +121,12 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 }
 
 //
-func CreateAPIServer(s *options.ServerRunOptions) error {
+func CreateAPIServer(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	var err error
+
+	deps := createDeps(s, stopCh)
+
+	apiserver := apiserver.New(deps)
 
 	container := runtime.Container
 	container.DoNotRecover(false)
@@ -155,23 +155,35 @@ func CreateAPIServer(s *options.ServerRunOptions) error {
 	return err
 }
 
-func CreateClientSet(conf *apiserverconfig.Config, stopCh <-chan struct{}) error {
-	csop := &client.ClientSetOptions{}
+func createDeps(s *options.ServerRunOptions, stopCh <-chan struct{}) *apiserver.Dependencies {
+	deps := &apiserver.Dependencies{}
 
-	csop.SetDevopsOptions(conf.DevopsOptions).
-		SetSonarQubeOptions(conf.SonarQubeOptions).
-		SetKubernetesOptions(conf.KubernetesOptions).
-		SetMySQLOptions(conf.MySQLOptions).
-		SetLdapOptions(conf.LdapOptions).
-		SetS3Options(conf.S3Options).
-		SetOpenPitrixOptions(conf.OpenPitrixOptions).
-		SetPrometheusOptions(conf.MonitoringOptions).
-		SetKubeSphereOptions(conf.KubeSphereOptions).
-		SetElasticSearchOptions(conf.LoggingOptions)
+	if s.KubernetesOptions == nil || s.KubernetesOptions.KubeConfig == "" {
+		klog.Warning("kubeconfig not provided, will use in-cluster config")
+	}
 
-	client.NewClientSetFactory(csop, stopCh)
+	var err error
+	deps.KubeClient, err = k8s.NewKubernetesClient(s.KubernetesOptions)
+	if err != nil {
+		klog.Fatalf("error happened when initializing kubernetes client, %v", err)
+	}
 
-	return nil
+	if s.S3Options != nil && s.S3Options.Endpoint != "" {
+		deps.S3, err = s3.NewS3Client(s.S3Options)
+		if err != nil {
+			klog.Fatalf("error initializing s3 client, %v", err)
+		}
+	}
+
+	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
+		deps.OpenPitrix, err = openpitrix.NewOpenPitrixClient(s.OpenPitrixOptions)
+		if err != nil {
+			klog.Fatalf("error happened when initializing openpitrix client, %v", err)
+		}
+	}
+
+	return deps
+
 }
 
 func WaitForResourceSync(stopCh <-chan struct{}) error {
@@ -196,7 +208,8 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 		return false
 	}
 
-	informerFactory := informers.SharedInformerFactory()
+	informerFactory := kinformers.NewInformerFactories(client.ClientSets().K8s().Kubernetes(), client.ClientSets().K8s().KubeSphere(), client.ClientSets().K8s().S2i(),
+		client.ClientSets().K8s().Application())
 
 	// resources we have to create informer first
 	k8sGVRs := []schema.GroupVersionResource{
@@ -234,7 +247,7 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 		if !isResourceExists(gvr) {
 			klog.Warningf("resource %s not exists in the cluster", gvr)
 		} else {
-			_, err := informerFactory.ForResource(gvr)
+			_, err := informerFactory.KubernetesSharedInformerFactory().ForResource(gvr)
 			if err != nil {
 				klog.Errorf("cannot create informer for %s", gvr)
 				return err
@@ -242,10 +255,10 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 		}
 	}
 
-	informerFactory.Start(stopCh)
-	informerFactory.WaitForCacheSync(stopCh)
+	informerFactory.KubernetesSharedInformerFactory().Start(stopCh)
+	informerFactory.KubernetesSharedInformerFactory().WaitForCacheSync(stopCh)
 
-	s2iInformerFactory := informers.S2iSharedInformerFactory()
+	s2iInformerFactory := informerFactory.S2iSharedInformerFactory()
 
 	s2iGVRs := []schema.GroupVersionResource{
 		{Group: "devops.kubesphere.io", Version: "v1alpha1", Resource: "s2ibuildertemplates"},
@@ -267,7 +280,7 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	s2iInformerFactory.Start(stopCh)
 	s2iInformerFactory.WaitForCacheSync(stopCh)
 
-	ksInformerFactory := informers.KsSharedInformerFactory()
+	ksInformerFactory := informerFactory.KubeSphereSharedInformerFactory()
 
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
@@ -291,7 +304,7 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	ksInformerFactory.Start(stopCh)
 	ksInformerFactory.WaitForCacheSync(stopCh)
 
-	appInformerFactory := informers.AppSharedInformerFactory()
+	appInformerFactory := informerFactory.ApplicationSharedInformerFactory()
 
 	appGVRs := []schema.GroupVersionResource{
 		{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"},
@@ -317,36 +330,23 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 
 }
 
-// apply server run options to configuration
-func Complete(s *options.ServerRunOptions) error {
-
-	// loading configuration file
+// load options from config file
+func load() *options.ServerRunOptions {
 	conf := apiserverconfig.Get()
 
-	conf.Apply(&apiserverconfig.Config{
-		MySQLOptions:       s.MySQLOptions,
-		DevopsOptions:      s.DevopsOptions,
-		SonarQubeOptions:   s.SonarQubeOptions,
-		KubernetesOptions:  s.KubernetesOptions,
-		ServiceMeshOptions: s.ServiceMeshOptions,
-		MonitoringOptions:  s.MonitoringOptions,
-		S3Options:          s.S3Options,
-		OpenPitrixOptions:  s.OpenPitrixOptions,
-		LoggingOptions:     s.LoggingOptions,
-	})
-
-	*s = options.ServerRunOptions{
-		GenericServerRunOptions: s.GenericServerRunOptions,
-		KubernetesOptions:       conf.KubernetesOptions,
-		DevopsOptions:           conf.DevopsOptions,
-		SonarQubeOptions:        conf.SonarQubeOptions,
-		ServiceMeshOptions:      conf.ServiceMeshOptions,
-		MySQLOptions:            conf.MySQLOptions,
-		MonitoringOptions:       conf.MonitoringOptions,
-		S3Options:               conf.S3Options,
-		OpenPitrixOptions:       conf.OpenPitrixOptions,
-		LoggingOptions:          conf.LoggingOptions,
+	return &options.ServerRunOptions{
+		KubernetesOptions:  conf.KubernetesOptions,
+		DevopsOptions:      conf.DevopsOptions,
+		SonarQubeOptions:   conf.SonarQubeOptions,
+		ServiceMeshOptions: conf.ServiceMeshOptions,
+		MySQLOptions:       conf.MySQLOptions,
+		MonitoringOptions:  conf.MonitoringOptions,
+		S3Options:          conf.S3Options,
+		OpenPitrixOptions:  conf.OpenPitrixOptions,
+		LoggingOptions:     conf.LoggingOptions,
 	}
+}
 
+func initConfigz() error {
 	return nil
 }

@@ -28,7 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/log"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"net/http"
 	"strconv"

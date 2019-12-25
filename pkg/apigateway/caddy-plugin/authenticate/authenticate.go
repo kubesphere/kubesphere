@@ -25,7 +25,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"log"
 	"net/http"
 	"strconv"
@@ -44,9 +44,9 @@ type Auth struct {
 type Rule struct {
 	Secret           []byte
 	Path             string
-	RedisOptions     *redis.RedisOptions
+	RedisOptions     *cache.Options
 	TokenIdleTimeout time.Duration
-	RedisClient      *redis.RedisClient
+	RedisClient      cache.Interface
 	ExclusionRules   []internal.ExclusionRule
 }
 
@@ -194,15 +194,15 @@ func (h Auth) Validate(uToken string) (*jwt.Token, error) {
 
 	tokenKey := fmt.Sprintf("kubesphere:users:%s:token:%s", username, uToken)
 
-	exist, err := h.Rule.RedisClient.Redis().Exists(tokenKey).Result()
+	exist, err := h.Rule.RedisClient.Exists(tokenKey)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	if exist == 1 {
+	if exist {
 		// reset expiration time if token exist
-		h.Rule.RedisClient.Redis().Expire(tokenKey, h.Rule.TokenIdleTimeout)
+		h.Rule.RedisClient.Expire(tokenKey, h.Rule.TokenIdleTimeout)
 		return token, nil
 	} else {
 		return nil, errors.New("illegal token")

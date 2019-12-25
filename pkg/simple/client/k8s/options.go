@@ -49,11 +49,11 @@ func (k *KubernetesOptions) ApplyTo(options *KubernetesOptions) {
 	reflectutils.Override(options, k)
 }
 
-func (k *KubernetesOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&k.KubeConfig, "kubeconfig", k.KubeConfig, ""+
+func (k *KubernetesOptions) AddFlags(fs *pflag.FlagSet, c *KubernetesOptions) {
+	fs.StringVar(&k.KubeConfig, "kubeconfig", c.KubeConfig, ""+
 		"Path for kubernetes kubeconfig file, if left blank, will use "+
 		"in cluster way.")
 
-	fs.StringVar(&k.Master, "master", k.Master, ""+
+	fs.StringVar(&k.Master, "master", c.Master, ""+
 		"Used to generate kubeconfig for downloading, if not specified, will use host in kubeconfig.")
 }

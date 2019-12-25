@@ -4,25 +4,24 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type PrometheusOptions struct {
+type Options struct {
 	Endpoint          string `json:"endpoint,omitempty" yaml:"endpoint"`
 	SecondaryEndpoint string `json:"secondaryEndpoint,omitempty" yaml:"secondaryEndpoint"`
 }
 
-func NewPrometheusOptions() *PrometheusOptions {
-	return &PrometheusOptions{
+func NewPrometheusOptions() *Options {
+	return &Options{
 		Endpoint:          "",
 		SecondaryEndpoint: "",
 	}
 }
 
-func (s *PrometheusOptions) Validate() []error {
-	errs := []error{}
-
+func (s *Options) Validate() []error {
+	var errs []error
 	return errs
 }
 
-func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if s.Endpoint != "" {
 		options.Endpoint = s.Endpoint
 	}
@@ -32,11 +31,11 @@ func (s *PrometheusOptions) ApplyTo(options *PrometheusOptions) {
 	}
 }
 
-func (s *PrometheusOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.Endpoint, "prometheus-endpoint", s.Endpoint, ""+
+func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
+	fs.StringVar(&s.Endpoint, "prometheus-endpoint", c.Endpoint, ""+
 		"Prometheus service endpoint which stores KubeSphere monitoring data, if left "+
 		"blank, will use builtin metrics-server as data source.")
 
-	fs.StringVar(&s.SecondaryEndpoint, "prometheus-secondary-endpoint", s.SecondaryEndpoint, ""+
+	fs.StringVar(&s.SecondaryEndpoint, "prometheus-secondary-endpoint", c.SecondaryEndpoint, ""+
 		"Prometheus secondary service endpoint, if left empty and endpoint is set, will use endpoint instead.")
 }
