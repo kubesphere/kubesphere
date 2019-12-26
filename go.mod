@@ -7,19 +7,22 @@ module kubesphere.io/kubesphere
 go 1.12
 
 require (
+	cloud.google.com/go v0.45.1 // indirect
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
+	contrib.go.opencensus.io/exporter/ocagent v0.4.12 // indirect
+	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
+	contrib.go.opencensus.io/exporter/stackdriver v0.11.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
-	github.com/aws/aws-sdk-go v1.22.2
+	github.com/aws/aws-sdk-go v1.23.20
 	github.com/beevik/etree v1.1.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
-	github.com/docker/go-connections v0.3.0 // indirect
+	github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elastic/go-elasticsearch/v5 v5.6.1
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
@@ -40,10 +43,11 @@ require (
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/protobuf v1.3.2
+	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/google/go-containerregistry v0.0.0-20191218175032-34fb8ff33bed // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
-	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
@@ -51,22 +55,20 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779
 	github.com/klauspost/cpuid v1.2.1 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/s2ioperator v0.0.14
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/lucas-clemente/quic-go v0.11.1 // indirect
+	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mholt/caddy v1.0.0
 	github.com/mholt/certmagic v0.5.1 // indirect
 	github.com/miekg/dns v1.1.9 // indirect
-	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
 	github.com/prometheus/common v0.4.0
@@ -77,8 +79,10 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
+	go.opencensus.io v0.22.2 // indirect
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
-	google.golang.org/grpc v1.23.1
+	google.golang.org/api v0.10.0 // indirect
+	google.golang.org/grpc v1.24.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
@@ -92,11 +96,13 @@ require (
 	k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
 	k8s.io/apiserver v0.0.0-20191114103151-9ca1dc586682
 	k8s.io/client-go v0.0.0-20191114101535-6c5935290e33
-	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
+	k8s.io/code-generator v0.0.0-20191121015212-c4c8f8345c7e
 	k8s.io/component-base v0.0.0-20191114102325-35a9586014f7
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f // indirect
+	knative.dev/pkg v0.0.0-20191107185656-884d50f09454 // indirect
+	knative.dev/serving v0.11.1
 	kubesphere.io/im v0.1.0 // indirect
 	openpitrix.io/iam v0.1.0 // indirect
 	openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
@@ -339,7 +345,6 @@ replace (
 	github.com/xlab/treeprint => github.com/xlab/treeprint v0.0.0-20180616005107-d6fb6747feb6
 	github.com/xordataexchange/crypt => github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77
 	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.3
-	go.opencensus.io => go.opencensus.io v0.21.0
 	go.uber.org/atomic => go.uber.org/atomic v1.4.0
 	go.uber.org/multierr => go.uber.org/multierr v1.1.0
 	go.uber.org/zap => go.uber.org/zap v1.10.0
@@ -357,7 +362,7 @@ replace (
 	gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.0.1
 	gonum.org/v1/gonum => gonum.org/v1/gonum v0.0.0-20190331200053-3d26580ed485
 	gonum.org/v1/netlib => gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e
-	google.golang.org/api => google.golang.org/api v0.4.0
+	google.golang.org/api => google.golang.org/api v0.10.0
 	google.golang.org/appengine => google.golang.org/appengine v1.6.5
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
 	google.golang.org/grpc => google.golang.org/grpc v1.23.1

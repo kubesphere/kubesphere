@@ -180,7 +180,8 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 	discoveryClient := client.ClientSets().K8s().Discovery()
 	apiResourcesList, err := discoveryClient.ServerResources()
 	if err != nil {
-		return err
+		// Do not panic when this error occurs
+		klog.Warning("error discovering api resources: ", err)
 	}
 
 	isResourceExists := func(resource schema.GroupVersionResource) bool {
@@ -310,6 +311,28 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 
 	appInformerFactory.Start(stopCh)
 	appInformerFactory.WaitForCacheSync(stopCh)
+
+	serverlessInformerFactory := informers.ServerlessInformerFactory()
+	serverlessGVRs := []schema.GroupVersionResource{
+		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "services"},
+		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "configurations"},
+		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "revisions"},
+		{Group: "serving.knative.dev", Version: "v1", Resource: "revisions"},
+		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "routes"},
+	}
+
+	for _, gvr := range serverlessGVRs {
+		if !isResourceExists(gvr) {
+			klog.Warningf("resource %s not exists in the cluster", gvr)
+		} else {
+			_, err := serverlessInformerFactory.ForResource(gvr)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	serverlessInformerFactory.Start(stopCh)
+	serverlessInformerFactory.WaitForCacheSync(stopCh)
 
 	klog.V(0).Info("Finished caching objects")
 

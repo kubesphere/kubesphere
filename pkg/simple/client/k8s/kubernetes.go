@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	serverlessclientset "knative.dev/serving/pkg/client/clientset/versioned"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"strings"
 )
@@ -24,6 +25,8 @@ type KubernetesClient struct {
 	s2i *s2i.Clientset
 
 	application *applicationclientset.Clientset
+
+	serverless *serverlessclientset.Clientset // TODO: check this
 
 	master string
 
@@ -46,6 +49,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) *KubernetesClient {
 		ks:              kubesphere.NewForConfigOrDie(config),
 		s2i:             s2i.NewForConfigOrDie(config),
 		application:     applicationclientset.NewForConfigOrDie(config),
+		serverless:      serverlessclientset.NewForConfigOrDie(config),
 		master:          config.Host,
 		config:          config,
 	}
@@ -93,6 +97,11 @@ func NewKubernetesClient(options *KubernetesOptions) (*KubernetesClient, error) 
 		return nil, err
 	}
 
+	k.serverless, err = serverlessclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	k.master = options.Master
 	k.config = config
 
@@ -117,6 +126,10 @@ func (k *KubernetesClient) S2i() s2i.Interface {
 
 func (k *KubernetesClient) Application() applicationclientset.Interface {
 	return k.application
+}
+
+func (k *KubernetesClient) Serverless() serverlessclientset.Interface {
+	return k.serverless
 }
 
 // master address used to generate kubeconfig for downloading

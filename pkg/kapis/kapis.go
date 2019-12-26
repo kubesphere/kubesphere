@@ -10,6 +10,7 @@ import (
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
+	s8sv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/serverless/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
@@ -25,6 +26,7 @@ func InstallAPIs(container *restful.Container) {
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container))
+	urlruntime.Must(s8sv1alpha1.AddToContainer(container))
 }
 
 func InstallAuthorizationAPIs(container *restful.Container) {

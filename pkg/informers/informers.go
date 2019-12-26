@@ -21,6 +21,7 @@ import (
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
+	serverlessinformers "knative.dev/serving/pkg/client/informers/externalversions"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"sync"
@@ -30,14 +31,16 @@ import (
 const defaultResync = 600 * time.Second
 
 var (
-	k8sOnce            sync.Once
-	s2iOnce            sync.Once
-	ksOnce             sync.Once
-	appOnce            sync.Once
-	informerFactory    k8sinformers.SharedInformerFactory
-	s2iInformerFactory s2iinformers.SharedInformerFactory
-	ksInformerFactory  ksinformers.SharedInformerFactory
-	appInformerFactory applicationinformers.SharedInformerFactory
+	k8sOnce                   sync.Once
+	s2iOnce                   sync.Once
+	ksOnce                    sync.Once
+	appOnce                   sync.Once
+	serverlessOnce            sync.Once
+	informerFactory           k8sinformers.SharedInformerFactory
+	s2iInformerFactory        s2iinformers.SharedInformerFactory
+	ksInformerFactory         ksinformers.SharedInformerFactory
+	appInformerFactory        applicationinformers.SharedInformerFactory
+	serverlessInformerFactory serverlessinformers.SharedInformerFactory
 )
 
 func SharedInformerFactory() k8sinformers.SharedInformerFactory {
@@ -70,4 +73,12 @@ func AppSharedInformerFactory() applicationinformers.SharedInformerFactory {
 		appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
 	})
 	return appInformerFactory
+}
+
+func ServerlessInformerFactory() serverlessinformers.SharedInformerFactory {
+	serverlessOnce.Do(func() {
+		s8sClient := client.ClientSets().K8s().Serverless()
+		serverlessInformerFactory = serverlessinformers.NewSharedInformerFactory(s8sClient, defaultResync)
+	})
+	return serverlessInformerFactory
 }
