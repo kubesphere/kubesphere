@@ -50,6 +50,12 @@ func init() {
 	resources[StorageClasses] = &storageClassesSearcher{}
 	resources[S2iBuilderTemplates] = &s2iBuilderTemplateSearcher{}
 	resources[Workspaces] = &workspaceSearcher{}
+
+	// Serverless resources. Currently only Knative CRDs.
+	resources[ServerlessServices] = &s8sServiceSearcher{}
+	resources[ServerlessConfigurations] = &configSearcher{}
+	resources[ServerlessRevisions] = &revisionSearcher{}
+	resources[ServerlessRoutes] = &routeSearcher{}
 }
 
 var (
@@ -116,6 +122,10 @@ const (
 	S2iBuilderTemplates      = "s2ibuildertemplates"
 	S2iBuilders              = "s2ibuilders"
 	S2iRuns                  = "s2iruns"
+	ServerlessServices       = "s8sservices"
+	ServerlessConfigurations = "s8sconfigurations"
+	ServerlessRevisions      = "s8srevisions"
+	ServerlessRoutes         = "s8sroutes"
 )
 
 type resourceSearchInterface interface {
