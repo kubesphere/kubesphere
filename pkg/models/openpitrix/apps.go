@@ -45,19 +45,19 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 	}
 
 	describeAppsRequest := &pb.DescribeAppsRequest{}
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppsRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app_id"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppsRequest.AppId = strings.Split(appId, "|")
 	}
-	if isv := conditions.Match["isv"]; isv != "" {
+	if isv := conditions.Match[ISV]; isv != "" {
 		describeAppsRequest.Isv = strings.Split(isv, "|")
 	}
-	if categoryId := conditions.Match["category_id"]; categoryId != "" {
+	if categoryId := conditions.Match[CategoryId]; categoryId != "" {
 		describeAppsRequest.CategoryId = strings.Split(categoryId, "|")
 	}
-	if repoId := conditions.Match["repo"]; repoId != "" {
+	if repoId := conditions.Match[RepoId]; repoId != "" {
 		// hard code, app template in built-in repo has no repo_id attribute
 		if repoId == BuiltinRepoId {
 			describeAppsRequest.RepoId = []string{"\u0000"}
@@ -65,7 +65,7 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 			describeAppsRequest.RepoId = strings.Split(repoId, "|")
 		}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppsRequest.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
@@ -451,7 +451,7 @@ func DoAppAction(appId string, request *ActionRequest) error {
 		// TODO openpitrix need to implement app suspend interface
 		resp, err := op.App().DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
 			AppId:  []string{appId},
-			Status: []string{"active"},
+			Status: []string{StatusActive},
 			Limit:  200,
 			Offset: 0,
 		})
@@ -572,22 +572,22 @@ func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse
 
 	describeAppVersionAudits := &pb.DescribeAppVersionAuditsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionAudits.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionAudits.AppId = []string{appId}
 	}
-	if versionId := conditions.Match["version"]; versionId != "" {
+	if versionId := conditions.Match[VersionId]; versionId != "" {
 		describeAppVersionAudits.VersionId = []string{versionId}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionAudits.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
 		describeAppVersionAudits.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionAudits.Limit = uint32(limit)
 	describeAppVersionAudits.Offset = uint32(offset)
 	resp, err := client.App().DescribeAppVersionAudits(openpitrix.SystemContext(), describeAppVersionAudits)
@@ -617,16 +617,16 @@ func ListAppVersionReviews(conditions *params.Conditions, orderBy string, revers
 
 	describeAppVersionReviews := &pb.DescribeAppVersionReviewsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionReviews.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionReviews.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
 		describeAppVersionReviews.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionReviews.Limit = uint32(limit)
 	describeAppVersionReviews.Offset = uint32(offset)
 	// TODO icon is needed
@@ -657,19 +657,19 @@ func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool
 
 	describeAppVersionsRequest := &pb.DescribeAppVersionsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionsRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionsRequest.AppId = []string{appId}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionsRequest.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
 		describeAppVersionsRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionsRequest.Limit = uint32(limit)
 	describeAppVersionsRequest.Offset = uint32(offset)
 	resp, err := client.App().DescribeAppVersions(openpitrix.SystemContext(), describeAppVersionsRequest)

@@ -32,10 +32,10 @@ import (
 func ListWorkspaceRoles(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("workspace")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	conditions, err := params.ParseConditions(req)
 	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -145,10 +145,10 @@ func RemoveUser(req *restful.Request, resp *restful.Response) {
 
 func ListWorkspaceUsers(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	conditions, err := params.ParseConditions(req)
 	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

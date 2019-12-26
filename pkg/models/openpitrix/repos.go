@@ -169,28 +169,28 @@ func ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limi
 
 	req := &pb.DescribeReposRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		req.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		req.Status = strings.Split(status, "|")
 	}
-	if typeStr := conditions.Match["type"]; typeStr != "" {
+	if typeStr := conditions.Match[Type]; typeStr != "" {
 		req.Type = strings.Split(typeStr, "|")
 	}
-	if visibility := conditions.Match["visibility"]; visibility != "" {
+	if visibility := conditions.Match[Visibility]; visibility != "" {
 		req.Visibility = strings.Split(visibility, "|")
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		req.Status = strings.Split(status, "|")
 	}
-	if workspace := conditions.Match["workspace"]; workspace != "" {
+	if workspace := conditions.Match[WorkspaceLabel]; workspace != "" {
 		req.Label = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", workspace)}
 	}
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: !reverse}
+	req.Reverse = &wrappers.BoolValue{Value: reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
 	resp, err := client.Repo().DescribeRepos(openpitrix.SystemContext(), req)
@@ -273,7 +273,7 @@ func ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset 
 	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
 		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeRepoEventsRequest.Status = strings.Split(status, "|")
 	}
 	describeRepoEventsRequest.Limit = uint32(limit)

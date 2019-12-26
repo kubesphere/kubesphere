@@ -18,14 +18,10 @@
 package resources
 
 import (
-	"kubesphere.io/kubesphere/pkg/constants"
+	extensions "k8s.io/api/extensions/v1beta1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	extensions "k8s.io/api/extensions/v1beta1"
 
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -38,67 +34,27 @@ func (*ingressSearcher) get(namespace, name string) (interface{}, error) {
 }
 
 // exactly Match
-func (*ingressSearcher) match(match map[string]string, item *extensions.Ingress) bool {
-	for k, v := range match {
-		switch k {
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
-		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
-				return false
-			}
+func (*ingressSearcher) match(kv map[string]string, item *extensions.Ingress) bool {
+	for k, v := range kv {
+		if !match(k, v, item.ObjectMeta) {
+			return false
 		}
 	}
 	return true
 }
 
 // Fuzzy searchInNamespace
-func (*ingressSearcher) fuzzy(fuzzy map[string]string, item *extensions.Ingress) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*ingressSearcher) fuzzy(kv map[string]string, item *extensions.Ingress) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*ingressSearcher) compare(a, b *extensions.Ingress, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *ingressSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {

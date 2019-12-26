@@ -20,6 +20,7 @@ package iam
 import (
 	"fmt"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 	"net/mail"
@@ -281,15 +282,16 @@ func Precheck(req *restful.Request, resp *restful.Response) {
 
 func ListUsers(req *restful.Request, resp *restful.Response) {
 
-	if check := req.QueryParameter("check"); check != "" {
+	// TODO use dry-run instead
+	if check := params.GetBoolValueWithDefault(req, "check", false); check {
 		Precheck(req, resp)
 		return
 	}
 
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(req)
+	limit, offset := params.ParsePaging(req)
+	conditions, err := params.ParseConditions(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 
 	if err != nil {
 		klog.Info(err)

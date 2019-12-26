@@ -138,13 +138,13 @@ func ListCategories(conditions *params.Conditions, orderBy string, reverse bool,
 
 	req := &pb.DescribeCategoriesRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		req.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: !reverse}
+	req.Reverse = &wrappers.BoolValue{Value: reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
 	resp, err := client.Category().DescribeCategories(openpitrix.SystemContext(), req)

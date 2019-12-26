@@ -143,16 +143,12 @@ func GetAppVersionFiles(req *restful.Request, resp *restful.Response) {
 }
 
 func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 	appId := req.PathParameter("app")
 	versionId := req.PathParameter("version")
-	if orderBy == "" {
-		orderBy = "status_time"
-		reverse = true
-	}
+	conditions, err := params.ParseConditions(req)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
@@ -179,14 +175,11 @@ func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 }
 
 func ListReviews(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
-	if orderBy == "" {
-		orderBy = "status_time"
-		reverse = true
-	}
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	conditions, err := params.ParseConditions(req)
+
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
@@ -209,21 +202,17 @@ func ListReviews(req *restful.Request, resp *restful.Response) {
 }
 
 func ListAppVersions(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 	appId := req.PathParameter("app")
-	statistics, _ := strconv.ParseBool(req.QueryParameter("statistics"))
-	if orderBy == "" {
-		orderBy = "create_time"
-		reverse = true
-	}
+	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
+	conditions, err := params.ParseConditions(req)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
-	conditions.Match["app"] = appId
+	conditions.Match[openpitrix.AppId] = appId
 
 	result, err := openpitrix.ListAppVersions(conditions, orderBy, reverse, limit, offset)
 
@@ -256,15 +245,11 @@ func ListAppVersions(req *restful.Request, resp *restful.Response) {
 }
 
 func ListApps(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 	statistics, _ := strconv.ParseBool(req.QueryParameter("statistics"))
-	if orderBy == "" {
-		orderBy = "create_time"
-		reverse = true
-	}
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -288,7 +273,7 @@ func ListApps(req *restful.Request, resp *restful.Response) {
 		for _, item := range result.Items {
 			if app, ok := item.(*openpitrix.App); ok {
 				status := "active|used|enabled|stopped|pending|creating|upgrading|updating|rollbacking|stopping|starting|recovering|resizing|scaling|deleting"
-				statisticsResult, err := openpitrix.ListApplications(&params.Conditions{Match: map[string]string{"app_id": app.AppId, "status": status}}, 0, 0, "", false)
+				statisticsResult, err := openpitrix.ListApplications(&params.Conditions{Match: map[string]string{openpitrix.AppId: app.AppId, openpitrix.Status: status}}, 0, 0, "", false)
 				if err != nil {
 					klog.Errorln(err)
 					resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
@@ -394,7 +379,7 @@ func CreateApp(req *restful.Request, resp *restful.Response) {
 
 	createAppRequest.Username = req.HeaderParameter(constants.UserNameHeader)
 
-	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
+	validate := params.GetBoolValueWithDefault(req, "validate", false)
 
 	var result interface{}
 
@@ -437,7 +422,7 @@ func CreateAppVersion(req *restful.Request, resp *restful.Response) {
 	createAppVersionRequest.AppId = req.PathParameter("app")
 	createAppVersionRequest.Username = req.HeaderParameter(constants.UserNameHeader)
 
-	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
+	validate := params.GetBoolValueWithDefault(req, "validate", false)
 
 	var result interface{}
 

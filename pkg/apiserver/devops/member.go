@@ -38,9 +38,9 @@ func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Resp
 		return
 	}
 	orderBy := request.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(request)
-	limit, offset := params.ParsePaging(request.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(request.QueryParameter(params.ConditionsParam))
+	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
+	limit, offset := params.ParsePaging(request)
+	conditions, err := params.ParseConditions(request)
 
 	project, err := devops.GetProjectMembers(projectId, conditions, orderBy, reverse, limit, offset)
 

@@ -28,7 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
-	"strconv"
 )
 
 func CreateCategory(req *restful.Request, resp *restful.Response) {
@@ -125,15 +124,11 @@ func DescribeCategory(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(result)
 }
 func ListCategories(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
-	if orderBy == "" {
-		orderBy = "create_time"
-		reverse = true
-	}
-	statistics, _ := strconv.ParseBool(req.QueryParameter("statistics"))
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

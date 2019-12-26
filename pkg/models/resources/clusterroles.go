@@ -18,16 +18,13 @@
 package resources
 
 import (
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 type clusterRoleSearcher struct {
@@ -38,24 +35,15 @@ func (*clusterRoleSearcher) get(namespace, name string) (interface{}, error) {
 }
 
 // exactly Match
-func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRole) bool {
-	for k, v := range match {
+func (*clusterRoleSearcher) match(kv map[string]string, item *rbac.ClusterRole) bool {
+	for k, v := range kv {
 		switch k {
 		case OwnerKind:
 			fallthrough
 		case OwnerName:
-			kind := match[OwnerKind]
-			name := match[OwnerName]
+			kind := kv[OwnerKind]
+			name := kv[OwnerName]
 			if !k8sutil.IsControlledBy(item.OwnerReferences, kind, name) {
-				return false
-			}
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
 				return false
 			}
 		case UserFacing:
@@ -65,8 +53,7 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 				}
 			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -75,40 +62,17 @@ func (*clusterRoleSearcher) match(match map[string]string, item *rbac.ClusterRol
 }
 
 // Fuzzy searchInNamespace
-func (*clusterRoleSearcher) fuzzy(fuzzy map[string]string, item *rbac.ClusterRole) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*clusterRoleSearcher) fuzzy(kv map[string]string, item *rbac.ClusterRole) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*clusterRoleSearcher) compare(a, b *rbac.ClusterRole, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *clusterRoleSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
