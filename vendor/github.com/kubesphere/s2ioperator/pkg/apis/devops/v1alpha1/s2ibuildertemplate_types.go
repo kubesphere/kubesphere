@@ -92,7 +92,7 @@ type S2iBuilderTemplateStatus struct {
 // +kubebuilder:printcolumn:name="Framework",type="string",JSONPath=".spec.codeFramework"
 // +kubebuilder:printcolumn:name="DefaultBaseImage",type="string",JSONPath=".spec.defaultBaseImage"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version"
-// +kubebuilder:resource:shortName=s2ibt
+// +kubebuilder:resource:categories="devops",scope="Cluster",shortName="s2ibt"
 type S2iBuilderTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

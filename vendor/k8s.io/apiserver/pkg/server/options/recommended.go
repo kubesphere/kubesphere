@@ -44,6 +44,8 @@ type RecommendedOptions struct {
 	// ProcessInfo is used to identify events created by the server.
 	ProcessInfo *ProcessInfo
 	Webhook     *WebhookOptions
+	// API Server Egress Selector is used to control outbound traffic from the API Server
+	EgressSelector *EgressSelectorOptions
 }
 
 func NewRecommendedOptions(prefix string, codec runtime.Codec, processInfo *ProcessInfo) *RecommendedOptions {
@@ -67,6 +69,7 @@ func NewRecommendedOptions(prefix string, codec runtime.Codec, processInfo *Proc
 		Admission:                  NewAdmissionOptions(),
 		ProcessInfo:                processInfo,
 		Webhook:                    NewWebhookOptions(),
+		EgressSelector:             NewEgressSelectorOptions(),
 	}
 }
 
@@ -79,12 +82,12 @@ func (o *RecommendedOptions) AddFlags(fs *pflag.FlagSet) {
 	o.Features.AddFlags(fs)
 	o.CoreAPI.AddFlags(fs)
 	o.Admission.AddFlags(fs)
+	o.EgressSelector.AddFlags(fs)
 }
 
 // ApplyTo adds RecommendedOptions to the server configuration.
-// scheme is the scheme of the apiserver types that are sent to the admission chain.
 // pluginInitializers can be empty, it is only need for additional initializers.
-func (o *RecommendedOptions) ApplyTo(config *server.RecommendedConfig, scheme *runtime.Scheme) error {
+func (o *RecommendedOptions) ApplyTo(config *server.RecommendedConfig) error {
 	if err := o.Etcd.ApplyTo(&config.Config); err != nil {
 		return err
 	}
@@ -108,7 +111,10 @@ func (o *RecommendedOptions) ApplyTo(config *server.RecommendedConfig, scheme *r
 	}
 	if initializers, err := o.ExtraAdmissionInitializers(config); err != nil {
 		return err
-	} else if err := o.Admission.ApplyTo(&config.Config, config.SharedInformerFactory, config.ClientConfig, scheme, initializers...); err != nil {
+	} else if err := o.Admission.ApplyTo(&config.Config, config.SharedInformerFactory, config.ClientConfig, initializers...); err != nil {
+		return err
+	}
+	if err := o.EgressSelector.ApplyTo(&config.Config); err != nil {
 		return err
 	}
 
@@ -125,6 +131,7 @@ func (o *RecommendedOptions) Validate() []error {
 	errors = append(errors, o.Features.Validate()...)
 	errors = append(errors, o.CoreAPI.Validate()...)
 	errors = append(errors, o.Admission.Validate()...)
+	errors = append(errors, o.EgressSelector.Validate()...)
 
 	return errors
 }

@@ -19,7 +19,6 @@ limitations under the License.
 package v1alpha2
 
 import (
-	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
@@ -76,7 +75,7 @@ func setConfigDefaults(config *rest.Config) error {
 	gv := v1alpha2.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

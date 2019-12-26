@@ -38,14 +38,14 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/dryrun"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	utiltrace "k8s.io/apiserver/pkg/util/trace"
+	utiltrace "k8s.io/utils/trace"
 )
 
 // UpdateResource returns a function that will handle a resource update
-func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interface) http.HandlerFunc {
+func UpdateResource(r rest.Updater, scope *RequestScope, admit admission.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		// For performance tracking purposes.
-		trace := utiltrace.New("Update " + req.URL.Path)
+		trace := utiltrace.New("Update", utiltrace.Field{"url", req.URL.Path})
 		defer trace.LogIfLong(500 * time.Millisecond)
 
 		if isDryRun(req.URL) && !utilfeature.DefaultFeatureGate.Enabled(features.DryRun) {
@@ -61,8 +61,15 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 			scope.err(err, w, req)
 			return
 		}
-		ctx := req.Context()
+		ctx, cancel := context.WithTimeout(req.Context(), timeout)
+		defer cancel()
 		ctx = request.WithNamespace(ctx, namespace)
+
+		outputMediaType, _, err := negotiation.NegotiateOutputMediaType(req, scope.Serializer, scope)
+		if err != nil {
+			scope.err(err, w, req)
+			return
+		}
 
 		body, err := limitedReadBody(req, scope.MaxRequestBodyBytes)
 		if err != nil {
@@ -81,6 +88,7 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 			scope.err(err, w, req)
 			return
 		}
+		options.TypeMeta.SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("UpdateOptions"))
 
 		s, err := negotiation.NegotiateInputSerializer(req, false, scope.Serializer)
 		if err != nil {
@@ -115,7 +123,16 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 		}
 
 		userInfo, _ := request.UserFrom(ctx)
-		var transformers []rest.TransformFunc
+		transformers := []rest.TransformFunc{}
+		if scope.FieldManager != nil {
+			transformers = append(transformers, func(_ context.Context, newObj, liveObj runtime.Object) (runtime.Object, error) {
+				obj, err := scope.FieldManager.Update(liveObj, newObj, managerOrUserAgent(options.FieldManager, req.UserAgent()))
+				if err != nil {
+					return nil, fmt.Errorf("failed to update object (Update for %v) managed fields: %v", scope.Kind, err)
+				}
+				return obj, nil
+			})
+		}
 		if mutatingAdmission, ok := admit.(admission.MutationInterface); ok {
 			transformers = append(transformers, func(ctx context.Context, newObj, oldObj runtime.Object) (runtime.Object, error) {
 				isNotZeroObject, err := hasUID(oldObj)
@@ -123,11 +140,11 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 					return nil, fmt.Errorf("unexpected error when extracting UID from oldObj: %v", err.Error())
 				} else if !isNotZeroObject {
 					if mutatingAdmission.Handles(admission.Create) {
-						return newObj, mutatingAdmission.Admit(admission.NewAttributesRecord(newObj, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, dryrun.IsDryRun(options.DryRun), userInfo))
+						return newObj, mutatingAdmission.Admit(ctx, admission.NewAttributesRecord(newObj, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, updateToCreateOptions(options), dryrun.IsDryRun(options.DryRun), userInfo), scope)
 					}
 				} else {
 					if mutatingAdmission.Handles(admission.Update) {
-						return newObj, mutatingAdmission.Admit(admission.NewAttributesRecord(newObj, oldObj, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, dryrun.IsDryRun(options.DryRun), userInfo))
+						return newObj, mutatingAdmission.Admit(ctx, admission.NewAttributesRecord(newObj, oldObj, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, options, dryrun.IsDryRun(options.DryRun), userInfo), scope)
 					}
 				}
 				return newObj, nil
@@ -157,11 +174,11 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 				rest.DefaultUpdatedObjectInfo(obj, transformers...),
 				withAuthorization(rest.AdmissionToValidateObjectFunc(
 					admit,
-					admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, dryrun.IsDryRun(options.DryRun), userInfo)),
+					admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Create, updateToCreateOptions(options), dryrun.IsDryRun(options.DryRun), userInfo), scope),
 					scope.Authorizer, createAuthorizerAttributes),
 				rest.AdmissionToValidateObjectUpdateFunc(
 					admit,
-					admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, dryrun.IsDryRun(options.DryRun), userInfo)),
+					admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Update, options, dryrun.IsDryRun(options.DryRun), userInfo), scope),
 				false,
 				options,
 			)
@@ -174,24 +191,12 @@ func UpdateResource(r rest.Updater, scope RequestScope, admit admission.Interfac
 		}
 		trace.Step("Object stored in database")
 
-		requestInfo, ok := request.RequestInfoFrom(ctx)
-		if !ok {
-			scope.err(fmt.Errorf("missing requestInfo"), w, req)
-			return
-		}
-		if err := setSelfLink(result, requestInfo, scope.Namer); err != nil {
-			scope.err(err, w, req)
-			return
-		}
-		trace.Step("Self-link added")
-
 		status := http.StatusOK
 		if wasCreated {
 			status = http.StatusCreated
 		}
 
-		scope.Trace = trace
-		transformResponseObject(ctx, scope, req, w, status, result)
+		transformResponseObject(ctx, scope, trace, req, w, status, outputMediaType, result)
 	}
 }
 
@@ -200,7 +205,7 @@ func withAuthorization(validate rest.ValidateObjectFunc, a authorizer.Authorizer
 	var authorizerDecision authorizer.Decision
 	var authorizerReason string
 	var authorizerErr error
-	return func(obj runtime.Object) error {
+	return func(ctx context.Context, obj runtime.Object) error {
 		if a == nil {
 			return errors.NewInternalError(fmt.Errorf("no authorizer provided, unable to authorize a create on update"))
 		}
@@ -210,7 +215,7 @@ func withAuthorization(validate rest.ValidateObjectFunc, a authorizer.Authorizer
 		// an authorizer like RBAC could encounter evaluation errors and still allow the request, so authorizer decision is checked before error here.
 		if authorizerDecision == authorizer.DecisionAllow {
 			// Continue to validating admission
-			return validate(obj)
+			return validate(ctx, obj)
 		}
 		if authorizerErr != nil {
 			return errors.NewInternalError(authorizerErr)
@@ -225,4 +230,17 @@ func withAuthorization(validate rest.ValidateObjectFunc, a authorizer.Authorizer
 		err := fmt.Errorf("%v", authorizerReason)
 		return errors.NewForbidden(gr, name, err)
 	}
+}
+
+// updateToCreateOptions creates a CreateOptions with the same field values as the provided UpdateOptions.
+func updateToCreateOptions(uo *metav1.UpdateOptions) *metav1.CreateOptions {
+	if uo == nil {
+		return nil
+	}
+	co := &metav1.CreateOptions{
+		DryRun:       uo.DryRun,
+		FieldManager: uo.FieldManager,
+	}
+	co.TypeMeta.SetGroupVersionKind(metav1.SchemeGroupVersion.WithKind("CreateOptions"))
+	return co
 }

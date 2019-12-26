@@ -25,13 +25,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-var log = logf.KBLog.WithName("source").WithName("EventHandler")
+var log = logf.RuntimeLog.WithName("source").WithName("EventHandler")
 
 var _ cache.ResourceEventHandler = EventHandler{}
 
@@ -42,7 +42,7 @@ type EventHandler struct {
 	Predicates   []predicate.Predicate
 }
 
-// OnAdd creates and CreateEvent and calls Create on EventHandler
+// OnAdd creates CreateEvent and calls Create on EventHandler
 func (e EventHandler) OnAdd(obj interface{}) {
 	c := event.CreateEvent{}
 
@@ -74,7 +74,7 @@ func (e EventHandler) OnAdd(obj interface{}) {
 	e.EventHandler.Create(c, e.Queue)
 }
 
-// OnUpdate creates and UpdateEvent and calls Update on EventHandler
+// OnUpdate creates UpdateEvent and calls Update on EventHandler
 func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 	u := event.UpdateEvent{}
 
@@ -124,7 +124,7 @@ func (e EventHandler) OnUpdate(oldObj, newObj interface{}) {
 	e.EventHandler.Update(u, e.Queue)
 }
 
-// OnDelete creates and DeleteEvent and calls Delete on EventHandler
+// OnDelete creates DeleteEvent and calls Delete on EventHandler
 func (e EventHandler) OnDelete(obj interface{}) {
 	d := event.DeleteEvent{}
 

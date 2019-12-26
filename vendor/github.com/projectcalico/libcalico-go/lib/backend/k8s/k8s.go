@@ -380,7 +380,7 @@ func buildCRDClientV1(cfg rest.Config) (*rest.RESTClient, error) {
 	}
 	cfg.APIPath = "/apis"
 	cfg.ContentType = runtime.ContentTypeJSON
-	cfg.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	cfg.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 
 	cli, err := rest.RESTClientFor(&cfg)
 	if err != nil {

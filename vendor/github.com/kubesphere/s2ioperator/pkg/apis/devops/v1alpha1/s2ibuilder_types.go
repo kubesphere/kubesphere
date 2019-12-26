@@ -68,12 +68,12 @@ type ProxyConfig struct {
 
 // CGroupLimits holds limits used to constrain container resources.
 type CGroupLimits struct {
-	MemoryLimitBytes int64
-	CPUShares        int64
-	CPUPeriod        int64
-	CPUQuota         int64
-	MemorySwap       int64
-	Parent           string
+	MemoryLimitBytes int64  `json:"memoryLimitBytes"`
+	CPUShares        int64  `json:"cpuShares"`
+	CPUPeriod        int64  `json:"cpuPeriod"`
+	CPUQuota         int64  `json:"cpuQuota"`
+	MemorySwap       int64  `json:"memorySwap"`
+	Parent           string `json:"parent"`
 }
 
 // VolumeSpec represents a single volume mount point.
@@ -89,22 +89,22 @@ type VolumeSpec struct {
 // DockerConfig contains the configuration for a Docker connection.
 type DockerConfig struct {
 	// Endpoint is the docker network endpoint or socket
-	Endpoint string
+	Endpoint string `json:"endPoint"`
 
 	// CertFile is the certificate file path for a TLS connection
-	CertFile string
+	CertFile string `json:"certFile"`
 
 	// KeyFile is the key file path for a TLS connection
-	KeyFile string
+	KeyFile string `json:"keyFile"`
 
 	// CAFile is the certificate authority file path for a TLS connection
-	CAFile string
+	CAFile string `json:"caFile"`
 
 	// UseTLS indicates if TLS must be used
-	UseTLS bool
+	UseTLS bool `json:"useTLS"`
 
 	// TLSVerify indicates if TLS peer must be verified
-	TLSVerify bool
+	TLSVerify bool `json:"tlsVerify"`
 }
 
 // AuthConfig is our abstraction of the Registry authorization information for whatever

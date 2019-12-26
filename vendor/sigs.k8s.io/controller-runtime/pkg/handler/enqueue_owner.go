@@ -19,20 +19,21 @@ package handler
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var _ EventHandler = &EnqueueRequestForOwner{}
 
-var log = logf.KBLog.WithName("eventhandler").WithName("EnqueueRequestForOwner")
+var log = logf.RuntimeLog.WithName("eventhandler").WithName("EnqueueRequestForOwner")
 
 // EnqueueRequestForOwner enqueues Requests for the Owners of an object.  E.g. the object that created
 // the object that was the source of the Event.
@@ -51,6 +52,9 @@ type EnqueueRequestForOwner struct {
 
 	// groupKind is the cached Group and Kind from OwnerType
 	groupKind schema.GroupKind
+
+	// mapper maps GroupVersionKinds to Resources
+	mapper meta.RESTMapper
 }
 
 // Create implements EventHandler
@@ -126,10 +130,21 @@ func (e *EnqueueRequestForOwner) getOwnerReconcileRequest(object metav1.Object) 
 		// object in the event.
 		if ref.Kind == e.groupKind.Kind && refGV.Group == e.groupKind.Group {
 			// Match found - add a Request for the object referred to in the OwnerReference
-			result = append(result, reconcile.Request{NamespacedName: types.NamespacedName{
-				Namespace: object.GetNamespace(),
-				Name:      ref.Name,
-			}})
+			request := reconcile.Request{NamespacedName: types.NamespacedName{
+				Name: ref.Name,
+			}}
+
+			// if owner is not namespaced then we should set the namespace to the empty
+			mapping, err := e.mapper.RESTMapping(e.groupKind, refGV.Version)
+			if err != nil {
+				log.Error(err, "Could not retrieve rest mapping", "kind", e.groupKind)
+				return nil
+			}
+			if mapping.Scope.Name() != meta.RESTScopeNameRoot {
+				request.Namespace = object.GetNamespace()
+			}
+
+			result = append(result, request)
 		}
 	}
 
@@ -162,4 +177,12 @@ var _ inject.Scheme = &EnqueueRequestForOwner{}
 // InjectScheme is called by the Controller to provide a singleton scheme to the EnqueueRequestForOwner.
 func (e *EnqueueRequestForOwner) InjectScheme(s *runtime.Scheme) error {
 	return e.parseOwnerTypeGroupKind(s)
+}
+
+var _ inject.Mapper = &EnqueueRequestForOwner{}
+
+// InjectMapper  is called by the Controller to provide the rest mapper used by the manager.
+func (e *EnqueueRequestForOwner) InjectMapper(m meta.RESTMapper) error {
+	e.mapper = m
+	return nil
 }

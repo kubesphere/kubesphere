@@ -50,7 +50,6 @@ shift 4
 
 GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/{client-gen,lister-gen,informer-gen}
 
-
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions

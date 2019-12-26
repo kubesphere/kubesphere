@@ -211,8 +211,7 @@ func NewFluentbitCRDClient(cfg *rest.Config) (*rest.RESTClient, *runtime.Scheme,
 	config.GroupVersion = &SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{
-		CodecFactory: serializer.NewCodecFactory(scheme)}
+	config.NegotiatedSerializer = serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
 
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {

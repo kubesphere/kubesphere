@@ -35,12 +35,12 @@ import (
 
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
-	istioclientset "github.com/knative/pkg/client/clientset/versioned"
-	istioinformers "github.com/knative/pkg/client/informers/externalversions"
 	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iclientset "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
+	istioclientset "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	kubesphereclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubesphereinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )

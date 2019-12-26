@@ -21,7 +21,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projectcalico/libcalico-go/lib/apis/v3"
+	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
 	"github.com/projectcalico/libcalico-go/lib/set"
 
 	bapi "github.com/projectcalico/libcalico-go/lib/backend/api"
@@ -1361,13 +1361,13 @@ func (c ipamClient) GetAssignmentAttributes(ctx context.Context, addr net.IP) (m
 	}
 	if pool == nil {
 		log.Errorf("Error reading pool for %s", addr.String())
-		return nil, errors.New(fmt.Sprintf("%s is not part of a configured pool", addr))
+		return nil, cerrors.ErrorResourceDoesNotExist{Identifier: addr.String(), Err: errors.New("No valid IPPool")}
 	}
 	blockCIDR := getBlockCIDRForAddress(addr, pool)
 	obj, err := c.blockReaderWriter.queryBlock(ctx, blockCIDR, "")
 	if err != nil {
 		log.Errorf("Error reading block %s: %v", blockCIDR, err)
-		return nil, errors.New(fmt.Sprintf("%s is not assigned", addr))
+		return nil, err
 	}
 	block := allocationBlock{obj.Value.(*model.AllocationBlock)}
 	return block.attributesForIP(addr)

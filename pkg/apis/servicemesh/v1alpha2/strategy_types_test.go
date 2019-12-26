@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/knative/pkg/apis/istio/v1alpha3"
 	"io/ioutil"
+	apinetworkingv1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
 	"testing"
@@ -41,7 +41,7 @@ func TestStorageStrategy(t *testing.T) {
 		},
 		Spec: StrategySpec{
 			Template: VirtualServiceTemplateSpec{
-				Spec: v1alpha3.VirtualServiceSpec{
+				Spec: apinetworkingv1alpha3.VirtualService{
 					Hosts: []string{
 						"details",
 					},

@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,15 +46,16 @@ func HandleError(info string, name string, e error) error {
 }
 
 func (gr *Reconciler) observe(observables ...resource.Observable) (*resource.ObjectBag, error) {
-	var returnval *resource.ObjectBag = new(resource.ObjectBag)
+	var returnval = new(resource.ObjectBag)
 	var err error
 	for _, obs := range observables {
 		var resources []resource.Object
 		if obs.Labels != nil {
-			opts := client.MatchingLabels(obs.Labels)
+			opts := client.ListOptions{
+				LabelSelector: labels.SelectorFromSet(obs.Labels),
+			}
 			opts.Raw = &metav1.ListOptions{TypeMeta: obs.Type}
-			opts.Namespace = obs.Namespace
-			err = gr.List(context.TODO(), opts, obs.ObjList.(runtime.Object))
+			err = gr.List(context.TODO(), obs.ObjList.(runtime.Object), &opts)
 			if err == nil {
 				items, err := meta.ExtractList(obs.ObjList.(runtime.Object))
 				if err == nil {

@@ -129,6 +129,20 @@ func (r bgpConfigurations) ValidateDefaultOnlyFields(res *apiv3.BGPConfiguration
 				Reason: "Cannot set ASNumber on a non default BGP Configuration.",
 			})
 		}
+
+		if res.Spec.ServiceExternalIPs != nil && len(res.Spec.ServiceExternalIPs) > 0 {
+			errFields = append(errFields, cerrors.ErroredField{
+				Name:   "BGPConfiguration.Spec.ServiceExternalIPs",
+				Reason: "Cannot set ServiceExternalIPs on a non default BGP Configuration.",
+			})
+		}
+
+		if res.Spec.ServiceClusterIPs != nil && len(res.Spec.ServiceClusterIPs) > 0 {
+			errFields = append(errFields, cerrors.ErroredField{
+				Name:   "BGPConfiguration.Spec.ServiceClusterIPs",
+				Reason: "Cannot set ServiceClusterIPs on a non default BGP Configuration.",
+			})
+		}
 	}
 
 	if len(errFields) > 0 {

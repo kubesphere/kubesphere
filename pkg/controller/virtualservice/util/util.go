@@ -1,7 +1,8 @@
 package util
 
 import (
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	"istio.io/api/networking/v1alpha3"
+	clientgonetworkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -90,17 +91,22 @@ func IsApplicationComponent(lbs map[string]string) bool {
 }
 
 // if virtualservice not specified with port number, then fill with service first port
-func FillDestinationPort(vs *v1alpha3.VirtualService, service *v1.Service) {
+func FillDestinationPort(vs *clientgonetworkingv1alpha3.VirtualService, service *v1.Service) {
 	// fill http port
 	for i := range vs.Spec.Http {
 		for j := range vs.Spec.Http[i].Route {
-			if vs.Spec.Http[i].Route[j].Destination.Port.Number == 0 {
-				vs.Spec.Http[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+			port := vs.Spec.Http[i].Route[j].Destination.Port
+			if port == nil || port.Number == 0 {
+				vs.Spec.Http[i].Route[j].Destination.Port = &v1alpha3.PortSelector{
+					Number: uint32(service.Spec.Ports[0].Port),
+				}
 			}
 		}
 
-		if vs.Spec.Http[i].Mirror != nil && vs.Spec.Http[i].Mirror.Port.Number == 0 {
-			vs.Spec.Http[i].Mirror.Port.Number = uint32(service.Spec.Ports[0].Port)
+		if vs.Spec.Http[i].Mirror != nil && (vs.Spec.Http[i].Mirror.Port == nil || vs.Spec.Http[i].Mirror.Port.Number == 0) {
+			vs.Spec.Http[i].Mirror.Port = &v1alpha3.PortSelector{
+				Number: uint32(service.Spec.Ports[0].Port),
+			}
 		}
 	}
 
@@ -108,7 +114,9 @@ func FillDestinationPort(vs *v1alpha3.VirtualService, service *v1.Service) {
 	for i := range vs.Spec.Tcp {
 		for j := range vs.Spec.Tcp[i].Route {
 			if vs.Spec.Tcp[i].Route[j].Destination.Port.Number == 0 {
-				vs.Spec.Tcp[i].Route[j].Destination.Port.Number = uint32(service.Spec.Ports[0].Port)
+				vs.Spec.Tcp[i].Route[j].Destination.Port = &v1alpha3.PortSelector{
+					Number: uint32(service.Spec.Ports[0].Port),
+				}
 			}
 		}
 	}

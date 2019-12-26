@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/knative/pkg/apis/istio/v1alpha3"
+	"istio.io/api/networking/v1alpha3"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -51,7 +51,7 @@ type DestinationRuleSpecTemplate struct {
 
 	// Spec indicates the behavior of a destination rule.
 	// +optional
-	Spec v1alpha3.DestinationRuleSpec `json:"spec,omitempty"`
+	Spec v1alpha3.DestinationRule `json:"spec,omitempty"`
 }
 
 type ServicePolicyConditionType string

@@ -13,7 +13,7 @@
 // limitations under the License.
 package ipam
 
-import "github.com/projectcalico/libcalico-go/lib/apis/v3"
+import v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
 
 // Interface used to access the enabled IPPools.
 type PoolAccessorInterface interface {

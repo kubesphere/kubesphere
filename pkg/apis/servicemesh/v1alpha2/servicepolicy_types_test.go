@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"istio.io/api/networking/v1alpha3"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -34,7 +35,15 @@ func TestStorageServicePolicy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
-		}}
+		},
+		Spec: ServicePolicySpec{
+			Template: DestinationRuleSpecTemplate{
+				Spec: v1alpha3.DestinationRule{
+					Host: "foo",
+				},
+			},
+		},
+	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create

@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -141,5 +141,5 @@ type objMeta struct {
 	*resourceMeta
 
 	// Object contains meta data for the object instance
-	v1.Object
+	metav1.Object
 }

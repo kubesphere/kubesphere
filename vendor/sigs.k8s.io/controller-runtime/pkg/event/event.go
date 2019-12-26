@@ -17,7 +17,7 @@ limitations under the License.
 package event
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -25,7 +25,7 @@ import (
 // by a source.Source and transformed into a reconcile.Request by an handler.EventHandler.
 type CreateEvent struct {
 	// Meta is the ObjectMeta of the Kubernetes Type that was created
-	Meta v1.Object
+	Meta metav1.Object
 
 	// Object is the object from the event
 	Object runtime.Object
@@ -35,13 +35,13 @@ type CreateEvent struct {
 // by a source.Source and transformed into a reconcile.Request by an handler.EventHandler.
 type UpdateEvent struct {
 	// MetaOld is the ObjectMeta of the Kubernetes Type that was updated (before the update)
-	MetaOld v1.Object
+	MetaOld metav1.Object
 
 	// ObjectOld is the object from the event
 	ObjectOld runtime.Object
 
 	// MetaNew is the ObjectMeta of the Kubernetes Type that was updated (after the update)
-	MetaNew v1.Object
+	MetaNew metav1.Object
 
 	// ObjectNew is the object from the event
 	ObjectNew runtime.Object
@@ -51,7 +51,7 @@ type UpdateEvent struct {
 // by a source.Source and transformed into a reconcile.Request by an handler.EventHandler.
 type DeleteEvent struct {
 	// Meta is the ObjectMeta of the Kubernetes Type that was deleted
-	Meta v1.Object
+	Meta metav1.Object
 
 	// Object is the object from the event
 	Object runtime.Object
@@ -66,7 +66,7 @@ type DeleteEvent struct {
 // handler.EventHandler.
 type GenericEvent struct {
 	// Meta is the ObjectMeta of a Kubernetes Type this event is for
-	Meta v1.Object
+	Meta metav1.Object
 
 	// Object is the object from the event
 	Object runtime.Object

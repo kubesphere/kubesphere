@@ -120,7 +120,7 @@ func (b *AllocationBlock) IsDeleted() bool {
 
 func (b *AllocationBlock) Host() string {
 	if b.Affinity != nil && strings.HasPrefix(*b.Affinity, "host:") {
-		return strings.TrimLeft(*b.Affinity, "host:")
+		return strings.TrimPrefix(*b.Affinity, "host:")
 	}
 	return ""
 }

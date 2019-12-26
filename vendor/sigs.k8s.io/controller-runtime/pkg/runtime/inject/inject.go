@@ -17,11 +17,13 @@ limitations under the License.
 package inject
 
 import (
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission/types"
 )
 
 // Cache is used by the ControllerManager to inject Cache into Sources, EventHandlers, Predicates, and
@@ -35,6 +37,20 @@ type Cache interface {
 func CacheInto(c cache.Cache, i interface{}) (bool, error) {
 	if s, ok := i.(Cache); ok {
 		return true, s.InjectCache(c)
+	}
+	return false, nil
+}
+
+// APIReader is used by the Manager to inject the APIReader into necessary types.
+type APIReader interface {
+	InjectAPIReader(client.Reader) error
+}
+
+// APIReaderInto will set APIReader on i and return the result if it implements APIReaderInto.
+// Returns false if i does not implement APIReader
+func APIReaderInto(reader client.Reader, i interface{}) (bool, error) {
+	if s, ok := i.(APIReader); ok {
+		return true, s.InjectAPIReader(reader)
 	}
 	return false, nil
 }
@@ -69,20 +85,6 @@ func ClientInto(client client.Client, i interface{}) (bool, error) {
 	return false, nil
 }
 
-// Decoder is used by the ControllerManager to inject decoder into webhook handlers.
-type Decoder interface {
-	InjectDecoder(types.Decoder) error
-}
-
-// DecoderInto will set decoder on i and return the result if it implements Decoder.  Returns
-// false if i does not implement Decoder.
-func DecoderInto(decoder types.Decoder, i interface{}) (bool, error) {
-	if s, ok := i.(Decoder); ok {
-		return true, s.InjectDecoder(decoder)
-	}
-	return false, nil
-}
-
 // Scheme is used by the ControllerManager to inject Scheme into Sources, EventHandlers, Predicates, and
 // Reconciles
 type Scheme interface {
@@ -113,6 +115,20 @@ func StopChannelInto(stop <-chan struct{}, i interface{}) (bool, error) {
 	return false, nil
 }
 
+// Mapper is used to inject the rest mapper to components that may need it
+type Mapper interface {
+	InjectMapper(meta.RESTMapper) error
+}
+
+// MapperInto will set the rest mapper on i and return the result if it implements Mapper.
+// Returns false if i does not implement Mapper.
+func MapperInto(mapper meta.RESTMapper, i interface{}) (bool, error) {
+	if m, ok := i.(Mapper); ok {
+		return true, m.InjectMapper(mapper)
+	}
+	return false, nil
+}
+
 // Func injects dependencies into i.
 type Func func(i interface{}) error
 
@@ -126,6 +142,21 @@ type Injector interface {
 func InjectorInto(f Func, i interface{}) (bool, error) {
 	if ii, ok := i.(Injector); ok {
 		return true, ii.InjectFunc(f)
+	}
+	return false, nil
+}
+
+// Logger is used to inject Loggers into components that need them
+// and don't otherwise have opinions.
+type Logger interface {
+	InjectLogger(l logr.Logger) error
+}
+
+// LoggerInto will set the logger on the given object if it implements inject.Logger,
+// returning true if a InjectLogger was called, and false otherwise.
+func LoggerInto(l logr.Logger, i interface{}) (bool, error) {
+	if injectable, wantsLogger := i.(Logger); wantsLogger {
+		return true, injectable.InjectLogger(l)
 	}
 	return false, nil
 }

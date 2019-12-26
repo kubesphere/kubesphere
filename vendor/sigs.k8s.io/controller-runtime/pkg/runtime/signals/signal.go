@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,30 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package signals contains libraries for handling signals to gracefully
+// shutdown the manager in combination with Kubernetes pod graceful termination
+// policy.
+//
+// Deprecated: use pkg/manager/signals instead.
 package signals
 
 import (
-	"os"
-	"os/signal"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
 
-var onlyOneSignalHandler = make(chan struct{})
-
-// SetupSignalHandler registered for SIGTERM and SIGINT. A stop channel is returned
-// which is closed on one of these signals. If a second signal is caught, the program
-// is terminated with exit code 1.
-func SetupSignalHandler() (stopCh <-chan struct{}) {
-	close(onlyOneSignalHandler) // panics when called twice
-
-	stop := make(chan struct{})
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, shutdownSignals...)
-	go func() {
-		<-c
-		close(stop)
-		<-c
-		os.Exit(1) // second signal. Exit directly.
-	}()
-
-	return stop
-}
+var (
+	// SetupSignalHandler registers for SIGTERM and SIGINT. A stop channel is returned
+	// which is closed on one of these signals. If a second signal is caught, the program
+	// is terminated with exit code 1.
+	SetupSignalHandler = signals.SetupSignalHandler
+)

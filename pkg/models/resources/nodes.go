@@ -53,10 +53,14 @@ func getNodeStatus(node *v1.Node) string {
 const NodeConfigOK v1.NodeConditionType = "ConfigOK"
 const NodeKubeletReady v1.NodeConditionType = "KubeletReady"
 
-var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{v1.NodeOutOfDisk: v1.ConditionFalse,
-	v1.NodeMemoryPressure: v1.ConditionFalse, v1.NodeDiskPressure: v1.ConditionFalse, v1.NodePIDPressure: v1.ConditionFalse,
-	v1.NodeNetworkUnavailable: v1.ConditionFalse, NodeConfigOK: v1.ConditionTrue, NodeKubeletReady: v1.ConditionTrue,
-	v1.NodeReady: v1.ConditionTrue,
+var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{
+	v1.NodeMemoryPressure:     v1.ConditionFalse,
+	v1.NodeDiskPressure:       v1.ConditionFalse,
+	v1.NodePIDPressure:        v1.ConditionFalse,
+	v1.NodeNetworkUnavailable: v1.ConditionFalse,
+	NodeConfigOK:              v1.ConditionTrue,
+	NodeKubeletReady:          v1.ConditionTrue,
+	v1.NodeReady:              v1.ConditionTrue,
 }
 
 func isUnhealthStatus(condition v1.NodeCondition) bool {

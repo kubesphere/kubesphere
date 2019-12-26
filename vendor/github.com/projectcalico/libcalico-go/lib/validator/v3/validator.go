@@ -57,12 +57,15 @@ var (
 	// GlobalNetworkPolicy names must be a simple DNS1123 label format (nameLabelFmt).
 	globalNetworkPolicyNameRegex = regexp.MustCompile("^(" + nameLabelFmt + ")$")
 
+	// Hostname  have to be valid ipv4, ipv6 or strings up to 64 characters.
+	prometheusHostRegexp = regexp.MustCompile(`^[a-zA-Z0-9:._+-]{1,64}$`)
+
 	interfaceRegex        = regexp.MustCompile("^[a-zA-Z0-9_.-]{1,15}$")
 	ifaceFilterRegex      = regexp.MustCompile("^[a-zA-Z0-9:._+-]{1,15}$")
 	actionRegex           = regexp.MustCompile("^(Allow|Deny|Log|Pass)$")
 	protocolRegex         = regexp.MustCompile("^(TCP|UDP|ICMP|ICMPv6|SCTP|UDPLite)$")
 	ipipModeRegex         = regexp.MustCompile("^(Always|CrossSubnet|Never)$")
-	vxlanModeRegex        = regexp.MustCompile("^(Always|Never)$")
+	vxlanModeRegex        = regexp.MustCompile("^(Always|CrossSubnet|Never)$")
 	logLevelRegex         = regexp.MustCompile("^(Debug|Info|Warning|Error|Fatal)$")
 	datastoreType         = regexp.MustCompile("^(etcdv3|kubernetes)$")
 	dropAcceptReturnRegex = regexp.MustCompile("^(Drop|Accept|Return)$")
@@ -135,6 +138,7 @@ func init() {
 	registerFieldValidator("ifaceFilter", validateIfaceFilter)
 	registerFieldValidator("mac", validateMAC)
 	registerFieldValidator("iptablesBackend", validateIptablesBackend)
+	registerFieldValidator("prometheusHost", validatePrometheusHost)
 
 	// Register network validators (i.e. validating a correctly masked CIDR).  Also
 	// accepts an IP address without a mask (assumes a full mask).
@@ -233,6 +237,12 @@ func validateContainerID(fl validator.FieldLevel) bool {
 	s := fl.Field().String()
 	log.Debugf("Validate containerID: %s", s)
 	return containerIDRegex.MatchString(s)
+}
+
+func validatePrometheusHost(fl validator.FieldLevel) bool {
+	s := fl.Field().String()
+	log.Debugf("Validate prometheusHost: %s", s)
+	return prometheusHostRegexp.MatchString(s)
 }
 
 func validatePortName(fl validator.FieldLevel) bool {
@@ -587,7 +597,15 @@ func validateFelixConfigSpec(structLevel validator.StructLevel) {
 		parsedAddress := cnet.ParseIP(c.NATOutgoingAddress)
 		if parsedAddress == nil || parsedAddress.Version() != 4 {
 			structLevel.ReportError(reflect.ValueOf(c.NATOutgoingAddress),
-				"NATOutgoingAddress", "", reason("is not a valid IP address"), "")
+				"NATOutgoingAddress", "", reason("is not a valid IPv4 address"), "")
+		}
+	}
+
+	if c.DeviceRouteSourceAddress != "" {
+		parsedAddress := cnet.ParseIP(c.DeviceRouteSourceAddress)
+		if parsedAddress == nil || parsedAddress.Version() != 4 {
+			structLevel.ReportError(reflect.ValueOf(c.DeviceRouteSourceAddress),
+				"DeviceRouteSourceAddress", "", reason("is not a valid IPv4 address"), "")
 		}
 	}
 }
@@ -717,7 +735,7 @@ func validateIPPoolSpec(structLevel validator.StructLevel) {
 	}
 
 	// Cannot have both VXLAN and IPIP on the same IP pool.
-	if (pool.IPIPMode == api.IPIPModeAlways || pool.IPIPMode == api.IPIPModeCrossSubnet) && pool.VXLANMode == api.VXLANModeAlways {
+	if ipipModeEnabled(pool.IPIPMode) && vxLanModeEnabled(pool.VXLANMode) {
 		structLevel.ReportError(reflect.ValueOf(pool.IPIPMode),
 			"IPpool.IPIPMode", "", reason("IPIPMode and VXLANMode cannot both be enabled on the same IP pool"), "")
 	}
@@ -770,6 +788,14 @@ func validateIPPoolSpec(structLevel validator.StructLevel) {
 		structLevel.ReportError(reflect.ValueOf(pool.CIDR),
 			"IPpool.CIDR", "", reason(overlapsV6LinkLocal), "")
 	}
+}
+
+func vxLanModeEnabled(mode api.VXLANMode) bool {
+	return mode == api.VXLANModeAlways || mode == api.VXLANModeCrossSubnet
+}
+
+func ipipModeEnabled(mode api.IPIPMode) bool {
+	return mode == api.IPIPModeAlways || mode == api.IPIPModeCrossSubnet
 }
 
 func validateICMPFields(structLevel validator.StructLevel) {

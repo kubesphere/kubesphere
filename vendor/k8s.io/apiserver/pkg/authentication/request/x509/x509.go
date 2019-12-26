@@ -23,22 +23,33 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/component-base/metrics"
+	"k8s.io/component-base/metrics/legacyregistry"
 )
 
-var clientCertificateExpirationHistogram = prometheus.NewHistogram(
-	prometheus.HistogramOpts{
+/*
+ * By default, the following metric is defined as falling under
+ * ALPHA stability level https://github.com/kubernetes/enhancements/blob/master/keps/sig-instrumentation/20190404-kubernetes-control-plane-metrics-stability.md#stability-classes)
+ *
+ * Promoting the stability level of the metric is a responsibility of the component owner, since it
+ * involves explicitly acknowledging support for the metric across multiple releases, in accordance with
+ * the metric stability policy.
+ */
+var clientCertificateExpirationHistogram = metrics.NewHistogram(
+	&metrics.HistogramOpts{
 		Namespace: "apiserver",
 		Subsystem: "client",
 		Name:      "certificate_expiration_seconds",
 		Help:      "Distribution of the remaining lifetime on the certificate used to authenticate a request.",
 		Buckets: []float64{
 			0,
+			(30 * time.Minute).Seconds(),
+			(1 * time.Hour).Seconds(),
+			(2 * time.Hour).Seconds(),
 			(6 * time.Hour).Seconds(),
 			(12 * time.Hour).Seconds(),
 			(24 * time.Hour).Seconds(),
@@ -50,11 +61,12 @@ var clientCertificateExpirationHistogram = prometheus.NewHistogram(
 			(6 * 30 * 24 * time.Hour).Seconds(),
 			(12 * 30 * 24 * time.Hour).Seconds(),
 		},
+		StabilityLevel: metrics.ALPHA,
 	},
 )
 
 func init() {
-	prometheus.MustRegister(clientCertificateExpirationHistogram)
+	legacyregistry.MustRegister(clientCertificateExpirationHistogram)
 }
 
 // UserConversion defines an interface for extracting user info from a client certificate chain
