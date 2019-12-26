@@ -18,6 +18,7 @@
 package resources
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -38,10 +39,28 @@ func (*deploymentSearcher) get(namespace, name string) (interface{}, error) {
 	return informers.SharedInformerFactory().Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
 }
 
+// maybeServerless checks whether item is a knative revision owned deployment
+func maybeServerless(item *v1.Deployment) bool {
+	refs := item.GetOwnerReferences()
+	gvk := schema.GroupVersionKind{Group: "serving.knative.dev", Version: "v1beta1", Kind: "Revision"}
+
+	for _, ref := range refs {
+		if strings.Contains(ref.APIVersion, gvk.Group) && ref.Kind == gvk.Kind && *ref.Controller {
+			return true
+		}
+	}
+
+	return false
+}
+
 func deploymentStatus(item *v1.Deployment) string {
 	if item.Spec.Replicas != nil {
 		if item.Status.ReadyReplicas == 0 && *item.Spec.Replicas == 0 {
-			return StatusStopped
+			if maybeServerless(item) {
+				return StatusSilent
+			} else {
+				return StatusStopped
+			}
 		} else if item.Status.ReadyReplicas == *item.Spec.Replicas {
 			return StatusRunning
 		} else {

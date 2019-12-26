@@ -98,6 +98,7 @@ const (
 	StatusComplete           = "complete"
 	StatusWarning            = "warning"
 	StatusUnschedulable      = "unschedulable"
+	StatusSilent             = "silent"
 	app                      = "app"
 	Deployments              = "deployments"
 	DaemonSets               = "daemonsets"
