@@ -2,46 +2,48 @@ package resources
 
 import (
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog"
 	"knative.dev/serving/pkg/apis/serving/v1beta1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"sort"
 )
 
 type configSearcher struct {
 }
 
 func (s *configSearcher) get(namespace, name string) (interface{}, error) {
+	// Not implemented. WIP
 	return nil, nil
 }
 
 func (s *configSearcher) match(match map[string]string, item *v1beta1.Configuration) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *configSearcher) fuzzy(match map[string]string, item *v1beta1.Configuration) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *configSearcher) compare(a, b *v1beta1.Configuration, orderBy string) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *configSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	result, err := informers.ServerlessInformerFactory().Serving().V1beta1().Configurations().Lister().Configurations(namespace).List(labels.Everything())
+	configs, err := informers.ServerlessInformerFactory().Serving().V1beta1().Configurations().Lister().Configurations(namespace).List(labels.Everything())
 
 	if err != nil {
-		klog.Errorln(err)
 		return nil, err
 	}
 
-	/*
-	result := make([]*v1beta1.Service, 0)
+	result := make([]*v1beta1.Configuration, 0)
 
 	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
-		result = services
+		result = configs
 	} else {
-		for _, item := range services {
+		for _, item := range configs {
 			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
@@ -56,7 +58,6 @@ func (s *configSearcher) search(namespace string, conditions *params.Conditions,
 		}
 		return s.compare(result[i], result[j], orderBy)
 	})
-	*/
 
 	r := make([]interface{}, 0)
 	for _, i := range result {

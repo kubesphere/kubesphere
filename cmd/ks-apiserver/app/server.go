@@ -317,7 +317,6 @@ func WaitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "services"},
 		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "configurations"},
 		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "revisions"},
-		{Group: "serving.knative.dev", Version: "v1", Resource: "revisions"},
 		{Group: "serving.knative.dev", Version: "v1beta1", Resource: "routes"},
 	}
 

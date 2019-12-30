@@ -5,41 +5,45 @@ import (
 	"knative.dev/serving/pkg/apis/serving/v1beta1"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"sort"
 )
 
 type revisionSearcher struct {
 }
 
 func (s *revisionSearcher) get(namespace, name string) (interface{}, error) {
+	// Not implemented. WIP
 	return nil, nil
 }
 
 func (s *revisionSearcher) match(match map[string]string, item *v1beta1.Revision) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *revisionSearcher) fuzzy(match map[string]string, item *v1beta1.Revision) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *revisionSearcher) compare(a, b *v1beta1.Revision, orderBy string) bool {
+	// Left empty to make search work. WIP
 	return true
 }
 
 func (s *revisionSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
-	result, err := informers.ServerlessInformerFactory().Serving().V1beta1().Revisions().Lister().Revisions(namespace).List(labels.Everything())
+	revisions, err := informers.ServerlessInformerFactory().Serving().V1beta1().Revisions().Lister().Revisions(namespace).List(labels.Everything())
 
 	if err != nil {
 		return nil, err
 	}
 
-	/*
-	result := make([]*v1beta1beta1.Service, 0)
+	result := make([]*v1beta1.Revision, 0)
 
 	if len(conditions.Match) == 0 && len(conditions.Fuzzy) == 0 {
-		result = services
+		result = revisions
 	} else {
-		for _, item := range services {
+		for _, item := range revisions {
 			if s.match(conditions.Match, item) && s.fuzzy(conditions.Fuzzy, item) {
 				result = append(result, item)
 			}
@@ -54,7 +58,6 @@ func (s *revisionSearcher) search(namespace string, conditions *params.Condition
 		}
 		return s.compare(result[i], result[j], orderBy)
 	})
-	*/
 
 	r := make([]interface{}, 0)
 	for _, i := range result {
