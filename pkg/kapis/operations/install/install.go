@@ -29,5 +29,5 @@ func init() {
 }
 
 func Install(container *restful.Container) {
-	urlruntime.Must(v1alpha2.AddToContainer(container))
+	urlruntime.Must(v1alpha2.AddToContainer(container, nil))
 }

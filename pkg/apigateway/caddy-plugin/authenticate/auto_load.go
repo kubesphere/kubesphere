@@ -20,7 +20,7 @@ package authenticate
 import (
 	"fmt"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -36,8 +36,10 @@ func Setup(c *caddy.Controller) error {
 		return err
 	}
 
+	stopCh := make(chan struct{})
+
 	c.OnStartup(func() error {
-		rule.RedisClient, err = redis.NewRedisClient(rule.RedisOptions, nil)
+		rule.RedisClient, err = cache.NewRedisClient(rule.RedisOptions, stopCh)
 		// ensure redis is connected  when startup
 		if err != nil {
 			return err
@@ -47,7 +49,8 @@ func Setup(c *caddy.Controller) error {
 	})
 
 	c.OnShutdown(func() error {
-		return rule.RedisClient.Redis().Close()
+		close(stopCh)
+		return nil
 	})
 
 	httpserver.GetConfig(c).AddMiddleware(func(next httpserver.Handler) httpserver.Handler {
@@ -96,7 +99,7 @@ func parse(c *caddy.Controller) (*Rule, error) {
 						return nil, c.ArgErr()
 					}
 
-					options := &redis.RedisOptions{RedisURL: c.Val()}
+					options := &cache.Options{RedisURL: c.Val()}
 
 					if err := options.Validate(); len(err) > 0 {
 						return nil, c.ArgErr()

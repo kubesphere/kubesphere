@@ -5,26 +5,15 @@ import (
 	"time"
 )
 
-type AuthInfo struct {
-	Username   string `json:"username" description:"username"`
-	Password   string `json:"password" description:"password"`
-	ServerHost string `json:"serverhost" description:"registry server host"`
-}
-
 // ImageBlobInfo describes the info of an image.
 type ImageDetails struct {
 	// Status is the status of the image search, such as "failed","succeeded".
-	Status string `json:"status,omitempty" description:"Status is the status of the image search, such as \"succeeded\"."`
-
-	Message string `json:"message,omitempty" description:"Status message."`
-
+	Status        string         `json:"status,omitempty" description:"Status is the status of the image search, such as \"succeeded\"."`
+	Message       string         `json:"message,omitempty" description:"Status message."`
 	ImageManifest *ImageManifest `json:"imageManifest,omitempty" description:"Retrieve the manifest from the registry identified. Reference: https://docs.docker.com/registry/spec/api/#manifest"`
-
-	ImageBlob *ImageBlob `json:"imageBlob,omitempty" description:"Retrieve the blob from the registry identified. Reference: https://docs.docker.com/registry/spec/api/#blob"`
-
-	ImageTag string `json:"imageTag,omitempty" description:"image tag."`
-
-	Registry string `json:"registry,omitempty" description:"registry domain."`
+	ImageBlob     *ImageBlob     `json:"imageBlob,omitempty" description:"Retrieve the blob from the registry identified. Reference: https://docs.docker.com/registry/spec/api/#blob"`
+	ImageTag      string         `json:"imageTag,omitempty" description:"image tag."`
+	Registry      string         `json:"registry,omitempty" description:"registry domain."`
 }
 
 type ImageBlob struct {

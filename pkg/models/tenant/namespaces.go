@@ -25,7 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
-	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
@@ -39,12 +39,12 @@ type namespaceSearcher struct {
 func (*namespaceSearcher) match(match map[string]string, item *v1.Namespace) bool {
 	for k, v := range match {
 		switch k {
-		case resources.Name:
+		case v1alpha2.Name:
 			names := strings.Split(v, "|")
 			if !sliceutil.HasString(names, item.Name) {
 				return false
 			}
-		case resources.Keyword:
+		case v1alpha2.Keyword:
 			if !strings.Contains(item.Name, v) && !contains(item.Labels, "", v) && !contains(item.Annotations, "", v) {
 				return false
 			}
@@ -62,7 +62,7 @@ func (*namespaceSearcher) fuzzy(fuzzy map[string]string, item *v1.Namespace) boo
 
 	for k, v := range fuzzy {
 		switch k {
-		case resources.Name:
+		case v1alpha2.Name:
 			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
 				return false
 			}

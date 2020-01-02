@@ -27,14 +27,17 @@ import (
 	"time"
 )
 
-type PrometheusClient struct {
+type Interface interface {
+}
+
+type Client struct {
 	client            *http.Client
 	endpoint          string
 	secondaryEndpoint string
 }
 
-func NewPrometheusClient(options *PrometheusOptions) (*PrometheusClient, error) {
-	return &PrometheusClient{
+func NewPrometheusClient(options *Options) (*Client, error) {
+	return &Client{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -43,17 +46,17 @@ func NewPrometheusClient(options *PrometheusOptions) (*PrometheusClient, error) 
 	}, nil
 }
 
-func (c *PrometheusClient) QueryToK8SPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+func (c *Client) QueryToK8SPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
 	return c.query(c.endpoint, queryType, params)
 }
 
-func (c *PrometheusClient) QueryToK8SSystemPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+func (c *Client) QueryToK8SSystemPrometheus(queryType string, params string) (apiResponse v1alpha2.APIResponse) {
 	return c.query(c.secondaryEndpoint, queryType, params)
 }
 
 var jsonIter = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func (c *PrometheusClient) query(endpoint string, queryType string, params string) (apiResponse v1alpha2.APIResponse) {
+func (c *Client) query(endpoint string, queryType string, params string) (apiResponse v1alpha2.APIResponse) {
 	url := fmt.Sprintf("%s/api/v1/%s?%s", endpoint, queryType, params)
 
 	response, err := c.client.Get(url)

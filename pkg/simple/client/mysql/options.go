@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type MySQLOptions struct {
+type Options struct {
 	Host                  string        `json:"host,omitempty" yaml:"host" description:"MySQL service host address"`
 	Username              string        `json:"username,omitempty" yaml:"username"`
 	Password              string        `json:"-" yaml:"password"`
@@ -16,8 +16,8 @@ type MySQLOptions struct {
 }
 
 // NewMySQLOptions create a `zero` value instance
-func NewMySQLOptions() *MySQLOptions {
-	return &MySQLOptions{
+func NewMySQLOptions() *Options {
+	return &Options{
 		Host:                  "",
 		Username:              "",
 		Password:              "",
@@ -27,33 +27,33 @@ func NewMySQLOptions() *MySQLOptions {
 	}
 }
 
-func (m *MySQLOptions) Validate() []error {
-	errors := []error{}
+func (m *Options) Validate() []error {
+	var errors []error
 
 	return errors
 }
 
-func (m *MySQLOptions) ApplyTo(options *MySQLOptions) {
+func (m *Options) ApplyTo(options *Options) {
 	reflectutils.Override(options, m)
 }
 
-func (m *MySQLOptions) AddFlags(fs *pflag.FlagSet) {
+func (m *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 
-	fs.StringVar(&m.Host, "mysql-host", m.Host, ""+
+	fs.StringVar(&m.Host, "mysql-host", c.Host, ""+
 		"MySQL service host address. If left blank, the following related mysql options will be ignored.")
 
-	fs.StringVar(&m.Username, "mysql-username", m.Username, ""+
+	fs.StringVar(&m.Username, "mysql-username", c.Username, ""+
 		"Username for access to mysql service.")
 
-	fs.StringVar(&m.Password, "mysql-password", m.Password, ""+
+	fs.StringVar(&m.Password, "mysql-password", c.Password, ""+
 		"Password for access to mysql, should be used pair with password.")
 
-	fs.IntVar(&m.MaxIdleConnections, "mysql-max-idle-connections", m.MaxOpenConnections, ""+
+	fs.IntVar(&m.MaxIdleConnections, "mysql-max-idle-connections", c.MaxOpenConnections, ""+
 		"Maximum idle connections allowed to connect to mysql.")
 
-	fs.IntVar(&m.MaxOpenConnections, "mysql-max-open-connections", m.MaxOpenConnections, ""+
+	fs.IntVar(&m.MaxOpenConnections, "mysql-max-open-connections", c.MaxOpenConnections, ""+
 		"Maximum open connections allowed to connect to mysql.")
 
-	fs.DurationVar(&m.MaxConnectionLifeTime, "mysql-max-connection-life-time", m.MaxConnectionLifeTime, ""+
+	fs.DurationVar(&m.MaxConnectionLifeTime, "mysql-max-connection-life-time", c.MaxConnectionLifeTime, ""+
 		"Maximum connection life time allowed to connecto to mysql.")
 }

@@ -10,16 +10,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"strings"
 	"time"
 )
 
 type KubeSphereControllerManagerOptions struct {
 	KubernetesOptions *k8s.KubernetesOptions
-	DevopsOptions     *devops.DevopsOptions
-	S3Options         *s2is3.S3Options
-	OpenPitrixOptions *openpitrix.OpenPitrixOptions
+	DevopsOptions     *devops.Options
+	S3Options         *s3.Options
+	OpenPitrixOptions *openpitrix.Options
 
 	LeaderElection *leaderelection.LeaderElectionConfig
 }
@@ -28,7 +28,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 	s := &KubeSphereControllerManagerOptions{
 		KubernetesOptions: k8s.NewKubernetesOptions(),
 		DevopsOptions:     devops.NewDevopsOptions(),
-		S3Options:         s2is3.NewS3Options(),
+		S3Options:         s3.NewS3Options(),
 		OpenPitrixOptions: openpitrix.NewOpenPitrixOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
@@ -47,13 +47,13 @@ func (s *KubeSphereControllerManagerOptions) ApplyTo(conf *kubesphereconfig.Conf
 	s.OpenPitrixOptions.ApplyTo(conf.OpenPitrixOptions)
 }
 
-func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
+func (s *KubeSphereControllerManagerOptions) Flags(o *KubeSphereControllerManagerOptions) cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
-	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"))
-	s.S3Options.AddFlags(fss.FlagSet("s3"))
-	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
+	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), o.KubernetesOptions)
+	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), o.DevopsOptions)
+	s.S3Options.AddFlags(fss.FlagSet("s3"), o.S3Options)
+	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), o.OpenPitrixOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)

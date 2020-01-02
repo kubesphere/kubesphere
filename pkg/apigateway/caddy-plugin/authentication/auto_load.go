@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -31,19 +33,28 @@ import (
 func Setup(c *caddy.Controller) error {
 
 	rule, err := parse(c)
-
 	if err != nil {
 		return err
 	}
+
+	if rule.KubernetesOptions == nil && rule.KubernetesOptions.KubeConfig == "" {
+		klog.Warning("no kubeconfig provided, will use in cluster config, this may not work")
+	}
+
+	kubeClient, err := k8s.NewKubernetesClient(rule.KubernetesOptions)
+	if err != nil {
+		return err
+	}
+	informerFactory := informers.NewInformerFactories(kubeClient.Kubernetes(), nil, nil, nil)
+
 	stopChan := make(chan struct{}, 0)
 	c.OnStartup(func() error {
-		informerFactory := informers.SharedInformerFactory()
-		informerFactory.Rbac().V1().Roles().Lister()
-		informerFactory.Rbac().V1().RoleBindings().Lister()
-		informerFactory.Rbac().V1().ClusterRoles().Lister()
-		informerFactory.Rbac().V1().ClusterRoleBindings().Lister()
-		informerFactory.Start(stopChan)
-		informerFactory.WaitForCacheSync(stopChan)
+		informerFactory.KubernetesSharedInformerFactory().Rbac().V1().Roles().Lister()
+		informerFactory.KubernetesSharedInformerFactory().Rbac().V1().RoleBindings().Lister()
+		informerFactory.KubernetesSharedInformerFactory().Rbac().V1().ClusterRoles().Lister()
+		informerFactory.KubernetesSharedInformerFactory().Rbac().V1().ClusterRoleBindings().Lister()
+		informerFactory.KubernetesSharedInformerFactory().Start(stopChan)
+		informerFactory.KubernetesSharedInformerFactory().WaitForCacheSync(stopChan)
 		fmt.Println("Authentication middleware is initiated")
 		return nil
 	})
@@ -54,7 +65,7 @@ func Setup(c *caddy.Controller) error {
 	})
 
 	httpserver.GetConfig(c).AddMiddleware(func(next httpserver.Handler) httpserver.Handler {
-		return &Authentication{Next: next, Rule: rule}
+		return &Authentication{Next: next, Rule: rule, informerFactory: informerFactory.KubernetesSharedInformerFactory()}
 	})
 	return nil
 }

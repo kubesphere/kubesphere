@@ -56,7 +56,7 @@ func (in *S2iBinary) DeepCopyObject() runtime.Object {
 func (in *S2iBinaryList) DeepCopyInto(out *S2iBinaryList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]S2iBinary, len(*in))

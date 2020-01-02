@@ -26,12 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apiserver/resources"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
-	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
@@ -354,7 +355,7 @@ func ListClusterRoleUsers(clusterRoleName string, conditions *params.Conditions,
 		switch orderBy {
 		default:
 			fallthrough
-		case resources.Name:
+		case v1alpha2.Name:
 			return strings.Compare(users[i].Username, users[j].Username) <= 0
 		}
 	})
@@ -401,13 +402,13 @@ func RoleUsers(namespace string, roleName string) ([]*models.User, error) {
 }
 
 func ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	return resources.ListResources(namespace, resources.Roles, conditions, orderBy, reverse, limit, offset)
+	return resources.ListResources(namespace, v1alpha2.Roles, conditions, orderBy, reverse, limit, offset)
 }
 
 func ListWorkspaceRoles(workspace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	conditions.Match[resources.OwnerName] = workspace
-	conditions.Match[resources.OwnerKind] = "Workspace"
-	result, err := resources.ListResources("", resources.ClusterRoles, conditions, orderBy, reverse, limit, offset)
+	conditions.Match[v1alpha2.OwnerName] = workspace
+	conditions.Match[v1alpha2.OwnerKind] = "Workspace"
+	result, err := resources.ListResources("", v1alpha2.ClusterRoles, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		return nil, err
@@ -424,7 +425,7 @@ func ListWorkspaceRoles(workspace string, conditions *params.Conditions, orderBy
 }
 
 func ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	return resources.ListResources("", resources.ClusterRoles, conditions, orderBy, reverse, limit, offset)
+	return resources.ListResources("", v1alpha2.ClusterRoles, conditions, orderBy, reverse, limit, offset)
 }
 
 func NamespaceUsers(namespaceName string) ([]*models.User, error) {

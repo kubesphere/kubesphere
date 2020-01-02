@@ -18,13 +18,13 @@
 package storage
 
 import (
+	"k8s.io/client-go/informers"
 	"strconv"
 
 	"k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/informers"
 )
 
 type ScMetrics struct {
@@ -33,12 +33,20 @@ type ScMetrics struct {
 	PvcNumber string `json:"pvcNumber"`
 }
 
-func init() {
-
+type PersistentVolumeClaimGetter interface {
+	GetPersistentVolumeClaimByStorageClass(storageClassName string) ([]*v1.PersistentVolumeClaim, error)
 }
 
-func GetPvcListBySc(scName string) ([]*v1.PersistentVolumeClaim, error) {
-	persistentVolumeClaimLister := informers.SharedInformerFactory().Core().V1().PersistentVolumeClaims().Lister()
+type persistentVolumeClaimGetter struct {
+	informers informers.SharedInformerFactory
+}
+
+func NewPersistentVolumeClaimGetter(informers informers.SharedInformerFactory) PersistentVolumeClaimGetter {
+	return &persistentVolumeClaimGetter{informers: informers}
+}
+
+func (c *persistentVolumeClaimGetter) GetPersistentVolumeClaimByStorageClass(scName string) ([]*v1.PersistentVolumeClaim, error) {
+	persistentVolumeClaimLister := c.informers.Core().V1().PersistentVolumeClaims().Lister()
 	all, err := persistentVolumeClaimLister.List(labels.Everything())
 
 	if err != nil {
@@ -60,14 +68,14 @@ func GetPvcListBySc(scName string) ([]*v1.PersistentVolumeClaim, error) {
 }
 
 // Get info of metrics
-func GetScMetrics(scName string) (*ScMetrics, error) {
-	persistentVolumeLister := informers.SharedInformerFactory().Core().V1().PersistentVolumes().Lister()
+func (c *persistentVolumeClaimGetter) GetScMetrics(scName string) (*ScMetrics, error) {
+	persistentVolumeLister := c.informers.Core().V1().PersistentVolumes().Lister()
 	pvList, err := persistentVolumeLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 	// Get PVC
-	pvcList, err := GetPvcListBySc(scName)
+	pvcList, err := c.GetPersistentVolumeClaimByStorageClass(scName)
 
 	if err != nil {
 		return nil, err
@@ -91,10 +99,10 @@ func GetScMetrics(scName string) (*ScMetrics, error) {
 }
 
 // Get SC item list
-func GetScList() ([]*storageV1.StorageClass, error) {
+func (c *persistentVolumeClaimGetter) GetScList() ([]*storageV1.StorageClass, error) {
 
 	// Get StorageClass list
-	scList, err := informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister().List(labels.Everything())
+	scList, err := c.informers.Storage().V1().StorageClasses().Lister().List(labels.Everything())
 
 	if err != nil {
 		return nil, err

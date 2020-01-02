@@ -13,16 +13,17 @@ import (
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
-func InstallAPIs(container *restful.Container) {
+func InstallAPIs(container *restful.Container, client k8s.Client) {
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(container))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(container))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(container))
 	urlruntime.Must(monitoringv1alpha2.AddToContainer(container))
 	urlruntime.Must(openpitrixv1.AddToContainer(container))
-	urlruntime.Must(operationsv1alpha2.AddToContainer(container))
-	urlruntime.Must(resourcesv1alpha2.AddToContainer(container))
+	urlruntime.Must(operationsv1alpha2.AddToContainer(container, client))
+	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, client))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container))
 }

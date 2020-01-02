@@ -69,8 +69,10 @@ func NewControllerManagerCommand() *cobra.Command {
 		},
 	}
 
+	conf := loadConfFromFile()
+
 	fs := cmd.Flags()
-	namedFlagSets := s.Flags()
+	namedFlagSets := s.Flags(conf)
 
 	for _, f := range namedFlagSets.FlagSets {
 		fs.AddFlagSet(f)
@@ -117,6 +119,22 @@ func CreateClientSet(conf *controllerconfig.Config, stopCh <-chan struct{}) erro
 	client.NewClientSetFactory(csop, stopCh)
 
 	return nil
+}
+
+func loadConfFromFile() *options.KubeSphereControllerManagerOptions {
+	err := controllerconfig.Load()
+	if err != nil {
+		klog.Fatalf("error happened while loading config file")
+	}
+
+	conf := controllerconfig.Get()
+
+	return &options.KubeSphereControllerManagerOptions{
+		KubernetesOptions: conf.KubernetesOptions,
+		DevopsOptions:     conf.DevopsOptions,
+		S3Options:         conf.S3Options,
+		OpenPitrixOptions: conf.OpenPitrixOptions,
+	}
 }
 
 func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {

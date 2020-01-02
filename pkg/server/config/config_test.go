@@ -5,6 +5,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -14,8 +15,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/redis"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
@@ -26,7 +26,7 @@ import (
 
 func newTestConfig() *Config {
 	conf := &Config{
-		MySQLOptions: &mysql.MySQLOptions{
+		MySQLOptions: &mysql.Options{
 			Host:                  "10.68.96.5:3306",
 			Username:              "root",
 			Password:              "admin",
@@ -34,13 +34,13 @@ func newTestConfig() *Config {
 			MaxOpenConnections:    20,
 			MaxConnectionLifeTime: time.Duration(10) * time.Second,
 		},
-		DevopsOptions: &devops.DevopsOptions{
+		DevopsOptions: &devops.Options{
 			Host:           "http://ks-devops.kubesphere-devops-system.svc",
 			Username:       "jenkins",
 			Password:       "kubesphere",
 			MaxConnections: 10,
 		},
-		SonarQubeOptions: &sonarqube.SonarQubeOptions{
+		SonarQubeOptions: &sonarqube.Options{
 			Host:  "http://sonarqube.kubesphere-devops-system.svc",
 			Token: "ABCDEFG",
 		},
@@ -50,22 +50,22 @@ func newTestConfig() *Config {
 			QPS:        1e6,
 			Burst:      1e6,
 		},
-		ServiceMeshOptions: &servicemesh.ServiceMeshOptions{
+		ServiceMeshOptions: &servicemesh.Options{
 			IstioPilotHost:            "http://istio-pilot.istio-system.svc:9090",
 			JaegerQueryHost:           "http://jaeger-query.istio-system.svc:80",
 			ServicemeshPrometheusHost: "http://prometheus-k8s.kubesphere-monitoring-system.svc",
 		},
-		LdapOptions: &ldap.LdapOptions{
+		LdapOptions: &ldap.Options{
 			Host:            "http://openldap.kubesphere-system.svc",
 			ManagerDN:       "cn=admin,dc=example,dc=org",
 			ManagerPassword: "P@88w0rd",
 			UserSearchBase:  "ou=Users,dc=example,dc=org",
 			GroupSearchBase: "ou=Groups,dc=example,dc=org",
 		},
-		RedisOptions: &redis.RedisOptions{
+		RedisOptions: &cache.Options{
 			RedisURL: "redis://:qwerty@localhost:6379/1",
 		},
-		S3Options: &s2is3.S3Options{
+		S3Options: &s3.Options{
 			Endpoint:        "http://minio.openpitrix-system.svc",
 			Region:          "",
 			DisableSSL:      false,
@@ -75,7 +75,7 @@ func newTestConfig() *Config {
 			SessionToken:    "abcdefghijklmn",
 			Bucket:          "ssss",
 		},
-		OpenPitrixOptions: &openpitrix.OpenPitrixOptions{
+		OpenPitrixOptions: &openpitrix.Options{
 			RuntimeManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9103",
 			ClusterManagerEndpoint:    "openpitrix-hyperpitrix.openpitrix-system.svc:9104",
 			RepoManagerEndpoint:       "openpitrix-hyperpitrix.openpitrix-system.svc:9101",
@@ -83,23 +83,23 @@ func newTestConfig() *Config {
 			CategoryManagerEndpoint:   "openpitrix-hyperpitrix.openpitrix-system.svc:9113",
 			AttachmentManagerEndpoint: "openpitrix-hyperpitrix.openpitrix-system.svc:9122",
 		},
-		MonitoringOptions: &prometheus.PrometheusOptions{
+		MonitoringOptions: &prometheus.Options{
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
-		LoggingOptions: &esclient.ElasticSearchOptions{
+		LoggingOptions: &esclient.Options{
 			Host:        "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "elk",
 			Version:     "6",
 		},
-		KubeSphereOptions: &kubesphere.KubeSphereOptions{
+		KubeSphereOptions: &kubesphere.Options{
 			APIServer:     "http://ks-apiserver.kubesphere-system.svc",
 			AccountServer: "http://ks-account.kubesphere-system.svc",
 		},
-		AlertingOptions: &alerting.AlertingOptions{
+		AlertingOptions: &alerting.Options{
 			Endpoint: "http://alerting.kubesphere-alerting-system.svc:9200",
 		},
-		NotificationOptions: &notification.NotificationOptions{
+		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
 		},
 	}

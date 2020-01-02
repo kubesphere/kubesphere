@@ -11,24 +11,24 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/s2is3"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"strings"
 )
 
 type ServerRunOptions struct {
+	ConfigFile              string
 	GenericServerRunOptions *genericoptions.ServerRunOptions
-
-	KubernetesOptions  *k8s.KubernetesOptions
-	DevopsOptions      *devops.DevopsOptions
-	SonarQubeOptions   *sonarqube.SonarQubeOptions
-	ServiceMeshOptions *servicemesh.ServiceMeshOptions
-	MySQLOptions       *mysql.MySQLOptions
-	MonitoringOptions  *prometheus.PrometheusOptions
-	S3Options          *s2is3.S3Options
-	OpenPitrixOptions  *openpitrix.OpenPitrixOptions
-	LoggingOptions     *esclient.ElasticSearchOptions
+	KubernetesOptions       *k8s.KubernetesOptions
+	DevopsOptions           *devops.Options
+	SonarQubeOptions        *sonarqube.Options
+	ServiceMeshOptions      *servicemesh.Options
+	MySQLOptions            *mysql.Options
+	MonitoringOptions       *prometheus.Options
+	S3Options               *s3.Options
+	OpenPitrixOptions       *openpitrix.Options
+	LoggingOptions          *esclient.Options
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -41,7 +41,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		ServiceMeshOptions:      servicemesh.NewServiceMeshOptions(),
 		MySQLOptions:            mysql.NewMySQLOptions(),
 		MonitoringOptions:       prometheus.NewPrometheusOptions(),
-		S3Options:               s2is3.NewS3Options(),
+		S3Options:               s3.NewS3Options(),
 		OpenPitrixOptions:       openpitrix.NewOpenPitrixOptions(),
 		LoggingOptions:          esclient.NewElasticSearchOptions(),
 	}
@@ -49,18 +49,17 @@ func NewServerRunOptions() *ServerRunOptions {
 	return &s
 }
 
-func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
-
-	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"))
-	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"))
-	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"))
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"))
-	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"))
-	s.S3Options.AddFlags(fss.FlagSet("s3"))
-	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"))
-	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"))
-	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"))
-	s.LoggingOptions.AddFlags(fss.FlagSet("logging"))
+func (s *ServerRunOptions) Flags(c *ServerRunOptions) (fss cliflag.NamedFlagSets) {
+	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"), c.GenericServerRunOptions)
+	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), c.KubernetesOptions)
+	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), c.MySQLOptions)
+	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), c.DevopsOptions)
+	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), c.SonarQubeOptions)
+	s.S3Options.AddFlags(fss.FlagSet("s3"), c.S3Options)
+	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), c.OpenPitrixOptions)
+	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), c.ServiceMeshOptions)
+	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), c.MonitoringOptions)
+	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), c.LoggingOptions)
 
 	fs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)

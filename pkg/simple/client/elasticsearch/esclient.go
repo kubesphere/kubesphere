@@ -59,7 +59,7 @@ type ElasticSearchClient struct {
 	client Client
 }
 
-func NewLoggingClient(options *ElasticSearchOptions) (*ElasticSearchClient, error) {
+func NewLoggingClient(options *Options) (*ElasticSearchClient, error) {
 	var version, index string
 	esClient := &ElasticSearchClient{}
 

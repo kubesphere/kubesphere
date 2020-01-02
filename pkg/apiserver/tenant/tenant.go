@@ -31,7 +31,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
-	"kubesphere.io/kubesphere/pkg/models/resources"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/server/errors"
@@ -64,7 +64,7 @@ func ListWorkspaces(req *restful.Request, resp *restful.Response) {
 	reverse := params.ParseReverse(req)
 
 	if orderBy == "" {
-		orderBy = resources.CreateTime
+		orderBy = v1alpha2.CreateTime
 		reverse = true
 	}
 

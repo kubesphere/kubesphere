@@ -2,20 +2,20 @@ package kubesphere
 
 import "github.com/spf13/pflag"
 
-type KubeSphereOptions struct {
+type Options struct {
 	APIServer     string `json:"apiServer" yaml:"apiServer"`
 	AccountServer string `json:"accountServer" yaml:"accountServer"`
 }
 
 // NewKubeSphereOptions create a default options
-func NewKubeSphereOptions() *KubeSphereOptions {
-	return &KubeSphereOptions{
+func NewKubeSphereOptions() *Options {
+	return &Options{
 		APIServer:     "http://ks-apiserver.kubesphere-system.svc",
 		AccountServer: "http://ks-account.kubesphere-system.svc",
 	}
 }
 
-func (s *KubeSphereOptions) ApplyTo(options *KubeSphereOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if s.AccountServer != "" {
 		options.AccountServer = s.AccountServer
 	}
@@ -25,13 +25,13 @@ func (s *KubeSphereOptions) ApplyTo(options *KubeSphereOptions) {
 	}
 }
 
-func (s *KubeSphereOptions) Validate() []error {
+func (s *Options) Validate() []error {
 	errs := []error{}
 
 	return errs
 }
 
-func (s *KubeSphereOptions) AddFlags(fs *pflag.FlagSet) {
+func (s *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.APIServer, "kubesphere-apiserver-host", s.APIServer, ""+
 		"KubeSphere apiserver host address.")
 

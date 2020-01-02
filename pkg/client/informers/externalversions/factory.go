@@ -30,6 +30,7 @@ import (
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devops "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
+	logging "kubesphere.io/kubesphere/pkg/client/informers/externalversions/logging"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
 	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
@@ -176,6 +177,7 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Devops() devops.Interface
+	Logging() logging.Interface
 	Network() network.Interface
 	Servicemesh() servicemesh.Interface
 	Tenant() tenant.Interface
@@ -183,6 +185,10 @@ type SharedInformerFactory interface {
 
 func (f *sharedInformerFactory) Devops() devops.Interface {
 	return devops.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Logging() logging.Interface {
+	return logging.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Network() network.Interface {

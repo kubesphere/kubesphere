@@ -39,7 +39,17 @@ const (
 	SystemUserPath     = ":system"
 )
 
-type OpenPitrixClient struct {
+type Interface interface {
+	pb.RuntimeManagerClient
+	pb.ClusterManagerClient
+	pb.AppManagerClient
+	pb.RepoManagerClient
+	pb.CategoryManagerClient
+	pb.AttachmentManagerClient
+	pb.RepoIndexerClient
+}
+
+type Client struct {
 	runtime     pb.RuntimeManagerClient
 	cluster     pb.ClusterManagerClient
 	app         pb.AppManagerClient
@@ -123,7 +133,7 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 	return pb.NewAppManagerClient(conn), nil
 }
 
-func NewOpenPitrixClient(options *OpenPitrixOptions) (*OpenPitrixClient, error) {
+func NewOpenPitrixClient(options *Options) (*Client, error) {
 
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
 
@@ -174,7 +184,7 @@ func NewOpenPitrixClient(options *OpenPitrixOptions) (*OpenPitrixClient, error) 
 		return nil, err
 	}
 
-	client := OpenPitrixClient{
+	client := Client{
 		runtime:     runtimeMangerClient,
 		cluster:     clusterManagerClient,
 		repo:        repoManagerClient,
@@ -186,28 +196,28 @@ func NewOpenPitrixClient(options *OpenPitrixOptions) (*OpenPitrixClient, error) 
 
 	return &client, nil
 }
-func (c *OpenPitrixClient) Runtime() pb.RuntimeManagerClient {
+func (c *Client) Runtime() pb.RuntimeManagerClient {
 	return c.runtime
 }
-func (c *OpenPitrixClient) App() pb.AppManagerClient {
+func (c *Client) App() pb.AppManagerClient {
 	return c.app
 }
-func (c *OpenPitrixClient) Cluster() pb.ClusterManagerClient {
+func (c *Client) Cluster() pb.ClusterManagerClient {
 	return c.cluster
 }
-func (c *OpenPitrixClient) Category() pb.CategoryManagerClient {
+func (c *Client) Category() pb.CategoryManagerClient {
 	return c.category
 }
 
-func (c *OpenPitrixClient) Repo() pb.RepoManagerClient {
+func (c *Client) Repo() pb.RepoManagerClient {
 	return c.repo
 }
 
-func (c *OpenPitrixClient) RepoIndexer() pb.RepoIndexerClient {
+func (c *Client) RepoIndexer() pb.RepoIndexerClient {
 	return c.repoIndexer
 }
 
-func (c *OpenPitrixClient) Attachment() pb.AttachmentManagerClient {
+func (c *Client) Attachment() pb.AttachmentManagerClient {
 	return c.attachment
 }
 

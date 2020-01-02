@@ -18,10 +18,6 @@
 
 package log
 
-import (
-	fb "kubesphere.io/kubesphere/pkg/simple/client/fluentbit"
-)
-
 type FluentbitOutputsResult struct {
 	Status  int               `json:"status" description:"response status"`
 	Error   string            `json:"error,omitempty" description:"debug information"`

@@ -40,6 +40,7 @@ require (
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/protobuf v1.3.2
+	github.com/google/go-cmp v0.3.0
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
@@ -63,8 +64,8 @@ require (
 	github.com/mholt/certmagic v0.5.1 // indirect
 	github.com/miekg/dns v1.1.9 // indirect
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
@@ -87,16 +88,16 @@ require (
 	gopkg.in/yaml.v2 v2.2.4
 	istio.io/api v0.0.0-20191111210003-35e06ef8d838
 	istio.io/client-go v0.0.0-20191113122552-9bd0ba57c3d2
-	k8s.io/api v0.0.0-20191114100352-16d7abae0d2a
+	k8s.io/api v0.17.0
 	k8s.io/apiextensions-apiserver v0.0.0-20191114105449-027877536833
-	k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
+	k8s.io/apimachinery v0.17.0
 	k8s.io/apiserver v0.0.0-20191114103151-9ca1dc586682
-	k8s.io/client-go v0.0.0-20191114101535-6c5935290e33
-	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
-	k8s.io/component-base v0.0.0-20191114102325-35a9586014f7
+	k8s.io/client-go v0.17.0
+	k8s.io/code-generator v0.17.0
+	k8s.io/component-base v0.17.0
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
-	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f // indirect
+	k8s.io/kubectl v0.17.0
 	kubesphere.io/im v0.1.0 // indirect
 	openpitrix.io/iam v0.1.0 // indirect
 	openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c

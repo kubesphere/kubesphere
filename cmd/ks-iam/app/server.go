@@ -53,11 +53,6 @@ cluster's shared state through which all other components interact.`,
 				return err
 			}
 
-			err = Complete(s)
-			if err != nil {
-				return err
-			}
-
 			if errs := s.Validate(); len(errs) != 0 {
 				return utilerrors.NewAggregate(errs)
 			}
@@ -66,8 +61,10 @@ cluster's shared state through which all other components interact.`,
 		},
 	}
 
+	conf := loadFromFile()
+
 	fs := cmd.Flags()
-	namedFlagSets := s.Flags()
+	namedFlagSets := s.Flags(conf)
 
 	for _, f := range namedFlagSets.FlagSets {
 		fs.AddFlagSet(f)
@@ -122,22 +119,20 @@ func Run(s *options.ServerRunOptions, stopChan <-chan struct{}) error {
 	return err
 }
 
-func Complete(s *options.ServerRunOptions) error {
+func loadFromFile() *options.ServerRunOptions {
+	err := apiserverconfig.Load()
+	if err != nil {
+		klog.Fatal(err)
+	}
+
 	conf := apiserverconfig.Get()
 
-	conf.Apply(&apiserverconfig.Config{
-		KubernetesOptions: s.KubernetesOptions,
-		LdapOptions:       s.LdapOptions,
-		RedisOptions:      s.RedisOptions,
-		MySQLOptions:      s.MySQLOptions,
-	})
-
-	s.KubernetesOptions = conf.KubernetesOptions
-	s.LdapOptions = conf.LdapOptions
-	s.RedisOptions = conf.RedisOptions
-	s.MySQLOptions = conf.MySQLOptions
-
-	return nil
+	return &options.ServerRunOptions{
+		KubernetesOptions: conf.KubernetesOptions,
+		LdapOptions:       conf.LdapOptions,
+		RedisOptions:      conf.RedisOptions,
+		MySQLOptions:      conf.MySQLOptions,
+	}
 }
 
 func waitForResourceSync(stopCh <-chan struct{}) {

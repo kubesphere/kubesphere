@@ -1,16 +1,16 @@
 package notification
 
-type NotificationOptions struct {
+type Options struct {
 	Endpoint string
 }
 
-func NewNotificationOptions() *NotificationOptions {
-	return &NotificationOptions{
+func NewNotificationOptions() *Options {
+	return &Options{
 		Endpoint: "",
 	}
 }
 
-func (s *NotificationOptions) ApplyTo(options *NotificationOptions) {
+func (s *Options) ApplyTo(options *Options) {
 	if options == nil {
 		options = s
 		return
