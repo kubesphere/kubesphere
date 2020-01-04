@@ -132,9 +132,7 @@ func (s *appSearcher) Search(namespace string, conditions *params.Conditions, or
 	}
 	sort.Slice(result, func(i, j int) bool {
 		if reverse {
-			tmp := i
-			i = j
-			j = tmp
+			i, j = j, i
 		}
 		return s.compare(result[i], result[j], orderBy)
 	})

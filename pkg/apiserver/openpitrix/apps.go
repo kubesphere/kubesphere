@@ -24,7 +24,8 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/app"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
@@ -37,7 +38,7 @@ func GetAppVersionPackage(req *restful.Request, resp *restful.Response) {
 	appId := req.PathParameter("app")
 	versionId := req.PathParameter("version")
 
-	result, err := openpitrix.GetAppVersionPackage(appId, versionId)
+	result, err := app.GetAppVersionPackage(appId, versionId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -54,7 +55,7 @@ func GetAppVersionPackage(req *restful.Request, resp *restful.Response) {
 }
 
 func DoAppAction(req *restful.Request, resp *restful.Response) {
-	var doActionRequest openpitrix.ActionRequest
+	var doActionRequest types.ActionRequest
 	err := req.ReadEntity(&doActionRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -63,7 +64,7 @@ func DoAppAction(req *restful.Request, resp *restful.Response) {
 
 	appId := req.PathParameter("app")
 
-	err = openpitrix.DoAppAction(appId, &doActionRequest)
+	err = app.DoAppAction(appId, &doActionRequest)
 	if status.Code(err) == codes.NotFound {
 		resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		return
@@ -84,7 +85,7 @@ func DoAppAction(req *restful.Request, resp *restful.Response) {
 }
 
 func DoAppVersionAction(req *restful.Request, resp *restful.Response) {
-	var doActionRequest openpitrix.ActionRequest
+	var doActionRequest types.ActionRequest
 	err := req.ReadEntity(&doActionRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -94,7 +95,7 @@ func DoAppVersionAction(req *restful.Request, resp *restful.Response) {
 
 	versionId := req.PathParameter("version")
 
-	err = openpitrix.DoAppVersionAction(versionId, &doActionRequest)
+	err = app.DoAppVersionAction(versionId, &doActionRequest)
 	if status.Code(err) == codes.NotFound {
 		resp.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		return
@@ -116,12 +117,12 @@ func DoAppVersionAction(req *restful.Request, resp *restful.Response) {
 
 func GetAppVersionFiles(req *restful.Request, resp *restful.Response) {
 	versionId := req.PathParameter("version")
-	getAppVersionFilesRequest := &openpitrix.GetAppVersionFilesRequest{}
+	getAppVersionFilesRequest := &types.GetAppVersionFilesRequest{}
 	if f := req.QueryParameter("files"); f != "" {
 		getAppVersionFilesRequest.Files = strings.Split(f, ",")
 	}
 
-	result, err := openpitrix.GetAppVersionFiles(versionId, getAppVersionFilesRequest)
+	result, err := app.GetAppVersionFiles(versionId, getAppVersionFilesRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -162,7 +163,7 @@ func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 		conditions.Match["version"] = versionId
 	}
 
-	result, err := openpitrix.ListAppVersionAudits(conditions, orderBy, reverse, limit, offset)
+	result, err := app.ListAppVersionAudits(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -192,7 +193,7 @@ func ListReviews(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	result, err := openpitrix.ListAppVersionReviews(conditions, orderBy, reverse, limit, offset)
+	result, err := app.ListAppVersionReviews(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -225,7 +226,7 @@ func ListAppVersions(req *restful.Request, resp *restful.Response) {
 	}
 	conditions.Match["app"] = appId
 
-	result, err := openpitrix.ListAppVersions(conditions, orderBy, reverse, limit, offset)
+	result, err := app.ListAppVersions(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -240,7 +241,7 @@ func ListAppVersions(req *restful.Request, resp *restful.Response) {
 
 	if statistics {
 		for _, item := range result.Items {
-			if version, ok := item.(*openpitrix.AppVersion); ok {
+			if version, ok := item.(*types.AppVersion); ok {
 				statisticsResult, err := openpitrix.ListApplications(&params.Conditions{Match: map[string]string{"app_id": version.AppId, "version_id": version.VersionId}}, 0, 0, "", false)
 				if err != nil {
 					klog.Errorln(err)
@@ -271,7 +272,7 @@ func ListApps(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	result, err := openpitrix.ListApps(conditions, orderBy, reverse, limit, offset)
+	result, err := app.ListApps(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -286,7 +287,7 @@ func ListApps(req *restful.Request, resp *restful.Response) {
 
 	if statistics {
 		for _, item := range result.Items {
-			if app, ok := item.(*openpitrix.App); ok {
+			if app, ok := item.(*types.App); ok {
 				status := "active|used|enabled|stopped|pending|creating|upgrading|updating|rollbacking|stopping|starting|recovering|resizing|scaling|deleting"
 				statisticsResult, err := openpitrix.ListApplications(&params.Conditions{Match: map[string]string{"app_id": app.AppId, "status": status}}, 0, 0, "", false)
 				if err != nil {
@@ -304,7 +305,7 @@ func ListApps(req *restful.Request, resp *restful.Response) {
 
 func ModifyApp(req *restful.Request, resp *restful.Response) {
 
-	var patchAppRequest openpitrix.ModifyAppRequest
+	var patchAppRequest types.ModifyAppRequest
 	err := req.ReadEntity(&patchAppRequest)
 	appId := req.PathParameter("app")
 
@@ -313,7 +314,7 @@ func ModifyApp(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = openpitrix.PatchApp(appId, &patchAppRequest)
+	err = app.PatchApp(appId, &patchAppRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -341,7 +342,7 @@ func ModifyApp(req *restful.Request, resp *restful.Response) {
 func DescribeApp(req *restful.Request, resp *restful.Response) {
 	appId := req.PathParameter("app")
 
-	result, err := openpitrix.DescribeApp(appId)
+	result, err := app.DescribeApp(appId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -364,7 +365,7 @@ func DescribeApp(req *restful.Request, resp *restful.Response) {
 func DeleteApp(req *restful.Request, resp *restful.Response) {
 	appId := req.PathParameter("app")
 
-	err := openpitrix.DeleteApp(appId)
+	err := app.DeleteApp(appId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -385,7 +386,7 @@ func DeleteApp(req *restful.Request, resp *restful.Response) {
 }
 
 func CreateApp(req *restful.Request, resp *restful.Response) {
-	createAppRequest := &openpitrix.CreateAppRequest{}
+	createAppRequest := &types.CreateAppRequest{}
 	err := req.ReadEntity(createAppRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -399,13 +400,13 @@ func CreateApp(req *restful.Request, resp *restful.Response) {
 	var result interface{}
 
 	if validate {
-		validatePackageRequest := &openpitrix.ValidatePackageRequest{
+		validatePackageRequest := &types.ValidatePackageRequest{
 			VersionPackage: createAppRequest.VersionPackage,
 			VersionType:    createAppRequest.VersionType,
 		}
-		result, err = openpitrix.ValidatePackage(validatePackageRequest)
+		result, err = app.ValidatePackage(validatePackageRequest)
 	} else {
-		result, err = openpitrix.CreateApp(createAppRequest)
+		result, err = app.CreateApp(createAppRequest)
 	}
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
@@ -427,7 +428,7 @@ func CreateApp(req *restful.Request, resp *restful.Response) {
 }
 
 func CreateAppVersion(req *restful.Request, resp *restful.Response) {
-	var createAppVersionRequest openpitrix.CreateAppVersionRequest
+	var createAppVersionRequest types.CreateAppVersionRequest
 	err := req.ReadEntity(&createAppVersionRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -442,13 +443,13 @@ func CreateAppVersion(req *restful.Request, resp *restful.Response) {
 	var result interface{}
 
 	if validate {
-		validatePackageRequest := &openpitrix.ValidatePackageRequest{
+		validatePackageRequest := &types.ValidatePackageRequest{
 			VersionPackage: createAppVersionRequest.Package,
 			VersionType:    createAppVersionRequest.Type,
 		}
-		result, err = openpitrix.ValidatePackage(validatePackageRequest)
+		result, err = app.ValidatePackage(validatePackageRequest)
 	} else {
-		result, err = openpitrix.CreateAppVersion(&createAppVersionRequest)
+		result, err = app.CreateAppVersion(&createAppVersionRequest)
 	}
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
@@ -471,7 +472,7 @@ func CreateAppVersion(req *restful.Request, resp *restful.Response) {
 
 func ModifyAppVersion(req *restful.Request, resp *restful.Response) {
 
-	var patchAppVersionRequest openpitrix.ModifyAppVersionRequest
+	var patchAppVersionRequest types.ModifyAppVersionRequest
 	err := req.ReadEntity(&patchAppVersionRequest)
 	versionId := req.PathParameter("version")
 
@@ -480,7 +481,7 @@ func ModifyAppVersion(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = openpitrix.PatchAppVersion(versionId, &patchAppVersionRequest)
+	err = app.PatchAppVersion(versionId, &patchAppVersionRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -503,7 +504,7 @@ func ModifyAppVersion(req *restful.Request, resp *restful.Response) {
 func DeleteAppVersion(req *restful.Request, resp *restful.Response) {
 	versionId := req.PathParameter("version")
 
-	err := openpitrix.DeleteAppVersion(versionId)
+	err := app.DeleteAppVersion(versionId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -526,7 +527,7 @@ func DeleteAppVersion(req *restful.Request, resp *restful.Response) {
 func DescribeAppVersion(req *restful.Request, resp *restful.Response) {
 	versionId := req.PathParameter("version")
 
-	result, err := openpitrix.DescribeAppVersion(versionId)
+	result, err := app.DescribeAppVersion(versionId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))

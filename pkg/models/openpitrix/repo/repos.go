@@ -16,7 +16,7 @@
  * /
  */
 
-package openpitrix
+package repo
 
 import (
 	"fmt"
@@ -25,6 +25,8 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -32,7 +34,7 @@ import (
 	"strings"
 )
 
-func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
+func CreateRepo(request *types.CreateRepoRequest) (*types.CreateRepoResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -61,7 +63,7 @@ func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
 		klog.Error(err)
 		return nil, err
 	}
-	return &CreateRepoResponse{
+	return &types.CreateRepoResponse{
 		RepoID: resp.GetRepoId().GetValue(),
 	}, nil
 }
@@ -82,7 +84,7 @@ func DeleteRepo(id string) error {
 	return nil
 }
 
-func PatchRepo(id string, request *ModifyRepoRequest) error {
+func PatchRepo(id string, request *types.ModifyRepoRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -132,7 +134,7 @@ func PatchRepo(id string, request *ModifyRepoRequest) error {
 	return nil
 }
 
-func DescribeRepo(id string) (*Repo, error) {
+func DescribeRepo(id string) (*types.Repo, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -147,10 +149,10 @@ func DescribeRepo(id string) (*Repo, error) {
 		return nil, err
 	}
 
-	var repo *Repo
+	var repo *types.Repo
 
 	if len(resp.RepoSet) > 0 {
-		repo = convertRepo(resp.RepoSet[0])
+		repo = utils.ConvertRepo(resp.RepoSet[0])
 		return repo, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -202,13 +204,13 @@ func ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limi
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.RepoSet {
-		items = append(items, convertRepo(item))
+		items = append(items, utils.ConvertRepo(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
+func ValidateRepo(request *types.ValidateRepoRequest) (*types.ValidateRepoResponse, error) {
 	client, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -227,13 +229,13 @@ func ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
 		return nil, err
 	}
 
-	return &ValidateRepoResponse{
+	return &types.ValidateRepoResponse{
 		ErrorCode: int64(resp.ErrorCode),
 		Ok:        resp.Ok.Value,
 	}, nil
 }
 
-func DoRepoAction(repoId string, request *RepoActionRequest) error {
+func DoRepoAction(repoId string, request *types.RepoActionRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -289,7 +291,7 @@ func ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset 
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.RepoEventSet {
-		items = append(items, convertRepoEvent(item))
+		items = append(items, utils.ConvertRepoEvent(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil

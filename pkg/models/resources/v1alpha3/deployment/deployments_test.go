@@ -125,7 +125,6 @@ func TestListDeployments(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			objs := deploymentsToRuntimeObjects(test.deployments...)
 			client := fake.NewSimpleClientset(objs...)
-			//client := fake.NewSimpleClientset()
 
 			informer := informers.NewSharedInformerFactory(client, 0)
 

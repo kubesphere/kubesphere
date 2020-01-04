@@ -15,7 +15,7 @@
  limitations under the License.
 
 */
-package openpitrix
+package application
 
 import (
 	"fmt"
@@ -32,6 +32,8 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -42,8 +44,8 @@ import (
 type Interface interface {
 	List(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
 	Get(namespace, clusterID string) (*Application, error)
-	Create(namespace string, request CreateClusterRequest) error
-	Patch(request ModifyClusterAttributesRequest) error
+	Create(namespace string, request types.CreateClusterRequest) error
+	Patch(request types.ModifyClusterAttributesRequest) error
 	Delete(id string) error
 }
 
@@ -61,9 +63,9 @@ func NewApplicaitonOperator(informers informers.SharedInformerFactory, client pb
 
 type Application struct {
 	Name      string            `json:"name" description:"application name"`
-	Cluster   *Cluster          `json:"cluster,omitempty" description:"application cluster info"`
-	Version   *AppVersion       `json:"version,omitempty" description:"application template version info"`
-	App       *App              `json:"app,omitempty" description:"application template info"`
+	Cluster   *types.Cluster    `json:"cluster,omitempty" description:"application cluster info"`
+	Version   *types.AppVersion `json:"version,omitempty" description:"application template version info"`
+	App       *types.App        `json:"app,omitempty" description:"application template info"`
 	WorkLoads *workLoads        `json:"workloads,omitempty" description:"application workloads"`
 	Services  []v1.Service      `json:"services,omitempty" description:"application services"`
 	Ingresses []v1beta1.Ingress `json:"ingresses,omitempty" description:"application ingresses"`
@@ -130,14 +132,14 @@ func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Applica
 	}
 	var app Application
 	app.Name = cluster.Name.Value
-	app.Cluster = convertCluster(cluster)
+	app.Cluster = utils.ConvertCluster(cluster)
 	versionInfo, err := op.App().DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{VersionId: []string{cluster.GetVersionId().GetValue()}})
 	if err != nil {
 		klog.Errorln(err)
 		return nil, err
 	}
 	if len(versionInfo.AppVersionSet) > 0 {
-		app.Version = convertAppVersion(versionInfo.AppVersionSet[0])
+		app.Version = utils.ConvertAppVersion(versionInfo.AppVersionSet[0])
 	}
 	appInfo, err := op.App().DescribeApps(openpitrix.SystemContext(), &pb.DescribeAppsRequest{AppId: []string{cluster.GetAppId().GetValue()}, Limit: 1})
 	if err != nil {
@@ -145,7 +147,7 @@ func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Applica
 		return nil, err
 	}
 	if len(appInfo.AppSet) > 0 {
-		app.App = convertApp(appInfo.GetAppSet()[0])
+		app.App = utils.ConvertApp(appInfo.GetAppSet()[0])
 	}
 	return &app, nil
 }
@@ -350,7 +352,7 @@ func (c *applicationOperator) getIng(namespace string, services []v1.Service) []
 	return ings
 }
 
-func (c *applicationOperator) Create(namespace string, request CreateClusterRequest) error {
+func (c *applicationOperator) Create(namespace string, request types.CreateClusterRequest) error {
 	ns, err := c.informers.Core().V1().Namespaces().Lister().Get(namespace)
 	if err != nil {
 		klog.Error(err)
@@ -385,7 +387,7 @@ func (c *applicationOperator) Create(namespace string, request CreateClusterRequ
 	return nil
 }
 
-func (c *applicationOperator) Patch(request ModifyClusterAttributesRequest) error {
+func (c *applicationOperator) Patch(request types.ModifyClusterAttributesRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {

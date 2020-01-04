@@ -18,7 +18,9 @@
 package deployment
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"strings"
@@ -46,26 +48,26 @@ func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
 	return &deploymentsGetter{sharedInformers: sharedInformers}
 }
 
-func (d *deploymentsGetter) Get(namespace, name string) (interface{}, error) {
+func (d *deploymentsGetter) Get(namespace, name string) (runtime.Object, error) {
 	return d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(name)
 }
 
-func (d *deploymentsGetter) List(namespace string) ([]interface{}, error) {
+func (d *deploymentsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	// first retrieves all deployments within given namespace
 	all, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	var result []interface{}
+	var result []runtime.Object
 	for _, deploy := range all {
 		result = append(result, deploy)
 	}
 
-	return result, nil
+	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
 }
 
-func (d *deploymentsGetter) Compare(left interface{}, right interface{}, field query.Field) bool {
+func (d *deploymentsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
 	leftDeployment, ok := left.(*v1.Deployment)
 	if !ok {
@@ -89,7 +91,7 @@ func (d *deploymentsGetter) Compare(left interface{}, right interface{}, field q
 	}
 }
 
-func (d *deploymentsGetter) Filter(object interface{}, filter query.Filter) bool {
+func (d *deploymentsGetter) filter(object runtime.Object, filter query.Filter) bool {
 	deployment, ok := object.(*v1.Deployment)
 	if !ok {
 		return false

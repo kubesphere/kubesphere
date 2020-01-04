@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apis/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"net/http"
 	"strings"
@@ -52,8 +52,8 @@ func createCRDClientSet() (*rest.RESTClient, *runtime.Scheme, error) {
 	return fb.NewFluentbitCRDClient(config)
 }
 
-func FluentbitOutputsQuery() *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
+func FluentbitOutputsQuery() *v1alpha2.FluentbitOutputsResult {
+	var result v1alpha2.FluentbitOutputsResult
 
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
@@ -68,11 +68,11 @@ func FluentbitOutputsQuery() *FluentbitOutputsResult {
 	return &result
 }
 
-func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
+func FluentbitOutputInsert(output v1alpha2.OutputPlugin) *v1alpha2.FluentbitOutputsResult {
+	var result v1alpha2.FluentbitOutputsResult
 
 	// 1. Update ConfigMap
-	var outputs []fb.OutputPlugin
+	var outputs []v1alpha2.OutputPlugin
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		// If the ConfigMap doesn't exist, a new one will be created later
@@ -105,11 +105,11 @@ func FluentbitOutputInsert(output fb.OutputPlugin) *FluentbitOutputsResult {
 	return &result
 }
 
-func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
+func FluentbitOutputUpdate(output v1alpha2.OutputPlugin, id string) *v1alpha2.FluentbitOutputsResult {
+	var result v1alpha2.FluentbitOutputsResult
 
 	// 1. Update ConfigMap
-	var outputs []fb.OutputPlugin
+	var outputs []v1alpha2.OutputPlugin
 	outputs, err := GetFluentbitOutputFromConfigMap()
 	if err != nil {
 		// If the ConfigMap doesn't exist, a new one will be created later
@@ -152,8 +152,8 @@ func FluentbitOutputUpdate(output fb.OutputPlugin, id string) *FluentbitOutputsR
 	return &result
 }
 
-func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
-	var result FluentbitOutputsResult
+func FluentbitOutputDelete(id string) *v1alpha2.FluentbitOutputsResult {
+	var result v1alpha2.FluentbitOutputsResult
 
 	// 1. Update ConfigMap
 	// If the ConfigMap doesn't exist, a new one will be created
@@ -194,7 +194,7 @@ func FluentbitOutputDelete(id string) *FluentbitOutputsResult {
 	return &result
 }
 
-func GetFluentbitOutputFromConfigMap() ([]fb.OutputPlugin, error) {
+func GetFluentbitOutputFromConfigMap() ([]v1alpha2.OutputPlugin, error) {
 	configMap, err := informers.SharedInformerFactory().Core().V1().ConfigMaps().Lister().ConfigMaps(LoggingNamespace).Get(ConfigMapName)
 	if err != nil {
 		return nil, err
@@ -265,22 +265,22 @@ func updateFluentbitOutputConfigMap(outputs []fb.OutputPlugin) error {
 	return nil
 }
 
-func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
+func syncFluentbitCRDOutputWithConfigMap(outputs []v1alpha2.OutputPlugin) error {
 
-	var enabledOutputs []fb.Plugin
+	var enabledOutputs []v1alpha2.Plugin
 	for _, output := range outputs {
 		if output.Enable {
-			enabledOutputs = append(enabledOutputs, fb.Plugin{Type: output.Type, Name: output.Name, Parameters: output.Parameters})
+			enabledOutputs = append(enabledOutputs, v1alpha2.Plugin{Type: output.Type, Name: output.Name, Parameters: output.Parameters})
 		}
 	}
 
 	// Empty output is not allowed, must specify a null-type output
 	if len(enabledOutputs) == 0 {
-		enabledOutputs = []fb.Plugin{
+		enabledOutputs = []v1alpha2.Plugin{
 			{
 				Type: "fluentbit_output",
 				Name: "fluentbit-output-null",
-				Parameters: []fb.Parameter{
+				Parameters: []v1alpha2.Parameter{
 					{
 						Name:  "Name",
 						Value: "null",
@@ -301,7 +301,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 	}
 
 	// Create a CRD client interface
-	crdclient := fb.CrdClient(crdcs, scheme, LoggingNamespace)
+	crdclient := v1alpha2.CrdClient(crdcs, scheme, LoggingNamespace)
 
 	fluentbit, err := crdclient.Get("fluent-bit")
 	if err != nil {
@@ -320,7 +320,7 @@ func syncFluentbitCRDOutputWithConfigMap(outputs []fb.OutputPlugin) error {
 }
 
 // Parse es host, port and index
-func ParseEsOutputParams(params []fb.Parameter) *v1alpha2.Config {
+func ParseEsOutputParams(params []v1alpha2.Parameter) *v1alpha2.Config {
 
 	var (
 		isEsFound bool

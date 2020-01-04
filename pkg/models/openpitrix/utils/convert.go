@@ -16,28 +16,29 @@
  * /
  */
 
-package openpitrix
+package utils
 
 import (
 	"github.com/go-openapi/strfmt"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"time"
 )
 
-func convertApp(in *pb.App) *App {
+func ConvertApp(in *pb.App) *types.App {
 
 	if in == nil {
 		return nil
 	}
 
-	categorySet := make(AppCategorySet, 0)
+	categorySet := make(types.AppCategorySet, 0)
 
 	for _, item := range in.CategorySet {
-		category := convertResourceCategory(item)
+		category := ConvertResourceCategory(item)
 		categorySet = append(categorySet, category)
 	}
 
-	out := App{
+	out := types.App{
 		CategorySet: categorySet,
 	}
 
@@ -92,7 +93,7 @@ func convertApp(in *pb.App) *App {
 		out.Keywords = in.Keywords.Value
 	}
 	if in.LatestAppVersion != nil {
-		out.LatestAppVersion = convertAppVersion(in.LatestAppVersion)
+		out.LatestAppVersion = ConvertAppVersion(in.LatestAppVersion)
 	}
 	if in.Name != nil {
 		out.Name = in.Name.Value
@@ -130,11 +131,11 @@ func convertApp(in *pb.App) *App {
 	return &out
 }
 
-func convertAppVersion(in *pb.AppVersion) *AppVersion {
+func ConvertAppVersion(in *pb.AppVersion) *types.AppVersion {
 	if in == nil {
 		return nil
 	}
-	out := AppVersion{}
+	out := types.AppVersion{}
 	if in.AppId != nil {
 		out.AppId = in.AppId.Value
 	}
@@ -209,11 +210,11 @@ func convertAppVersion(in *pb.AppVersion) *AppVersion {
 
 }
 
-func convertResourceCategory(in *pb.ResourceCategory) *ResourceCategory {
+func ConvertResourceCategory(in *pb.ResourceCategory) *types.ResourceCategory {
 	if in == nil {
 		return nil
 	}
-	out := ResourceCategory{}
+	out := types.ResourceCategory{}
 
 	if in.CategoryId != nil {
 		out.CategoryId = in.CategoryId.Value
@@ -239,11 +240,11 @@ func convertResourceCategory(in *pb.ResourceCategory) *ResourceCategory {
 	return &out
 }
 
-func convertCategory(in *pb.Category) *Category {
+func ConvertCategory(in *pb.Category) *types.Category {
 	if in == nil {
 		return nil
 	}
-	out := Category{}
+	out := types.Category{}
 
 	if in.CategoryId != nil {
 		out.CategoryID = in.CategoryId.Value
@@ -275,11 +276,11 @@ func convertCategory(in *pb.Category) *Category {
 	return &out
 }
 
-func convertAttachment(in *pb.Attachment) *Attachment {
+func ConvertAttachment(in *pb.Attachment) *types.Attachment {
 	if in == nil {
 		return nil
 	}
-	out := Attachment{}
+	out := types.Attachment{}
 
 	out.AttachmentID = in.AttachmentId
 
@@ -297,11 +298,11 @@ func convertAttachment(in *pb.Attachment) *Attachment {
 	return &out
 }
 
-func convertRepo(in *pb.Repo) *Repo {
+func ConvertRepo(in *pb.Repo) *types.Repo {
 	if in == nil {
 		return nil
 	}
-	out := Repo{}
+	out := types.Repo{}
 
 	if in.RepoId != nil {
 		out.RepoId = in.RepoId.Value
@@ -316,10 +317,10 @@ func convertRepo(in *pb.Repo) *Repo {
 		out.Credential = in.Credential.Value
 	}
 
-	categorySet := make(RepoCategorySet, 0)
+	categorySet := make(types.RepoCategorySet, 0)
 
 	for _, item := range in.CategorySet {
-		category := convertResourceCategory(item)
+		category := ConvertResourceCategory(item)
 		categorySet = append(categorySet, category)
 	}
 
@@ -338,10 +339,10 @@ func convertRepo(in *pb.Repo) *Repo {
 		out.Description = in.Description.Value
 	}
 
-	labelSet := make(RepoLabels, 0)
+	labelSet := make(types.RepoLabels, 0)
 
 	for _, item := range in.Labels {
-		label := convertRepoLabel(item)
+		label := ConvertRepoLabel(item)
 		labelSet = append(labelSet, label)
 	}
 
@@ -357,10 +358,10 @@ func convertRepo(in *pb.Repo) *Repo {
 		out.RepoId = in.RepoId.Value
 	}
 
-	selectorSet := make(RepoSelectors, 0)
+	selectorSet := make(types.RepoSelectors, 0)
 
 	for _, item := range in.Selectors {
-		selector := convertRepoSelector(item)
+		selector := ConvertRepoSelector(item)
 		selectorSet = append(selectorSet, selector)
 	}
 
@@ -384,11 +385,11 @@ func convertRepo(in *pb.Repo) *Repo {
 	return &out
 }
 
-func convertRepoLabel(in *pb.RepoLabel) *RepoLabel {
+func ConvertRepoLabel(in *pb.RepoLabel) *types.RepoLabel {
 	if in == nil {
 		return nil
 	}
-	out := RepoLabel{}
+	out := types.RepoLabel{}
 	if in.CreateTime != nil {
 		date := strfmt.DateTime(time.Unix(in.CreateTime.Seconds, 0))
 		out.CreateTime = &date
@@ -402,11 +403,11 @@ func convertRepoLabel(in *pb.RepoLabel) *RepoLabel {
 	return &out
 }
 
-func convertRepoSelector(in *pb.RepoSelector) *RepoSelector {
+func ConvertRepoSelector(in *pb.RepoSelector) *types.RepoSelector {
 	if in == nil {
 		return nil
 	}
-	out := RepoSelector{}
+	out := types.RepoSelector{}
 	if in.CreateTime != nil {
 		date := strfmt.DateTime(time.Unix(in.CreateTime.Seconds, 0))
 		out.CreateTime = &date
@@ -420,11 +421,11 @@ func convertRepoSelector(in *pb.RepoSelector) *RepoSelector {
 	return &out
 }
 
-func convertAppVersionAudit(in *pb.AppVersionAudit) *AppVersionAudit {
+func ConvertAppVersionAudit(in *pb.AppVersionAudit) *types.AppVersionAudit {
 	if in == nil {
 		return nil
 	}
-	out := AppVersionAudit{}
+	out := types.AppVersionAudit{}
 	if in.AppId != nil {
 		out.AppId = in.AppId.Value
 	}
@@ -462,11 +463,11 @@ func convertAppVersionAudit(in *pb.AppVersionAudit) *AppVersionAudit {
 	return &out
 }
 
-func convertAppVersionReview(in *pb.AppVersionReview) *AppVersionReview {
+func ConvertAppVersionReview(in *pb.AppVersionReview) *types.AppVersionReview {
 	if in == nil {
 		return nil
 	}
-	out := AppVersionReview{}
+	out := types.AppVersionReview{}
 	if in.AppId != nil {
 		out.AppId = in.AppId.Value
 	}
@@ -474,9 +475,9 @@ func convertAppVersionReview(in *pb.AppVersionReview) *AppVersionReview {
 		out.AppName = in.AppName.Value
 	}
 	if in.Phase != nil {
-		out.Phase = make(AppVersionReviewPhaseOAIGen)
+		out.Phase = make(types.AppVersionReviewPhaseOAIGen)
 		for k, v := range in.Phase {
-			out.Phase[k] = *convertAppVersionReviewPhase(v)
+			out.Phase[k] = *ConvertAppVersionReviewPhase(v)
 		}
 	}
 	if in.ReviewId != nil {
@@ -503,11 +504,11 @@ func convertAppVersionReview(in *pb.AppVersionReview) *AppVersionReview {
 	return &out
 }
 
-func convertAppVersionReviewPhase(in *pb.AppVersionReviewPhase) *AppVersionReviewPhase {
+func ConvertAppVersionReviewPhase(in *pb.AppVersionReviewPhase) *types.AppVersionReviewPhase {
 	if in == nil {
 		return nil
 	}
-	out := AppVersionReviewPhase{}
+	out := types.AppVersionReviewPhase{}
 	if in.Message != nil {
 		out.Message = in.Message.Value
 	}
@@ -531,11 +532,11 @@ func convertAppVersionReviewPhase(in *pb.AppVersionReviewPhase) *AppVersionRevie
 	return &out
 }
 
-func convertRepoEvent(in *pb.RepoEvent) *RepoEvent {
+func ConvertRepoEvent(in *pb.RepoEvent) *types.RepoEvent {
 	if in == nil {
 		return nil
 	}
-	out := RepoEvent{}
+	out := types.RepoEvent{}
 	if in.CreateTime != nil {
 		date := strfmt.DateTime(time.Unix(in.CreateTime.Seconds, 0))
 		out.CreateTime = &date
@@ -563,11 +564,11 @@ func convertRepoEvent(in *pb.RepoEvent) *RepoEvent {
 	return &out
 }
 
-func convertCluster(in *pb.Cluster) *Cluster {
+func ConvertCluster(in *pb.Cluster) *types.Cluster {
 	if in == nil {
 		return nil
 	}
-	out := Cluster{}
+	out := types.Cluster{}
 	if in.AdditionalInfo != nil {
 		out.AdditionalInfo = in.AdditionalInfo.Value
 	}

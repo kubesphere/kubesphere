@@ -16,7 +16,7 @@
  * /
  */
 
-package openpitrix
+package category
 
 import (
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -24,13 +24,15 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 )
 
-func CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error) {
+func CreateCategory(request *types.CreateCategoryRequest) (*types.CreateCategoryResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -50,7 +52,7 @@ func CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, er
 		klog.Error(err)
 		return nil, err
 	}
-	return &CreateCategoryResponse{
+	return &types.CreateCategoryResponse{
 		CategoryId: resp.GetCategoryId().GetValue(),
 	}, nil
 }
@@ -71,7 +73,7 @@ func DeleteCategory(id string) error {
 	return nil
 }
 
-func PatchCategory(id string, request *ModifyCategoryRequest) error {
+func PatchCategory(id string, request *types.ModifyCategoryRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -101,7 +103,7 @@ func PatchCategory(id string, request *ModifyCategoryRequest) error {
 	return nil
 }
 
-func DescribeCategory(id string) (*Category, error) {
+func DescribeCategory(id string) (*types.Category, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -116,10 +118,10 @@ func DescribeCategory(id string) (*Category, error) {
 		return nil, err
 	}
 
-	var category *Category
+	var category *types.Category
 
 	if len(resp.CategorySet) > 0 {
-		category = convertCategory(resp.CategorySet[0])
+		category = utils.ConvertCategory(resp.CategorySet[0])
 		return category, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -156,7 +158,7 @@ func ListCategories(conditions *params.Conditions, orderBy string, reverse bool,
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.CategorySet {
-		items = append(items, convertCategory(item))
+		items = append(items, utils.ConvertCategory(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil

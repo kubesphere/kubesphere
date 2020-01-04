@@ -27,7 +27,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -136,7 +136,7 @@ func DescribeApplication(req *restful.Request, resp *restful.Response) {
 
 func CreateApplication(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
-	var createClusterRequest openpitrix.CreateClusterRequest
+	var createClusterRequest types.CreateClusterRequest
 	err := req.ReadEntity(&createClusterRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -159,7 +159,7 @@ func CreateApplication(req *restful.Request, resp *restful.Response) {
 }
 
 func ModifyApplication(req *restful.Request, resp *restful.Response) {
-	var modifyClusterAttributesRequest openpitrix.ModifyClusterAttributesRequest
+	var modifyClusterAttributesRequest types.ModifyClusterAttributesRequest
 	clusterId := req.PathParameter("application")
 	namespaceName := req.PathParameter("namespace")
 	err := req.ReadEntity(&modifyClusterAttributesRequest)

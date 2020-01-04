@@ -16,7 +16,7 @@
  * /
  */
 
-package openpitrix
+package app
 
 import (
 	"github.com/go-openapi/strfmt"
@@ -25,6 +25,8 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -83,13 +85,13 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppSet {
-		items = append(items, convertApp(item))
+		items = append(items, utils.ConvertApp(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func DescribeApp(id string) (*App, error) {
+func DescribeApp(id string) (*types.App, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -104,10 +106,10 @@ func DescribeApp(id string) (*App, error) {
 		return nil, err
 	}
 
-	var app *App
+	var app *types.App
 
 	if len(resp.AppSet) > 0 {
-		app = convertApp(resp.AppSet[0])
+		app = utils.ConvertApp(resp.AppSet[0])
 		return app, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -132,7 +134,7 @@ func DeleteApp(id string) error {
 	return nil
 }
 
-func CreateApp(request *CreateAppRequest) (*CreateAppResponse, error) {
+func CreateApp(request *types.CreateAppRequest) (*types.CreateAppResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -157,13 +159,13 @@ func CreateApp(request *CreateAppRequest) (*CreateAppResponse, error) {
 		klog.Error(err)
 		return nil, err
 	}
-	return &CreateAppResponse{
+	return &types.CreateAppResponse{
 		AppID:     resp.GetAppId().GetValue(),
 		VersionID: resp.GetVersionId().GetValue(),
 	}, nil
 }
 
-func PatchApp(appId string, request *ModifyAppRequest) error {
+func PatchApp(appId string, request *types.ModifyAppRequest) error {
 	client, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -237,7 +239,7 @@ func PatchApp(appId string, request *ModifyAppRequest) error {
 	return nil
 }
 
-func CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionResponse, error) {
+func CreateAppVersion(request *types.CreateAppVersionRequest) (*types.CreateAppVersionResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -259,12 +261,12 @@ func CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionRespon
 		klog.Error(err)
 		return nil, err
 	}
-	return &CreateAppVersionResponse{
+	return &types.CreateAppVersionResponse{
 		VersionId: resp.GetVersionId().GetValue(),
 	}, nil
 }
 
-func ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse, error) {
+func ValidatePackage(request *types.ValidatePackageRequest) (*types.ValidatePackageResponse, error) {
 	client, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -288,7 +290,7 @@ func ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse,
 		return nil, err
 	}
 
-	result := &ValidatePackageResponse{}
+	result := &types.ValidatePackageResponse{}
 
 	if resp.Error != nil {
 		result.Error = resp.Error.Value
@@ -330,7 +332,7 @@ func DeleteAppVersion(id string) error {
 	return nil
 }
 
-func PatchAppVersion(id string, request *ModifyAppVersionRequest) error {
+func PatchAppVersion(id string, request *types.ModifyAppVersionRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -361,7 +363,7 @@ func PatchAppVersion(id string, request *ModifyAppVersionRequest) error {
 	return nil
 }
 
-func DescribeAppVersion(id string) (*AppVersion, error) {
+func DescribeAppVersion(id string) (*types.AppVersion, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -376,10 +378,10 @@ func DescribeAppVersion(id string) (*AppVersion, error) {
 		return nil, err
 	}
 
-	var app *AppVersion
+	var app *types.AppVersion
 
 	if len(resp.AppVersionSet) > 0 {
-		app = convertAppVersion(resp.AppVersionSet[0])
+		app = utils.ConvertAppVersion(resp.AppVersionSet[0])
 		return app, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -388,7 +390,7 @@ func DescribeAppVersion(id string) (*AppVersion, error) {
 	}
 }
 
-func GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageResponse, error) {
+func GetAppVersionPackage(appId, versionId string) (*types.GetAppVersionPackageResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -402,7 +404,7 @@ func GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageRespons
 		return nil, err
 	}
 
-	app := &GetAppVersionPackageResponse{
+	app := &types.GetAppVersionPackageResponse{
 		AppId:     appId,
 		VersionId: versionId,
 	}
@@ -414,7 +416,7 @@ func GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageRespons
 	return app, nil
 }
 
-func DoAppAction(appId string, request *ActionRequest) error {
+func DoAppAction(appId string, request *types.ActionRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -479,7 +481,7 @@ func DoAppAction(appId string, request *ActionRequest) error {
 	return nil
 }
 
-func DoAppVersionAction(versionId string, request *ActionRequest) error {
+func DoAppVersionAction(versionId string, request *types.ActionRequest) error {
 	op, err := cs.ClientSets().OpenPitrix()
 
 	if err != nil {
@@ -529,7 +531,7 @@ func DoAppVersionAction(versionId string, request *ActionRequest) error {
 	return nil
 }
 
-func GetAppVersionFiles(versionId string, request *GetAppVersionFilesRequest) (*GetAppVersionPackageFilesResponse, error) {
+func GetAppVersionFiles(versionId string, request *types.GetAppVersionFilesRequest) (*types.GetAppVersionPackageFilesResponse, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -548,7 +550,7 @@ func GetAppVersionFiles(versionId string, request *GetAppVersionFilesRequest) (*
 		return nil, err
 	}
 
-	version := &GetAppVersionPackageFilesResponse{
+	version := &types.GetAppVersionPackageFilesResponse{
 		VersionId: versionId,
 	}
 
@@ -600,7 +602,7 @@ func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionAuditSet {
-		appVersion := convertAppVersionAudit(item)
+		appVersion := utils.ConvertAppVersionAudit(item)
 		items = append(items, appVersion)
 	}
 
@@ -640,7 +642,7 @@ func ListAppVersionReviews(conditions *params.Conditions, orderBy string, revers
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionReviewSet {
-		appVersion := convertAppVersionReview(item)
+		appVersion := utils.ConvertAppVersionReview(item)
 		items = append(items, appVersion)
 	}
 
@@ -682,7 +684,7 @@ func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionSet {
-		appVersion := convertAppVersion(item)
+		appVersion := utils.ConvertAppVersion(item)
 		items = append(items, appVersion)
 	}
 

@@ -21,30 +21,29 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"kubesphere.io/kubesphere/pkg/apiserver/terminal"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
-const GroupName = "terminal.kubesphere.io"
+const (
+	GroupName = "terminal.kubesphere.io"
+	tag = "Terminal"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
-
-func addWebService(c *restful.Container) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface, config *rest.Config) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
-	tags := []string{"Terminal"}
+	handler := newTerminalHandler(client, config)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}").
-		To(terminal.HandleTerminalSession).
+		To(handler.handleTerminalSession).
 		Doc("create terminal session").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tag}).
 		Writes(models.PodInfo{}))
 
 	c.Add(webservice)

@@ -17,10 +17,10 @@ type Handler struct {
 }
 
 func New(client k8s.Client) *Handler {
-	factory := informers.NewInformerFactories(client.Kubernetes(), nil, nil, nil)
+	factory := informers.NewInformerFactories(client.Kubernetes(), client.KubeSphere(), client.S2i(), client.Application())
 
 	return &Handler{
-		namespacedResourceGetter: resource.New(factory.KubernetesSharedInformerFactory()),
+		namespacedResourceGetter: resource.New(factory),
 		componentsGetter:         components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
 	}
 }

@@ -23,7 +23,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/app"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/category"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
@@ -32,14 +34,14 @@ import (
 )
 
 func CreateCategory(req *restful.Request, resp *restful.Response) {
-	createCategoryRequest := &openpitrix.CreateCategoryRequest{}
+	createCategoryRequest := &types.CreateCategoryRequest{}
 	err := req.ReadEntity(createCategoryRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
-	result, err := openpitrix.CreateCategory(createCategoryRequest)
+	result, err := category.CreateCategory(createCategoryRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -59,7 +61,7 @@ func CreateCategory(req *restful.Request, resp *restful.Response) {
 func DeleteCategory(req *restful.Request, resp *restful.Response) {
 	categoryId := req.PathParameter("category")
 
-	err := openpitrix.DeleteCategory(categoryId)
+	err := category.DeleteCategory(categoryId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -77,7 +79,7 @@ func DeleteCategory(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(errors.None)
 }
 func ModifyCategory(req *restful.Request, resp *restful.Response) {
-	var modifyCategoryRequest openpitrix.ModifyCategoryRequest
+	var modifyCategoryRequest types.ModifyCategoryRequest
 	categoryId := req.PathParameter("category")
 	err := req.ReadEntity(&modifyCategoryRequest)
 	if err != nil {
@@ -85,7 +87,7 @@ func ModifyCategory(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = openpitrix.PatchCategory(categoryId, &modifyCategoryRequest)
+	err = category.PatchCategory(categoryId, &modifyCategoryRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -105,7 +107,7 @@ func ModifyCategory(req *restful.Request, resp *restful.Response) {
 func DescribeCategory(req *restful.Request, resp *restful.Response) {
 	categoryId := req.PathParameter("category")
 
-	result, err := openpitrix.DescribeCategory(categoryId)
+	result, err := category.DescribeCategory(categoryId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -140,7 +142,7 @@ func ListCategories(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	result, err := openpitrix.ListCategories(conditions, orderBy, reverse, limit, offset)
+	result, err := category.ListCategories(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -155,8 +157,8 @@ func ListCategories(req *restful.Request, resp *restful.Response) {
 
 	if statistics {
 		for _, item := range result.Items {
-			if category, ok := item.(*openpitrix.Category); ok {
-				statisticsResult, err := openpitrix.ListApps(&params.Conditions{Match: map[string]string{"category_id": category.CategoryID, "status": openpitrix.StatusActive, "repo": openpitrix.BuiltinRepoId}}, "", false, 0, 0)
+			if category, ok := item.(*types.Category); ok {
+				statisticsResult, err := app.ListApps(&params.Conditions{Match: map[string]string{"category_id": category.CategoryID, "status": app.StatusActive, "repo": app.BuiltinRepoId}}, "", false, 0, 0)
 				if err != nil {
 					klog.Errorln(err)
 					resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))

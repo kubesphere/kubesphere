@@ -54,32 +54,6 @@ func NewS3Client(options *Options) (Interface, error) {
 	return &c, nil
 }
 
-// NewS3ClientOrDie creates Client and panics if there is an error
-func NewS3ClientOrDie(options *Options) Interface {
-	cred := credentials.NewStaticCredentials(options.AccessKeyID, options.SecretAccessKey, options.SessionToken)
-
-	config := aws.Config{
-		Region:           aws.String(options.Region),
-		Endpoint:         aws.String(options.Endpoint),
-		DisableSSL:       aws.Bool(options.DisableSSL),
-		S3ForcePathStyle: aws.Bool(options.ForcePathStyle),
-		Credentials:      cred,
-	}
-
-	s, err := session.NewSession(&config)
-	if err != nil {
-		panic(err)
-	}
-
-	client := s3.New(s)
-
-	return &Client{
-		s3Client:  client,
-		s3Session: s,
-		bucket:    options.Bucket,
-	}
-}
-
 func (s *Client) Client() *s3.S3 {
 
 	return s.s3Client
