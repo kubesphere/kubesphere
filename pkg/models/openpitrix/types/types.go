@@ -1,4 +1,4 @@
-package openpitrix
+package types
 
 import (
 	"github.com/go-openapi/strfmt"

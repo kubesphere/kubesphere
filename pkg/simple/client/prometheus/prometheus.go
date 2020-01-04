@@ -27,8 +27,6 @@ import (
 	"time"
 )
 
-type Interface interface {
-}
 
 type Client struct {
 	client            *http.Client

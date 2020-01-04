@@ -1,10 +1,8 @@
 package api
 
 import (
-	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"net/http"
 )
 
 type ListResult struct {
@@ -158,13 +156,3 @@ const (
 	ResourceKindS2iBuilder               = "s2ibuilders"
 	ResourceKindApplication              = "applications"
 )
-
-func HandleInternalError(response *restful.Response, err error) {
-	statusCode := http.StatusInternalServerError
-
-	response.WriteError(statusCode, err)
-}
-
-func HandleBadRequest(response *restful.Response, err error) {
-
-}

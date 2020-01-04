@@ -23,7 +23,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/repo"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
@@ -32,7 +33,7 @@ import (
 )
 
 func CreateRepo(req *restful.Request, resp *restful.Response) {
-	createRepoRequest := &openpitrix.CreateRepoRequest{}
+	createRepoRequest := &types.CreateRepoRequest{}
 	err := req.ReadEntity(createRepoRequest)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -43,14 +44,14 @@ func CreateRepo(req *restful.Request, resp *restful.Response) {
 	var result interface{}
 
 	if validate {
-		validateRepoRequest := &openpitrix.ValidateRepoRequest{
+		validateRepoRequest := &types.ValidateRepoRequest{
 			Type:       createRepoRequest.Type,
 			Url:        createRepoRequest.URL,
 			Credential: createRepoRequest.Credential,
 		}
-		result, err = openpitrix.ValidateRepo(validateRepoRequest)
+		result, err = repo.ValidateRepo(validateRepoRequest)
 	} else {
-		result, err = openpitrix.CreateRepo(createRepoRequest)
+		result, err = repo.CreateRepo(createRepoRequest)
 	}
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
@@ -70,7 +71,7 @@ func CreateRepo(req *restful.Request, resp *restful.Response) {
 }
 
 func DoRepoAction(req *restful.Request, resp *restful.Response) {
-	repoActionRequest := &openpitrix.RepoActionRequest{}
+	repoActionRequest := &types.RepoActionRequest{}
 	repoId := req.PathParameter("repo")
 	err := req.ReadEntity(repoActionRequest)
 	if err != nil {
@@ -78,7 +79,7 @@ func DoRepoAction(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = openpitrix.DoRepoAction(repoId, repoActionRequest)
+	err = repo.DoRepoAction(repoId, repoActionRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -99,7 +100,7 @@ func DoRepoAction(req *restful.Request, resp *restful.Response) {
 func DeleteRepo(req *restful.Request, resp *restful.Response) {
 	repoId := req.PathParameter("repo")
 
-	err := openpitrix.DeleteRepo(repoId)
+	err := repo.DeleteRepo(repoId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -118,7 +119,7 @@ func DeleteRepo(req *restful.Request, resp *restful.Response) {
 }
 
 func ModifyRepo(req *restful.Request, resp *restful.Response) {
-	var updateRepoRequest openpitrix.ModifyRepoRequest
+	var updateRepoRequest types.ModifyRepoRequest
 	repoId := req.PathParameter("repo")
 	err := req.ReadEntity(&updateRepoRequest)
 	if err != nil {
@@ -126,7 +127,7 @@ func ModifyRepo(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	err = openpitrix.PatchRepo(repoId, &updateRepoRequest)
+	err = repo.PatchRepo(repoId, &updateRepoRequest)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -147,7 +148,7 @@ func ModifyRepo(req *restful.Request, resp *restful.Response) {
 func DescribeRepo(req *restful.Request, resp *restful.Response) {
 	repoId := req.PathParameter("repo")
 
-	result, err := openpitrix.DescribeRepo(repoId)
+	result, err := repo.DescribeRepo(repoId)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -179,7 +180,7 @@ func ListRepos(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	result, err := openpitrix.ListRepos(conditions, orderBy, reverse, limit, offset)
+	result, err := repo.ListRepos(conditions, orderBy, reverse, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))
@@ -205,7 +206,7 @@ func ListRepoEvents(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	result, err := openpitrix.ListRepoEvents(repoId, conditions, limit, offset)
+	result, err := repo.ListRepoEvents(repoId, conditions, limit, offset)
 
 	if _, notEnabled := err.(client.ClientSetNotEnabledError); notEnabled {
 		resp.WriteHeaderAndEntity(http.StatusNotImplemented, errors.Wrap(err))

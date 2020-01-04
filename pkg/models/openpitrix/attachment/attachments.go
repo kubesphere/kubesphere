@@ -16,18 +16,20 @@
  * /
  */
 
-package openpitrix
+package attachment
 
 import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 )
 
-func DescribeAttachment(id string) (*Attachment, error) {
+func DescribeAttachment(id string) (*types.Attachment, error) {
 	op, err := cs.ClientSets().OpenPitrix()
 	if err != nil {
 		klog.Error(err)
@@ -41,7 +43,7 @@ func DescribeAttachment(id string) (*Attachment, error) {
 		return nil, err
 	}
 	if len(resp.Attachments) > 0 {
-		return convertAttachment(resp.Attachments[id]), nil
+		return utils.ConvertAttachment(resp.Attachments[id]), nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
 		klog.Error(err)

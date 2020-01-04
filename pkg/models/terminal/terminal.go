@@ -24,10 +24,11 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"time"
 )
 
@@ -134,15 +135,23 @@ func (t TerminalSession) Close(status uint32, reason string) {
 	t.conn.Close()
 }
 
+type Interface interface {
+	HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn)
+}
+
+type terminaler struct {
+	client kubernetes.Interface
+	config *rest.Config
+}
+
+func NewTerminaler(client kubernetes.Interface, config *rest.Config) Interface {
+	return &terminaler{client:client, config:config}
+}
+
 // startProcess is called by handleAttach
 // Executed cmd in the container specified in request and connects it up with the ptyHandler (a session)
-func startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
-
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-
-	cfg := client.ClientSets().K8s().Config()
-
-	req := k8sClient.CoreV1().RESTClient().Post().
+func (t *terminaler)startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
+	req := t.client.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
@@ -156,7 +165,7 @@ func startProcess(namespace, podName, containerName string, cmd []string, ptyHan
 		TTY:       true,
 	}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", req.URL())
+	exec, err := remotecommand.NewSPDYExecutor(t.config, "POST", req.URL())
 	if err != nil {
 		return err
 	}
@@ -185,8 +194,7 @@ func isValidShell(validShells []string, shell string) bool {
 	return false
 }
 
-func HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
-
+func (t *terminaler)HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
 	var err error
 	validShells := []string{"sh", "bash"}
 
@@ -194,13 +202,13 @@ func HandleSession(shell, namespace, podName, containerName string, conn *websoc
 
 	if isValidShell(validShells, shell) {
 		cmd := []string{shell}
-		err = startProcess(namespace, podName, containerName, cmd, session)
+		err = t.startProcess(namespace, podName, containerName, cmd, session)
 	} else {
 		// No shell given or it was not valid: try some shells until one succeeds or all fail
 		// FIXME: if the first shell fails then the first keyboard event is lost
 		for _, testShell := range validShells {
 			cmd := []string{testShell}
-			if err = startProcess(namespace, podName, containerName, cmd, session); err == nil {
+			if err = t.startProcess(namespace, podName, containerName, cmd, session); err == nil {
 				break
 			}
 		}

@@ -69,3 +69,10 @@ type FluentBitList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []FluentBit `json:"items"`
 }
+
+
+type FluentbitOutputsResult struct {
+	Status  int               `json:"status" description:"response status"`
+	Error   string            `json:"error,omitempty" description:"debug information"`
+	Outputs []OutputPlugin `json:"outputs,omitempty" description:"array of fluent bit output plugins"`
+}

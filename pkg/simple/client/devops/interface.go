@@ -1,6 +1,7 @@
 package devops
 
 type Job struct {
+
 }
 
 type Interface interface {
