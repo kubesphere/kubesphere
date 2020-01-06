@@ -194,7 +194,7 @@ func (cs *ClientSet) Cache() (cache.Interface, error) {
 	}
 }
 
-func (cs *ClientSet) Devops() (*devops.Client, error) {
+func (cs *ClientSet) Devops() (*devops.Jenkins, error) {
 	var err error
 
 	if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
@@ -202,7 +202,7 @@ func (cs *ClientSet) Devops() (*devops.Client, error) {
 	}
 
 	if cs.devopsClient != nil {
-		return cs.devopsClient, nil
+		return cs.devopsClient.Jenkins(), nil
 	} else {
 		mutex.Lock()
 		defer mutex.Unlock()
@@ -213,7 +213,7 @@ func (cs *ClientSet) Devops() (*devops.Client, error) {
 				return nil, err
 			}
 		}
-		return cs.devopsClient, nil
+		return cs.devopsClient.Jenkins(), nil
 	}
 }
 
