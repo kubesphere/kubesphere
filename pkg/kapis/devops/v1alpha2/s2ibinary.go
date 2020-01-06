@@ -1,4 +1,4 @@
-package devops
+package v1alpha2
 
 import (
 	"code.cloudfoundry.org/bytefmt"

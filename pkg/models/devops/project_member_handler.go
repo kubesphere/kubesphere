@@ -27,7 +27,20 @@ import (
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 )
 
-func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
+type ProjectMemberOperator interface {
+	GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
+	GetProjectMember(projectId, username string) (*DevOpsProjectMembership, error)
+	AddProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error)
+	UpdateProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error)
+	DeleteProjectMember(projectId, username string) (string, error)
+}
+type projectMemberOperator struct {
+
+
+}
+
+
+func (o * projectMemberOperator) GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -79,7 +92,7 @@ func GetProjectMembers(projectId string, conditions *params.Conditions, orderBy 
 	return &models.PageableResponse{Items: result, TotalCount: int(count)}, nil
 }
 
-func GetProjectMember(projectId, username string) (*DevOpsProjectMembership, error) {
+func (o * projectMemberOperator)  GetProjectMember(projectId, username string) (*DevOpsProjectMembership, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -102,7 +115,7 @@ func GetProjectMember(projectId, username string) (*DevOpsProjectMembership, err
 	return member, nil
 }
 
-func AddProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
+func (o * projectMemberOperator) AddProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -197,7 +210,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 	return projectMembership, nil
 }
 
-func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
+func (o * projectMemberOperator) UpdateProjectMember(projectId, operator string, member *DevOpsProjectMembership) (*DevOpsProjectMembership, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -299,7 +312,7 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 	return responseMembership, nil
 }
 
-func DeleteProjectMember(projectId, username string) (string, error) {
+func (o * projectMemberOperator)  DeleteProjectMember(projectId, username string) (string, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())

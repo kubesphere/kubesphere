@@ -15,7 +15,7 @@
   limitations under the License.
 
 */
-package devops
+package v1alpha2
 
 import (
 	"encoding/json"

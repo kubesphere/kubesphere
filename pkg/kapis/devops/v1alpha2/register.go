@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
-	devopsapi "kubesphere.io/kubesphere/pkg/apiserver/devops"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/devops"
@@ -50,7 +49,7 @@ func addWebService(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	webservice.Route(webservice.GET("/devops/{devops}").
-		To(devopsapi.GetDevOpsProjectHandler).
+		To(GetDevOpsProjectHandler).
 		Doc("Get the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -58,7 +57,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.DevOpsProject{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}").
-		To(devopsapi.UpdateProjectHandler).
+		To(UpdateProjectHandler).
 		Doc("Update the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -67,7 +66,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.DevOpsProject{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/defaultroles").
-		To(devopsapi.GetDevOpsProjectDefaultRoles).
+		To(GetDevOpsProjectDefaultRoles).
 		Doc("Get the build-in roles info of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -75,7 +74,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.Role{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/members").
-		To(devopsapi.GetDevOpsProjectMembersHandler).
+		To(GetDevOpsProjectMembersHandler).
 		Doc("Get the members of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -90,7 +89,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/members/{member}").
-		To(devopsapi.GetDevOpsProjectMemberHandler).
+		To(GetDevOpsProjectMemberHandler).
 		Doc("Get the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -99,7 +98,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/members").
-		To(devopsapi.AddDevOpsProjectMemberHandler).
+		To(AddDevOpsProjectMemberHandler).
 		Doc("Add a member to the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -108,7 +107,7 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}/members/{member}").
-		To(devopsapi.UpdateDevOpsProjectMemberHandler).
+		To(UpdateDevOpsProjectMemberHandler).
 		Doc("Update the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -118,7 +117,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/members/{member}").
-		To(devopsapi.DeleteDevOpsProjectMemberHandler).
+		To(DeleteDevOpsProjectMemberHandler).
 		Doc("Delete the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -126,7 +125,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
-		To(devopsapi.CreateDevOpsProjectPipelineHandler).
+		To(CreateDevOpsProjectPipelineHandler).
 		Doc("Create a DevOps project pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -135,7 +134,7 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipeline}").
-		To(devopsapi.UpdateDevOpsProjectPipelineHandler).
+		To(UpdateDevOpsProjectPipelineHandler).
 		Doc("Update the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
@@ -144,14 +143,14 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
-		To(devopsapi.DeleteDevOpsProjectPipelineHandler).
+		To(DeleteDevOpsProjectPipelineHandler).
 		Doc("Delete the specified pipeline of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/config").
-		To(devopsapi.GetDevOpsProjectPipelineHandler).
+		To(GetDevOpsProjectPipelineHandler).
 		Doc("Get the configuration information of the specified pipeline of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -160,7 +159,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarstatus").
-		To(devopsapi.GetPipelineSonarStatusHandler).
+		To(GetPipelineSonarStatusHandler).
 		Doc("Get the sonar quality information for the specified pipeline of the DevOps project. More info: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -169,7 +168,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.SonarStatus{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/sonarstatus").
-		To(devopsapi.GetMultiBranchesPipelineSonarStatusHandler).
+		To(GetMultiBranchesPipelineSonarStatusHandler).
 		Doc("Get the sonar quality check information for the specified pipeline branch of the DevOps project. More info: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -179,14 +178,14 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.SonarStatus{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
-		To(devopsapi.CreateDevOpsProjectCredentialHandler).
+		To(CreateDevOpsProjectCredentialHandler).
 		Doc("Create a credential in the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credential}").
-		To(devopsapi.UpdateDevOpsProjectCredentialHandler).
+		To(UpdateDevOpsProjectCredentialHandler).
 		Doc("Update the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -194,14 +193,14 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
-		To(devopsapi.DeleteDevOpsProjectCredentialHandler).
+		To(DeleteDevOpsProjectCredentialHandler).
 		Doc("Delete the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}").
-		To(devopsapi.GetDevOpsProjectCredentialHandler).
+		To(GetDevOpsProjectCredentialHandler).
 		Doc("Get the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -215,7 +214,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials").
-		To(devopsapi.GetDevOpsProjectCredentialsHandler).
+		To(GetDevOpsProjectCredentialsHandler).
 		Doc("Get all credentials of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -223,7 +222,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
-		To(devopsapi.GetPipeline).
+		To(GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -233,7 +232,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api: "jenkins_api/blue/rest/search"
 	webservice.Route(webservice.GET("/search").
-		To(devopsapi.SearchPipelines).
+		To(SearchPipelines).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Search DevOps resource. More info: https://github.com/jenkinsci/blueocean-plugin/tree/master/blueocean-rest#get-pipelines-across-organization").
 		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
@@ -259,7 +258,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(devopsapi.SearchPipelineRuns).
+		To(SearchPipelineRuns).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all runs of the specified pipeline").
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -292,7 +291,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
-		To(devopsapi.GetBranchPipelineRun).
+		To(GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all runs in the specified branch").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -304,7 +303,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/nodes"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes").
-		To(devopsapi.GetPipelineRunNodesbyBranch).
+		To(GetPipelineRunNodesbyBranch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get run nodes.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -320,7 +319,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}/log/?start=0"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}/log").
-		To(devopsapi.GetBranchStepLog).
+		To(GetBranchStepLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get the step logs in the specified pipeline activity.").
 		Produces("text/plain; charset=utf-8").
@@ -337,7 +336,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log/?start=0"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log").
-		To(devopsapi.GetStepLog).
+		To(GetStepLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get pipelines step log.").
 		Produces("text/plain; charset=utf-8").
@@ -353,7 +352,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
 	webservice.Route(webservice.POST("/scms/{scm}/verify").
-		To(devopsapi.Validate).
+		To(Validate).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
 		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
@@ -362,7 +361,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/?credentialId=github"
 	webservice.Route(webservice.GET("/scms/{scm}/organizations").
-		To(devopsapi.GetSCMOrg).
+		To(GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
 		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
@@ -374,7 +373,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	webservice.Route(webservice.GET("/scms/{scm}/servers").
-		To(devopsapi.GetSCMServers).
+		To(GetSCMServers).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all servers in the jenkins.").
 		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
@@ -383,7 +382,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	webservice.Route(webservice.POST("/scms/{scm}/servers").
-		To(devopsapi.CreateSCMServers).
+		To(CreateSCMServers).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("Create scm server in the jenkins.").
 		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
@@ -393,7 +392,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/{organization}/repositories/?credentialId=&pageNumber&pageSize="
 	webservice.Route(webservice.GET("/scms/{scm}/organizations/{organization}/repositories").
-		To(devopsapi.GetOrgRepo).
+		To(GetOrgRepo).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all repositories in the specified organization.").
 		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
@@ -412,7 +411,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop").
-		To(devopsapi.StopBranchPipeline).
+		To(StopBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Stop the specified pipeline of the DevOps project.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -432,7 +431,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/stop/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/stop").
-		To(devopsapi.StopPipeline).
+		To(StopPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Stop pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -451,7 +450,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/Replay/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
-		To(devopsapi.ReplayBranchPipeline).
+		To(ReplayBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Replay the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -463,7 +462,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/Replay/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/replay").
-		To(devopsapi.ReplayPipeline).
+		To(ReplayPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Replay pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -474,7 +473,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/log/?start=0
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/log").
-		To(devopsapi.GetBranchRunLog).
+		To(GetBranchRunLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get run logs of the specified pipeline activity.").
 		Produces("text/plain; charset=utf-8").
@@ -489,7 +488,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/log/?start=0
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/log").
-		To(devopsapi.GetRunLog).
+		To(GetRunLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get run logs of the specified pipeline activity.").
 		Produces("text/plain; charset=utf-8").
@@ -503,7 +502,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/artifacts
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/artifacts").
-		To(devopsapi.GetBranchArtifacts).
+		To(GetBranchArtifacts).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all artifacts generated from the specified run of the pipeline branch.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -521,7 +520,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/artifacts
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/artifacts").
-		To(devopsapi.GetArtifacts).
+		To(GetArtifacts).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all artifacts in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -538,7 +537,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/?filter=&start&limit=
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches").
-		To(devopsapi.GetPipeBranch).
+		To(GetPipeBranch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all branches in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -557,7 +556,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}").
-		To(devopsapi.SubmitBranchInputStep).
+		To(SubmitBranchInputStep).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Proceed or Break the paused pipeline which waiting for user input.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -571,7 +570,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}").
-		To(devopsapi.SubmitInputStep).
+		To(SubmitInputStep).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Proceed or Break the paused pipeline which is waiting for user input.").
 		Reads(devops.CheckPlayload{}).
@@ -584,7 +583,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
-		To(devopsapi.GetConsoleLog).
+		To(GetConsoleLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get scan reponsitory logs in the specified pipeline.").
 		Produces("text/plain; charset=utf-8").
@@ -593,7 +592,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /job/{devops}/job/{pipeline}/build?delay=0
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/scan").
-		To(devopsapi.ScanBranch).
+		To(ScanBranch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Scan remote Repository, Start a build if have new branch.").
 		Produces("text/html; charset=utf-8").
@@ -605,7 +604,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{}/runs/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs").
-		To(devopsapi.RunBranchPipeline).
+		To(RunBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Run the specified pipeline of the DevOps project.").
 		Reads(devops.RunPayload{}).
@@ -617,7 +616,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(devopsapi.RunPipeline).
+		To(RunPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Run pipeline.").
 		Reads(devops.RunPayload{}).
@@ -628,14 +627,14 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /crumbIssuer/api/json/
 	webservice.Route(webservice.GET("/crumbissuer").
-		To(devopsapi.GetCrumb).
+		To(GetCrumb).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get crumb issuer. A CrumbIssuer represents an algorithm to generate a nonce value, known as a crumb, to counter cross site request forgery exploits. Crumbs are typically hashes incorporating information that uniquely identifies an agent that sends a request, along with a guarded secret so that the crumb value cannot be forged by a third party.").
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).
 		Writes(devops.Crumb{}))
 
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
-		To(devopsapi.UploadS2iBinary).
+		To(UploadS2iBinary).
 		Consumes("multipart/form-data").
 		Produces(restful.MIME_JSON).
 		Doc("Upload S2iBinary file").
@@ -646,7 +645,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devopsv1alpha1.S2iBinary{}))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
-		To(devopsapi.DownloadS2iBinary).
+		To(DownloadS2iBinary).
 		Produces(restful.MIME_OCTET).
 		Doc("Download S2iBinary file").
 		Param(webservice.PathParameter("namespace", "the name of namespaces")).
@@ -655,7 +654,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, nil))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/checkScriptCompile").
-		To(devopsapi.CheckScriptCompile).
+		To(CheckScriptCompile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.QueryParameter("pipeline", "the name of the CI/CD pipeline").
@@ -669,7 +668,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Writes(devops.CheckScript{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/checkCron").
-		To(devopsapi.CheckCron).
+		To(CheckCron).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -681,7 +680,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
-		To(devopsapi.GetPipelineRun).
+		To(GetPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all activities in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
@@ -692,7 +691,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").
-		To(devopsapi.GetBranchPipeline).
+		To(GetBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all activities in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
@@ -703,7 +702,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/?limit=10000
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes").
-		To(devopsapi.GetPipelineRunNodes).
+		To(GetPipelineRunNodes).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all nodes in the specified activity. node is the stage in the pipeline task").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
@@ -714,7 +713,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?limit=
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps").
-		To(devopsapi.GetBranchNodeSteps).
+		To(GetBranchNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all steps in the specified node.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
@@ -727,7 +726,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?limit=
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps").
-		To(devopsapi.GetNodeSteps).
+		To(GetNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all steps in the specified node.").
 		Param(webservice.PathParameter("devops", "the name of devops project")).
@@ -739,7 +738,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /pipeline-model-converter/toJenkinsfile
 	webservice.Route(webservice.POST("/tojenkinsfile").
-		To(devopsapi.ToJenkinsfile).
+		To(ToJenkinsfile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -750,7 +749,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /pipeline-model-converter/toJson
 	webservice.Route(webservice.POST("/tojson").
-		To(devopsapi.ToJson).
+		To(ToJson).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -761,7 +760,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /git/notifyCommit/?url=
 	webservice.Route(webservice.GET("/webhook/git").
-		To(devopsapi.GetNotifyCommit).
+		To(GetNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 		Produces("text/plain; charset=utf-8").
@@ -771,7 +770,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
 	webservice.Route(webservice.POST("/webhook/git").
-		To(devopsapi.PostNotifyCommit).
+		To(PostNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
 		Consumes("application/json").
@@ -781,14 +780,14 @@ The last one is encrypted info, such as the password of the username-password ty
 			DataFormat("url=%s")))
 
 	webservice.Route(webservice.POST("/webhook/github").
-		To(devopsapi.GithubWebhook).
+		To(GithubWebhook).
 		Consumes("application/x-www-form-urlencoded", "application/json").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification. Github webhook will request here."))
 
 	// in scm get all steps in nodes.
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodesdetail").
-		To(devopsapi.GetBranchNodesDetail).
+		To(GetBranchNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get steps details in an activity node. For a node, the steps which is defined inside the node.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -800,7 +799,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// out of scm get all steps in nodes.
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodesdetail").
-		To(devopsapi.GetNodesDetail).
+		To(GetNodesDetail).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get steps details inside a activity node. For a node, the steps which defined inside the node.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).

@@ -29,7 +29,21 @@ import (
 	"strings"
 )
 
-func CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
+type ProjectCredentialOperator interface {
+	CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error)
+	UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential)
+	DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error)
+	GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error)
+	GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error)
+	insertCredentialToDb(projectId, credentialId, domain, username string) error
+	checkJenkinsCredentialExists(projectId, domain, credentialId string) error
+}
+
+type projectCredentialOperator struct {
+
+}
+
+func (o * projectCredentialOperator) CreateProjectCredential(projectId, username string, credentialRequest *JenkinsCredential) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -143,7 +157,7 @@ func CreateProjectCredential(projectId, username string, credentialRequest *Jenk
 
 }
 
-func UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
+func (o * projectCredentialOperator) UpdateProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -237,7 +251,7 @@ func UpdateProjectCredential(projectId, credentialId string, credentialRequest *
 
 }
 
-func DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
+func (o * projectCredentialOperator)  DeleteProjectCredential(projectId, credentialId string, credentialRequest *JenkinsCredential) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -281,7 +295,7 @@ func DeleteProjectCredential(projectId, credentialId string, credentialRequest *
 
 }
 
-func GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error) {
+func (o * projectCredentialOperator)  GetProjectCredential(projectId, credentialId, domain, getContent string) (*JenkinsCredential, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -359,7 +373,7 @@ func GetProjectCredential(projectId, credentialId, domain, getContent string) (*
 
 }
 
-func GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error) {
+func (o * projectCredentialOperator)  GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -390,7 +404,7 @@ func GetProjectCredentials(projectId, domain string) ([]*JenkinsCredential, erro
 	return response, nil
 }
 
-func insertCredentialToDb(projectId, credentialId, domain, username string) error {
+func (o * projectCredentialOperator)  insertCredentialToDb(projectId, credentialId, domain, username string) error {
 	dbClient, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return err
@@ -406,7 +420,7 @@ func insertCredentialToDb(projectId, credentialId, domain, username string) erro
 	return nil
 }
 
-func checkJenkinsCredentialExists(projectId, domain, credentialId string) error {
+func (o * projectCredentialOperator)  checkJenkinsCredentialExists(projectId, domain, credentialId string) error {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return restful.NewError(http.StatusServiceUnavailable, err.Error())
