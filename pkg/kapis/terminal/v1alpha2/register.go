@@ -29,7 +29,7 @@ import (
 
 const (
 	GroupName = "terminal.kubesphere.io"
-	tag = "Terminal"
+	tag       = "Terminal"
 )
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}

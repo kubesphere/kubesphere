@@ -26,7 +26,7 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	var credential *devops.JenkinsCredential
+	var credential *devops.Credential
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -58,7 +58,7 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
-	var credential *devops.JenkinsCredential
+	var credential *devops.Credential
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -90,7 +90,7 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
-	var credential *devops.JenkinsCredential
+	var credential *devops.Credential
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)

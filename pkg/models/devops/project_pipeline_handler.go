@@ -18,12 +18,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 )
-
 
 type ProjectPipelineOperator interface {
 	CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error)
@@ -33,15 +30,13 @@ type ProjectPipelineOperator interface {
 	DeleteProjectMember(projectId, username string) (string, error)
 }
 type projectPipelineOperator struct {
-
-
 }
+
 func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsClient := devops.Jenkins()
 
 	switch pipeline.Type {
 	case NoScmPipelineType:
@@ -52,7 +47,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := jenkinsClient.GetJob(pipeline.Pipeline.Name, projectId)
+		job, err := devops.GetJob(pipeline.Pipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
 			klog.Warning(err.Error())
@@ -64,7 +59,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
-		_, err = jenkinsClient.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
+		_, err = devops.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
 		if err != nil {
 			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -79,7 +74,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := jenkinsClient.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
+		job, err := devops.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
 			klog.Warning(err.Error())
@@ -91,7 +86,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 		}
 
-		_, err = jenkinsClient.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
+		_, err = devops.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
 		if err != nil {
 			klog.Errorf("%+v", err)
 			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -111,9 +106,8 @@ func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) 
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsClient := devops.Jenkins()
 
-	_, err = jenkinsClient.DeleteJob(pipelineId, projectId)
+	_, err = devops.DeleteJob(pipelineId, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -126,7 +120,6 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsClient := devops.Jenkins()
 
 	switch pipeline.Type {
 	case NoScmPipelineType:
@@ -137,7 +130,7 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := jenkinsClient.GetJob(pipelineId, projectId)
+		job, err := devops.GetJob(pipelineId, projectId)
 
 		if err != nil {
 			klog.Errorf("%+v", err)
@@ -160,7 +153,7 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := jenkinsClient.GetJob(pipelineId, projectId)
+		job, err := devops.GetJob(pipelineId, projectId)
 
 		if err != nil {
 			klog.Errorf("%+v", err)
@@ -187,7 +180,7 @@ func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) 
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkinsClient := devops.Jenkins()
+	jenkinsClient := devops
 
 	job, err := jenkinsClient.GetJob(pipelineId, projectId)
 	if err != nil {
@@ -235,5 +228,3 @@ func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) 
 
 	}
 }
-
-

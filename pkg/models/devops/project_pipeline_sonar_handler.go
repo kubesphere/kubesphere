@@ -13,8 +13,6 @@ type PipelineSonarGetter interface {
 	GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*SonarStatus, error)
 }
 type pipelineSonarGetter struct {
-
-
 }
 
 func GetPipelineSonar(projectId, pipelineId string) ([]*SonarStatus, error) {

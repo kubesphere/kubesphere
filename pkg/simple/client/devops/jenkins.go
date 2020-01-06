@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"log"
 	"net/http"
 	"os"
@@ -80,101 +81,6 @@ func (j *Jenkins) initLoggers() {
 	Error = log.New(os.Stderr,
 		"ERROR: ",
 		log.Ldate|log.Ltime|log.Lshortfile)
-}
-
-// Get Basic Information About Jenkins
-func (j *Jenkins) Info() (*ExecutorResponse, error) {
-	_, err := j.Requester.Get("/", j.Raw, nil)
-
-	if err != nil {
-		return nil, err
-	}
-	return j.Raw, nil
-}
-
-// Create a new Node
-// Can be JNLPLauncher or SSHLauncher
-// Example : jenkins.CreateNode("nodeName", 1, "Description", "/var/lib/jenkins", "jdk8 docker", map[string]string{"method": "JNLPLauncher"})
-// By Default JNLPLauncher is created
-// Multiple labels should be separated by blanks
-func (j *Jenkins) CreateNode(name string, numExecutors int, description string, remoteFS string, label string, options ...interface{}) (*Node, error) {
-	params := map[string]string{"method": "JNLPLauncher"}
-
-	if len(options) > 0 {
-		params, _ = options[0].(map[string]string)
-	}
-
-	if _, ok := params["method"]; !ok {
-		params["method"] = "JNLPLauncher"
-	}
-
-	method := params["method"]
-	var launcher map[string]string
-	switch method {
-	case "":
-		fallthrough
-	case "JNLPLauncher":
-		launcher = map[string]string{"stapler-class": "hudson.slaves.JNLPLauncher"}
-	case "SSHLauncher":
-		launcher = map[string]string{
-			"stapler-class":        "hudson.plugins.sshslaves.SSHLauncher",
-			"$class":               "hudson.plugins.sshslaves.SSHLauncher",
-			"host":                 params["host"],
-			"port":                 params["port"],
-			"credentialsId":        params["credentialsId"],
-			"jvmOptions":           params["jvmOptions"],
-			"javaPath":             params["javaPath"],
-			"prefixStartSlaveCmd":  params["prefixStartSlaveCmd"],
-			"suffixStartSlaveCmd":  params["suffixStartSlaveCmd"],
-			"maxNumRetries":        params["maxNumRetries"],
-			"retryWaitTime":        params["retryWaitTime"],
-			"lanuchTimeoutSeconds": params["lanuchTimeoutSeconds"],
-			"type":                 "hudson.slaves.DumbSlave",
-			"stapler-class-bag":    "true"}
-	default:
-		return nil, errors.New("launcher method not supported")
-	}
-
-	node := &Node{Jenkins: j, Raw: new(NodeResponse), Base: "/computer/" + name}
-	NODE_TYPE := "hudson.slaves.DumbSlave$DescriptorImpl"
-	MODE := "NORMAL"
-	qr := map[string]string{
-		"name": name,
-		"type": NODE_TYPE,
-		"json": makeJson(map[string]interface{}{
-			"name":               name,
-			"nodeDescription":    description,
-			"remoteFS":           remoteFS,
-			"numExecutors":       numExecutors,
-			"mode":               MODE,
-			"type":               NODE_TYPE,
-			"labelString":        label,
-			"retentionsStrategy": map[string]string{"stapler-class": "hudson.slaves.RetentionStrategy$Always"},
-			"nodeProperties":     map[string]string{"stapler-class-bag": "true"},
-			"launcher":           launcher,
-		}),
-	}
-
-	resp, err := j.Requester.Post("/computer/doCreateItem", nil, nil, qr)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 400 {
-		_, err := node.Poll()
-		if err != nil {
-			return nil, err
-		}
-		return node, nil
-	}
-	return nil, errors.New(strconv.Itoa(resp.StatusCode))
-}
-
-// Delete a Jenkins slave node
-func (j *Jenkins) DeleteNode(name string) (bool, error) {
-	node := Node{Jenkins: j, Raw: new(NodeResponse), Base: "/computer/" + name}
-	return node.Delete()
 }
 
 // Create a new folder
@@ -258,30 +164,6 @@ func (j *Jenkins) BuildJob(name string, options ...interface{}) (int64, error) {
 	return job.InvokeSimple(params)
 }
 
-func (j *Jenkins) GetNode(name string) (*Node, error) {
-	node := Node{Jenkins: j, Raw: new(NodeResponse), Base: "/computer/" + name}
-	status, err := node.Poll()
-	if err != nil {
-		return nil, err
-	}
-	if status == 200 {
-		return &node, nil
-	}
-	return nil, errors.New("No node found")
-}
-
-func (j *Jenkins) GetLabel(name string) (*Label, error) {
-	label := Label{Jenkins: j, Raw: new(LabelResponse), Base: "/label/" + name}
-	status, err := label.Poll()
-	if err != nil {
-		return nil, err
-	}
-	if status == 200 {
-		return &label, nil
-	}
-	return nil, errors.New("No label found")
-}
-
 func (j *Jenkins) GetBuild(jobName string, number int64) (*Build, error) {
 	job, err := j.GetJob(jobName)
 	if err != nil {
@@ -307,18 +189,6 @@ func (j *Jenkins) GetJob(id string, parentIDs ...string) (*Job, error) {
 	return nil, errors.New(strconv.Itoa(status))
 }
 
-func (j *Jenkins) GetSubJob(parentId string, childId string) (*Job, error) {
-	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + parentId + "/job/" + childId}
-	status, err := job.Poll()
-	if err != nil {
-		return nil, fmt.Errorf("trouble polling job: %v", err)
-	}
-	if status == 200 {
-		return &job, nil
-	}
-	return nil, errors.New(strconv.Itoa(status))
-}
-
 func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
 	folder := Folder{Jenkins: j, Raw: new(FolderResponse), Base: "/job/" + strings.Join(append(parents, id), "/job/")}
 	status, err := folder.Poll()
@@ -331,190 +201,10 @@ func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
 	return nil, errors.New(strconv.Itoa(status))
 }
 
-func (j *Jenkins) GetAllNodes() ([]*Node, error) {
-	computers := new(Computers)
-
-	qr := map[string]string{
-		"depth": "1",
-	}
-
-	_, err := j.Requester.GetJSON("/computer", computers, qr)
-	if err != nil {
-		return nil, err
-	}
-
-	nodes := make([]*Node, len(computers.Computers))
-	for i, node := range computers.Computers {
-		nodes[i] = &Node{Jenkins: j, Raw: node, Base: "/computer/" + node.DisplayName}
-	}
-
-	return nodes, nil
-}
-
 // Get all builds Numbers and URLS for a specific job.
 // There are only build IDs here,
 // To get all the other info of the build use jenkins.GetBuild(job,buildNumber)
 // or job.GetBuild(buildNumber)
-func (j *Jenkins) GetAllBuildIds(job string) ([]JobBuild, error) {
-	jobObj, err := j.GetJob(job)
-	if err != nil {
-		return nil, err
-	}
-	return jobObj.GetAllBuildIds()
-}
-
-func (j *Jenkins) GetAllBuildStatus(jobId string) ([]JobBuildStatus, error) {
-	job, err := j.GetJob(jobId)
-	if err != nil {
-		return nil, err
-	}
-	return job.GetAllBuildStatus()
-}
-
-// Get Only Array of Job Names, Color, URL
-// Does not query each single Job.
-func (j *Jenkins) GetAllJobNames() ([]InnerJob, error) {
-	exec := Executor{Raw: new(ExecutorResponse), Jenkins: j}
-	_, err := j.Requester.GetJSON("/", exec.Raw, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return exec.Raw.Jobs, nil
-}
-
-// Get All Possible Job Objects.
-// Each job will be queried.
-func (j *Jenkins) GetAllJobs() ([]*Job, error) {
-	exec := Executor{Raw: new(ExecutorResponse), Jenkins: j}
-	_, err := j.Requester.GetJSON("/", exec.Raw, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	jobs := make([]*Job, len(exec.Raw.Jobs))
-	for i, job := range exec.Raw.Jobs {
-		ji, err := j.GetJob(job.Name)
-		if err != nil {
-			return nil, err
-		}
-		jobs[i] = ji
-	}
-	return jobs, nil
-}
-
-// Returns a Queue
-func (j *Jenkins) GetQueue() (*Queue, error) {
-	q := &Queue{Jenkins: j, Raw: new(queueResponse), Base: j.GetQueueUrl()}
-	_, err := q.Poll()
-	if err != nil {
-		return nil, err
-	}
-	return q, nil
-}
-
-func (j *Jenkins) GetQueueUrl() string {
-	return "/queue"
-}
-
-// Get Artifact data by Hash
-func (j *Jenkins) GetArtifactData(id string) (*FingerPrintResponse, error) {
-	fp := FingerPrint{Jenkins: j, Base: "/fingerprint/", Id: id, Raw: new(FingerPrintResponse)}
-	return fp.GetInfo()
-}
-
-// Returns the list of all plugins installed on the Jenkins server.
-// You can supply depth parameter, to limit how much data is returned.
-func (j *Jenkins) GetPlugins(depth int) (*Plugins, error) {
-	p := Plugins{Jenkins: j, Raw: new(PluginResponse), Base: "/pluginManager", Depth: depth}
-	_, err := p.Poll()
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-// Check if the plugin is installed on the server.
-// Depth level 1 is used. If you need to go deeper, you can use GetPlugins, and iterate through them.
-func (j *Jenkins) HasPlugin(name string) (*Plugin, error) {
-	p, err := j.GetPlugins(1)
-
-	if err != nil {
-		return nil, err
-	}
-	return p.Contains(name), nil
-}
-
-// Verify FingerPrint
-func (j *Jenkins) ValidateFingerPrint(id string) (bool, error) {
-	fp := FingerPrint{Jenkins: j, Base: "/fingerprint/", Id: id, Raw: new(FingerPrintResponse)}
-	valid, err := fp.Valid()
-	if err != nil {
-		return false, err
-	}
-	if valid {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (j *Jenkins) GetView(name string) (*View, error) {
-	url := "/view/" + name
-	view := View{Jenkins: j, Raw: new(ViewResponse), Base: url}
-	_, err := view.Poll()
-	if err != nil {
-		return nil, err
-	}
-	return &view, nil
-}
-
-func (j *Jenkins) GetAllViews() ([]*View, error) {
-	_, err := j.Poll()
-	if err != nil {
-		return nil, err
-	}
-	views := make([]*View, len(j.Raw.Views))
-	for i, v := range j.Raw.Views {
-		views[i], _ = j.GetView(v.Name)
-	}
-	return views, nil
-}
-
-// Create View
-// First Parameter - name of the View
-// Second parameter - Type
-// Possible Types:
-// 		gojenkins.LIST_VIEW
-// 		gojenkins.NESTED_VIEW
-// 		gojenkins.MY_VIEW
-// 		gojenkins.DASHBOARD_VIEW
-// 		gojenkins.PIPELINE_VIEW
-// Example: jenkins.CreateView("newView",gojenkins.LIST_VIEW)
-func (j *Jenkins) CreateView(name string, viewType string) (*View, error) {
-	view := &View{Jenkins: j, Raw: new(ViewResponse), Base: "/view/" + name}
-	endpoint := "/createView"
-	data := map[string]string{
-		"name":   name,
-		"mode":   viewType,
-		"Submit": "OK",
-		"json": makeJson(map[string]string{
-			"name": name,
-			"mode": viewType,
-		}),
-	}
-	r, err := j.Requester.Post(endpoint, nil, view.Raw, data)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if r.StatusCode == 200 {
-		return j.GetView(name)
-	}
-	return nil, errors.New(strconv.Itoa(r.StatusCode))
-}
 
 func (j *Jenkins) Poll() (int, error) {
 	resp, err := j.Requester.GetJSON("/", j.Raw, nil)
@@ -527,7 +217,7 @@ func (j *Jenkins) Poll() (int, error) {
 // Create a ssh credentials
 // return credentials id
 func (j *Jenkins) CreateSshCredential(id, username, passphrase, privateKey, description string) (*string, error) {
-	requestStruct := NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
+	requestStruct := jenkins.NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
@@ -542,7 +232,7 @@ func (j *Jenkins) CreateSshCredential(id, username, passphrase, privateKey, desc
 }
 
 func (j *Jenkins) CreateUsernamePasswordCredential(id, username, password, description string) (*string, error) {
-	requestStruct := NewCreateUsernamePasswordRequest(id, username, password, description)
+	requestStruct := jenkins.NewCreateUsernamePasswordRequest(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
@@ -557,7 +247,7 @@ func (j *Jenkins) CreateUsernamePasswordCredential(id, username, password, descr
 }
 
 func (j *Jenkins) CreateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error) {
-	requestStruct := NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
+	requestStruct := jenkins.NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -583,7 +273,7 @@ func (j *Jenkins) CreateSshCredentialInFolder(domain, id, username, passphrase, 
 }
 
 func (j *Jenkins) CreateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error) {
-	requestStruct := NewCreateUsernamePasswordRequest(id, username, password, description)
+	requestStruct := jenkins.NewCreateUsernamePasswordRequest(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -609,7 +299,7 @@ func (j *Jenkins) CreateUsernamePasswordCredentialInFolder(domain, id, username,
 }
 
 func (j *Jenkins) CreateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error) {
-	requestStruct := NewCreateSecretTextCredentialRequest(id, secret, description)
+	requestStruct := jenkins.NewCreateSecretTextCredentialRequest(id, secret, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -635,7 +325,7 @@ func (j *Jenkins) CreateSecretTextCredentialInFolder(domain, id, secret, descrip
 }
 
 func (j *Jenkins) CreateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error) {
-	requestStruct := NewCreateKubeconfigCredentialRequest(id, content, description)
+	requestStruct := jenkins.NewCreateKubeconfigCredentialRequest(id, content, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -661,7 +351,7 @@ func (j *Jenkins) CreateKubeconfigCredentialInFolder(domain, id, content, descri
 }
 
 func (j *Jenkins) UpdateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error) {
-	requestStruct := NewSshCredential(id, username, passphrase, privateKey, description)
+	requestStruct := jenkins.NewSshCredential(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -686,7 +376,7 @@ func (j *Jenkins) UpdateSshCredentialInFolder(domain, id, username, passphrase, 
 }
 
 func (j *Jenkins) UpdateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error) {
-	requestStruct := NewUsernamePasswordCredential(id, username, password, description)
+	requestStruct := jenkins.NewUsernamePasswordCredential(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -711,7 +401,7 @@ func (j *Jenkins) UpdateUsernamePasswordCredentialInFolder(domain, id, username,
 }
 
 func (j *Jenkins) UpdateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error) {
-	requestStruct := NewSecretTextCredential(id, secret, description)
+	requestStruct := jenkins.NewSecretTextCredential(id, secret, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -736,7 +426,7 @@ func (j *Jenkins) UpdateSecretTextCredentialInFolder(domain, id, secret, descrip
 }
 
 func (j *Jenkins) UpdateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error) {
-	requestStruct := NewKubeconfigCredential(id, content, description)
+	requestStruct := jenkins.NewKubeconfigCredential(id, content, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -760,8 +450,8 @@ func (j *Jenkins) UpdateKubeconfigCredentialInFolder(domain, id, content, descri
 	return &id, nil
 }
 
-func (j *Jenkins) GetCredentialInFolder(domain, id string, folders ...string) (*CredentialResponse, error) {
-	responseStruct := &CredentialResponse{}
+func (j *Jenkins) GetCredentialInFolder(domain, id string, folders ...string) (*jenkins.CredentialResponse, error) {
+	responseStruct := &jenkins.CredentialResponse{}
 	prePath := ""
 	if domain == "" {
 		domain = "_"
@@ -811,7 +501,7 @@ func (j *Jenkins) GetCredentialContentInFolder(domain, id string, folders ...str
 	return responseStruct, nil
 }
 
-func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*CredentialResponse, error) {
+func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*jenkins.CredentialResponse, error) {
 	prePath := ""
 	if len(folders) == 0 {
 		return nil, fmt.Errorf("folder name shoud not be nil")
@@ -823,7 +513,7 @@ func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*C
 	if domain == "" {
 		var responseStruct = &struct {
 			Domains map[string]struct {
-				Credentials []*CredentialResponse `json:"credentials"`
+				Credentials []*jenkins.CredentialResponse `json:"credentials"`
 			} `json:"domains"`
 		}{}
 		response, err := j.Requester.GetJSON(prePath+
@@ -837,7 +527,7 @@ func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*C
 		if response.StatusCode != http.StatusOK {
 			return nil, errors.New(strconv.Itoa(response.StatusCode))
 		}
-		responseArray := make([]*CredentialResponse, 0)
+		responseArray := make([]*jenkins.CredentialResponse, 0)
 		for domainName, domain := range responseStruct.Domains {
 			for _, credential := range domain.Credentials {
 				credential.Domain = domainName
@@ -848,7 +538,7 @@ func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*C
 	}
 
 	var responseStruct = &struct {
-		Credentials []*CredentialResponse `json:"credentials"`
+		Credentials []*jenkins.CredentialResponse `json:"credentials"`
 	}{}
 	response, err := j.Requester.GetJSON(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s", domain),
@@ -1048,19 +738,6 @@ func (j *Jenkins) DeleteUserInProject(username string) error {
 		return errors.New(strconv.Itoa(response.StatusCode))
 	}
 	return nil
-}
-
-func (j *Jenkins) GetQueueItem(number int64) (*QueueItemResponse, error) {
-	responseItem := &QueueItemResponse{}
-	response, err := j.Requester.GetJSON(fmt.Sprintf("/queue/item/%s", strconv.FormatInt(number, 10)),
-		responseItem, nil)
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
-	}
-	return responseItem, nil
 }
 
 // Creates a new Jenkins Instance

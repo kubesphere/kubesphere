@@ -15,13 +15,13 @@ import (
 )
 
 type openpitrixHandler struct {
-	namespacesGetter *resource.NamespacedResourceGetter
+	namespacesGetter    *resource.NamespacedResourceGetter
 	applicationOperator application.Interface
 }
 
 func newOpenpitrixHandler(factory informers.InformerFactory, client pb.ClusterManagerClient) *openpitrixHandler {
 	return &openpitrixHandler{
-		namespacesGetter: resource.New(factory),
+		namespacesGetter:    resource.New(factory),
 		applicationOperator: application.NewApplicaitonOperator(factory.KubernetesSharedInformerFactory(), client),
 	}
 }

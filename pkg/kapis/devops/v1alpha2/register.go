@@ -182,7 +182,7 @@ func addWebService(c *restful.Container) error {
 		Doc("Create a credential in the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Reads(devops.JenkinsCredential{}))
+		Reads(devops.Credential{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credential}").
 		To(UpdateDevOpsProjectCredentialHandler).
@@ -190,7 +190,7 @@ func addWebService(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
-		Reads(devops.JenkinsCredential{}))
+		Reads(devops.Credential{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
 		To(DeleteDevOpsProjectCredentialHandler).
@@ -211,14 +211,14 @@ Specifically, there are three types of info in a credential. One is the basic in
 The second one is non-encrypted info such as the username of the username-password type of credential, which returns when the "content" parameter is set to non-empty.
 The last one is encrypted info, such as the password of the username-password type of credential, which never returns.
 `)).
-		Returns(http.StatusOK, RespOK, devops.JenkinsCredential{}))
+		Returns(http.StatusOK, RespOK, devops.Credential{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials").
 		To(GetDevOpsProjectCredentialsHandler).
 		Doc("Get all credentials of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Returns(http.StatusOK, RespOK, []devops.JenkinsCredential{}))
+		Returns(http.StatusOK, RespOK, []devops.Credential{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").

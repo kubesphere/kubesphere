@@ -97,7 +97,7 @@ require (
 	k8s.io/component-base v0.17.0
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
-	k8s.io/kubectl v0.17.0
+	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f // indirect
 	kubesphere.io/im v0.1.0 // indirect
 	openpitrix.io/iam v0.1.0 // indirect
 	openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c

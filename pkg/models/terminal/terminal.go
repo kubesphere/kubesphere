@@ -145,12 +145,12 @@ type terminaler struct {
 }
 
 func NewTerminaler(client kubernetes.Interface, config *rest.Config) Interface {
-	return &terminaler{client:client, config:config}
+	return &terminaler{client: client, config: config}
 }
 
 // startProcess is called by handleAttach
 // Executed cmd in the container specified in request and connects it up with the ptyHandler (a session)
-func (t *terminaler)startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
+func (t *terminaler) startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
 	req := t.client.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
@@ -194,7 +194,7 @@ func isValidShell(validShells []string, shell string) bool {
 	return false
 }
 
-func (t *terminaler)HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
+func (t *terminaler) HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
 	var err error
 	validShells := []string{"sh", "bash"}
 

@@ -1,9 +1,57 @@
 package devops
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
+
+type Credential struct {
+	Id          string `json:"id" description:"Id of Credential, e.g. dockerhub-id"`
+	Type        string `json:"type" description:"Type of Credential, e.g. ssh/kubeconfig"`
+	DisplayName string `json:"display_name,omitempty" description:"Credential's display name"`
+	Fingerprint *struct {
+		FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
+		Hash     string `json:"hash,omitempty" description:"Credential's hash"`
+		Usage    []*struct {
+			Name   string `json:"name,omitempty" description:"Jenkins pipeline full name"`
+			Ranges struct {
+				Ranges []*struct {
+					Start int `json:"start,omitempty" description:"Start build number"`
+					End   int `json:"end,omitempty" description:"End build number"`
+				} `json:"ranges,omitempty"`
+			} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
+		} `json:"usage,omitempty" description:"all usage of Credential"`
+	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
+	Description                string                              `json:"description,omitempty" description:"Credential's description'"`
+	Domain                     string                              `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
+	CreateTime                 *time.Time                          `json:"create_time,omitempty" description:"Credential's create_time'"`
+	Creator                    string                              `json:"creator,omitempty" description:"Creator's username"`
+	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password Credential struct"`
+	SshCredential              *SshCredential              `json:"ssh,omitempty" description:"ssh Credential struct"`
+	SecretTextCredential       *SecretTextCredential       `json:"secret_text,omitempty" description:"secret_text Credential struct"`
+	KubeconfigCredential       *KubeconfigCredential       `json:"kubeconfig,omitempty" description:"kubeconfig Credential struct"`
+}
+
+type UsernamePasswordCredential struct {
+	Username string `json:"username,omitempty" description:"username of username_password credential"`
+	Password string `json:"password,omitempty" description:"password of username_password credential"`
+}
+
+type SshCredential struct {
+	Username   string `json:"username,omitempty" description:"username of ssh credential"`
+	Passphrase string `json:"passphrase,omitempty" description:"passphrase of ssh credential, password of ssh credential"`
+	PrivateKey string `json:"private_key,omitempty" mapstructure:"private_key" description:"private key of ssh credential"`
+}
+
+type SecretTextCredential struct {
+	Secret string `json:"secret,omitempty" description:"secret content of credential"`
+}
+
+type KubeconfigCredential struct {
+	Content string `json:"content,omitempty" description:"content of kubeconfig"`
+}
 
 type Interface interface {
-
 	SendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error)
 
 	SendJenkinsRequestWithHeaderResp(baseUrl string, req *http.Request) ([]byte, http.Header, error)
@@ -16,101 +64,31 @@ type Interface interface {
 
 	JenkinsfileToPipelineJson(jenkinsfile string) (*JenkinsfileToPipelineJsonResponse, error)
 
-	StepsJsonToJenkinsfile(json string) (*StepJsonToJenkinsfileResponse, error)
-
-	StepsJenkinsfileToJson(jenkinsfile string) (*StepsJenkinsfileToJsonResponse, error)
-
-	Init() (*Jenkins, error)
-
-	Info() (*ExecutorResponse, error)
-
-	CreateNode(name string, numExecutors int, description string, remoteFS string, label string, options ...interface{}) (*Node, error)
-
-	DeleteNode(name string) (bool, error)
-
 	CreateFolder(name, description string, parents ...string) (*Folder, error)
 
 	CreateJobInFolder(config string, jobName string, parentIDs ...string) (*Job, error)
-
-	CreateJob(config string, options ...interface{}) (*Job, error)
-
-	RenameJob(job string, name string) *Job
-
-	CopyJob(copyFrom string, newName string) (*Job, error)
 
 	DeleteJob(name string, parentIDs ...string) (bool, error)
 
 	BuildJob(name string, options ...interface{}) (int64, error)
 
-	GetNode(name string) (*Node, error)
-
-	GetLabel(name string) (*Label, error)
-
 	GetBuild(jobName string, number int64) (*Build, error)
 
 	GetJob(id string, parentIDs ...string) (*Job, error)
 
-	GetSubJob(parentId string, childId string) (*Job, error)
-
 	GetFolder(id string, parents ...string) (*Folder, error)
 
-	GetAllNodes() ([]*Node, error)
+	CreateCredentialInProject(projectId string, credential *Credential) (*string, error)
 
-	GetAllBuildIds(job string) ([]JobBuild, error)
+	UpdateCredentialInProject(projectId string, credential *Credential) (*string, error)
 
-	GetAllBuildStatus(jobId string) ([]JobBuildStatus, error)
+	GetCredentialInProject(projectId, id string) (*Credential, error)
 
-	GetAllJobNames() ([]InnerJob, error)
+	GetCredentialContentInProject(projectId, id string) (string, error)
 
-	GetAllJobs() ([]*Job, error)
+	GetCredentialsInProject(projectId string) ([]Credential, error)
 
-	GetQueue() (*Queue, error)
-
-	GetQueueUrl() string
-
-	GetArtifactData(id string) (*FingerPrintResponse, error)
-
-	GetPlugins(depth int) (*Plugins, error)
-
-	HasPlugin(name string) (*Plugin, error)
-
-	ValidateFingerPrint(id string) (bool, error)
-
-	GetView(name string) (*View, error)
-
-	GetAllViews() ([]*View, error)
-
-	CreateView(name string, viewType string) (*View, error)
-
-	Poll() (int, error)
-
-	CreateSshCredential(id, username, passphrase, privateKey, description string) (*string, error)
-
-	CreateUsernamePasswordCredential(id, username, password, description string) (*string, error)
-
-	CreateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error)
-
-	CreateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error)
-
-	CreateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error)
-
-	CreateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error)
-
-	UpdateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error)
-
-	UpdateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error)
-
-	UpdateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error)
-
-	UpdateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error)
-
-	GetCredentialInFolder(domain, id string, folders ...string) (*CredentialResponse, error)
-
-	GetCredentialContentInFolder(domain, id string, folders ...string) (string, error)
-
-	GetCredentialsInFolder(domain string, folders ...string) ([]*CredentialResponse, error)
-
-	DeleteCredentialInFolder(domain, id string, folders ...string) (*string, error)
+	DeleteCredentialInFolder(projectId, id string) (*string, error)
 
 	GetGlobalRole(roleName string) (*GlobalRole, error)
 
@@ -123,6 +101,4 @@ type Interface interface {
 	AddProjectRole(roleName string, pattern string, ids ProjectPermissionIds, overwrite bool) (*ProjectRole, error)
 
 	DeleteUserInProject(username string) error
-
-	GetQueueItem(number int64) (*QueueItemResponse, error)
 }

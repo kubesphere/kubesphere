@@ -152,12 +152,11 @@ func DeleteDevOpsProject(projectId, username string) error {
 		return restful.NewError(http.StatusForbidden, err.Error())
 	}
 
-	dp, err := cs.ClientSets().Devops()
+	devopsClient, err := cs.ClientSets().Devops()
 	if err != nil {
 		klog.Error(err)
 		return restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	jenkins := dp.Jenkins()
 
 	devopsdb, err := cs.ClientSets().MySQL()
 	if err != nil {
@@ -165,7 +164,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 		return restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	_, err = jenkins.DeleteJob(projectId)
+	_, err = devopsClient.DeleteJob(projectId)
 
 	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
 		klog.Errorf("%+v", err)
@@ -177,7 +176,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 		roleNames = append(roleNames, devops.GetProjectRoleName(projectId, role))
 		roleNames = append(roleNames, devops.GetPipelineRoleName(projectId, role))
 	}
-	err = jenkins.DeleteProjectRoles(roleNames...)
+	err = devopsClient.DeleteProjectRoles(roleNames...)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -209,13 +208,12 @@ func DeleteDevOpsProject(projectId, username string) error {
 
 func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 
-	dp, err := cs.ClientSets().Devops()
+	devopsClient, err := cs.ClientSets().Devops()
 	if err != nil {
 		klog.Error(err)
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 
 	}
-	jenkinsClient := dp.Jenkins()
 
 	devopsdb, err := cs.ClientSets().MySQL()
 	if err != nil {
@@ -224,7 +222,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	}
 
 	project := devops.NewDevOpsProject(req.Name, req.Description, username, req.Extra, workspace)
-	_, err = jenkinsClient.CreateFolder(project.ProjectId, project.Description)
+	_, err = devopsClient.CreateFolder(project.ProjectId, project.Description)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -234,8 +232,8 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	var addRoleWg sync.WaitGroup
 	for role, permission := range devops.JenkinsProjectPermissionMap {
 		addRoleWg.Add(1)
-		go func(role string, permission devopsClient.ProjectPermissionIds) {
-			_, err := jenkinsClient.AddProjectRole(devops.GetProjectRoleName(project.ProjectId, role),
+		go func(role string, permission devops.ProjectPermissionIds) {
+			_, err := devopsClient.AddProjectRole(devops.GetProjectRoleName(project.ProjectId, role),
 				devops.GetProjectRolePattern(project.ProjectId), permission, true)
 			addRoleCh <- &DevOpsProjectRoleResponse{nil, err}
 			addRoleWg.Done()
@@ -259,13 +257,13 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 		}
 	}
 
-	globalRole, err := jenkinsClient.GetGlobalRole(devops.JenkinsAllUserRoleName)
+	globalRole, err := devopsClient.GetGlobalRole(devops.JenkinsAllUserRoleName)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
-		_, err := jenkinsClient.AddGlobalRole(devops.JenkinsAllUserRoleName, devopsClient.GlobalPermissionIds{
+		_, err := devopsClient.AddGlobalRole(devops.JenkinsAllUserRoleName, devopsClient.GlobalPermissionIds{
 			GlobalRead: true,
 		}, true)
 		if err != nil {
@@ -279,7 +277,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	projectRole, err := jenkinsClient.GetProjectRole(devops.GetProjectRoleName(project.ProjectId, devops.ProjectOwner))
+	projectRole, err := devopsClient.GetProjectRole(devops.GetProjectRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -290,7 +288,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 
-	pipelineRole, err := jenkinsClient.GetProjectRole(devops.GetPipelineRoleName(project.ProjectId, devops.ProjectOwner))
+	pipelineRole, err := devopsClient.GetProjectRole(devops.GetPipelineRoleName(project.ProjectId, devops.ProjectOwner))
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())

@@ -70,9 +70,8 @@ type FluentBitList struct {
 	Items           []FluentBit `json:"items"`
 }
 
-
 type FluentbitOutputsResult struct {
-	Status  int               `json:"status" description:"response status"`
-	Error   string            `json:"error,omitempty" description:"debug information"`
+	Status  int            `json:"status" description:"response status"`
+	Error   string         `json:"error,omitempty" description:"debug information"`
 	Outputs []OutputPlugin `json:"outputs,omitempty" description:"array of fluent bit output plugins"`
 }

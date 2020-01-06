@@ -96,8 +96,6 @@ type JobResponse struct {
 	UpstreamProjects []InnerJob  `json:"upstreamProjects"`
 	URL              string      `json:"url"`
 	Jobs             []InnerJob  `json:"jobs"`
-	PrimaryView      *ViewData   `json:"primaryView"`
-	Views            []ViewData  `json:"views"`
 }
 
 func (j *Job) parentBase() string {
@@ -212,28 +210,12 @@ func (j *Job) GetAllBuildStatus() ([]JobBuildStatus, error) {
 	return buildsResp.Builds, nil
 }
 
-func (j *Job) GetSubJobsMetadata() []InnerJob {
-	return j.Raw.SubJobs
-}
-
 func (j *Job) GetUpstreamJobsMetadata() []InnerJob {
 	return j.Raw.UpstreamProjects
 }
 
 func (j *Job) GetDownstreamJobsMetadata() []InnerJob {
 	return j.Raw.DownstreamProjects
-}
-
-func (j *Job) GetSubJobs() ([]*Job, error) {
-	jobs := make([]*Job, len(j.Raw.SubJobs))
-	for i, job := range j.Raw.SubJobs {
-		ji, err := j.Jenkins.GetSubJob(j.GetName(), job.Name)
-		if err != nil {
-			return nil, err
-		}
-		jobs[i] = ji
-	}
-	return jobs, nil
 }
 
 func (j *Job) GetInnerJobsMetadata() []InnerJob {
@@ -518,12 +500,4 @@ func (j *Job) Poll() (int, error) {
 		return 0, err
 	}
 	return response.StatusCode, nil
-}
-
-func (j *Job) History() ([]*History, error) {
-	resp, err := j.Jenkins.Requester.Get(j.Base+"/buildHistory/ajax", nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	return parseBuildHistory(resp.Body), nil
 }

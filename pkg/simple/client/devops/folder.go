@@ -33,8 +33,6 @@ type FolderResponse struct {
 	Name        string     `json:"name"`
 	URL         string     `json:"url"`
 	Jobs        []InnerJob `json:"jobs"`
-	PrimaryView *ViewData  `json:"primaryView"`
-	Views       []ViewData `json:"views"`
 }
 
 func (f *Folder) parentBase() string {

@@ -161,7 +161,6 @@ type BuildResponse struct {
 	URL               string      `json:"url"`
 	MavenArtifacts    interface{} `json:"mavenArtifacts"`
 	MavenVersionUsed  string      `json:"mavenVersionUsed"`
-	FingerPrint       []FingerPrintResponse
 	Runs              []struct {
 		Number int64
 		URL    string
@@ -284,31 +283,6 @@ func (b *Build) GetDownstreamBuilds() ([]*Build, error) {
 		}
 	}
 	return result, nil
-}
-
-func (b *Build) GetDownstreamJobNames() []string {
-	result := make([]string, 0)
-	downstreamJobs := b.Job.GetDownstreamJobsMetadata()
-	fingerprints := b.GetAllFingerPrints()
-	for _, fingerprint := range fingerprints {
-		for _, usage := range fingerprint.Raw.Usage {
-			for _, job := range downstreamJobs {
-				if job.Name == usage.Name {
-					result = append(result, job.Name)
-				}
-			}
-		}
-	}
-	return result
-}
-
-func (b *Build) GetAllFingerPrints() []*FingerPrint {
-	b.Poll(3)
-	result := make([]*FingerPrint, len(b.Raw.FingerPrint))
-	for i, f := range b.Raw.FingerPrint {
-		result[i] = &FingerPrint{Jenkins: b.Jenkins, Base: "/fingerprint/", Id: f.Hash, Raw: &f}
-	}
-	return result
 }
 
 func (b *Build) GetUpstreamJob() (*Job, error) {
