@@ -18,8 +18,8 @@ import (
 	"github.com/fatih/structs"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
@@ -105,7 +105,7 @@ var DefaultRoles = []*Role{
 
 var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
 
-var JenkinsOwnerProjectPermissionIds = &gojenkins.ProjectPermissionIds{
+var JenkinsOwnerProjectPermissionIds = &devops.ProjectPermissionIds{
 	CredentialCreate:        true,
 	CredentialDelete:        true,
 	CredentialManageDomains: true,
@@ -126,7 +126,7 @@ var JenkinsOwnerProjectPermissionIds = &gojenkins.ProjectPermissionIds{
 	SCMTag:                  true,
 }
 
-var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
+var JenkinsProjectPermissionMap = map[string]devops.ProjectPermissionIds{
 	ProjectOwner: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,
@@ -209,7 +209,7 @@ var JenkinsProjectPermissionMap = map[string]gojenkins.ProjectPermissionIds{
 	},
 }
 
-var JenkinsPipelinePermissionMap = map[string]gojenkins.ProjectPermissionIds{
+var JenkinsPipelinePermissionMap = map[string]devops.ProjectPermissionIds{
 	ProjectOwner: {
 		CredentialCreate:        true,
 		CredentialDelete:        true,

@@ -20,9 +20,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
@@ -429,7 +429,7 @@ func checkJenkinsCredentialExists(projectId, domain, credentialId string) error 
 }
 
 func formatCredentialResponse(
-	jenkinsCredentialResponse *gojenkins.CredentialResponse,
+	jenkinsCredentialResponse *devops.CredentialResponse,
 	dbCredentialResponse *ProjectCredential) *JenkinsCredential {
 	response := &JenkinsCredential{}
 	response.Id = jenkinsCredentialResponse.Id
@@ -471,7 +471,7 @@ func formatCredentialResponse(
 	return response
 }
 
-func formatCredentialsResponse(jenkinsCredentialsResponse []*gojenkins.CredentialResponse,
+func formatCredentialsResponse(jenkinsCredentialsResponse []*devops.CredentialResponse,
 	projectCredentials []*ProjectCredential) []*JenkinsCredential {
 	responseSlice := make([]*JenkinsCredential, 0)
 	for _, jenkinsCredential := range jenkinsCredentialsResponse {

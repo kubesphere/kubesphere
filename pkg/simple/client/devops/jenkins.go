@@ -13,7 +13,7 @@
 // under the License.
 
 // Gojenkins is a Jenkins Client in Go, that exposes the jenkins REST api in a more developer friendly way.
-package gojenkins
+package devops
 
 import (
 	"encoding/json"

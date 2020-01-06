@@ -16,7 +16,6 @@ package devops
 import (
 	"fmt"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"sync"
 )
 
@@ -25,13 +24,13 @@ const (
 )
 
 type Client struct {
-	jenkinsClient *gojenkins.Jenkins
+	jenkinsClient *Jenkins
 }
 
 func NewDevopsClient(options *Options) (*Client, error) {
 	var d Client
 
-	jenkins := gojenkins.CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
+	jenkins := CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
 	jenkins, err := jenkins.Init()
 	if err != nil {
 		klog.Errorf("failed to connecto to jenkins role, %+v", err)
@@ -49,7 +48,7 @@ func NewDevopsClient(options *Options) (*Client, error) {
 	return &d, nil
 }
 
-func (c *Client) Jenkins() *gojenkins.Jenkins {
+func (c *Client) Jenkins() *Jenkins {
 	return c.jenkinsClient
 }
 
@@ -71,14 +70,14 @@ func (c *Client) initializeJenkins() error {
 
 	// Jenkins uninitialized, create global role
 	if globalRole == nil {
-		_, err := c.jenkinsClient.AddGlobalRole(jenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{GlobalRead: true}, true)
+		_, err := c.jenkinsClient.AddGlobalRole(jenkinsAllUserRoleName, GlobalPermissionIds{GlobalRead: true}, true)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 	}
 
-	_, err = c.jenkinsClient.AddProjectRole(jenkinsAllUserRoleName, "\\n\\s*\\r", gojenkins.ProjectPermissionIds{SCMTag: true}, true)
+	_, err = c.jenkinsClient.AddProjectRole(jenkinsAllUserRoleName, "\\n\\s*\\r", ProjectPermissionIds{SCMTag: true}, true)
 	if err != nil {
 		klog.Error(err)
 		return err

@@ -24,18 +24,18 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"sync"
 )
 
 type DevOpsProjectRoleResponse struct {
-	ProjectRole *gojenkins.ProjectRole
+	ProjectRole *devopsClient.ProjectRole
 	Err         error
 }
 
@@ -234,7 +234,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	var addRoleWg sync.WaitGroup
 	for role, permission := range devops.JenkinsProjectPermissionMap {
 		addRoleWg.Add(1)
-		go func(role string, permission gojenkins.ProjectPermissionIds) {
+		go func(role string, permission devopsClient.ProjectPermissionIds) {
 			_, err := jenkinsClient.AddProjectRole(devops.GetProjectRoleName(project.ProjectId, role),
 				devops.GetProjectRolePattern(project.ProjectId), permission, true)
 			addRoleCh <- &DevOpsProjectRoleResponse{nil, err}
@@ -243,7 +243,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	}
 	for role, permission := range devops.JenkinsPipelinePermissionMap {
 		addRoleWg.Add(1)
-		go func(role string, permission gojenkins.ProjectPermissionIds) {
+		go func(role string, permission devopsClient.ProjectPermissionIds) {
 			_, err := jenkinsClient.AddProjectRole(devops.GetPipelineRoleName(project.ProjectId, role),
 				devops.GetPipelineRolePattern(project.ProjectId), permission, true)
 			addRoleCh <- &DevOpsProjectRoleResponse{nil, err}
@@ -265,7 +265,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
-		_, err := jenkinsClient.AddGlobalRole(devops.JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
+		_, err := jenkinsClient.AddGlobalRole(devops.JenkinsAllUserRoleName, devopsClient.GlobalPermissionIds{
 			GlobalRead: true,
 		}, true)
 		if err != nil {

@@ -27,6 +27,7 @@ import (
 	"io"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/simple/client/jenkins"
 
 	"k8s.io/klog"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
@@ -54,7 +55,7 @@ func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, e
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetPipelineUrl, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipelineUrl, projectName, pipelineName)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -71,7 +72,7 @@ func SearchPipelines(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := devops.Jenkins().Server + SearchPipelineUrl + req.URL.RawQuery
+	baseUrl := jenkins.Jenkins().Server + SearchPipelineUrl + req.URL.RawQuery
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -108,7 +109,7 @@ func searchPipelineCount(req *http.Request) (int, error) {
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
 
-	baseUrl := devops.Jenkins().Server + SearchPipelineUrl + query.Encode()
+	baseUrl := jenkins.Jenkins().Server + SearchPipelineUrl + query.Encode()
 	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -134,7 +135,7 @@ func searchPipelineRunsCount(projectName, pipelineName string, req *http.Request
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
 
 	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
@@ -158,7 +159,7 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
 
 	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
@@ -192,7 +193,7 @@ func GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, r
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetPipeBranchRunUrl, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipeBranchRunUrl, projectName, pipelineName, branchName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -209,7 +210,7 @@ func GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId st
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 	klog.V(4).Info("Jenkins-url: " + baseUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -227,7 +228,7 @@ func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, step
 		return nil, nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchStepLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchStepLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
 
 	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
@@ -244,7 +245,7 @@ func GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *ht
 		return nil, nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetStepLogUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetStepLogUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 
 	resBody, header, err := jenkinsClient(baseUrl, req)
 	if err != nil {
@@ -261,7 +262,7 @@ func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetSCMServersUrl, scmId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMServersUrl, scmId)
 	req.Method = http.MethodGet
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -304,7 +305,7 @@ func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
 	}
 	req.Body = ioutil.NopCloser(bytes.NewReader(requestBody))
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+CreateSCMServersUrl, scmId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CreateSCMServersUrl, scmId)
 
 	req.Method = http.MethodPost
 	resBody, err := sendJenkinsRequest(baseUrl, req)
@@ -321,7 +322,7 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+ValidateUrl, scmId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ValidateUrl, scmId)
 
 	req.Method = http.MethodPut
 	resBody, err := sendJenkinsRequest(baseUrl, req)
@@ -339,7 +340,7 @@ func GetSCMOrg(scmId string, req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetSCMOrgUrl+req.URL.RawQuery, scmId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMOrgUrl+req.URL.RawQuery, scmId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -356,7 +357,7 @@ func GetOrgRepo(scmId, organizationId string, req *http.Request) ([]byte, error)
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -373,7 +374,7 @@ func StopBranchPipeline(projectName, pipelineName, branchName, runId string, req
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+StopBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+StopBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 
 	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -391,7 +392,7 @@ func StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	req.Method = http.MethodPut
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -409,7 +410,7 @@ func ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, r
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+ReplayBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ReplayBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -426,7 +427,7 @@ func ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) 
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -443,7 +444,7 @@ func GetBranchRunLog(projectName, pipelineName, branchName, runId string, req *h
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchRunLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchRunLogUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -460,7 +461,7 @@ func GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]by
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetRunLogUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetRunLogUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -477,7 +478,7 @@ func GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -494,7 +495,7 @@ func GetArtifacts(projectName, pipelineName, runId string, req *http.Request) ([
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetArtifactsUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -511,7 +512,7 @@ func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte,
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetPipeBranchUrl, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipeBranchUrl, projectName, pipelineName)
 
 	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
 	if err != nil {
@@ -528,7 +529,7 @@ func SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId,
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+CheckBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CheckBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId, stepId)
 
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
@@ -551,7 +552,7 @@ func SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, re
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+CheckPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CheckPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId, stepId)
 
 	newBody, err := getInputReqBody(req.Body)
 	if err != nil {
@@ -613,7 +614,7 @@ func GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte,
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetConsoleLogUrl+req.URL.RawQuery, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetConsoleLogUrl+req.URL.RawQuery, projectName, pipelineName)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -630,7 +631,7 @@ func ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, er
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+ScanBranchUrl+req.URL.RawQuery, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ScanBranchUrl+req.URL.RawQuery, projectName, pipelineName)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -647,7 +648,7 @@ func RunBranchPipeline(projectName, pipelineName, branchName string, req *http.R
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+RunBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+RunBranchPipelineUrl+req.URL.RawQuery, projectName, pipelineName, branchName)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -663,7 +664,7 @@ func RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, e
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -680,7 +681,7 @@ func GetCrumb(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server + GetCrumbUrl)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + GetCrumbUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -697,7 +698,7 @@ func CheckScriptCompile(projectName, pipelineName string, req *http.Request) ([]
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+CheckScriptCompileUrl, projectName, pipelineName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CheckScriptCompileUrl, projectName, pipelineName)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -714,7 +715,7 @@ func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	jenkins := devops.Jenkins()
+	jenkins := jenkins.Jenkins()
 
 	var res = new(CheckCronRes)
 	var cron = new(CronData)
@@ -816,7 +817,7 @@ func GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) 
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetPipelineRunUrl, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipelineRunUrl, projectName, pipelineName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -833,7 +834,7 @@ func GetBranchPipeline(projectName, pipelineName, branchName string, req *http.R
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchPipeUrl, projectName, pipelineName, branchName)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchPipeUrl, projectName, pipelineName, branchName)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -850,7 +851,7 @@ func GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Requ
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, runId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipeRunNodesUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -867,7 +868,7 @@ func GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId str
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetBranchNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetBranchNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, branchName, runId, nodeId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -884,7 +885,7 @@ func GetNodeSteps(projectName, pipelineName, runId, nodeId string, req *http.Req
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server+GetNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetNodeStepsUrl+req.URL.RawQuery, projectName, pipelineName, runId, nodeId)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -901,7 +902,7 @@ func ToJenkinsfile(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server + ToJenkinsfileUrl)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJenkinsfileUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -918,7 +919,7 @@ func ToJson(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprintf(devops.Jenkins().Server + ToJsonUrl)
+	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJsonUrl)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {
@@ -935,7 +936,7 @@ func GetNotifyCommit(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprint(devops.Jenkins().Server, GetNotifyCommitUrl, req.URL.RawQuery)
+	baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GetNotifyCommitUrl, req.URL.RawQuery)
 	req.Method = "GET"
 
 	res, err := sendJenkinsRequest(baseUrl, req)
@@ -953,7 +954,7 @@ func GithubWebhook(req *http.Request) ([]byte, error) {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 
-	baseUrl := fmt.Sprint(devops.Jenkins().Server, GithubWebhookUrl, req.URL.RawQuery)
+	baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GithubWebhookUrl, req.URL.RawQuery)
 
 	res, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {

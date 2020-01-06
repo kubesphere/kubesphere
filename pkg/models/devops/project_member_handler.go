@@ -15,12 +15,12 @@ package devops
 import (
 	"fmt"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -107,11 +107,11 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 	if err != nil {
 		return nil, err
 	}
-	devops, err := cs.ClientSets().Devops()
+	devopsClient, err := cs.ClientSets().Devops()
 	if err != nil {
 		return nil, err
 	}
-	jenkinsClient := devops.Jenkins()
+	jenkinsClient := devopsClient.Jenkins()
 	if jenkinsClient == nil {
 		err := fmt.Errorf("could not connect to jenkins")
 		klog.Error(err)
@@ -142,7 +142,7 @@ func AddProjectMember(projectId, operator string, member *DevOpsProjectMembershi
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
-		_, err := jenkinsClient.AddGlobalRole(JenkinsAllUserRoleName, gojenkins.GlobalPermissionIds{
+		_, err := jenkinsClient.AddGlobalRole(JenkinsAllUserRoleName, devops.GlobalPermissionIds{
 			GlobalRead: true,
 		}, true)
 		if err != nil {
@@ -202,12 +202,12 @@ func UpdateProjectMember(projectId, operator string, member *DevOpsProjectMember
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
-	devops, err := cs.ClientSets().Devops()
+	devopsClient, err := cs.ClientSets().Devops()
 	if err != nil {
 		return nil, err
 	}
 
-	jenkinsClient := devops.Jenkins()
+	jenkinsClient := devopsClient.Jenkins()
 	if jenkinsClient == nil {
 		err := fmt.Errorf("could not connect to jenkins")
 		klog.Error(err)
