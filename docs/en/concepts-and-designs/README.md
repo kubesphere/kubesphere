@@ -36,7 +36,7 @@ TODO
 
 ### KubeSphere DevOps 
 
-TODO(@runzexia)
+Read [DevOps Pipeline Overview](devops-pipeline-overview.md).
 
 ### KubeSphere S2I/B2I 
 

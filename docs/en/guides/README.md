@@ -28,11 +28,14 @@ Compiling Guide teaches developer how to build the project in local and set up t
 2. Understand the workflow of kubesphere development.  
 Read [Development Workflow](Development-workflow.md).
 
-3. Understand the best practices for submitting PR and our code of conduct  
+3. Learn KubeSphere code layout
+
+Read [KubeSphere Code Layout](Kubesphere-code-layout.md).
+
+4. Understand the best practices for submitting PR and our code of conduct  
 Read [best practices for submitting PR](pull-requests.md).  
 Read [code of conduct](code-of-conduct.md).
 
-### KubeSphere Core developer
 
 ### KubeSphere Installer developer
 
@@ -56,7 +59,9 @@ TODO(@magicsong)
 
 ### KubeSphere DevOps developer
 
-TODO(@runzexia)
+Users who are interested in DevOps Pipeline, you can read the documentation according to the [guidelines above](README.md#for-code-developer).
+
+The function of KubeSphere DevOps is mainly provided by KubeSphere apiserver.
 
 ### KubeSphere S2I/B2I developer
 
