@@ -32,7 +32,7 @@ type Dependencies struct {
 	// Injected Dependencies
 	KubeClient k8s.Client
 	S3         s3.Interface
-	OpenPitrix openpitrix.Interface
+	OpenPitrix openpitrix.Client
 	Monitoring monitoring.Interface
 	Logging    logging.Interface
 	Devops     devops.Interface

@@ -119,7 +119,7 @@ type ClientSet struct {
 	redisClient         cache.Interface
 	s3Client            s3.Interface
 	prometheusClient    *prometheus.Client
-	openpitrixClient    *openpitrix.Client
+	openpitrixClient    openpitrix.Client
 	kubesphereClient    *kubesphere.Client
 	elasticSearchClient *esclient.ElasticSearchClient
 }
@@ -292,7 +292,7 @@ func (cs *ClientSet) S3() (s3.Interface, error) {
 	}
 }
 
-func (cs *ClientSet) OpenPitrix() (*openpitrix.Client, error) {
+func (cs *ClientSet) OpenPitrix() (openpitrix.Client, error) {
 	var err error
 
 	if cs.csoptions.openPitrixOptions == nil ||
