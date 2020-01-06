@@ -47,7 +47,7 @@ and it does not intend to:
 | --------- | ----- | ----------- |
 | Operator/Cluster Manager | Operator can install Knative components | As an operator, or cluster manager, he can install and configure Knative components. |
 | Operator/Cluster Manager | Operator can be aware of serverless resource usage | As an operator, or cluster manager, he can monitor and know current and historical cluster resource usage used by serverless services, including Knative control plane and workloads. |
-| Developer | Developer can create new serverless  services | As a develper, he can create new serverless services. The service may have a name, may have information of code repository or container image, may have environment variables, volumes or domain names set. |
+| Developer | Developer can create new serverless  services | As a developer, he can create new serverless services. The service may have a name, may have information of code repository or container image, may have environment variables, volumes or domain names set. |
 | Developer | Developer can update services | As a developer, he can update existing serverless services, he also can specify the traffic among new & existing versions of services (called revisions). | 
 | Developer | Developer can switch between service revisions | As a developer, he can switch between different revisions of a serverless service, he also can specify the traffic rule among existing revisions. | 
 | Developer | Developer can be aware of services' status | As a developer, he can monitor and know serverless services' current and historical status, status include number of active pods, number of requests (proccessing, processed), latency and so on.| 
@@ -187,7 +187,7 @@ Content-Type: application/json
 }
 ```
 
-#### 2. Updating service
+#### 3. Updating service
 
 > Updating service takes two steps: 
 > 1. Create a new configuration which result in a new Knative revision
