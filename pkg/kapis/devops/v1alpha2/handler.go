@@ -18,3 +18,14 @@ type PipelineSonarHandler struct {
 type S2iHandler struct {
 	s2iUploader devops.S2iBinaryUploader
 }
+
+func New() (*ProjectPipelineHandler) {
+	handler := &ProjectPipelineHandler{
+		projectCredentialOperator: devops.NewProjectCredentialOperator(),
+		projectMemberOperator:     devops.NewProjectMemberOperator(),
+		projectPipelineOperator:   devops.NewProjectPipelineOperator(),
+		devopsOperator:            devops.NewDevopsOperator(),
+	}
+
+	return handler
+}

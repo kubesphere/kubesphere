@@ -37,10 +37,13 @@ type ProjectCredentialOperator interface {
 
 type projectCredentialOperator struct {
 	devopsClient devops.Interface
+
 }
 
-func newProjectCredentialOperator(client jenkins.Client) ProjectCredentialOperator {
-	return &projectCredentialOperator{}
+func NewProjectCredentialOperator(client jenkins.Client) ProjectCredentialOperator {
+	return &projectCredentialOperator{
+
+	}
 }
 
 func (o *projectCredentialOperator) CreateProjectCredential(projectId, username string, credentialRequest *devops.Credential) (string, error) {

@@ -19,6 +19,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"net/http"
 )
 
@@ -29,6 +30,13 @@ type ProjectPipelineOperator interface {
 	GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error)
 }
 type projectPipelineOperator struct {
+
+}
+
+func NewProjectPipelineOperator(client jenkins.Client) ProjectPipelineOperator {
+	return &projectPipelineOperator{
+
+	}
 }
 
 func (o *projectPipelineOperator) CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {

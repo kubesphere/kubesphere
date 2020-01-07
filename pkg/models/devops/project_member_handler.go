@@ -37,6 +37,12 @@ type ProjectMemberOperator interface {
 type projectMemberOperator struct {
 }
 
+func NewProjectMemberOperator(client jenkins.Client) ProjectMemberOperator {
+	return &projectMemberOperator{
+
+	}
+}
+
 func (o *projectMemberOperator) GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {

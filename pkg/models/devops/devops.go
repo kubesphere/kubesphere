@@ -27,7 +27,8 @@ import (
 	"io"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 
 	"k8s.io/klog"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
@@ -44,20 +45,23 @@ const (
 )
 
 type DevopsOperator interface {
+	GetPipeline(projectName, pipelineName string, req *http.Request)([]byte, error)
 }
 
 type devopsOperator struct {
+	devopsClient devops.Interface
 }
 
-func GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+func NewDevopsOperator(client jenkins.Client) DevopsOperator {
+	return &devopsOperator{
+
 	}
+}
 
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipelineUrl, projectName, pipelineName)
+func (d devopsOperator)GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	formatUrl := fmt.Sprintf(GetPipelineUrl, projectName, pipelineName)
 
-	res, err := sendJenkinsRequest(baseUrl, req)
+	res, err := d.devopsClient.SendJenkinsRequest(formatUrl, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err

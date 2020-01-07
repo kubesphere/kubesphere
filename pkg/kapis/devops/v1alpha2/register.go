@@ -48,8 +48,11 @@ func addWebService(c *restful.Container) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
+	// TODO add clinet
+	handler := New()
+
 	webservice.Route(webservice.GET("/devops/{devops}").
-		To(GetDevOpsProjectHandler).
+		To(handler.GetDevOpsProjectHandler).
 		Doc("Get the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -222,7 +225,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
-		To(GetPipeline).
+		To(handler.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
