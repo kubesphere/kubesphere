@@ -27,12 +27,11 @@ type ProjectPipelineOperator interface {
 	DeleteProjectPipeline(projectId string, pipelineId string) (string, error)
 	UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error)
 	GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error)
-	DeleteProjectMember(projectId, username string) (string, error)
 }
 type projectPipelineOperator struct {
 }
 
-func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
+func (o *projectPipelineOperator) CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -101,7 +100,7 @@ func CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string,
 	}
 }
 
-func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
+func (o *projectPipelineOperator) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -115,7 +114,7 @@ func DeleteProjectPipeline(projectId string, pipelineId string) (string, error) 
 	return pipelineId, nil
 }
 
-func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error) {
+func (o *projectPipelineOperator) UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
@@ -175,7 +174,7 @@ func UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeli
 	}
 }
 
-func GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) {
+func (o *projectPipelineOperator) GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) {
 	devops, err := cs.ClientSets().Devops()
 	if err != nil {
 		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())

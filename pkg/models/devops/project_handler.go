@@ -24,7 +24,16 @@ import (
 	"net/http"
 )
 
-func GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
+type ProjectOperator interface {
+	GetProject(projectId string) (*v1alpha2.DevOpsProject, error)
+	UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
+}
+
+type projectOperator struct {
+
+}
+
+func (o *projectOperator) GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err
@@ -46,7 +55,7 @@ func GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
 	return project, nil
 }
 
-func UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
+func (o *projectOperator) UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		return nil, err

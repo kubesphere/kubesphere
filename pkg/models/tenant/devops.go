@@ -39,7 +39,19 @@ type DevOpsProjectRoleResponse struct {
 	Err         error
 }
 
-func ListDevopsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
+type DevOpsProjectOperator interface {
+	ListDevopsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
+	CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
+	GetDevOpsProjectsCount(username string) (uint32, error)
+	DeleteDevOpsProject(projectId, username string) error
+	GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error)
+}
+
+type devOpsProjectOperator struct {
+
+}
+
+func (o * devOpsProjectOperator)ListDevopsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
@@ -113,7 +125,7 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 	return &models.PageableResponse{Items: result, TotalCount: int(count)}, nil
 }
 
-func GetDevOpsProjectsCount(username string) (uint32, error) {
+func (o * devOpsProjectOperator) GetDevOpsProjectsCount(username string) (uint32, error) {
 	dbconn, err := cs.ClientSets().MySQL()
 	if err != nil {
 		klog.Error(err)
@@ -145,7 +157,7 @@ func GetDevOpsProjectsCount(username string) (uint32, error) {
 	return count, nil
 }
 
-func DeleteDevOpsProject(projectId, username string) error {
+func (o * devOpsProjectOperator) DeleteDevOpsProject(projectId, username string) error {
 	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -206,7 +218,7 @@ func DeleteDevOpsProject(projectId, username string) error {
 	return nil
 }
 
-func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
+func (o * devOpsProjectOperator) CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 
 	devopsClient, err := cs.ClientSets().Devops()
 	if err != nil {
@@ -315,7 +327,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	return project, nil
 }
 
-func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
+func (o * devOpsProjectOperator) GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
 	role, err := devops.GetProjectUserRole(username, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
