@@ -30,13 +30,14 @@ import (
 )
 
 const (
-	KubernetesProvider = "kubernetes"
-	Unknown            = "-"
-	DeploySuffix       = "-Deployment"
-	DaemonSuffix       = "-DaemonSet"
-	StateSuffix        = "-StatefulSet"
-	SystemUsername     = "system"
-	SystemUserPath     = ":system"
+	RuntimeAnnotationKey = "openpitrix_runtime"
+	KubernetesProvider   = "kubernetes"
+	Unknown              = "-"
+	DeploySuffix         = "-Deployment"
+	DaemonSuffix         = "-DaemonSet"
+	StateSuffix          = "-StatefulSet"
+	SystemUsername       = "system"
+	SystemUserPath       = ":system"
 )
 
 type Client interface {
