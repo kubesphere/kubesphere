@@ -48,8 +48,11 @@ func addWebService(c *restful.Container) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
+	// TODO add clinet
+	handler := New()
+
 	webservice.Route(webservice.GET("/devops/{devops}").
-		To(GetDevOpsProjectHandler).
+		To(handler.GetDevOpsProjectHandler).
 		Doc("Get the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).

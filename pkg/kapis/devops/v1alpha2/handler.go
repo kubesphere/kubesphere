@@ -5,10 +5,11 @@ import (
 )
 
 type ProjectPipelineHandler struct {
-	projectCredentialOperator *devops.ProjectCredentialOperator
-	projectMemberOperator     *devops.ProjectMemberOperator
-	projectPipelineOperator   *devops.ProjectPipelineOperator
-	devopsOperator            *devops.DevopsOperator
+	projectCredentialOperator devops.ProjectCredentialOperator
+	projectMemberOperator     devops.ProjectMemberOperator
+	projectPipelineOperator   devops.ProjectPipelineOperator
+	ProjectOperator           devops.ProjectOperator
+	devopsOperator            devops.DevopsOperator
 }
 
 type PipelineSonarHandler struct {
@@ -17,4 +18,15 @@ type PipelineSonarHandler struct {
 
 type S2iHandler struct {
 	s2iUploader *devops.S2iBinaryUploader
+}
+
+func New() (*ProjectPipelineHandler) {
+	handler := &ProjectPipelineHandler{
+		projectCredentialOperator: devops.NewProjectCredentialOperator(),
+		projectMemberOperator:     devops.NewProjectMemberOperator(),
+		projectPipelineOperator:   devops.NewProjectPipelineOperator(),
+		devopsOperator:            devops.NewDevopsOperator(),
+	}
+
+	return handler
 }

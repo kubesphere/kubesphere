@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-func GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler)GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
@@ -34,7 +34,7 @@ func GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err := devops.GetProject(projectId)
+	project, err := h.ProjectOperator.GetProject(projectId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
