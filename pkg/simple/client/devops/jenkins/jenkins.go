@@ -13,13 +13,16 @@
 // under the License.
 
 // Gojenkins is a Jenkins Client in Go, that exposes the jenkins REST api in a more developer friendly way.
-package devops
+package jenkins
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/emicklei/go-restful"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"log"
 	"net/http"
 	"os"
@@ -217,7 +220,7 @@ func (j *Jenkins) Poll() (int, error) {
 // Create a ssh credentials
 // return credentials id
 func (j *Jenkins) CreateSshCredential(id, username, passphrase, privateKey, description string) (*string, error) {
-	requestStruct := jenkins.NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
+	requestStruct := NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
@@ -232,7 +235,7 @@ func (j *Jenkins) CreateSshCredential(id, username, passphrase, privateKey, desc
 }
 
 func (j *Jenkins) CreateUsernamePasswordCredential(id, username, password, description string) (*string, error) {
-	requestStruct := jenkins.NewCreateUsernamePasswordRequest(id, username, password, description)
+	requestStruct := NewCreateUsernamePasswordRequest(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
@@ -247,7 +250,7 @@ func (j *Jenkins) CreateUsernamePasswordCredential(id, username, password, descr
 }
 
 func (j *Jenkins) CreateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
+	requestStruct := NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -273,7 +276,7 @@ func (j *Jenkins) CreateSshCredentialInFolder(domain, id, username, passphrase, 
 }
 
 func (j *Jenkins) CreateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewCreateUsernamePasswordRequest(id, username, password, description)
+	requestStruct := NewCreateUsernamePasswordRequest(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -299,7 +302,7 @@ func (j *Jenkins) CreateUsernamePasswordCredentialInFolder(domain, id, username,
 }
 
 func (j *Jenkins) CreateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewCreateSecretTextCredentialRequest(id, secret, description)
+	requestStruct := NewCreateSecretTextCredentialRequest(id, secret, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -325,7 +328,7 @@ func (j *Jenkins) CreateSecretTextCredentialInFolder(domain, id, secret, descrip
 }
 
 func (j *Jenkins) CreateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewCreateKubeconfigCredentialRequest(id, content, description)
+	requestStruct := NewCreateKubeconfigCredentialRequest(id, content, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
 	prePath := ""
@@ -351,7 +354,7 @@ func (j *Jenkins) CreateKubeconfigCredentialInFolder(domain, id, content, descri
 }
 
 func (j *Jenkins) UpdateSshCredentialInFolder(domain, id, username, passphrase, privateKey, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewSshCredential(id, username, passphrase, privateKey, description)
+	requestStruct := NewSshCredential(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -376,7 +379,7 @@ func (j *Jenkins) UpdateSshCredentialInFolder(domain, id, username, passphrase, 
 }
 
 func (j *Jenkins) UpdateUsernamePasswordCredentialInFolder(domain, id, username, password, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewUsernamePasswordCredential(id, username, password, description)
+	requestStruct := NewUsernamePasswordCredential(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -401,7 +404,7 @@ func (j *Jenkins) UpdateUsernamePasswordCredentialInFolder(domain, id, username,
 }
 
 func (j *Jenkins) UpdateSecretTextCredentialInFolder(domain, id, secret, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewSecretTextCredential(id, secret, description)
+	requestStruct := NewSecretTextCredential(id, secret, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -426,7 +429,7 @@ func (j *Jenkins) UpdateSecretTextCredentialInFolder(domain, id, secret, descrip
 }
 
 func (j *Jenkins) UpdateKubeconfigCredentialInFolder(domain, id, content, description string, folders ...string) (*string, error) {
-	requestStruct := jenkins.NewKubeconfigCredential(id, content, description)
+	requestStruct := NewKubeconfigCredential(id, content, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	prePath := ""
 	if domain == "" {
@@ -450,113 +453,10 @@ func (j *Jenkins) UpdateKubeconfigCredentialInFolder(domain, id, content, descri
 	return &id, nil
 }
 
-func (j *Jenkins) GetCredentialInFolder(domain, id string, folders ...string) (*jenkins.CredentialResponse, error) {
-	responseStruct := &jenkins.CredentialResponse{}
-	prePath := ""
-	if domain == "" {
-		domain = "_"
-	}
-	if len(folders) == 0 {
-		return nil, fmt.Errorf("folder name shoud not be nil")
-	}
-	for _, folder := range folders {
-		prePath = prePath + fmt.Sprintf("/job/%s", folder)
-	}
-	response, err := j.Requester.GetJSON(prePath+
-		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s", domain, id),
-		responseStruct, map[string]string{
-			"depth": "2",
-		})
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
-	}
-	responseStruct.Domain = domain
-	return responseStruct, nil
-}
 
-func (j *Jenkins) GetCredentialContentInFolder(domain, id string, folders ...string) (string, error) {
-	responseStruct := ""
-	prePath := ""
-	if domain == "" {
-		domain = "_"
-	}
-	if len(folders) == 0 {
-		return "", fmt.Errorf("folder name shoud not be nil")
-	}
-	for _, folder := range folders {
-		prePath = prePath + fmt.Sprintf("/job/%s", folder)
-	}
-	response, err := j.Requester.GetHtml(prePath+
-		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s/update", domain, id),
-		&responseStruct, nil)
-	if err != nil {
-		return "", err
-	}
-	if response.StatusCode != http.StatusOK {
-		return "", errors.New(strconv.Itoa(response.StatusCode))
-	}
-	return responseStruct, nil
-}
 
-func (j *Jenkins) GetCredentialsInFolder(domain string, folders ...string) ([]*jenkins.CredentialResponse, error) {
-	prePath := ""
-	if len(folders) == 0 {
-		return nil, fmt.Errorf("folder name shoud not be nil")
-	}
-	for _, folder := range folders {
-		prePath = prePath + fmt.Sprintf("/job/%s", folder)
-	}
 
-	if domain == "" {
-		var responseStruct = &struct {
-			Domains map[string]struct {
-				Credentials []*jenkins.CredentialResponse `json:"credentials"`
-			} `json:"domains"`
-		}{}
-		response, err := j.Requester.GetJSON(prePath+
-			"/credentials/store/folder/",
-			responseStruct, map[string]string{
-				"depth": "2",
-			})
-		if err != nil {
-			return nil, err
-		}
-		if response.StatusCode != http.StatusOK {
-			return nil, errors.New(strconv.Itoa(response.StatusCode))
-		}
-		responseArray := make([]*jenkins.CredentialResponse, 0)
-		for domainName, domain := range responseStruct.Domains {
-			for _, credential := range domain.Credentials {
-				credential.Domain = domainName
-				responseArray = append(responseArray, credential)
-			}
-		}
-		return responseArray, nil
-	}
 
-	var responseStruct = &struct {
-		Credentials []*jenkins.CredentialResponse `json:"credentials"`
-	}{}
-	response, err := j.Requester.GetJSON(prePath+
-		fmt.Sprintf("/credentials/store/folder/domain/%s", domain),
-		responseStruct, map[string]string{
-			"depth": "2",
-		})
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
-	}
-	for _, credential := range responseStruct.Credentials {
-		credential.Domain = domain
-	}
-	return responseStruct.Credentials, nil
-
-}
 
 func (j *Jenkins) DeleteCredentialInFolder(domain, id string, folders ...string) (*string, error) {
 	prePath := ""

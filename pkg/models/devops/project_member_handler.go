@@ -15,7 +15,7 @@ package devops
 import (
 	"fmt"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -151,7 +151,7 @@ func (o *projectMemberOperator) AddProjectMember(projectId, operator string, mem
 		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
-		_, err := devopsClient.AddGlobalRole(JenkinsAllUserRoleName, devops.GlobalPermissionIds{
+		_, err := devopsClient.AddGlobalRole(JenkinsAllUserRoleName, jenkins.GlobalPermissionIds{
 			GlobalRead: true,
 		}, true)
 		if err != nil {

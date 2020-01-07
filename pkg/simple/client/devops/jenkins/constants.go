@@ -1,4 +1,4 @@
-package devops
+package jenkins
 
 const (
 	STATUS_FAIL           = "FAIL"

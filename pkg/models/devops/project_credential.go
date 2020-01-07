@@ -25,23 +25,12 @@ const (
 	CredentialTypeKubeConfig       = "kubeconfig"
 )
 
-
-
-
-
 const (
 	ProjectCredentialTableName       = "project_credential"
 	ProjectCredentialIdColumn        = "credential_id"
 	ProjectCredentialDomainColumn    = "domain"
 	ProjectCredentialProjectIdColumn = "project_id"
 )
-
-var CredentialTypeMap = map[string]string{
-	"SSH Username with private key":         CredentialTypeSsh,
-	"Username with password":                CredentialTypeUsernamePassword,
-	"Secret text":                           CredentialTypeSecretText,
-	"Kubernetes configuration (kubeconfig)": CredentialTypeKubeConfig,
-}
 
 type ProjectCredential struct {
 	ProjectId    string    `json:"project_id"`

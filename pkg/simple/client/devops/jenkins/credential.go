@@ -13,6 +13,18 @@ limitations under the License.
 
 package jenkins
 
+import (
+	"errors"
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/emicklei/go-restful"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"net/http"
+	"strconv"
+	"strings"
+)
+
 const SSHCrenditalStaplerClass = "com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey"
 const DirectSSHCrenditalStaplerClass = "com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey$DirectEntryPrivateKeySource"
 const UsernamePassswordCredentialStaplerClass = "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"
@@ -222,4 +234,97 @@ func NewKubeconfigCredential(id, content, description string) *KubeconfigCredent
 		KubeconfigSource: credentialSource,
 		StaplerClass:     KubeconfigCredentialStaplerClass,
 	}
+}
+
+
+func (j *Jenkins) GetCredentialInProject(projectId, id string, content bool) (*devops.Credential, error) {
+	responseStruct := &devops.Credential{}
+
+	domain := "_"
+
+	response, err := j.Requester.GetJSON(
+		fmt.Sprintf("/job/%s/credentials/store/folder/domain/%s/credential/%s",projectId, domain, id),
+		responseStruct, map[string]string{
+			"depth": "2",
+		})
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(response.StatusCode))
+	}
+	responseStruct.Domain = domain
+	if content {
+
+	}
+	contentString := ""
+	response, err = j.Requester.GetHtml(
+		fmt.Sprintf("/job/%s/credentials/store/folder/domain/%s/credential/%s/update", projectId, domain, id),
+		&contentString, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(response.StatusCode))
+	}
+	stringReader := strings.NewReader(contentString)
+	doc, err := goquery.NewDocumentFromReader(stringReader)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
+	}
+	switch responseStruct.Type {
+	case devops.CredentialTypeKubeConfig:
+		content := &devops.KubeconfigCredential{}
+		doc.Find("textarea[name*=content]").Each(func(i int, selection *goquery.Selection) {
+			value := selection.Text()
+			content.Content = value
+		})
+		responseStruct.KubeconfigCredential = content
+	case devops.CredentialTypeUsernamePassword:
+		content := &devops.UsernamePasswordCredential{}
+		doc.Find("input[name*=username]").Each(func(i int, selection *goquery.Selection) {
+			value, _ := selection.Attr("value")
+			content.Username = value
+		})
+
+		responseStruct.UsernamePasswordCredential = content
+	case devops.CredentialTypeSsh:
+		content := &devops.SshCredential{}
+		doc.Find("input[name*=username]").Each(func(i int, selection *goquery.Selection) {
+			value, _ := selection.Attr("value")
+			content.Username = value
+		})
+
+		doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
+			value := selection.Text()
+			content.PrivateKey = value
+		})
+		responseStruct.SshCredential = content
+	}
+	return responseStruct, nil
+}
+
+
+func (j *Jenkins) GetCredentialsInProject(projectId string) ([]* devops.Credential, error) {
+	domain := "_"
+	var responseStruct = &struct {
+		Credentials []*devops.Credential `json:"credentials"`
+	}{}
+	response, err := j.Requester.GetJSON(
+		fmt.Sprintf("/job/%s/credentials/store/folder/domain/%s", projectId, domain),
+		responseStruct, map[string]string{
+			"depth": "2",
+		})
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(response.StatusCode))
+	}
+	for _, credential := range responseStruct.Credentials {
+		credential.Domain = domain
+	}
+	return responseStruct.Credentials, nil
+
 }

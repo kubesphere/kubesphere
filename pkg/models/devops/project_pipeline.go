@@ -19,7 +19,7 @@ import (
 	"github.com/kubesphere/sonargo/sonar"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"strconv"
 	"strings"
 	"time"
@@ -50,7 +50,7 @@ const (
 type SonarStatus struct {
 	Measures      *sonargo.MeasuresComponentObject `json:"measures,omitempty"`
 	Issues        *sonargo.IssuesSearchObject      `json:"issues,omitempty"`
-	JenkinsAction *devops.GeneralObj               `json:"jenkinsAction,omitempty"`
+	JenkinsAction *jenkins.GeneralObj              `json:"jenkinsAction,omitempty"`
 	Task          *sonargo.CeTaskObject            `json:"task,omitempty"`
 }
 
@@ -1079,7 +1079,7 @@ func toCrontab(millis int64) string {
 
 }
 
-func getBuildSonarResults(build *devops.Build) ([]*SonarStatus, error) {
+func getBuildSonarResults(build *jenkins.Build) ([]*SonarStatus, error) {
 
 	sonarClient, err := client.ClientSets().SonarQube()
 	if err != nil {

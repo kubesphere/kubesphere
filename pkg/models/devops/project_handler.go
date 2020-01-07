@@ -30,7 +30,6 @@ type ProjectOperator interface {
 }
 
 type projectOperator struct {
-
 }
 
 func (o *projectOperator) GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {

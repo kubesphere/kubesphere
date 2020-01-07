@@ -1,4 +1,4 @@
-package devops
+package jenkins
 
 import "net/http"
 
