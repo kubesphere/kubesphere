@@ -19,13 +19,6 @@ import (
 )
 
 const (
-	CredentialTypeUsernamePassword = "username_password"
-	CredentialTypeSsh              = "ssh"
-	CredentialTypeSecretText       = "secret_text"
-	CredentialTypeKubeConfig       = "kubeconfig"
-)
-
-const (
 	ProjectCredentialTableName       = "project_credential"
 	ProjectCredentialIdColumn        = "credential_id"
 	ProjectCredentialDomainColumn    = "domain"

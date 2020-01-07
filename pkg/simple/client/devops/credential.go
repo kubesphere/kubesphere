@@ -1,6 +1,8 @@
 package devops
 
-import "time"
+import (
+	"time"
+)
 
 type Credential struct {
 	Id          string `json:"id" description:"Id of Credential, e.g. dockerhub-id"`
@@ -10,7 +12,7 @@ type Credential struct {
 		FileName string `json:"file_name,omitempty" description:"Credential's display name and description"`
 		Hash     string `json:"hash,omitempty" description:"Credential's hash"`
 		Usage    []*struct {
-			Name   string `json:"name,omitempty" description:"Jenkins pipeline full name"`
+			Name   string `json:"name,omitempty" description:"pipeline full name"`
 			Ranges struct {
 				Ranges []*struct {
 					Start int `json:"start,omitempty" description:"Start build number"`
@@ -71,5 +73,5 @@ type CredentialOperator interface {
 
 	GetCredentialsInProject(projectId string) ([]*Credential, error)
 
-	DeleteCredentialInFolder(projectId, id string) (*string, error)
+	DeleteCredentialInProject(projectId, id string) (*string, error)
 }
