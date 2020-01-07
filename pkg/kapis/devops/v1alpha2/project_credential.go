@@ -17,12 +17,12 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
-func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
@@ -33,13 +33,7 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	credentialId, err := devops.CreateProjectCredential(projectId, username, credential)
+	credentialId, err := h.projectCredentialOperator.CreateProjectCredential(projectId, username, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -53,10 +47,9 @@ func CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	return
 }
 
-func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
 	var credential *devops.Credential
 	err := request.ReadEntity(&credential)
@@ -65,13 +58,7 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	credentialId, err = devops.UpdateProjectCredential(projectId, credentialId, credential)
+	credentialId, err = h.projectCredentialOperator.UpdateProjectCredential(projectId, credentialId, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -85,25 +72,12 @@ func UpdateDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	return
 }
 
-func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
-	var credential *devops.Credential
-	err := request.ReadEntity(&credential)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
-		return
-	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	credentialId, err = devops.DeleteProjectCredential(projectId, credentialId, credential)
+
+	credentialId, err := h.projectCredentialOperator.DeleteProjectCredential(projectId, credentialId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -117,21 +91,12 @@ func DeleteDevOpsProjectCredentialHandler(request *restful.Request, resp *restfu
 	return
 }
 
-func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	credentialId := request.PathParameter("credential")
 	getContent := request.QueryParameter("content")
-	domain := request.QueryParameter("domain")
-
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	response, err := devops.GetProjectCredential(projectId, credentialId, domain, getContent)
+	response, err := h.projectCredentialOperator.GetProjectCredential(projectId, credentialId, getContent)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -143,18 +108,10 @@ func GetDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.R
 	return
 }
 
-func GetDevOpsProjectCredentialsHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectCredentialsHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
-	domain := request.QueryParameter("domain")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	jenkinsCredentials, err := devops.GetProjectCredentials(projectId, domain)
+	jenkinsCredentials, err := h.projectCredentialOperator.GetProjectCredentials(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

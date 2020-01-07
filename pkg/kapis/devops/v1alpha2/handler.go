@@ -5,16 +5,16 @@ import (
 )
 
 type ProjectPipelineHandler struct {
-	projectCredentialOperator *devops.ProjectCredentialOperator
-	projectMemberOperator     *devops.ProjectMemberOperator
-	projectPipelineOperator   *devops.ProjectPipelineOperator
-	devopsOperator            *devops.DevopsOperator
+	projectCredentialOperator devops.ProjectCredentialOperator
+	projectMemberOperator     devops.ProjectMemberOperator
+	projectPipelineOperator   devops.ProjectPipelineOperator
+	devopsOperator            devops.DevopsOperator
 }
 
 type PipelineSonarHandler struct {
-	pipelineSonarGetter *devops.PipelineSonarGetter
+	pipelineSonarGetter devops.PipelineSonarGetter
 }
 
 type S2iHandler struct {
-	s2iUploader *devops.S2iBinaryUploader
+	s2iUploader devops.S2iBinaryUploader
 }
