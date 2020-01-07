@@ -19,7 +19,7 @@ import (
 	"github.com/kubesphere/sonargo/sonar"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"strconv"
 	"strings"
 	"time"
@@ -39,19 +39,6 @@ var ParameterTypeMap = map[string]string{
 	"hudson.model.BooleanParameterDefinition":  "boolean",
 	"hudson.model.FileParameterDefinition":     "file",
 	"hudson.model.PasswordParameterDefinition": "password",
-}
-
-const (
-	SonarAnalysisActionClass = "hudson.plugins.sonar.action.SonarAnalysisAction"
-	SonarMetricKeys          = "alert_status,quality_gate_details,bugs,new_bugs,reliability_rating,new_reliability_rating,vulnerabilities,new_vulnerabilities,security_rating,new_security_rating,code_smells,new_code_smells,sqale_rating,new_maintainability_rating,sqale_index,new_technical_debt,coverage,new_coverage,new_lines_to_cover,tests,duplicated_lines_density,new_duplicated_lines_density,duplicated_blocks,ncloc,ncloc_language_distribution,projects,new_lines"
-	SonarAdditionalFields    = "metrics,periods"
-)
-
-type SonarStatus struct {
-	Measures      *sonargo.MeasuresComponentObject `json:"measures,omitempty"`
-	Issues        *sonargo.IssuesSearchObject      `json:"issues,omitempty"`
-	JenkinsAction *jenkins.GeneralObj              `json:"jenkinsAction,omitempty"`
-	Task          *sonargo.CeTaskObject            `json:"task,omitempty"`
 }
 
 type ProjectPipeline struct {
@@ -1079,14 +1066,14 @@ func toCrontab(millis int64) string {
 
 }
 
-func getBuildSonarResults(build *jenkins.Build) ([]*SonarStatus, error) {
+func getBuildSonarResults(build *devops.Build) ([]*SonarStatus, error) {
 
 	sonarClient, err := client.ClientSets().SonarQube()
 	if err != nil {
 		return nil, err
 	}
 
-	actions := build.GetActions()
+	actions := build.Actions
 	sonarStatuses := make([]*SonarStatus, 0)
 	for _, action := range actions {
 		if action.ClassName == SonarAnalysisActionClass {
@@ -1123,7 +1110,7 @@ func getBuildSonarResults(build *jenkins.Build) ([]*SonarStatus, error) {
 			issuesSearch, _, err := sonarClient.SonarQube().Issues.Search(issuesSearchOption)
 			sonarStatus.Issues = issuesSearch
 			jenkinsAction := action
-			sonarStatus.JenkinsAction = &jenkinsAction
+			sonarStatus.GeneralAction = &jenkinsAction
 
 			sonarStatuses = append(sonarStatuses, sonarStatus)
 		}

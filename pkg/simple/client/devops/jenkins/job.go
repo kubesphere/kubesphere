@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/url"
 	"path"
 	"strconv"
@@ -60,7 +61,7 @@ type ParameterDefinition struct {
 
 type JobResponse struct {
 	Class              string `json:"_class"`
-	Actions            []GeneralObj
+	Actions            []devops.GeneralAction
 	Buildable          bool `json:"buildable"`
 	Builds             []JobBuild
 	Color              string      `json:"color"`
@@ -81,7 +82,7 @@ type JobResponse struct {
 	LastBuild             JobBuild   `json:"lastBuild"`
 	LastCompletedBuild    JobBuild   `json:"lastCompletedBuild"`
 	LastFailedBuild       JobBuild   `json:"lastFailedBuild"`
-	LastStableBuild       JobBuild   `json:"lastStableBuild"`
+		LastStableBuild       JobBuild   `json:"lastStableBuild"`
 	LastSuccessfulBuild   JobBuild   `json:"lastSuccessfulBuild"`
 	LastUnstableBuild     JobBuild   `json:"lastUnstableBuild"`
 	LastUnsuccessfulBuild JobBuild   `json:"lastUnsuccessfulBuild"`

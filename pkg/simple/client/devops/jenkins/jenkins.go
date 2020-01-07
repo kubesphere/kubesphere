@@ -113,8 +113,8 @@ func (j *Jenkins) CreateJobInFolder(config string, jobName string, parentIDs ...
 }
 
 // Create a new job from config File
-// Method takes XML string as first parameter, and if the name is not specified in the config file
-// takes name as string as second parameter
+// Method takes XML string as first Parameter, and if the name is not specified in the config file
+// takes name as string as second Parameter
 // e.g jenkins.CreateJob("<config></config>","newJobName")
 func (j *Jenkins) CreateJob(config string, options ...interface{}) (*Job, error) {
 	qr := make(map[string]string)
@@ -132,7 +132,7 @@ func (j *Jenkins) CreateJob(config string, options ...interface{}) (*Job, error)
 }
 
 // Rename a job.
-// First parameter job old name, Second parameter job new name.
+// First Parameter job old name, Second Parameter job new name.
 func (j *Jenkins) RenameJob(job string, name string) *Job {
 	jobObj := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + job}
 	jobObj.Rename(name)
@@ -140,7 +140,7 @@ func (j *Jenkins) RenameJob(job string, name string) *Job {
 }
 
 // Create a copy of a job.
-// First parameter Name of the job to copy from, Second parameter new job name.
+// First Parameter Name of the job to copy from, Second Parameter new job name.
 func (j *Jenkins) CopyJob(copyFrom string, newName string) (*Job, error) {
 	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + copyFrom}
 	_, err := job.Poll()
@@ -157,7 +157,7 @@ func (j *Jenkins) DeleteJob(name string, parentIDs ...string) (bool, error) {
 }
 
 // Invoke a job.
-// First parameter job name, second parameter is optional Build parameters.
+// First Parameter job name, second Parameter is optional Build parameters.
 func (j *Jenkins) BuildJob(name string, options ...interface{}) (int64, error) {
 	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + name}
 	var params map[string]string

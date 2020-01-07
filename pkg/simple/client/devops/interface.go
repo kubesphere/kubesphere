@@ -45,4 +45,6 @@ type Interface interface {
 	DeleteUserInProject(username string) error
 
 	CredentialOperator
+
+	BuildGetter
 }

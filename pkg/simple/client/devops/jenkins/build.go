@@ -17,6 +17,9 @@ package jenkins
 import (
 	"bytes"
 	"errors"
+	"github.com/emicklei/go-restful"
+	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -31,26 +34,26 @@ const (
 )
 
 type Build struct {
-	Raw     *BuildResponse
+	Raw     *devops.Build
 	Job     *Job
 	Jenkins *Jenkins
 	Base    string
 	Depth   int
 }
 
-type parameter struct {
+type Parameter struct {
 	Name  string
 	Value string
 }
 
-type branch struct {
+type Branch struct {
 	SHA1 string `json:",omitempty"`
 	Name string `json:",omitempty"`
 }
 
 type BuildRevision struct {
 	SHA1   string   `json:"SHA1,omitempty"`
-	Branch []branch `json:"branch,omitempty"`
+	Branch []Branch `json:"Branch,omitempty"`
 }
 
 type Builds struct {
@@ -66,7 +69,7 @@ type Culprit struct {
 }
 
 type GeneralObj struct {
-	Parameters              []parameter              `json:"parameters,omitempty"`
+	Parameters              []Parameter              `json:"parameters,omitempty"`
 	Causes                  []map[string]interface{} `json:"causes,omitempty"`
 	BuildsByBranchName      map[string]Builds        `json:"buildsByBranchName,omitempty"`
 	LastBuiltRevision       *BuildRevision           `json:"lastBuiltRevision,omitempty"`
@@ -114,7 +117,7 @@ type TestResult struct {
 }
 
 type BuildResponse struct {
-	Actions   []GeneralObj
+	Actions   []devops.GeneralAction
 	Artifacts []struct {
 		DisplayPath  string `json:"displayPath"`
 		FileName     string `json:"fileName"`
@@ -146,7 +149,7 @@ type BuildResponse struct {
 			Revision int
 		} `json:"revision"`
 	} `json:"changeSet"`
-	Culprits          []Culprit   `json:"culprits"`
+	Culprits          []devops.Culprit   `json:"culprits"`
 	Description       interface{} `json:"description"`
 	Duration          int64       `json:"duration"`
 	EstimatedDuration int64       `json:"estimatedDuration"`
@@ -172,9 +175,6 @@ func (b *Build) Info() *BuildResponse {
 	return b.Raw
 }
 
-func (b *Build) GetActions() []GeneralObj {
-	return b.Raw.Actions
-}
 
 func (b *Build) GetUrl() string {
 	return b.Raw.URL
@@ -187,22 +187,7 @@ func (b *Build) GetResult() string {
 	return b.Raw.Result
 }
 
-func (b *Build) GetArtifacts() []Artifact {
-	artifacts := make([]Artifact, len(b.Raw.Artifacts))
-	for i, artifact := range b.Raw.Artifacts {
-		artifacts[i] = Artifact{
-			Jenkins:  b.Jenkins,
-			Build:    b,
-			FileName: artifact.FileName,
-			Path:     b.Base + "/artifact/" + artifact.RelativePath,
-		}
-	}
-	return artifacts
-}
 
-func (b *Build) GetCulprits() []Culprit {
-	return b.Raw.Culprits
-}
 
 func (b *Build) Stop() (bool, error) {
 	if b.IsRunning() {
@@ -237,14 +222,6 @@ func (b *Build) GetCauses() ([]map[string]interface{}, error) {
 	return nil, errors.New("No Causes")
 }
 
-func (b *Build) GetParameters() []parameter {
-	for _, a := range b.Raw.Actions {
-		if a.Parameters != nil {
-			return a.Parameters
-		}
-	}
-	return nil
-}
 
 func (b *Build) GetInjectedEnvVars() (map[string]string, error) {
 	var envVars struct {
@@ -369,23 +346,6 @@ func (b *Build) GetDuration() int64 {
 	return b.Raw.Duration
 }
 
-func (b *Build) GetRevision() string {
-	vcs := b.Raw.ChangeSet.Kind
-
-	if vcs == Git || vcs == Hg {
-		for _, a := range b.Raw.Actions {
-			if a.LastBuiltRevision.SHA1 != "" {
-				return a.LastBuiltRevision.SHA1
-			}
-			if a.MercurialRevisionNumber != "" {
-				return a.MercurialRevisionNumber
-			}
-		}
-	} else if vcs == Svn {
-		return strconv.Itoa(b.Raw.ChangeSet.Revisions[0].Revision)
-	}
-	return ""
-}
 
 func (b *Build) GetRevisionBranch() string {
 	vcs := b.Raw.ChangeSet.Kind
@@ -430,7 +390,7 @@ func (b *Build) PauseToggle() error {
 	return nil
 }
 
-// Poll for current data. Optional parameter - depth.
+// Poll for current data. Optional Parameter - depth.
 // More about depth here: https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
 func (b *Build) Poll(options ...interface{}) (int, error) {
 	depth := "-1"
@@ -457,4 +417,21 @@ func (b *Build) Poll(options ...interface{}) (int, error) {
 		return 0, err
 	}
 	return response.StatusCode, nil
+}
+
+func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, status string)(*devops.Build, error){
+	job ,err := j.GetJob(pipelineId,projectId)
+	if err != nil {
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+	}
+	build,err := job.getBuildByType(status)
+	return build.Raw,nil
+}
+func (j *Jenkins)GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch string, status string) (*devops.Build, error){
+	job ,err := j.GetJob(pipelineId,projectId,branch)
+	if err != nil {
+		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+	}
+	build,err := job.getBuildByType(status)
+	return build.Raw,nil
 }
