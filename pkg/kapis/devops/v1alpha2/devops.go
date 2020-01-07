@@ -42,8 +42,8 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 	resp.Write(res)
 }
 
-func SearchPipelines(req *restful.Request, resp *restful.Response) {
-	res, err := devops.SearchPipelines(req.Request)
+func (h *ProjectPipelineHandler)SearchPipelines(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.SearchPipelines(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -53,11 +53,11 @@ func SearchPipelines(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler)SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 
-	res, err := devops.SearchPipelineRuns(projectName, pipelineName, req.Request)
+	res, err := h.devopsOperator.SearchPipelineRuns(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return

@@ -46,6 +46,8 @@ const (
 
 type DevopsOperator interface {
 	GetPipeline(projectName, pipelineName string, req *http.Request)([]byte, error)
+	SearchPipelines(req *http.Request) ([]byte, error)
+	SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error)
 }
 
 type devopsOperator struct {
@@ -61,7 +63,7 @@ func NewDevopsOperator(client jenkins.Client) DevopsOperator {
 func (d devopsOperator)GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	formatUrl := fmt.Sprintf(GetPipelineUrl, projectName, pipelineName)
 
-	res, err := d.devopsClient.SendJenkinsRequest(formatUrl, req)
+	res, err := d.devopsClient.SendPureRequest(formatUrl, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -70,20 +72,16 @@ func (d devopsOperator)GetPipeline(projectName, pipelineName string, req *http.R
 	return res, err
 }
 
-func SearchPipelines(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
+func (d devopsOperator)SearchPipelines(req *http.Request) ([]byte, error) {
 
-	baseUrl := jenkins.Jenkins().Server + SearchPipelineUrl + req.URL.RawQuery
+	formatUrl := SearchPipelineUrl + req.URL.RawQuery
 
-	res, err := sendJenkinsRequest(baseUrl, req)
+	res, err := d.devopsClient.SendPureRequest(formatUrl, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	count, err := searchPipelineCount(req)
+	count, err := d.searchPipelineCount(req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -102,21 +100,15 @@ func SearchPipelines(req *http.Request) ([]byte, error) {
 	return res, err
 }
 
-func searchPipelineCount(req *http.Request) (int, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return 0, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
+func (d devopsOperator)searchPipelineCount(req *http.Request) (int, error) {
 	query, _ := parseJenkinsQuery(req.URL.RawQuery)
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
 
-	baseUrl := jenkins.Jenkins().Server + SearchPipelineUrl + query.Encode()
-	klog.V(4).Info("Jenkins-url: " + baseUrl)
+	formatUrl := SearchPipelineUrl + query.Encode()
 
-	res, err := sendJenkinsRequest(baseUrl, req)
+	res, err := d.devopsClient.SendPureRequest(formatUrl, req)
 	if err != nil {
 		klog.Error(err)
 		return 0, err
@@ -130,49 +122,16 @@ func searchPipelineCount(req *http.Request) (int, error) {
 	return len(pipelines), nil
 }
 
-func searchPipelineRunsCount(projectName, pipelineName string, req *http.Request) (int, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return 0, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	query, _ := parseJenkinsQuery(req.URL.RawQuery)
-	query.Set("start", "0")
-	query.Set("limit", "1000")
-	query.Set("depth", "-1")
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
+func (d devopsOperator)SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 
-	klog.V(4).Info("Jenkins-url: " + baseUrl)
+	formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
 
-	res, err := sendJenkinsRequest(baseUrl+query.Encode(), req)
-	if err != nil {
-		klog.Error(err)
-		return 0, err
-	}
-	var runs []PipelineRun
-	err = json.Unmarshal(res, &runs)
-	if err != nil {
-		klog.Error(err)
-		return 0, err
-	}
-	return len(runs), nil
-}
-
-func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+SearchPipelineRunUrl, projectName, pipelineName)
-
-	klog.V(4).Info("Jenkins-url: " + baseUrl)
-
-	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
+	res, err := d.devopsClient.SendPureRequest(formatUrl+req.URL.RawQuery, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	count, err := searchPipelineRunsCount(projectName, pipelineName, req)
+	count, err := d.searchPipelineRunsCount(projectName, pipelineName, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -189,6 +148,27 @@ func SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]
 		return nil, err
 	}
 	return res, err
+}
+
+func (d devopsOperator)searchPipelineRunsCount(projectName, pipelineName string, req *http.Request) (int, error) {
+	query, _ := parseJenkinsQuery(req.URL.RawQuery)
+	query.Set("start", "0")
+	query.Set("limit", "1000")
+	query.Set("depth", "-1")
+	formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
+
+	res, err := d.devopsClient.SendPureRequest(formatUrl+query.Encode(), req)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	var runs []PipelineRun
+	err = json.Unmarshal(res, &runs)
+	if err != nil {
+		klog.Error(err)
+		return 0, err
+	}
+	return len(runs), nil
 }
 
 func GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error) {

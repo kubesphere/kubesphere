@@ -6,9 +6,9 @@ import (
 )
 
 type Interface interface {
-	SendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error)
+	SendPureRequest(path string, req *http.Request) ([]byte, error)
 
-	SendJenkinsRequestWithHeaderResp(baseUrl string, req *http.Request) ([]byte, http.Header, error)
+	SendRequestWithHeaderResp(path string, req *http.Request) ([]byte, http.Header, error)
 
 	ValidateJenkinsfile(jenkinsfile string) (*jenkins.ValidateJenkinsfileResponse, error)
 
