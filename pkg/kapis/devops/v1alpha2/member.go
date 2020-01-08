@@ -82,7 +82,7 @@ func (h ProjectPipelineHandler) AddDevOpsProjectMemberHandler(request *restful.R
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := &devops.DevOpsProjectMembership{}
+	member := &devops.ProjectMembership{}
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -126,7 +126,7 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectMemberHandler(request *restfu
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := &devops.DevOpsProjectMembership{}
+	member := &devops.ProjectMembership{}
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)

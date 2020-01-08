@@ -211,38 +211,6 @@ func checkResourceQuotas(wokrspace *v1alpha1.Workspace) error {
 	return nil
 }
 
-func ListDevopsProjectsByUsername(req *restful.Request, resp *restful.Response) {
-	ListDevopsProjects(req, resp)
-}
-
-func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
-
-	workspace := req.PathParameter("workspace")
-	username := req.PathParameter("member")
-	if username == "" {
-		username = req.HeaderParameter(constants.UserNameHeader)
-	}
-	orderBy := req.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(req)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
-		return
-	}
-
-	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-
-	resp.WriteAsJson(result)
-}
 
 func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
 	username := req.HeaderParameter(constants.UserNameHeader)
@@ -257,56 +225,7 @@ func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
 		Count uint32 `json:"count"`
 	}{Count: result})
 }
-func DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
-	projectId := req.PathParameter("devops")
-	workspaceName := req.PathParameter("workspace")
-	username := req.HeaderParameter(constants.UserNameHeader)
 
-	_, err := tenant.GetWorkspace(workspaceName)
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
-		return
-	}
-
-	err = tenant.DeleteDevOpsProject(projectId, username)
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-
-	resp.WriteAsJson(errors.None)
-}
-
-func CreateDevopsProject(req *restful.Request, resp *restful.Response) {
-
-	workspaceName := req.PathParameter("workspace")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	var devops devopsv1alpha2.DevOpsProject
-
-	err := req.ReadEntity(&devops)
-
-	if err != nil {
-		klog.Infof("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
-		return
-	}
-
-	klog.Infoln("create workspace", username, workspaceName, devops)
-	project, err := tenant.CreateDevopsProject(username, workspaceName, &devops)
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-
-	resp.WriteAsJson(project)
-}
 
 func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")

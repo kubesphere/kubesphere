@@ -28,9 +28,9 @@ import (
 
 type ProjectMemberOperator interface {
 	GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
-	GetProjectMember(projectId, username string) (*devops.DevOpsProjectMembership, error)
-	AddProjectMember(projectId string, membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error)
-	UpdateProjectMember(projectId string, membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error)
+	GetProjectMember(projectId, username string) (*devops.ProjectMembership, error)
+	AddProjectMember(projectId string, membership *devops.ProjectMembership) (*devops.ProjectMembership, error)
+	UpdateProjectMember(projectId string, membership *devops.ProjectMembership) (*devops.ProjectMembership, error)
 	DeleteProjectMember(projectId, username string) (string, error)
 }
 type projectMemberOperator struct {
@@ -44,7 +44,7 @@ func NewProjectMemberOperator() ProjectMemberOperator {
 
 func (o *projectMemberOperator) GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 
-	memberships := make([]*devops.DevOpsProjectMembership, 0)
+	memberships := make([]*devops.ProjectMembership, 0)
 	var sqconditions []dbr.Builder
 	sqconditions = append(sqconditions, db.Eq(ProjectMembershipProjectIdColumn, projectId))
 	if keyword := conditions.Match["keyword"]; keyword != "" {
@@ -91,9 +91,9 @@ func (o *projectMemberOperator) GetProjectMembers(projectId string, conditions *
 	return &models.PageableResponse{Items: result, TotalCount: int(count)}, nil
 }
 
-func (o *projectMemberOperator) GetProjectMember(projectId, username string) (*devops.DevOpsProjectMembership, error) {
+func (o *projectMemberOperator) GetProjectMember(projectId, username string) (*devops.ProjectMembership, error) {
 
-	member := &devops.DevOpsProjectMembership{}
+	member := &devops.ProjectMembership{}
 	err := o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(db.Eq(ProjectMembershipProjectIdColumn, projectId),
@@ -110,9 +110,9 @@ func (o *projectMemberOperator) GetProjectMember(projectId, username string) (*d
 	return member, nil
 }
 
-func (o *projectMemberOperator) AddProjectMember(projectId string, membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error) {
+func (o *projectMemberOperator) AddProjectMember(projectId string, membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 
-	dbmembership := &devops.DevOpsProjectMembership{}
+	dbmembership := &devops.ProjectMembership{}
 	err := o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(
@@ -152,9 +152,9 @@ func (o *projectMemberOperator) AddProjectMember(projectId string, membership *d
 	return projectMembership, nil
 }
 
-func (o *projectMemberOperator) UpdateProjectMember(projectId string, membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error) {
+func (o *projectMemberOperator) UpdateProjectMember(projectId string, membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 
-	oldMembership := &devops.DevOpsProjectMembership{}
+	oldMembership := &devops.ProjectMembership{}
 	err := o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(
@@ -183,7 +183,7 @@ func (o *projectMemberOperator) UpdateProjectMember(projectId string, membership
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	responseMembership := &devops.DevOpsProjectMembership{}
+	responseMembership := &devops.ProjectMembership{}
 	err = o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(
@@ -199,7 +199,7 @@ func (o *projectMemberOperator) UpdateProjectMember(projectId string, membership
 
 func (o *projectMemberOperator) DeleteProjectMember(projectId, username string) (string, error) {
 
-	oldMembership := &devops.DevOpsProjectMembership{}
+	oldMembership := &devops.ProjectMembership{}
 	err := o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(

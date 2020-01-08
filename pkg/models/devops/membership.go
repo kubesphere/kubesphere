@@ -22,10 +22,10 @@ const (
 	ProjectMembershipRoleColumn      = "project_membership.role"
 )
 
-var ProjectMembershipColumns = GetColumnsFromStruct(&devops.DevOpsProjectMembership{})
+var ProjectMembershipColumns = GetColumnsFromStruct(&devops.ProjectMembership{})
 
-func NewDevOpsProjectMemberShip(username, projectId, role, grantBy string) *devops.DevOpsProjectMembership {
-	return &devops.DevOpsProjectMembership{
+func NewDevOpsProjectMemberShip(username, projectId, role, grantBy string) *devops.ProjectMembership {
+	return &devops.ProjectMembership{
 		Username:  username,
 		ProjectId: projectId,
 		Role:      role,

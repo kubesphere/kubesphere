@@ -214,7 +214,7 @@ var JenkinsPipelinePermissionMap = map[string]ProjectPermissionIds{
 	},
 }
 
-func (j *Jenkins) AddProjectMember(membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error) {
+func (j *Jenkins) AddProjectMember(membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 	globalRole, err := j.GetGlobalRole(JenkinsAllUserRoleName)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -257,7 +257,7 @@ func (j *Jenkins) AddProjectMember(membership *devops.DevOpsProjectMembership) (
 	return membership, nil
 }
 
-func (j *Jenkins) UpdateProjectMember(oldMembership, newMembership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error) {
+func (j *Jenkins) UpdateProjectMember(oldMembership, newMembership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 	oldProjectRole, err := j.GetProjectRole(GetProjectRoleName(oldMembership.ProjectId, oldMembership.Role))
 	if err != nil {
 		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
@@ -300,7 +300,7 @@ func (j *Jenkins) UpdateProjectMember(oldMembership, newMembership *devops.DevOp
 	return newMembership, nil
 }
 
-func (j *Jenkins) DeleteProjectMember(membership *devops.DevOpsProjectMembership) (*devops.DevOpsProjectMembership, error) {
+func (j *Jenkins) DeleteProjectMember(membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 	oldProjectRole, err := j.GetProjectRole(GetProjectRoleName(membership.ProjectId, membership.Role))
 	if err != nil {
 		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())

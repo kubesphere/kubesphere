@@ -1,6 +1,6 @@
 package devops
 
-type DevOpsProjectMembership struct {
+type ProjectMembership struct {
 	Username  string `json:"username" description:"Member's username，username can uniquely identify a user"`
 	ProjectId string `json:"project_id" db:"project_id" description:"the DevOps Projects which project membership belongs to"`
 	Role      string `json:"role" description:"DevOps Project membership's role type. e.g. owner '"`
@@ -9,7 +9,7 @@ type DevOpsProjectMembership struct {
 }
 
 type ProjectMemberOperator interface {
-	AddProjectMember(membership *DevOpsProjectMembership) (*DevOpsProjectMembership, error)
-	UpdateProjectMember(oldMembership, newMembership *DevOpsProjectMembership) (*DevOpsProjectMembership, error)
-	DeleteProjectMember(membership *DevOpsProjectMembership) (*DevOpsProjectMembership, error)
+	AddProjectMember(membership *ProjectMembership) (*ProjectMembership, error)
+	UpdateProjectMember(oldMembership, newMembership *ProjectMembership) (*ProjectMembership, error)
+	DeleteProjectMember(membership *ProjectMembership) (*ProjectMembership, error)
 }

@@ -94,7 +94,7 @@ func (o *projectOperator) CheckProjectUserInRole(username, projectId string, rol
 	if username == KS_ADMIN {
 		return nil
 	}
-	membership := &devops.DevOpsProjectMembership{}
+	membership := &devops.ProjectMembership{}
 	err := o.db.Select(ProjectMembershipColumns...).
 		From(ProjectMembershipTableName).
 		Where(db.And(

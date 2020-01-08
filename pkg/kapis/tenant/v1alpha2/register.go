@@ -148,7 +148,7 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, RespOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
-		To(tenant.DeleteDevopsProject).
+		To(DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("devops", "devops project ID")).
 		Doc("Delete the specified devops project from the workspace").
