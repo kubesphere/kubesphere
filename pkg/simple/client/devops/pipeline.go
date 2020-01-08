@@ -309,7 +309,7 @@ type OrgRepo struct {
 }
 
 // StopPipeline
-type StopPipe struct {
+type StopPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -383,7 +383,7 @@ type StopPipe struct {
 }
 
 // ReplayPipeline
-type ReplayPipe struct {
+type ReplayPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -591,7 +591,7 @@ type RunPayload struct {
 	} `json:"parameters,omitempty"`
 }
 
-type QueuedBlueRun struct {
+type RunPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -1148,9 +1148,9 @@ type PipelineOperator interface {
 
 	ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*PipelineRunList, error)
 
-	StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*StopPipe, error)
+	StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*StopPipeline, error)
 
-	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*ReplayPipe, error)
+	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*ReplayPipeline, error)
 
-	RunPipeline(projectName, pipelineName string, req *http.Request) (QueuedBlueRun, error)
+	RunPipeline(projectName, pipelineName string, req *http.Request) (*RunPipeline, error)
 }

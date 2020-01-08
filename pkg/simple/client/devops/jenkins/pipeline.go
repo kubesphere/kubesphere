@@ -43,7 +43,7 @@ func (p *Pipeline) ListPipelines() ([]byte, error) {
 		return nil, err
 	}
 
-	responseStruct := devops.PageableResponse{TotalCount: count}
+	responseStruct := devops.PipelineList{Total: count}
 	err = json.Unmarshal(res, &responseStruct.Items)
 	if err != nil {
 		klog.Error(err)

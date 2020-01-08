@@ -48,6 +48,9 @@ type DevopsOperator interface {
 	ListPipelines(req *http.Request) (*devops.PipelineList, error)
 	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*devops.PipelineRun, error)
 	ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*devops.PipelineRunList, error)
+	StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*devops.StopPipeline, error)
+	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*devops.ReplayPipeline, error)
+	RunPipeline(projectName, pipelineName string, req *http.Request) (*devops.RunPipeline, error)
 }
 
 type devopsOperator struct {
@@ -101,7 +104,7 @@ func (d devopsOperator) ListPipelineRuns(projectName, pipelineName string, req *
 	return res, err
 }
 
-func (d devopsOperator) StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*devops.StopPipeline, error) {
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
@@ -115,7 +118,7 @@ func (d devopsOperator) StopPipeline(projectName, pipelineName, runId string, re
 	return res, err
 }
 
-func (d devopsOperator) ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*devops.ReplayPipeline, error) {
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
@@ -128,7 +131,7 @@ func (d devopsOperator) ReplayPipeline(projectName, pipelineName, runId string, 
 	return res, err
 }
 
-func (d devopsOperator) RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) RunPipeline(projectName, pipelineName string, req *http.Request) (*devops.RunPipeline, error) {
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
 

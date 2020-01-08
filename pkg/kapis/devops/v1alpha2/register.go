@@ -284,6 +284,47 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.PipelineRunList{}).
 		Writes(devops.PipelineRunList{}))
 
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/stop/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/stop").
+		To(handler.StopPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Stop pipeline").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
+			Required(false).
+			DataFormat("blocking=%t").
+			DefaultValue("blocking=false")).
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
+			Required(false).
+			DataFormat("timeOutInSecs=%d").
+			DefaultValue("timeOutInSecs=10")).
+		Returns(http.StatusOK, RespOK, devops.StopPipeline{}).
+		Writes(devops.StopPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/Replay/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/replay").
+		To(handler.ReplayPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Replay pipeline").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, devops.ReplayPipeline{}).
+		Writes(devops.ReplayPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
+		To(handler.RunPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Run pipeline.").
+		Reads(devops.RunPayload{}).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Returns(http.StatusOK, RespOK, devops.RunPipeline{}).
+		Writes(devops.RunPipeline{}))
+
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
 		To(GetBranchPipelineRun).
@@ -421,27 +462,8 @@ The last one is encrypted info, such as the password of the username-password ty
 			Required(false).
 			DataFormat("timeOutInSecs=%d").
 			DefaultValue("timeOutInSecs=10")).
-		Returns(http.StatusOK, RespOK, devops.StopPipe{}).
-		Writes(devops.StopPipe{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/stop/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/stop").
-		To(StopPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Stop pipeline").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
-			Required(false).
-			DataFormat("blocking=%t").
-			DefaultValue("blocking=false")).
-		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
-			Required(false).
-			DataFormat("timeOutInSecs=%d").
-			DefaultValue("timeOutInSecs=10")).
-		Returns(http.StatusOK, RespOK, devops.StopPipe{}).
-		Writes(devops.StopPipe{}))
+		Returns(http.StatusOK, RespOK, devops.StopPipeline{}).
+		Writes(devops.StopPipeline{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/Replay/
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
@@ -452,19 +474,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
 		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
-		Writes(devops.ReplayPipe{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/Replay/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/replay").
-		To(ReplayPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Replay pipeline").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
-		Writes(devops.ReplayPipe{}))
+		Returns(http.StatusOK, RespOK, devops.ReplayPipeline{}).
+		Writes(devops.ReplayPipeline{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/log/?start=0
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/log").
@@ -606,19 +617,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
-		Writes(devops.QueuedBlueRun{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(RunPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Run pipeline.").
-		Reads(devops.RunPayload{}).
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
-		Writes(devops.QueuedBlueRun{}))
+		Returns(http.StatusOK, RespOK, devops.RunPipeline{}).
+		Writes(devops.RunPipeline{}))
 
 	// match /crumbIssuer/api/json/
 	webservice.Route(webservice.GET("/crumbissuer").

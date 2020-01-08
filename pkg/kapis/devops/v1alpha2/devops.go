@@ -53,7 +53,7 @@ func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restf
 	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler)GetPipelineRun(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) GetPipelineRun(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 	runId := req.PathParameter("run")
@@ -79,7 +79,51 @@ func (h *ProjectPipelineHandler) ListPipelineRuns(req *restful.Request, resp *re
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) StopPipeline(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	runId := req.PathParameter("run")
+
+	res, err := h.devopsOperator.StopPipeline(projectName, pipelineName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) ReplayPipeline(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	runId := req.PathParameter("run")
+
+	res, err := h.devopsOperator.ReplayPipeline(projectName, pipelineName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler)RunPipeline(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+
+	res, err := h.devopsOperator.RunPipeline(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
 }
 
 func GetBranchPipelineRun(req *restful.Request, resp *restful.Response) {
@@ -247,21 +291,6 @@ func StopBranchPipeline(req *restful.Request, resp *restful.Response) {
 	resp.Write(res)
 }
 
-func StopPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-	runId := req.PathParameter("run")
-
-	res, err := devops.StopPipeline(projectName, pipelineName, runId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
 func ReplayBranchPipeline(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
@@ -269,21 +298,6 @@ func ReplayBranchPipeline(req *restful.Request, resp *restful.Response) {
 	runId := req.PathParameter("run")
 
 	res, err := devops.ReplayBranchPipeline(projectName, pipelineName, branchName, runId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func ReplayPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-	runId := req.PathParameter("run")
-
-	res, err := devops.ReplayPipeline(projectName, pipelineName, runId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -429,20 +443,6 @@ func RunBranchPipeline(req *restful.Request, resp *restful.Response) {
 	branchName := req.PathParameter("branch")
 
 	res, err := devops.RunBranchPipeline(projectName, pipelineName, branchName, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func RunPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-
-	res, err := devops.RunPipeline(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
