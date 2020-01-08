@@ -59,6 +59,6 @@ func (o *projectPipelineOperator) UpdateProjectPipeline(projectId, pipelineId st
 	return o.pipelineOperator.UpdateProjectPipeline(projectId, pipeline)
 }
 
-func (o *projectPipelineOperator) GetProjectPipeline(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
+func (o *projectPipelineOperator) GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
 	return o.pipelineOperator.GetProjectPipelineConfig(projectId, pipelineId)
 }
