@@ -8,13 +8,14 @@ import (
 )
 
 // TODO: deprecated, use SendJenkinsRequestWithHeaderResp() instead
-func (j *Jenkins) SendJenkinsRequest(reqUrl string, req *http.Request) ([]byte, error) {
-	resBody, _, err := j.SendJenkinsRequestWithHeaderResp(reqUrl, req)
+func (j *Jenkins) SendPureRequest(path string, req *http.Request) ([]byte,error){
+	resBody, _, err := j.SendPureRequestWithHeaderResp(path, req)
+
 	return resBody, err
 }
 
-func (j *Jenkins) SendJenkinsRequestWithHeaderResp(reqUrl string, req *http.Request) ([]byte, http.Header, error) {
-	newReqUrl, err := url.Parse(j.Server + reqUrl)
+func (j *Jenkins) SendPureRequestWithHeaderResp(path string, req *http.Request) ([]byte, http.Header, error) {
+	newReqUrl, err := url.Parse(j.Server + path)
 	if err != nil {
 		klog.Error(err)
 		return nil, nil, err

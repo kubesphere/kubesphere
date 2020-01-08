@@ -64,6 +64,26 @@ type Role struct {
 	Description string `json:"description" description:"role 's description'"`
 }
 
+	CredentialOperator
+
+	PipelineOperator
+
+	//AdapterOperator
+}
+
+type AdapterOperator interface {
+	//SendPureRequest(path string, req *http.Request) ([]byte, error)
+
+	//SendRequestWithHeaderResp(path string, req *http.Request) ([]byte, http.Header, error)
+
+// 	ValidateJenkinsfile(jenkinsfile string) (*jenkins.ValidateJenkinsfileResponse, error)
+
+// 	ValidatePipelineJson(json string) (*jenkins.ValidatePipelineJsonResponse, error)
+
+// 	PipelineJsonToJenkinsfile(json string) (*jenkins.PipelineJsonToJenkinsfileResponse, error)
+
+// 	JenkinsfileToPipelineJson(jenkinsfile string) (*jenkins.JenkinsfileToPipelineJsonResponse, error)
+}
 var DefaultRoles = []*Role{
 	{
 		Name:        ProjectOwner,

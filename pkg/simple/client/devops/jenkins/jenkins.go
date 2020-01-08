@@ -369,6 +369,76 @@ func (j *Jenkins) DeleteUserInProject(username string) error {
 	return nil
 }
 
+func (j *Jenkins) GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    fmt.Sprintf(GetPipelineUrl, projectName, pipelineName),
+	}
+	res, err := PipelineOjb.GetPipeline()
+	return res, err
+}
+
+func (j *Jenkins) ListPipelines(req *http.Request) ([]byte, error) {
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    ListPipelinesUrl + req.URL.RawQuery,
+	}
+	res, err := PipelineOjb.ListPipelines()
+	return res, err
+}
+
+func (j *Jenkins)GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    fmt.Sprintf(GetPipelineRunUrl, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.GetPipelineRun()
+	return res, err
+}
+
+func (j *Jenkins)ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    ListPipelineRunUrl + req.URL.RawQuery,
+	}
+	res, err := PipelineOjb.ListPipelineRuns()
+	return res, err
+}
+
+func (j *Jenkins)StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    fmt.Sprintf(StopPipelineUrl, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.StopPipeline()
+	return res, err
+}
+
+func (j *Jenkins)ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    fmt.Sprintf(ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.ReplayPipeline()
+	return res, err
+}
+
+func (j *Jenkins)RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		Request: req,
+		Jenkins: j,
+		Path:    fmt.Sprintf(RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName),
+	}
+	res, err := PipelineOjb.RunPipeline()
+	return res, err
+}
+
 // Creates a new Jenkins Instance
 // Optional parameters are: client, username, password
 // After creating an instance call init method.
