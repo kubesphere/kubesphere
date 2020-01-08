@@ -29,7 +29,7 @@ type ProjectPipelineOperator interface {
 	GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error)
 }
 type projectPipelineOperator struct {
-	pipelineOperator devops.PipelineOperator
+	pipelineOperator devops.ProjectPipelineOperator
 }
 
 func NewProjectPipelineOperator(client jenkins.Client) ProjectPipelineOperator {

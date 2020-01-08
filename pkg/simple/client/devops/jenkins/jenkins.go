@@ -389,7 +389,7 @@ func (j *Jenkins) ListPipelines(req *http.Request) ([]byte, error) {
 	return res, err
 }
 
-func (j *Jenkins)GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		Request: req,
 		Jenkins: j,
@@ -399,7 +399,7 @@ func (j *Jenkins)GetPipelineRun(projectName, pipelineName, runId string, req *ht
 	return res, err
 }
 
-func (j *Jenkins)ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error){
+func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		Request: req,
 		Jenkins: j,
@@ -409,7 +409,7 @@ func (j *Jenkins)ListPipelineRuns(projectName, pipelineName string, req *http.Re
 	return res, err
 }
 
-func (j *Jenkins)StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		Request: req,
 		Jenkins: j,
@@ -419,7 +419,7 @@ func (j *Jenkins)StopPipeline(projectName, pipelineName, runId string, req *http
 	return res, err
 }
 
-func (j *Jenkins)ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error){
+func (j *Jenkins) ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		Request: req,
 		Jenkins: j,
@@ -429,7 +429,7 @@ func (j *Jenkins)ReplayPipeline(projectName, pipelineName, runId string, req *ht
 	return res, err
 }
 
-func (j *Jenkins)RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error){
+func (j *Jenkins) RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		Request: req,
 		Jenkins: j,

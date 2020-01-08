@@ -127,7 +127,7 @@ func (d devopsOperator) ReplayPipeline(projectName, pipelineName, runId string, 
 	return res, err
 }
 
-func (d devopsOperator)RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
 

@@ -28,7 +28,7 @@ import (
 	"net/http"
 )
 
-func(h DevOpsHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
+func (h DevOpsHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 	projectId := req.PathParameter("devops")
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
@@ -93,7 +93,7 @@ func (h DevOpsHandler) GetDevOpsProjectsCountHandler(req *restful.Request, resp 
 	}{Count: result})
 }
 
-func (h DevOpsHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *restful.Response)  {
+func (h DevOpsHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("workspace")
 	username := req.PathParameter("member")

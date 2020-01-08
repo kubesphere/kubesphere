@@ -211,7 +211,6 @@ func checkResourceQuotas(wokrspace *v1alpha1.Workspace) error {
 	return nil
 }
 
-
 func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
 	username := req.HeaderParameter(constants.UserNameHeader)
 
@@ -225,7 +224,6 @@ func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
 		Count uint32 `json:"count"`
 	}{Count: result})
 }
-
 
 func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")

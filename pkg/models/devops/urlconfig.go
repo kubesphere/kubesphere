@@ -53,17 +53,11 @@ const (
 	CheckPipelienCronUrl     = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
 	CheckCronUrl             = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
 
-	GetPipelineUrl           = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/"
-	SearchPipelineUrl        = "/blue/rest/search/?"
-	GetPipelineRunUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/"
-	SearchPipelineRunUrl     = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/?"
-	StopPipelineUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/stop/?"
-	ReplayPipelineUrl        = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/replay/"
-	RunPipelineUrl           = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/"
-
-
-
-
-
-
+	GetPipelineUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/"
+	SearchPipelineUrl    = "/blue/rest/search/?"
+	GetPipelineRunUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/"
+	SearchPipelineRunUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/?"
+	StopPipelineUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/stop/?"
+	ReplayPipelineUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/replay/"
+	RunPipelineUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/"
 )

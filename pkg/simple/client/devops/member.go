@@ -13,3 +13,36 @@ type ProjectMemberOperator interface {
 	UpdateProjectMember(oldMembership, newMembership *ProjectMembership) (*ProjectMembership, error)
 	DeleteProjectMember(membership *ProjectMembership) (*ProjectMembership, error)
 }
+
+var DefaultRoles = []*Role{
+	{
+		Name:        ProjectOwner,
+		Description: "Owner have access to do all the operations of a DevOps project and own the highest permissions as well.",
+	},
+	{
+		Name:        ProjectMaintainer,
+		Description: "Maintainer have access to manage pipeline and credential configuration in a DevOps project.",
+	},
+	{
+		Name:        ProjectDeveloper,
+		Description: "Developer is able to view and trigger the pipeline.",
+	},
+	{
+		Name:        ProjectReporter,
+		Description: "Reporter is only allowed to view the status of the pipeline.",
+	},
+}
+
+var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
+
+const (
+	ProjectOwner      = "owner"
+	ProjectMaintainer = "maintainer"
+	ProjectDeveloper  = "developer"
+	ProjectReporter   = "reporter"
+)
+
+type Role struct {
+	Name        string `json:"name" description:"role's name e.g. owner'"`
+	Description string `json:"description" description:"role 's description'"`
+}

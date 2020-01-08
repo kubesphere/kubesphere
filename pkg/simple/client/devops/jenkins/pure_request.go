@@ -8,7 +8,7 @@ import (
 )
 
 // TODO: deprecated, use SendJenkinsRequestWithHeaderResp() instead
-func (j *Jenkins) SendPureRequest(path string, req *http.Request) ([]byte,error){
+func (j *Jenkins) SendPureRequest(path string, req *http.Request) ([]byte, error) {
 	resBody, _, err := j.SendPureRequestWithHeaderResp(path, req)
 
 	return resBody, err
