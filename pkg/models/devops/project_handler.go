@@ -21,6 +21,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"net/http"
@@ -93,12 +94,12 @@ func (o *projectOperator) CheckProjectUserInRole(username, projectId string, rol
 	if username == KS_ADMIN {
 		return nil
 	}
-	membership := &DevOpsProjectMembership{}
-	err := o.db.Select(DevOpsProjectMembershipColumns...).
-		From(DevOpsProjectMembershipTableName).
+	membership := &devops.DevOpsProjectMembership{}
+	err := o.db.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
 		return err
 	}

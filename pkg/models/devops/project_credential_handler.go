@@ -19,10 +19,9 @@ import (
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 
 	"kubesphere.io/kubesphere/pkg/db"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 )
 
@@ -36,9 +35,10 @@ type ProjectCredentialOperator interface {
 
 type projectCredentialOperator struct {
 	devopsClient devops.Interface
+	db           *mysql.Database
 }
 
-func NewProjectCredentialOperator(client jenkins.Client) ProjectCredentialOperator {
+func NewProjectCredentialOperator() ProjectCredentialOperator {
 	return &projectCredentialOperator{}
 }
 
@@ -137,12 +137,7 @@ func (o *projectCredentialOperator) UpdateProjectCredential(projectId, credentia
 
 func (o *projectCredentialOperator) DeleteProjectCredential(projectId, credentialId string) (string, error) {
 
-	dbClient, err := cs.ClientSets().MySQL()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	_, err = o.devopsClient.GetCredentialInProject(projectId,
+	_, err := o.devopsClient.GetCredentialInProject(projectId,
 		credentialId, false)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -159,7 +154,7 @@ func (o *projectCredentialOperator) DeleteProjectCredential(projectId, credentia
 	deleteConditions = append(deleteConditions, db.Eq(ProjectCredentialIdColumn, credentialId))
 	deleteConditions = append(deleteConditions, db.Eq(ProjectCredentialDomainColumn, "_"))
 
-	_, err = dbClient.DeleteFrom(ProjectCredentialTableName).
+	_, err = o.db.DeleteFrom(ProjectCredentialTableName).
 		Where(db.And(deleteConditions...)).Exec()
 	if err != nil && err != db.ErrNotFound {
 		klog.Errorf("%+v", err)
@@ -171,13 +166,9 @@ func (o *projectCredentialOperator) DeleteProjectCredential(projectId, credentia
 
 func (o *projectCredentialOperator) GetProjectCredential(projectId, credentialId, getContent string) (*devops.Credential, error) {
 
-	dbClient, err := cs.ClientSets().MySQL()
 	content := false
 	if getContent != "" {
 		content = true
-	}
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
 	}
 	credential, err := o.devopsClient.GetCredentialInProject(projectId,
 		credentialId,
@@ -187,7 +178,7 @@ func (o *projectCredentialOperator) GetProjectCredential(projectId, credentialId
 		return nil, err
 	}
 	projectCredential := &ProjectCredential{}
-	err = dbClient.Select(ProjectCredentialColumns...).
+	err = o.db.Select(ProjectCredentialColumns...).
 		From(ProjectCredentialTableName).Where(
 		db.And(db.Eq(ProjectCredentialProjectIdColumn, projectId),
 			db.Eq(ProjectCredentialIdColumn, credentialId),
@@ -205,10 +196,6 @@ func (o *projectCredentialOperator) GetProjectCredential(projectId, credentialId
 
 func (o *projectCredentialOperator) GetProjectCredentials(projectId string) ([]*devops.Credential, error) {
 
-	dbClient, err := cs.ClientSets().MySQL()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
 	credentialResponses, err := o.devopsClient.GetCredentialsInProject(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -216,7 +203,7 @@ func (o *projectCredentialOperator) GetProjectCredentials(projectId string) ([]*
 	}
 	selectCondition := db.Eq(ProjectCredentialProjectIdColumn, projectId)
 	projectCredentials := make([]*ProjectCredential, 0)
-	_, err = dbClient.Select(ProjectCredentialColumns...).
+	_, err = o.db.Select(ProjectCredentialColumns...).
 		From(ProjectCredentialTableName).Where(selectCondition).Load(&projectCredentials)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -227,13 +214,9 @@ func (o *projectCredentialOperator) GetProjectCredentials(projectId string) ([]*
 }
 
 func (o *projectCredentialOperator) insertCredentialToDb(projectId, credentialId, domain, username string) error {
-	dbClient, err := cs.ClientSets().MySQL()
-	if err != nil {
-		return err
-	}
 
 	projectCredential := NewProjectCredential(projectId, credentialId, domain, username)
-	_, err = dbClient.InsertInto(ProjectCredentialTableName).Columns(ProjectCredentialColumns...).
+	_, err := o.db.InsertInto(ProjectCredentialTableName).Columns(ProjectCredentialColumns...).
 		Record(projectCredential).Exec()
 	if err != nil {
 		klog.Errorf("%+v", err)

@@ -68,22 +68,6 @@ const (
 	KS_ADMIN = "admin"
 )
 
-func GetProjectRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-project", projectId, role)
-}
-
-func GetPipelineRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-pipeline", projectId, role)
-}
-
-func GetProjectRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s$", projectId)
-}
-
-func GetPipelineRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s/.*", projectId)
-}
-
 func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	if username == KS_ADMIN {
 		return nil
@@ -99,11 +83,11 @@ func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	}
 
 	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(DevOpsProjectMembershipColumns...).
-		From(DevOpsProjectMembershipTableName).
+	err = dbconn.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
 		return err
 	}
@@ -127,11 +111,11 @@ func GetProjectUserRole(username, projectId string) (string, error) {
 		return "", err
 	}
 	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(DevOpsProjectMembershipColumns...).
-		From(DevOpsProjectMembershipTableName).
+	err = dbconn.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
 		return "", err
 	}

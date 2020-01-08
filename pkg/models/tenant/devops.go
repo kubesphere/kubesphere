@@ -28,8 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"net/http"
 	"sync"
 )
@@ -71,11 +69,11 @@ func (o *devOpsProjectOperator) ListDevopsProjects(workspace, username string, c
 	switch username {
 	case devops.KS_ADMIN:
 	default:
-		onCondition := fmt.Sprintf("%s = %s", devops.DevOpsProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
-		query.Join(devops.DevOpsProjectMembershipTableName, onCondition)
-		sqconditions = append(sqconditions, db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))
+		onCondition := fmt.Sprintf("%s = %s", devops.ProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
+		query.Join(devops.ProjectMembershipTableName, onCondition)
+		sqconditions = append(sqconditions, db.Eq(devops.ProjectMembershipUsernameColumn, username))
 		sqconditions = append(sqconditions, db.Eq(
-			devops.DevOpsProjectMembershipTableName+"."+devops.StatusColumn, devops.StatusActive))
+			devops.ProjectMembershipTableName+"."+devops.StatusColumn, devops.StatusActive))
 	}
 
 	sqconditions = append(sqconditions, db.Eq(
@@ -136,11 +134,11 @@ func (o *devOpsProjectOperator) GetDevOpsProjectsCount(username string) (uint32,
 	var sqconditions []dbr.Builder
 
 	if username != devops.KS_ADMIN {
-		onCondition := fmt.Sprintf("%s = %s", devops.DevOpsProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
-		query.Join(devops.DevOpsProjectMembershipTableName, onCondition)
-		sqconditions = append(sqconditions, db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username))
+		onCondition := fmt.Sprintf("%s = %s", devops.ProjectMembershipProjectIdColumn, devops.DevOpsProjectIdColumn)
+		query.Join(devops.ProjectMembershipTableName, onCondition)
+		sqconditions = append(sqconditions, db.Eq(devops.ProjectMembershipUsernameColumn, username))
 		sqconditions = append(sqconditions, db.Eq(
-			devops.DevOpsProjectMembershipTableName+"."+devops.StatusColumn, devops.StatusActive))
+			devops.ProjectMembershipTableName+"."+devops.StatusColumn, devops.StatusActive))
 	}
 
 	sqconditions = append(sqconditions, db.Eq(
@@ -192,8 +190,8 @@ func (o *devOpsProjectOperator) DeleteDevOpsProject(projectId, username string) 
 		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
 	}
-	_, err = devopsdb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
-		Where(db.Eq(devops.DevOpsProjectMembershipProjectIdColumn, projectId)).Exec()
+	_, err = devopsdb.DeleteFrom(devops.ProjectMembershipTableName).
+		Where(db.Eq(devops.ProjectMembershipProjectIdColumn, projectId)).Exec()
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
@@ -317,8 +315,8 @@ func (o *devOpsProjectOperator) CreateDevopsProject(username string, workspace s
 	}
 
 	projectMembership := devops.NewDevOpsProjectMemberShip(username, project.ProjectId, devops.ProjectOwner, username)
-	_, err = devopsdb.InsertInto(devops.DevOpsProjectMembershipTableName).
-		Columns(devops.DevOpsProjectMembershipColumns...).Record(projectMembership).Exec()
+	_, err = devopsdb.InsertInto(devops.ProjectMembershipTableName).
+		Columns(devops.ProjectMembershipColumns...).Record(projectMembership).Exec()
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())

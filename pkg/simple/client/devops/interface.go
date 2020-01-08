@@ -1,7 +1,6 @@
 package devops
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"net/http"
 )
 
@@ -49,6 +48,8 @@ type Interface interface {
 	BuildGetter
 
 	PipelineOperator
+
+	ProjectMemberOperator
 }
 
 const (
@@ -56,10 +57,6 @@ const (
 	ProjectMaintainer = "maintainer"
 	ProjectDeveloper  = "developer"
 	ProjectReporter   = "reporter"
-)
-
-const (
-	JenkinsAllUserRoleName = "kubesphere-user"
 )
 
 type Role struct {
@@ -87,190 +84,3 @@ var DefaultRoles = []*Role{
 }
 
 var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
-
-var JenkinsOwnerProjectPermissionIds = &jenkins.ProjectPermissionIds{
-	CredentialCreate:        true,
-	CredentialDelete:        true,
-	CredentialManageDomains: true,
-	CredentialUpdate:        true,
-	CredentialView:          true,
-	ItemBuild:               true,
-	ItemCancel:              true,
-	ItemConfigure:           true,
-	ItemCreate:              true,
-	ItemDelete:              true,
-	ItemDiscover:            true,
-	ItemMove:                true,
-	ItemRead:                true,
-	ItemWorkspace:           true,
-	RunDelete:               true,
-	RunReplay:               true,
-	RunUpdate:               true,
-	SCMTag:                  true,
-}
-
-var JenkinsProjectPermissionMap = map[string]jenkins.ProjectPermissionIds{
-	ProjectOwner: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              true,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}
-
-var JenkinsPipelinePermissionMap = map[string]jenkins.ProjectPermissionIds{
-	ProjectOwner: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}

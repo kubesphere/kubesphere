@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error)  {
+func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
 	switch pipeline.Type {
 	case devops.NoScmPipelineType:
 
@@ -63,7 +63,7 @@ func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.Proje
 	}
 }
 
-func (j *Jenkins)DeleteProjectPipeline(projectId string, pipelineId string) (string,error){
+func (j *Jenkins) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	_, err := j.DeleteJob(pipelineId, projectId)
 	if err != nil {
 		return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
@@ -71,7 +71,7 @@ func (j *Jenkins)DeleteProjectPipeline(projectId string, pipelineId string) (str
 	return pipelineId, nil
 
 }
-func (j *Jenkins)UpdateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline)(string, error)  {
+func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
 	switch pipeline.Type {
 	case devops.NoScmPipelineType:
 
@@ -122,7 +122,7 @@ func (j *Jenkins)UpdateProjectPipeline(projectId string, pipeline *devops.Projec
 	}
 }
 
-func (j *Jenkins)GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error)  {
+func (j *Jenkins) GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
 	job, err := j.GetJob(pipelineId, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -155,7 +155,7 @@ func (j *Jenkins)GetProjectPipelineConfig(projectId, pipelineId string) (*devops
 		}
 		pipeline.Name = pipelineId
 		return &devops.ProjectPipeline{
-			Type:               devops. MultiBranchPipelineType,
+			Type:                devops.MultiBranchPipelineType,
 			MultiBranchPipeline: pipeline,
 		}, nil
 	default:
