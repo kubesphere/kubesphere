@@ -68,246 +68,6 @@ const (
 	KS_ADMIN = "admin"
 )
 
-const (
-	ProjectOwner      = "owner"
-	ProjectMaintainer = "maintainer"
-	ProjectDeveloper  = "developer"
-	ProjectReporter   = "reporter"
-)
-
-const (
-	JenkinsAllUserRoleName = "kubesphere-user"
-)
-
-type Role struct {
-	Name        string `json:"name" description:"role's name e.g. owner'"`
-	Description string `json:"description" description:"role 's description'"`
-}
-
-var DefaultRoles = []*Role{
-	{
-		Name:        ProjectOwner,
-		Description: "Owner have access to do all the operations of a DevOps project and own the highest permissions as well.",
-	},
-	{
-		Name:        ProjectMaintainer,
-		Description: "Maintainer have access to manage pipeline and credential configuration in a DevOps project.",
-	},
-	{
-		Name:        ProjectDeveloper,
-		Description: "Developer is able to view and trigger the pipeline.",
-	},
-	{
-		Name:        ProjectReporter,
-		Description: "Reporter is only allowed to view the status of the pipeline.",
-	},
-}
-
-var AllRoleSlice = []string{ProjectDeveloper, ProjectReporter, ProjectMaintainer, ProjectOwner}
-
-var JenkinsOwnerProjectPermissionIds = &jenkins.ProjectPermissionIds{
-	CredentialCreate:        true,
-	CredentialDelete:        true,
-	CredentialManageDomains: true,
-	CredentialUpdate:        true,
-	CredentialView:          true,
-	ItemBuild:               true,
-	ItemCancel:              true,
-	ItemConfigure:           true,
-	ItemCreate:              true,
-	ItemDelete:              true,
-	ItemDiscover:            true,
-	ItemMove:                true,
-	ItemRead:                true,
-	ItemWorkspace:           true,
-	RunDelete:               true,
-	RunReplay:               true,
-	RunUpdate:               true,
-	SCMTag:                  true,
-}
-
-var JenkinsProjectPermissionMap = map[string]jenkins.ProjectPermissionIds{
-	ProjectOwner: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              true,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}
-
-var JenkinsPipelinePermissionMap = map[string]jenkins.ProjectPermissionIds{
-	ProjectOwner: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectMaintainer: {
-		CredentialCreate:        true,
-		CredentialDelete:        true,
-		CredentialManageDomains: true,
-		CredentialUpdate:        true,
-		CredentialView:          true,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           true,
-		ItemCreate:              true,
-		ItemDelete:              true,
-		ItemDiscover:            true,
-		ItemMove:                true,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  true,
-	},
-	ProjectDeveloper: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               true,
-		ItemCancel:              true,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           true,
-		RunDelete:               true,
-		RunReplay:               true,
-		RunUpdate:               true,
-		SCMTag:                  false,
-	},
-	ProjectReporter: {
-		CredentialCreate:        false,
-		CredentialDelete:        false,
-		CredentialManageDomains: false,
-		CredentialUpdate:        false,
-		CredentialView:          false,
-		ItemBuild:               false,
-		ItemCancel:              false,
-		ItemConfigure:           false,
-		ItemCreate:              false,
-		ItemDelete:              false,
-		ItemDiscover:            true,
-		ItemMove:                false,
-		ItemRead:                true,
-		ItemWorkspace:           false,
-		RunDelete:               false,
-		RunReplay:               false,
-		RunUpdate:               false,
-		SCMTag:                  false,
-	},
-}
-
-func GetProjectRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-project", projectId, role)
-}
-
-func GetPipelineRoleName(projectId, role string) string {
-	return fmt.Sprintf("%s-%s-pipeline", projectId, role)
-}
-
-func GetProjectRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s$", projectId)
-}
-
-func GetPipelineRolePattern(projectId string) string {
-	return fmt.Sprintf("^%s/.*", projectId)
-}
-
 func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	if username == KS_ADMIN {
 		return nil
@@ -323,11 +83,11 @@ func CheckProjectUserInRole(username, projectId string, roles []string) error {
 	}
 
 	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(DevOpsProjectMembershipColumns...).
-		From(DevOpsProjectMembershipTableName).
+	err = dbconn.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
 		return err
 	}
@@ -351,11 +111,11 @@ func GetProjectUserRole(username, projectId string) (string, error) {
 		return "", err
 	}
 	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(DevOpsProjectMembershipColumns...).
-		From(DevOpsProjectMembershipTableName).
+	err = dbconn.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(DevOpsProjectMembershipUsernameColumn, username),
-			db.Eq(DevOpsProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
 	if err != nil {
 		return "", err
 	}

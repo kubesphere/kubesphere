@@ -18,23 +18,23 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
-func (h *ProjectPipelineHandler)GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err := h.ProjectOperator.GetProject(projectId)
+	project, err := h.projectOperator.GetProject(projectId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -46,7 +46,7 @@ func (h *ProjectPipelineHandler)GetDevOpsProjectHandler(request *restful.Request
 	return
 }
 
-func UpdateProjectHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) UpdateProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
@@ -58,13 +58,13 @@ func UpdateProjectHandler(request *restful.Request, resp *restful.Response) {
 		return
 	}
 	project.ProjectId = projectId
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
+	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err = devops.UpdateProject(project)
+	project, err = h.projectOperator.UpdateProject(project)
 
 	if err != nil {
 		klog.Errorf("%+v", err)

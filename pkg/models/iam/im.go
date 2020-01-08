@@ -817,9 +817,9 @@ func deleteUserInDevOps(username string) error {
 
 	jenkinsClient := dp.Jenkins()
 
-	_, err = devopsDb.DeleteFrom(devops.DevOpsProjectMembershipTableName).
+	_, err = devopsDb.DeleteFrom(devops.ProjectMembershipTableName).
 		Where(db.And(
-			db.Eq(devops.DevOpsProjectMembershipUsernameColumn, username),
+			db.Eq(devops.ProjectMembershipUsernameColumn, username),
 		)).Exec()
 	if err != nil {
 		klog.Errorf("%+v", err)

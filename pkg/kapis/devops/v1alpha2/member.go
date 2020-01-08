@@ -19,19 +19,19 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"net/http"
 )
 
-func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
@@ -42,7 +42,7 @@ func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Resp
 	limit, offset := params.ParsePaging(request.QueryParameter(params.PagingParam))
 	conditions, err := params.ParseConditions(request.QueryParameter(params.ConditionsParam))
 
-	project, err := devops.GetProjectMembers(projectId, conditions, orderBy, reverse, limit, offset)
+	project, err := h.projectMemberOperator.GetProjectMembers(projectId, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -54,19 +54,19 @@ func GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Resp
 	return
 }
 
-func GetDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	member := request.PathParameter("member")
 
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err := devops.GetProjectMember(projectId, member)
+	project, err := h.projectMemberOperator.GetProjectMember(projectId, member)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -78,11 +78,11 @@ func GetDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Respo
 	return
 }
 
-func AddDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) AddDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := &devops.DevOpsProjectMembership{}
+	member := &devops.ProjectMembership{}
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -102,14 +102,15 @@ func AddDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Respo
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
+	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err := devops.AddProjectMember(projectId, username, member)
+
+	member.GrantBy = username
+	project, err := h.projectMemberOperator.AddProjectMember(projectId, member)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -121,11 +122,11 @@ func AddDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Respo
 	return
 }
 
-func UpdateDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) UpdateDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
-	member := &devops.DevOpsProjectMembership{}
+	member := &devops.ProjectMembership{}
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -153,13 +154,13 @@ func UpdateDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Re
 		return
 	}
 
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
+	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	project, err := devops.UpdateProjectMember(projectId, username, member)
+	project, err := h.projectMemberOperator.UpdateProjectMember(projectId, member)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -171,19 +172,19 @@ func UpdateDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Re
 	return
 }
 
-func DeleteDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) DeleteDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	member := request.PathParameter("member")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	username, err = devops.DeleteProjectMember(projectId, member)
+	username, err = h.projectMemberOperator.DeleteProjectMember(projectId, member)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

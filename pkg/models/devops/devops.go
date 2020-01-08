@@ -54,9 +54,7 @@ type devopsOperator struct {
 }
 
 func NewDevopsOperator(client jenkins.Client) DevopsOperator {
-	return &devopsOperator{
-
-	}
+	return &devopsOperator{}
 }
 
 func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {

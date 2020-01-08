@@ -14,31 +14,33 @@ limitations under the License.
 package devops
 
 import (
+	"fmt"
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/db"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"net/http"
 )
 
 type ProjectOperator interface {
 	GetProject(projectId string) (*v1alpha2.DevOpsProject, error)
 	UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
+	CheckProjectUserInRole(username, projectId string, roles []string) error
 }
 
 type projectOperator struct {
+	db *mysql.Database
 }
 
 func (o *projectOperator) GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
-	dbconn, err := cs.ClientSets().MySQL()
-	if err != nil {
-		return nil, err
-	}
+
 	project := &v1alpha2.DevOpsProject{}
-	err = dbconn.Select(DevOpsProjectColumns...).
+	err := o.db.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, projectId)).
 		LoadOne(project)
@@ -55,12 +57,8 @@ func (o *projectOperator) GetProject(projectId string) (*v1alpha2.DevOpsProject,
 }
 
 func (o *projectOperator) UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
-	dbconn, err := cs.ClientSets().MySQL()
-	if err != nil {
-		return nil, err
-	}
 
-	query := dbconn.Update(DevOpsProjectTableName)
+	query := o.db.Update(DevOpsProjectTableName)
 	if !govalidator.IsNull(project.Description) {
 		query.Set(DevOpsProjectDescriptionColumn, project.Description)
 	}
@@ -81,7 +79,7 @@ func (o *projectOperator) UpdateProject(project *v1alpha2.DevOpsProject) (*v1alp
 		}
 	}
 	newProject := &v1alpha2.DevOpsProject{}
-	err = dbconn.Select(DevOpsProjectColumns...).
+	err := o.db.Select(DevOpsProjectColumns...).
 		From(DevOpsProjectTableName).
 		Where(db.Eq(DevOpsProjectIdColumn, project.ProjectId)).
 		LoadOne(newProject)
@@ -90,4 +88,23 @@ func (o *projectOperator) UpdateProject(project *v1alpha2.DevOpsProject) (*v1alp
 		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
 	}
 	return newProject, nil
+}
+
+func (o *projectOperator) CheckProjectUserInRole(username, projectId string, roles []string) error {
+	if username == KS_ADMIN {
+		return nil
+	}
+	membership := &devops.ProjectMembership{}
+	err := o.db.Select(ProjectMembershipColumns...).
+		From(ProjectMembershipTableName).
+		Where(db.And(
+			db.Eq(ProjectMembershipUsernameColumn, username),
+			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+	if err != nil {
+		return err
+	}
+	if !reflectutils.In(membership.Role, roles) {
+		return fmt.Errorf("user [%s] in project [%s] role is not in %s", username, projectId, roles)
+	}
+	return nil
 }

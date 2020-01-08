@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/url"
 	"path"
 	"strconv"
@@ -60,7 +61,7 @@ type ParameterDefinition struct {
 
 type JobResponse struct {
 	Class              string `json:"_class"`
-	Actions            []GeneralObj
+	Actions            []devops.GeneralAction
 	Buildable          bool `json:"buildable"`
 	Builds             []JobBuild
 	Color              string      `json:"color"`
@@ -121,7 +122,7 @@ func (j *Job) GetDetails() *JobResponse {
 }
 
 func (j *Job) GetBuild(id int64) (*Build, error) {
-	build := Build{Jenkins: j.Jenkins, Job: j, Raw: new(BuildResponse), Depth: 1, Base: "/job/" + j.GetName() + "/" + strconv.FormatInt(id, 10)}
+	build := Build{Jenkins: j.Jenkins, Job: j, Raw: new(devops.Build), Depth: 1, Base: "/job/" + j.GetName() + "/" + strconv.FormatInt(id, 10)}
 	status, err := build.Poll()
 	if err != nil {
 		return nil, err
@@ -151,7 +152,7 @@ func (j *Job) getBuildByType(buildType string) (*Build, error) {
 		Jenkins: j.Jenkins,
 		Depth:   1,
 		Job:     j,
-		Raw:     new(BuildResponse),
+		Raw:     new(devops.Build),
 		Base:    j.Base + "/" + number}
 	status, err := build.Poll()
 	if err != nil {
