@@ -134,41 +134,4 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 	return
 }
 
-func GetPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
-	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipeline")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	sonarStatus, err := devops.GetPipelineSonar(projectId, pipelineId)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-	resp.WriteAsJson(sonarStatus)
-}
 
-func GetMultiBranchesPipelineSonarStatusHandler(request *restful.Request, resp *restful.Response) {
-	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
-	pipelineId := request.PathParameter("pipeline")
-	branchId := request.PathParameter("branch")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
-		return
-	}
-	sonarStatus, err := devops.GetMultiBranchPipelineSonar(projectId, pipelineId, branchId)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-	resp.WriteAsJson(sonarStatus)
-}
