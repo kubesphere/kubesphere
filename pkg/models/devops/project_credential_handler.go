@@ -22,8 +22,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"net/http"
 )
 
@@ -37,13 +37,10 @@ type ProjectCredentialOperator interface {
 
 type projectCredentialOperator struct {
 	devopsClient devops.Interface
-
 }
 
 func NewProjectCredentialOperator(client jenkins.Client) ProjectCredentialOperator {
-	return &projectCredentialOperator{
-
-	}
+	return &projectCredentialOperator{}
 }
 
 func (o *projectCredentialOperator) CreateProjectCredential(projectId, username string, credentialRequest *devops.Credential) (string, error) {

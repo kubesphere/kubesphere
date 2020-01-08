@@ -11,7 +11,7 @@ const (
 	FirstBuild            = "firstBuild"
 )
 
-type Parameter struct {
+type GeneralParameter struct {
 	Name  string
 	Value string
 }
@@ -39,7 +39,7 @@ type Culprit struct {
 }
 
 type GeneralAction struct {
-	Parameters         []Parameter              `json:"parameters,omitempty"`
+	Parameters         []GeneralParameter       `json:"parameters,omitempty"`
 	Causes             []map[string]interface{} `json:"causes,omitempty"`
 	BuildsByBranchName map[string]Builds        `json:"buildsByBranchName,omitempty"`
 	LastBuiltRevision  *BuildRevision           `json:"lastBuiltRevision,omitempty"`

@@ -89,8 +89,8 @@ func (o *projectOperator) UpdateProject(project *v1alpha2.DevOpsProject) (*v1alp
 	return newProject, nil
 }
 
-func (o *projectOperator) CheckProjectUserInRole(username, projectId string, roles []string) error  {
-	if username == KS_ADMIN{
+func (o *projectOperator) CheckProjectUserInRole(username, projectId string, roles []string) error {
+	if username == KS_ADMIN {
 		return nil
 	}
 	membership := &DevOpsProjectMembership{}

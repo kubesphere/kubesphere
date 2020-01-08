@@ -3,8 +3,8 @@ package devops
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
 )

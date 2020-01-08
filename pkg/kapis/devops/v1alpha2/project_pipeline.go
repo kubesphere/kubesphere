@@ -133,5 +133,3 @@ func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Res
 	resp.WriteAsJson(pipeline)
 	return
 }
-
-

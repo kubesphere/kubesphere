@@ -19,7 +19,7 @@ type S2iHandler struct {
 	s2iUploader devops.S2iBinaryUploader
 }
 
-func New() (*ProjectPipelineHandler) {
+func New() *ProjectPipelineHandler {
 	handler := &ProjectPipelineHandler{
 		projectCredentialOperator: devops.NewProjectCredentialOperator(),
 		projectMemberOperator:     devops.NewProjectMemberOperator(),

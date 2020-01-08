@@ -21,10 +21,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/gocraft/dbr"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 )
 
 type ProjectMemberOperator interface {
@@ -38,9 +38,7 @@ type projectMemberOperator struct {
 }
 
 func NewProjectMemberOperator(client jenkins.Client) ProjectMemberOperator {
-	return &projectMemberOperator{
-
-	}
+	return &projectMemberOperator{}
 }
 
 func (o *projectMemberOperator) GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {

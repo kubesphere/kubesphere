@@ -17,11 +17,13 @@ package jenkins
 import (
 	"compress/gzip"
 	"encoding/json"
+	"github.com/asaskevich/govalidator"
 	"io"
 	"io/ioutil"
 	"k8s.io/klog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -128,4 +130,17 @@ func (t *JenkinsBlueTime) UnmarshalJSON(b []byte) error {
 
 func (t JenkinsBlueTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(t))
+}
+
+func GetJenkinsStatusCode(jenkinsErr error) int {
+	if code, err := strconv.Atoi(jenkinsErr.Error()); err == nil {
+		message := http.StatusText(code)
+		if !govalidator.IsNull(message) {
+			return code
+		}
+	}
+	if jErr, ok := jenkinsErr.(*ErrorResponse); ok {
+		return jErr.Response.StatusCode
+	}
+	return http.StatusInternalServerError
 }

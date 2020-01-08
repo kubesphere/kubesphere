@@ -45,7 +45,7 @@ const (
 )
 
 type DevopsOperator interface {
-	GetPipeline(projectName, pipelineName string, req *http.Request)([]byte, error)
+	GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
 }
 
 type devopsOperator struct {
@@ -53,12 +53,10 @@ type devopsOperator struct {
 }
 
 func NewDevopsOperator(client jenkins.Client) DevopsOperator {
-	return &devopsOperator{
-
-	}
+	return &devopsOperator{}
 }
 
-func (d devopsOperator)GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
 	formatUrl := fmt.Sprintf(GetPipelineUrl, projectName, pipelineName)
 
 	res, err := d.devopsClient.SendJenkinsRequest(formatUrl, req)

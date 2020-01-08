@@ -33,8 +33,6 @@ const KubeconfigCredentialStaplerClass = "com.microsoft.jenkins.kubernetes.crede
 const DirectKubeconfigCredentialStaperClass = "com.microsoft.jenkins.kubernetes.credentials.KubeconfigCredentials$DirectEntryKubeconfigSource"
 const GLOBALScope = "GLOBAL"
 
-
-
 type UsernamePasswordCredential struct {
 	Scope        string `json:"scope"`
 	Id           string `json:"id"`
@@ -101,8 +99,6 @@ type CredentialResponse struct {
 	Domain      string `json:"domain"`
 }
 
-
-
 func NewSshCredential(id, username, passphrase, privateKey, description string) *SshCredential {
 	keySource := PrivateKeySource{
 		StaplerClass: DirectSSHCrenditalStaplerClass,
@@ -156,14 +152,13 @@ func NewKubeconfigCredential(id, content, description string) *KubeconfigCredent
 	}
 }
 
-
 func (j *Jenkins) GetCredentialInProject(projectId, id string, content bool) (*devops.Credential, error) {
 	responseStruct := &devops.Credential{}
 
 	domain := "_"
 
 	response, err := j.Requester.GetJSON(
-		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s",projectId, id),
+		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s", projectId, id),
 		responseStruct, map[string]string{
 			"depth": "2",
 		})
@@ -225,8 +220,7 @@ func (j *Jenkins) GetCredentialInProject(projectId, id string, content bool) (*d
 	return responseStruct, nil
 }
 
-
-func (j *Jenkins) GetCredentialsInProject(projectId string) ([]* devops.Credential, error) {
+func (j *Jenkins) GetCredentialsInProject(projectId string) ([]*devops.Credential, error) {
 	domain := "_"
 	var responseStruct = &struct {
 		Credentials []*devops.Credential `json:"credentials"`
@@ -249,16 +243,15 @@ func (j *Jenkins) GetCredentialsInProject(projectId string) ([]* devops.Credenti
 
 }
 
-func (j* Jenkins) CreateCredentialInProject(projectId string, credential *devops.Credential) (*string, error){
+func (j *Jenkins) CreateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
 
 	var request interface{}
 	responseString := ""
 	switch credential.Type {
 	case devops.CredentialTypeUsernamePassword:
-		request= NewUsernamePasswordCredential(credential.Id,
+		request = NewUsernamePasswordCredential(credential.Id,
 			credential.UsernamePasswordCredential.Username, credential.UsernamePasswordCredential.Password,
 			credential.Description)
-
 
 	case devops.CredentialTypeSsh:
 		request = NewSshCredential(credential.Id,
@@ -280,7 +273,7 @@ func (j* Jenkins) CreateCredentialInProject(projectId string, credential *devops
 		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/createCredentials", projectId),
 		nil, &responseString, map[string]string{
 			"json": makeJson(map[string]interface{}{
-				"credentials":request ,
+				"credentials": request,
 			}),
 		})
 	if err != nil {
@@ -292,7 +285,7 @@ func (j* Jenkins) CreateCredentialInProject(projectId string, credential *devops
 	return &credential.Id, nil
 }
 
-func (j *Jenkins) UpdateCredentialInProject(projectId string, credential *devops.Credential) (*string, error)  {
+func (j *Jenkins) UpdateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
 
 	requestContent := ""
 	switch credential.Type {
@@ -334,7 +327,7 @@ func (j *Jenkins) UpdateCredentialInProject(projectId string, credential *devops
 	return &credential.Id, nil
 }
 
-func (j *Jenkins) DeleteCredentialInProject(projectId, id string) (*string, error){
+func (j *Jenkins) DeleteCredentialInProject(projectId, id string) (*string, error) {
 	response, err := j.Requester.Post(
 		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s/doDelete", projectId, id),
 		nil, nil, nil)

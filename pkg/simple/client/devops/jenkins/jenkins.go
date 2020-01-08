@@ -19,10 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"log"
 	"net/http"
 	"os"
@@ -40,7 +36,6 @@ type BasicAuth struct {
 type Jenkins struct {
 	Server    string
 	Version   string
-	Raw       *ExecutorResponse
 	Requester *Requester
 }
 
@@ -57,17 +52,15 @@ var (
 func (j *Jenkins) Init() (*Jenkins, error) {
 	j.initLoggers()
 
-	// Check Connection
-	j.Raw = new(ExecutorResponse)
-	rsp, err := j.Requester.GetJSON("/", j.Raw, nil)
+	rsp, err := j.Requester.GetJSON("/", nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	j.Version = rsp.Header.Get("X-Jenkins")
-	if j.Raw == nil {
-		return nil, errors.New("Connection Failed, Please verify that the host and credentials are correct.")
-	}
+	//if j.Raw == nil {
+	//	return nil, errors.New("Connection Failed, Please verify that the host and credentials are correct.")
+	//}
 
 	return j, nil
 }
@@ -210,14 +203,12 @@ func (j *Jenkins) GetFolder(id string, parents ...string) (*Folder, error) {
 // or job.GetBuild(buildNumber)
 
 func (j *Jenkins) Poll() (int, error) {
-	resp, err := j.Requester.GetJSON("/", j.Raw, nil)
+	resp, err := j.Requester.GetJSON("/", nil, nil)
 	if err != nil {
 		return 0, err
 	}
 	return resp.StatusCode, nil
 }
-
-
 
 func (j *Jenkins) GetGlobalRole(roleName string) (*GlobalRole, error) {
 	roleResponse := &GlobalRoleResponse{

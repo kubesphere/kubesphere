@@ -18,11 +18,9 @@ import (
 	"bytes"
 	"errors"
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"time"
 )
@@ -149,21 +147,21 @@ type BuildResponse struct {
 			Revision int
 		} `json:"revision"`
 	} `json:"changeSet"`
-	Culprits          []devops.Culprit   `json:"culprits"`
-	Description       interface{} `json:"description"`
-	Duration          int64       `json:"duration"`
-	EstimatedDuration int64       `json:"estimatedDuration"`
-	Executor          interface{} `json:"executor"`
-	FullDisplayName   string      `json:"fullDisplayName"`
-	ID                string      `json:"id"`
-	KeepLog           bool        `json:"keepLog"`
-	Number            int64       `json:"number"`
-	QueueID           int64       `json:"queueId"`
-	Result            string      `json:"result"`
-	Timestamp         int64       `json:"timestamp"`
-	URL               string      `json:"url"`
-	MavenArtifacts    interface{} `json:"mavenArtifacts"`
-	MavenVersionUsed  string      `json:"mavenVersionUsed"`
+	Culprits          []devops.Culprit `json:"culprits"`
+	Description       interface{}      `json:"description"`
+	Duration          int64            `json:"duration"`
+	EstimatedDuration int64            `json:"estimatedDuration"`
+	Executor          interface{}      `json:"executor"`
+	FullDisplayName   string           `json:"fullDisplayName"`
+	ID                string           `json:"id"`
+	KeepLog           bool             `json:"keepLog"`
+	Number            int64            `json:"number"`
+	QueueID           int64            `json:"queueId"`
+	Result            string           `json:"result"`
+	Timestamp         int64            `json:"timestamp"`
+	URL               string           `json:"url"`
+	MavenArtifacts    interface{}      `json:"mavenArtifacts"`
+	MavenVersionUsed  string           `json:"mavenVersionUsed"`
 	Runs              []struct {
 		Number int64
 		URL    string
@@ -171,10 +169,9 @@ type BuildResponse struct {
 }
 
 // Builds
-func (b *Build) Info() *BuildResponse {
+func (b *Build) Info() *devops.Build {
 	return b.Raw
 }
-
 
 func (b *Build) GetUrl() string {
 	return b.Raw.URL
@@ -186,8 +183,6 @@ func (b *Build) GetBuildNumber() int64 {
 func (b *Build) GetResult() string {
 	return b.Raw.Result
 }
-
-
 
 func (b *Build) Stop() (bool, error) {
 	if b.IsRunning() {
@@ -221,7 +216,6 @@ func (b *Build) GetCauses() ([]map[string]interface{}, error) {
 	}
 	return nil, errors.New("No Causes")
 }
-
 
 func (b *Build) GetInjectedEnvVars() (map[string]string, error) {
 	var envVars struct {
@@ -307,22 +301,6 @@ func (b *Build) GetUpstreamBuild() (*Build, error) {
 	return nil, errors.New("Build not found")
 }
 
-func (b *Build) GetMatrixRuns() ([]*Build, error) {
-	_, err := b.Poll(0)
-	if err != nil {
-		return nil, err
-	}
-	runs := b.Raw.Runs
-	result := make([]*Build, len(b.Raw.Runs))
-	r, _ := regexp.Compile(`job/(.*?)/(.*?)/(\d+)/`)
-
-	for i, run := range runs {
-		result[i] = &Build{Jenkins: b.Jenkins, Job: b.Job, Raw: new(BuildResponse), Depth: 1, Base: "/" + r.FindString(run.URL)}
-		result[i].Poll()
-	}
-	return result, nil
-}
-
 func (b *Build) GetResultSet() (*TestResult, error) {
 
 	url := b.Base + "/testReport"
@@ -345,7 +323,6 @@ func (b *Build) GetTimestamp() time.Time {
 func (b *Build) GetDuration() int64 {
 	return b.Raw.Duration
 }
-
 
 func (b *Build) GetRevisionBranch() string {
 	vcs := b.Raw.ChangeSet.Kind
@@ -419,19 +396,19 @@ func (b *Build) Poll(options ...interface{}) (int, error) {
 	return response.StatusCode, nil
 }
 
-func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, status string)(*devops.Build, error){
-	job ,err := j.GetJob(pipelineId,projectId)
+func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, status string) (*devops.Build, error) {
+	job, err := j.GetJob(pipelineId, projectId)
 	if err != nil {
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
 	}
-	build,err := job.getBuildByType(status)
-	return build.Raw,nil
+	build, err := job.getBuildByType(status)
+	return build.Raw, nil
 }
-func (j *Jenkins)GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch string, status string) (*devops.Build, error){
-	job ,err := j.GetJob(pipelineId,projectId,branch)
+func (j *Jenkins) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch string, status string) (*devops.Build, error) {
+	job, err := j.GetJob(pipelineId, projectId, branch)
 	if err != nil {
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
 	}
-	build,err := job.getBuildByType(status)
-	return build.Raw,nil
+	build, err := job.getBuildByType(status)
+	return build.Raw, nil
 }

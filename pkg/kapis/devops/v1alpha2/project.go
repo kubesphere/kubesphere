@@ -23,7 +23,7 @@ import (
 	"net/http"
 )
 
-func (h *ProjectPipelineHandler)GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
