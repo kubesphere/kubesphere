@@ -17,12 +17,12 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
-func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
@@ -33,13 +33,13 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
+	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.CreateProjectPipeline(projectId, pipeline)
+	pipelineName, err := h.projectPipelineOperator.CreateProjectPipeline(projectId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -53,18 +53,18 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	return
 }
 
-func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.DeleteProjectPipeline(projectId, pipelineId)
+	pipelineName, err := h.projectPipelineOperator.DeleteProjectPipeline(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -78,7 +78,7 @@ func DeleteDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	return
 }
 
-func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
@@ -90,13 +90,13 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
-	err = devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
+	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	pipelineName, err := devops.UpdateProjectPipeline(projectId, pipelineId, pipeline)
+	pipelineName, err := h.projectPipelineOperator.UpdateProjectPipeline(projectId, pipelineId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -110,19 +110,19 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	return
 }
 
-func GetDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.Response) {
+func (h ProjectPipelineHandler) GetDevOpsProjectPipelineConfigHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 
-	err := devops.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
-	pipeline, err := devops.GetProjectPipeline(projectId, pipelineId)
+	pipeline, err := h.projectPipelineOperator.GetProjectPipelineConfig(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)

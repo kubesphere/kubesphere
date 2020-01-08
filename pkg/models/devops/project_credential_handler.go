@@ -23,7 +23,6 @@ import (
 
 	"kubesphere.io/kubesphere/pkg/db"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"net/http"
 )
 
@@ -78,7 +77,7 @@ func (o *projectCredentialOperator) CreateProjectCredential(projectId, username 
 	credentialId, err := o.devopsClient.CreateCredentialInProject(projectId, credentialRequest)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return "", err
 	}
 	err = o.insertCredentialToDb(projectId, *credentialId, credentialRequest.Domain, username)
 	if err != nil {
@@ -95,7 +94,7 @@ func (o *projectCredentialOperator) UpdateProjectCredential(projectId, credentia
 		credentialId, false)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return "", err
 	}
 	switch credential.Type {
 	case devops.CredentialTypeUsernamePassword:
@@ -147,13 +146,13 @@ func (o *projectCredentialOperator) DeleteProjectCredential(projectId, credentia
 		credentialId, false)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return "", err
 	}
 
 	id, err := o.devopsClient.DeleteCredentialInProject(projectId, credentialId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return "", err
 	}
 
 	deleteConditions := append(make([]dbr.Builder, 0), db.Eq(ProjectCredentialProjectIdColumn, projectId))
@@ -164,7 +163,7 @@ func (o *projectCredentialOperator) DeleteProjectCredential(projectId, credentia
 		Where(db.And(deleteConditions...)).Exec()
 	if err != nil && err != db.ErrNotFound {
 		klog.Errorf("%+v", err)
-		return "", restful.NewError(http.StatusInternalServerError, err.Error())
+		return "", err
 	}
 	return *id, nil
 
@@ -185,7 +184,7 @@ func (o *projectCredentialOperator) GetProjectCredential(projectId, credentialId
 		content)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, err
 	}
 	projectCredential := &ProjectCredential{}
 	err = dbClient.Select(ProjectCredentialColumns...).
@@ -213,7 +212,7 @@ func (o *projectCredentialOperator) GetProjectCredentials(projectId string) ([]*
 	credentialResponses, err := o.devopsClient.GetCredentialsInProject(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, err
 	}
 	selectCondition := db.Eq(ProjectCredentialProjectIdColumn, projectId)
 	projectCredentials := make([]*ProjectCredential, 0)

@@ -135,3 +135,10 @@ type TimerTrigger struct {
 type RemoteTrigger struct {
 	Token string `json:"token,omitempty" description:"remote trigger token"`
 }
+
+type PipelineOperator interface {
+	CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error)
+	DeleteProjectPipeline(projectId string, pipelineId string) (string, error)
+	UpdateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error)
+	GetProjectPipelineConfig(projectId, pipelineId string) (*ProjectPipeline, error)
+}

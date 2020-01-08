@@ -24,7 +24,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 )
 
 type ProjectMemberOperator interface {

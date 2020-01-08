@@ -9,6 +9,7 @@ type ProjectPipelineHandler struct {
 	projectMemberOperator     devops.ProjectMemberOperator
 	projectPipelineOperator   devops.ProjectPipelineOperator
 	devopsOperator            devops.DevopsOperator
+	projectOperator           devops.ProjectOperator
 }
 
 type PipelineSonarHandler struct {

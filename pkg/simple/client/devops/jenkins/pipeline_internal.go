@@ -1,21 +1,9 @@
-/*
-Copyright 2019 The KubeSphere Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package devops
+package jenkins
 
 import (
 	"fmt"
 	"github.com/beevik/etree"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +16,7 @@ func replaceXmlVersion(config, oldVersion, targetVersion string) string {
 	return output
 }
 
-func createPipelineConfigXml(pipeline *NoScmPipeline) (string, error) {
+func createPipelineConfigXml(pipeline *devops.NoScmPipeline) (string, error) {
 	doc := etree.NewDocument()
 	xmlString := `<?xml version='1.0' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
@@ -62,7 +50,7 @@ func createPipelineConfigXml(pipeline *NoScmPipeline) (string, error) {
 		strategy.CreateElement("artifactNumToKeep").SetText("-1")
 	}
 	if pipeline.Parameters != nil {
-		pipeline.Parameters.appendToEtree(properties)
+		appendParametersToEtree(properties, pipeline.Parameters)
 	}
 
 	if pipeline.TimerTrigger != nil {
@@ -94,8 +82,8 @@ func createPipelineConfigXml(pipeline *NoScmPipeline) (string, error) {
 	return replaceXmlVersion(stringXml, "1.0", "1.1"), err
 }
 
-func parsePipelineConfigXml(config string) (*NoScmPipeline, error) {
-	pipeline := &NoScmPipeline{}
+func parsePipelineConfigXml(config string) (*devops.NoScmPipeline, error) {
+	pipeline := &devops.NoScmPipeline{}
 	config = replaceXmlVersion(config, "1.1", "1.0")
 	doc := etree.NewDocument()
 	err := doc.ReadFromString(config)
@@ -118,13 +106,13 @@ func parsePipelineConfigXml(config string) (*NoScmPipeline, error) {
 		strategy := properties.
 			SelectElement("jenkins.model.BuildDiscarderProperty").
 			SelectElement("strategy")
-		pipeline.Discarder = &DiscarderProperty{
+		pipeline.Discarder = &devops.DiscarderProperty{
 			DaysToKeep: strategy.SelectElement("daysToKeep").Text(),
 			NumToKeep:  strategy.SelectElement("numToKeep").Text(),
 		}
 	}
-	pipeline.Parameters = &Parameters{}
-	pipeline.Parameters = pipeline.Parameters.fromEtree(properties)
+	pipeline.Parameters = &devops.Parameters{}
+	pipeline.Parameters = getParametersfromEtree(properties)
 	if len(*pipeline.Parameters) == 0 {
 		pipeline.Parameters = nil
 	}
@@ -134,13 +122,13 @@ func parsePipelineConfigXml(config string) (*NoScmPipeline, error) {
 			"org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty"); triggerProperty != nil {
 		triggers := triggerProperty.SelectElement("triggers")
 		if timerTrigger := triggers.SelectElement("hudson.triggers.TimerTrigger"); timerTrigger != nil {
-			pipeline.TimerTrigger = &TimerTrigger{
+			pipeline.TimerTrigger = &devops.TimerTrigger{
 				Cron: timerTrigger.SelectElement("spec").Text(),
 			}
 		}
 	}
 	if authToken := flow.SelectElement("authToken"); authToken != nil {
-		pipeline.RemoteTrigger = &RemoteTrigger{
+		pipeline.RemoteTrigger = &devops.RemoteTrigger{
 			Token: authToken.Text(),
 		}
 	}
@@ -152,11 +140,11 @@ func parsePipelineConfigXml(config string) (*NoScmPipeline, error) {
 	return pipeline, nil
 }
 
-func (s *Parameters) appendToEtree(properties *etree.Element) *Parameters {
+func appendParametersToEtree(properties *etree.Element, parameters *devops.Parameters) {
 	parameterDefinitions := properties.CreateElement("hudson.model.ParametersDefinitionProperty").
 		CreateElement("parameterDefinitions")
-	for _, parameter := range *s {
-		for className, typeName := range ParameterTypeMap {
+	for _, parameter := range *parameters {
+		for className, typeName := range devops.ParameterTypeMap {
 			if typeName == parameter.Type {
 				paramDefine := parameterDefinitions.CreateElement(className)
 				paramDefine.CreateElement("name").SetText(parameter.Name)
@@ -179,66 +167,62 @@ func (s *Parameters) appendToEtree(properties *etree.Element) *Parameters {
 			}
 		}
 	}
-	return s
 }
 
-func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
-
+func getParametersfromEtree(properties *etree.Element) *devops.Parameters {
+	var parameters devops.Parameters
 	if parametersProperty := properties.SelectElement("hudson.model.ParametersDefinitionProperty"); parametersProperty != nil {
 		params := parametersProperty.SelectElement("parameterDefinitions").ChildElements()
-		if *s == nil {
-			*s = make([]*Parameter, 0)
-		}
 		for _, param := range params {
 			switch param.Tag {
 			case "hudson.model.StringParameterDefinition":
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
 					DefaultValue: param.SelectElement("defaultValue").Text(),
-					Type:         ParameterTypeMap["hudson.model.StringParameterDefinition"],
+					Type:         devops.ParameterTypeMap["hudson.model.StringParameterDefinition"],
 				})
 			case "hudson.model.BooleanParameterDefinition":
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
 					DefaultValue: param.SelectElement("defaultValue").Text(),
-					Type:         ParameterTypeMap["hudson.model.BooleanParameterDefinition"],
+					Type:         devops.ParameterTypeMap["hudson.model.BooleanParameterDefinition"],
 				})
 			case "hudson.model.TextParameterDefinition":
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
 					DefaultValue: param.SelectElement("defaultValue").Text(),
-					Type:         ParameterTypeMap["hudson.model.TextParameterDefinition"],
+					Type:         devops.ParameterTypeMap["hudson.model.TextParameterDefinition"],
 				})
 			case "hudson.model.FileParameterDefinition":
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:        param.SelectElement("name").Text(),
 					Description: param.SelectElement("description").Text(),
-					Type:        ParameterTypeMap["hudson.model.FileParameterDefinition"],
+					Type:        devops.ParameterTypeMap["hudson.model.FileParameterDefinition"],
 				})
 			case "hudson.model.PasswordParameterDefinition":
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
 					DefaultValue: param.SelectElement("name").Text(),
-					Type:         ParameterTypeMap["hudson.model.PasswordParameterDefinition"],
+					Type:         devops.ParameterTypeMap["hudson.model.PasswordParameterDefinition"],
 				})
 			case "hudson.model.ChoiceParameterDefinition":
-				choiceParameter := &Parameter{
+				choiceParameter := &devops.Parameter{
 					Name:        param.SelectElement("name").Text(),
 					Description: param.SelectElement("description").Text(),
-					Type:        ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
+					Type:        devops.ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
 				}
 				choices := param.SelectElement("choices").SelectElement("a").SelectElements("string")
 				for _, choice := range choices {
 					choiceParameter.DefaultValue += fmt.Sprintf("%s\n", choice.Text())
 				}
 				choiceParameter.DefaultValue = strings.TrimSpace(choiceParameter.DefaultValue)
-				*s = append(*s, choiceParameter)
+				parameters = append(parameters, choiceParameter)
 			default:
-				*s = append(*s, &Parameter{
+				parameters = append(parameters, &devops.Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
 					DefaultValue: "unknown",
@@ -247,110 +231,112 @@ func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
 			}
 		}
 	}
-	return s
+	return &parameters
 }
 
-func (s *GitSource) appendToEtree(source *etree.Element) *GitSource {
+func appendGitSourceToEtree(source *etree.Element, gitSource *devops.GitSource) {
 	source.CreateAttr("class", "jenkins.plugins.git.GitSCMSource")
 	source.CreateAttr("plugin", "git")
-	source.CreateElement("id").SetText(s.ScmId)
-	source.CreateElement("remote").SetText(s.Url)
-	if s.CredentialId != "" {
-		source.CreateElement("credentialsId").SetText(s.CredentialId)
+	source.CreateElement("id").SetText(gitSource.ScmId)
+	source.CreateElement("remote").SetText(gitSource.Url)
+	if gitSource.CredentialId != "" {
+		source.CreateElement("credentialsId").SetText(gitSource.CredentialId)
 	}
 	traits := source.CreateElement("traits")
-	if s.DiscoverBranches {
+	if gitSource.DiscoverBranches {
 		traits.CreateElement("jenkins.plugins.git.traits.BranchDiscoveryTrait")
 	}
-	if s.CloneOption != nil {
+	if gitSource.CloneOption != nil {
 		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
-		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
+		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(gitSource.CloneOption.Shallow))
 		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
 		cloneExtension.CreateElement("honorRefspec").SetText(strconv.FormatBool(true))
 		cloneExtension.CreateElement("reference")
-		if s.CloneOption.Timeout >= 0 {
-			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
+		if gitSource.CloneOption.Timeout >= 0 {
+			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(gitSource.CloneOption.Timeout))
 		} else {
 			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(10))
 		}
 
-		if s.CloneOption.Depth >= 0 {
-			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(s.CloneOption.Depth))
+		if gitSource.CloneOption.Depth >= 0 {
+			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(gitSource.CloneOption.Depth))
 		} else {
 			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(1))
 		}
 	}
 
-	if s.RegexFilter != "" {
+	if gitSource.RegexFilter != "" {
 		regexTraits := traits.CreateElement("jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
 		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
-		regexTraits.CreateElement("regex").SetText(s.RegexFilter)
+		regexTraits.CreateElement("regex").SetText(gitSource.RegexFilter)
 	}
-	return s
+	return
 }
 
-func (s *GitSource) fromEtree(source *etree.Element) *GitSource {
+func getGitSourcefromEtree(source *etree.Element) *devops.GitSource {
+	var gitSource devops.GitSource
 	if credential := source.SelectElement("credentialsId"); credential != nil {
-		s.CredentialId = credential.Text()
+		gitSource.CredentialId = credential.Text()
 	}
 	if remote := source.SelectElement("remote"); remote != nil {
-		s.Url = remote.Text()
+		gitSource.Url = remote.Text()
 	}
 
 	traits := source.SelectElement("traits")
 	if branchDiscoverTrait := traits.SelectElement(
 		"jenkins.plugins.git.traits.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
-		s.DiscoverBranches = true
+		gitSource.DiscoverBranches = true
 	}
 	if cloneTrait := traits.SelectElement(
 		"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
 		if cloneExtension := cloneTrait.SelectElement(
 			"extension"); cloneExtension != nil {
-			s.CloneOption = &GitCloneOption{}
+			gitSource.CloneOption = &devops.GitCloneOption{}
 			if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
-				s.CloneOption.Shallow = value
+				gitSource.CloneOption.Shallow = value
 			}
 			if value, err := strconv.ParseInt(cloneExtension.SelectElement("timeout").Text(), 10, 32); err == nil {
-				s.CloneOption.Timeout = int(value)
+				gitSource.CloneOption.Timeout = int(value)
 			}
 			if value, err := strconv.ParseInt(cloneExtension.SelectElement("depth").Text(), 10, 32); err == nil {
-				s.CloneOption.Depth = int(value)
+				gitSource.CloneOption.Depth = int(value)
 			}
 		}
 	}
 	if regexTrait := traits.SelectElement(
 		"jenkins.scm.impl.trait.RegexSCMHeadFilterTrait"); regexTrait != nil {
 		if regex := regexTrait.SelectElement("regex"); regex != nil {
-			s.RegexFilter = regex.Text()
+			gitSource.RegexFilter = regex.Text()
 		}
 	}
-	return s
+	return &gitSource
 }
 
-func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
+func getGithubSourcefromEtree(source *etree.Element) *devops.GithubSource {
+	var githubSource devops.GithubSource
 	if credential := source.SelectElement("credentialsId"); credential != nil {
-		s.CredentialId = credential.Text()
+		githubSource.CredentialId = credential.Text()
 	}
 	if repoOwner := source.SelectElement("repoOwner"); repoOwner != nil {
-		s.Owner = repoOwner.Text()
+		githubSource.Owner = repoOwner.Text()
 	}
 	if repository := source.SelectElement("repository"); repository != nil {
-		s.Repo = repository.Text()
+		githubSource.Repo = repository.Text()
 	}
 	if apiUri := source.SelectElement("apiUri"); apiUri != nil {
-		s.ApiUri = apiUri.Text()
+		githubSource.ApiUri = apiUri.Text()
 	}
 	traits := source.SelectElement("traits")
 	if branchDiscoverTrait := traits.SelectElement(
 		"org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait"); branchDiscoverTrait != nil {
 		strategyId, _ := strconv.Atoi(branchDiscoverTrait.SelectElement("strategyId").Text())
-		s.DiscoverBranches = strategyId
+		githubSource.DiscoverBranches = strategyId
 	}
 	if originPRDiscoverTrait := traits.SelectElement(
 		"org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait"); originPRDiscoverTrait != nil {
 		strategyId, _ := strconv.Atoi(originPRDiscoverTrait.SelectElement("strategyId").Text())
-		s.DiscoverPRFromOrigin = strategyId
+		githubSource.DiscoverPRFromOrigin = strategyId
 	}
 	if forkPRDiscoverTrait := traits.SelectElement(
 		"org.jenkinsci.plugins.github__branch__source.ForkPullRequestDiscoveryTrait"); forkPRDiscoverTrait != nil {
@@ -359,22 +345,22 @@ func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
 		trust := strings.Split(trustClass, "$")
 		switch trust[1] {
 		case "TrustContributors":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			githubSource.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    1,
 			}
 		case "TrustEveryone":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			githubSource.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    2,
 			}
 		case "TrustPermission":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			githubSource.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    3,
 			}
 		case "TrustNobody":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			githubSource.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    4,
 			}
@@ -383,15 +369,15 @@ func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
 			"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
 			if cloneExtension := cloneTrait.SelectElement(
 				"extension"); cloneExtension != nil {
-				s.CloneOption = &GitCloneOption{}
+				githubSource.CloneOption = &devops.GitCloneOption{}
 				if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
-					s.CloneOption.Shallow = value
+					githubSource.CloneOption.Shallow = value
 				}
 				if value, err := strconv.ParseInt(cloneExtension.SelectElement("timeout").Text(), 10, 32); err == nil {
-					s.CloneOption.Timeout = int(value)
+					githubSource.CloneOption.Timeout = int(value)
 				}
 				if value, err := strconv.ParseInt(cloneExtension.SelectElement("depth").Text(), 10, 32); err == nil {
-					s.CloneOption.Depth = int(value)
+					githubSource.CloneOption.Depth = int(value)
 				}
 			}
 		}
@@ -399,37 +385,37 @@ func (s *GithubSource) fromEtree(source *etree.Element) *GithubSource {
 		if regexTrait := traits.SelectElement(
 			"jenkins.scm.impl.trait.RegexSCMHeadFilterTrait"); regexTrait != nil {
 			if regex := regexTrait.SelectElement("regex"); regex != nil {
-				s.RegexFilter = regex.Text()
+				githubSource.RegexFilter = regex.Text()
 			}
 		}
 	}
-	return s
+	return &githubSource
 }
 
-func (s *GithubSource) appendToEtree(source *etree.Element) *GithubSource {
+func appendGithubSourceToEtree(source *etree.Element, githubSource *devops.GithubSource) {
 	source.CreateAttr("class", "org.jenkinsci.plugins.github_branch_source.GitHubSCMSource")
 	source.CreateAttr("plugin", "github-branch-source")
-	source.CreateElement("id").SetText(s.ScmId)
-	source.CreateElement("credentialsId").SetText(s.CredentialId)
-	source.CreateElement("repoOwner").SetText(s.Owner)
-	source.CreateElement("repository").SetText(s.Repo)
-	if s.ApiUri != "" {
-		source.CreateElement("apiUri").SetText(s.ApiUri)
+	source.CreateElement("id").SetText(githubSource.ScmId)
+	source.CreateElement("credentialsId").SetText(githubSource.CredentialId)
+	source.CreateElement("repoOwner").SetText(githubSource.Owner)
+	source.CreateElement("repository").SetText(githubSource.Repo)
+	if githubSource.ApiUri != "" {
+		source.CreateElement("apiUri").SetText(githubSource.ApiUri)
 	}
 	traits := source.CreateElement("traits")
-	if s.DiscoverBranches != 0 {
+	if githubSource.DiscoverBranches != 0 {
 		traits.CreateElement("org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait").
-			CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverBranches))
+			CreateElement("strategyId").SetText(strconv.Itoa(githubSource.DiscoverBranches))
 	}
-	if s.DiscoverPRFromOrigin != 0 {
+	if githubSource.DiscoverPRFromOrigin != 0 {
 		traits.CreateElement("org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait").
-			CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverPRFromOrigin))
+			CreateElement("strategyId").SetText(strconv.Itoa(githubSource.DiscoverPRFromOrigin))
 	}
-	if s.DiscoverPRFromForks != nil {
+	if githubSource.DiscoverPRFromForks != nil {
 		forkTrait := traits.CreateElement("org.jenkinsci.plugins.github__branch__source.ForkPullRequestDiscoveryTrait")
-		forkTrait.CreateElement("strategyId").SetText(strconv.Itoa(s.DiscoverPRFromForks.Strategy))
+		forkTrait.CreateElement("strategyId").SetText(strconv.Itoa(githubSource.DiscoverPRFromForks.Strategy))
 		trustClass := "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait$"
-		switch s.DiscoverPRFromForks.Trust {
+		switch githubSource.DiscoverPRFromForks.Trust {
 		case 1:
 			trustClass += "TrustContributors"
 		case 2:
@@ -442,34 +428,35 @@ func (s *GithubSource) appendToEtree(source *etree.Element) *GithubSource {
 		}
 		forkTrait.CreateElement("trust").CreateAttr("class", trustClass)
 	}
-	if s.CloneOption != nil {
+	if githubSource.CloneOption != nil {
 		cloneExtension := traits.CreateElement("jenkins.plugins.git.traits.CloneOptionTrait").CreateElement("extension")
 		cloneExtension.CreateAttr("class", "hudson.plugins.git.extensions.impl.CloneOption")
-		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(s.CloneOption.Shallow))
+		cloneExtension.CreateElement("shallow").SetText(strconv.FormatBool(githubSource.CloneOption.Shallow))
 		cloneExtension.CreateElement("noTags").SetText(strconv.FormatBool(false))
 		cloneExtension.CreateElement("honorRefspec").SetText(strconv.FormatBool(true))
 		cloneExtension.CreateElement("reference")
-		if s.CloneOption.Timeout >= 0 {
-			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(s.CloneOption.Timeout))
+		if githubSource.CloneOption.Timeout >= 0 {
+			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(githubSource.CloneOption.Timeout))
 		} else {
 			cloneExtension.CreateElement("timeout").SetText(strconv.Itoa(10))
 		}
 
-		if s.CloneOption.Depth >= 0 {
-			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(s.CloneOption.Depth))
+		if githubSource.CloneOption.Depth >= 0 {
+			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(githubSource.CloneOption.Depth))
 		} else {
 			cloneExtension.CreateElement("depth").SetText(strconv.Itoa(1))
 		}
 	}
-	if s.RegexFilter != "" {
+	if githubSource.RegexFilter != "" {
 		regexTraits := traits.CreateElement("jenkins.scm.impl.trait.RegexSCMHeadFilterTrait")
 		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
-		regexTraits.CreateElement("regex").SetText(s.RegexFilter)
+		regexTraits.CreateElement("regex").SetText(githubSource.RegexFilter)
 	}
-	return s
+	return
 }
 
-func (s *BitbucketServerSource) fromEtree(source *etree.Element) *BitbucketServerSource {
+func getBitbucketServerSourceFromEtree(source *etree.Element) *devops.BitbucketServerSource {
+	var s devops.BitbucketServerSource
 	if credential := source.SelectElement("credentialsId"); credential != nil {
 		s.CredentialId = credential.Text()
 	}
@@ -500,17 +487,17 @@ func (s *BitbucketServerSource) fromEtree(source *etree.Element) *BitbucketServe
 		trust := strings.Split(trustClass, "$")
 		switch trust[1] {
 		case "TrustEveryone":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			s.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    1,
 			}
 		case "TrustTeamForks":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			s.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    2,
 			}
 		case "TrustNobody":
-			s.DiscoverPRFromForks = &DiscoverPRFromForks{
+			s.DiscoverPRFromForks = &devops.DiscoverPRFromForks{
 				Strategy: strategyId,
 				Trust:    3,
 			}
@@ -519,7 +506,7 @@ func (s *BitbucketServerSource) fromEtree(source *etree.Element) *BitbucketServe
 			"jenkins.plugins.git.traits.CloneOptionTrait"); cloneTrait != nil {
 			if cloneExtension := cloneTrait.SelectElement(
 				"extension"); cloneExtension != nil {
-				s.CloneOption = &GitCloneOption{}
+				s.CloneOption = &devops.GitCloneOption{}
 				if value, err := strconv.ParseBool(cloneExtension.SelectElement("shallow").Text()); err == nil {
 					s.CloneOption.Shallow = value
 				}
@@ -539,10 +526,10 @@ func (s *BitbucketServerSource) fromEtree(source *etree.Element) *BitbucketServe
 			}
 		}
 	}
-	return s
+	return &s
 }
 
-func (s *BitbucketServerSource) appendToEtree(source *etree.Element) *BitbucketServerSource {
+func appendBitbucketServerSourceToEtree(source *etree.Element, s *devops.BitbucketServerSource) {
 	source.CreateAttr("class", "com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource")
 	source.CreateAttr("plugin", "cloudbees-bitbucket-branch-source")
 	source.CreateElement("id").SetText(s.ScmId)
@@ -600,10 +587,11 @@ func (s *BitbucketServerSource) appendToEtree(source *etree.Element) *BitbucketS
 		regexTraits.CreateAttr("plugin", "scm-api@2.4.0")
 		regexTraits.CreateElement("regex").SetText(s.RegexFilter)
 	}
-	return s
+	return
 }
 
-func (s *SvnSource) fromEtree(source *etree.Element) *SvnSource {
+func getSvnSourcefromEtree(source *etree.Element) *devops.SvnSource {
+	var s devops.SvnSource
 	if remote := source.SelectElement("remoteBase"); remote != nil {
 		s.Remote = remote.Text()
 	}
@@ -619,10 +607,10 @@ func (s *SvnSource) fromEtree(source *etree.Element) *SvnSource {
 	if excludes := source.SelectElement("excludes"); excludes != nil {
 		s.Excludes = excludes.Text()
 	}
-	return s
+	return &s
 }
 
-func (s *SvnSource) appendToEtree(source *etree.Element) *SvnSource {
+func appendSvnSourceToEtree(source *etree.Element, s *devops.SvnSource) {
 	source.CreateAttr("class", "jenkins.scm.impl.subversion.SubversionSCMSource")
 	source.CreateAttr("plugin", "subversion")
 	source.CreateElement("id").SetText(s.ScmId)
@@ -638,10 +626,11 @@ func (s *SvnSource) appendToEtree(source *etree.Element) *SvnSource {
 	if s.Excludes != "" {
 		source.CreateElement("excludes").SetText(s.Excludes)
 	}
-	return nil
+	return
 }
 
-func (s *SingleSvnSource) fromEtree(source *etree.Element) *SingleSvnSource {
+func getSingleSvnSourceFromEtree(source *etree.Element) *devops.SingleSvnSource {
+	var s devops.SingleSvnSource
 	if scm := source.SelectElement("scm"); scm != nil {
 		if locations := scm.SelectElement("locations"); locations != nil {
 			if moduleLocations := locations.SelectElement("hudson.scm.SubversionSCM_-ModuleLocation"); moduleLocations != nil {
@@ -654,10 +643,10 @@ func (s *SingleSvnSource) fromEtree(source *etree.Element) *SingleSvnSource {
 			}
 		}
 	}
-	return s
+	return &s
 }
 
-func (s *SingleSvnSource) appendToEtree(source *etree.Element) *SingleSvnSource {
+func appendSingleSvnSourceToEtree(source *etree.Element, s *devops.SingleSvnSource) {
 
 	source.CreateAttr("class", "jenkins.scm.impl.SingleSCMSource")
 	source.CreateAttr("plugin", "scm-api")
@@ -690,26 +679,27 @@ func (s *SingleSvnSource) appendToEtree(source *etree.Element) *SingleSvnSource 
 	source.CreateElement("filterChangelog").SetText("false")
 	source.CreateElement("quietOperation").SetText("true")
 
-	return s
+	return
 }
 
-func (s *MultiBranchJobTrigger) appendToEtree(properties *etree.Element) *MultiBranchJobTrigger {
+func appendMultiBranchJobTriggerToEtree(properties *etree.Element, s *devops.MultiBranchJobTrigger) {
 	triggerProperty := properties.CreateElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
 	triggerProperty.CreateAttr("plugin", "multibranch-action-triggers")
 	triggerProperty.CreateElement("createActionJobsToTrigger").SetText(s.CreateActionJobsToTrigger)
 	triggerProperty.CreateElement("deleteActionJobsToTrigger").SetText(s.DeleteActionJobsToTrigger)
-	return s
+	return
 }
 
-func (s *MultiBranchJobTrigger) fromEtree(properties *etree.Element) *MultiBranchJobTrigger {
+func getMultiBranchJobTriggerfromEtree(properties *etree.Element) *devops.MultiBranchJobTrigger {
+	var s devops.MultiBranchJobTrigger
 	triggerProperty := properties.SelectElement("org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty")
 	if triggerProperty != nil {
 		s.CreateActionJobsToTrigger = triggerProperty.SelectElement("createActionJobsToTrigger").Text()
 		s.DeleteActionJobsToTrigger = triggerProperty.SelectElement("deleteActionJobsToTrigger").Text()
 	}
-	return s
+	return &s
 }
-func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranchPipeline) (string, error) {
+func createMultiBranchPipelineConfigXml(projectName string, pipeline *devops.MultiBranchPipeline) (string, error) {
 	doc := etree.NewDocument()
 	xmlString := `
 <?xml version='1.0' encoding='UTF-8'?>
@@ -743,7 +733,7 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 
 	if pipeline.MultiBranchJobTrigger != nil {
 		properties := project.SelectElement("properties")
-		pipeline.MultiBranchJobTrigger.appendToEtree(properties)
+		appendMultiBranchJobTriggerToEtree(properties, pipeline.MultiBranchJobTrigger)
 	}
 
 	if pipeline.Discarder != nil {
@@ -786,27 +776,15 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 
 	switch pipeline.SourceType {
 	case "git":
-		gitDefine := pipeline.GitSource
-		gitDefine.ScmId = projectName + pipeline.Name
-		gitDefine.appendToEtree(source)
+		appendGitSourceToEtree(source, pipeline.GitSource)
 	case "github":
-		githubDefine := pipeline.GitHubSource
-		githubDefine.ScmId = projectName + pipeline.Name
-		githubDefine.appendToEtree(source)
+		appendGithubSourceToEtree(source, pipeline.GitHubSource)
 	case "svn":
-		svnDefine := pipeline.SvnSource
-		svnDefine.ScmId = projectName + pipeline.Name
-		svnDefine.appendToEtree(source)
-
+		appendSvnSourceToEtree(source, pipeline.SvnSource)
 	case "single_svn":
-		singSvnDefine := pipeline.SingleSvnSource
-		singSvnDefine.ScmId = projectName + pipeline.Name
-		singSvnDefine.appendToEtree(source)
-
+		appendSingleSvnSourceToEtree(source, pipeline.SingleSvnSource)
 	case "bitbucket_server":
-		bitbucketServerDefine := pipeline.BitbucketServerSource
-		bitbucketServerDefine.ScmId = projectName + pipeline.Name
-		bitbucketServerDefine.appendToEtree(source)
+		appendBitbucketServerSourceToEtree(source, pipeline.BitbucketServerSource)
 
 	default:
 		return "", fmt.Errorf("unsupport source type")
@@ -824,8 +802,8 @@ func createMultiBranchPipelineConfigXml(projectName string, pipeline *MultiBranc
 	return replaceXmlVersion(stringXml, "1.0", "1.1"), err
 }
 
-func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, error) {
-	pipeline := &MultiBranchPipeline{}
+func parseMultiBranchPipelineConfigXml(config string) (*devops.MultiBranchPipeline, error) {
+	pipeline := &devops.MultiBranchPipeline{}
 	config = replaceXmlVersion(config, "1.1", "1.0")
 	doc := etree.NewDocument()
 	err := doc.ReadFromString(config)
@@ -839,15 +817,13 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 	if properties := project.SelectElement("properties"); properties != nil {
 		if multibranchTrigger := properties.SelectElement(
 			"org.jenkinsci.plugins.workflow.multibranch.PipelineTriggerProperty"); multibranchTrigger != nil {
-			trigger := &MultiBranchJobTrigger{}
-			trigger.fromEtree(properties)
-			pipeline.MultiBranchJobTrigger = trigger
+			pipeline.MultiBranchJobTrigger = getMultiBranchJobTriggerfromEtree(properties)
 		}
 	}
 	pipeline.Description = project.SelectElement("description").Text()
 
 	if discarder := project.SelectElement("orphanedItemStrategy"); discarder != nil {
-		pipeline.Discarder = &DiscarderProperty{
+		pipeline.Discarder = &devops.DiscarderProperty{
 			DaysToKeep: discarder.SelectElement("daysToKeep").Text(),
 			NumToKeep:  discarder.SelectElement("numToKeep").Text(),
 		}
@@ -855,7 +831,7 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 	if triggers := project.SelectElement("triggers"); triggers != nil {
 		if timerTrigger := triggers.SelectElement(
 			"com.cloudbees.hudson.plugins.folder.computed.PeriodicFolderTrigger"); timerTrigger != nil {
-			pipeline.TimerTrigger = &TimerTrigger{
+			pipeline.TimerTrigger = &devops.TimerTrigger{
 				Interval: timerTrigger.SelectElement("interval").Text(),
 			}
 		}
@@ -867,33 +843,23 @@ func parseMultiBranchPipelineConfigXml(config string) (*MultiBranchPipeline, err
 				source := branchSource.SelectElement("source")
 				switch source.SelectAttr("class").Value {
 				case "org.jenkinsci.plugins.github_branch_source.GitHubSCMSource":
-					githubSource := &GithubSource{}
-					githubSource.fromEtree(source)
-					pipeline.GitHubSource = githubSource
+					pipeline.GitHubSource = getGithubSourcefromEtree(source)
 					pipeline.SourceType = "github"
 				case "com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource":
-					bitbucketServerSource := &BitbucketServerSource{}
-					bitbucketServerSource.fromEtree(source)
-					pipeline.BitbucketServerSource = bitbucketServerSource
+					pipeline.BitbucketServerSource = getBitbucketServerSourceFromEtree(source)
 					pipeline.SourceType = "bitbucket_server"
 
 				case "jenkins.plugins.git.GitSCMSource":
-					gitSource := &GitSource{}
-					gitSource.fromEtree(source)
 					pipeline.SourceType = "git"
-					pipeline.GitSource = gitSource
+					pipeline.GitSource = getGitSourcefromEtree(source)
 
 				case "jenkins.scm.impl.SingleSCMSource":
-					singleSvnSource := &SingleSvnSource{}
-					singleSvnSource.fromEtree(source)
 					pipeline.SourceType = "single_svn"
-					pipeline.SingleSvnSource = singleSvnSource
+					pipeline.SingleSvnSource = getSingleSvnSourceFromEtree(source)
 
 				case "jenkins.scm.impl.subversion.SubversionSCMSource":
-					svnSource := &SvnSource{}
-					svnSource.fromEtree(source)
 					pipeline.SourceType = "svn"
-					pipeline.SvnSource = svnSource
+					pipeline.SvnSource = getSvnSourcefromEtree(source)
 				}
 			}
 		}

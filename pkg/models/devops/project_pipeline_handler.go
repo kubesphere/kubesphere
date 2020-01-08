@@ -17,218 +17,48 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"net/http"
 )
 
 type ProjectPipelineOperator interface {
-	CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error)
+	CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error)
 	DeleteProjectPipeline(projectId string, pipelineId string) (string, error)
-	UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error)
-	GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error)
+	UpdateProjectPipeline(projectId, pipelineId string, pipeline *devops.ProjectPipeline) (string, error)
+	GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error)
 }
 type projectPipelineOperator struct {
+	pipelineOperator devops.PipelineOperator
 }
 
 func NewProjectPipelineOperator(client jenkins.Client) ProjectPipelineOperator {
 	return &projectPipelineOperator{}
 }
 
-func (o *projectPipelineOperator) CreateProjectPipeline(projectId string, pipeline *ProjectPipeline) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	switch pipeline.Type {
-	case NoScmPipelineType:
-
-		config, err := createPipelineConfigXml(pipeline.Pipeline)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(http.StatusInternalServerError, err.Error())
-		}
-
-		job, err := devops.GetJob(pipeline.Pipeline.Name, projectId)
-		if job != nil {
-			err := fmt.Errorf("job name [%s] has been used", job.GetName())
-			klog.Warning(err.Error())
-			return "", restful.NewError(http.StatusConflict, err.Error())
-		}
-
-		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		_, err = devops.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		return pipeline.Pipeline.Name, nil
-	case MultiBranchPipelineType:
-		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
-		if err != nil {
-			klog.Errorf("%+v", err)
-
-			return "", restful.NewError(http.StatusInternalServerError, err.Error())
-		}
-
-		job, err := devops.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
-		if job != nil {
-			err := fmt.Errorf("job name [%s] has been used", job.GetName())
-			klog.Warning(err.Error())
-			return "", restful.NewError(http.StatusConflict, err.Error())
-		}
-
-		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		_, err = devops.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		return pipeline.MultiBranchPipeline.Name, nil
-
-	default:
-		err := fmt.Errorf("error unsupport job type")
-		klog.Errorf("%+v", err)
-		return "", restful.NewError(http.StatusBadRequest, err.Error())
-	}
+func (o *projectPipelineOperator) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
+	return o.pipelineOperator.CreateProjectPipeline(projectId, pipeline)
 }
 
 func (o *projectPipelineOperator) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	_, err = devops.DeleteJob(pipelineId, projectId)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-	}
-	return pipelineId, nil
+	return o.pipelineOperator.DeleteProjectPipeline(projectId, pipelineId)
 }
 
-func (o *projectPipelineOperator) UpdateProjectPipeline(projectId, pipelineId string, pipeline *ProjectPipeline) (string, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return "", restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
+func (o *projectPipelineOperator) UpdateProjectPipeline(projectId, pipelineId string, pipeline *devops.ProjectPipeline) (string, error) {
 
 	switch pipeline.Type {
-	case NoScmPipelineType:
-
-		config, err := createPipelineConfigXml(pipeline.Pipeline)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(http.StatusInternalServerError, err.Error())
-		}
-
-		job, err := devops.GetJob(pipelineId, projectId)
-
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		err = job.UpdateConfig(config)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		return pipeline.Pipeline.Name, nil
-	case MultiBranchPipelineType:
-
-		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
-		if err != nil {
-			klog.Errorf("%+v", err)
-
-			return "", restful.NewError(http.StatusInternalServerError, err.Error())
-		}
-
-		job, err := devops.GetJob(pipelineId, projectId)
-
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		err = job.UpdateConfig(config)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return "", restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-
-		return pipeline.MultiBranchPipeline.Name, nil
-
+	case devops.NoScmPipelineType:
+		pipeline.Pipeline.Name = pipelineId
+	case devops.MultiBranchPipelineType:
+		pipeline.MultiBranchPipeline.Name = pipelineId
 	default:
-		err := fmt.Errorf("error unsupport job type")
+		err := fmt.Errorf("error unsupport pipeline type")
 		klog.Errorf("%+v", err)
 		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
+	return o.pipelineOperator.UpdateProjectPipeline(projectId, pipeline)
 }
 
-func (o *projectPipelineOperator) GetProjectPipeline(projectId, pipelineId string) (*ProjectPipeline, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-	jenkinsClient := devops
-
-	job, err := jenkinsClient.GetJob(pipelineId, projectId)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-	}
-	switch job.Raw.Class {
-	case "org.jenkinsci.plugins.workflow.job.WorkflowJob":
-		config, err := job.GetConfig()
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-		pipeline, err := parsePipelineConfigXml(config)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-		pipeline.Name = pipelineId
-		return &ProjectPipeline{
-			Type:     NoScmPipelineType,
-			Pipeline: pipeline,
-		}, nil
-
-	case "org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject":
-		config, err := job.GetConfig()
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-		pipeline, err := parseMultiBranchPipelineConfigXml(config)
-		if err != nil {
-			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
-		}
-		pipeline.Name = pipelineId
-		return &ProjectPipeline{
-			Type:                MultiBranchPipelineType,
-			MultiBranchPipeline: pipeline,
-		}, nil
-	default:
-		err := fmt.Errorf("error unsupport job type")
-		klog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusBadRequest, err.Error())
-
-	}
+func (o *projectPipelineOperator) GetProjectPipeline(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
+	return o.pipelineOperator.GetProjectPipelineConfig(projectId, pipelineId)
 }
