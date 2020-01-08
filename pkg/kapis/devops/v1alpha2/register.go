@@ -26,7 +26,8 @@ import (
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
+	//"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
@@ -235,7 +236,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api: "jenkins_api/blue/rest/search"
 	webservice.Route(webservice.GET("/search").
-		To(handler.SearchPipelines).
+		To(handler.ListPipelines).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Search DevOps resource. More info: https://github.com/jenkinsci/blueocean-plugin/tree/master/blueocean-rest#get-pipelines-across-organization").
 		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
@@ -250,18 +251,23 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK, struct {
-			Items []devops.Pipeline `json:"items"`
-			Total int               `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.Pipeline `json:"items"`
-			Total int               `json:"total_count"`
-		}{}))
+		Returns(http.StatusOK, RespOK, devops.PipelineList{}).
+		Writes(devops.PipelineList{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
+		To(handler.GetPipelineRun).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get all activities in the specified pipeline.").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
+		Writes(devops.PipelineRun{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(SearchPipelineRuns).
+		To(handler.ListPipelineRuns).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all runs of the specified pipeline").
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -275,22 +281,8 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("branch", "the name of branch, same as repository branch, will be filtered by branch.").
 			Required(false).
 			DataFormat("branch=%s")).
-		Returns(http.StatusOK, RespOK, struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}))
+		Returns(http.StatusOK, RespOK, devops.PipelineRunList{}).
+		Writes(devops.PipelineRunList{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
@@ -680,17 +672,6 @@ The last one is encrypted info, such as the password of the username-password ty
 		Reads(devops.CronData{}).
 		Returns(http.StatusOK, RespOK, devops.CheckCronRes{}).
 		Writes(devops.CheckCronRes{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
-		To(GetPipelineRun).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get all activities in the specified pipeline.").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
-		Writes(devops.PipelineRun{}))
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").

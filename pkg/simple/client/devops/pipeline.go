@@ -4,10 +4,6 @@ import (
 	"net/http"
 )
 
-type PageableResponse struct {
-	Items      []interface{} `json:"items" description:"paging data"`
-	TotalCount int           `json:"total_count" description:"total count"`
-}
 
 type PipelineList struct {
 	Items []Pipeline `json:"items"`
@@ -82,7 +78,7 @@ type Pipeline struct {
 }
 
 // GetPipeBranchRun & SearchPipelineRuns
-type BranchPipelineRun struct {
+type PipelineRunList struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		PrevRun struct {
@@ -1144,17 +1140,17 @@ type Input struct {
 }
 
 type PipelineOperator interface {
-	GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	GetPipeline(projectName, pipelineName string, req *http.Request) (*Pipeline, error)
 
-	ListPipelines(req *http.Request) ([]byte, error)
+	ListPipelines(req *http.Request) (*PipelineList, error)
 
-	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*PipelineRun, error)
 
-	ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*PipelineRunList, error)
 
-	StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*StopPipe, error)
 
-	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*ReplayPipe, error)
 
-	RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	RunPipeline(projectName, pipelineName string, req *http.Request) (QueuedBlueRun, error)
 }

@@ -39,25 +39,40 @@ func (h *ProjectPipelineHandler) GetPipeline(req *restful.Request, resp *restful
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler) SearchPipelines(req *restful.Request, resp *restful.Response) {
-	res, err := h.devopsOperator.SearchPipelines(req.Request)
+func (h *ProjectPipelineHandler) ListPipelines(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.ListPipelines(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler) SearchPipelineRuns(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler)GetPipelineRun(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	runId := req.PathParameter("run")
+
+	res, err := h.devopsOperator.GetPipelineRun(projectName, pipelineName, runId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) ListPipelineRuns(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 
-	res, err := h.devopsOperator.SearchPipelineRuns(projectName, pipelineName, req.Request)
+	res, err := h.devopsOperator.ListPipelineRuns(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -486,21 +501,6 @@ func CheckCron(req *restful.Request, resp *restful.Response) {
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
-}
-
-func GetPipelineRun(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-	runId := req.PathParameter("run")
-
-	res, err := devops.GetPipelineRun(projectName, pipelineName, runId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
 }
 
 func GetBranchPipeline(req *restful.Request, resp *restful.Response) {

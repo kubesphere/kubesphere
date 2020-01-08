@@ -44,9 +44,10 @@ const (
 )
 
 type DevopsOperator interface {
-	GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
-	SearchPipelines(req *http.Request) ([]byte, error)
-	SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error)
+	ListPipelines(req *http.Request) (*devops.PipelineList, error)
+	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*devops.PipelineRun, error)
+	ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*devops.PipelineRunList, error)
 }
 
 type devopsOperator struct {
@@ -57,7 +58,7 @@ func NewDevopsOperator(client jenkins.Client) DevopsOperator {
 	return &devopsOperator{}
 }
 
-func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error) {
 	//formatUrl := fmt.Sprintf(GetPipelineUrl, projectName, pipelineName)
 
 	res, err := d.devopsClient.GetPipeline(projectName, pipelineName, req)
@@ -67,7 +68,7 @@ func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.
 	return res, err
 }
 
-func (d devopsOperator) SearchPipelines(req *http.Request) ([]byte, error) {
+func (d devopsOperator) ListPipelines(req *http.Request) (*devops.PipelineList, error) {
 
 	//formatUrl := SearchPipelineUrl + req.URL.RawQuery
 
@@ -78,7 +79,7 @@ func (d devopsOperator) SearchPipelines(req *http.Request) ([]byte, error) {
 	return res, err
 }
 
-func (d devopsOperator) GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*devops.PipelineRun, error) {
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipelineRunUrl, projectName, pipelineName, runId)
 
@@ -89,7 +90,7 @@ func (d devopsOperator) GetPipelineRun(projectName, pipelineName, runId string, 
 	return res, err
 }
 
-func (d devopsOperator) SearchPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*devops.PipelineRunList, error) {
 
 	//formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
 
