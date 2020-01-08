@@ -30,22 +30,6 @@ import (
 	"net/http"
 )
 
-type Spec struct {
-	Token string `json:"token" description:"access token"`
-}
-
-type Status struct {
-	Authenticated bool                   `json:"authenticated" description:"is authenticated"`
-	User          map[string]interface{} `json:"user,omitempty" description:"user info"`
-}
-
-type TokenReview struct {
-	APIVersion string  `json:"apiVersion" description:"Kubernetes API version"`
-	Kind       string  `json:"kind" description:"kind of the API object"`
-	Spec       *Spec   `json:"spec,omitempty"`
-	Status     *Status `json:"status,omitempty" description:"token review status"`
-}
-
 type LoginRequest struct {
 	Username string `json:"username" description:"username"`
 	Password string `json:"password" description:"password"`
@@ -58,9 +42,7 @@ type OAuthRequest struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
-const (
-	KindTokenReview = "TokenReview"
-)
+const ()
 
 func Login(req *restful.Request, resp *restful.Response) {
 	var loginRequest LoginRequest
@@ -119,73 +101,4 @@ func OAuth(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteEntity(result)
 
-}
-
-// k8s token review
-func TokenReviewHandler(req *restful.Request, resp *restful.Response) {
-	var tokenReview TokenReview
-
-	err := req.ReadEntity(&tokenReview)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-
-	if tokenReview.Spec == nil {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New("token must not be null"))
-		return
-	}
-
-	uToken := tokenReview.Spec.Token
-
-	token, err := jwtutil.ValidateToken(uToken)
-
-	if err != nil {
-		klog.Errorln("token review failed", uToken, err)
-		failed := TokenReview{APIVersion: tokenReview.APIVersion,
-			Kind: KindTokenReview,
-			Status: &Status{
-				Authenticated: false,
-			},
-		}
-		resp.WriteAsJson(failed)
-		return
-	}
-
-	claims := token.Claims.(jwt.MapClaims)
-
-	username, ok := claims["username"].(string)
-
-	if !ok {
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.New("username not found"))
-		return
-	}
-
-	user, err := iam.GetUserInfo(username)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	groups, err := iam.GetUserGroups(username)
-
-	if err != nil {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	user.Groups = groups
-
-	success := TokenReview{APIVersion: tokenReview.APIVersion,
-		Kind: KindTokenReview,
-		Status: &Status{
-			Authenticated: true,
-			User:          map[string]interface{}{"username": user.Username, "uid": user.Username, "groups": user.Groups},
-		},
-	}
-
-	resp.WriteAsJson(success)
-	return
 }

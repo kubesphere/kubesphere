@@ -23,13 +23,19 @@ import (
 	"k8s.io/klog"
 )
 
-type Client struct {
+type Client interface {
+	NewConn() (ldap.Client, error)
+	GroupSearchBase() string
+	UserSearchBase() string
+}
+
+type poolClient struct {
 	pool    Pool
 	options *Options
 }
 
 // panic if cannot connect to ldap service
-func NewLdapClient(options *Options, stopCh <-chan struct{}) (*Client, error) {
+func NewLdapClient(options *Options, stopCh <-chan struct{}) (Client, error) {
 	pool, err := NewChannelPool(8, 64, "kubesphere", func(s string) (ldap.Client, error) {
 		conn, err := ldap.Dial("tcp", options.Host)
 		if err != nil {
@@ -44,7 +50,7 @@ func NewLdapClient(options *Options, stopCh <-chan struct{}) (*Client, error) {
 		return nil, err
 	}
 
-	client := &Client{
+	client := &poolClient{
 		pool:    pool,
 		options: options,
 	}
@@ -59,7 +65,7 @@ func NewLdapClient(options *Options, stopCh <-chan struct{}) (*Client, error) {
 	return client, nil
 }
 
-func (l *Client) NewConn() (ldap.Client, error) {
+func (l *poolClient) NewConn() (ldap.Client, error) {
 	if l.pool == nil {
 		err := fmt.Errorf("ldap connection pool is not initialized")
 		klog.Errorln(err)
@@ -81,10 +87,10 @@ func (l *Client) NewConn() (ldap.Client, error) {
 	return conn, nil
 }
 
-func (l *Client) GroupSearchBase() string {
+func (l *poolClient) GroupSearchBase() string {
 	return l.options.GroupSearchBase
 }
 
-func (l *Client) UserSearchBase() string {
+func (l *poolClient) UserSearchBase() string {
 	return l.options.UserSearchBase
 }

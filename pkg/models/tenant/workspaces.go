@@ -29,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
@@ -53,7 +52,7 @@ type WorkspaceInterface interface {
 	ListNamespaces(workspace string) ([]*core.Namespace, error)
 	DeleteNamespace(workspace, namespace string) error
 	RemoveUser(user, workspace string) error
-	AddUser(workspace string, user *models.User) error
+	AddUser(workspace string, user *iam.User) error
 	CountDevopsProjectsInWorkspace(workspace string) (int, error)
 	CountUsersInWorkspace(workspace string) (int, error)
 	CountOrgRoles() (int, error)
@@ -118,7 +117,7 @@ func (w *workspaceOperator) RemoveUser(workspace string, username string) error 
 	return nil
 }
 
-func (w *workspaceOperator) AddUser(workspaceName string, user *models.User) error {
+func (w *workspaceOperator) AddUser(workspaceName string, user *iam.User) error {
 
 	workspaceRole, err := iam.GetUserWorkspaceRole(workspaceName, user.Username)
 
@@ -324,9 +323,7 @@ func (w *workspaceOperator) SearchWorkspace(username string, conditions *params.
 	// order & reverse
 	sort.Slice(result, func(i, j int) bool {
 		if reverse {
-			tmp := i
-			i = j
-			j = tmp
+			i, j = j, i
 		}
 		return w.compare(result[i], result[j], orderBy)
 	})
