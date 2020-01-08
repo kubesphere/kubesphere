@@ -20,19 +20,21 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
-const GroupName = "operations.kubesphere.io"
+const (
+	GroupName = "operations.kubesphere.io"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
 func AddToContainer(c *restful.Container, client k8s.Client) error {
 
-	ok := "ok"
 	webservice := runtime.NewWebService(GroupVersion)
 
 	handler := newOperationHandler(client)
@@ -45,7 +47,7 @@ func AddToContainer(c *restful.Container, client k8s.Client) error {
 		Param(webservice.PathParameter("namespace", "the name of the namespace where the job runs in")).
 		Param(webservice.QueryParameter("action", "action must be \"rerun\"")).
 		Param(webservice.QueryParameter("resourceVersion", "version of job, rerun when the version matches").Required(true)).
-		Returns(http.StatusOK, ok, errors.Error{}))
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}))
 
 	c.Add(webservice)
 

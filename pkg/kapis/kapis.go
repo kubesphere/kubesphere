@@ -26,6 +26,7 @@ func InstallAPIs(container *restful.Container, client k8s.Client) {
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, client))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
 }
 
 func InstallAuthorizationAPIs(container *restful.Container) {
