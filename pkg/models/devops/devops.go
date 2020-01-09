@@ -61,10 +61,23 @@ func NewDevopsOperator(client jenkins.Client) DevopsOperator {
 	return &devopsOperator{}
 }
 
+func convertorHttpParameters(req *http.Request) (*devops.HttpParameters) {
+	httpParameters := devops.HttpParameters{
+		Method:   req.Method,
+		Header:   req.Header,
+		Body:     req.Body,
+		Form:     req.Form,
+		PostForm: req.PostForm,
+		Url:      req.URL,
+	}
+
+	return &httpParameters
+}
+
 func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error) {
 	//formatUrl := fmt.Sprintf(GetPipelineUrl, projectName, pipelineName)
 
-	res, err := d.devopsClient.GetPipeline(projectName, pipelineName, req)
+	res, err := d.devopsClient.GetPipeline(projectName, pipelineName, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 	}
@@ -75,7 +88,7 @@ func (d devopsOperator) ListPipelines(req *http.Request) (*devops.PipelineList, 
 
 	//formatUrl := SearchPipelineUrl + req.URL.RawQuery
 
-	res, err := d.devopsClient.ListPipelines(req)
+	res, err := d.devopsClient.ListPipelines(convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 	}
@@ -86,7 +99,7 @@ func (d devopsOperator) GetPipelineRun(projectName, pipelineName, runId string, 
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipelineRunUrl, projectName, pipelineName, runId)
 
-	res, err := d.devopsClient.GetPipelineRun(projectName, pipelineName, runId, req)
+	res, err := d.devopsClient.GetPipelineRun(projectName, pipelineName, runId, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 	}
@@ -97,7 +110,7 @@ func (d devopsOperator) ListPipelineRuns(projectName, pipelineName string, req *
 
 	//formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
 
-	res, err := d.devopsClient.ListPipelineRuns(projectName, pipelineName, req)
+	res, err := d.devopsClient.ListPipelineRuns(projectName, pipelineName, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 	}
@@ -109,7 +122,7 @@ func (d devopsOperator) StopPipeline(projectName, pipelineName, runId string, re
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+StopPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
 	req.Method = http.MethodPut
-	res, err := d.devopsClient.StopPipeline(projectName, pipelineName, runId, req)
+	res, err := d.devopsClient.StopPipeline(projectName, pipelineName, runId, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -122,7 +135,7 @@ func (d devopsOperator) ReplayPipeline(projectName, pipelineName, runId string, 
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId)
 
-	res, err := d.devopsClient.ReplayPipeline(projectName, pipelineName, runId, req)
+	res, err := d.devopsClient.ReplayPipeline(projectName, pipelineName, runId, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -135,7 +148,7 @@ func (d devopsOperator) RunPipeline(projectName, pipelineName string, req *http.
 
 	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName)
 
-	res, err := d.devopsClient.RunPipeline(projectName, pipelineName, req)
+	res, err := d.devopsClient.RunPipeline(projectName, pipelineName, convertorHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err

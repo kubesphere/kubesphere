@@ -1,9 +1,10 @@
 package devops
 
 import (
+	"io"
 	"net/http"
+	"net/url"
 )
-
 
 type PipelineList struct {
 	Items []Pipeline `json:"items"`
@@ -1139,18 +1140,21 @@ type Input struct {
 	Submitter  interface{}   `json:"submitter,omitempty" description:"check submitter"`
 }
 
+type HttpParameters struct {
+	Method   string        `json:"method,omitempty"`
+	Header   http.Header   `json:"header,omitempty"`
+	Body     io.ReadCloser `json:"body,omitempty"`
+	Form     url.Values    `json:"form,omitempty"`
+	PostForm url.Values    `json:"postForm,omitempty"`
+	Url      *url.URL      `json:"url,omitempty"`
+}
+
 type PipelineOperator interface {
-	GetPipeline(projectName, pipelineName string, req *http.Request) (*Pipeline, error)
-
-	ListPipelines(req *http.Request) (*PipelineList, error)
-
-	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*PipelineRun, error)
-
-	ListPipelineRuns(projectName, pipelineName string, req *http.Request) (*PipelineRunList, error)
-
-	StopPipeline(projectName, pipelineName, runId string, req *http.Request) (*StopPipeline, error)
-
-	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*ReplayPipeline, error)
-
-	RunPipeline(projectName, pipelineName string, req *http.Request) (*RunPipeline, error)
+	GetPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*Pipeline, error)
+	ListPipelines(httpParameters *HttpParameters) (*PipelineList, error)
+	GetPipelineRun(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
+	ListPipelineRuns(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineRunList, error)
+	StopPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
+	ReplayPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
+	RunPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*RunPipeline, error)
 }

@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
 )
 
 type Pipeline struct {
-	Request *http.Request
-	Jenkins *Jenkins
-	Path    string
+	HttpParameters *devops.HttpParameters
+	Jenkins        *Jenkins
+	Path           string
 }
 
 const (
@@ -23,16 +22,23 @@ const (
 	RunPipelineUrl     = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/"
 )
 
-func (p *Pipeline) GetPipeline() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+	var pipeline *devops.Pipeline
+
+	err = json.Unmarshal(res, pipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return pipeline, err
 }
 
-func (p *Pipeline) ListPipelines() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) ListPipelines() (*devops.PipelineList, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -43,29 +49,24 @@ func (p *Pipeline) ListPipelines() ([]byte, error) {
 		return nil, err
 	}
 
-	responseStruct := devops.PipelineList{Total: count}
-	err = json.Unmarshal(res, &responseStruct.Items)
+	pipelienList := devops.PipelineList{Total: count}
+	err = json.Unmarshal(res, &pipelienList.Items)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	res, err = json.Marshal(responseStruct)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	return res, err
+	return &pipelienList, err
 }
 
 func (p *Pipeline) searchPipelineCount() (int, error) {
-	query, _ := parseJenkinsQuery(p.Request.URL.RawQuery)
+	query, _ := parseJenkinsQuery(p.HttpParameters.Url.RawQuery)
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
 
 	formatUrl := ListPipelinesUrl + query.Encode()
 
-	res, err := p.Jenkins.SendPureRequest(formatUrl, p.Request)
+	res, err := p.Jenkins.SendPureRequest(formatUrl, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 		return 0, err
@@ -79,30 +80,44 @@ func (p *Pipeline) searchPipelineCount() (int, error) {
 	return len(pipelines), nil
 }
 
-func (p *Pipeline) GetPipelineRun() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) GetPipelineRun() (*devops.PipelineRun, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+
+	var pipelineRun *devops.PipelineRun
+	err = json.Unmarshal(res, pipelineRun)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return pipelineRun, err
 }
 
-func (p *Pipeline) ListPipelineRuns() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+
+	var pipelineRunList *devops.PipelineRunList
+	err = json.Unmarshal(res, pipelineRunList)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return pipelineRunList, err
 }
 
 func (p *Pipeline) searchPipelineRunsCount() (int, error) {
-	query, _ := parseJenkinsQuery(p.Request.URL.RawQuery)
+	query, _ := parseJenkinsQuery(p.HttpParameters.Url.RawQuery)
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
 	//formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
 
-	res, err := p.Jenkins.SendPureRequest(ListPipelineRunUrl+query.Encode(), p.Request)
+	res, err := p.Jenkins.SendPureRequest(ListPipelineRunUrl+query.Encode(), p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 		return 0, err
@@ -116,26 +131,50 @@ func (p *Pipeline) searchPipelineRunsCount() (int, error) {
 	return len(runs), nil
 }
 
-func (p *Pipeline) StopPipeline() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) StopPipeline() (*devops.StopPipeline, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+
+	var stopPipeline *devops.StopPipeline
+	err = json.Unmarshal(res, stopPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return stopPipeline, err
 }
 
-func (p *Pipeline) ReplayPipeline() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) ReplayPipeline() (*devops.ReplayPipeline, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+
+	var replayPipeline *devops.ReplayPipeline
+	err = json.Unmarshal(res, replayPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return replayPipeline, err
 }
 
-func (p *Pipeline) RunPipeline() ([]byte, error) {
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.Request)
+func (p *Pipeline) RunPipeline() (*devops.RunPipeline, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	return res, err
+
+	var runPipeline *devops.RunPipeline
+	err = json.Unmarshal(res, runPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return runPipeline, err
 }

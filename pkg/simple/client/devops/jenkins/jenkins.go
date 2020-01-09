@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"log"
 	"net/http"
 	"os"
@@ -369,29 +370,29 @@ func (j *Jenkins) DeleteUserInProject(username string) error {
 	return nil
 }
 
-func (j *Jenkins) GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) GetPipeline(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.Pipeline, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
-		Jenkins: j,
-		Path:    fmt.Sprintf(GetPipelineUrl, projectName, pipelineName),
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetPipelineUrl, projectName, pipelineName),
 	}
 	res, err := PipelineOjb.GetPipeline()
 	return res, err
 }
 
-func (j *Jenkins) ListPipelines(req *http.Request) ([]byte, error) {
+func (j *Jenkins) ListPipelines(httpParameters *devops.HttpParameters) (*devops.PipelineList, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
-		Path:    ListPipelinesUrl + req.URL.RawQuery,
+		Path:    ListPipelinesUrl + httpParameters.Url.RawQuery,
 	}
 	res, err := PipelineOjb.ListPipelines()
 	return res, err
 }
 
-func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.PipelineRun, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
 		Path:    fmt.Sprintf(GetPipelineRunUrl, projectName, pipelineName, runId),
 	}
@@ -399,19 +400,19 @@ func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, req *h
 	return res, err
 }
 
-func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.PipelineRunList, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
-		Path:    ListPipelineRunUrl + req.URL.RawQuery,
+		Path:    ListPipelineRunUrl + httpParameters.Url.RawQuery,
 	}
 	res, err := PipelineOjb.ListPipelineRuns()
 	return res, err
 }
 
-func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.StopPipeline, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
 		Path:    fmt.Sprintf(StopPipelineUrl, projectName, pipelineName, runId),
 	}
@@ -419,21 +420,21 @@ func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, req *htt
 	return res, err
 }
 
-func (j *Jenkins) ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) ReplayPipeline(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.ReplayPipeline, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
-		Path:    fmt.Sprintf(ReplayPipelineUrl+req.URL.RawQuery, projectName, pipelineName, runId),
+		Path:    fmt.Sprintf(ReplayPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
 	}
 	res, err := PipelineOjb.ReplayPipeline()
 	return res, err
 }
 
-func (j *Jenkins) RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+func (j *Jenkins) RunPipeline(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.RunPipeline, error) {
 	PipelineOjb := &Pipeline{
-		Request: req,
+		HttpParameters: httpParameters,
 		Jenkins: j,
-		Path:    fmt.Sprintf(RunPipelineUrl+req.URL.RawQuery, projectName, pipelineName),
+		Path:    fmt.Sprintf(RunPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName),
 	}
 	res, err := PipelineOjb.RunPipeline()
 	return res, err
