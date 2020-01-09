@@ -383,8 +383,8 @@ func (j *Jenkins) GetPipeline(projectName, pipelineName string, httpParameters *
 func (j *Jenkins) ListPipelines(httpParameters *devops.HttpParameters) (*devops.PipelineList, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    ListPipelinesUrl + httpParameters.Url.RawQuery,
+		Jenkins:        j,
+		Path:           ListPipelinesUrl + httpParameters.Url.RawQuery,
 	}
 	res, err := PipelineOjb.ListPipelines()
 	return res, err
@@ -393,8 +393,8 @@ func (j *Jenkins) ListPipelines(httpParameters *devops.HttpParameters) (*devops.
 func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.PipelineRun, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    fmt.Sprintf(GetPipelineRunUrl, projectName, pipelineName, runId),
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetPipelineRunUrl, projectName, pipelineName, runId),
 	}
 	res, err := PipelineOjb.GetPipelineRun()
 	return res, err
@@ -403,8 +403,8 @@ func (j *Jenkins) GetPipelineRun(projectName, pipelineName, runId string, httpPa
 func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.PipelineRunList, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    ListPipelineRunUrl + httpParameters.Url.RawQuery,
+		Jenkins:        j,
+		Path:           ListPipelineRunUrl + httpParameters.Url.RawQuery,
 	}
 	res, err := PipelineOjb.ListPipelineRuns()
 	return res, err
@@ -413,8 +413,8 @@ func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, httpParamet
 func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.StopPipeline, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    fmt.Sprintf(StopPipelineUrl, projectName, pipelineName, runId),
+		Jenkins:        j,
+		Path:           fmt.Sprintf(StopPipelineUrl, projectName, pipelineName, runId),
 	}
 	res, err := PipelineOjb.StopPipeline()
 	return res, err
@@ -423,8 +423,8 @@ func (j *Jenkins) StopPipeline(projectName, pipelineName, runId string, httpPara
 func (j *Jenkins) ReplayPipeline(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) (*devops.ReplayPipeline, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    fmt.Sprintf(ReplayPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+		Jenkins:        j,
+		Path:           fmt.Sprintf(ReplayPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
 	}
 	res, err := PipelineOjb.ReplayPipeline()
 	return res, err
@@ -433,10 +433,70 @@ func (j *Jenkins) ReplayPipeline(projectName, pipelineName, runId string, httpPa
 func (j *Jenkins) RunPipeline(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.RunPipeline, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path:    fmt.Sprintf(RunPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName),
+		Jenkins:        j,
+		Path:           fmt.Sprintf(RunPipelineUrl+httpParameters.Url.RawQuery, projectName, pipelineName),
 	}
 	res, err := PipelineOjb.RunPipeline()
+	return res, err
+}
+
+func (j *Jenkins) GetArtifacts(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.Artifacts, error) {
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetArtifactsUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.GetArtifacts()
+	return res, err
+}
+
+func (j *Jenkins) GetRunLog(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]byte, error) {
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetRunLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.GetRunLog()
+	return res, err
+}
+
+func (j *Jenkins) GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) {
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetStepLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId, nodeId, stepId),
+	}
+	res, header, err := PipelineOjb.GetStepLog()
+	return res, header, err
+}
+
+func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) (*devops.NodeSteps, error) {
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetRunLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.GetNodeSteps()
+	return res, err
+}
+
+func (j *Jenkins)GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.PipelineRunNodes, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetPipelineRunNodesUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+	}
+	res, err := PipelineOjb.GetPipelineRunNodes()
+	return res, err
+}
+
+func (j *Jenkins)SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(SubmitInputStepUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId, nodeId, stepId),
+	}
+	res, err := PipelineOjb.SubmitInputStep()
 	return res, err
 }
 

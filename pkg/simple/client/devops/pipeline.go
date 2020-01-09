@@ -1157,4 +1157,10 @@ type PipelineOperator interface {
 	StopPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
 	ReplayPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
 	RunPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*RunPipeline, error)
+	GetArtifacts(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]Artifacts, error)
+	GetRunLog(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]byte, error)
+	GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
+	GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
+	GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]PipelineRunNodes, error)
+	SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 }
