@@ -1,10 +1,13 @@
 package s3
 
 import (
+	"code.cloudfoundry.org/bytefmt"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"k8s.io/klog"
 	"time"
@@ -16,16 +19,38 @@ type Client struct {
 	bucket    string
 }
 
-func (s *Client) Upload(key string, body io.Reader) (string, error) {
-	panic("implement me")
+func (s *Client) Upwload(key, fileName string, body io.Reader) error {
+	uploader := s3manager.NewUploader(s.s3Session, func(uploader *s3manager.Uploader) {
+		uploader.PartSize = 5 * bytefmt.MEGABYTE
+		uploader.LeavePartsOnError = true
+	})
+	_, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket:             aws.String(s.bucket),
+		Key:                aws.String(key),
+		Body:               body,
+		ContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", fileName)),
+	})
+	return err
 }
 
-func (s *Client) Get(key string, fileName string, expire time.Duration) (string, error) {
-	panic("implement me")
+func (s *Client) GetDownloadURL(key string, fileName string) (string, error) {
+	req, _ := s.s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket:                     aws.String(s.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", fileName)),
+	})
+	return req.Presign(5 * time.Minute)
 }
 
 func (s *Client) Delete(key string) error {
-	panic("implement me")
+	_, err := s.s3Client.DeleteObject(
+		&s3.DeleteObjectInput{Bucket: aws.String(s.bucket),
+			Key: aws.String(key),
+		})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewS3Client(options *Options) (Interface, error) {
@@ -55,7 +80,6 @@ func NewS3Client(options *Options) (Interface, error) {
 }
 
 func (s *Client) Client() *s3.S3 {
-
 	return s.s3Client
 }
 func (s *Client) Session() *session.Session {
