@@ -65,25 +65,25 @@ func ListApplications(conditions *params.Conditions, limit, offset int, orderBy 
 	describeClustersRequest := &pb.DescribeClustersRequest{
 		Limit:  uint32(limit),
 		Offset: uint32(offset)}
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeClustersRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if runtimeId := conditions.Match["runtime_id"]; runtimeId != "" {
+	if runtimeId := conditions.Match[RuntimeId]; runtimeId != "" {
 		describeClustersRequest.RuntimeId = []string{runtimeId}
 	}
-	if appId := conditions.Match["app_id"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeClustersRequest.AppId = []string{appId}
 	}
-	if versionId := conditions.Match["version_id"]; versionId != "" {
+	if versionId := conditions.Match[VersionId]; versionId != "" {
 		describeClustersRequest.VersionId = []string{versionId}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeClustersRequest.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
 		describeClustersRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeClustersRequest.Reverse = &wrappers.BoolValue{Value: reverse}
 	resp, err := client.Cluster().DescribeClusters(openpitrix.SystemContext(), describeClustersRequest)
 	if err != nil {
 		klog.Errorln(err)

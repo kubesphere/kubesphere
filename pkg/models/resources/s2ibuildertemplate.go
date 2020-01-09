@@ -19,14 +19,10 @@ package resources
 
 import (
 	"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/constants"
+	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 type s2iBuilderTemplateSearcher struct {
@@ -37,63 +33,27 @@ func (*s2iBuilderTemplateSearcher) get(namespace, name string) (interface{}, err
 }
 
 // exactly Match
-func (*s2iBuilderTemplateSearcher) match(match map[string]string, item *v1alpha1.S2iBuilderTemplate) bool {
-	for k, v := range match {
-		switch k {
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
-		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
-				return false
-			}
+func (*s2iBuilderTemplateSearcher) match(kv map[string]string, item *v1alpha1.S2iBuilderTemplate) bool {
+	for k, v := range kv {
+		if !match(k, v, item.ObjectMeta) {
+			return false
 		}
 	}
 	return true
 }
 
 // Fuzzy searchInNamespace
-func (*s2iBuilderTemplateSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1.S2iBuilderTemplate) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*s2iBuilderTemplateSearcher) fuzzy(kv map[string]string, item *v1alpha1.S2iBuilderTemplate) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*s2iBuilderTemplateSearcher) compare(a, b *v1alpha1.S2iBuilderTemplate, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *s2iBuilderTemplateSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {

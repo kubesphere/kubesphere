@@ -21,6 +21,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"kubesphere.io/kubesphere/pkg/models/resources"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 	"sort"
@@ -50,10 +51,10 @@ func ListRoleUsers(req *restful.Request, resp *restful.Response) {
 }
 
 func ListClusterRoles(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	conditions, err := params.ParseConditions(req)
 	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -73,10 +74,10 @@ func ListClusterRoles(req *restful.Request, resp *restful.Response) {
 
 func ListRoles(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -161,10 +162,10 @@ func ListClusterRoleRules(req *restful.Request, resp *restful.Response) {
 
 func ListClusterRoleUsers(req *restful.Request, resp *restful.Response) {
 	clusterRoleName := req.PathParameter("clusterrole")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	conditions, err := params.ParseConditions(req)
 	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

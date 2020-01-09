@@ -19,15 +19,11 @@ package resources
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
-
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/server/params"
+	"sort"
 )
 
 type nodeSearcher struct {
@@ -53,10 +49,14 @@ func getNodeStatus(node *v1.Node) string {
 const NodeConfigOK v1.NodeConditionType = "ConfigOK"
 const NodeKubeletReady v1.NodeConditionType = "KubeletReady"
 
-var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{v1.NodeOutOfDisk: v1.ConditionFalse,
-	v1.NodeMemoryPressure: v1.ConditionFalse, v1.NodeDiskPressure: v1.ConditionFalse, v1.NodePIDPressure: v1.ConditionFalse,
-	v1.NodeNetworkUnavailable: v1.ConditionFalse, NodeConfigOK: v1.ConditionTrue, NodeKubeletReady: v1.ConditionTrue,
-	v1.NodeReady: v1.ConditionTrue,
+var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{
+	v1.NodeMemoryPressure:     v1.ConditionFalse,
+	v1.NodeDiskPressure:       v1.ConditionFalse,
+	v1.NodePIDPressure:        v1.ConditionFalse,
+	v1.NodeNetworkUnavailable: v1.ConditionFalse,
+	NodeConfigOK:              v1.ConditionTrue,
+	NodeKubeletReady:          v1.ConditionTrue,
+	v1.NodeReady:              v1.ConditionTrue,
 }
 
 func isUnhealthStatus(condition v1.NodeCondition) bool {
@@ -68,14 +68,9 @@ func isUnhealthStatus(condition v1.NodeCondition) bool {
 }
 
 // exactly Match
-func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
-	for k, v := range match {
+func (*nodeSearcher) match(kv map[string]string, item *v1.Node) bool {
+	for k, v := range kv {
 		switch k {
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
 		case Role:
 			labelKey := fmt.Sprintf("node-role.kubernetes.io/%s", v)
 			if _, ok := item.Labels[labelKey]; !ok {
@@ -85,13 +80,8 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 			if getNodeStatus(item) != v {
 				return false
 			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -100,44 +90,17 @@ func (*nodeSearcher) match(match map[string]string, item *v1.Node) bool {
 }
 
 // Fuzzy searchInNamespace
-func (*nodeSearcher) fuzzy(fuzzy map[string]string, item *v1.Node) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*nodeSearcher) fuzzy(kv map[string]string, item *v1.Node) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*nodeSearcher) compare(a, b *v1.Node, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *nodeSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {

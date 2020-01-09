@@ -18,15 +18,12 @@
 package resources
 
 import (
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 type roleSearcher struct {
@@ -37,18 +34,9 @@ func (*roleSearcher) get(namespace, name string) (interface{}, error) {
 }
 
 // exactly Match
-func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
-	for k, v := range match {
+func (*roleSearcher) match(kv map[string]string, item *rbac.Role) bool {
+	for k, v := range kv {
 		switch k {
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		case UserFacing:
 			if v == "true" {
 				if !isUserFacingRole(item) {
@@ -56,8 +44,7 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 				}
 			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -66,40 +53,17 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 }
 
 // Fuzzy searchInNamespace
-func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*roleSearcher) fuzzy(kv map[string]string, item *rbac.Role) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*roleSearcher) compare(a, b *rbac.Role, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *roleSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {

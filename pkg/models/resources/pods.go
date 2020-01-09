@@ -19,10 +19,8 @@ package resources
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
 
@@ -147,14 +145,14 @@ func podBelongToService(item *v1.Pod, serviceName string) bool {
 }
 
 // exactly Match
-func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
-	for k, v := range match {
+func (*podSearcher) match(kv map[string]string, item *v1.Pod) bool {
+	for k, v := range kv {
 		switch k {
 		case OwnerKind:
 			fallthrough
 		case OwnerName:
-			kind := match[OwnerKind]
-			name := match[OwnerName]
+			kind := kv[OwnerKind]
+			name := kv[OwnerName]
 			if !podBelongTo(item, kind, name) {
 				return false
 			}
@@ -170,18 +168,8 @@ func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 			if !podBelongToService(item, v) {
 				return false
 			}
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -190,30 +178,10 @@ func (*podSearcher) match(match map[string]string, item *v1.Pod) bool {
 }
 
 // Fuzzy searchInNamespace
-func (*podSearcher) fuzzy(fuzzy map[string]string, item *v1.Pod) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*podSearcher) fuzzy(kv map[string]string, item *v1.Pod) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
@@ -228,13 +196,12 @@ func (*podSearcher) compare(a, b *v1.Pod, orderBy string) bool {
 		if b.Status.StartTime == nil {
 			return true
 		}
+		if a.Status.StartTime.Equal(b.Status.StartTime) {
+			return strings.Compare(a.Name, b.Name) <= 0
+		}
 		return a.Status.StartTime.Before(b.Status.StartTime)
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
 	default:
-		return strings.Compare(a.Name, b.Name) <= 0
+		return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 	}
 }
 
