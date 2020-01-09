@@ -232,6 +232,21 @@ func (h *ProjectPipelineHandler) GetNodesDetail(req *restful.Request, resp *rest
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) GetBranchPipeline(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+	branchName := req.PathParameter("branch")
+
+	res, err := devops.GetBranchPipeline(projectName, pipelineName, branchName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.Write(res)
+}
+
 
 
 
@@ -554,21 +569,6 @@ func CheckCron(req *restful.Request, resp *restful.Response) {
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
-}
-
-func GetBranchPipeline(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-	branchName := req.PathParameter("branch")
-
-	res, err := devops.GetBranchPipeline(projectName, pipelineName, branchName, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
 }
 
 func GetBranchNodeSteps(req *restful.Request, resp *restful.Response) {

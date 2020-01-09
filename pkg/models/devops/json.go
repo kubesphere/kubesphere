@@ -1,18 +1,18 @@
 /*
 
-Copyright 2019 The KubeSphere Authors.
+ Copyright 2019 The KubeSphere Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
 
 */
 package devops
@@ -1006,6 +1006,40 @@ type PipelineRunNodes struct {
 	Restartable        bool          `json:"restartable,omitempty" description:"restartable or not"`
 }
 
+// GetNodeSteps
+type NodeSteps struct {
+	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+	Links struct {
+		Self struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"self,omitempty"`
+		Actions struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"actions,omitempty"`
+	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
+	Actions []struct {
+		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+		Links struct {
+			Self struct {
+				Class string `json:"_class,omitempty"`
+				Href  string `json:"href,omitempty"`
+			} `json:"self,omitempty"`
+		} `json:"_links,omitempty" description:"references the reachable path to this resource"`
+		URLName string `json:"urlName,omitempty" description:"url name"`
+	} `json:"actions,omitempty"`
+	DisplayDescription string `json:"displayDescription,omitempty" description:"display description"`
+	DisplayName        string `json:"displayName,omitempty" description:"display name"`
+	DurationInMillis   int    `json:"durationInMillis,omitempty" description:"duration time in mullis"`
+	ID                 string `json:"id,omitempty" description:"id"`
+	Input              *Input `json:"input,omitempty" description:"the action should user input"`
+	Result             string `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string `json:"startTime,omitempty" description:"the time of starts"`
+	State              string `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
+	Type               string `json:"type,omitempty" description:"type"`
+}
+
 // CheckScriptCompile
 type ReqScript struct {
 	Value string `json:"value,omitempty" description:"Pipeline script data"`
@@ -1055,8 +1089,7 @@ type ResJson struct {
 	} `json:"data,omitempty"`
 }
 
-// GetNodeSteps
-type NodeSteps struct {
+type NodesDetail struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Self struct {
@@ -1067,31 +1100,30 @@ type NodeSteps struct {
 			Class string `json:"_class,omitempty"`
 			Href  string `json:"href,omitempty"`
 		} `json:"actions,omitempty"`
+		Steps struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"steps,omitempty"`
 	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions []struct {
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
+	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
+	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
+	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
+	ID                 string        `json:"id,omitempty" description:"id"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
+	Type               string        `json:"type,omitempty" description:"type"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
+	Edges              []struct {
 		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-		Links struct {
-			Self struct {
-				Class string `json:"_class,omitempty"`
-				Href  string `json:"href,omitempty"`
-			} `json:"self,omitempty"`
-		} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-		URLName string `json:"urlName,omitempty" description:"url name"`
-	} `json:"actions,omitempty"`
-	DisplayDescription string `json:"displayDescription,omitempty" description:"display description"`
-	DisplayName        string `json:"displayName,omitempty" description:"display name"`
-	DurationInMillis   int    `json:"durationInMillis,omitempty" description:"duration time in mullis"`
-	ID                 string `json:"id,omitempty" description:"id"`
-	Input              *Input `json:"input,omitempty" description:"the action should user input"`
-	Result             string `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
-	StartTime          string `json:"startTime,omitempty" description:"the time of starts"`
-	State              string `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
-	Type               string `json:"type,omitempty" description:"type"`
-}
-
-type NodesDetail struct {
-	NodeSteps
-	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
+		ID    string `json:"id,omitempty" description:"id"`
+		Type  string `json:"type,omitempty" description:"type"`
+	} `json:"edges,omitempty"`
+	FirstParent interface{} `json:"firstParent,omitempty" description:"first parent"`
+	Restartable bool        `json:"restartable,omitempty" description:"restartable or not"`
+	Steps       []NodeSteps `json:"steps,omitempty" description:"steps"`
 }
 
 type NodesStepsIndex struct {

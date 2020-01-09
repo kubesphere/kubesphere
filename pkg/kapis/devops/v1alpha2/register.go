@@ -425,7 +425,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").
-		To(GetBranchPipeline).
+		To(handler.GetBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get the specified branch pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "the name of devops project")).

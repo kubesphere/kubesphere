@@ -57,6 +57,7 @@ type DevopsOperator interface {
 	GetNodeSteps(projectName, pipelineName, runId, nodeId string, req *http.Request) ([]devops.NodeSteps, error)
 	GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]devops.PipelineRunNodes, error)
 	SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, error)
+	GetNodesDetail(projectName, pipelineName, runId string, req *http.Request) ([]devops.NodesDetail, error)
 }
 
 type devopsOperator struct {
@@ -258,6 +259,13 @@ func (d devopsOperator) GetNodesDetail(projectName, pipelineName, runId string, 
 		return nil, err
 	}
 
+	Nodes, err := json.Marshal(respNodes)
+	err = json.Unmarshal(Nodes, &nodesDetails)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
 	// get all steps in nodes.
 	for i, v := range respNodes {
 		wg.Add(1)
@@ -268,11 +276,10 @@ func (d devopsOperator) GetNodesDetail(projectName, pipelineName, runId string, 
 				return
 			}
 
-			stepChan <- &devops.NodesStepsIndex{index, Steps}
+			stepChan <- &devops.NodesStepsIndex{Id:index, Steps:Steps}
 			wg.Done()
 		}(v.ID, i)
 	}
-
 	wg.Wait()
 	close(stepChan)
 
@@ -284,6 +291,15 @@ func (d devopsOperator) GetNodesDetail(projectName, pipelineName, runId string, 
 
 	return nodesDetails, err
 }
+
+
+
+
+
+
+
+
+
 
 func GetBranchPipeline(projectName, pipelineName, branchName string, req *http.Request) ([]byte, error) {
 	devops, err := cs.ClientSets().Devops()
@@ -421,6 +437,51 @@ func GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId st
 	}
 
 	return res, err
+}
+
+func GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error) {
+	var wg sync.WaitGroup
+	var nodesDetails []NodesDetail
+	stepChan := make(chan *NodesStepsIndex, channelMaxCapacity)
+
+	respNodes, err := GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId, req)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	err = json.Unmarshal(respNodes, &nodesDetails)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	// get all steps in nodes.
+	for i, v := range nodesDetails {
+		wg.Add(1)
+		go func(nodeId string, index int) {
+			var steps []NodeSteps
+			respSteps, err := GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId, req)
+			if err != nil {
+				klog.Error(err)
+				return
+			}
+			err = json.Unmarshal(respSteps, &steps)
+
+			stepChan <- &NodesStepsIndex{index, steps}
+			wg.Done()
+		}(v.ID, i)
+	}
+
+	wg.Wait()
+	close(stepChan)
+
+	for oneNodeSteps := range stepChan {
+		if oneNodeSteps != nil {
+			nodesDetails[oneNodeSteps.Id].Steps = append(nodesDetails[oneNodeSteps.Id].Steps, oneNodeSteps.Steps...)
+		}
+	}
+
+	return nodesDetails, err
 }
 
 func GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error) {
@@ -885,51 +946,6 @@ func GithubWebhook(req *http.Request) ([]byte, error) {
 	}
 
 	return res, err
-}
-
-func GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error) {
-	var wg sync.WaitGroup
-	var nodesDetails []NodesDetail
-	stepChan := make(chan *NodesStepsIndex, channelMaxCapacity)
-
-	respNodes, err := GetPipelineRunNodesbyBranch(projectName, pipelineName, branchName, runId, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	err = json.Unmarshal(respNodes, &nodesDetails)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	// get all steps in nodes.
-	for i, v := range nodesDetails {
-		wg.Add(1)
-		go func(nodeId string, index int) {
-			var steps []NodeSteps
-			respSteps, err := GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId, req)
-			if err != nil {
-				klog.Error(err)
-				return
-			}
-			err = json.Unmarshal(respSteps, &steps)
-
-			stepChan <- &NodesStepsIndex{index, steps}
-			wg.Done()
-		}(v.ID, i)
-	}
-
-	wg.Wait()
-	close(stepChan)
-
-	for oneNodeSteps := range stepChan {
-		if oneNodeSteps != nil {
-			nodesDetails[oneNodeSteps.Id].Steps = append(nodesDetails[oneNodeSteps.Id].Steps, oneNodeSteps.Steps...)
-		}
-	}
-
-	return nodesDetails, err
 }
 
 // create jenkins request
