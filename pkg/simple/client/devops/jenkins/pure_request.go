@@ -2,20 +2,21 @@ package jenkins
 
 import (
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
 	"time"
 )
 
 // TODO: deprecated, use SendJenkinsRequestWithHeaderResp() instead
-func (j *Jenkins) SendPureRequest(path string, req *http.Request) ([]byte, error) {
-	resBody, _, err := j.SendPureRequestWithHeaderResp(path, req)
+func (j *Jenkins) SendPureRequest(path string, httpParameters *devops.HttpParameters) ([]byte, error) {
+	resBody, _, err := j.SendPureRequestWithHeaderResp(path, httpParameters)
 
 	return resBody, err
 }
 
-func (j *Jenkins) SendPureRequestWithHeaderResp(path string, req *http.Request) ([]byte, http.Header, error) {
-	newReqUrl, err := url.Parse(j.Server + path)
+func (j *Jenkins) SendPureRequestWithHeaderResp(path string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) {
+	Url, err := url.Parse(j.Server + path)
 	if err != nil {
 		klog.Error(err)
 		return nil, nil, err
@@ -24,12 +25,12 @@ func (j *Jenkins) SendPureRequestWithHeaderResp(path string, req *http.Request) 
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	newRequest := &http.Request{
-		Method:   req.Method,
-		URL:      newReqUrl,
-		Header:   req.Header,
-		Body:     req.Body,
-		Form:     req.Form,
-		PostForm: req.PostForm,
+		Method:   httpParameters.Method,
+		URL:      Url,
+		Header:   httpParameters.Header,
+		Body:     httpParameters.Body,
+		Form:     httpParameters.Form,
+		PostForm: httpParameters.PostForm,
 	}
 
 	resp, err := client.Do(newRequest)

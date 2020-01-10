@@ -1,13 +1,10 @@
 package devops
 
 import (
+	"io"
 	"net/http"
+	"net/url"
 )
-
-type PageableResponse struct {
-	Items      []interface{} `json:"items" description:"paging data"`
-	TotalCount int           `json:"total_count" description:"total count"`
-}
 
 type PipelineList struct {
 	Items []Pipeline `json:"items"`
@@ -82,7 +79,7 @@ type Pipeline struct {
 }
 
 // GetPipeBranchRun & SearchPipelineRuns
-type BranchPipelineRun struct {
+type PipelineRunList struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		PrevRun struct {
@@ -313,7 +310,7 @@ type OrgRepo struct {
 }
 
 // StopPipeline
-type StopPipe struct {
+type StopPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -387,7 +384,7 @@ type StopPipe struct {
 }
 
 // ReplayPipeline
-type ReplayPipe struct {
+type ReplayPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -465,7 +462,7 @@ type Artifacts struct {
 }
 
 // GetPipeBranch
-type PipeBranch struct {
+type PipelineBranch struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Self struct {
@@ -595,7 +592,7 @@ type RunPayload struct {
 	} `json:"parameters,omitempty"`
 }
 
-type QueuedBlueRun struct {
+type RunPipeline struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Parent struct {
@@ -1087,40 +1084,8 @@ type ResJson struct {
 }
 
 type NodesDetail struct {
-	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-	Links struct {
-		Self struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"self,omitempty"`
-		Actions struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"actions,omitempty"`
-		Steps struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"steps,omitempty"`
-	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
-	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
-	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
-	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	ID                 string        `json:"id,omitempty" description:"id"`
-	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
-	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
-	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
-	State              string        `json:"state,omitempty" description:"run state. e.g. SKIPPED"`
-	Type               string        `json:"type,omitempty" description:"type"`
-	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
-	Edges              []struct {
-		Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-		ID    string `json:"id,omitempty" description:"id"`
-		Type  string `json:"type,omitempty" description:"type"`
-	} `json:"edges,omitempty"`
-	FirstParent interface{} `json:"firstParent,omitempty" description:"first parent"`
-	Restartable bool        `json:"restartable,omitempty" description:"restartable or not"`
-	Steps       []NodeSteps `json:"steps,omitempty" description:"steps"`
+	PipelineRunNodes
+	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
 }
 
 type NodesStepsIndex struct {
@@ -1143,18 +1108,64 @@ type Input struct {
 	Submitter  interface{}   `json:"submitter,omitempty" description:"check submitter"`
 }
 
+type HttpParameters struct {
+	Method   string        `json:"method,omitempty"`
+	Header   http.Header   `json:"header,omitempty"`
+	Body     io.ReadCloser `json:"body,omitempty"`
+	Form     url.Values    `json:"form,omitempty"`
+	PostForm url.Values    `json:"postForm,omitempty"`
+	Url      *url.URL      `json:"url,omitempty"`
+}
+
 type PipelineOperator interface {
-	GetPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
 
-	ListPipelines(req *http.Request) ([]byte, error)
+	// Pipelinne operator interface
+	GetPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*Pipeline, error)
+	ListPipelines(httpParameters *HttpParameters) (*PipelineList, error)
+	GetPipelineRun(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
+	ListPipelineRuns(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineRunList, error)
+	StopPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
+	ReplayPipeline(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
+	RunPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*RunPipeline, error)
+	GetArtifacts(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]Artifacts, error)
+	GetRunLog(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]byte, error)
+	GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
+	GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
+	GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]PipelineRunNodes, error)
+	SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 
-	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	//BranchPipelinne operator interface
+	GetBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*BranchPipeline, error)
+	GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
+	StopBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
+	ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
+	RunBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*RunPipeline, error)
+	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*Artifacts, error)
+	GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]byte, error)
+	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
+	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
+	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*BranchPipelineRunNodes, error)
+	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
+	GetPipelineBranch(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineBranch, error)
+	ScanBranch(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
 
-	ListPipelineRuns(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	// Common pipeline operator interface
+	GetConsoleLog(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
+	GetCrumb(httpParameters *HttpParameters) (*Crumb, error)
 
-	StopPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	// SCM operator interface
+	GetSCMServers(scmId string, httpParameters *HttpParameters) ([]SCMServer, error)
+	GetSCMOrg(scmId string, httpParameters *HttpParameters) ([]SCMOrg, error)
+	GetOrgRepo(scmId, organizationId string, httpParameters *HttpParameters) ([]OrgRepo, error)
+	CreateSCMServers(scmId string, httpParameters *HttpParameters) (*SCMServer, error)
+	Validate(scmId string, httpParameters *HttpParameters) (*Validates, error)
 
-	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	//Webhook operator interface
+	GetNotifyCommit(httpParameters *HttpParameters) ([]byte, error)
+	GithubWebhook(httpParameters *HttpParameters) ([]byte, error)
 
-	RunPipeline(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	CheckScriptCompile(projectName, pipelineName string, httpParameters *HttpParameters) (*CheckScript, error)
+	CheckCron(projectName string, httpParameters *HttpParameters) (*CheckCronRes, error)
+	ToJenkinsfile(httpParameters *HttpParameters) (*ResJenkinsfile, error)
+	ToJson(httpParameters *HttpParameters) (*ResJson, error)
 }

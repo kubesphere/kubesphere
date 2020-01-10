@@ -26,7 +26,8 @@ import (
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
+	//"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
@@ -238,7 +239,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api: "jenkins_api/blue/rest/search"
 	webservice.Route(webservice.GET("/search").
-		To(projectPipelineHander.SearchPipelines).
+		To(projectPipelineHander.ListPipelines).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Search DevOps resource. More info: https://github.com/jenkinsci/blueocean-plugin/tree/master/blueocean-rest#get-pipelines-across-organization").
 		Param(webservice.QueryParameter("q", "query pipelines, condition for filtering.").
@@ -253,18 +254,23 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
 			Required(false).
 			DataFormat("limit=%d")).
-		Returns(http.StatusOK, RespOK, struct {
-			Items []devops.Pipeline `json:"items"`
-			Total int               `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.Pipeline `json:"items"`
-			Total int               `json:"total_count"`
-		}{}))
+		Returns(http.StatusOK, RespOK, devops.PipelineList{}).
+		Writes(devops.PipelineList{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
+		To(projectPipelineHander.GetPipelineRun).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get details in the specified pipeline activity.").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
+		Writes(devops.PipelineRun{}))
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(projectPipelineHander.SearchPipelineRuns).
+		To(projectPipelineHander.ListPipelineRuns).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get all runs of the specified pipeline").
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -278,54 +284,248 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("branch", "the name of branch, same as repository branch, will be filtered by branch.").
 			Required(false).
 			DataFormat("branch=%s")).
-		Returns(http.StatusOK, RespOK, struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}).
-		Writes(struct {
-			Items []devops.BranchPipelineRun `json:"items"`
-			Total int                        `json:"total_count"`
-		}{}))
+		Returns(http.StatusOK, RespOK, devops.PipelineRunList{}).
+		Writes(devops.PipelineRunList{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/stop/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/stop").
+		To(projectPipelineHander.StopPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Stop pipeline").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
+			Required(false).
+			DataFormat("blocking=%t").
+			DefaultValue("blocking=false")).
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
+			Required(false).
+			DataFormat("timeOutInSecs=%d").
+			DefaultValue("timeOutInSecs=10")).
+		Returns(http.StatusOK, RespOK, devops.StopPipeline{}).
+		Writes(devops.StopPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/Replay/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/replay").
+		To(projectPipelineHander.ReplayPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Replay pipeline").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, devops.ReplayPipeline{}).
+		Writes(devops.ReplayPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
+		To(projectPipelineHander.RunPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Run pipeline.").
+		Reads(devops.RunPayload{}).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Returns(http.StatusOK, RespOK, devops.RunPipeline{}).
+		Writes(devops.RunPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/artifacts
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/artifacts").
+		To(projectPipelineHander.GetArtifacts).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get all artifacts in the specified pipeline.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
+			Required(false).
+			DataFormat("start=%d")).
+		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
+			Required(false).
+			DataFormat("limit=%d")).
+		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
+		Writes([]devops.Artifacts{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/log/?start=0
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/log").
+		To(projectPipelineHander.GetRunLog).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get run logs of the specified pipeline activity.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
+			Required(false).
+			DataFormat("start=%d").
+			DefaultValue("start=0")))
+
+	// match "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log/?start=0"
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log").
+		To(projectPipelineHander.GetStepLog).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get pipelines step log.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Param(webservice.PathParameter("step", "pipeline step ID, the step in pipeline.")).
+		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
+			Required(false).
+			DataFormat("start=%d").
+			DefaultValue("start=0")))
+
+	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?limit=
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps").
+		To(projectPipelineHander.GetNodeSteps).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get all steps in the specified node.").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
+		Writes([]devops.NodeSteps{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/?limit=10000
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes").
+		To(projectPipelineHander.GetPipelineRunNodes).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get all nodes in the specified activity. node is the stage in the pipeline task").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
+		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
+		Writes([]devops.PipelineRunNodes{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}").
+		To(projectPipelineHander.SubmitInputStep).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Proceed or Break the paused pipeline which is waiting for user input.").
+		Reads(devops.CheckPlayload{}).
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Param(webservice.PathParameter("step", "pipeline step ID")))
+
+	// out of scm get all steps in nodes.
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodesdetail").
+		To(projectPipelineHander.GetNodesDetail).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get steps details inside a activity node. For a node, the steps which defined inside the node.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
+		Writes(devops.NodesDetail{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").
+		To(projectPipelineHander.GetBranchPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get the specified branch pipeline of the DevOps project").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch")).
+		Returns(http.StatusOK, RespOK, devops.BranchPipeline{}).
+		Writes(devops.BranchPipeline{}))
 
 	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}").
-		To(GetBranchPipelineRun).
+		To(projectPipelineHander.GetBranchPipelineRun).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all runs in the specified branch").
+		Doc("(MultiBranchesPipeline) Get details in the specified pipeline activity.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
 		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.BranchPipelineRun{}).
-		Writes(devops.BranchPipelineRun{}))
+		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
+		Writes(devops.PipelineRun{}))
 
-	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/nodes"
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes").
-		To(GetPipelineRunNodesbyBranch).
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop").
+		To(projectPipelineHander.StopBranchPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get run nodes.").
+		Doc("(MultiBranchesPipeline) Stop the specified pipeline of the DevOps project.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
 		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
+			Required(false).
+			DataFormat("blocking=%t").
+			DefaultValue("blocking=false")).
+		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
+			Required(false).
+			DataFormat("timeOutInSecs=%d").
+			DefaultValue("timeOutInSecs=10")).
+		Returns(http.StatusOK, RespOK, devops.StopPipeline{}).
+		Writes(devops.StopPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/Replay/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
+		To(projectPipelineHander.ReplayBranchPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Replay the specified pipeline of the DevOps project").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, devops.ReplayPipeline{}).
+		Writes(devops.ReplayPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{}/runs/
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs").
+		To(projectPipelineHander.RunBranchPipeline).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Run the specified pipeline of the DevOps project.").
+		Reads(devops.RunPayload{}).
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Returns(http.StatusOK, RespOK, devops.RunPipeline{}).
+		Writes(devops.RunPipeline{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/artifacts
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/artifacts").
+		To(projectPipelineHander.GetBranchArtifacts).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get all artifacts generated from the specified run of the pipeline branch.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
+			Required(false).
+			DataFormat("start=%d")).
 		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
 			Required(false).
-			DataFormat("limit=%d").
-			DefaultValue("limit=10000")).
-		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRunNodes{}).
-		Writes([]devops.BranchPipelineRunNodes{}))
+			DataFormat("limit=%d")).
+		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
+		Writes([]devops.Artifacts{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/log/?start=0
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/log").
+		To(projectPipelineHander.GetBranchRunLog).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get run logs of the specified pipeline activity.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
+			Required(false).
+			DataFormat("start=%d").
+			DefaultValue("start=0")))
 
 	// match "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}/log/?start=0"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}/log").
-		To(GetBranchStepLog).
+		To(projectPipelineHander.GetBranchStepLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get the step logs in the specified pipeline activity.").
 		Produces("text/plain; charset=utf-8").
@@ -340,34 +540,121 @@ The last one is encrypted info, such as the password of the username-password ty
 			DataFormat("start=%d").
 			DefaultValue("start=0")))
 
-	// match "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log/?start=0"
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}/log").
-		To(GetStepLog).
+	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?limit=
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps").
+		To(projectPipelineHander.GetBranchNodeSteps).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get pipelines step log.").
-		Produces("text/plain; charset=utf-8").
+		Doc("(MultiBranchesPipeline) Get all steps in the specified node.").
+		Param(webservice.PathParameter("devops", "the name of devops project")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
+		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
+		Writes([]devops.NodeSteps{}))
+
+	// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/nodes"
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes").
+		To(projectPipelineHander.GetBranchPipelineRunNodes).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get run nodes.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run id, the unique id for a pipeline once build.")).
+		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
+			Required(false).
+			DataFormat("limit=%d").
+			DefaultValue("limit=10000")).
+		Returns(http.StatusOK, RespOK, []devops.BranchPipelineRunNodes{}).
+		Writes([]devops.BranchPipelineRunNodes{}))
+
+	// /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}").
+		To(projectPipelineHander.SubmitBranchInputStep).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Proceed or Break the paused pipeline which waiting for user input.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
 		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
 		Param(webservice.PathParameter("step", "pipeline step ID, the step in pipeline.")).
-		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
-			Required(false).
-			DataFormat("start=%d").
-			DefaultValue("start=0")))
+		Reads(devops.CheckPlayload{}).
+		Produces("text/plain; charset=utf-8"))
 
-	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
-	webservice.Route(webservice.POST("/scms/{scm}/verify").
-		To(Validate).
+	// in scm get all steps in nodes.
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodesdetail").
+		To(projectPipelineHander.GetBranchNodesDetail).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get steps details in an activity node. For a node, the steps which is defined inside the node.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
+		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
+		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
+		Writes(devops.NodesDetail{}))
+
+	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/?filter=&start&limit=
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches").
+		To(projectPipelineHander.GetPipelineBranch).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("(MultiBranchesPipeline) Get all branches in the specified pipeline.").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.QueryParameter("filter", "filter remote scm. e.g. origin").
+			Required(false).
+			DataFormat("filter=%s")).
+		Param(webservice.QueryParameter("start", "the count of branches start.").
+			Required(false).
+			DataFormat("start=%d").DefaultValue("start=0")).
+		Param(webservice.QueryParameter("limit", "the count of branches limit.").
+			Required(false).
+			DataFormat("limit=%d").DefaultValue("limit=100")).
+		Returns(http.StatusOK, RespOK, []devops.PipelineBranch{}).
+		Writes([]devops.PipelineBranch{}))
+
+	// match /job/{devops}/job/{pipeline}/build?delay=0
+	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/scan").
+		To(projectPipelineHander.ScanBranch).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Scan remote Repository, Start a build if have new branch.").
+		Produces("text/html; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
+		Param(webservice.QueryParameter("delay", "the delay time to scan").
+			Required(false).
+			DataFormat("delay=%d")))
+
+	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
+	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
+		To(projectPipelineHander.GetConsoleLog).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get scan reponsitory logs in the specified pipeline.").
+		Produces("text/plain; charset=utf-8").
+		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")))
+
+	// match /crumbIssuer/api/json/
+	webservice.Route(webservice.GET("/crumbissuer").
+		To(projectPipelineHander.GetCrumb).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
+		Doc("Get crumb issuer. A CrumbIssuer represents an algorithm to generate a nonce value, known as a crumb, to counter cross site request forgery exploits. Crumbs are typically hashes incorporating information that uniquely identifies an agent that sends a request, along with a guarded secret so that the crumb value cannot be forged by a third party.").
+		Returns(http.StatusOK, RespOK, devops.Crumb{}).
+		Writes(devops.Crumb{}))
+
+	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	webservice.Route(webservice.GET("/scms/{scm}/servers").
+		To(projectPipelineHander.GetSCMServers).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
-		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
-		Returns(http.StatusOK, RespOK, devops.Validates{}).
-		Writes(devops.Validates{}))
+		Doc("List all servers in the jenkins.").
+		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
+		Returns(http.StatusOK, RespOK, []devops.SCMServer{}).
+		Writes([]devops.SCMServer{}))
 
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/?credentialId=github"
 	webservice.Route(webservice.GET("/scms/{scm}/organizations").
-		To(GetSCMOrg).
+		To(projectPipelineHander.GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
 		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
@@ -377,28 +664,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
 		Writes([]devops.SCMOrg{}))
 
-	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
-	webservice.Route(webservice.GET("/scms/{scm}/servers").
-		To(GetSCMServers).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("List all servers in the jenkins.").
-		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
-		Returns(http.StatusOK, RespOK, []devops.SCMServer{}).
-		Writes([]devops.SCMServer{}))
-
-	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
-	webservice.Route(webservice.POST("/scms/{scm}/servers").
-		To(CreateSCMServers).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("Create scm server in the jenkins.").
-		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
-		Reads(devops.CreateScmServerReq{}).
-		Returns(http.StatusOK, RespOK, devops.SCMServer{}).
-		Writes(devops.SCMServer{}))
-
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/{organization}/repositories/?credentialId=&pageNumber&pageSize="
 	webservice.Route(webservice.GET("/scms/{scm}/organizations/{organization}/repositories").
-		To(GetOrgRepo).
+		To(projectPipelineHander.GetOrgRepo).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all repositories in the specified organization.").
 		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
@@ -415,229 +683,51 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, []devops.OrgRepo{}).
 		Writes([]devops.OrgRepo{}))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/stop").
-		To(StopBranchPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Stop the specified pipeline of the DevOps project.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
-			Required(false).
-			DataFormat("blocking=%t").
-			DefaultValue("blocking=false")).
-		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
-			Required(false).
-			DataFormat("timeOutInSecs=%d").
-			DefaultValue("timeOutInSecs=10")).
-		Returns(http.StatusOK, RespOK, devops.StopPipe{}).
-		Writes(devops.StopPipe{}))
+	// match "/blue/rest/organizations/jenkins/scm/%s/servers/" create bitbucket server
+	webservice.Route(webservice.POST("/scms/{scm}/servers").
+		To(projectPipelineHander.CreateSCMServers).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
+		Doc("Create scm server in the jenkins.").
+		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
+		Reads(devops.CreateScmServerReq{}).
+		Returns(http.StatusOK, RespOK, devops.SCMServer{}).
+		Writes(devops.SCMServer{}))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/stop/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/stop").
-		To(StopPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Stop pipeline").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("blocking", "stop and between each retries will sleep.").
-			Required(false).
-			DataFormat("blocking=%t").
-			DefaultValue("blocking=false")).
-		Param(webservice.QueryParameter("timeOutInSecs", "the time of stop and between each retries sleep.").
-			Required(false).
-			DataFormat("timeOutInSecs=%d").
-			DefaultValue("timeOutInSecs=10")).
-		Returns(http.StatusOK, RespOK, devops.StopPipe{}).
-		Writes(devops.StopPipe{}))
+	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
+	webservice.Route(webservice.POST("/scms/{scm}/verify").
+		To(projectPipelineHander.Validate).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
+		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
+		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
+		Returns(http.StatusOK, RespOK, devops.Validates{}).
+		Writes(devops.Validates{}))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/Replay/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/replay").
-		To(ReplayBranchPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Replay the specified pipeline of the DevOps project").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
-		Writes(devops.ReplayPipe{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/Replay/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/replay").
-		To(ReplayPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Replay pipeline").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.ReplayPipe{}).
-		Writes(devops.ReplayPipe{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/log/?start=0
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/log").
-		To(GetBranchRunLog).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get run logs of the specified pipeline activity.").
+	// match /git/notifyCommit/?url=
+	webservice.Route(webservice.GET("/webhook/git").
+		To(projectPipelineHander.GetNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
+		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
-			Required(false).
-			DataFormat("start=%d").
-			DefaultValue("start=0")))
+		Param(webservice.QueryParameter("url", "Git url").
+			Required(true).
+			DataFormat("url=%s")))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/log/?start=0
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/log").
-		To(GetRunLog).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get run logs of the specified pipeline activity.").
+	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
+	webservice.Route(webservice.POST("/webhook/git").
+		To(projectPipelineHander.PostNotifyCommit).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
+		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
+		Consumes("application/json").
 		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
-			Required(false).
-			DataFormat("start=%d").
-			DefaultValue("start=0")))
+		Param(webservice.QueryParameter("url", "Git url").
+			Required(true).
+			DataFormat("url=%s")))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{branch}/runs/{run}/artifacts
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/artifacts").
-		To(GetBranchArtifacts).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all artifacts generated from the specified run of the pipeline branch.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
-			Required(false).
-			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(false).
-			DataFormat("limit=%d")).
-		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
-		Writes([]devops.Artifacts{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/artifacts
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/artifacts").
-		To(GetArtifacts).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get all artifacts in the specified pipeline.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.QueryParameter("start", "the item number that the search starts from.").
-			Required(false).
-			DataFormat("start=%d")).
-		Param(webservice.QueryParameter("limit", "the limit item count of the search.").
-			Required(false).
-			DataFormat("limit=%d")).
-		Returns(http.StatusOK, "The filed of \"Url\" in response can download artifacts", []devops.Artifacts{}).
-		Writes([]devops.Artifacts{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/?filter=&start&limit=
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches").
-		To(GetPipeBranch).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all branches in the specified pipeline.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.QueryParameter("filter", "filter remote scm. e.g. origin").
-			Required(false).
-			DataFormat("filter=%s")).
-		Param(webservice.QueryParameter("start", "the count of branches start.").
-			Required(false).
-			DataFormat("start=%d").DefaultValue("start=0")).
-		Param(webservice.QueryParameter("limit", "the count of branches limit.").
-			Required(false).
-			DataFormat("limit=%d").DefaultValue("limit=100")).
-		Returns(http.StatusOK, RespOK, []devops.PipeBranch{}).
-		Writes([]devops.PipeBranch{}))
-
-	// /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps/{step}").
-		To(SubmitBranchInputStep).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Proceed or Break the paused pipeline which waiting for user input.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
-		Param(webservice.PathParameter("step", "pipeline step ID, the step in pipeline.")).
-		Reads(devops.CheckPlayload{}).
-		Produces("text/plain; charset=utf-8"))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps/{step}").
-		To(SubmitInputStep).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Proceed or Break the paused pipeline which is waiting for user input.").
-		Reads(devops.CheckPlayload{}).
-		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
-		Param(webservice.PathParameter("step", "pipeline step ID")))
-
-	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
-		To(GetConsoleLog).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get scan reponsitory logs in the specified pipeline.").
-		Produces("text/plain; charset=utf-8").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")))
-
-	// match /job/{devops}/job/{pipeline}/build?delay=0
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/scan").
-		To(ScanBranch).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Scan remote Repository, Start a build if have new branch.").
-		Produces("text/html; charset=utf-8").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.QueryParameter("delay", "the delay time to scan").
-			Required(false).
-			DataFormat("delay=%d")))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/{}/runs/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs").
-		To(RunBranchPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Run the specified pipeline of the DevOps project.").
-		Reads(devops.RunPayload{}).
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
-		Writes(devops.QueuedBlueRun{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/
-	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/runs").
-		To(RunPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Run pipeline.").
-		Reads(devops.RunPayload{}).
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Returns(http.StatusOK, RespOK, devops.QueuedBlueRun{}).
-		Writes(devops.QueuedBlueRun{}))
-
-	// match /crumbIssuer/api/json/
-	webservice.Route(webservice.GET("/crumbissuer").
-		To(GetCrumb).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get crumb issuer. A CrumbIssuer represents an algorithm to generate a nonce value, known as a crumb, to counter cross site request forgery exploits. Crumbs are typically hashes incorporating information that uniquely identifies an agent that sends a request, along with a guarded secret so that the crumb value cannot be forged by a third party.").
-		Returns(http.StatusOK, RespOK, devops.Crumb{}).
-		Writes(devops.Crumb{}))
+	webservice.Route(webservice.POST("/webhook/github").
+		To(projectPipelineHander.GithubWebhook).
+		Consumes("application/x-www-form-urlencoded", "application/json").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
+		Doc("Get commit notification. Github webhook will request here."))
 
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
 		To(s2iHandler.UploadS2iBinaryHandler).
@@ -660,7 +750,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, nil))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/checkScriptCompile").
-		To(CheckScriptCompile).
+		To(projectPipelineHander.CheckScriptCompile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.QueryParameter("pipeline", "the name of the CI/CD pipeline").
@@ -674,7 +764,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Writes(devops.CheckScript{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/checkCron").
-		To(CheckCron).
+		To(projectPipelineHander.CheckCron).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -684,67 +774,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.CheckCronRes{}).
 		Writes(devops.CheckCronRes{}))
 
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/{run}/
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}").
-		To(GetPipelineRun).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get all activities in the specified pipeline.").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
-		Writes(devops.PipelineRun{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/branches/{branch}
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}").
-		To(GetBranchPipeline).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all activities in the specified pipeline.").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch")).
-		Returns(http.StatusOK, RespOK, devops.BranchPipeline{}).
-		Writes(devops.BranchPipeline{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/{devops}/pipelines/{pipeline}/runs/{run}/nodes/?limit=10000
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes").
-		To(GetPipelineRunNodes).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get all nodes in the specified activity. node is the stage in the pipeline task").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
-		Returns(http.StatusOK, RespOK, []devops.PipelineRunNodes{}).
-		Writes([]devops.PipelineRunNodes{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/branches/%s/runs/%s/nodes/%s/steps/?limit=
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodes/{node}/steps").
-		To(GetBranchNodeSteps).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get all steps in the specified node.").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
-		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
-		Writes([]devops.NodeSteps{}))
-
-	// match /blue/rest/organizations/jenkins/pipelines/%s/%s/runs/%s/nodes/%s/steps/?limit=
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodes/{node}/steps").
-		To(GetNodeSteps).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get all steps in the specified node.").
-		Param(webservice.PathParameter("devops", "the name of devops project")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build")).
-		Param(webservice.PathParameter("node", "pipeline node ID, the stage in pipeline.")).
-		Returns(http.StatusOK, RespOK, []devops.NodeSteps{}).
-		Writes([]devops.NodeSteps{}))
-
 	// match /pipeline-model-converter/toJenkinsfile
 	webservice.Route(webservice.POST("/tojenkinsfile").
-		To(ToJenkinsfile).
+		To(projectPipelineHander.ToJenkinsfile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -755,7 +787,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /pipeline-model-converter/toJson
 	webservice.Route(webservice.POST("/tojson").
-		To(ToJson).
+		To(projectPipelineHander.ToJson).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -763,57 +795,6 @@ The last one is encrypted info, such as the password of the username-password ty
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
-
-	// match /git/notifyCommit/?url=
-	webservice.Route(webservice.GET("/webhook/git").
-		To(GetNotifyCommit).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
-		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
-		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "Git url").
-			Required(true).
-			DataFormat("url=%s")))
-
-	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
-	webservice.Route(webservice.POST("/webhook/git").
-		To(PostNotifyCommit).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
-		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
-		Consumes("application/json").
-		Produces("text/plain; charset=utf-8").
-		Param(webservice.QueryParameter("url", "Git url").
-			Required(true).
-			DataFormat("url=%s")))
-
-	webservice.Route(webservice.POST("/webhook/github").
-		To(GithubWebhook).
-		Consumes("application/x-www-form-urlencoded", "application/json").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
-		Doc("Get commit notification. Github webhook will request here."))
-
-	// in scm get all steps in nodes.
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/runs/{run}/nodesdetail").
-		To(GetBranchNodesDetail).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("(MultiBranchesPipeline) Get steps details in an activity node. For a node, the steps which is defined inside the node.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
-		Writes(devops.NodesDetail{}))
-
-	// out of scm get all steps in nodes.
-	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs/{run}/nodesdetail").
-		To(GetNodesDetail).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-		Doc("Get steps details inside a activity node. For a node, the steps which defined inside the node.").
-		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-		Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
-		Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
-		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
-		Writes(devops.NodesDetail{}))
 
 	c.Add(webservice)
 
