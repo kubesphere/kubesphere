@@ -18,7 +18,6 @@
 package v1alpha2
 
 import (
-	"encoding/json"
 	"github.com/emicklei/go-restful"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/devops"
@@ -515,9 +514,6 @@ func (h *ProjectPipelineHandler) GetOrgRepo(req *restful.Request, resp *restful.
 	resp.WriteAsJson(res)
 }
 
-
-
-
 func (h *ProjectPipelineHandler) CreateSCMServers(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
 
@@ -531,39 +527,10 @@ func (h *ProjectPipelineHandler) CreateSCMServers(req *restful.Request, resp *re
 	resp.WriteAsJson(res)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-func Validate(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) Validate(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
 
-	res, err := devops.Validate(scmId, req.Request)
+	res, err := h.devopsOperator.Validate(scmId, req.Request)
 	if err != nil {
 		log.Error(err)
 		if jErr, ok := err.(*devops.JkError); ok {
@@ -579,40 +546,53 @@ func Validate(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) GetNotifyCommit(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.GetNotifyCommit(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
 	resp.Write(res)
 }
 
-func CheckScriptCompile(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) PostNotifyCommit(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.GetNotifyCommit(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Write(res)
+}
+
+func (h *ProjectPipelineHandler) GithubWebhook(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.GithubWebhook(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Write(res)
+}
+
+func (h *ProjectPipelineHandler) CheckScriptCompile(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 
-	resBody, err := devops.CheckScriptCompile(projectName, pipelineName, req.Request)
+	resBody, err := h.devopsOperator.CheckScriptCompile(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
-	// Jenkins will return different struct according to different results.
-	var resJson = new(devops.CheckScript)
-	if ok := json.Unmarshal(resBody, &resJson); ok != nil {
-		var resJson []interface{}
-		err := json.Unmarshal(resBody, &resJson)
-		if err != nil {
-			resp.WriteError(http.StatusInternalServerError, err)
-			return
-		}
-		resp.WriteAsJson(resJson[0])
-		return
-
-	}
-
-	resp.WriteAsJson(resJson)
+	resp.WriteAsJson(resBody)
 }
 
-func CheckCron(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) CheckCron(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 
-	res, err := devops.CheckCron(projectName, req.Request)
+	res, err := h.devopsOperator.CheckCron(projectName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -622,51 +602,48 @@ func CheckCron(req *restful.Request, resp *restful.Response) {
 	resp.WriteAsJson(res)
 }
 
-func ToJenkinsfile(req *restful.Request, resp *restful.Response) {
-	res, err := devops.ToJenkinsfile(req.Request)
+func (h *ProjectPipelineHandler) ToJenkinsfile(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.ToJenkinsfile(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
 
-func ToJson(req *restful.Request, resp *restful.Response) {
-	res, err := devops.ToJson(req.Request)
+func (h *ProjectPipelineHandler) ToJson(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.ToJson(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
 
-func GetNotifyCommit(req *restful.Request, resp *restful.Response) {
-	res, err := devops.GetNotifyCommit(req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-	resp.Write(res)
-}
 
-func PostNotifyCommit(req *restful.Request, resp *restful.Response) {
-	res, err := devops.GetNotifyCommit(req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-	resp.Write(res)
-}
-func GithubWebhook(req *restful.Request, resp *restful.Response) {
-	res, err := devops.GithubWebhook(req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-	resp.Write(res)
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func parseErr(err error, resp *restful.Response) {
 	log.Error(err)

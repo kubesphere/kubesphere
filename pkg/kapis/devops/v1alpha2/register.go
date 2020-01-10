@@ -690,31 +690,18 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.SCMServer{}).
 		Writes(devops.SCMServer{}))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
+	webservice.Route(webservice.POST("/scms/{scm}/verify").
+		To(handler.Validate).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
+		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
+		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
+		Returns(http.StatusOK, RespOK, devops.Validates{}).
+		Writes(devops.Validates{}))
 
 	// match /git/notifyCommit/?url=
 	webservice.Route(webservice.GET("/webhook/git").
-		To(GetNotifyCommit).
+		To(handler.GetNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 		Produces("text/plain; charset=utf-8").
@@ -724,7 +711,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
 	webservice.Route(webservice.POST("/webhook/git").
-		To(PostNotifyCommit).
+		To(handler.PostNotifyCommit).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
 		Consumes("application/json").
@@ -734,30 +721,13 @@ The last one is encrypted info, such as the password of the username-password ty
 			DataFormat("url=%s")))
 
 	webservice.Route(webservice.POST("/webhook/github").
-		To(GithubWebhook).
+		To(handler.GithubWebhook).
 		Consumes("application/x-www-form-urlencoded", "application/json").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification. Github webhook will request here."))
 
-
-
-
-
-
-
-
-
-	// match "/blue/rest/organizations/jenkins/scm/github/validate/"
-	webservice.Route(webservice.POST("/scms/{scm}/verify").
-		To(Validate).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("Validate the access token of the specified source configuration management (SCM) such as Github").
-		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
-		Returns(http.StatusOK, RespOK, devops.Validates{}).
-		Writes(devops.Validates{}))
-
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/checkScriptCompile").
-		To(CheckScriptCompile).
+		To(handler.CheckScriptCompile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.QueryParameter("pipeline", "the name of the CI/CD pipeline").
@@ -771,7 +741,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Writes(devops.CheckScript{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/checkCron").
-		To(CheckCron).
+		To(handler.CheckCron).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
@@ -781,14 +751,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.CheckCronRes{}).
 		Writes(devops.CheckCronRes{}))
 
-
-
-
-
-
 	// match /pipeline-model-converter/toJenkinsfile
 	webservice.Route(webservice.POST("/tojenkinsfile").
-		To(ToJenkinsfile).
+		To(handler.ToJenkinsfile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -799,7 +764,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /pipeline-model-converter/toJson
 	webservice.Route(webservice.POST("/tojson").
-		To(ToJson).
+		To(handler.ToJson).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsfileTag}).
 		Consumes("application/x-www-form-urlencoded").
 		Produces("application/json", "charset=utf-8").
@@ -807,6 +772,35 @@ The last one is encrypted info, such as the password of the username-password ty
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -2,9 +2,13 @@ package jenkins
 
 import (
 	"encoding/json"
+	"github.com/PuerkitoBio/goquery"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 )
 
 type Pipeline struct {
@@ -45,10 +49,18 @@ const (
 	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
 	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
 	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	ValidateUrl              = "/blue/rest/organizations/jenkins/scm/%s/validate"
 
+	GetNotifyCommitUrl    = "/git/notifyCommit/?"
+	GithubWebhookUrl      = "/github-webhook/"
+	CheckScriptCompileUrl = "/job/%s/job/%s/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile"
 
+	CheckPipelienCronUrl = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
+	CheckCronUrl         = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
+	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
+	ToJsonUrl                = "/pipeline-model-converter/toJson"
 
-
+	cronJobLayout = "Monday, January 2, 2006 15:04:05 PM"
 )
 
 func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
@@ -448,7 +460,7 @@ func (p *Pipeline) GetConsoleLog() ([]byte, error) {
 	return res, err
 }
 
-func (p *Pipeline) GetCrumb()(*devops.Crumb, error){
+func (p *Pipeline) GetCrumb() (*devops.Crumb, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -463,7 +475,7 @@ func (p *Pipeline) GetCrumb()(*devops.Crumb, error){
 	return &crumb, err
 }
 
-func (p *Pipeline)GetSCMServers()([]devops.SCMServer, error){
+func (p *Pipeline) GetSCMServers() ([]devops.SCMServer, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -478,7 +490,7 @@ func (p *Pipeline)GetSCMServers()([]devops.SCMServer, error){
 	return SCMServer, err
 }
 
-func (p *Pipeline) GetSCMOrg()([]devops.SCMOrg, error){
+func (p *Pipeline) GetSCMOrg() ([]devops.SCMOrg, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -493,7 +505,7 @@ func (p *Pipeline) GetSCMOrg()([]devops.SCMOrg, error){
 	return SCMOrg, err
 }
 
-func (p *Pipeline) GetOrgRepo ()([]devops.OrgRepo, error){
+func (p *Pipeline) GetOrgRepo() ([]devops.OrgRepo, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -508,7 +520,7 @@ func (p *Pipeline) GetOrgRepo ()([]devops.OrgRepo, error){
 	return OrgRepo, err
 }
 
-func (p *Pipeline) CreateSCMServers()(*devops.SCMServer, error){
+func (p *Pipeline) CreateSCMServers() (*devops.SCMServer, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -521,4 +533,172 @@ func (p *Pipeline) CreateSCMServers()(*devops.SCMServer, error){
 	}
 
 	return &SCMServer, err
+}
+
+func (p *Pipeline) GetNotifyCommit() ([]byte, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, err
+}
+
+func (p *Pipeline) GithubWebhook() ([]byte, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, err
+}
+
+func (p *Pipeline) Validate() (*devops.Validates, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	var validates devops.Validates
+	err = json.Unmarshal(res, &validates)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &validates, err
+}
+
+func (p *Pipeline) CheckScriptCompile() (*devops.CheckScript, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	// Jenkins will return different struct according to different results.
+	var checkScript devops.CheckScript
+	ok := json.Unmarshal(res, &checkScript)
+	if ok != nil {
+		var resJson []*devops.CheckScript
+		err := json.Unmarshal(res, &resJson)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		return resJson[0], nil
+	}
+
+	return &checkScript, err
+
+}
+
+func (p *Pipeline) CheckCron() (*devops.CheckCronRes, error) {
+
+	var res = new(devops.CheckCronRes)
+
+	Url, err := url.Parse(p.Jenkins.Server + p.Path)
+
+	reqJenkins := &http.Request{
+		Method: http.MethodGet,
+		URL:    Url,
+		Header: p.HttpParameters.Header,
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	resp, err := client.Do(reqJenkins)
+
+	if resp != nil && resp.StatusCode != http.StatusOK {
+		resBody, _ := getRespBody(resp)
+		return &devops.CheckCronRes{
+			Result:  "error",
+			Message: string(resBody),
+		}, err
+	}
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	doc.Find("div").Each(func(i int, selection *goquery.Selection) {
+		res.Message = selection.Text()
+		res.Result, _ = selection.Attr("class")
+	})
+	if res.Result == "ok" {
+		res.LastTime, res.NextTime, err = parseCronJobTime(res.Message)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+	}
+
+	return res, err
+}
+
+func parseCronJobTime(msg string) (string, string, error) {
+
+	times := strings.Split(msg, ";")
+
+	lastTmp := strings.Split(times[0], " ")
+	lastCount := len(lastTmp)
+	lastTmp = lastTmp[lastCount-7 : lastCount-1]
+	lastTime := strings.Join(lastTmp, " ")
+	lastUinx, err := time.Parse(cronJobLayout, lastTime)
+	if err != nil {
+		klog.Error(err)
+		return "", "", err
+	}
+	last := lastUinx.Format(time.RFC3339)
+
+	nextTmp := strings.Split(times[1], " ")
+	nextCount := len(nextTmp)
+	nextTmp = nextTmp[nextCount-7 : nextCount-1]
+	nextTime := strings.Join(nextTmp, " ")
+	nextUinx, err := time.Parse(cronJobLayout, nextTime)
+	if err != nil {
+		klog.Error(err)
+		return "", "", err
+	}
+	next := nextUinx.Format(time.RFC3339)
+
+	return last, next, nil
+}
+
+func (p *Pipeline) ToJenkinsfile()(*devops.ResJenkinsfile, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	var jenkinsfile devops.ResJenkinsfile
+	err = json.Unmarshal(res, &jenkinsfile)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &jenkinsfile, err
+}
+
+func (p *Pipeline) ToJson()(*devops.ResJson, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	var toJson devops.ResJson
+	err = json.Unmarshal(res, &toJson)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &toJson, err
 }

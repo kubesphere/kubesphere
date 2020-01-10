@@ -1158,4 +1158,14 @@ type PipelineOperator interface {
 	GetSCMOrg(scmId string, httpParameters *HttpParameters) ([]SCMOrg, error)
 	GetOrgRepo(scmId, organizationId string, httpParameters *HttpParameters) ([]OrgRepo, error)
 	CreateSCMServers(scmId string, httpParameters *HttpParameters) (*SCMServer, error)
+	Validate(scmId string, httpParameters *HttpParameters) (*Validates, error)
+
+	//Webhook operator interface
+	GetNotifyCommit(httpParameters *HttpParameters) ([]byte, error)
+	GithubWebhook(httpParameters *HttpParameters) ([]byte, error)
+
+	CheckScriptCompile(projectName, pipelineName string, httpParameters *HttpParameters) (*CheckScript, error)
+	CheckCron(projectName string, httpParameters *HttpParameters) (*CheckCronRes, error)
+	ToJenkinsfile(httpParameters *HttpParameters) (*ResJenkinsfile, error)
+	ToJson(httpParameters *HttpParameters) (*ResJson, error)
 }

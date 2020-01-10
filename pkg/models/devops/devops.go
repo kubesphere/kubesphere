@@ -22,25 +22,20 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/emicklei/go-restful"
 	"io"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 
 	"k8s.io/klog"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
 	channelMaxCapacity = 100
-	cronJobLayout      = "Monday, January 2, 2006 15:04:05 PM"
 )
 
 type DevopsOperator interface {
@@ -70,7 +65,7 @@ type DevopsOperator interface {
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]devops.NodeSteps, error)
 	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error)
-	GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error)
+	GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.NodesDetail, error)
 	GetPipelineBranch(projectName, pipelineName string, req *http.Request) (*devops.PipelineBranch, error)
 	ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, error)
 
@@ -81,6 +76,16 @@ type DevopsOperator interface {
 	GetSCMOrg(scmId string, req *http.Request) ([]devops.SCMOrg, error)
 	GetOrgRepo(scmId, organizationId string, req *http.Request) ([]devops.OrgRepo, error)
 	CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error)
+	Validate(scmId string, req *http.Request) (*devops.Validates, error)
+
+	GetNotifyCommit(req *http.Request) ([]byte, error)
+	GithubWebhook(req *http.Request) ([]byte, error)
+
+	CheckScriptCompile(projectName, pipelineName string, req *http.Request) (*devops.CheckScript, error)
+	CheckCron(projectName string, req *http.Request) (*devops.CheckCronRes, error)
+
+	ToJenkinsfile(req *http.Request) (*devops.ResJenkinsfile, error)
+	ToJson(req *http.Request) (*devops.ResJson, error)
 }
 
 type devopsOperator struct {
@@ -596,7 +601,6 @@ func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Reque
 	return res, err
 }
 
-
 func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error) {
 
 	requestBody, err := ioutil.ReadAll(req.Body)
@@ -635,46 +639,96 @@ func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devo
 	return resBody, err
 }
 
+func (d devopsOperator) Validate(scmId string, req *http.Request) (*devops.Validates, error) {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-func Validate(scmId string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ValidateUrl, scmId)
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ValidateUrl, scmId)
 
 	req.Method = http.MethodPut
-	resBody, err := sendJenkinsRequest(baseUrl, req)
+	resBody, err := d.devopsClient.Validate(scmId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	return resBody, err
+}
+
+func (d devopsOperator) GetNotifyCommit(req *http.Request) ([]byte, error) {
+
+	//baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GetNotifyCommitUrl, req.URL.RawQuery)
+	req.Method = http.MethodGet
+
+	res, err := d.devopsClient.GetNotifyCommit(convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func (d devopsOperator) GithubWebhook(req *http.Request) ([]byte, error) {
+
+	//baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GithubWebhookUrl, req.URL.RawQuery)
+
+	res, err := d.devopsClient.GithubWebhook(convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func (d devopsOperator) CheckScriptCompile(projectName, pipelineName string, req *http.Request) (*devops.CheckScript, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CheckScriptCompileUrl, projectName, pipelineName)
+
+	resBody, err := d.devopsClient.CheckScriptCompile(projectName, pipelineName, convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+func (d devopsOperator) CheckCron(projectName string, req *http.Request) (*devops.CheckCronRes, error) {
+
+	res, err := d.devopsClient.CheckCron(projectName,convertToHttpParameters(req))
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func (d devopsOperator) ToJenkinsfile(req *http.Request) (*devops.ResJenkinsfile, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJenkinsfileUrl)
+
+	res, err := d.devopsClient.ToJenkinsfile(convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+func (d devopsOperator) ToJson(req *http.Request) (*devops.ResJson, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJsonUrl)
+
+	res, err := d.devopsClient.ToJson(convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
 }
 
 func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error) {
@@ -714,292 +768,4 @@ func parseBody(body io.Reader) (newReqBody io.ReadCloser) {
 		rc = ioutil.NopCloser(body)
 	}
 	return rc
-}
-
-func CheckScriptCompile(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CheckScriptCompileUrl, projectName, pipelineName)
-
-	resBody, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return resBody, err
-}
-
-func CheckCron(projectName string, req *http.Request) (*CheckCronRes, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	jenkins := jenkins.Jenkins()
-
-	var res = new(CheckCronRes)
-	var cron = new(CronData)
-	var reader io.ReadCloser
-	var baseUrl string
-
-	reader = req.Body
-	cronData, err := ioutil.ReadAll(reader)
-	json.Unmarshal(cronData, cron)
-
-	if cron.PipelineName != "" {
-		baseUrl = fmt.Sprintf(jenkins.Server+CheckPipelienCronUrl, projectName, cron.PipelineName, cron.Cron)
-	} else {
-		baseUrl = fmt.Sprintf(jenkins.Server+CheckCronUrl, projectName, cron.Cron)
-	}
-
-	newUrl, err := url.Parse(baseUrl)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	newUrl.RawQuery = newUrl.Query().Encode()
-
-	reqJenkins := &http.Request{
-		Method: http.MethodGet,
-		URL:    newUrl,
-		Header: req.Header,
-	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-
-	resp, err := client.Do(reqJenkins)
-
-	if resp != nil && resp.StatusCode != http.StatusOK {
-		resBody, _ := getRespBody(resp)
-		return &CheckCronRes{
-			Result:  "error",
-			Message: string(resBody),
-		}, err
-	}
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	doc.Find("div").Each(func(i int, selection *goquery.Selection) {
-		res.Message = selection.Text()
-		res.Result, _ = selection.Attr("class")
-	})
-	if res.Result == "ok" {
-		res.LastTime, res.NextTime, err = parseCronJobTime(res.Message)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-	}
-
-	return res, err
-}
-
-func parseCronJobTime(msg string) (string, string, error) {
-
-	times := strings.Split(msg, ";")
-
-	lastTmp := strings.Split(times[0], " ")
-	lastCount := len(lastTmp)
-	lastTmp = lastTmp[lastCount-7 : lastCount-1]
-	lastTime := strings.Join(lastTmp, " ")
-	lastUinx, err := time.Parse(cronJobLayout, lastTime)
-	if err != nil {
-		klog.Error(err)
-		return "", "", err
-	}
-	last := lastUinx.Format(time.RFC3339)
-
-	nextTmp := strings.Split(times[1], " ")
-	nextCount := len(nextTmp)
-	nextTmp = nextTmp[nextCount-7 : nextCount-1]
-	nextTime := strings.Join(nextTmp, " ")
-	nextUinx, err := time.Parse(cronJobLayout, nextTime)
-	if err != nil {
-		klog.Error(err)
-		return "", "", err
-	}
-	next := nextUinx.Format(time.RFC3339)
-
-	return last, next, nil
-}
-
-func ToJenkinsfile(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJenkinsfileUrl)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func ToJson(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + ToJsonUrl)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func GetNotifyCommit(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GetNotifyCommitUrl, req.URL.RawQuery)
-	req.Method = "GET"
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func GithubWebhook(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprint(jenkins.Jenkins().Server, GithubWebhookUrl, req.URL.RawQuery)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-// create jenkins request
-func sendJenkinsRequest(baseUrl string, req *http.Request) ([]byte, error) {
-	resBody, _, err := jenkinsClient(baseUrl, req)
-	return resBody, err
-}
-
-func jenkinsClient(baseUrl string, req *http.Request) ([]byte, http.Header, error) {
-	newReqUrl, err := url.Parse(baseUrl)
-	if err != nil {
-		klog.Error(err)
-		return nil, nil, err
-	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-
-	newRequest := &http.Request{
-		Method:   req.Method,
-		URL:      newReqUrl,
-		Header:   req.Header,
-		Body:     req.Body,
-		Form:     req.Form,
-		PostForm: req.PostForm,
-	}
-
-	resp, err := client.Do(newRequest)
-	if err != nil {
-		klog.Error(err)
-		return nil, nil, err
-	}
-
-	resBody, _ := getRespBody(resp)
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		klog.Errorf("%+v", string(resBody))
-		jkerr := new(JkError)
-		jkerr.Code = resp.StatusCode
-		jkerr.Message = string(resBody)
-		return nil, nil, jkerr
-	}
-
-	return resBody, resp.Header, nil
-
-}
-
-// Decompress response.body of JenkinsAPIResponse
-func getRespBody(resp *http.Response) ([]byte, error) {
-	var reader io.ReadCloser
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		reader, _ = gzip.NewReader(resp.Body)
-	} else {
-		reader = resp.Body
-	}
-	resBody, err := ioutil.ReadAll(reader)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	return resBody, err
-
-}
-
-// parseJenkinsQuery Parse the special query of jenkins.
-// ParseQuery in the standard library makes the query not re-encode
-func parseJenkinsQuery(query string) (url.Values, error) {
-	m := make(url.Values)
-	err := error(nil)
-	for query != "" {
-		key := query
-		if i := strings.IndexAny(key, "&"); i >= 0 {
-			key, query = key[:i], key[i+1:]
-		} else {
-			query = ""
-		}
-		if key == "" {
-			continue
-		}
-		value := ""
-		if i := strings.Index(key, "="); i >= 0 {
-			key, value = key[:i], key[i+1:]
-		}
-		key, err1 := url.QueryUnescape(key)
-		if err1 != nil {
-			if err == nil {
-				err = err1
-			}
-			continue
-		}
-		value, err1 = url.QueryUnescape(value)
-		if err1 != nil {
-			if err == nil {
-				err = err1
-			}
-			continue
-		}
-		m[key] = append(m[key], value)
-	}
-	return m, err
 }
