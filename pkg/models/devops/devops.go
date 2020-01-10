@@ -19,7 +19,6 @@ package devops
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,9 +28,7 @@ import (
 
 	"k8s.io/klog"
 	"net/http"
-	"net/url"
 	"sync"
-	"time"
 )
 
 const (
@@ -732,11 +729,11 @@ func (d devopsOperator) ToJson(req *http.Request) (*devops.ResJson, error) {
 }
 
 func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error) {
-	var checkBody CheckPlayload
+	var checkBody devops.CheckPlayload
 	var jsonBody []byte
 	var workRound struct {
 		ID         string                    `json:"id,omitempty" description:"id"`
-		Parameters []CheckPlayloadParameters `json:"parameters"`
+		Parameters []devops.CheckPlayloadParameters `json:"parameters"`
 		Abort      bool                      `json:"abort,omitempty" description:"abort or not"`
 	}
 
@@ -749,7 +746,7 @@ func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error
 	err = json.Unmarshal(Body, &checkBody)
 
 	if checkBody.Abort != true && checkBody.Parameters == nil {
-		workRound.Parameters = []CheckPlayloadParameters{}
+		workRound.Parameters = []devops.CheckPlayloadParameters{}
 		workRound.ID = checkBody.ID
 		jsonBody, _ = json.Marshal(workRound)
 	} else {
