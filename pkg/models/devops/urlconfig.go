@@ -24,8 +24,6 @@ const (
 	ValidateUrl              = "/blue/rest/organizations/jenkins/scm/%s/validate"
 	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
 	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
-	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
-	GetCrumbUrl              = "/crumbIssuer/api/json/"
 	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
 	GetNotifyCommitUrl       = "/git/notifyCommit/?"
@@ -61,6 +59,9 @@ const (
 	CheckBranchPipelineUrl   = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
 	GetPipeBranchUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/?"
 	ScanBranchUrl            = "/job/%s/job/%s/build?"
+	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
+	GetCrumbUrl              = "/crumbIssuer/api/json/"
+
 
 
 

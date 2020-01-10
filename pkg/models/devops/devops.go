@@ -71,9 +71,11 @@ type DevopsOperator interface {
 	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error)
 	GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error)
-
 	GetPipelineBranch(projectName, pipelineName string, req *http.Request) (*devops.PipelineBranch, error)
 	ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, error)
+
+	GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte, error)
+	GetCrumb(req *http.Request) (*devops.Crumb, error)
 }
 
 type devopsOperator struct {
@@ -527,9 +529,30 @@ func (d devopsOperator) ScanBranch(projectName, pipelineName string, req *http.R
 	return resBody, err
 }
 
+func (d devopsOperator) GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetConsoleLogUrl+req.URL.RawQuery, projectName, pipelineName)
 
+	resBody, err := d.devopsClient.GetConsoleLog(projectName, pipelineName, convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
 
+	return resBody, err
+}
 
+func (d devopsOperator) GetCrumb(req *http.Request) (*devops.Crumb, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + GetCrumbUrl)
+
+	res, err := d.devopsClient.GetCrumb(convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
 
 
 
@@ -705,40 +728,6 @@ func parseBody(body io.Reader) (newReqBody io.ReadCloser) {
 		rc = ioutil.NopCloser(body)
 	}
 	return rc
-}
-
-func GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetConsoleLogUrl+req.URL.RawQuery, projectName, pipelineName)
-
-	resBody, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return resBody, err
-}
-
-func GetCrumb(req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server + GetCrumbUrl)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
 }
 
 func CheckScriptCompile(projectName, pipelineName string, req *http.Request) ([]byte, error) {

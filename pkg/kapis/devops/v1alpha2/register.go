@@ -634,7 +634,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match /crumbIssuer/api/json/
 	webservice.Route(webservice.GET("/crumbissuer").
-		To(GetCrumb).
+		To(handler.GetCrumb).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get crumb issuer. A CrumbIssuer represents an algorithm to generate a nonce value, known as a crumb, to counter cross site request forgery exploits. Crumbs are typically hashes incorporating information that uniquely identifies an agent that sends a request, along with a guarded secret so that the crumb value cannot be forged by a third party.").
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).

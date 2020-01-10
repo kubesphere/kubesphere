@@ -1148,4 +1148,8 @@ type PipelineOperator interface {
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 	GetPipelineBranch(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineBranch, error)
 	ScanBranch(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
+
+	// Common pipeline operator interface
+	GetConsoleLog(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
+	GetCrumb(httpParameters *HttpParameters) (*Crumb, error)
 }

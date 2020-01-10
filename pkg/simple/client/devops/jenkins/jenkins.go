@@ -621,6 +621,26 @@ func (j *Jenkins) ScanBranch(projectName, pipelineName string, httpParameters *d
 	return res, err
 }
 
+func (j *Jenkins) GetConsoleLog(projectName, pipelineName string, httpParameters *devops.HttpParameters) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetConsoleLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName),
+	}
+	res, err := PipelineOjb.GetConsoleLog()
+	return res, err
+}
+
+func (j *Jenkins) GetCrumb(httpParameters *devops.HttpParameters) (*devops.Crumb, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetCrumbUrl),
+	}
+	res, err := PipelineOjb.GetCrumb()
+	return res, err
+}
+
 // Creates a new Jenkins Instance
 // Optional parameters are: client, username, password
 // After creating an instance call init method.

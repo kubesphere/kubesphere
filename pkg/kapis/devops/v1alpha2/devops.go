@@ -455,7 +455,7 @@ func (h *ProjectPipelineHandler) GetConsoleLog(req *restful.Request, resp *restf
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 
-	res, err := devops.GetConsoleLog(projectName, pipelineName, req.Request)
+	res, err := h.devopsOperator.GetConsoleLog(projectName, pipelineName, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
@@ -464,7 +464,16 @@ func (h *ProjectPipelineHandler) GetConsoleLog(req *restful.Request, resp *restf
 	resp.Write(res)
 }
 
+func (h *ProjectPipelineHandler) GetCrumb(req *restful.Request, resp *restful.Response) {
+	res, err := h.devopsOperator.GetCrumb(req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
 
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
 
 
 
@@ -561,17 +570,6 @@ func GetOrgRepo(req *restful.Request, resp *restful.Response) {
 	organizationId := req.PathParameter("organization")
 
 	res, err := devops.GetOrgRepo(scmId, organizationId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func GetCrumb(req *restful.Request, resp *restful.Response) {
-	res, err := devops.GetCrumb(req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
