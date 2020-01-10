@@ -47,3 +47,11 @@ func ParseSvcErr(err error, resp *restful.Response) {
 		resp.WriteHeaderAndEntity(http.StatusInternalServerError, Wrap(err))
 	}
 }
+
+func GetServiceErrorCode(err error) int {
+	if svcErr, ok := err.(restful.ServiceError); ok {
+		return svcErr.Code
+	} else {
+		return http.StatusInternalServerError
+	}
+}
