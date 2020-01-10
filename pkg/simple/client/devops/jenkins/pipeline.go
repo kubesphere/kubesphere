@@ -57,8 +57,8 @@ const (
 
 	CheckPipelienCronUrl = "/job/%s/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
 	CheckCronUrl         = "/job/%s/descriptorByName/hudson.triggers.TimerTrigger/checkSpec?value=%s"
-	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
-	ToJsonUrl                = "/pipeline-model-converter/toJson"
+	ToJenkinsfileUrl     = "/pipeline-model-converter/toJenkinsfile"
+	ToJsonUrl            = "/pipeline-model-converter/toJson"
 
 	cronJobLayout = "Monday, January 2, 2006 15:04:05 PM"
 )
@@ -671,7 +671,7 @@ func parseCronJobTime(msg string) (string, string, error) {
 	return last, next, nil
 }
 
-func (p *Pipeline) ToJenkinsfile()(*devops.ResJenkinsfile, error){
+func (p *Pipeline) ToJenkinsfile() (*devops.ResJenkinsfile, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -687,7 +687,7 @@ func (p *Pipeline) ToJenkinsfile()(*devops.ResJenkinsfile, error){
 	return &jenkinsfile, err
 }
 
-func (p *Pipeline) ToJson()(*devops.ResJson, error){
+func (p *Pipeline) ToJson() (*devops.ResJson, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)

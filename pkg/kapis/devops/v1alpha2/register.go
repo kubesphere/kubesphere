@@ -773,46 +773,6 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
 		To(UploadS2iBinary).
 		Consumes("multipart/form-data").
@@ -832,8 +792,6 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
 		Param(webservice.PathParameter("file", "the name of binary file")).
 		Returns(http.StatusOK, RespOK, nil))
-
-
 
 	c.Add(webservice)
 

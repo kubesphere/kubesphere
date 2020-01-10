@@ -1,7 +1,6 @@
 package devops
 
 type Interface interface {
-
 	CredentialOperator
 
 	BuildGetter
@@ -11,5 +10,4 @@ type Interface interface {
 	ProjectMemberOperator
 
 	ProjectPipelineOperator
-
 }

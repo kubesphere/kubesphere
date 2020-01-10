@@ -714,7 +714,7 @@ func (j *Jenkins) Validate(scmId string, httpParameters *devops.HttpParameters) 
 	return res, err
 }
 
-func (j *Jenkins) CheckScriptCompile(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.CheckScript, error){
+func (j *Jenkins) CheckScriptCompile(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.CheckScript, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
@@ -724,7 +724,7 @@ func (j *Jenkins) CheckScriptCompile(projectName, pipelineName string, httpParam
 	return res, err
 }
 
-func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParameters) (*devops.CheckCronRes, error){
+func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParameters) (*devops.CheckCronRes, error) {
 	var cron = new(devops.CronData)
 	var reader io.ReadCloser
 	var path string
@@ -745,15 +745,15 @@ func (j *Jenkins) CheckCron(projectName string, httpParameters *devops.HttpParam
 
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
-		Jenkins: j,
-		Path: path,
+		Jenkins:        j,
+		Path:           path,
 	}
 
 	res, err := PipelineOjb.CheckCron()
 	return res, err
 }
 
-func (j *Jenkins) ToJenkinsfile(httpParameters *devops.HttpParameters) (*devops.ResJenkinsfile, error){
+func (j *Jenkins) ToJenkinsfile(httpParameters *devops.HttpParameters) (*devops.ResJenkinsfile, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
@@ -763,7 +763,7 @@ func (j *Jenkins) ToJenkinsfile(httpParameters *devops.HttpParameters) (*devops.
 	return res, err
 }
 
-func (j *Jenkins) ToJson(httpParameters *devops.HttpParameters) (*devops.ResJson, error){
+func (j *Jenkins) ToJson(httpParameters *devops.HttpParameters) (*devops.ResJson, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,

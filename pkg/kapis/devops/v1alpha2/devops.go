@@ -393,7 +393,7 @@ func (h *ProjectPipelineHandler) GetBranchPipelineRunNodes(req *restful.Request,
 	resp.WriteAsJson(res)
 }
 
-func (h *ProjectPipelineHandler)SubmitBranchInputStep(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 	branchName := req.PathParameter("branch")
@@ -410,7 +410,7 @@ func (h *ProjectPipelineHandler)SubmitBranchInputStep(req *restful.Request, resp
 	resp.Write(res)
 }
 
-func (h *ProjectPipelineHandler)GetBranchNodesDetail(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) GetBranchNodesDetail(req *restful.Request, resp *restful.Response) {
 	projectName := req.PathParameter("devops")
 	pipelineName := req.PathParameter("pipeline")
 	branchName := req.PathParameter("branch")
@@ -621,29 +621,6 @@ func (h *ProjectPipelineHandler) ToJson(req *restful.Request, resp *restful.Resp
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 func parseErr(err error, resp *restful.Response) {
 	log.Error(err)

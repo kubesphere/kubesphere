@@ -1085,7 +1085,7 @@ type ResJson struct {
 
 type NodesDetail struct {
 	PipelineRunNodes
-	Steps       []NodeSteps `json:"steps,omitempty" description:"steps"`
+	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
 }
 
 type NodesStepsIndex struct {
