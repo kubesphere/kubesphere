@@ -475,60 +475,90 @@ func (h *ProjectPipelineHandler) GetCrumb(req *restful.Request, resp *restful.Re
 	resp.WriteAsJson(res)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-func GetSCMServers(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) GetSCMServers(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
 
-	res, err := devops.GetSCMServers(scmId, req.Request)
+	res, err := h.devopsOperator.GetSCMServers(scmId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
 
-func CreateSCMServers(req *restful.Request, resp *restful.Response) {
+func (h *ProjectPipelineHandler) GetSCMOrg(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
 
-	res, err := devops.CreateSCMServers(scmId, req.Request)
+	res, err := h.devopsOperator.GetSCMOrg(scmId, req.Request)
 	if err != nil {
 		parseErr(err, resp)
 		return
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
+	resp.WriteAsJson(res)
 }
+
+func (h *ProjectPipelineHandler) GetOrgRepo(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scm")
+	organizationId := req.PathParameter("organization")
+
+	res, err := h.devopsOperator.GetOrgRepo(scmId, organizationId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+
+
+
+func (h *ProjectPipelineHandler) CreateSCMServers(req *restful.Request, resp *restful.Response) {
+	scmId := req.PathParameter("scm")
+
+	res, err := h.devopsOperator.CreateSCMServers(scmId, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func Validate(req *restful.Request, resp *restful.Response) {
 	scmId := req.PathParameter("scm")
@@ -545,33 +575,6 @@ func Validate(req *restful.Request, resp *restful.Response) {
 		} else {
 			resp.WriteError(http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func GetSCMOrg(req *restful.Request, resp *restful.Response) {
-	scmId := req.PathParameter("scm")
-
-	res, err := devops.GetSCMOrg(scmId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func GetOrgRepo(req *restful.Request, resp *restful.Response) {
-	scmId := req.PathParameter("scm")
-	organizationId := req.PathParameter("organization")
-
-	res, err := devops.GetOrgRepo(scmId, organizationId, req.Request)
-	if err != nil {
-		parseErr(err, resp)
 		return
 	}
 

@@ -640,15 +640,18 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.Crumb{}).
 		Writes(devops.Crumb{}))
 
-
-
-
-
-
+	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	webservice.Route(webservice.GET("/scms/{scm}/servers").
+		To(handler.GetSCMServers).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
+		Doc("List all servers in the jenkins.").
+		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
+		Returns(http.StatusOK, RespOK, []devops.SCMServer{}).
+		Writes([]devops.SCMServer{}))
 
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/?credentialId=github"
 	webservice.Route(webservice.GET("/scms/{scm}/organizations").
-		To(GetSCMOrg).
+		To(handler.GetSCMOrg).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
 		Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
@@ -658,28 +661,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
 		Writes([]devops.SCMOrg{}))
 
-	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
-	webservice.Route(webservice.GET("/scms/{scm}/servers").
-		To(GetSCMServers).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("List all servers in the jenkins.").
-		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
-		Returns(http.StatusOK, RespOK, []devops.SCMServer{}).
-		Writes([]devops.SCMServer{}))
-
-	// match "/blue/rest/organizations/jenkins/scm/%s/servers/"
-	webservice.Route(webservice.POST("/scms/{scm}/servers").
-		To(CreateSCMServers).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
-		Doc("Create scm server in the jenkins.").
-		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
-		Reads(devops.CreateScmServerReq{}).
-		Returns(http.StatusOK, RespOK, devops.SCMServer{}).
-		Writes(devops.SCMServer{}))
-
 	// match "/blue/rest/organizations/jenkins/scm/{scm}/organizations/{organization}/repositories/?credentialId=&pageNumber&pageSize="
 	webservice.Route(webservice.GET("/scms/{scm}/organizations/{organization}/repositories").
-		To(GetOrgRepo).
+		To(handler.GetOrgRepo).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 		Doc("List all repositories in the specified organization.").
 		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
@@ -695,6 +679,31 @@ The last one is encrypted info, such as the password of the username-password ty
 			DataFormat("pageSize=%d")).
 		Returns(http.StatusOK, RespOK, []devops.OrgRepo{}).
 		Writes([]devops.OrgRepo{}))
+
+	// match "/blue/rest/organizations/jenkins/scm/%s/servers/" create bitbucket server
+	webservice.Route(webservice.POST("/scms/{scm}/servers").
+		To(handler.CreateSCMServers).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
+		Doc("Create scm server in the jenkins.").
+		Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
+		Reads(devops.CreateScmServerReq{}).
+		Returns(http.StatusOK, RespOK, devops.SCMServer{}).
+		Writes(devops.SCMServer{}))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

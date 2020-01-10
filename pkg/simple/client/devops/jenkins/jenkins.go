@@ -635,9 +635,49 @@ func (j *Jenkins) GetCrumb(httpParameters *devops.HttpParameters) (*devops.Crumb
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
-		Path:           fmt.Sprintf(GetCrumbUrl),
+		Path:           GetCrumbUrl,
 	}
 	res, err := PipelineOjb.GetCrumb()
+	return res, err
+}
+
+func (j *Jenkins) GetSCMServers(scmId string, httpParameters *devops.HttpParameters) ([]devops.SCMServer, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           GetSCMServersUrl,
+	}
+	res, err := PipelineOjb.GetSCMServers()
+	return res, err
+}
+
+func (j *Jenkins) GetSCMOrg(scmId string, httpParameters *devops.HttpParameters) ([]devops.SCMOrg, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetSCMOrgUrl+httpParameters.Url.RawQuery, scmId),
+	}
+	res, err := PipelineOjb.GetSCMOrg()
+	return res, err
+}
+
+func (j *Jenkins) GetOrgRepo(scmId, organizationId string, httpParameters *devops.HttpParameters) ([]devops.OrgRepo, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetOrgRepoUrl+httpParameters.Url.RawQuery, scmId, organizationId),
+	}
+	res, err := PipelineOjb.GetOrgRepo()
+	return res, err
+}
+
+func (j *Jenkins) CreateSCMServers(scmId string, httpParameters *devops.HttpParameters) (*devops.SCMServer, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(CreateSCMServersUrl, scmId),
+	}
+	res, err := PipelineOjb.CreateSCMServers()
 	return res, err
 }
 

@@ -76,6 +76,11 @@ type DevopsOperator interface {
 
 	GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte, error)
 	GetCrumb(req *http.Request) (*devops.Crumb, error)
+
+	GetSCMServers(scmId string, req *http.Request) ([]devops.SCMServer, error)
+	GetSCMOrg(scmId string, req *http.Request) ([]devops.SCMOrg, error)
+	GetOrgRepo(scmId, organizationId string, req *http.Request) ([]devops.OrgRepo, error)
+	CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error)
 }
 
 type devopsOperator struct {
@@ -554,90 +559,105 @@ func (d devopsOperator) GetCrumb(req *http.Request) (*devops.Crumb, error) {
 	return res, err
 }
 
+func (d devopsOperator) GetSCMServers(scmId string, req *http.Request) ([]devops.SCMServer, error) {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMServersUrl, scmId)
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMServersUrl, scmId)
 	req.Method = http.MethodGet
-	resBody, err := sendJenkinsRequest(baseUrl, req)
+	resBody, err := d.devopsClient.GetSCMServers(scmId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
-		return nil, err
 	}
 	return resBody, err
 }
 
-func CreateSCMServers(scmId string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
+func (d devopsOperator) GetSCMOrg(scmId string, req *http.Request) ([]devops.SCMOrg, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMOrgUrl+req.URL.RawQuery, scmId)
+
+	res, err := d.devopsClient.GetSCMOrg(scmId, convertToHttpParameters(req))
 	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
+		klog.Error(err)
+		return nil, err
 	}
+
+	return res, err
+}
+
+func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Request) ([]devops.OrgRepo, error) {
+
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
+
+	res, err := d.devopsClient.GetOrgRepo(scmId, organizationId, convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return res, err
+}
+
+
+func (d devopsOperator) CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error) {
 
 	requestBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	createReq := &CreateScmServerReq{}
+	createReq := &devops.CreateScmServerReq{}
 	err = json.Unmarshal(requestBody, createReq)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 	req.Body = nil
-	byteServers, err := GetSCMServers(scmId, req)
+	servers, err := d.GetSCMServers(scmId, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	var servers []*SCMServer
-	_ = json.Unmarshal(byteServers, &servers)
 	for _, server := range servers {
 		if server.ApiURL == createReq.ApiURL {
-			return json.Marshal(server)
+			return &server,nil
 		}
 	}
 	req.Body = ioutil.NopCloser(bytes.NewReader(requestBody))
 
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CreateSCMServersUrl, scmId)
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+CreateSCMServersUrl, scmId)
 
 	req.Method = http.MethodPost
-	resBody, err := sendJenkinsRequest(baseUrl, req)
+	resBody, err := d.devopsClient.CreateSCMServers(scmId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 	return resBody, err
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func Validate(scmId string, req *http.Request) ([]byte, error) {
 	devops, err := cs.ClientSets().Devops()
@@ -655,40 +675,6 @@ func Validate(scmId string, req *http.Request) ([]byte, error) {
 	}
 
 	return resBody, err
-}
-
-func GetSCMOrg(scmId string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetSCMOrgUrl+req.URL.RawQuery, scmId)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
-}
-
-func GetOrgRepo(scmId, organizationId string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetOrgRepoUrl+req.URL.RawQuery, scmId, organizationId)
-
-	res, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return res, err
 }
 
 func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error) {

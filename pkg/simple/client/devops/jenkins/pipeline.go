@@ -41,6 +41,13 @@ const (
 	ScanBranchUrl            = "/job/%s/job/%s/build?"
 	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
 	GetCrumbUrl              = "/crumbIssuer/api/json/"
+	GetSCMServersUrl         = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
+	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
+	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+
+
+
 
 )
 
@@ -454,4 +461,64 @@ func (p *Pipeline) GetCrumb()(*devops.Crumb, error){
 	}
 
 	return &crumb, err
+}
+
+func (p *Pipeline)GetSCMServers()([]devops.SCMServer, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var SCMServer []devops.SCMServer
+	err = json.Unmarshal(res, &SCMServer)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return SCMServer, err
+}
+
+func (p *Pipeline) GetSCMOrg()([]devops.SCMOrg, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var SCMOrg []devops.SCMOrg
+	err = json.Unmarshal(res, &SCMOrg)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return SCMOrg, err
+}
+
+func (p *Pipeline) GetOrgRepo ()([]devops.OrgRepo, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var OrgRepo []devops.OrgRepo
+	err = json.Unmarshal(res, &OrgRepo)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return OrgRepo, err
+}
+
+func (p *Pipeline) CreateSCMServers()(*devops.SCMServer, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var SCMServer devops.SCMServer
+	err = json.Unmarshal(res, &SCMServer)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &SCMServer, err
 }

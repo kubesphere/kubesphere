@@ -1152,4 +1152,10 @@ type PipelineOperator interface {
 	// Common pipeline operator interface
 	GetConsoleLog(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
 	GetCrumb(httpParameters *HttpParameters) (*Crumb, error)
+
+	// SCM operator interface
+	GetSCMServers(scmId string, httpParameters *HttpParameters) ([]SCMServer, error)
+	GetSCMOrg(scmId string, httpParameters *HttpParameters) ([]SCMOrg, error)
+	GetOrgRepo(scmId, organizationId string, httpParameters *HttpParameters) ([]OrgRepo, error)
+	CreateSCMServers(scmId string, httpParameters *HttpParameters) (*SCMServer, error)
 }

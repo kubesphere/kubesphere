@@ -19,11 +19,7 @@ package devops
 
 // Some apis for Jenkins.
 const (
-	GetSCMServersUrl         = "/blue/rest/organizations/jenkins/scm/%s/servers/"
-	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	ValidateUrl              = "/blue/rest/organizations/jenkins/scm/%s/validate"
-	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
-	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
 	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
 	GetNotifyCommitUrl       = "/git/notifyCommit/?"
@@ -61,6 +57,14 @@ const (
 	ScanBranchUrl            = "/job/%s/job/%s/build?"
 	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
 	GetCrumbUrl              = "/crumbIssuer/api/json/"
+
+	GetSCMServersUrl         = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
+	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
+	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
+
+
+
 
 
 
