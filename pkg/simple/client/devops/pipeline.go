@@ -1131,4 +1131,16 @@ type PipelineOperator interface {
 	GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
 	GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]PipelineRunNodes, error)
 	SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
+
+	GetBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*BranchPipeline, error)
+	GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
+	StopBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
+	ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
+	RunBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*RunPipeline, error)
+	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*Artifacts, error)
+	GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]byte, error)
+	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
+	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
+	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*BranchPipelineRunNodes, error)
+	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 }

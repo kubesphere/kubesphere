@@ -25,8 +25,18 @@ const (
 	GetRunLogUrl           = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/log/?"
 	GetStepLogUrl          = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/%s/log/?"
 	GetPipelineRunNodesUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/?"
-	SubmitInputStepUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/%s/"
+	SubmitInputStepUrl     = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/runs/%s/nodes/%s/steps/%s/"
 
+	GetBranchPipelineUrl   = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/"
+	GetBranchPipelineRunUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/"
+	StopBranchPipelineUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/stop/?"
+	ReplayBranchPipelineUrl  = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/replay/"
+	RunBranchPipelineUrl     = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/"
+	GetBranchRunLogUrl       = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/log/?"
+	GetBranchStepLogUrl      = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/log/?"
+	GetBranchNodeStepsUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
+	GetBranchPipeRunNodesUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/?"
+	CheckBranchPipelineUrl   = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
 )
 
 func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
@@ -236,7 +246,7 @@ func (p *Pipeline) GetNodeSteps() (*devops.NodeSteps, error) {
 	return &nodeSteps, err
 }
 
-func (p *Pipeline) GetPipelineRunNodes()([]devops.PipelineRunNodes, error){
+func (p *Pipeline) GetPipelineRunNodes() ([]devops.PipelineRunNodes, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -252,7 +262,7 @@ func (p *Pipeline) GetPipelineRunNodes()([]devops.PipelineRunNodes, error){
 	return pipelineRunNodes, err
 }
 
-func (p *Pipeline) SubmitInputStep()([]byte, error){
+func (p *Pipeline) SubmitInputStep() ([]byte, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
@@ -260,3 +270,136 @@ func (p *Pipeline) SubmitInputStep()([]byte, error){
 
 	return res, err
 }
+
+func (p *Pipeline) GetBranchPipeline() (*devops.BranchPipeline, error) {
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchPipeline devops.BranchPipeline
+	err = json.Unmarshal(res, &branchPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchPipeline, err
+}
+
+func (p *Pipeline) GetBranchPipelineRun()(*devops.PipelineRun, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchPipelineRun devops.PipelineRun
+	err = json.Unmarshal(res, &branchPipelineRun)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchPipelineRun, err
+}
+
+func (p *Pipeline) StopBranchPipeline()(*devops.StopPipeline, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchStopPipeline devops.StopPipeline
+	err = json.Unmarshal(res, &branchStopPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchStopPipeline, err
+}
+
+func (p *Pipeline) ReplayBranchPipeline()(*devops.ReplayPipeline, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchReplayPipeline devops.ReplayPipeline
+	err = json.Unmarshal(res, &branchReplayPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchReplayPipeline, err
+}
+
+func (p *Pipeline) RunBranchPipeline()(*devops.RunPipeline, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchRunPipeline devops.RunPipeline
+	err = json.Unmarshal(res, &branchRunPipeline)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchRunPipeline, err
+}
+
+func (p *Pipeline) GetBranchRunLog()([]byte, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, err
+}
+
+func (p *Pipeline) GetBranchStepLog()([]byte, http.Header, error){
+	res, header, err := p.Jenkins.SendPureRequestWithHeaderResp(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, header, err
+}
+
+func (p *Pipeline) GetBranchNodeSteps()(*devops.NodeSteps, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchNodeSteps devops.NodeSteps
+	err = json.Unmarshal(res, &branchNodeSteps)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchNodeSteps, err
+}
+
+func (p *Pipeline) GetBranchPipelineRunNodes()(*devops.BranchPipelineRunNodes, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var branchPipelineRunNodes devops.BranchPipelineRunNodes
+	err = json.Unmarshal(res, &branchPipelineRunNodes)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &branchPipelineRunNodes, err
+}
+
+func (p *Pipeline) SubmitBranchInputStep()([]byte, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, err
+}
+
