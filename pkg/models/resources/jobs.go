@@ -18,11 +18,9 @@
 package resources
 
 import (
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
 	"time"
@@ -51,8 +49,8 @@ func jobStatus(item *batchv1.Job) string {
 }
 
 // Exactly Match
-func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
-	for k, v := range match {
+func (*jobSearcher) match(kv map[string]string, item *batchv1.Job) bool {
+	for k, v := range kv {
 		switch k {
 		case Status:
 			if jobStatus(item) != v {
@@ -66,18 +64,8 @@ func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 			if v == "false" && k8sutil.IsControlledBy(item.OwnerReferences, s2iRunKind, "") {
 				return false
 			}
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -85,34 +73,12 @@ func (*jobSearcher) match(match map[string]string, item *batchv1.Job) bool {
 	return true
 }
 
-func (*jobSearcher) fuzzy(fuzzy map[string]string, item *batchv1.Job) bool {
-
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*jobSearcher) fuzzy(kv map[string]string, item *batchv1.Job) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
-
 	return true
 }
 
@@ -131,14 +97,15 @@ func jobUpdateTime(item *batchv1.Job) time.Time {
 
 func (*jobSearcher) compare(a, b *batchv1.Job, orderBy string) bool {
 	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
 	case UpdateTime:
-		return jobUpdateTime(a).Before(jobUpdateTime(b))
-	case Name:
-		fallthrough
+		aUpdateTime := jobUpdateTime(a)
+		bUpdateTime := jobUpdateTime(b)
+		if aUpdateTime.Equal(bUpdateTime) {
+			return strings.Compare(a.Name, b.Name) <= 0
+		}
+		return aUpdateTime.Before(bUpdateTime)
 	default:
-		return strings.Compare(a.Name, b.Name) <= 0
+		return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 	}
 }
 

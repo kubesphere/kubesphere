@@ -835,3 +835,19 @@ type ModifyClusterAttributesRequest struct {
 	// cluster name
 	Name *string `json:"name,omitempty"`
 }
+
+const (
+	CreateTime     = "create_time"
+	StatusTime     = "status_time"
+	RuntimeId      = "runtime_id"
+	VersionId      = "version_id"
+	RepoId         = "repo_id"
+	CategoryId     = "category_id"
+	Status         = "status"
+	Type           = "type"
+	Visibility     = "visibility"
+	AppId          = "app_id"
+	Keyword        = "keyword"
+	ISV            = "isv"
+	WorkspaceLabel = "workspace"
+)

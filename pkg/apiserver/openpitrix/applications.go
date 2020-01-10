@@ -36,22 +36,18 @@ import (
 )
 
 func ListApplications(req *restful.Request, resp *restful.Response) {
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	limit, offset := params.ParsePaging(req)
 	namespaceName := req.PathParameter("namespace")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(req)
-
-	if orderBy == "" {
-		orderBy = "create_time"
-		reverse = true
-	}
+	conditions, err := params.ParseConditions(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
 
+	// filter namespaced applications by runtime_id
 	if namespaceName != "" {
 		namespace, err := resources.GetResource("", resources.Namespaces, namespaceName)
 
@@ -60,6 +56,7 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
+
 		var runtimeId string
 
 		if ns, ok := namespace.(*v1.Namespace); ok {
@@ -70,7 +67,7 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 			resp.WriteAsJson(models.PageableResponse{Items: []interface{}{}, TotalCount: 0})
 			return
 		} else {
-			conditions.Match["runtime_id"] = runtimeId
+			conditions.Match[openpitrix.RuntimeId] = runtimeId
 		}
 	}
 

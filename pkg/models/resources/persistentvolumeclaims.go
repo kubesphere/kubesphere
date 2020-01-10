@@ -18,7 +18,6 @@
 package resources
 
 import (
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -49,14 +48,9 @@ func pvcStatus(item *v1.PersistentVolumeClaim) string {
 }
 
 // exactly Match
-func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.PersistentVolumeClaim) bool {
-	for k, v := range match {
+func (*persistentVolumeClaimSearcher) match(kv map[string]string, item *v1.PersistentVolumeClaim) bool {
+	for k, v := range kv {
 		switch k {
-		case Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
 		case Status:
 			statuses := strings.Split(v, "|")
 			if !sliceutil.HasString(statuses, pvcStatus(item)) {
@@ -66,13 +60,8 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 			if item.Spec.StorageClassName == nil || *item.Spec.StorageClassName != v {
 				return false
 			}
-		case Keyword:
-			if !strings.Contains(item.Name, v) && !searchFuzzy(item.Labels, "", v) && !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !match(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -81,44 +70,17 @@ func (*persistentVolumeClaimSearcher) match(match map[string]string, item *v1.Pe
 }
 
 // Fuzzy searchInNamespace
-func (*persistentVolumeClaimSearcher) fuzzy(fuzzy map[string]string, item *v1.PersistentVolumeClaim) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case Label:
-			if !searchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case annotation:
-			if !searchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+func (*persistentVolumeClaimSearcher) fuzzy(kv map[string]string, item *v1.PersistentVolumeClaim) bool {
+	for k, v := range kv {
+		if !fuzzy(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !searchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
 func (*persistentVolumeClaimSearcher) compare(a, b *v1.PersistentVolumeClaim, orderBy string) bool {
-	switch orderBy {
-	case CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
+	return compare(a.ObjectMeta, b.ObjectMeta, orderBy)
 }
 
 func (s *persistentVolumeClaimSearcher) search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {

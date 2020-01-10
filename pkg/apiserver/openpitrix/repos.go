@@ -165,14 +165,10 @@ func DescribeRepo(req *restful.Request, resp *restful.Response) {
 	resp.WriteEntity(result)
 }
 func ListRepos(req *restful.Request, resp *restful.Response) {
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
-	if orderBy == "" {
-		orderBy = "create_time"
-		reverse = true
-	}
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -197,8 +193,8 @@ func ListRepos(req *restful.Request, resp *restful.Response) {
 
 func ListRepoEvents(req *restful.Request, resp *restful.Response) {
 	repoId := req.PathParameter("repo")
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
+	limit, offset := params.ParsePaging(req)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

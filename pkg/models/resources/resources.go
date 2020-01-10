@@ -19,7 +19,9 @@ package resources
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -160,13 +162,26 @@ func ListResources(namespace, resource string, conditions *params.Conditions, or
 		return nil, err
 	}
 
-	for i, item := range result {
-		if i >= offset && (limit == -1 || len(items) < limit) {
-			items = append(items, injector.addExtraAnnotations(item))
-		}
+	totalCount := len(result)
+
+	// query all
+	if limit < 0 || offset < 0 {
+		result = result[:totalCount]
+		// out of range
+	} else if offset > totalCount {
+		result = result[:0]
+		// last page
+	} else if limit+offset > totalCount {
+		result = result[offset:totalCount]
+	} else {
+		result = result[offset : offset+limit]
 	}
 
-	return &models.PageableResponse{TotalCount: len(result), Items: items}, nil
+	for _, item := range result {
+		items = append(items, injector.addExtraAnnotations(item))
+	}
+
+	return &models.PageableResponse{TotalCount: totalCount, Items: items}, nil
 }
 
 func searchFuzzy(m map[string]string, key, value string) bool {
@@ -180,4 +195,65 @@ func searchFuzzy(m map[string]string, key, value string) bool {
 	}
 
 	return false
+}
+
+func match(key, value string, item metav1.ObjectMeta) bool {
+	switch key {
+	case Name:
+		names := strings.Split(value, "|")
+		if !sliceutil.HasString(names, item.Name) {
+			return false
+		}
+	case Keyword:
+		if !strings.Contains(item.Name, value) && !searchFuzzy(item.Labels, "", value) && !searchFuzzy(item.Annotations, "", value) {
+			return false
+		}
+	default:
+		// label not exist or value not equal
+		if val, ok := item.Labels[key]; !ok || val != value {
+			return false
+		}
+	}
+	return true
+}
+
+func fuzzy(key, value string, item metav1.ObjectMeta) bool {
+	switch key {
+	case Name:
+		if !strings.Contains(item.Name, value) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], value) {
+			return false
+		}
+	case Label:
+		if !searchFuzzy(item.Labels, "", value) {
+			return false
+		}
+	case annotation:
+		if !searchFuzzy(item.Annotations, "", value) {
+			return false
+		}
+		return false
+	case app:
+		if !strings.Contains(item.Labels[chart], value) && !strings.Contains(item.Labels[release], value) {
+			return false
+		}
+	default:
+		if !searchFuzzy(item.Labels, key, value) {
+			return false
+		}
+	}
+	return true
+}
+
+func compare(a, b metav1.ObjectMeta, by string) bool {
+	switch by {
+	case CreateTime:
+		if a.CreationTimestamp.Equal(&b.CreationTimestamp) {
+			return strings.Compare(a.Name, b.Name) <= 0
+		}
+		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
+	case Name:
+		fallthrough
+	default:
+		return strings.Compare(a.Name, b.Name) <= 0
+	}
 }

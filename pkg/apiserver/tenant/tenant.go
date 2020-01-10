@@ -58,15 +58,10 @@ func ListWorkspaceRules(req *restful.Request, resp *restful.Response) {
 
 func ListWorkspaces(req *restful.Request, resp *restful.Response) {
 	username := req.HeaderParameter(constants.UserNameHeader)
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
-
-	if orderBy == "" {
-		orderBy = resources.CreateTime
-		reverse = true
-	}
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -114,10 +109,10 @@ func ListNamespaces(req *restful.Request, resp *restful.Response) {
 		username = req.HeaderParameter(constants.UserNameHeader)
 	}
 
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
-	orderBy := req.QueryParameter(params.OrderByParam)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(req)
+	conditions, err := params.ParseConditions(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
@@ -223,9 +218,9 @@ func ListDevopsProjects(req *restful.Request, resp *restful.Response) {
 		username = req.HeaderParameter(constants.UserNameHeader)
 	}
 	orderBy := req.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(req)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
+	limit, offset := params.ParsePaging(req)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
