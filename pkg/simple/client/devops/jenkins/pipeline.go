@@ -37,6 +37,9 @@ const (
 	GetBranchNodeStepsUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
 	GetBranchPipeRunNodesUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/?"
 	CheckBranchPipelineUrl   = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
+	GetPipeBranchUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/?"
+	ScanBranchUrl            = "/job/%s/job/%s/build?"
+
 )
 
 func (p *Pipeline) GetPipeline() (*devops.Pipeline, error) {
@@ -403,3 +406,26 @@ func (p *Pipeline) SubmitBranchInputStep()([]byte, error){
 	return res, err
 }
 
+func (p *Pipeline) GetPipelineBranch()(*devops.PipelineBranch, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+	var pipelineBranch devops.PipelineBranch
+	err = json.Unmarshal(res, &pipelineBranch)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return &pipelineBranch, err
+}
+
+func (p *Pipeline) ScanBranch()([]byte, error){
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	if err != nil {
+		klog.Error(err)
+	}
+
+	return res, err
+}

@@ -592,15 +592,9 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 		Writes(devops.NodesDetail{}))
 
-
-
-
-
-
-
 	// match /blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/branches/?filter=&start&limit=
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches").
-		To(GetPipeBranch).
+		To(handler.GetPipelineBranch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("(MultiBranchesPipeline) Get all branches in the specified pipeline.").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -614,12 +608,12 @@ The last one is encrypted info, such as the password of the username-password ty
 		Param(webservice.QueryParameter("limit", "the count of branches limit.").
 			Required(false).
 			DataFormat("limit=%d").DefaultValue("limit=100")).
-		Returns(http.StatusOK, RespOK, []devops.PipeBranch{}).
-		Writes([]devops.PipeBranch{}))
+		Returns(http.StatusOK, RespOK, []devops.PipelineBranch{}).
+		Writes([]devops.PipelineBranch{}))
 
 	// match /job/{devops}/job/{pipeline}/build?delay=0
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/scan").
-		To(ScanBranch).
+		To(handler.ScanBranch).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Scan remote Repository, Start a build if have new branch.").
 		Produces("text/html; charset=utf-8").
@@ -629,16 +623,9 @@ The last one is encrypted info, such as the password of the username-password ty
 			Required(false).
 			DataFormat("delay=%d")))
 
-
-
-
-
-
-
-
 	// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
-		To(GetConsoleLog).
+		To(handler.GetConsoleLog).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get scan reponsitory logs in the specified pipeline.").
 		Produces("text/plain; charset=utf-8").

@@ -71,6 +71,9 @@ type DevopsOperator interface {
 	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error)
 	GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]NodesDetail, error)
+
+	GetPipelineBranch(projectName, pipelineName string, req *http.Request) (*devops.PipelineBranch, error)
+	ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, error)
 }
 
 type devopsOperator struct {
@@ -499,25 +502,11 @@ func (d devopsOperator) GetBranchNodesDetail(projectName, pipelineName, branchNa
 	return nodesDetails, err
 }
 
+func (d devopsOperator) GetPipelineBranch(projectName, pipelineName string, req *http.Request) (*devops.PipelineBranch, error) {
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipeBranchUrl, projectName, pipelineName)
 
-
-
-
-
-
-
-
-
-
-func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetPipeBranchUrl, projectName, pipelineName)
-
-	res, err := sendJenkinsRequest(baseUrl+req.URL.RawQuery, req)
+	res, err := d.devopsClient.GetPipelineBranch(projectName, pipelineName,convertToHttpParameters(req))
+		//baseUrl+req.URL.RawQuery, req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -525,6 +514,47 @@ func GetPipeBranch(projectName, pipelineName string, req *http.Request) ([]byte,
 
 	return res, err
 }
+
+func (d devopsOperator) ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, error) {
+	//baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ScanBranchUrl+req.URL.RawQuery, projectName, pipelineName)
+
+	resBody, err := d.devopsClient.ScanBranch(projectName, pipelineName, convertToHttpParameters(req))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return resBody, err
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 func GetSCMServers(scmId string, req *http.Request) ([]byte, error) {
 	devops, err := cs.ClientSets().Devops()
@@ -684,23 +714,6 @@ func GetConsoleLog(projectName, pipelineName string, req *http.Request) ([]byte,
 	}
 
 	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+GetConsoleLogUrl+req.URL.RawQuery, projectName, pipelineName)
-
-	resBody, err := sendJenkinsRequest(baseUrl, req)
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return resBody, err
-}
-
-func ScanBranch(projectName, pipelineName string, req *http.Request) ([]byte, error) {
-	devops, err := cs.ClientSets().Devops()
-	if err != nil {
-		return nil, restful.NewError(http.StatusServiceUnavailable, err.Error())
-	}
-
-	baseUrl := fmt.Sprintf(jenkins.Jenkins().Server+ScanBranchUrl+req.URL.RawQuery, projectName, pipelineName)
 
 	resBody, err := sendJenkinsRequest(baseUrl, req)
 	if err != nil {

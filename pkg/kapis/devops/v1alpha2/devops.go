@@ -425,6 +425,64 @@ func (h *ProjectPipelineHandler)GetBranchNodesDetail(req *restful.Request, resp 
 	resp.WriteAsJson(res)
 }
 
+func (h *ProjectPipelineHandler) GetPipelineBranch(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+
+	res, err := h.devopsOperator.GetPipelineBranch(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
+	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) ScanBranch(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+
+	res, err := h.devopsOperator.ScanBranch(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Write(res)
+}
+
+func (h *ProjectPipelineHandler) GetConsoleLog(req *restful.Request, resp *restful.Response) {
+	projectName := req.PathParameter("devops")
+	pipelineName := req.PathParameter("pipeline")
+
+	res, err := devops.GetConsoleLog(projectName, pipelineName, req.Request)
+	if err != nil {
+		parseErr(err, resp)
+		return
+	}
+
+	resp.Write(res)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -509,45 +567,6 @@ func GetOrgRepo(req *restful.Request, resp *restful.Response) {
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func GetPipeBranch(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-
-	res, err := devops.GetPipeBranch(projectName, pipelineName, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
-	resp.Write(res)
-}
-
-func GetConsoleLog(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-
-	res, err := devops.GetConsoleLog(projectName, pipelineName, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
-	resp.Write(res)
-}
-
-func ScanBranch(req *restful.Request, resp *restful.Response) {
-	projectName := req.PathParameter("devops")
-	pipelineName := req.PathParameter("pipeline")
-
-	res, err := devops.ScanBranch(projectName, pipelineName, req.Request)
-	if err != nil {
-		parseErr(err, resp)
-		return
-	}
-
 	resp.Write(res)
 }
 

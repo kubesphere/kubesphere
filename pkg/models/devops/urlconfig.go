@@ -19,14 +19,12 @@ package devops
 
 // Some apis for Jenkins.
 const (
-	GetPipeBranchUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/?"
 	GetSCMServersUrl         = "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	CreateSCMServersUrl      = "/blue/rest/organizations/jenkins/scm/%s/servers/"
 	ValidateUrl              = "/blue/rest/organizations/jenkins/scm/%s/validate"
 	GetSCMOrgUrl             = "/blue/rest/organizations/jenkins/scm/%s/organizations/?"
 	GetOrgRepoUrl            = "/blue/rest/organizations/jenkins/scm/%s/organizations/%s/repositories/?"
 	GetConsoleLogUrl         = "/job/%s/job/%s/indexing/consoleText"
-	ScanBranchUrl            = "/job/%s/job/%s/build?"
 	GetCrumbUrl              = "/crumbIssuer/api/json/"
 	ToJenkinsfileUrl         = "/pipeline-model-converter/toJenkinsfile"
 	ToJsonUrl                = "/pipeline-model-converter/toJson"
@@ -61,6 +59,9 @@ const (
 	GetBranchNodeStepsUrl    = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/?"
 	GetBranchPipeRunNodesUrl = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/?"
 	CheckBranchPipelineUrl   = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/%s/runs/%s/nodes/%s/steps/%s/"
+	GetPipeBranchUrl         = "/blue/rest/organizations/jenkins/pipelines/%s/pipelines/%s/branches/?"
+	ScanBranchUrl            = "/job/%s/job/%s/build?"
+
 
 
 

@@ -600,6 +600,27 @@ func (j *Jenkins) SubmitBranchInputStep(projectName, pipelineName, branchName, r
 	return res, err
 }
 
+func (j *Jenkins) GetPipelineBranch(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.PipelineBranch, error){
+	path := fmt.Sprintf(GetPipeBranchUrl, projectName, pipelineName) + httpParameters.Url.RawQuery
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           path,
+	}
+	res, err := PipelineOjb.GetPipelineBranch()
+	return res, err
+}
+
+func (j *Jenkins) ScanBranch(projectName, pipelineName string, httpParameters *devops.HttpParameters) ([]byte, error){
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(ScanBranchUrl+httpParameters.Url.RawQuery, projectName, pipelineName),
+	}
+	res, err := PipelineOjb.ScanBranch()
+	return res, err
+}
+
 // Creates a new Jenkins Instance
 // Optional parameters are: client, username, password
 // After creating an instance call init method.

@@ -462,7 +462,7 @@ type Artifacts struct {
 }
 
 // GetPipeBranch
-type PipeBranch struct {
+type PipelineBranch struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Self struct {
@@ -1118,6 +1118,8 @@ type HttpParameters struct {
 }
 
 type PipelineOperator interface {
+
+	// Pipelinne operator interface
 	GetPipeline(projectName, pipelineName string, httpParameters *HttpParameters) (*Pipeline, error)
 	ListPipelines(httpParameters *HttpParameters) (*PipelineList, error)
 	GetPipelineRun(projectName, pipelineName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
@@ -1132,6 +1134,7 @@ type PipelineOperator interface {
 	GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *HttpParameters) ([]PipelineRunNodes, error)
 	SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 
+	//BranchPipelinne operator interface
 	GetBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*BranchPipeline, error)
 	GetBranchPipelineRun(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*PipelineRun, error)
 	StopBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
@@ -1143,4 +1146,6 @@ type PipelineOperator interface {
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
 	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
+	GetPipelineBranch(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineBranch, error)
+	ScanBranch(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
 }
