@@ -43,6 +43,18 @@ type Jenkins struct {
 	Requester *Requester
 }
 
+func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
+	panic("implement me")
+}
+
+func (j *Jenkins) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) (*devops.Artifacts, error) {
+	panic("implement me")
+}
+
+func (j *Jenkins) GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
+	panic("implement me")
+}
+
 // Loggers
 var (
 	Info    *log.Logger
