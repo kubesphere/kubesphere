@@ -11,7 +11,11 @@ import (
 	"net/http"
 )
 
-func UploadS2iBinary(req *restful.Request, resp *restful.Response) {
+type S2iBinaryHandler struct {
+	s2iUploader devops.S2iBinaryUploader
+}
+
+func (h S2iBinaryHandler) UploadS2iBinaryHandler(req *restful.Request, resp *restful.Response) {
 	ns := req.PathParameter("namespace")
 	name := req.PathParameter("s2ibinary")
 
@@ -62,7 +66,7 @@ func UploadS2iBinary(req *restful.Request, resp *restful.Response) {
 		}
 	}
 
-	s2ibin, err := devops.UploadS2iBinary(ns, name, filemd5, req.Request.MultipartForm.File["s2ibinary"][0])
+	s2ibin, err := h.s2iUploader.UploadS2iBinary(ns, name, filemd5, req.Request.MultipartForm.File["s2ibinary"][0])
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
@@ -72,11 +76,11 @@ func UploadS2iBinary(req *restful.Request, resp *restful.Response) {
 
 }
 
-func DownloadS2iBinary(req *restful.Request, resp *restful.Response) {
+func (h S2iBinaryHandler) DownloadS2iBinaryHandler(req *restful.Request, resp *restful.Response) {
 	ns := req.PathParameter("namespace")
 	name := req.PathParameter("s2ibinary")
 	fileName := req.PathParameter("file")
-	url, err := devops.DownloadS2iBinary(ns, name, fileName)
+	url, err := h.s2iUploader.DownloadS2iBinary(ns, name, fileName)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

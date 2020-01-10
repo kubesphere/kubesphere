@@ -18,7 +18,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"net/http"
 )
 
@@ -32,8 +31,10 @@ type projectPipelineOperator struct {
 	pipelineOperator devops.ProjectPipelineOperator
 }
 
-func NewProjectPipelineOperator(client jenkins.Client) ProjectPipelineOperator {
-	return &projectPipelineOperator{}
+func NewProjectPipelineOperator(devopsClient devops.ProjectPipelineOperator) ProjectPipelineOperator {
+	return &projectPipelineOperator{
+		pipelineOperator: devopsClient,
+	}
 }
 
 func (o *projectPipelineOperator) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
@@ -59,6 +60,6 @@ func (o *projectPipelineOperator) UpdateProjectPipeline(projectId, pipelineId st
 	return o.pipelineOperator.UpdateProjectPipeline(projectId, pipeline)
 }
 
-func (o *projectPipelineOperator) GetProjectPipeline(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
+func (o *projectPipelineOperator) GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
 	return o.pipelineOperator.GetProjectPipelineConfig(projectId, pipelineId)
 }

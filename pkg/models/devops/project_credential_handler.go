@@ -38,8 +38,8 @@ type projectCredentialOperator struct {
 	db           *mysql.Database
 }
 
-func NewProjectCredentialOperator() ProjectCredentialOperator {
-	return &projectCredentialOperator{}
+func NewProjectCredentialOperator(devopsClient devops.Interface, dbClient *mysql.Database) ProjectCredentialOperator {
+	return &projectCredentialOperator{devopsClient: devopsClient, db: dbClient}
 }
 
 func (o *projectCredentialOperator) CreateProjectCredential(projectId, username string, credentialRequest *devops.Credential) (string, error) {

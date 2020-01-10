@@ -49,11 +49,14 @@ func addWebService(c *restful.Container) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
-	// TODO add clinet
-	handler := New()
+	sonarHandler := NewPipelineSonarHandler()
+
+	projectPipelineHander := NewProjectPipelineHandler()
+
+	s2iHandler := NewS2iBinaryHandler()
 
 	webservice.Route(webservice.GET("/devops/{devops}").
-		To(handler.GetDevOpsProjectHandler).
+		To(projectPipelineHander.GetDevOpsProjectHandler).
 		Doc("Get the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -61,7 +64,7 @@ func addWebService(c *restful.Container) error {
 		Writes(v1alpha2.DevOpsProject{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}").
-		To(UpdateProjectHandler).
+		To(projectPipelineHander.UpdateProjectHandler).
 		Doc("Update the specified DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -78,7 +81,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.Role{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/members").
-		To(GetDevOpsProjectMembersHandler).
+		To(projectPipelineHander.GetDevOpsProjectMembersHandler).
 		Doc("Get the members of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -93,7 +96,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/members/{member}").
-		To(GetDevOpsProjectMemberHandler).
+		To(projectPipelineHander.GetDevOpsProjectMemberHandler).
 		Doc("Get the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -102,7 +105,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/members").
-		To(AddDevOpsProjectMemberHandler).
+		To(projectPipelineHander.AddDevOpsProjectMemberHandler).
 		Doc("Add a member to the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -111,7 +114,7 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.PATCH("/devops/{devops}/members/{member}").
-		To(UpdateDevOpsProjectMemberHandler).
+		To(projectPipelineHander.UpdateDevOpsProjectMemberHandler).
 		Doc("Update the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -121,7 +124,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/members/{member}").
-		To(DeleteDevOpsProjectMemberHandler).
+		To(projectPipelineHander.DeleteDevOpsProjectMemberHandler).
 		Doc("Delete the specified member of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -129,7 +132,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.DevOpsProjectMembership{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines").
-		To(CreateDevOpsProjectPipelineHandler).
+		To(projectPipelineHander.CreateDevOpsProjectPipelineHandler).
 		Doc("Create a DevOps project pipeline").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -138,7 +141,7 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipeline}").
-		To(UpdateDevOpsProjectPipelineHandler).
+		To(projectPipelineHander.UpdateDevOpsProjectPipelineHandler).
 		Doc("Update the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
@@ -147,14 +150,14 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
-		To(DeleteDevOpsProjectPipelineHandler).
+		To(projectPipelineHander.DeleteDevOpsProjectPipelineHandler).
 		Doc("Delete the specified pipeline of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/config").
-		To(GetDevOpsProjectPipelineHandler).
+		To(projectPipelineHander.GetDevOpsProjectPipelineConfigHandler).
 		Doc("Get the configuration information of the specified pipeline of the DevOps Project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -163,7 +166,7 @@ func addWebService(c *restful.Container) error {
 		Writes(devops.ProjectPipeline{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarstatus").
-		To(GetPipelineSonarStatusHandler).
+		To(sonarHandler.GetPipelineSonarStatusHandler).
 		Doc("Get the sonar quality information for the specified pipeline of the DevOps project. More info: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -172,7 +175,7 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.SonarStatus{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/branches/{branch}/sonarstatus").
-		To(GetMultiBranchesPipelineSonarStatusHandler).
+		To(sonarHandler.GetMultiBranchesPipelineSonarStatusHandler).
 		Doc("Get the sonar quality check information for the specified pipeline branch of the DevOps project. More info: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -182,14 +185,14 @@ func addWebService(c *restful.Container) error {
 		Writes([]devops.SonarStatus{}))
 
 	webservice.Route(webservice.POST("/devops/{devops}/credentials").
-		To(CreateDevOpsProjectCredentialHandler).
+		To(projectPipelineHander.CreateDevOpsProjectCredentialHandler).
 		Doc("Create a credential in the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Reads(devops.Credential{}))
 
 	webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credential}").
-		To(UpdateDevOpsProjectCredentialHandler).
+		To(projectPipelineHander.UpdateDevOpsProjectCredentialHandler).
 		Doc("Update the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -197,14 +200,14 @@ func addWebService(c *restful.Container) error {
 		Reads(devops.Credential{}))
 
 	webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
-		To(DeleteDevOpsProjectCredentialHandler).
+		To(projectPipelineHander.DeleteDevOpsProjectCredentialHandler).
 		Doc("Delete the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 		Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}").
-		To(GetDevOpsProjectCredentialHandler).
+		To(projectPipelineHander.GetDevOpsProjectCredentialHandler).
 		Doc("Get the specified credential of the DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -218,7 +221,7 @@ The last one is encrypted info, such as the password of the username-password ty
 		Returns(http.StatusOK, RespOK, devops.Credential{}))
 
 	webservice.Route(webservice.GET("/devops/{devops}/credentials").
-		To(GetDevOpsProjectCredentialsHandler).
+		To(projectPipelineHander.GetDevOpsProjectCredentialsHandler).
 		Doc("Get all credentials of the specified DevOps project").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -226,7 +229,7 @@ The last one is encrypted info, such as the password of the username-password ty
 
 	// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 	webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
-		To(handler.GetPipeline).
+		To(projectPipelineHander.GetPipeline).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 		Doc("Get the specified pipeline of the DevOps project").
 		Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
@@ -726,6 +729,27 @@ The last one is encrypted info, such as the password of the username-password ty
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 		Doc("Get commit notification. Github webhook will request here."))
 
+	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
+		To(s2iHandler.UploadS2iBinaryHandler).
+		Consumes("multipart/form-data").
+		Produces(restful.MIME_JSON).
+		Doc("Upload S2iBinary file").
+		Param(webservice.PathParameter("namespace", "the name of namespaces")).
+		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
+		Param(webservice.FormParameter("s2ibinary", "file to upload")).
+		Param(webservice.FormParameter("md5", "md5 of file")).
+		Returns(http.StatusOK, RespOK, devopsv1alpha1.S2iBinary{}))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
+		To(s2iHandler.DownloadS2iBinaryHandler).
+		Produces(restful.MIME_OCTET).
+		Doc("Download S2iBinary file").
+		Param(webservice.PathParameter("namespace", "the name of namespaces")).
+		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
+		Param(webservice.PathParameter("file", "the name of binary file")).
+		Returns(http.StatusOK, RespOK, nil))
+
+
 	webservice.Route(webservice.POST("/devops/{devops}/pipelines/{pipeline}/checkScriptCompile").
 		To(handler.CheckScriptCompile).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -772,67 +796,6 @@ The last one is encrypted info, such as the password of the username-password ty
 		Reads(devops.ReqJenkinsfile{}).
 		Returns(http.StatusOK, RespOK, devops.ResJson{}).
 		Writes(devops.ResJson{}))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
-		To(UploadS2iBinary).
-		Consumes("multipart/form-data").
-		Produces(restful.MIME_JSON).
-		Doc("Upload S2iBinary file").
-		Param(webservice.PathParameter("namespace", "the name of namespaces")).
-		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
-		Param(webservice.FormParameter("s2ibinary", "file to upload")).
-		Param(webservice.FormParameter("md5", "md5 of file")).
-		Returns(http.StatusOK, RespOK, devopsv1alpha1.S2iBinary{}))
-
-	webservice.Route(webservice.GET("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file/{file}").
-		To(DownloadS2iBinary).
-		Produces(restful.MIME_OCTET).
-		Doc("Download S2iBinary file").
-		Param(webservice.PathParameter("namespace", "the name of namespaces")).
-		Param(webservice.PathParameter("s2ibinary", "the name of s2ibinary")).
-		Param(webservice.PathParameter("file", "the name of binary file")).
-		Returns(http.StatusOK, RespOK, nil))
-
 
 
 	c.Add(webservice)

@@ -89,8 +89,8 @@ type devopsOperator struct {
 	devopsClient devops.Interface
 }
 
-func NewDevopsOperator(client jenkins.Client) DevopsOperator {
-	return &devopsOperator{}
+func NewDevopsOperator(client devops.Interface) DevopsOperator {
+	return &devopsOperator{devopsClient: client}
 }
 
 func convertToHttpParameters(req *http.Request) (*devops.HttpParameters) {

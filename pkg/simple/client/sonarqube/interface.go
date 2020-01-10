@@ -7,11 +7,7 @@ import (
 )
 
 type SonarInterface interface {
-	//
-	GetIssues()
-
 	GetSonarResultsByTaskIds(taskId ...string) ([]*SonarStatus, error)
-	//
 }
 
 type sonarQube struct {
