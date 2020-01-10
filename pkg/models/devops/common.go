@@ -14,13 +14,7 @@ limitations under the License.
 package devops
 
 import (
-	"fmt"
 	"github.com/fatih/structs"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -67,58 +61,3 @@ const (
 const (
 	KS_ADMIN = "admin"
 )
-
-func CheckProjectUserInRole(username, projectId string, roles []string) error {
-	if username == KS_ADMIN {
-		return nil
-	}
-	dbconn, err := client.ClientSets().MySQL()
-	if err != nil {
-		if _, ok := err.(client.ClientSetNotEnabledError); ok {
-			klog.Error("mysql is not enabled")
-		} else {
-			klog.Error("error creating mysql client", err)
-		}
-		return nil
-	}
-
-	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(ProjectMembershipColumns...).
-		From(ProjectMembershipTableName).
-		Where(db.And(
-			db.Eq(ProjectMembershipUsernameColumn, username),
-			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
-	if err != nil {
-		return err
-	}
-	if !reflectutils.In(membership.Role, roles) {
-		return fmt.Errorf("user [%s] in project [%s] role is not in %s", username, projectId, roles)
-	}
-	return nil
-}
-
-func GetProjectUserRole(username, projectId string) (string, error) {
-	if username == KS_ADMIN {
-		return ProjectOwner, nil
-	}
-	dbconn, err := client.ClientSets().MySQL()
-	if err != nil {
-		if _, ok := err.(client.ClientSetNotEnabledError); ok {
-			klog.Error("mysql is not enabled")
-		} else {
-			klog.Error("error creating mysql client", err)
-		}
-		return "", err
-	}
-	membership := &DevOpsProjectMembership{}
-	err = dbconn.Select(ProjectMembershipColumns...).
-		From(ProjectMembershipTableName).
-		Where(db.And(
-			db.Eq(ProjectMembershipUsernameColumn, username),
-			db.Eq(ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
-	if err != nil {
-		return "", err
-	}
-
-	return membership.Role, nil
-}
