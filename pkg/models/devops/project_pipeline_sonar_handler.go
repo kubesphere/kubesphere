@@ -3,8 +3,8 @@ package devops
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins/utils"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
 )
@@ -14,16 +14,23 @@ type PipelineSonarGetter interface {
 	GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*sonarqube.SonarStatus, error)
 }
 type pipelineSonarGetter struct {
-	devops.Interface
+	devops.BuildGetter
 	sonarqube.SonarInterface
+}
+
+func NewPipelineSonarGetter(devopClient devops.BuildGetter, sonarClient sonarqube.SonarInterface) PipelineSonarGetter {
+	return &pipelineSonarGetter{
+		BuildGetter:    devopClient,
+		SonarInterface: sonarClient,
+	}
 }
 
 func (g *pipelineSonarGetter) GetPipelineSonar(projectId, pipelineId string) ([]*sonarqube.SonarStatus, error) {
 
 	build, err := g.GetProjectPipelineBuildByType(projectId, pipelineId, devops.LastBuild)
-	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+	if err != nil && errors.GetServiceErrorCode(err) != http.StatusNotFound {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, err
 	} else if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, nil
@@ -44,9 +51,9 @@ func (g *pipelineSonarGetter) GetPipelineSonar(projectId, pipelineId string) ([]
 		}
 	} else if len(taskIds) == 0 {
 		build, err := g.GetProjectPipelineBuildByType(projectId, pipelineId, devops.LastCompletedBuild)
-		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+		if err != nil && errors.GetServiceErrorCode(err) != http.StatusNotFound {
 			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(errors.GetServiceErrorCode(err), err.Error())
 		} else if err != nil {
 			klog.Errorf("%+v", err)
 			return nil, nil
@@ -69,9 +76,9 @@ func (g *pipelineSonarGetter) GetPipelineSonar(projectId, pipelineId string) ([]
 func (g *pipelineSonarGetter) GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*sonarqube.SonarStatus, error) {
 
 	build, err := g.GetMultiBranchPipelineBuildByType(projectId, pipelineId, branchId, devops.LastBuild)
-	if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+	if err != nil && errors.GetServiceErrorCode(err) != http.StatusNotFound {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(errors.GetServiceErrorCode(err), err.Error())
 	} else if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, nil
@@ -92,9 +99,9 @@ func (g *pipelineSonarGetter) GetMultiBranchPipelineSonar(projectId, pipelineId,
 		}
 	} else if len(taskIds) == 0 {
 		build, err := g.GetMultiBranchPipelineBuildByType(projectId, pipelineId, branchId, devops.LastCompletedBuild)
-		if err != nil && utils.GetJenkinsStatusCode(err) != http.StatusNotFound {
+		if err != nil && errors.GetServiceErrorCode(err) != http.StatusNotFound {
 			klog.Errorf("%+v", err)
-			return nil, restful.NewError(utils.GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(errors.GetServiceErrorCode(err), err.Error())
 		} else if err != nil {
 			klog.Errorf("%+v", err)
 			return nil, nil

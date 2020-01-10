@@ -38,8 +38,11 @@ type projectMemberOperator struct {
 	projectMemberOperator devops.ProjectMemberOperator
 }
 
-func NewProjectMemberOperator() ProjectMemberOperator {
-	return &projectMemberOperator{}
+func NewProjectMemberOperator(devopsClient devops.ProjectMemberOperator, dbClient *mysql.Database) ProjectMemberOperator {
+	return &projectMemberOperator{
+		db:                    dbClient,
+		projectMemberOperator: devopsClient,
+	}
 }
 
 func (o *projectMemberOperator) GetProjectMembers(projectId string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {

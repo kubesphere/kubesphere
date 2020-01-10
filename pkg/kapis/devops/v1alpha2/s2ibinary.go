@@ -12,7 +12,7 @@ import (
 )
 
 type S2iBinaryHandler struct {
-	devops.S2iBinaryUploader
+	s2iUploader devops.S2iBinaryUploader
 }
 
 func (h S2iBinaryHandler) UploadS2iBinaryHandler(req *restful.Request, resp *restful.Response) {
@@ -66,7 +66,7 @@ func (h S2iBinaryHandler) UploadS2iBinaryHandler(req *restful.Request, resp *res
 		}
 	}
 
-	s2ibin, err := h.UploadBinary(ns, name, filemd5, req.Request.MultipartForm.File["s2ibinary"][0])
+	s2ibin, err := h.s2iUploader.UploadS2iBinary(ns, name, filemd5, req.Request.MultipartForm.File["s2ibinary"][0])
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
@@ -80,7 +80,7 @@ func (h S2iBinaryHandler) DownloadS2iBinaryHandler(req *restful.Request, resp *r
 	ns := req.PathParameter("namespace")
 	name := req.PathParameter("s2ibinary")
 	fileName := req.PathParameter("file")
-	url, err := h.DownloadBinary(ns, name, fileName)
+	url, err := h.s2iUploader.DownloadS2iBinary(ns, name, fileName)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)

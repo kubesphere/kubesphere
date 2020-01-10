@@ -24,15 +24,23 @@ const (
 )
 
 type S2iBinaryUploader interface {
-	UploadBinary(namespace, name, md5 string, header *multipart.FileHeader) (*v1alpha1.S2iBinary, error)
+	UploadS2iBinary(namespace, name, md5 string, header *multipart.FileHeader) (*v1alpha1.S2iBinary, error)
 
-	DownloadBinary(namespace, name, fileName string) (string, error)
+	DownloadS2iBinary(namespace, name, fileName string) (string, error)
 }
 
 type s2iBinaryUploader struct {
 	client    versioned.Interface
 	informers externalversions.SharedInformerFactory
 	s3Client  s3.Interface
+}
+
+func NewS2iBinaryUploader(client versioned.Interface, informers externalversions.SharedInformerFactory, s3Client s3.Interface) S2iBinaryUploader {
+	return &s2iBinaryUploader{
+		client:    client,
+		informers: informers,
+		s3Client:  s3Client,
+	}
 }
 
 func (s *s2iBinaryUploader) UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHeader) (*v1alpha1.S2iBinary, error) {

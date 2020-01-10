@@ -37,6 +37,10 @@ type projectOperator struct {
 	db *mysql.Database
 }
 
+func NewProjectOperator(dbClient *mysql.Database) ProjectOperator {
+	return &projectOperator{db: dbClient}
+}
+
 func (o *projectOperator) GetProject(projectId string) (*v1alpha2.DevOpsProject, error) {
 
 	project := &v1alpha2.DevOpsProject{}
