@@ -19,7 +19,7 @@ type Client struct {
 	bucket    string
 }
 
-func (s *Client) Upwload(key, fileName string, body io.Reader) error {
+func (s *Client) Upload(key, fileName string, body io.Reader) error {
 	uploader := s3manager.NewUploader(s.s3Session, func(uploader *s3manager.Uploader) {
 		uploader.PartSize = 5 * bytefmt.MEGABYTE
 		uploader.LeavePartsOnError = true
