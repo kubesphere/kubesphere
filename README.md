@@ -68,7 +68,7 @@ KubeSphere provides an easy-to-use console with awesome user experience that all
 
 It also supports a variety of open source storage solutions and cloud storage products as the persistent storage services, as well as supports multiple open source network plugins.
 
-> Note: See this [document](https://kubesphere.com.cn/docs/v2.1/en/introduction/features/) which elaborates on the KubeSphere features and services.
+> Note: See this [document](https://kubesphere.io/docs/v2.1/en/introduction/features/) which elaborates on the KubeSphere features and services.
 
 ----
 
@@ -86,7 +86,7 @@ KubeSphere 2.1.0 was released on **November 12nd, 2019**. Check the [Release Not
 
 ## Installation
 
-> Attention: The following section is only used for minimal installation by default, see [Complete Installation Guide](https://kubesphere.com.cn/docs/v2.1/en/installation/intro/) for details.
+> Attention: The following section is only used for minimal installation by default, see [Complete Installation Guide](https://kubesphere.io/docs/v2.1/en/installation/intro/) for details.
 
 ### Deploy on Existing Kubernetes
 
@@ -137,14 +137,14 @@ Choose `"1) All-in-one"` to start the installation without changing any configur
 
 KubeSphere provides 12 quick-start tutorials to walk you through the platform.
 
-- [Get Started - En](https://kubesphere.com.cn/docs/v2.1/en/quick-start/admin-quick-start/)
+- [Get Started - En](https://kubesphere.io/docs/v2.1/en/quick-start/admin-quick-start/)
 - [Get Started - 中](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/admin-quick-start/)
 
 
 ### Documentation
 
-- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.com.cn/docs/zh-CN/)）
-- [API Documentation](https://kubesphere.com.cn/docs/v2.1/en/api-reference/api-docs/)
+- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.io/docs/zh-CN/)）
+- [API Documentation](https://kubesphere.io/docs/v2.1/en/api-reference/api-docs/)
 
 
 ## To start developing KubeSphere
