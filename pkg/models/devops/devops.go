@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/emicklei/go-restful"
 	"io"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
@@ -350,7 +351,7 @@ func (d devopsOperator) RunBranchPipeline(projectName, pipelineName, branchName 
 	return res, err
 }
 
-func (d devopsOperator) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.Artifacts, error) {
+func (d devopsOperator) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.Artifacts, error) {
 
 	res, err := d.devopsClient.GetBranchArtifacts(projectName, pipelineName, branchName, runId, convertToHttpParameters(req))
 	if err != nil {

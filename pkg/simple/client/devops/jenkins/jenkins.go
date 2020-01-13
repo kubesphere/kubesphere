@@ -43,18 +43,6 @@ type Jenkins struct {
 	Requester *Requester
 }
 
-func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
-	panic("implement me")
-}
-
-func (j *Jenkins) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) (*devops.Artifacts, error) {
-	panic("implement me")
-}
-
-func (j *Jenkins) GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
-	panic("implement me")
-}
-
 // Loggers
 var (
 	Info    *log.Logger
@@ -485,7 +473,7 @@ func (j *Jenkins) GetStepLog(projectName, pipelineName, runId, nodeId, stepId st
 	return res, header, err
 }
 
-func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) (*devops.NodeSteps, error) {
+func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
@@ -565,6 +553,16 @@ func (j *Jenkins) RunBranchPipeline(projectName, pipelineName, branchName string
 	return res, err
 }
 
+func (j *Jenkins) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]devops.Artifacts, error) {
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(GetBranchArtifactsUrl+httpParameters.Url.RawQuery, projectName, pipelineName, branchName, runId),
+	}
+	res, err := PipelineOjb.GetBranchArtifacts()
+	return res, err
+}
+
 func (j *Jenkins) GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]byte, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
@@ -585,7 +583,7 @@ func (j *Jenkins) GetBranchStepLog(projectName, pipelineName, branchName, runId,
 	return res, header, err
 }
 
-func (j *Jenkins) GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) (*devops.NodeSteps, error) {
+func (j *Jenkins) GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,

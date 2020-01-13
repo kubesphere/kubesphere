@@ -1140,7 +1140,7 @@ type PipelineOperator interface {
 	StopBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*StopPipeline, error)
 	ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*ReplayPipeline, error)
 	RunBranchPipeline(projectName, pipelineName, branchName string, httpParameters *HttpParameters) (*RunPipeline, error)
-	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*Artifacts, error)
+	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]Artifacts, error)
 	GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]byte, error)
 	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
