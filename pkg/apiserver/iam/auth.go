@@ -19,55 +19,20 @@ package iam
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
-	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
 )
-
-type LoginRequest struct {
-	Username string `json:"username" description:"username"`
-	Password string `json:"password" description:"password"`
-}
 
 type OAuthRequest struct {
 	GrantType    string `json:"grant_type"`
 	Username     string `json:"username,omitempty" description:"username"`
 	Password     string `json:"password,omitempty" description:"password"`
 	RefreshToken string `json:"refresh_token,omitempty"`
-}
-
-const ()
-
-func Login(req *restful.Request, resp *restful.Response) {
-	var loginRequest LoginRequest
-
-	err := req.ReadEntity(&loginRequest)
-
-	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
-		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.New("incorrect username or password"))
-		return
-	}
-
-	ip := iputil.RemoteIp(req.Request)
-
-	token, err := iam.Login(loginRequest.Username, loginRequest.Password, ip)
-
-	if err != nil {
-		if serviceError, ok := err.(restful.ServiceError); ok {
-			resp.WriteHeaderAndEntity(serviceError.Code, errors.New(serviceError.Message))
-			return
-		}
-		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.Wrap(err))
-		return
-	}
-
-	resp.WriteAsJson(token)
 }
 
 func OAuth(req *restful.Request, resp *restful.Response) {

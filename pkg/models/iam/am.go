@@ -52,6 +52,7 @@ const (
 type AccessManagementInterface interface {
 	GetDevopsRoleSimpleRules(role string) []SimpleRule
 	ListRoleBindings(namespace string, role string) ([]*rbacv1.RoleBinding, error)
+	CreateClusterRoleBinding(username string, clusterRole string) error
 }
 
 type amOperator struct {

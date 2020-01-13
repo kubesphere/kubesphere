@@ -7,11 +7,13 @@ import (
 	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
+	kserr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
 	"sort"
@@ -28,7 +30,7 @@ func newIAMHandler() *iamHandler {
 
 // k8s token review
 func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Response) {
-	var tokenReview iam.TokenReview
+	var tokenReview iamv1alpha2.TokenReview
 
 	err := req.ReadEntity(&tokenReview)
 
@@ -47,14 +49,13 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 	token, err := jwtutil.ValidateToken(uToken)
 
 	if err != nil {
-		klog.Errorln(err)
-		failed := iam.TokenReview{APIVersion: tokenReview.APIVersion,
+		failed := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
 			Kind: iam.KindTokenReview,
-			Status: &iam.Status{
+			Status: &iamv1alpha2.Status{
 				Authenticated: false,
 			},
 		}
-		resp.WriteAsJson(failed)
+		resp.WriteEntity(failed)
 		return
 	}
 
@@ -67,32 +68,81 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	user, err := h.imOperator.GetUserInfo(username)
+	user, err := h.imOperator.DescribeUser(username)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)
 		return
 	}
 
-	groups, err := h.imOperator.GetUserGroups(username)
-
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-
-	user.Groups = groups
-
-	success := iam.TokenReview{APIVersion: tokenReview.APIVersion,
+	success := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
 		Kind: iam.KindTokenReview,
-		Status: &iam.Status{
+		Status: &iamv1alpha2.Status{
 			Authenticated: true,
 			User:          map[string]interface{}{"username": user.Username, "uid": user.Username, "groups": user.Groups},
 		},
 	}
 
-	resp.WriteAsJson(success)
-	return
+	resp.WriteEntity(success)
+}
+
+func (h *iamHandler) Login(req *restful.Request, resp *restful.Response) {
+	var loginRequest iamv1alpha2.LoginRequest
+
+	err := req.ReadEntity(&loginRequest)
+
+	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.New("incorrect username or password"))
+		return
+	}
+
+	ip := iputil.RemoteIp(req.Request)
+
+	token, err := h.imOperator.Login(loginRequest.Username, loginRequest.Password, ip)
+
+	if err != nil {
+		if serviceError, ok := err.(restful.ServiceError); ok {
+			resp.WriteHeaderAndEntity(serviceError.Code, errors.New(serviceError.Message))
+			return
+		}
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, err)
+		return
+	}
+
+	resp.WriteEntity(token)
+}
+
+func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
+	var createRequest iamv1alpha2.UserCreateRequest
+	err := req.ReadEntity(&createRequest)
+	if err != nil {
+		api.HandleBadRequest(resp, err)
+		return
+	}
+
+	if err := createRequest.Validate(); err != nil {
+		api.HandleBadRequest(resp, err)
+		return
+	}
+
+	created, err := h.imOperator.CreateUser(createRequest.User)
+
+	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			resp.WriteHeaderAndEntity(http.StatusConflict, kserr.Wrap(err))
+			return
+		}
+		api.HandleInternalError(resp, err)
+		return
+	}
+
+	err := h.amOperator.CreateClusterRoleBinding(created.Username, createRequest.ClusterRole)
+
+	if err != nil {
+		api.HandleInternalError(resp, err)
+		return
+	}
+	resp.WriteEntity(created)
 }
 
 func (h *iamHandler) ListRoleUsers(req *restful.Request, resp *restful.Response) {

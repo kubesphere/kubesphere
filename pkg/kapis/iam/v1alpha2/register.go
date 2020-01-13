@@ -23,6 +23,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -125,20 +126,20 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/authenticate").
 		To(handler.TokenReviewHandler).
 		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.").
-		Reads(iam.TokenReview{}).
-		Returns(http.StatusOK, api.StatusOK, iam.TokenReview{}).
+		Reads(iamv1alpha2.TokenReview{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.POST("/login").
-		To(iam.Login).
+		To(handler.Login).
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
-		Reads(iam.LoginRequest{}).
+		Reads(iamv1alpha2.LoginRequest{}).
 		Returns(http.StatusOK, api.StatusOK, models.AuthGrantResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.POST("/token").
-		To(iam.OAuth).
-		Doc("OAuth API,only support resource owner password credentials grant").
-		Reads(iam.LoginRequest{}).
-		Returns(http.StatusOK, api.StatusOK, models.AuthGrantResponse{}).
+	ws.Route(ws.POST("/users").
+		To(handler.CreateUser).
+		Doc("Create a user account.").
+		Reads(CreateUserRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.GET("/users/{user}").
 		To(iam.DescribeUser).
@@ -146,12 +147,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iam2.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.POST("/users").
-		To(iam.CreateUser).
-		Doc("Create a user account.").
-		Reads(CreateUserRequest{}).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+
 	ws.Route(ws.DELETE("/users/{user}").
 		To(iam.DeleteUser).
 		Doc("Delete the specified user.").
