@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/gojenkins/utils"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/http"
@@ -317,7 +318,7 @@ func CreateDevopsProject(username string, workspace string, req *v1alpha2.DevOps
 	return project, nil
 }
 
-func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
+func GetUserDevopsSimpleRules(username, projectId string) ([]iam.SimpleRule, error) {
 	role, err := devops.GetProjectUserRole(username, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -326,12 +327,12 @@ func GetUserDevopsSimpleRules(username, projectId string) ([]models.SimpleRule, 
 	return GetDevopsRoleSimpleRules(role), nil
 }
 
-func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
-	var rules []models.SimpleRule
+func GetDevopsRoleSimpleRules(role string) []iam.SimpleRule {
+	var rules []iam.SimpleRule
 
 	switch role {
 	case "developer":
-		rules = []models.SimpleRule{
+		rules = []iam.SimpleRule{
 			{Name: "pipelines", Actions: []string{"view", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
@@ -339,7 +340,7 @@ func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 		}
 		break
 	case "owner":
-		rules = []models.SimpleRule{
+		rules = []iam.SimpleRule{
 			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"create", "edit", "view", "delete"}},
@@ -348,7 +349,7 @@ func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 		}
 		break
 	case "maintainer":
-		rules = []models.SimpleRule{
+		rules = []iam.SimpleRule{
 			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
@@ -359,7 +360,7 @@ func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 	case "reporter":
 		fallthrough
 	default:
-		rules = []models.SimpleRule{
+		rules = []iam.SimpleRule{
 			{Name: "pipelines", Actions: []string{"view"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},

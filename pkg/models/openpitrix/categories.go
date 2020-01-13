@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2019 The KubeSphere Authors.
+ * Copyright 2020 The KubeSphere Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * /
  */
 
-package category
+package openpitrix
 
 import (
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -24,20 +24,30 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 )
 
-func CreateCategory(request *types.CreateCategoryRequest) (*types.CreateCategoryResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+type CategoryInterface interface {
+	CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error)
+	DeleteCategory(id string) error
+	ModifyCategory(id string, request *ModifyCategoryRequest) error
+	ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	DescribeCategory(id string) (*Category, error)
+}
+
+type categoryOperator struct {
+	opClient openpitrix.Client
+}
+
+func newCategoryOperator(opClient openpitrix.Client) CategoryInterface {
+	return &categoryOperator{
+		opClient: opClient,
 	}
+}
+
+func (c *categoryOperator) CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error) {
 	r := &pb.CreateCategoryRequest{
 		Name:        &wrappers.StringValue{Value: request.Name},
 		Locale:      &wrappers.StringValue{Value: request.Locale},
@@ -47,23 +57,18 @@ func CreateCategory(request *types.CreateCategoryRequest) (*types.CreateCategory
 		r.Icon = &wrappers.BytesValue{Value: request.Icon}
 	}
 
-	resp, err := op.Category().CreateCategory(openpitrix.SystemContext(), r)
+	resp, err := c.opClient.CreateCategory(openpitrix.SystemContext(), r)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	return &types.CreateCategoryResponse{
+	return &CreateCategoryResponse{
 		CategoryId: resp.GetCategoryId().GetValue(),
 	}, nil
 }
 
-func DeleteCategory(id string) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	_, err = op.Category().DeleteCategories(openpitrix.SystemContext(), &pb.DeleteCategoriesRequest{
+func (c *categoryOperator) DeleteCategory(id string) error {
+	_, err := c.opClient.DeleteCategories(openpitrix.SystemContext(), &pb.DeleteCategoriesRequest{
 		CategoryId: []string{id},
 	})
 	if err != nil {
@@ -73,12 +78,7 @@ func DeleteCategory(id string) error {
 	return nil
 }
 
-func PatchCategory(id string, request *types.ModifyCategoryRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
+func (c *categoryOperator) ModifyCategory(id string, request *ModifyCategoryRequest) error {
 	modifyCategoryRequest := &pb.ModifyCategoryRequest{
 		CategoryId: &wrappers.StringValue{Value: id},
 	}
@@ -95,7 +95,7 @@ func PatchCategory(id string, request *types.ModifyCategoryRequest) error {
 		modifyCategoryRequest.Icon = &wrappers.BytesValue{Value: request.Icon}
 	}
 
-	_, err = op.Category().ModifyCategory(openpitrix.SystemContext(), modifyCategoryRequest)
+	_, err := c.opClient.ModifyCategory(openpitrix.SystemContext(), modifyCategoryRequest)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -103,13 +103,8 @@ func PatchCategory(id string, request *types.ModifyCategoryRequest) error {
 	return nil
 }
 
-func DescribeCategory(id string) (*types.Category, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.Category().DescribeCategories(openpitrix.SystemContext(), &pb.DescribeCategoriesRequest{
+func (c *categoryOperator) DescribeCategory(id string) (*Category, error) {
+	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), &pb.DescribeCategoriesRequest{
 		CategoryId: []string{id},
 		Limit:      1,
 	})
@@ -118,10 +113,10 @@ func DescribeCategory(id string) (*types.Category, error) {
 		return nil, err
 	}
 
-	var category *types.Category
+	var category *Category
 
 	if len(resp.CategorySet) > 0 {
-		category = utils.ConvertCategory(resp.CategorySet[0])
+		category = convertCategory(resp.CategorySet[0])
 		return category, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -130,26 +125,19 @@ func DescribeCategory(id string) (*types.Category, error) {
 	}
 }
 
-func ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	req := &pb.DescribeCategoriesRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		req.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: !reverse}
+	req.Reverse = &wrappers.BoolValue{Value: reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
-	resp, err := client.Category().DescribeCategories(openpitrix.SystemContext(), req)
+	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -158,7 +146,7 @@ func ListCategories(conditions *params.Conditions, orderBy string, reverse bool,
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.CategorySet {
-		items = append(items, utils.ConvertCategory(item))
+		items = append(items, convertCategory(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil

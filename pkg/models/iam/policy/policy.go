@@ -21,22 +21,21 @@ package policy
 import (
 	"encoding/json"
 	"io/ioutil"
-
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 
 	"k8s.io/api/rbac/v1"
 )
 
 const (
-	rulesConfigPath        = "/etc/kubesphere/rules/rules.json"
-	clusterRulesConfigPath = "/etc/kubesphere/rules/clusterrules.json"
+	rulesConfigPath        = iam.ConfigPath + "/rules.json"
+	clusterRulesConfigPath = iam.ConfigPath + "/clusterrules.json"
 )
 
 func init() {
 	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
 
 	if err == nil {
-		config := &[]models.Rule{}
+		config := &[]iam.Rule{}
 		json.Unmarshal(rulesConfig, config)
 		if len(*config) > 0 {
 			RoleRuleMapping = *config
@@ -46,7 +45,7 @@ func init() {
 	clusterRulesConfig, err := ioutil.ReadFile(clusterRulesConfigPath)
 
 	if err == nil {
-		config := &[]models.Rule{}
+		config := &[]iam.Rule{}
 		json.Unmarshal(clusterRulesConfig, config)
 		if len(*config) > 0 {
 			ClusterRoleRuleMapping = *config
@@ -55,9 +54,9 @@ func init() {
 }
 
 var (
-	ClusterRoleRuleMapping = []models.Rule{
+	ClusterRoleRuleMapping = []iam.Rule{
 		{Name: "workspaces",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{
 					Name: "manage",
 					Rules: []v1.PolicyRule{
@@ -72,7 +71,7 @@ var (
 		},
 		{
 			Name: "monitoring",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -88,7 +87,7 @@ var (
 		},
 		{
 			Name: "alerting",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -114,7 +113,7 @@ var (
 		},
 		{
 			Name: "logging",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -126,7 +125,7 @@ var (
 		},
 		{
 			Name: "accounts",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -193,7 +192,7 @@ var (
 			},
 		}, {
 			Name: "roles",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -239,7 +238,7 @@ var (
 			},
 		}, {
 			Name: "storageclasses",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -283,7 +282,7 @@ var (
 			},
 		}, {
 			Name: "nodes",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -314,7 +313,7 @@ var (
 			},
 		}, {
 			Name: "repos",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -354,7 +353,7 @@ var (
 			},
 		}, {
 			Name: "apps",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -367,7 +366,7 @@ var (
 			},
 		}, {
 			Name: "components",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -380,9 +379,9 @@ var (
 			},
 		}}
 
-	RoleRuleMapping = []models.Rule{{
+	RoleRuleMapping = []iam.Rule{{
 		Name: "projects",
-		Actions: []models.Action{
+		Actions: []iam.Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -419,7 +418,7 @@ var (
 	},
 		{
 			Name: "monitoring",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -436,7 +435,7 @@ var (
 
 		{
 			Name: "alerting",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -462,7 +461,7 @@ var (
 		},
 		{
 			Name: "members",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -508,7 +507,7 @@ var (
 		},
 		{
 			Name: "roles",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -549,7 +548,7 @@ var (
 		},
 		{
 			Name: "deployments",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -605,7 +604,7 @@ var (
 			},
 		}, {
 			Name: "statefulsets",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -659,7 +658,7 @@ var (
 			},
 		}, {
 			Name: "daemonsets",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -704,7 +703,7 @@ var (
 			},
 		}, {
 			Name: "pods",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "terminal",
 					Rules: []v1.PolicyRule{
 						{
@@ -736,7 +735,7 @@ var (
 		},
 		{
 			Name: "services",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -778,7 +777,7 @@ var (
 		},
 		{
 			Name: "internet",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -820,7 +819,7 @@ var (
 
 		{
 			Name: "routes",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -860,7 +859,7 @@ var (
 			},
 		}, {
 			Name: "volumes",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -900,7 +899,7 @@ var (
 			},
 		}, {
 			Name: "applications",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -954,7 +953,7 @@ var (
 		},
 		{
 			Name: "jobs",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -987,7 +986,7 @@ var (
 		},
 		{
 			Name: "cronjobs",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -1020,7 +1019,7 @@ var (
 		},
 		{
 			Name: "secrets",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -1053,7 +1052,7 @@ var (
 		},
 		{
 			Name: "configmaps",
-			Actions: []models.Action{
+			Actions: []iam.Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},

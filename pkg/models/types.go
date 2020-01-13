@@ -17,12 +17,6 @@
 */
 package models
 
-import (
-	"time"
-
-	"k8s.io/api/rbac/v1"
-)
-
 type PageableResponse struct {
 	Items      []interface{} `json:"items" description:"paging data"`
 	TotalCount int           `json:"total_count" description:"total count"`
@@ -33,41 +27,6 @@ type Workspace struct {
 	Admin          string   `json:"admin,omitempty"`
 	Namespaces     []string `json:"namespaces"`
 	DevopsProjects []string `json:"devops_projects"`
-}
-
-type Action struct {
-	Name  string          `json:"name"`
-	Rules []v1.PolicyRule `json:"rules"`
-}
-
-type Rule struct {
-	Name    string   `json:"name"`
-	Actions []Action `json:"actions"`
-}
-
-type SimpleRule struct {
-	Name    string   `json:"name" description:"rule name"`
-	Actions []string `json:"actions" description:"actions"`
-}
-
-type User struct {
-	Username        string            `json:"username"`
-	Email           string            `json:"email"`
-	Lang            string            `json:"lang,omitempty"`
-	Description     string            `json:"description"`
-	CreateTime      time.Time         `json:"create_time"`
-	Groups          []string          `json:"groups,omitempty"`
-	Password        string            `json:"password,omitempty"`
-	CurrentPassword string            `json:"current_password,omitempty"`
-	AvatarUrl       string            `json:"avatar_url"`
-	LastLoginTime   string            `json:"last_login_time"`
-	Status          int               `json:"status"`
-	ClusterRole     string            `json:"cluster_role"`
-	Roles           map[string]string `json:"roles,omitempty"`
-	Role            string            `json:"role,omitempty"`
-	RoleBinding     string            `json:"role_binding,omitempty"`
-	RoleBindTime    *time.Time        `json:"role_bind_time,omitempty"`
-	WorkspaceRole   string            `json:"workspace_role,omitempty"`
 }
 
 type Group struct {

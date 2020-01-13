@@ -54,18 +54,18 @@ func (r *resourceHandler) handleGetNamespacedResources(request *restful.Request,
 
 func (r *resourceHandler) handleListNamespaceResources(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
-	resourceName := request.PathParameter("resources")
-	conditions, err := params.ParseConditions(request.QueryParameter(params.ConditionsParam))
+	resource := request.PathParameter("resources")
 	orderBy := params.GetStringValueWithDefault(request, params.OrderByParam, v1alpha2.CreateTime)
-	limit, offset := params.ParsePaging(request.QueryParameter(params.PagingParam))
-	reverse := params.ParseReverse(request)
+	limit, offset := params.ParsePaging(request)
+	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
+	conditions, err := params.ParseConditions(request)
 
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := r.resourcesGetter.ListResources(namespace, resourceName, conditions, orderBy, reverse, limit, offset)
+	result, err := r.resourcesGetter.ListResources(namespace, resource, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		api.HandleInternalError(response, err)

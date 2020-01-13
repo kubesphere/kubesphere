@@ -136,7 +136,7 @@ func ListGroupUsers(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	users := make([]*models.User, 0)
+	users := make([]*iam.User, 0)
 
 	modify := false
 

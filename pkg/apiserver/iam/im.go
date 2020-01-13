@@ -29,59 +29,9 @@ import (
 	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )
-
-func CreateUser(req *restful.Request, resp *restful.Response) {
-	var user models.User
-
-	err := req.ReadEntity(&user)
-
-	if err != nil {
-		klog.Info(err)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-
-	if user.Username == "" {
-		err = fmt.Errorf("invalid username: %s", user.Username)
-		klog.Info(err, user.Username)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-
-	// Parses a single RFC 5322 address, e.g. "Barry Gibbs <bg@example.com>"
-	if _, err = mail.ParseAddress(user.Email); err != nil {
-		err = fmt.Errorf("invalid email: %s", user.Email)
-		klog.Info(err, user.Email)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-
-	if len(user.Password) < 6 {
-		err = fmt.Errorf("invalid password")
-		klog.Info(err)
-		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-		return
-	}
-
-	created, err := iam.CreateUser(&user)
-
-	if err != nil {
-		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
-			klog.Info(err)
-			resp.WriteHeaderAndEntity(http.StatusConflict, errors.Wrap(err))
-			return
-		}
-		klog.Info(err)
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
-		return
-	}
-
-	resp.WriteAsJson(created)
-}
 
 func DeleteUser(req *restful.Request, resp *restful.Response) {
 	username := req.PathParameter("user")
@@ -110,7 +60,7 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 
 	usernameInPath := req.PathParameter("user")
 	usernameInHeader := req.HeaderParameter(constants.UserNameHeader)
-	var user models.User
+	var user iam.User
 
 	err := req.ReadEntity(&user)
 
@@ -254,8 +204,8 @@ func DescribeUser(req *restful.Request, resp *restful.Response) {
 	}
 
 	result := struct {
-		*models.User
-		ClusterRules []models.SimpleRule `json:"cluster_rules"`
+		*iam.User
+		ClusterRules []iam.SimpleRule `json:"cluster_rules"`
 	}{
 		User:         user,
 		ClusterRules: clusterRules,

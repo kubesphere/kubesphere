@@ -30,11 +30,10 @@ const (
 	OrderByParam    = "orderBy"
 	ConditionsParam = "conditions"
 	ReverseParam    = "reverse"
-	NameParam       = "name"
 )
 
-func ParsePaging(paging string) (limit, offset int) {
-
+func ParsePaging(req *restful.Request) (limit, offset int) {
+	paging := req.QueryParameter(PagingParam)
 	limit = 10
 	offset = 0
 	if groups := regexp.MustCompile(`^limit=(-?\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
@@ -45,7 +44,9 @@ func ParsePaging(paging string) (limit, offset int) {
 	return
 }
 
-func ParseConditions(conditionsStr string) (*Conditions, error) {
+func ParseConditions(req *restful.Request) (*Conditions, error) {
+
+	conditionsStr := req.QueryParameter(ConditionsParam)
 
 	conditions := &Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
 
@@ -76,18 +77,17 @@ func ParseConditions(conditionsStr string) (*Conditions, error) {
 	return conditions, nil
 }
 
-func ParseReverse(req *restful.Request) bool {
-	reverse := req.QueryParameter(ReverseParam)
-	b, err := strconv.ParseBool(reverse)
-	if err != nil {
-		return false
-	}
-	return b
-}
-
 type Conditions struct {
 	Match map[string]string
 	Fuzzy map[string]string
+}
+
+func GetBoolValueWithDefault(req *restful.Request, name string, dv bool) bool {
+	reverse := req.QueryParameter(name)
+	if v, err := strconv.ParseBool(reverse); err == nil {
+		return v
+	}
+	return dv
 }
 
 func GetStringValueWithDefault(req *restful.Request, name string, dv string) string {

@@ -20,7 +20,7 @@ package k8sutil
 import (
 	"k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
 func IsControlledBy(reference []metav1.OwnerReference, kind string, name string) bool {
@@ -55,15 +55,15 @@ func ContainsUser(subjects interface{}, username string) bool {
 				return true
 			}
 		}
-	case []models.User:
-		for _, u := range subjects.([]models.User) {
+	case []iam.User:
+		for _, u := range subjects.([]iam.User) {
 			if u.Username == username {
 				return true
 			}
 		}
 
-	case []*models.User:
-		for _, u := range subjects.([]*models.User) {
+	case []*iam.User:
+		for _, u := range subjects.([]*iam.User) {
 			if u.Username == username {
 				return true
 			}
