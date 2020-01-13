@@ -12,12 +12,14 @@
 
 > English | [中文](README_zh.md)
 
-[KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container platform built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage application workloads and computing resources with a few clicks, which greatly reduces the learning curve and the complexity of daily work such as development, testing, operation and maintenance. KubeSphere aims to alleviate the pain points of Kubernetes including storage, network, security and ease of use, etc.
+[KubeSphere](https://kubesphere.io/) is a multi-tenant enterprise-grade container platform built on [Kubernetes](http://kubernetes.io), with full-stack automated IT operation and streamlined DevOps workflows. KubeSphere provides developer-friendly wizard web UI, helps enterprises to build out a more robust and feature-rich platform, includes most common functionalities needed for enterprise Kubernetes strategy, such as the **Kubernetes resource management, DevOps (CI/CD), application lifecycle management, monitoring, logging, Service Mesh (Istio-based), multi-tenancy, alerting and notification, storage and networking, autoscaling, access control, GPU support, etc.**, as well as **multi-cluster management, Network Policy, registry management, security** in upcoming releases. KubeSphere is going to be a **distributed operating system with cloud native stack** based on Kubernetes, will be very well architected for **plug-and-play integration with its ecosystem** as well.
+
+KubeSphere provides a complete user experience around Kubernetes that incorporates a rich set of cloud native ecosystem tools, allows developers and DevOps teams use their favorite tools in a single front-end interface. KubeSphere delivers **consolidated views while integrating a wide breadth of ecosystem tools** upon Kubernetes and offer **consistent user experience** to reduce complexity. Most importantly, these functionalities are loosely coupled with the platform since they are pluggable and optional based on your demands, will not impact the flexibilty of Kubernetes.
+
+![](docs/images/kubesphere-platform-overview.png)
 
 
-## Screenshots
-
-> Note: The [Screenshots](docs/en/guides/screenshots.md) give a close insight into KubeSphere.
+> Note: The [Screenshots](docs/en/guides/screenshots.md) give a close insight into KubeSphere, see [What is KubeSphere](https://kubesphere.io/docs/v2.1/en/introduction/what-is-kubesphere) for details.
 
 
 <table>
@@ -74,17 +76,16 @@ It also supports a variety of open source storage solutions and cloud storage pr
 
 ## Architecture
 
-KubeSphere separates [frontend](https://github.com/kubesphere/console) and [backend](https://github.com/kubesphere/kubesphere) as shows below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution. Please check the [installation guide](https://github.com/kubesphere/ks-installer).
+KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere), the back end can also be connected with external systems through the REST API, all components are designed as Docker containers. See [Architecture](https://kubesphere.io/docs/v2.1/en/introduction/architecture/) for details.
 
-> Note that there is only back-end source code in this repository，see [Console](https://github.com/kubesphere/console) for front-end source code.
-
-![](https://pek3b.qingstor.com/kubesphere-docs/png/20190810073322.png)
 
 ## Latest Release
 
 KubeSphere 2.1.0 was released on **November 12nd, 2019**. Check the [Release Notes For 2.1.0](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v210/) for the updates.
 
 ## Installation
+
+KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution.
 
 > Attention: The following section is only used for minimal installation by default, see [Complete Installation Guide](https://kubesphere.io/docs/v2.1/en/installation/intro/) for details.
 
@@ -106,7 +107,9 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/mas
 
 ### Deploy on Linux
 
-The installation is going to install KubeSphere and Kubernetes on your linux machines. It provides All-in-One and Multi-Node installation options.
+KubeSphere Installer can help you to install KubeSphere and Kubernetes on your linux machines. It provides [All-in-One](https://kubesphere.com.cn/docs/v2.1/en/installation/all-in-one/) and [Multi-Node](https://kubesphere.com.cn/docs/v2.1/en/installation/multi-node/) installation options.
+
+**Prerequisites**
 
 - Operating Systems
    - CentOS 7.5 (64 bit)

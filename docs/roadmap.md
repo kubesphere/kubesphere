@@ -1,6 +1,6 @@
 # KubeSphere Roadmap
 
-KubeSphere Roadmap demonstrates a list of open source product development plans and features being split by the edition and modules, as well as OpenPitrix community's anticipation. Obviously, it details the future's direction of OpenPitrix, but may change over time. We hope that can help you to get familiar with the project plans and vision through the Roadmap. Of course, if you have any better ideas, welcome to [Issues](https://github.com/kubesphere/kubesphere/issues).
+KubeSphere Roadmap demonstrates a list of open source product development plans and features being split by the edition and modules, as well as KubeSphere community's anticipation. Obviously, it details the future's direction of KubeSphere, but may change over time. We hope that can help you to get familiar with the project plans and vision through the Roadmap. Of course, if you have any better ideas, welcome to [Issues](https://github.com/kubesphere/kubesphere/issues).
 
 ## Release Goals
 
@@ -38,4 +38,4 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### Security & Multitenancy
 
-#### Application Store (OpenPitrix)
+#### Application Lifecycle Management (OpenPitrix)
