@@ -132,6 +132,7 @@ func (o *projectCredentialOperator) UpdateProjectCredential(projectId, credentia
 		klog.Errorf("%+v", err)
 		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
+	return credentialId, nil
 
 }
 

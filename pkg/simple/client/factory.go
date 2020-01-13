@@ -196,26 +196,27 @@ func (cs *ClientSet) Cache() (cache.Interface, error) {
 }
 
 func (cs *ClientSet) Devops() (devops.Interface, error) {
-	var err error
-
-	if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
-		return nil, ErrClientSetNotEnabled
-	}
-
-	if cs.devopsClient != nil {
-		return cs.devopsClient, nil
-	} else {
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		if cs.devopsClient == nil {
-			cs.devopsClient, err = jenkins.NewDevopsClient(cs.csoptions.devopsOptions)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return cs.devopsClient, nil
-	}
+	//var err error
+	//
+	//if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
+	//	return nil, ErrClientSetNotEnabled
+	//}
+	//
+	//if cs.devopsClient != nil {
+	//	return cs.devopsClient, nil
+	//} else {
+	//	mutex.Lock()
+	//	defer mutex.Unlock()
+	//
+	//	if cs.devopsClient == nil {
+	//		cs.devopsClient, err = jenkins.NewDevopsClient(cs.csoptions.devopsOptions)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//	}
+	//	return cs.devopsClient, nil
+	//}
+	return nil, nil
 }
 
 func (cs *ClientSet) SonarQube() (*sonarqube.Client, error) {

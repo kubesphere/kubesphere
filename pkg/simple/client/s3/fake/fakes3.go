@@ -8,11 +8,11 @@ import (
 )
 
 type FakeS3 struct {
-	storage map[string]*object
+	Storage map[string]*object
 }
 
 func NewFakeS3() *FakeS3 {
-	return &FakeS3{storage: map[string]*object{}}
+	return &FakeS3{Storage: map[string]*object{}}
 }
 
 type object struct {
@@ -22,7 +22,7 @@ type object struct {
 }
 
 func (s *FakeS3) Upload(key, fileName string, body io.Reader) error {
-	s.storage[key] = &object{
+	s.Storage[key] = &object{
 		key:      key,
 		fileName: fileName,
 		body:     body,
@@ -31,13 +31,13 @@ func (s *FakeS3) Upload(key, fileName string, body io.Reader) error {
 }
 
 func (s *FakeS3) GetDownloadURL(key string, fileName string) (string, error) {
-	if o, ok := s.storage[key]; ok {
+	if o, ok := s.Storage[key]; ok {
 		return fmt.Sprintf("http://%s/%s", o.key, fileName), nil
 	}
 	return "", awserr.New(s3.ErrCodeNoSuchKey, "no such object", nil)
 }
 
 func (s *FakeS3) Delete(key string) error {
-	delete(s.storage, key)
+	delete(s.Storage, key)
 	return nil
 }

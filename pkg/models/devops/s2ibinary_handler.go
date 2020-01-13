@@ -12,7 +12,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"mime/multipart"
 	"net/http"
@@ -113,7 +112,7 @@ func (s *s2iBinaryUploader) UploadS2iBinary(namespace, name, md5 string, fileHea
 		copy.Spec.UploadTimeStamp = new(metav1.Time)
 	}
 	*copy.Spec.UploadTimeStamp = metav1.Now()
-	copy, err = client.ClientSets().K8s().KubeSphere().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
+	copy, err = s.client.DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -165,7 +164,7 @@ func (s *s2iBinaryUploader) SetS2iBinaryStatusWithRetry(s2ibin *v1alpha1.S2iBina
 	var bin *v1alpha1.S2iBinary
 	var err error
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		bin, err = s.informers.Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(s2ibin.Namespace).Get(s2ibin.Name)
+		bin, err = s.client.DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Get(s2ibin.Name, metav1.GetOptions{})
 		if err != nil {
 			klog.Error(err)
 			return err
