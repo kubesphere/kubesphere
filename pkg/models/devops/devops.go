@@ -23,10 +23,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"sync"
 )
@@ -56,7 +54,7 @@ type DevopsOperator interface {
 	StopBranchPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.StopPipeline, error)
 	ReplayBranchPipeline(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.ReplayPipeline, error)
 	RunBranchPipeline(projectName, pipelineName, branchName string, req *http.Request) (*devops.RunPipeline, error)
-	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.Artifacts, error)
+	GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.Artifacts, error)
 	GetBranchRunLog(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error)
 	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error)
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]devops.NodeSteps, error)
@@ -350,7 +348,7 @@ func (d devopsOperator) RunBranchPipeline(projectName, pipelineName, branchName 
 	return res, err
 }
 
-func (d devopsOperator) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.Artifacts, error) {
+func (d devopsOperator) GetBranchArtifacts(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.Artifacts, error) {
 
 	res, err := d.devopsClient.GetBranchArtifacts(projectName, pipelineName, branchName, runId, convertToHttpParameters(req))
 	if err != nil {
