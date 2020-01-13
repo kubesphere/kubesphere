@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2019 The KubeSphere Authors.
+ * Copyright 2020 The KubeSphere Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * /
  */
 
-package app
+package openpitrix
 
 import (
 	"github.com/go-openapi/strfmt"
@@ -25,41 +25,58 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/utils"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"strings"
 )
 
-const (
-	BuiltinRepoId = "repo-helm"
-	StatusActive  = "active"
-)
+type AppTemplateInterface interface {
+	ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	DescribeApp(id string) (*App, error)
+	DeleteApp(id string) error
+	CreateApp(request *CreateAppRequest) (*CreateAppResponse, error)
+	ModifyApp(appId string, request *ModifyAppRequest) error
+	DeleteAppVersion(id string) error
+	ModifyAppVersion(id string, request *ModifyAppVersionRequest) error
+	DescribeAppVersion(id string) (*AppVersion, error)
+	CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionResponse, error)
+	ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse, error)
+	GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageResponse, error)
+	DoAppAction(appId string, request *ActionRequest) error
+	DoAppVersionAction(versionId string, request *ActionRequest) error
+	GetAppVersionFiles(versionId string, request *GetAppVersionFilesRequest) (*GetAppVersionPackageFilesResponse, error)
+	ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+}
 
-func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+type appTemplateOperator struct {
+	opClient openpitrix.Client
+}
+
+func newAppTemplateOperator(opClient openpitrix.Client) AppTemplateInterface {
+	return &appTemplateOperator{
+		opClient: opClient,
 	}
+}
+
+func (c *appTemplateOperator) ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
 	describeAppsRequest := &pb.DescribeAppsRequest{}
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppsRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app_id"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppsRequest.AppId = strings.Split(appId, "|")
 	}
-	if isv := conditions.Match["isv"]; isv != "" {
+	if isv := conditions.Match[ISV]; isv != "" {
 		describeAppsRequest.Isv = strings.Split(isv, "|")
 	}
-	if categoryId := conditions.Match["category_id"]; categoryId != "" {
+	if categoryId := conditions.Match[CategoryId]; categoryId != "" {
 		describeAppsRequest.CategoryId = strings.Split(categoryId, "|")
 	}
-	if repoId := conditions.Match["repo"]; repoId != "" {
+	if repoId := conditions.Match[RepoId]; repoId != "" {
 		// hard code, app template in built-in repo has no repo_id attribute
 		if repoId == BuiltinRepoId {
 			describeAppsRequest.RepoId = []string{"\u0000"}
@@ -67,7 +84,7 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 			describeAppsRequest.RepoId = strings.Split(repoId, "|")
 		}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppsRequest.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
@@ -76,7 +93,7 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 	describeAppsRequest.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppsRequest.Limit = uint32(limit)
 	describeAppsRequest.Offset = uint32(offset)
-	resp, err := client.App().DescribeApps(openpitrix.SystemContext(), describeAppsRequest)
+	resp, err := c.opClient.DescribeApps(openpitrix.SystemContext(), describeAppsRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -85,19 +102,14 @@ func ListApps(conditions *params.Conditions, orderBy string, reverse bool, limit
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppSet {
-		items = append(items, utils.ConvertApp(item))
+		items = append(items, convertApp(item))
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func DescribeApp(id string) (*types.App, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.App().DescribeApps(openpitrix.SystemContext(), &pb.DescribeAppsRequest{
+func (c *appTemplateOperator) DescribeApp(id string) (*App, error) {
+	resp, err := c.opClient.DescribeApps(openpitrix.SystemContext(), &pb.DescribeAppsRequest{
 		AppId: []string{id},
 		Limit: 1,
 	})
@@ -106,10 +118,10 @@ func DescribeApp(id string) (*types.App, error) {
 		return nil, err
 	}
 
-	var app *types.App
+	var app *App
 
 	if len(resp.AppSet) > 0 {
-		app = utils.ConvertApp(resp.AppSet[0])
+		app = convertApp(resp.AppSet[0])
 		return app, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -118,13 +130,8 @@ func DescribeApp(id string) (*types.App, error) {
 	}
 }
 
-func DeleteApp(id string) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	_, err = op.App().DeleteApps(openpitrix.SystemContext(), &pb.DeleteAppsRequest{
+func (c *appTemplateOperator) DeleteApp(id string) error {
+	_, err := c.opClient.DeleteApps(openpitrix.SystemContext(), &pb.DeleteAppsRequest{
 		AppId: []string{id},
 	})
 	if err != nil {
@@ -134,12 +141,7 @@ func DeleteApp(id string) error {
 	return nil
 }
 
-func CreateApp(request *types.CreateAppRequest) (*types.CreateAppResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
+func (c *appTemplateOperator) CreateApp(request *CreateAppRequest) (*CreateAppResponse, error) {
 	createAppRequest := &pb.CreateAppRequest{
 		Name:        &wrappers.StringValue{Value: request.Name},
 		VersionType: &wrappers.StringValue{Value: request.VersionType},
@@ -154,25 +156,18 @@ func CreateApp(request *types.CreateAppRequest) (*types.CreateAppResponse, error
 	if request.Isv != "" {
 		createAppRequest.Isv = &wrappers.StringValue{Value: request.Isv}
 	}
-	resp, err := op.App().CreateApp(openpitrix.ContextWithUsername(request.Username), createAppRequest)
+	resp, err := c.opClient.CreateApp(openpitrix.ContextWithUsername(request.Username), createAppRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	return &types.CreateAppResponse{
+	return &CreateAppResponse{
 		AppID:     resp.GetAppId().GetValue(),
 		VersionID: resp.GetVersionId().GetValue(),
 	}, nil
 }
 
-func PatchApp(appId string, request *types.ModifyAppRequest) error {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
+func (c *appTemplateOperator) ModifyApp(appId string, request *ModifyAppRequest) error {
 	// upload app attachment
 	if request.AttachmentContent != nil {
 		uploadAttachmentRequest := &pb.UploadAppAttachmentRequest{
@@ -186,7 +181,7 @@ func PatchApp(appId string, request *types.ModifyAppRequest) error {
 			uploadAttachmentRequest.Sequence = &wrappers.UInt32Value{Value: uint32(*request.Sequence)}
 		}
 
-		_, err := client.App().UploadAppAttachment(openpitrix.SystemContext(), uploadAttachmentRequest)
+		_, err := c.opClient.UploadAppAttachment(openpitrix.SystemContext(), uploadAttachmentRequest)
 
 		if err != nil {
 			klog.Error(err)
@@ -229,7 +224,7 @@ func PatchApp(appId string, request *types.ModifyAppRequest) error {
 			patchAppRequest.Tos = &wrappers.StringValue{Value: *request.Tos}
 		}
 
-		_, err = client.App().ModifyApp(openpitrix.SystemContext(), patchAppRequest)
+		_, err := c.opClient.ModifyApp(openpitrix.SystemContext(), patchAppRequest)
 
 		if err != nil {
 			klog.Error(err)
@@ -239,12 +234,7 @@ func PatchApp(appId string, request *types.ModifyAppRequest) error {
 	return nil
 }
 
-func CreateAppVersion(request *types.CreateAppVersionRequest) (*types.CreateAppVersionResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
+func (c *appTemplateOperator) CreateAppVersion(request *CreateAppVersionRequest) (*CreateAppVersionResponse, error) {
 	createAppVersionRequest := &pb.CreateAppVersionRequest{
 		AppId:       &wrappers.StringValue{Value: request.AppId},
 		Name:        &wrappers.StringValue{Value: request.Name},
@@ -256,24 +246,17 @@ func CreateAppVersion(request *types.CreateAppVersionRequest) (*types.CreateAppV
 		createAppVersionRequest.Package = &wrappers.BytesValue{Value: request.Package}
 	}
 
-	resp, err := op.App().CreateAppVersion(openpitrix.ContextWithUsername(request.Username), createAppVersionRequest)
+	resp, err := c.opClient.CreateAppVersion(openpitrix.ContextWithUsername(request.Username), createAppVersionRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	return &types.CreateAppVersionResponse{
+	return &CreateAppVersionResponse{
 		VersionId: resp.GetVersionId().GetValue(),
 	}, nil
 }
 
-func ValidatePackage(request *types.ValidatePackageRequest) (*types.ValidatePackageResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *appTemplateOperator) ValidatePackage(request *ValidatePackageRequest) (*ValidatePackageResponse, error) {
 	r := &pb.ValidatePackageRequest{}
 
 	if request.VersionPackage != nil {
@@ -283,14 +266,14 @@ func ValidatePackage(request *types.ValidatePackageRequest) (*types.ValidatePack
 		r.VersionType = request.VersionType
 	}
 
-	resp, err := client.App().ValidatePackage(openpitrix.SystemContext(), r)
+	resp, err := c.opClient.ValidatePackage(openpitrix.SystemContext(), r)
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	result := &types.ValidatePackageResponse{}
+	result := &ValidatePackageResponse{}
 
 	if resp.Error != nil {
 		result.Error = resp.Error.Value
@@ -316,13 +299,8 @@ func ValidatePackage(request *types.ValidatePackageRequest) (*types.ValidatePack
 	return result, nil
 }
 
-func DeleteAppVersion(id string) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	_, err = op.App().DeleteAppVersion(openpitrix.SystemContext(), &pb.DeleteAppVersionRequest{
+func (c *appTemplateOperator) DeleteAppVersion(id string) error {
+	_, err := c.opClient.DeleteAppVersion(openpitrix.SystemContext(), &pb.DeleteAppVersionRequest{
 		VersionId: &wrappers.StringValue{Value: id},
 	})
 	if err != nil {
@@ -332,12 +310,7 @@ func DeleteAppVersion(id string) error {
 	return nil
 }
 
-func PatchAppVersion(id string, request *types.ModifyAppVersionRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
+func (c *appTemplateOperator) ModifyAppVersion(id string, request *ModifyAppVersionRequest) error {
 	modifyAppVersionRequest := &pb.ModifyAppVersionRequest{
 		VersionId: &wrappers.StringValue{Value: id},
 	}
@@ -355,7 +328,7 @@ func PatchAppVersion(id string, request *types.ModifyAppVersionRequest) error {
 		modifyAppVersionRequest.PackageFiles = request.PackageFiles
 	}
 
-	_, err = op.App().ModifyAppVersion(openpitrix.SystemContext(), modifyAppVersionRequest)
+	_, err := c.opClient.ModifyAppVersion(openpitrix.SystemContext(), modifyAppVersionRequest)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -363,13 +336,8 @@ func PatchAppVersion(id string, request *types.ModifyAppVersionRequest) error {
 	return nil
 }
 
-func DescribeAppVersion(id string) (*types.AppVersion, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.App().DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
+func (c *appTemplateOperator) DescribeAppVersion(id string) (*AppVersion, error) {
+	resp, err := c.opClient.DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
 		VersionId: []string{id},
 		Limit:     1,
 	})
@@ -378,10 +346,10 @@ func DescribeAppVersion(id string) (*types.AppVersion, error) {
 		return nil, err
 	}
 
-	var app *types.AppVersion
+	var app *AppVersion
 
 	if len(resp.AppVersionSet) > 0 {
-		app = utils.ConvertAppVersion(resp.AppVersionSet[0])
+		app = convertAppVersion(resp.AppVersionSet[0])
 		return app, nil
 	} else {
 		err := status.New(codes.NotFound, "resource not found").Err()
@@ -390,13 +358,8 @@ func DescribeAppVersion(id string) (*types.AppVersion, error) {
 	}
 }
 
-func GetAppVersionPackage(appId, versionId string) (*types.GetAppVersionPackageResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.App().GetAppVersionPackage(openpitrix.SystemContext(), &pb.GetAppVersionPackageRequest{
+func (c *appTemplateOperator) GetAppVersionPackage(appId, versionId string) (*GetAppVersionPackageResponse, error) {
+	resp, err := c.opClient.GetAppVersionPackage(openpitrix.SystemContext(), &pb.GetAppVersionPackageRequest{
 		VersionId: &wrappers.StringValue{Value: versionId},
 	})
 	if err != nil {
@@ -404,7 +367,7 @@ func GetAppVersionPackage(appId, versionId string) (*types.GetAppVersionPackageR
 		return nil, err
 	}
 
-	app := &types.GetAppVersionPackageResponse{
+	app := &GetAppVersionPackageResponse{
 		AppId:     appId,
 		VersionId: versionId,
 	}
@@ -416,21 +379,14 @@ func GetAppVersionPackage(appId, versionId string) (*types.GetAppVersionPackageR
 	return app, nil
 }
 
-func DoAppAction(appId string, request *types.ActionRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
+func (c *appTemplateOperator) DoAppAction(appId string, request *ActionRequest) error {
 	switch request.Action {
 
-	case "recover":
+	case ActionRecover:
 		// TODO openpitrix need to implement app recover interface
-		resp, err := op.App().DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
+		resp, err := c.opClient.DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
 			AppId:  []string{appId},
-			Status: []string{"suspended"},
+			Status: []string{StatusSuspended},
 			Limit:  200,
 			Offset: 0,
 		})
@@ -440,7 +396,7 @@ func DoAppAction(appId string, request *types.ActionRequest) error {
 		}
 		for _, version := range resp.AppVersionSet {
 
-			_, err = op.App().RecoverAppVersion(openpitrix.SystemContext(), &pb.RecoverAppVersionRequest{
+			_, err = c.opClient.RecoverAppVersion(openpitrix.SystemContext(), &pb.RecoverAppVersionRequest{
 				VersionId: version.VersionId,
 			})
 			if err != nil {
@@ -449,11 +405,11 @@ func DoAppAction(appId string, request *types.ActionRequest) error {
 			}
 		}
 
-	case "suspend":
+	case ActionSuspend:
 		// TODO openpitrix need to implement app suspend interface
-		resp, err := op.App().DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
+		resp, err := c.opClient.DescribeAppVersions(openpitrix.SystemContext(), &pb.DescribeAppVersionsRequest{
 			AppId:  []string{appId},
-			Status: []string{"active"},
+			Status: []string{StatusActive},
 			Limit:  200,
 			Offset: 0,
 		})
@@ -462,7 +418,7 @@ func DoAppAction(appId string, request *types.ActionRequest) error {
 			return err
 		}
 		for _, version := range resp.AppVersionSet {
-			_, err = op.App().SuspendAppVersion(openpitrix.SystemContext(), &pb.SuspendAppVersionRequest{
+			_, err = c.opClient.SuspendAppVersion(openpitrix.SystemContext(), &pb.SuspendAppVersionRequest{
 				VersionId: version.VersionId,
 			})
 
@@ -473,7 +429,7 @@ func DoAppAction(appId string, request *types.ActionRequest) error {
 		}
 
 	default:
-		err = status.New(codes.InvalidArgument, "action not support").Err()
+		err := status.New(codes.InvalidArgument, "action not support").Err()
 		klog.Error(err)
 		return err
 	}
@@ -481,42 +437,36 @@ func DoAppAction(appId string, request *types.ActionRequest) error {
 	return nil
 }
 
-func DoAppVersionAction(versionId string, request *types.ActionRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
+func (c *appTemplateOperator) DoAppVersionAction(versionId string, request *ActionRequest) error {
+	var err error
 	switch request.Action {
-	case "cancel":
-		_, err = op.App().CancelAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.CancelAppVersionRequest{
+	case ActionCancel:
+		_, err = c.opClient.CancelAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.CancelAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
-	case "pass":
-		_, err = op.App().AdminPassAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.PassAppVersionRequest{
+	case ActionPass:
+		_, err = c.opClient.AdminPassAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.PassAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
-	case "recover":
-		_, err = op.App().RecoverAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.RecoverAppVersionRequest{
+	case ActionRecover:
+		_, err = c.opClient.RecoverAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.RecoverAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
-	case "reject":
-		_, err = op.App().AdminRejectAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.RejectAppVersionRequest{
+	case ActionReject:
+		_, err = c.opClient.AdminRejectAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.RejectAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 			Message:   &wrappers.StringValue{Value: request.Message},
 		})
-	case "submit":
-		_, err = op.App().SubmitAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.SubmitAppVersionRequest{
+	case ActionSubmit:
+		_, err = c.opClient.SubmitAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.SubmitAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
-	case "suspend":
-		_, err = op.App().SuspendAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.SuspendAppVersionRequest{
+	case ActionSuspend:
+		_, err = c.opClient.SuspendAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.SuspendAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
-	case "release":
-		_, err = op.App().ReleaseAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.ReleaseAppVersionRequest{
+	case ActionRelease:
+		_, err = c.opClient.ReleaseAppVersion(openpitrix.ContextWithUsername(request.Username), &pb.ReleaseAppVersionRequest{
 			VersionId: &wrappers.StringValue{Value: versionId},
 		})
 	default:
@@ -531,12 +481,7 @@ func DoAppVersionAction(versionId string, request *types.ActionRequest) error {
 	return nil
 }
 
-func GetAppVersionFiles(versionId string, request *types.GetAppVersionFilesRequest) (*types.GetAppVersionPackageFilesResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
+func (c *appTemplateOperator) GetAppVersionFiles(versionId string, request *GetAppVersionFilesRequest) (*GetAppVersionPackageFilesResponse, error) {
 	getAppVersionPackageFilesRequest := &pb.GetAppVersionPackageFilesRequest{
 		VersionId: &wrappers.StringValue{Value: versionId},
 	}
@@ -544,13 +489,13 @@ func GetAppVersionFiles(versionId string, request *types.GetAppVersionFilesReque
 		getAppVersionPackageFilesRequest.Files = request.Files
 	}
 
-	resp, err := op.App().GetAppVersionPackageFiles(openpitrix.SystemContext(), getAppVersionPackageFilesRequest)
+	resp, err := c.opClient.GetAppVersionPackageFiles(openpitrix.SystemContext(), getAppVersionPackageFilesRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
-	version := &types.GetAppVersionPackageFilesResponse{
+	version := &GetAppVersionPackageFilesResponse{
 		VersionId: versionId,
 	}
 
@@ -564,14 +509,7 @@ func GetAppVersionFiles(versionId string, request *types.GetAppVersionFilesReque
 	return version, nil
 }
 
-func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *appTemplateOperator) ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionAudits := &pb.DescribeAppVersionAuditsRequest{}
 
 	if keyword := conditions.Match["keyword"]; keyword != "" {
@@ -589,10 +527,10 @@ func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse
 	if orderBy != "" {
 		describeAppVersionAudits.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionAudits.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionAudits.Limit = uint32(limit)
 	describeAppVersionAudits.Offset = uint32(offset)
-	resp, err := client.App().DescribeAppVersionAudits(openpitrix.SystemContext(), describeAppVersionAudits)
+	resp, err := c.opClient.DescribeAppVersionAudits(openpitrix.SystemContext(), describeAppVersionAudits)
 
 	if err != nil {
 		klog.Error(err)
@@ -602,21 +540,14 @@ func ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionAuditSet {
-		appVersion := utils.ConvertAppVersionAudit(item)
+		appVersion := convertAppVersionAudit(item)
 		items = append(items, appVersion)
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *appTemplateOperator) ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionReviews := &pb.DescribeAppVersionReviewsRequest{}
 
 	if keyword := conditions.Match["keyword"]; keyword != "" {
@@ -628,11 +559,11 @@ func ListAppVersionReviews(conditions *params.Conditions, orderBy string, revers
 	if orderBy != "" {
 		describeAppVersionReviews.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionReviews.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionReviews.Limit = uint32(limit)
 	describeAppVersionReviews.Offset = uint32(offset)
 	// TODO icon is needed
-	resp, err := client.App().DescribeAppVersionReviews(openpitrix.SystemContext(), describeAppVersionReviews)
+	resp, err := c.opClient.DescribeAppVersionReviews(openpitrix.SystemContext(), describeAppVersionReviews)
 
 	if err != nil {
 		klog.Error(err)
@@ -642,21 +573,14 @@ func ListAppVersionReviews(conditions *params.Conditions, orderBy string, revers
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionReviewSet {
-		appVersion := utils.ConvertAppVersionReview(item)
+		appVersion := convertAppVersionReview(item)
 		items = append(items, appVersion)
 	}
 
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *appTemplateOperator) ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionsRequest := &pb.DescribeAppVersionsRequest{}
 
 	if keyword := conditions.Match["keyword"]; keyword != "" {
@@ -671,10 +595,10 @@ func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool
 	if orderBy != "" {
 		describeAppVersionsRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: !reverse}
+	describeAppVersionsRequest.Reverse = &wrappers.BoolValue{Value: reverse}
 	describeAppVersionsRequest.Limit = uint32(limit)
 	describeAppVersionsRequest.Offset = uint32(offset)
-	resp, err := client.App().DescribeAppVersions(openpitrix.SystemContext(), describeAppVersionsRequest)
+	resp, err := c.opClient.DescribeAppVersions(openpitrix.SystemContext(), describeAppVersionsRequest)
 
 	if err != nil {
 		klog.Error(err)
@@ -684,7 +608,7 @@ func ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool
 	items := make([]interface{}, 0)
 
 	for _, item := range resp.AppVersionSet {
-		appVersion := utils.ConvertAppVersion(item)
+		appVersion := convertAppVersion(item)
 		items = append(items, appVersion)
 	}
 

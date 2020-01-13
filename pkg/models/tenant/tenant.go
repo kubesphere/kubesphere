@@ -19,49 +19,62 @@ package tenant
 
 import (
 	"k8s.io/api/core/v1"
+	k8sinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
-	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"strconv"
 )
 
-var (
-	workspaces = workspaceSearcher{}
-	namespaces = namespaceSearcher{}
-)
-
-func CreateNamespace(workspaceName string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
-	if namespace.Labels == nil {
-		namespace.Labels = make(map[string]string, 0)
-	}
-	if username != "" {
-		namespace.Annotations[constants.CreatorAnnotationKey] = username
-	}
-
-	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName
-
-	return client.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Create(namespace)
+type Interface interface {
+	CreateNamespace(workspace string, namespace *v1.Namespace, username string) (*v1.Namespace, error)
+	DeleteNamespace(workspace, namespace string) error
+	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
+	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 }
 
-func DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
-	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
+type tenantOperator struct {
+	workspaces WorkspaceInterface
+	namespaces NamespaceInterface
+}
+
+func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
+	return t.workspaces.DeleteNamespace(workspace, namespace)
+}
+
+func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
+	return &tenantOperator{
+		workspaces: newWorkspaceOperator(client, informers, ksinformers, db),
+		namespaces: newNamespaceOperator(client, informers),
+	}
+}
+
+func (t *tenantOperator) CreateNamespace(workspaceName string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
+	return t.namespaces.CreateNamespace(workspaceName, namespace, username)
+}
+
+func (t *tenantOperator) DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
+	workspace, err := t.workspaces.GetWorkspace(workspaceName)
 
 	if err != nil {
 		return nil, err
 	}
 
-	workspace = appendAnnotations(username, workspace)
+	if username != "" {
+		workspace = t.appendAnnotations(username, workspace)
+	}
 
 	return workspace, nil
 }
 
-func ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+func (t *tenantOperator) ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
-	workspaces, err := workspaces.search(username, conditions, orderBy, reverse)
+	workspaces, err := t.workspaces.SearchWorkspace(username, conditions, orderBy, reverse)
 
 	if err != nil {
 		return nil, err
@@ -71,7 +84,7 @@ func ListWorkspaces(username string, conditions *params.Conditions, orderBy stri
 	result := make([]interface{}, 0)
 	for i, workspace := range workspaces {
 		if len(result) < limit && i >= offset {
-			workspace := appendAnnotations(username, workspace)
+			workspace := t.appendAnnotations(username, workspace)
 			result = append(result, workspace)
 		}
 	}
@@ -79,12 +92,12 @@ func ListWorkspaces(username string, conditions *params.Conditions, orderBy stri
 	return &models.PageableResponse{Items: result, TotalCount: len(workspaces)}, nil
 }
 
-func appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
+func (t *tenantOperator) appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
 	workspace = workspace.DeepCopy()
 	if workspace.Annotations == nil {
 		workspace.Annotations = make(map[string]string)
 	}
-	ns, err := ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
+	ns, err := t.ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
 	}
@@ -92,16 +105,18 @@ func appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1
 	if err == nil {
 		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
 	}
-	userCount, err := ws.WorkspaceUserCount(workspace.Name)
+
+	userCount, err := t.workspaces.CountUsersInWorkspace(workspace.Name)
+
 	if err == nil {
 		workspace.Annotations["kubesphere.io/member-count"] = strconv.Itoa(userCount)
 	}
 	return workspace
 }
 
-func ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+func (t *tenantOperator) ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 
-	namespaces, err := namespaces.search(username, conditions, orderBy, reverse)
+	namespaces, err := t.namespaces.Search(username, conditions, orderBy, reverse)
 
 	if err != nil {
 		return nil, err

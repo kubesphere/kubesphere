@@ -22,13 +22,14 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/kubesphere/pkg/api"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"kubesphere.io/kubesphere/pkg/apiserver/tenant"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 
@@ -37,78 +38,72 @@ import (
 
 const (
 	GroupName = "tenant.kubesphere.io"
-	RespOK    = "ok"
 )
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
-
-func addWebService(c *restful.Container) error {
-	ok := "ok"
+func AddToContainer(c *restful.Container) error {
 	ws := runtime.NewWebService(GroupVersion)
+	handler := newTenantHandler()
 
 	ws.Route(ws.GET("/workspaces").
-		To(tenant.ListWorkspaces).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
+		To(handler.ListWorkspaces).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Doc("List all workspaces that belongs to the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}").
-		To(tenant.DescribeWorkspace).
+		To(handler.DescribeWorkspace).
 		Doc("Describe the specified workspace").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Returns(http.StatusOK, ok, v1alpha1.Workspace{}).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.Workspace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/rules").
-		To(tenant.ListWorkspaceRules).
+		To(handler.ListWorkspaceRules).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the rules of the specified workspace for the current user").
-		Returns(http.StatusOK, ok, models.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/rules").
-		To(tenant.ListNamespaceRules).
+		To(handler.ListNamespaceRules).
 		Param(ws.PathParameter("namespace", "the name of the namespace")).
 		Doc("List the rules of the specified namespace for the current user").
-		Returns(http.StatusOK, ok, models.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devops/{devops}/rules").
-		To(tenant.ListDevopsRules).
+		To(handler.ListDevopsRules).
 		Param(ws.PathParameter("devops", "devops project ID")).
 		Doc("List the rules of the specified DevOps project for the current user").
-		Returns(http.StatusOK, ok, models.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
-		To(tenant.ListNamespaces).
+		To(handler.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces of the specified workspace for the current user").
-		Returns(http.StatusOK, ok, []v1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/namespaces").
-		To(tenant.ListNamespacesByUsername).
+		To(handler.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "workspace member's username")).
 		Doc("List the namespaces for the workspace member").
-		Returns(http.StatusOK, ok, []v1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
-		To(tenant.CreateNamespace).
+		To(handler.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create a namespace in the specified workspace").
-		Returns(http.StatusOK, ok, []v1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/namespaces/{namespace}").
-		To(tenant.DeleteNamespace).
+		To(handler.DeleteNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("namespace", "the name of the namespace")).
 		Doc("Delete the specified namespace from the workspace").
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/devops").
-		To(tenant.ListDevopsProjects).
+		To(handler.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
 			Required(false).
@@ -120,7 +115,7 @@ func addWebService(c *restful.Container) error {
 		Doc("List devops projects for the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/devops").
-		To(tenant.ListDevopsProjectsByUsername).
+		To(handler.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "workspace member's username")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
@@ -130,32 +125,32 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter(params.ConditionsParam, "query conditions").
 			Required(false).
 			DataFormat("key=%s,key~%s")).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Doc("List the devops projects for the workspace member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devopscount").
-		To(tenant.GetDevOpsProjectsCount).
-		Returns(http.StatusOK, ok, struct {
+		To(handler.GetDevOpsProjectsCount).
+		Returns(http.StatusOK, api.StatusOK, struct {
 			Count uint32 `json:"count"`
 		}{}).
 		Doc("Get the devops projects count for the member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
-		To(tenant.CreateDevopsProject).
+		To(handler.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create a devops project in the specified workspace").
 		Reads(devopsv1alpha2.DevOpsProject{}).
-		Returns(http.StatusOK, RespOK, devopsv1alpha2.DevOpsProject{}).
+		Returns(http.StatusOK, api.StatusOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
-		To(DeleteDevopsProject).
+		To(handler.DeleteDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("devops", "devops project ID")).
 		Doc("Delete the specified devops project from the workspace").
-		Returns(http.StatusOK, RespOK, devopsv1alpha2.DevOpsProject{}).
+		Returns(http.StatusOK, api.StatusOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/logs").
-		To(tenant.LogQuery).
+		To(handler.LogQuery).
 		Doc("Query cluster-level logs in a multi-tenants environment").
 		Param(ws.QueryParameter("operation", "Operation type. This can be one of four types: query (for querying logs), statistics (for retrieving statistical data), histogram (for displaying log count by time interval) and export (for exporting logs). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspaces", "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`").DataType("string").Required(false)).
@@ -177,7 +172,7 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("size", "Size of result to return. It requires **operation** is set to query. Defaults to 10 (i.e. 10 log records).").DataType("integer").DefaultValue("10").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}).
 		Writes(v1alpha2.Response{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.Response{})).
+		Returns(http.StatusOK, api.StatusOK, v1alpha2.Response{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON, "text/plain")
 

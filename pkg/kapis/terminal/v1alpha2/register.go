@@ -24,12 +24,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 )
 
 const (
 	GroupName = "terminal.kubesphere.io"
-	tag       = "Terminal"
 )
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
@@ -43,7 +43,7 @@ func AddToContainer(c *restful.Container, client kubernetes.Interface, config *r
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}").
 		To(handler.handleTerminalSession).
 		Doc("create terminal session").
-		Metadata(restfulspec.KeyOpenAPITags, []string{tag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TerminalTag}).
 		Writes(models.PodInfo{}))
 
 	c.Add(webservice)

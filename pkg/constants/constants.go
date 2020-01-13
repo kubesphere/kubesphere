@@ -77,6 +77,7 @@ const (
 	ComponentMetricsTag        = "Component Metrics"
 	LogQueryTag                = "Log Query"
 	FluentBitSetting           = "Fluent Bit Setting"
+	TerminalTag                = "Terminal"
 )
 
 var (

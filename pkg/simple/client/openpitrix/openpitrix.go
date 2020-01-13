@@ -30,16 +30,17 @@ import (
 )
 
 const (
-	KubernetesProvider = "kubernetes"
-	Unknown            = "-"
-	DeploySuffix       = "-Deployment"
-	DaemonSuffix       = "-DaemonSet"
-	StateSuffix        = "-StatefulSet"
-	SystemUsername     = "system"
-	SystemUserPath     = ":system"
+	RuntimeAnnotationKey = "openpitrix_runtime"
+	KubernetesProvider   = "kubernetes"
+	Unknown              = "-"
+	DeploySuffix         = "-Deployment"
+	DaemonSuffix         = "-DaemonSet"
+	StateSuffix          = "-StatefulSet"
+	SystemUsername       = "system"
+	SystemUserPath       = ":system"
 )
 
-type Interface interface {
+type Client interface {
 	pb.RuntimeManagerClient
 	pb.ClusterManagerClient
 	pb.AppManagerClient
@@ -49,14 +50,14 @@ type Interface interface {
 	pb.RepoIndexerClient
 }
 
-type Client struct {
-	runtime     pb.RuntimeManagerClient
-	cluster     pb.ClusterManagerClient
-	app         pb.AppManagerClient
-	repo        pb.RepoManagerClient
-	category    pb.CategoryManagerClient
-	attachment  pb.AttachmentManagerClient
-	repoIndexer pb.RepoIndexerClient
+type client struct {
+	pb.RuntimeManagerClient
+	pb.ClusterManagerClient
+	pb.AppManagerClient
+	pb.RepoManagerClient
+	pb.CategoryManagerClient
+	pb.AttachmentManagerClient
+	pb.RepoIndexerClient
 }
 
 func parseToHostPort(endpoint string) (string, int, error) {
@@ -133,7 +134,7 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 	return pb.NewAppManagerClient(conn), nil
 }
 
-func NewOpenPitrixClient(options *Options) (*Client, error) {
+func NewOpenPitrixClient(options *Options) (Client, error) {
 
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
 
@@ -184,41 +185,17 @@ func NewOpenPitrixClient(options *Options) (*Client, error) {
 		return nil, err
 	}
 
-	client := Client{
-		runtime:     runtimeMangerClient,
-		cluster:     clusterManagerClient,
-		repo:        repoManagerClient,
-		app:         appManagerClient,
-		category:    categoryManagerClient,
-		attachment:  attachmentManagerClient,
-		repoIndexer: repoIndexerClient,
+	client := client{
+		RuntimeManagerClient:    runtimeMangerClient,
+		ClusterManagerClient:    clusterManagerClient,
+		RepoManagerClient:       repoManagerClient,
+		AppManagerClient:        appManagerClient,
+		CategoryManagerClient:   categoryManagerClient,
+		AttachmentManagerClient: attachmentManagerClient,
+		RepoIndexerClient:       repoIndexerClient,
 	}
 
 	return &client, nil
-}
-func (c *Client) Runtime() pb.RuntimeManagerClient {
-	return c.runtime
-}
-func (c *Client) App() pb.AppManagerClient {
-	return c.app
-}
-func (c *Client) Cluster() pb.ClusterManagerClient {
-	return c.cluster
-}
-func (c *Client) Category() pb.CategoryManagerClient {
-	return c.category
-}
-
-func (c *Client) Repo() pb.RepoManagerClient {
-	return c.repo
-}
-
-func (c *Client) RepoIndexer() pb.RepoIndexerClient {
-	return c.repoIndexer
-}
-
-func (c *Client) Attachment() pb.AttachmentManagerClient {
-	return c.attachment
 }
 
 func SystemContext() context.Context {

@@ -21,35 +21,33 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/apiserver/openpitrix"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/application"
-	"kubesphere.io/kubesphere/pkg/models/openpitrix/type"
+	openpitrix2 "kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	op "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"net/http"
 )
 
-const GroupName = "openpitrix.io"
+const (
+	GroupName = "openpitrix.io"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
+func AddToContainer(c *restful.Container, k8s k8s.Client, op op.Client) error {
 
-func addWebService(c *restful.Container) error {
-
-	ok := "ok"
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
+	handler := newOpenpitrixHandler(k8s, op)
 
 	webservice.Route(webservice.GET("/applications").
-		To(openpitrix.ListApplications).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
+		To(handler.ListApplications).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("List all applications").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
@@ -63,8 +61,8 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
-		To(openpitrix.ListApplications).
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
+		To(handler.ListApplications).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("List all applications within the specified namespace").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
@@ -78,72 +76,72 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{application}").
-		To(openpitrix.DescribeApplication).
-		Returns(http.StatusOK, ok, application.Application{}).
+		To(handler.DescribeApplication).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Describe the specified application of the namespace").
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "application ID")))
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
-		To(openpitrix.CreateApplication).
+		To(handler.CreateApplication).
 		Doc("Deploy a new application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Reads(types.CreateClusterRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.CreateClusterRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
 	webservice.Route(webservice.PATCH("/namespaces/{namespace}/applications/{application}").
 		Consumes(mimePatch...).
-		To(openpitrix.ModifyApplication).
+		To(handler.ModifyApplication).
 		Doc("Modify application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Reads(types.ModifyClusterAttributesRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.ModifyClusterAttributesRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
 	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
-		To(openpitrix.DeleteApplication).
+		To(handler.DeleteApplication).
 		Doc("Delete the specified application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
 	webservice.Route(webservice.POST("/apps/{app}/versions").
-		To(openpitrix.CreateAppVersion).
+		To(handler.CreateAppVersion).
 		Doc("Create a new app template version").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.CreateAppVersionRequest{}).
+		Reads(openpitrix2.CreateAppVersionRequest{}).
 		Param(webservice.QueryParameter("validate", "Validate format of package(pack by op tool)")).
-		Returns(http.StatusOK, ok, types.CreateAppVersionResponse{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.CreateAppVersionResponse{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.DELETE("/apps/{app}/versions/{version}").
-		To(openpitrix.DeleteAppVersion).
+		To(handler.DeleteAppVersion).
 		Doc("Delete the specified app template version").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.PATCH("/apps/{app}/versions/{version}").
 		Consumes(mimePatch...).
-		To(openpitrix.ModifyAppVersion).
+		To(handler.ModifyAppVersion).
 		Doc("Patch the specified app template version").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.ModifyAppVersionRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.ModifyAppVersionRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}").
-		To(openpitrix.DescribeAppVersion).
+		To(handler.DescribeAppVersion).
 		Doc("Describe the specified app template version").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, types.AppVersion{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersion{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions").
-		To(openpitrix.ListAppVersions).
+		To(handler.ListAppVersions).
 		Doc("Get active versions of app, can filter with these fields(version_id, app_id, name, owner, description, package_name, status, type), default return all active app versions").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -155,33 +153,33 @@ func addWebService(c *restful.Container) error {
 		Param(webservice.PathParameter("app", "app template id")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, ok, models.PageableResponse{}))
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/audits").
-		To(openpitrix.ListAppVersionAudits).
+		To(handler.ListAppVersionAudits).
 		Doc("List audits information of version-specific app template").
-		Returns(http.StatusOK, ok, types.AppVersionAudit{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/package").
-		To(openpitrix.GetAppVersionPackage).
+		To(handler.GetAppVersionPackage).
 		Doc("Get packages of version-specific app").
-		Returns(http.StatusOK, ok, types.GetAppVersionPackageResponse{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.GetAppVersionPackageResponse{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.POST("/apps/{app}/versions/{version}/action").
-		To(openpitrix.DoAppVersionAction).
+		To(handler.DoAppVersionAction).
 		Doc("Perform submit or other operations on app").
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/files").
-		To(openpitrix.GetAppVersionFiles).
+		To(handler.GetAppVersionFiles).
 		Doc("Get app template package files").
-		Returns(http.StatusOK, ok, types.GetAppVersionPackageFilesResponse{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.GetAppVersionPackageFilesResponse{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/reviews").
-		To(openpitrix.ListReviews).
+		To(handler.ListReviews).
 		Doc("Get reviews of version-specific app").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -190,47 +188,47 @@ func addWebService(c *restful.Container) error {
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
-		Returns(http.StatusOK, ok, types.AppVersionReview{}))
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionReview{}))
 	webservice.Route(webservice.GET("/apps/{app}/audits").
-		To(openpitrix.ListAppVersionAudits).
+		To(handler.ListAppVersionAudits).
 		Doc("List audits information of the specific app template").
 		Param(webservice.PathParameter("app", "app template id")).
-		Returns(http.StatusOK, ok, types.AppVersionAudit{}))
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}))
 	webservice.Route(webservice.POST("/apps").
-		To(openpitrix.CreateApp).
+		To(handler.CreateApp).
 		Doc("Create a new app template").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, types.CreateAppResponse{}).
-		Reads(types.CreateAppRequest{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.CreateAppResponse{}).
+		Reads(openpitrix2.CreateAppRequest{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.DELETE("/apps/{app}").
-		To(openpitrix.DeleteApp).
+		To(handler.DeleteApp).
 		Doc("Delete the specified app template").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.PATCH("/apps/{app}").
 		Consumes(mimePatch...).
-		To(openpitrix.ModifyApp).
+		To(handler.ModifyApp).
 		Doc("Patch the specified app template").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.ModifyAppVersionRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.ModifyAppVersionRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}").
-		To(openpitrix.DescribeApp).
+		To(handler.DescribeApp).
 		Doc("Describe the specified app template").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, types.AppVersion{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersion{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.POST("/apps/{app}/action").
-		To(openpitrix.DoAppAction).
+		To(handler.DoAppAction).
 		Doc("Perform recover or suspend operation on app").
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps").
-		To(openpitrix.ListApps).
+		To(handler.ListApps).
 		Doc("List app templates").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -241,36 +239,36 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, ok, models.PageableResponse{}))
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.POST("/categories").
-		To(openpitrix.CreateCategory).
+		To(handler.CreateCategory).
 		Doc("Create app template category").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.CreateCategoryRequest{}).
-		Returns(http.StatusOK, ok, types.CreateCategoryResponse{}).
+		Reads(openpitrix2.CreateCategoryRequest{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.CreateCategoryResponse{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.DELETE("/categories/{category}").
-		To(openpitrix.DeleteCategory).
+		To(handler.DeleteCategory).
 		Doc("Delete the specified category").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("category", "category id")))
 	webservice.Route(webservice.PATCH("/categories/{category}").
 		Consumes(mimePatch...).
-		To(openpitrix.ModifyCategory).
+		To(handler.ModifyCategory).
 		Doc("Patch the specified category").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.ModifyCategoryRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.ModifyCategoryRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("category", "category id")))
 	webservice.Route(webservice.GET("/categories/{category}").
-		To(openpitrix.DescribeCategory).
+		To(handler.DescribeCategory).
 		Doc("Describe the specified category").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, types.Category{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Category{}).
 		Param(webservice.PathParameter("category", "category id")))
 	webservice.Route(webservice.GET("/categories").
-		To(openpitrix.ListCategories).
+		To(handler.ListCategories).
 		Doc("List categories").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -281,43 +279,43 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, ok, models.PageableResponse{}))
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 
 	webservice.Route(webservice.GET("/attachments/{attachment}").
-		To(openpitrix.DescribeAttachment).
+		To(handler.DescribeAttachment).
 		Doc("Get attachment by attachment id").
 		Param(webservice.PathParameter("attachment", "attachment id")).
-		Returns(http.StatusOK, ok, types.Attachment{}))
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Attachment{}))
 
 	webservice.Route(webservice.POST("/repos").
-		To(openpitrix.CreateRepo).
+		To(handler.CreateRepo).
 		Doc("Create repository, repository used to store package of app").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.QueryParameter("validate", "Validate repository")).
-		Returns(http.StatusOK, ok, types.CreateRepoResponse{}).
-		Reads(types.CreateRepoRequest{}))
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.CreateRepoResponse{}).
+		Reads(openpitrix2.CreateRepoRequest{}))
 	webservice.Route(webservice.DELETE("/repos/{repo}").
-		To(openpitrix.DeleteRepo).
+		To(handler.DeleteRepo).
 		Doc("Delete the specified repository").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.PATCH("/repos/{repo}").
 		Consumes(mimePatch...).
-		To(openpitrix.ModifyRepo).
+		To(handler.ModifyRepo).
 		Doc("Patch the specified repository").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Reads(types.ModifyRepoRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.ModifyRepoRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.GET("/repos/{repo}").
-		To(openpitrix.DescribeRepo).
+		To(handler.DescribeRepo).
 		Doc("Describe the specified repository").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
-		Returns(http.StatusOK, ok, types.Repo{}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Repo{}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.GET("/repos").
-		To(openpitrix.ListRepos).
+		To(handler.ListRepos).
 		Doc("List repositories").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -328,17 +326,17 @@ func addWebService(c *restful.Container) error {
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
-		Returns(http.StatusOK, ok, models.PageableResponse{}))
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.POST("/repos/{repo}/action").
-		To(openpitrix.DoRepoAction).
+		To(handler.DoRepoAction).
 		Doc("Start index repository event").
-		Reads(types.RepoActionRequest{}).
-		Returns(http.StatusOK, ok, errors.Error{}).
+		Reads(openpitrix2.RepoActionRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.GET("/repos/{repo}/events").
-		To(openpitrix.ListRepoEvents).
+		To(handler.ListRepoEvents).
 		Doc("Get repository events").
-		Returns(http.StatusOK, ok, models.PageableResponse{}).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Param(webservice.PathParameter("repo", "repo id")))
 
 	c.Add(webservice)

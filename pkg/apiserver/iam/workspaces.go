@@ -21,7 +21,6 @@ import (
 	"github.com/emicklei/go-restful"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	"kubesphere.io/kubesphere/pkg/server/errors"
@@ -113,7 +112,7 @@ func ListDevopsRoleRules(req *restful.Request, resp *restful.Response) {
 
 func InviteUser(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
-	var user models.User
+	var user iam.User
 	err := req.ReadEntity(&user)
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

@@ -39,6 +39,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
+	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.0
 	github.com/google/go-querystring v1.0.0 // indirect
@@ -79,6 +80,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.23.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect

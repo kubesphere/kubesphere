@@ -85,7 +85,7 @@ func (c *channelPool) Get() (*PoolConn, error) {
 		return nil, ErrClosed
 	}
 
-	// wrap our connections with our ldap.Client implementation (wrapConn
+	// wrap our connections with our ldap.PoolClient implementation (wrapConn
 	// method) that puts the connection back to the pool if it's closed.
 	select {
 	case conn := <-conns:
