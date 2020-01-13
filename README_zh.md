@@ -1,7 +1,7 @@
 # KubeSphere
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
-[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/advanced-2.0.2)
+[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/v2.1.0)
 
 ![logo](docs/images/kubesphere-logo.png)
 
@@ -11,11 +11,11 @@
 
 > [English](README.md) | 中文
 
-[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器管理平台**，支持部署和运行在**任何基础设施之上**，提供**简单易用的操作界面**以及**向导式操作**方式，在降低用户使用容器调度平台学习成本的同时，极大减轻开发、测试、运维的日常工作的复杂度，旨在解决 Kubernetes 本身存在的存储、网络、安全和易用性等痛点。帮助企业轻松应对**敏捷开发、自动化运维、应用快速交付、微服务治理、多租户管理、监控日志告警、服务与网络管理、镜像仓库**等业务场景。
+[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，支持部署和运行在**任何基础设施之上**，提供**简单易用的操作界面**以及**向导式操作**方式，在降低用户使用容器调度平台学习成本的同时，极大减轻开发、测试、运维的日常工作的复杂度，旨在解决 Kubernetes 本身存在的存储、网络、安全和易用性等痛点。帮助企业轻松应对**敏捷开发、自动化运维、应用快速交付、微服务治理、多租户管理、监控日志告警、服务与网络管理、镜像仓库**等业务场景。
 
 KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中心的开发测试及生产环境，大量服务平稳地运行在 KubeSphere 之上。
 
-> 说明：KubeSphere 目前最新的版本为高级版 2.0.2，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [产品介绍](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/intro/)。
+> 说明：KubeSphere 目前最新的版本为高级版 2.1.0，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/intro/)。
 
 
 点击 [KubeSphere 快览](docs/en/guides/screenshots.md) 快速查看 KubeSphere UI；
@@ -52,15 +52,15 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 - Kubernetes 资源管理：纳管多种类型的 K8s 资源，提供易用友好的向导式 UI
 - 应用编排与管理：包括**一键部署应用**、**Helm Chart 可视化管理**、**应用生命周期管理**，后续将支持计量计费
 - 微服务治理：基于 Istio 提供可视化无代码侵入的**灰度发布、熔断、流量管控、Tracing**，兼容**Spring Cloud & Dubbo**
-- 一站式 DevOps：提供**可视化编辑 CI/CD 流水线**，包括从开发测试到持续部署上线的**全流程管理**，提供 [S2i](https://kubesphere.io/docs/v2.0/zh-CN/quick-start/source-to-image/)、[B2i](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/b2i-war/)
+- 一站式 DevOps：提供**可视化编辑 CI/CD 流水线**，包括从开发测试到持续部署上线的**全流程管理**，提供 [S2i](https://kubesphere.com.cn/docs/v2.1/zh-CN/quick-start/source-to-image/)、[B2i](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/b2i-war/)
 - 多租户管理：提供基于角色的细粒度 [多租户统一认证](https://kubesphere.io/docs/v2.1/zh-CN/multi-tenant/intro/)，支持**对接企业 LDAP/AD**，提供多层级的权限管理满足多组织架构的企业用户
 - 日志查询与收集：提供基于多租户和多维度的 [日志查询](https://kubesphere.io/docs/v2.1/zh-CN/toolbox/log-search/)，并支持快速对接多种日志收集平台
 - 多维度监控：提供集群与应用级别多项监控指标，提供按节点、企业空间、项目等资源用量的排行
 - 多租户告警系统：支持基于多租户、多维度的告警，提供丰富的监控告警指标，可自定义告警策略，支持邮件通知
 - 基础设施管理：提供主机管理、存储类型管理、CPU 与内存等资源配额管理
-- 支持多种网络方案：支持 Calico、Flannel，提供面向物理部署 Kubernetes 的 LB 插件 [Porter](https://github.com/kubesphere/porter) 和云上[负载均衡器插件](https://github.com/yunify/qingcloud-cloud-controller-manager)
-- 支持多种存储：支持 GlusterFS、CephRBD、NFS，支持 [企业级分布式存储 NeonSAN](https://www.qingcloud.com/products/qingstor-neonsan/) 和 [QingCloud 云平台块存储](https://docs.qingcloud.com/product/storage/volume/)
-- 支持 GPU 节点
+- 支持多种网络方案：支持 Calico、Flannel，提供面向物理环境部署 Kubernetes 的 LoadBalancer 插件 [Porter](https://github.com/kubesphere/porter) 和云上[负载均衡器插件](https://github.com/yunify/qingcloud-cloud-controller-manager)
+- 支持多种存储：支持 GlusterFS、CephRBD、NFS、LocalPV，支持 [企业级分布式存储 NeonSAN](https://www.qingcloud.com/products/qingstor-neonsan/) 和 [QingCloud 云平台块存储](https://docs.qingcloud.com/product/storage/volume/)
+- 支持 GPU 节点，支持 [vGPU](https://github.com/virtaitech/orion)
 
 
 > 更多详细的功能解读与说明，请查阅 [产品功能](https://kubesphere.io/docs/v2.1/zh-CN/introduction/features/)。
@@ -70,6 +70,8 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 ## 架构
 
 KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，KubeSphere 可以运行在任何 Kubernetes、私有云、公有云、VM 或物理环境之上。
+
+> 说明：本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
 
 ![](docs/images/architecture-zh.png)
 
@@ -107,8 +109,8 @@ $ ./install.sh
 
 **前提条件**
 
-> - `Kubernetes` 版本： `1.13.0 ≤ K8s version < 1.16`；
-> - `Helm`，版本 `>= 2.10.0`，且已安装了 Tiller，参考 [如何安装与配置 Helm](https://devopscube.com/install-configure-helm-kubernetes/)；
+> - `Kubernetes 版本` ： `1.13.0 ≤ K8s version < 1.16`；
+> - `Helm 版本`: `2.10.0 ≤ Helm ＜ 3.0.0`，且已安装了 Tiller（预计 v3.0 支持 Helm v3）；参考 [如何安装与配置 Helm](https://devopscube.com/install-configure-helm-kubernetes/)；
 > - 集群的可用 CPU > 1 C，可用内存 > 2 G；且集群能够访问外网
 > - 集群已有存储类型（StorageClass）；
 
@@ -133,7 +135,7 @@ $ kubectl edit cm -n kubesphere-system ks-installer
 ### 文档
 
 - [KubeSphere 文档中心 (En/中) ](https://kubesphere.io/docs/)
-- [API 文档](https://kubesphere.io/docs/advanced-v2.0/zh-CN/api-reference/api-docs/)
+- [API 文档](https://kubesphere.com.cn/docs/v2.1/zh-CN/api-reference/api-docs/)
 
 
 ## 开发 KubeSphere
@@ -143,9 +145,9 @@ $ kubectl edit cm -n kubesphere-system ks-installer
 
 ## 路线图
 
-目前，KubeSphere 已发布了 4 个大版本和 3 个小版本，所有版本都是完全开源的，为 KubeSphere 社区用户提供服务。
+目前，KubeSphere 已发布了 4 个大版本和 3 个小版本，所有版本都是完全开源的，为 KubeSphere 社区用户提供服务。参考 [Plans for 2.1.1 and 3.0.0](https://github.com/kubesphere/kubesphere/issues/1368) 了解后续版本的规划。
 
-**Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0**
+**Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0** => **v2.1.1** => **v3.0.0**
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000514.png)
 
@@ -162,9 +164,9 @@ KubeSphere 是 CNCF 基金会成员并且通过了 <a href="https://www.cncf.io/
 
 ## 技术社区
 
-- [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
+- [技术论坛](https://kubesphere.com.cn/forum/)
 
-- [技术论坛](https://kubesphere.io/forum/)
+- [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 
 - 微信群 (与工程师和用户们交流云原生技术，请备注 “公司 - 名字”）
 

@@ -2,7 +2,7 @@
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubesphere/kubesphere)](https://goreportcard.com/report/github.com/kubesphere/kubesphere)
-[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/advanced-2.0.2)
+[![KubeSphere release](https://img.shields.io/github/release/kubesphere/kubesphere.svg?color=release&label=release&logo=release&logoColor=release)](https://github.com/kubesphere/kubesphere/releases/tag/v2.1.0)
 
 ![logo](docs/images/kubesphere-logo.png)
 
@@ -12,7 +12,7 @@
 
 > English | [中文](README_zh.md)
 
-[KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container management platform built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage application workloads and computing resources with a few clicks, which greatly reduces the learning curve and the complexity of daily work such as development, testing, operation and maintenance. KubeSphere aims to alleviate the pain points of Kubernetes including storage, network, security and ease of use, etc.
+[KubeSphere](https://kubesphere.io/) is an enterprise-grade multi-tenant container platform built on [Kubernetes](https://kubernetes.io). It provides an easy-to-use UI for users to manage application workloads and computing resources with a few clicks, which greatly reduces the learning curve and the complexity of daily work such as development, testing, operation and maintenance. KubeSphere aims to alleviate the pain points of Kubernetes including storage, network, security and ease of use, etc.
 
 
 ## Screenshots
@@ -63,18 +63,20 @@ KubeSphere provides an easy-to-use console with awesome user experience that all
 - Node and storage class management, image registry management
 - Integrated Harbor, GitLab, SonarQube
 - LB controller for Kubernetes on bare metal ([Porter](https://github.com/kubesphere/porter)), [cloud LB plugin](https://github.com/yunify/qingcloud-cloud-controller-manager)
-- Support GPU node
+- Support GPU node, support [vGPU](https://github.com/virtaitech/orion)
 
 
 It also supports a variety of open source storage solutions and cloud storage products as the persistent storage services, as well as supports multiple open source network plugins.
 
-> Note: See this [document](https://docs.kubesphere.io/advanced-v2.0/zh-CN/introduction/features/) which elaborates on the KubeSphere features and services.
+> Note: See this [document](https://kubesphere.io/docs/v2.1/en/introduction/features/) which elaborates on the KubeSphere features and services.
 
 ----
 
 ## Architecture
 
 KubeSphere separates [frontend](https://github.com/kubesphere/console) and [backend](https://github.com/kubesphere/kubesphere) as shows below. KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any Kubernetes distribution. Please check the [installation guide](https://github.com/kubesphere/ks-installer).
+
+> Note that there is only back-end source code in this repository，see [Console](https://github.com/kubesphere/console) for front-end source code.
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190810073322.png)
 
@@ -84,14 +86,14 @@ KubeSphere 2.1.0 was released on **November 12nd, 2019**. Check the [Release Not
 
 ## Installation
 
-> Attention: The following section is only used for minimal installation by default, KubeSphere has decoupled some core components in v2.1.0. For pluggable components installation, see `Enable Pluggable Components` below.
+> Attention: The following section is only used for minimal installation by default, see [Complete Installation Guide](https://kubesphere.io/docs/v2.1/en/installation/intro/) for details.
 
 ### Deploy on Existing Kubernetes
 
 **Prerequisites**
 
-> - `Kubernetes version`： `1.13.0 ≤ K8s version < 1.16`;
-> - `Helm version` >= `2.10.0`，see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/);
+> - `Kubernetes version`: `1.13.0 ≤ K8s version < 1.16`;
+> - `Helm version`: `2.10.0 ≤ Helm ＜ 3.0.0`，(will support Helm v3 in KubeSphere v3.0) see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/);
 > - CPU > 1 Core，Memory > 2 G;
 > - An existing Storage Class in your Kubernetes clusters, use `kubectl get sc` to verify it.
 
@@ -128,13 +130,6 @@ Choose `"1) All-in-one"` to start the installation without changing any configur
 
 > Note: In a development or production environment, it's highly recommended to install Multi-Node KubeSphere.
 
-### Enable Pluggable Components
-
-If you want to use optional components after the minimal installation as shown above, please execute following command to enable the pluggable components you prefer to start the installation. Make sure your cluster has enough CPU and memory in advance.
-
-```
-$ kubectl edit cm -n kubesphere-system ks-installer
-```
 
 ## To start using KubeSphere
 
@@ -142,14 +137,14 @@ $ kubectl edit cm -n kubesphere-system ks-installer
 
 KubeSphere provides 12 quick-start tutorials to walk you through the platform.
 
-- [Get Started - En](https://github.com/kubesphere/kubesphere.github.io/tree/master/blog/advanced-2.0/en)
+- [Get Started - En](https://kubesphere.io/docs/v2.1/en/quick-start/admin-quick-start/)
 - [Get Started - 中](https://kubesphere.io/docs/v2.1/zh-CN/quick-start/admin-quick-start/)
 
 
 ### Documentation
 
-- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.com.cn/docs/zh-CN/)）
-- [API Documentation](https://kubesphere.io/docs/v2.1/api/kubesphere)
+- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.io/docs/zh-CN/)）
+- [API Documentation](https://kubesphere.io/docs/v2.1/en/api-reference/api-docs/)
 
 
 ## To start developing KubeSphere
@@ -160,7 +155,7 @@ The [development guide](CONTRIBUTING.md) hosts all information about building Ku
 
 Currently, KubeSphere has released the following 4 major editions. The future releases will include Multicluster, Big data, AI, SDN, etc. See [Plans for 2.1.1 and 3.0.0](https://github.com/kubesphere/kubesphere/issues/1368) for more details.
 
-**Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0**
+**Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0** => **v2.1.1** => **v3.0.0**
 
 ![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
 
