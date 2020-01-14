@@ -11,11 +11,16 @@
 
 > [English](README.md) | 中文
 
-[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，支持部署和运行在**任何基础设施之上**，提供**简单易用的操作界面**以及**向导式操作**方式，在降低用户使用容器调度平台学习成本的同时，极大减轻开发、测试、运维的日常工作的复杂度，旨在解决 Kubernetes 本身存在的存储、网络、安全和易用性等痛点。帮助企业轻松应对**敏捷开发、自动化运维、应用快速交付、微服务治理、多租户管理、监控日志告警、服务与网络管理、镜像仓库**等业务场景。
+[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了 **运维友好的向导式操作界面**，帮助企业快速构建一个强大和功能丰富的容器云平台，包括 **Kubernetes 资源管理、DevOps (CI/CD)、应用生命周期管理、微服务治理 (Service Mesh)、多租户管理、监控日志、告警通知、存储与网络管理、GPU support** 等功能，未来还将提供 **多集群管理、Network Policy、镜像仓库管理** 等功能。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态系统进行即插即用（plug-and-play）的集成。
 
-KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中心的开发测试及生产环境，大量服务平稳地运行在 KubeSphere 之上。
 
-> 说明：KubeSphere 目前最新的版本为高级版 2.1.0，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/intro/)。
+KubeSphere 作为一个**全栈的容器平台**，不仅支持**安装和纳管原生 Kubernetes**，还设计了一套完整的管理界面方便开发者与运维在一个**统一的平台**中安装与管理最常用的云原生工具，**从业务视角提供了一致的用户体验来降低复杂性**，并且所有功能组件都是可插拔的。
+
+![](docs/images/kubesphere-platform-overview.png)
+
+KubeSphere 可以运行在任何私有或托管的 Kubernetes、私有云、公有云、VM 或物理环境之上。已大规模服务于社区用户，广泛地应用在以容器为中心的开发测试及生产环境，大量服务平稳地运行在 KubeSphere 之上。
+
+> 说明：KubeSphere 目前最新的版本为 2.1.0，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/intro/)。
 
 
 点击 [KubeSphere 快览](docs/en/guides/screenshots.md) 快速查看 KubeSphere UI；
@@ -69,11 +74,8 @@ KubeSphere 已大规模服务于社区用户，广泛地应用在以容器为中
 
 ## 架构
 
-KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，KubeSphere 可以运行在任何 Kubernetes、私有云、公有云、VM 或物理环境之上。
+KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，详见 [架构说明](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/architecture/)。本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
 
-> 说明：本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
-
-![](docs/images/architecture-zh.png)
 
 ## 最新发布
 
