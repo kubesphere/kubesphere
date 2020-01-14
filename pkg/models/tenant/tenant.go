@@ -41,6 +41,7 @@ type Interface interface {
 type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
+	projects  DevOpsProjectOperator
 }
 
 func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
@@ -101,7 +102,7 @@ func (t *tenantOperator) appendAnnotations(username string, workspace *v1alpha1.
 	if err == nil {
 		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
 	}
-	devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
+	devops, err := t.projects.ListDevOpsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
 	}

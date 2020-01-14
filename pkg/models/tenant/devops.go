@@ -38,7 +38,7 @@ type DevOpsProjectOperator interface {
 	CreateDevOpsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
 	GetDevOpsProjectsCount(username string) (uint32, error)
 	DeleteDevOpsProject(projectId, username string) error
-	GetUserDevOpsSimpleRules(username, projectId string) ([]models.SimpleRule, error)
+	GetUserDevOpsSimpleRules(username, projectId string) ([]iam.SimpleRule, error)
 }
 
 type devopsProjectOperator struct {
@@ -200,17 +200,32 @@ func (o *devopsProjectOperator) CreateDevOpsProject(username string, workspace s
 	return project, nil
 }
 
-<<<<<<< HEAD
-func (o *devopsProjectOperator) GetUserDevOpsSimpleRules(username, projectId string) ([]models.SimpleRule, error) {
-=======
-func GetUserDevopsSimpleRules(username, projectId string) ([]iam.SimpleRule, error) {
->>>>>>> 71849f028f8afb6f270f2e8ec07128e2e2e1cfa2
-	role, err := devops.GetProjectUserRole(username, projectId)
+func (o *devopsProjectOperator) GetUserDevOpsSimpleRules(username, projectId string) ([]iam.SimpleRule, error) {
+
+	role, err := o.getProjectUserRole(username, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return nil, restful.NewError(http.StatusForbidden, err.Error())
 	}
 	return GetDevopsRoleSimpleRules(role), nil
+}
+
+func (o *devopsProjectOperator) getProjectUserRole(username, projectId string)(string, error)  {
+	if username == devops.KS_ADMIN {
+		return dsClient.ProjectOwner, nil
+	}
+
+	membership := &dsClient.ProjectMembership{}
+	err := o.db.Select(devops.ProjectMembershipColumns...).
+		From(devops.ProjectMembershipTableName).
+		Where(db.And(
+			db.Eq(devops.ProjectMembershipUsernameColumn, username),
+			db.Eq(devops.ProjectMembershipProjectIdColumn, projectId))).LoadOne(membership)
+	if err != nil {
+		return "", err
+	}
+
+	return membership.Role, nil
 }
 
 func GetDevopsRoleSimpleRules(role string) []iam.SimpleRule {
