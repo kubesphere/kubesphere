@@ -22,6 +22,7 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/apiserver/components"
 	"kubesphere.io/kubesphere/pkg/apiserver/git"
@@ -257,7 +258,14 @@ func addWebService(c *restful.Container) error {
 		Returns(http.StatusOK, ok, status.WorkLoadStatus{}).
 		To(workloadstatuses.GetNamespacedAbnormalWorkloads))
 
-	c.Add(webservice)
+	webservice.Route(webservice.PATCH("/storageclasses/{storageclass}").
+		To(resources.PatchStorageClass).
+		Doc("patch storage class").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
+		Returns(http.StatusOK, ok, storagev1.StorageClass{}).
+		Writes(storagev1.StorageClass{}).
+		Param(webservice.PathParameter("storageclass", "the name of storage class")))
 
+	c.Add(webservice)
 	return nil
 }
