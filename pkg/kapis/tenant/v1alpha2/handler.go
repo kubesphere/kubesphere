@@ -202,7 +202,7 @@ func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.R
 		return
 	}
 
-	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
+	result, err := h.tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)

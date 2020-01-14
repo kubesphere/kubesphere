@@ -47,6 +47,14 @@ type devopsProjectOperator struct {
 	dsProject         dsClient.ProjectOperator
 }
 
+func newProjectOperator(operator devops.ProjectOperator, db *mysql.Database, client dsClient.ProjectOperator) DevOpsProjectOperator {
+	return &devopsProjectOperator{
+		ksProjectOperator: operator,
+		db:                db,
+		dsProject:         client,
+	}
+}
+
 func (o *devopsProjectOperator) ListDevOpsProjects(workspace, username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
 
 	query := o.db.Select(devops.GetColumnsFromStructWithPrefix(devops.DevOpsProjectTableName, v1alpha2.DevOpsProject{})...).
