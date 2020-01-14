@@ -20,8 +20,10 @@ package resources
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/api/core/v1"
+	"k8s.io/klog"
 	"net/http"
 
+	storagev1 "k8s.io/api/storage/v1"
 	"kubesphere.io/kubesphere/pkg/models/storage"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 )
@@ -68,4 +70,27 @@ func GetPvcListBySc(request *restful.Request, response *restful.Response) {
 	}
 
 	response.WriteAsJson(result)
+}
+
+func PatchStorageClass(request *restful.Request, response *restful.Response) {
+	scObj := &storagev1.StorageClass{}
+	err := request.ReadEntity(scObj)
+	if err != nil {
+		klog.Errorf("read entity error: %s", err.Error())
+		response.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+		return
+	}
+	klog.V(5).Infof("succeed to read entity %v", scObj)
+	scName := request.PathParameter("storageclass")
+	if scObj.Annotations[storage.IsDefaultStorageClassAnnotation] == "true" {
+		// Set default storage class
+		sc, err := storage.SetDefaultStorageClass(scName)
+		if err != nil {
+			response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+			return
+		}
+		response.WriteEntity(sc)
+		return
+	}
+	response.WriteEntity(errors.None)
 }

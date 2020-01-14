@@ -18,6 +18,7 @@
 package storage
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strconv"
 
 	"k8s.io/api/core/v1"
@@ -27,14 +28,15 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 )
 
+const (
+	IsDefaultStorageClassAnnotation     = "storageclass.kubernetes.io/is-default-class"
+	betaIsDefaultStorageClassAnnotation = "storageclass.beta.kubernetes.io/is-default-class"
+)
+
 type ScMetrics struct {
 	Capacity  string `json:"capacity,omitempty"`
 	Usage     string `json:"usage,omitempty"`
 	PvcNumber string `json:"pvcNumber"`
-}
-
-func init() {
-
 }
 
 func GetPvcListBySc(scName string) ([]*v1.PersistentVolumeClaim, error) {
@@ -101,4 +103,37 @@ func GetScList() ([]*storageV1.StorageClass, error) {
 	}
 
 	return scList, nil
+}
+
+func SetDefaultStorageClass(defaultScName string) (*storageV1.StorageClass, error) {
+	scLister := informers.SharedInformerFactory().Storage().V1().StorageClasses().Lister()
+	// 1. verify storage class name
+	sc, err := scLister.Get(defaultScName)
+	if sc == nil || err != nil {
+		return sc, err
+	}
+	// 2. unset all default sc and then set default sc
+	scList, err := scLister.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	k8sClient := client.ClientSets().K8s().Kubernetes()
+	var defaultSc *storageV1.StorageClass
+	for _, sc := range scList {
+		_, hasDefault := sc.Annotations[IsDefaultStorageClassAnnotation]
+		_, hasBeta := sc.Annotations[betaIsDefaultStorageClassAnnotation]
+		if sc.Name == defaultScName || hasDefault || hasBeta {
+			delete(sc.Annotations, IsDefaultStorageClassAnnotation)
+			delete(sc.Annotations, betaIsDefaultStorageClassAnnotation)
+			if sc.Name == defaultScName {
+				sc.Annotations[IsDefaultStorageClassAnnotation] = "true"
+				defaultSc = sc
+			}
+			_, err := k8sClient.StorageV1().StorageClasses().Update(sc)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return defaultSc, nil
 }
