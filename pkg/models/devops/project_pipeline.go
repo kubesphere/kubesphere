@@ -15,14 +15,15 @@ package devops
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/beevik/etree"
 	"github.com/golang/glog"
 	"github.com/kubesphere/sonargo/sonar"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -310,16 +311,47 @@ func parsePipelineConfigXml(config string) (*NoScmPipeline, error) {
 				pipeline.Parameters = append(pipeline.Parameters, &Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
-					DefaultValue: param.SelectElement("name").Text(),
+					DefaultValue: param.SelectElement("defaultValue").Text(),
 					Type:         ParameterTypeMap["hudson.model.PasswordParameterDefinition"],
 				})
 			case "hudson.model.ChoiceParameterDefinition":
+				/* case1
+				<hudson.model.ChoiceParameterDefinition>
+				<name>1</name>
+				<description>x</description>
+				<choices class="java.util.Arrays$ArrayList">
+					<a class="string-array">
+						<string>1</string>
+						<string>2</string>
+						<string>3</string>
+					</a>
+				</choices>
+				</hudson.model.ChoiceParameterDefinition>
+				*/
+				/* case2
+				<hudson.model.ChoiceParameterDefinition>
+				<name>1</name>
+				<description>x</description>
+				<choices class="java.util.Arrays$ArrayList">
+					<string>1</string>
+					<string>2</string>
+					<string>3</string>
+				</choices>
+				</hudson.model.ChoiceParameterDefinition>
+				*/
 				choiceParameter := &Parameter{
 					Name:        param.SelectElement("name").Text(),
 					Description: param.SelectElement("description").Text(),
 					Type:        ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
 				}
-				choices := param.SelectElement("choices").SelectElement("a").SelectElements("string")
+				choicesSection := param.SelectElement("choices")
+				a := choicesSection.SelectElement("a")
+				var choices []*etree.Element
+				if a != nil {
+					choices = a.SelectElements("string")
+				} else {
+					choices = choicesSection.SelectElements("string")
+				}
 				for _, choice := range choices {
 					choiceParameter.DefaultValue += fmt.Sprintf("%s\n", choice.Text())
 				}
