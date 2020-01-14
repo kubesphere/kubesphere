@@ -631,3 +631,171 @@ func Test_MultiBranchPipelineMultibranchTrigger(t *testing.T) {
 	}
 
 }
+
+func Test_ParsePipelineConfigChoiceParameters(t *testing.T) {
+
+	case1 := `<flow-definition plugin="workflow-job@2.32">
+<actions>
+<org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@1.3.9"/>
+<org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@1.3.9">
+<jobProperties/>
+<triggers/>
+<parameters>
+<string>BIOGRAPHY</string>
+<string>PERSON</string>
+<string>PASSWORD</string>
+<string>TOGGLE</string>
+</parameters>
+<options/>
+</org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+</actions>
+<description/>
+<keepDependencies>false</keepDependencies>
+<properties>
+<hudson.plugins.jira.JiraProjectProperty plugin="jira@3.0.8"/>
+<jenkins.model.BuildDiscarderProperty>
+<strategy class="hudson.tasks.LogRotator">
+<daysToKeep>7</daysToKeep>
+<numToKeep>10</numToKeep>
+<artifactDaysToKeep>-1</artifactDaysToKeep>
+<artifactNumToKeep>-1</artifactNumToKeep>
+</strategy>
+</jenkins.model.BuildDiscarderProperty>
+<hudson.model.ParametersDefinitionProperty>
+<parameterDefinitions>
+<hudson.model.StringParameterDefinition>
+<name>PERSON</name>
+<description>Who should I say hello to?</description>
+<defaultValue>Mr Jenkins</defaultValue>
+<trim>false</trim>
+</hudson.model.StringParameterDefinition>
+<hudson.model.TextParameterDefinition>
+<name>BIOGRAPHY</name>
+<description>Enter some information about the person</description>
+<defaultValue/>
+<trim>false</trim>
+</hudson.model.TextParameterDefinition>
+<hudson.model.BooleanParameterDefinition>
+<name>TOGGLE</name>
+<description>Toggle this value</description>
+<defaultValue>true</defaultValue>
+</hudson.model.BooleanParameterDefinition>
+<hudson.model.PasswordParameterDefinition>
+<name>PASSWORD</name>
+<description>Enter a password</description>
+<defaultValue>
+{AQAAABAAAAAQHD/HoXKklrRKtlQ5ylr1lgN1dj7im57I8SGfkLIe17s=}
+</defaultValue>
+</hudson.model.PasswordParameterDefinition>
+<hudson.model.ChoiceParameterDefinition>
+<name>1</name>
+<description>x</description>
+<choices class="java.util.Arrays$ArrayList">
+<a class="string-array">
+<string>1</string>
+<string>2</string>
+<string>3</string>
+</a>
+</choices>
+</hudson.model.ChoiceParameterDefinition>
+</parameterDefinitions>
+</hudson.model.ParametersDefinitionProperty>
+</properties>
+<definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.73">
+<script>
+pipeline { agent any parameters { string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?') text(name: 'BIOGRAPHY', defaultValue: '', description: 'Enter some information about the person') booleanParam(name: 'TOGGLE', defaultValue: true, description: 'Toggle this value') password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password') } stages { stage('Example') { steps { echo "Hello ${params.PERSON}" echo "Biography: ${params.BIOGRAPHY}" echo "Toggle: ${params.TOGGLE}" echo "Choice: ${params.CHOICE}" echo "Password: ${params.PASSWORD}" } } } }
+</script>
+<sandbox>true</sandbox>
+</definition>
+<triggers/>
+<disabled>false</disabled>
+</flow-definition>`
+	case2 := `
+<flow-definition plugin="workflow-job@2.32">
+<actions>
+<org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@1.3.9"/>
+<org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@1.3.9">
+<jobProperties/>
+<triggers/>
+<parameters>
+<string>BIOGRAPHY</string>
+<string>PERSON</string>
+<string>PASSWORD</string>
+<string>TOGGLE</string>
+</parameters>
+<options/>
+</org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+</actions>
+<description/>
+<keepDependencies>false</keepDependencies>
+<properties>
+<hudson.plugins.jira.JiraProjectProperty plugin="jira@3.0.8"/>
+<jenkins.model.BuildDiscarderProperty>
+<strategy class="hudson.tasks.LogRotator">
+<daysToKeep>7</daysToKeep>
+<numToKeep>10</numToKeep>
+<artifactDaysToKeep>-1</artifactDaysToKeep>
+<artifactNumToKeep>-1</artifactNumToKeep>
+</strategy>
+</jenkins.model.BuildDiscarderProperty>
+<hudson.model.ParametersDefinitionProperty>
+<parameterDefinitions>
+<hudson.model.StringParameterDefinition>
+<name>PERSON</name>
+<description>Who should I say hello to?</description>
+<defaultValue>Mr Jenkins</defaultValue>
+<trim>false</trim>
+</hudson.model.StringParameterDefinition>
+<hudson.model.TextParameterDefinition>
+<name>BIOGRAPHY</name>
+<description>Enter some information about the person</description>
+<defaultValue/>
+<trim>false</trim>
+</hudson.model.TextParameterDefinition>
+<hudson.model.BooleanParameterDefinition>
+<name>TOGGLE</name>
+<description>Toggle this value</description>
+<defaultValue>true</defaultValue>
+</hudson.model.BooleanParameterDefinition>
+<hudson.model.PasswordParameterDefinition>
+<name>PASSWORD</name>
+<description>Enter a password</description>
+<defaultValue>
+{AQAAABAAAAAQHD/HoXKklrRKtlQ5ylr1lgN1dj7im57I8SGfkLIe17s=}
+</defaultValue>
+</hudson.model.PasswordParameterDefinition>
+<hudson.model.ChoiceParameterDefinition>
+<name>1</name>
+<description>x</description>
+<choices class="java.util.Arrays$ArrayList">
+<string>1</string>
+<string>2</string>
+<string>3</string>
+</choices>
+</hudson.model.ChoiceParameterDefinition>
+</parameterDefinitions>
+</hudson.model.ParametersDefinitionProperty>
+</properties>
+<definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.73">
+<script>
+pipeline { agent any parameters { string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?') text(name: 'BIOGRAPHY', defaultValue: '', description: 'Enter some information about the person') booleanParam(name: 'TOGGLE', defaultValue: true, description: 'Toggle this value') password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password') } stages { stage('Example') { steps { echo "Hello ${params.PERSON}" echo "Biography: ${params.BIOGRAPHY}" echo "Toggle: ${params.TOGGLE}" echo "Choice: ${params.CHOICE}" echo "Password: ${params.PASSWORD}" } } } }
+</script>
+<sandbox>true</sandbox>
+</definition>
+<triggers/>
+<disabled>false</disabled>
+</flow-definition>`
+
+	case1Pipeline, err := parsePipelineConfigXml(case1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	case2Pipeline, err := parsePipelineConfigXml(case2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(case1Pipeline, case2Pipeline) {
+		t.Fatalf("case1 [%+v] case2 [%+v] should equal ", case1Pipeline, case2Pipeline)
+	}
+
+}
