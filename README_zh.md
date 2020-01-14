@@ -11,7 +11,7 @@
 
 > [English](README.md) | 中文
 
-[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了 **提供了运维友好的向导式操作界面**，帮助企业快速构建一个强大和功能丰富的容器云平台，包括了 **Kubernetes 资源管理、DevOps (CI/CD)、应用生命周期管理、微服务治理、多租户管理、监控日志、告警通知、存储与网络管理、GPU support** 等功能，未来还将提供 **多集群管理、Network Policy、镜像仓库管理** 等功能。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态系统进行即插即用（plug-and-play）的集成。
+[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了 **运维友好的向导式操作界面**，帮助企业快速构建一个强大和功能丰富的容器云平台，包括 **Kubernetes 资源管理、DevOps (CI/CD)、应用生命周期管理、微服务治理 (Service Mesh)、多租户管理、监控日志、告警通知、存储与网络管理、GPU support** 等功能，未来还将提供 **多集群管理、Network Policy、镜像仓库管理** 等功能。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态系统进行即插即用（plug-and-play）的集成。
 
 
 KubeSphere 作为一个**全栈的容器平台**，不仅支持**安装和纳管原生 Kubernetes**，还设计了一套完整的管理界面方便开发者与运维在一个**统一的平台**中安装与管理最常用的云原生工具，**从业务视角提供了一致的用户体验来降低复杂性**，并且所有功能组件都是可插拔的。
