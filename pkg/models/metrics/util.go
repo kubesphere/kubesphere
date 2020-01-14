@@ -126,7 +126,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 					// record the ordering of resource_name to indexMap
 					// example: {"metric":{ResultItemMetricResourceName: "Deployment:xxx"},"value":[1541142931.731,"3"]}
 					resourceName, exist := r.Metric[ResultItemMetricResourceName]
-					if exist {
+					if exist && resourceName != "" {
 						if _, exist := indexMap[resourceName]; !exist {
 							indexMap[resourceName] = i
 							i = i + 1
@@ -138,7 +138,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 			// iterator all metric to find max metricItems length
 			for _, r := range metricItem.Data.Result {
 				k, ok := r.Metric[ResultItemMetricResourceName]
-				if ok {
+				if ok && k != "" {
 					currentResourceMap[k] = 1
 				}
 			}
@@ -167,7 +167,7 @@ func (rawMetrics *Response) SortBy(sortMetricName string, sortType string) (*Res
 			for j := 0; j < len(re.Data.Result); j++ {
 				r := re.Data.Result[j]
 				k, exist := r.Metric[ResultItemMetricResourceName]
-				if exist {
+				if exist && k != "" {
 					index, exist := indexMap[k]
 					if exist {
 						sortedMetric[index] = r
