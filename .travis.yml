@@ -9,7 +9,6 @@ git:
   depth: false
 
 go:
-  - "1.12.x"
   - "1.13.x"
 env:
   - GO111MODULE=on
