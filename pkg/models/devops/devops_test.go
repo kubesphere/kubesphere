@@ -1,6 +1,7 @@
 package devops
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"net/http"
 	"testing"
@@ -9,7 +10,17 @@ import (
 const baseUrl = "http://127.0.0.1/kapis/devops.kubesphere.io/v1alpha2/"
 
 func TestGetNodesDetail(t *testing.T) {
-	fakeDevops := fake.NewFakeDevops()
+	PipelineRunNodes := []devops.PipelineRunNodes{
+		{},
+		{},
+		{},
+	}
+
+	NodeSteps := []devops.NodeSteps{
+
+	}
+
+	fakeDevops := fake.NewFakeDevopsNodesDetail(PipelineRunNodes,NodeSteps)
 
 	devopsOperator := NewDevopsOperator(fakeDevops)
 
@@ -28,7 +39,7 @@ func TestGetNodesDetail(t *testing.T) {
 }
 
 func TestGetBranchNodesDetail(t *testing.T) {
-	fakeDevops := fake.NewFakeDevops()
+	fakeDevops := fake.NewFakeDevopsNodesDetail()
 
 	devopsOperator := NewDevopsOperator(fakeDevops)
 
