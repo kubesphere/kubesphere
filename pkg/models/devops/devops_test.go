@@ -34,10 +34,7 @@ func TestGetNodesDetail(t *testing.T) {
 		t.Fatalf("should not get error %+v", err)
 	}
 
-	for i, v := range nodesDetails {
-		if v.ID != string(i) {
-			t.Fatalf("Node id %s and step od %s should equal", v.ID, v.Steps[0].ID)
-		}
+	for _, v := range nodesDetails {
 		if v.Steps[0].ID != NodeSteps[0].ID {
 			t.Fatalf("Get step id %s but intput is %s.", v.Steps[0].ID, NodeSteps[0].ID)
 		}
@@ -46,9 +43,9 @@ func TestGetNodesDetail(t *testing.T) {
 
 func TestGetBranchNodesDetail(t *testing.T) {
 	PipelineRunNodes := []devops.PipelineRunNodes{
-		{ID: "1", Result: "true", DisplayName: "fakeBranchPipelineRunNode1"},
-		{ID: "2", Result: "true", DisplayName: "fakeBranchPipelineRunNode2"},
-		{ID: "3", Result: "true", DisplayName: "fakeBranchPipelineRunNode3"},
+		{ID: "0", Result: "true", DisplayName: "fakeBranchPipelineRunNode1"},
+		{ID: "1", Result: "true", DisplayName: "fakeBranchPipelineRunNode2"},
+		{ID: "2", Result: "true", DisplayName: "fakeBranchPipelineRunNode3"},
 	}
 
 	NodeSteps := []devops.NodeSteps{
@@ -66,10 +63,7 @@ func TestGetBranchNodesDetail(t *testing.T) {
 		t.Fatalf("should not get error %+v", err)
 	}
 
-	for i, v := range nodesDetails {
-		if v.ID != string(i) {
-			t.Fatalf("Node id %s and step od %s should equal", v.ID, v.Steps[0].ID)
-		}
+	for _, v := range nodesDetails {
 		if v.Steps[0].ID != NodeSteps[0].ID {
 			t.Fatalf("Get step id %s but intput is %s.", v.Steps[0].ID, NodeSteps[0].ID)
 		}
