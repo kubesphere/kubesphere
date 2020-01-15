@@ -15,14 +15,15 @@ package devops
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/beevik/etree"
 	"github.com/kubesphere/sonargo/sonar"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/gojenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -375,16 +376,50 @@ func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
 				*s = append(*s, &Parameter{
 					Name:         param.SelectElement("name").Text(),
 					Description:  param.SelectElement("description").Text(),
-					DefaultValue: param.SelectElement("name").Text(),
+					DefaultValue: param.SelectElement("defaultValue").Text(),
 					Type:         ParameterTypeMap["hudson.model.PasswordParameterDefinition"],
 				})
 			case "hudson.model.ChoiceParameterDefinition":
+				/*
+					In Jenkins, different configuration methods will lead to different serialization results.
+					We need to be compatible with serialization results.
+
+					case1: Configured by KubeSphere console / Jenkins console
+					<hudson.model.ChoiceParameterDefinition>
+					<name>1</name>
+					<description>x</description>
+					<choices class="java.util.Arrays$ArrayList">
+						<a class="string-array">
+							<string>1</string>
+							<string>2</string>
+							<string>3</string>
+						</a>
+					</choices>
+					</hudson.model.ChoiceParameterDefinition>
+					case2: Configured by pipeline syntax, sample:  parameters { choice(name: 'CHOICES', choices: ['one', 'two', 'three'], description: '') }
+					<hudson.model.ChoiceParameterDefinition>
+					<name>1</name>
+					<description>x</description>
+					<choices class="java.util.Arrays$ArrayList">
+						<string>1</string>
+						<string>2</string>
+						<string>3</string>
+					</choices>
+					</hudson.model.ChoiceParameterDefinition>
+				*/
 				choiceParameter := &Parameter{
 					Name:        param.SelectElement("name").Text(),
 					Description: param.SelectElement("description").Text(),
 					Type:        ParameterTypeMap["hudson.model.ChoiceParameterDefinition"],
 				}
-				choices := param.SelectElement("choices").SelectElement("a").SelectElements("string")
+				choicesSection := param.SelectElement("choices")
+				a := choicesSection.SelectElement("a")
+				var choices []*etree.Element
+				if a != nil {
+					choices = a.SelectElements("string")
+				} else {
+					choices = choicesSection.SelectElements("string")
+				}
 				for _, choice := range choices {
 					choiceParameter.DefaultValue += fmt.Sprintf("%s\n", choice.Text())
 				}
