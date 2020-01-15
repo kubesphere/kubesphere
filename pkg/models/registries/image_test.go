@@ -5,66 +5,55 @@ import (
 )
 
 func TestParseImage(t *testing.T) {
-	type image struct {
-		ImageName string
-		ExDomain  string
-		ExTag     string
-		ExPath    string
+	type testImage struct {
+		inputImageName string
+		ExImage        Image
 	}
 
-	testImages := []image{
-		{ImageName: "dockerhub.qingcloud.com/kubesphere/test:v1", ExDomain: "dockerhub.qingcloud.com", ExTag: "v1", ExPath: "kubesphere/test"},
-		{ImageName: "harbor.devops.kubesphere.local:30280/library/tomcat:latest", ExDomain: "harbor.devops.kubesphere.local:30280", ExTag: "latest", ExPath: "library/tomcat"},
-		{ImageName: "zhuxiaoyang/nginx:v1", ExDomain: "docker.io", ExTag: "v1", ExPath: "zhuxiaoyang/nginx"},
-		{ImageName: "nginx", ExDomain: "docker.io", ExTag: "latest", ExPath: "library/nginx"},
-		{ImageName: "nginx:latest", ExDomain: "docker.io", ExTag: "latest", ExPath: "library/nginx"},
-		{ImageName: "kubesphere/ks-account:v2.1.0", ExDomain: "docker.io", ExTag: "v2.1.0", ExPath: "kubesphere/ks-account"},
+	testImages := []testImage{
+		{inputImageName: "dockerhub.qingcloud.com/kubesphere/test:v1", ExImage: Image{Domain: "dockerhub.qingcloud.com", Tag: "v1", Path: "kubesphere/test"}},
+		{inputImageName: "harbor.devops.kubesphere.local:30280/library/tomcat:latest", ExImage: Image{Domain: "harbor.devops.kubesphere.local:30280", Tag: "latest", Path: "library/tomcat"}},
+		{inputImageName: "zhuxiaoyang/nginx:v1", ExImage: Image{Domain: "docker.io", Tag: "v1", Path: "zhuxiaoyang/nginx"}},
+		{inputImageName: "nginx", ExImage: Image{Domain: "docker.io", Tag: "latest", Path: "library/nginx"}},
+		{inputImageName: "nginx:latest", ExImage: Image{Domain: "docker.io", Tag: "latest", Path: "library/nginx"}},
+		{inputImageName: "kubesphere/ks-account:v2.1.0", ExImage: Image{Domain: "docker.io", Tag: "v2.1.0", Path: "kubesphere/ks-account"}},
+		{inputImageName: "http://docker.io/nginx:latest", ExImage: Image{}},
+		{inputImageName: "https://harbor.devops.kubesphere.local:30280/library/tomcat:latest", ExImage: Image{}},
+		{inputImageName: "docker.io/nginx:latest:latest", ExImage: Image{}},
+		{inputImageName: "nginx:8000:latest", ExImage: Image{}},
 	}
 
 	for _, image := range testImages {
-		res, err := ParseImage(image.ImageName)
+		res, err := ParseImage(image.inputImageName)
 		if err != nil {
-			t.Fatalf("Get err %s", err)
+			if res != image.ExImage {
+				t.Fatalf("Get err %s", err)
+			}
+		}
+		if res.Domain != image.ExImage.Domain {
+			t.Fatalf("Doamin got %v, expected %v", res.Domain, image.ExImage.Domain)
 		}
 
-		if res.Domain != image.ExDomain {
-			t.Fatalf("Doamin got %v, expected %v", res.Domain, image.ExDomain)
+		if res.Tag != image.ExImage.Tag {
+			t.Fatalf("Tag got %v, expected %v", res.Tag, image.ExImage.Tag)
 		}
 
-		if res.Tag != image.ExTag {
-			t.Fatalf("Tag got %v, expected %v", res.Tag, image.ExTag)
+		if res.Path != image.ExImage.Path {
+			t.Fatalf("Path got %v, expected %v", res.Path, image.ExImage.Path)
 		}
 
-		if res.Path != image.ExPath {
-			t.Fatalf("Path got %v, expected %v", res.Path, image.ExPath)
-		}
-	}
-
-	invalidImage := []image{
-		{ImageName: "http://docker.io/nginx:latest"},
-		{ImageName: "https://harbor.devops.kubesphere.local:30280/library/tomcat:latest"},
-		{ImageName: "docker.io/nginx:latest:latest"},
-		{ImageName: "nginx:8000:latest"},
-	}
-
-	for _, image := range invalidImage {
-		_, err := ParseImage(image.ImageName)
-		if err == nil {
-			t.Fatalf("Parse invalid image but without get any error")
-		}
 	}
 
 }
 
 func TestStringWithoutScheme(t *testing.T) {
-	type testRawurl struct {
+	type testRawUrl struct {
 		Rawurl string
 		ExUrl  string
 	}
-	testRawurls := []testRawurl{
+	testRawurls := []testRawUrl{
 		{"http://dockerhub.qingcloud.com/kubesphere/nginx:v1", "dockerhub.qingcloud.com/kubesphere/nginx:v1"},
 		{"https://dockerhub.qingcloud.com/kubesphere/nginx:v1", "dockerhub.qingcloud.com/kubesphere/nginx:v1"},
-		{"dockerhub.qingcloud.com/kubesphere/nginx:v1", "dockerhub.qingcloud.com/kubesphere/nginx:v1"},
 		{"http://harbor.devops.kubesphere.local:30280/library/tomcat:latest", "harbor.devops.kubesphere.local:30280/library/tomcat:latest"},
 		{"https://harbor.devops.kubesphere.local:30280/library/tomcat:latest", "harbor.devops.kubesphere.local:30280/library/tomcat:latest"},
 	}
