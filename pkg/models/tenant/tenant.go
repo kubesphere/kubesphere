@@ -36,6 +36,7 @@ type Interface interface {
 	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
 	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	GetWorkspace(workspace string) (*v1alpha1.Workspace, error)
 	DevOpsProjectOperator
 }
 
@@ -133,4 +134,8 @@ func (t *tenantOperator) ListNamespaces(username string, conditions *params.Cond
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: len(namespaces)}, nil
+}
+
+func (t *tenantOperator) GetWorkspace(workspace string) (*v1alpha1.Workspace, error) {
+	return t.workspaces.GetWorkspace(workspace)
 }

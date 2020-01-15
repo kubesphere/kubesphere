@@ -20,20 +20,20 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/tenant"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 )
 
-func (h DevOpsHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 	projectId := req.PathParameter("devops")
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	_, err := tenant.GetWorkspace(workspaceName)
+	_, err := h.tenant.GetWorkspace(workspaceName)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -41,7 +41,7 @@ func (h DevOpsHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *re
 		return
 	}
 
-	err = h.DeleteDevOpsProject(projectId, username)
+	err = h.tenant.DeleteDevOpsProject(projectId, username)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -52,7 +52,7 @@ func (h DevOpsHandler) DeleteDevOpsProjectHandler(req *restful.Request, resp *re
 	resp.WriteAsJson(errors.None)
 }
 
-func (h DevOpsHandler) CreateDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) CreateDevOpsProjectHandler(req *restful.Request, resp *restful.Response) {
 
 	workspaceName := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
@@ -68,7 +68,7 @@ func (h DevOpsHandler) CreateDevOpsProjectHandler(req *restful.Request, resp *re
 	}
 
 	klog.Infoln("create workspace", username, workspaceName, devops)
-	project, err := h.CreateDevOpsProject(username, workspaceName, &devops)
+	project, err := h.tenant.CreateDevOpsProject(username, workspaceName, &devops)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -79,10 +79,10 @@ func (h DevOpsHandler) CreateDevOpsProjectHandler(req *restful.Request, resp *re
 	resp.WriteAsJson(project)
 }
 
-func (h DevOpsHandler) GetDevOpsProjectsCountHandler(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) GetDevOpsProjectsCountHandler(req *restful.Request, resp *restful.Response) {
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	result, err := h.GetDevOpsProjectsCount(username)
+	result, err := h.tenant.GetDevOpsProjectsCount(username)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
@@ -93,7 +93,7 @@ func (h DevOpsHandler) GetDevOpsProjectsCountHandler(req *restful.Request, resp 
 	}{Count: result})
 }
 
-func (h DevOpsHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *restful.Response) {
 
 	workspace := req.PathParameter("workspace")
 	username := req.PathParameter("member")
@@ -111,7 +111,7 @@ func (h DevOpsHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *res
 		return
 	}
 
-	result, err := h.ListDevOpsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
+	result, err := h.tenant.ListDevOpsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
@@ -122,16 +122,31 @@ func (h DevOpsHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *res
 	resp.WriteAsJson(result)
 }
 
-func (h DevOpsHandler) ListDevOpsRules(req *restful.Request, resp *restful.Response) {
+func (h *tenantHandler) ListDevOpsRules(req *restful.Request, resp *restful.Response) {
 
 	devops := req.PathParameter("devops")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err := h.GetUserDevOpsSimpleRules(username, devops)
+	rules, err := h.tenant.GetUserDevOpsSimpleRules(username, devops)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(err, resp)
+		return
+	}
+
+	resp.WriteAsJson(rules)
+}
+
+func (h *tenantHandler) ListDevopsRules(req *restful.Request, resp *restful.Response) {
+
+	devops := req.PathParameter("devops")
+	username := req.HeaderParameter(constants.UserNameHeader)
+
+	rules, err := h.tenant.GetUserDevOpsSimpleRules(username, devops)
+
+	if err != nil {
+		api.HandleInternalError(resp, err)
 		return
 	}
 

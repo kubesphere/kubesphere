@@ -218,7 +218,7 @@ func (o *devopsProjectOperator) GetUserDevOpsSimpleRules(username, projectId str
 	return GetDevopsRoleSimpleRules(role), nil
 }
 
-func (o *devopsProjectOperator) getProjectUserRole(username, projectId string)(string, error)  {
+func (o *devopsProjectOperator) getProjectUserRole(username, projectId string) (string, error) {
 	if username == devops.KS_ADMIN {
 		return dsClient.ProjectOwner, nil
 	}

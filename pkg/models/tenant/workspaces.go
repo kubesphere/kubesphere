@@ -79,7 +79,6 @@ func newWorkspaceOperator(client kubernetes.Interface, informers informers.Share
 	}
 }
 
-
 func (w *workspaceOperator) ListNamespaces(workspace string) ([]*core.Namespace, error) {
 	namespaces, err := w.informers.Core().V1().Namespaces().Lister().List(labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspace}))
 

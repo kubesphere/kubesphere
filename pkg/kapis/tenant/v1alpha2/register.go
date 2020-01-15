@@ -103,7 +103,7 @@ func AddToContainer(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/devops").
-		To(handler.ListDevopsProjects).
+		To(handler.ListDevOpsProjectsHandler).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
 			Required(false).
@@ -115,7 +115,7 @@ func AddToContainer(c *restful.Container) error {
 		Doc("List devops projects for the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/devops").
-		To(handler.ListDevopsProjects).
+		To(handler.ListDevOpsProjectsHandler).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "workspace member's username")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
@@ -129,14 +129,14 @@ func AddToContainer(c *restful.Container) error {
 		Doc("List the devops projects for the workspace member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devopscount").
-		To(handler.GetDevOpsProjectsCount).
+		To(handler.GetDevOpsProjectsCountHandler).
 		Returns(http.StatusOK, api.StatusOK, struct {
 			Count uint32 `json:"count"`
 		}{}).
 		Doc("Get the devops projects count for the member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
-		To(handler.CreateDevopsProject).
+		To(handler.CreateDevOpsProjectHandler).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create a devops project in the specified workspace").
 		Reads(devopsv1alpha2.DevOpsProject{}).
