@@ -13,7 +13,35 @@ func TestGetNodesDetail(t *testing.T) {
 
 	devopsOperator := NewDevopsOperator(fakeDevops)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project/pipelines/pipeline/branches/brnach/runs/run/nodesdetail/?limit=10000", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project/pipelines/pipeline/runs/run/nodesdetail/?limit=10000", nil)
 
-	_, _ = devopsOperator.GetNodesDetail("projectName", "pipelineName", "runId", httpReq)
+	nodesDetails, err := devopsOperator.GetNodesDetail("project", "pipeline", "run", httpReq)
+	if err != nil || nodesDetails == nil {
+		t.Fatalf("should not get error %+v", err)
+	}
+
+	for _, v := range nodesDetails{
+		if v.ID != v.Steps[0].ID {
+			t.Fatalf("Node id %s and step od %s should equal", v.ID, v.Steps[0].ID)
+		}
+	}
+}
+
+func TestGetBranchNodesDetail(t *testing.T) {
+	fakeDevops := fake.NewFakeDevops()
+
+	devopsOperator := NewDevopsOperator(fakeDevops)
+
+	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project/pipelines/pipeline/branches/branch/runs/run/nodesdetail/?limit=10000", nil)
+
+	nodesDetails, err := devopsOperator.GetBranchNodesDetail("project", "pipeline","branch", "run", httpReq)
+	if err != nil || nodesDetails == nil {
+		t.Fatalf("should not get error %+v", err)
+	}
+
+	for _, v := range nodesDetails{
+		if v.ID != v.Steps[0].ID {
+			t.Fatalf("Node id %s and step od %s should equal", v.ID, v.Steps[0].ID)
+		}
+	}
 }

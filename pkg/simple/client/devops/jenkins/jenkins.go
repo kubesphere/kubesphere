@@ -477,7 +477,7 @@ func (j *Jenkins) GetNodeSteps(projectName, pipelineName, runId, nodeId string, 
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
-		Path:           fmt.Sprintf(GetRunLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
+		Path:           fmt.Sprintf(GetNodeStepsUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId, nodeId),
 	}
 	res, err := PipelineOjb.GetNodeSteps()
 	return res, err
@@ -593,7 +593,7 @@ func (j *Jenkins) GetBranchNodeSteps(projectName, pipelineName, branchName, runI
 	return res, err
 }
 
-func (j *Jenkins) GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) (*devops.BranchPipelineRunNodes, error) {
+func (j *Jenkins) GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]devops.BranchPipelineRunNodes, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,

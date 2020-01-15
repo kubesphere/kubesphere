@@ -31,8 +31,22 @@ func (d *FakeDevops)RunPipeline(projectName, pipelineName string, httpParameters
 func (d *FakeDevops)GetArtifacts(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.Artifacts, error){return nil,nil}
 func (d *FakeDevops)GetRunLog(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]byte, error){return nil,nil}
 func (d *FakeDevops)GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error){return nil,nil,nil}
-func (d *FakeDevops)GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error){return nil,nil}
-func (d *FakeDevops)GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.PipelineRunNodes, error){return nil,nil}
+func (d *FakeDevops)GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error){
+	res := []devops.NodeSteps{
+		{ID:nodeId,Result:"true",DisplayName:"fakeNodeStep"},
+	}
+
+	return res, nil
+}
+func (d *FakeDevops)GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.PipelineRunNodes, error){
+	res := []devops.PipelineRunNodes{
+		{ID:"1",Result:"true",DisplayName:"fakePipelineRunNode1"},
+		{ID:"2",Result:"true",DisplayName:"fakePipelineRunNode2"},
+		{ID:"3",Result:"true",DisplayName:"fakePipelineRunNode3"},
+	}
+
+	return res, nil
+}
 func (d *FakeDevops)SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, error){return nil,nil}
 
 //BranchPipelinne operator interface
@@ -44,8 +58,21 @@ func (d *FakeDevops)RunBranchPipeline(projectName, pipelineName, branchName stri
 func (d *FakeDevops)GetBranchArtifacts(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]devops.Artifacts, error){return nil,nil}
 func (d *FakeDevops)GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]byte, error){return nil,nil}
 func (d *FakeDevops)GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error){return nil,nil,nil}
-func (d *FakeDevops)GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error){return nil,nil}
-func (d *FakeDevops)GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) (*devops.BranchPipelineRunNodes, error){return nil,nil}
+func (d *FakeDevops)GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error){
+	res := []devops.NodeSteps{
+		{ID:nodeId,Result:"true",DisplayName:"fakeBranchNodeStep"},
+	}
+	return res,nil
+}
+func (d *FakeDevops)GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]devops.BranchPipelineRunNodes, error){
+	res := []devops.BranchPipelineRunNodes{
+		{ID:"1",Result:"true",DisplayName:"fakeBranchPipelineRunNode1"},
+		{ID:"2",Result:"true",DisplayName:"fakeBranchPipelineRunNode2"},
+		{ID:"3",Result:"true",DisplayName:"fakeBranchPipelineRunNode3"},
+	}
+
+	return res, nil
+}
 func (d *FakeDevops)SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, error){return nil,nil}
 func (d *FakeDevops)GetPipelineBranch(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.PipelineBranch, error){return nil,nil}
 func (d *FakeDevops)ScanBranch(projectName, pipelineName string, httpParameters *devops.HttpParameters) ([]byte, error){return nil,nil}

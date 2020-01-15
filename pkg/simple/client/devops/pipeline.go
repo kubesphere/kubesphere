@@ -1084,7 +1084,35 @@ type ResJson struct {
 }
 
 type NodesDetail struct {
-	PipelineRunNodes
+	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+	Links struct {
+		Self struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"self,omitempty"`
+		Actions struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"actions,omitempty"`
+		Steps struct {
+			Class string `json:"_class,omitempty"`
+			Href  string `json:"href,omitempty"`
+		} `json:"steps,omitempty"`
+	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
+	Actions            []interface{} `json:"actions,omitempty" description:"the list of all actions"`
+	DisplayDescription interface{}   `json:"displayDescription,omitempty" description:"display description"`
+	DisplayName        string        `json:"displayName,omitempty" description:"display name"`
+	DurationInMillis   int           `json:"durationInMillis,omitempty" description:"duration time in mullis"`
+	ID                 string        `json:"id,omitempty" description:"id"`
+	Input              *Input        `json:"input,omitempty" description:"the action should user input"`
+	Result             string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
+	StartTime          string        `json:"startTime,omitempty" description:"the time of start"`
+	State              string        `json:"state,omitempty" description:"run state. e.g. FINISHED"`
+	Type               string        `json:"type,omitempty" description:"type"`
+	CauseOfBlockage    interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
+	Edges              []interface{} `json:"edges,omitempty" description:"edges"`
+	FirstParent        interface{}   `json:"firstParent,omitempty" description:"first parent"`
+	Restartable        bool          `json:"restartable,omitempty" description:"restartable or not"`
 	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
 }
 
@@ -1144,7 +1172,7 @@ type PipelineOperator interface {
 	GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]byte, error)
 	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, http.Header, error)
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *HttpParameters) ([]NodeSteps, error)
-	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) (*BranchPipelineRunNodes, error)
+	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *HttpParameters) ([]BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *HttpParameters) ([]byte, error)
 	GetPipelineBranch(projectName, pipelineName string, httpParameters *HttpParameters) (*PipelineBranch, error)
 	ScanBranch(projectName, pipelineName string, httpParameters *HttpParameters) ([]byte, error)
