@@ -381,31 +381,31 @@ func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
 				})
 			case "hudson.model.ChoiceParameterDefinition":
 				/*
-				In Jenkins, different configuration methods will lead to different serialization results.
-				We need to be compatible with serialization results.
+					In Jenkins, different configuration methods will lead to different serialization results.
+					We need to be compatible with serialization results.
 
-				case1: Configured by KubeSphere console / Jenkins console
-				<hudson.model.ChoiceParameterDefinition>
-				<name>1</name>
-				<description>x</description>
-				<choices class="java.util.Arrays$ArrayList">
-					<a class="string-array">
+					case1: Configured by KubeSphere console / Jenkins console
+					<hudson.model.ChoiceParameterDefinition>
+					<name>1</name>
+					<description>x</description>
+					<choices class="java.util.Arrays$ArrayList">
+						<a class="string-array">
+							<string>1</string>
+							<string>2</string>
+							<string>3</string>
+						</a>
+					</choices>
+					</hudson.model.ChoiceParameterDefinition>
+					case2: Configured by pipeline syntax, sample:  parameters { choice(name: 'CHOICES', choices: ['one', 'two', 'three'], description: '') }
+					<hudson.model.ChoiceParameterDefinition>
+					<name>1</name>
+					<description>x</description>
+					<choices class="java.util.Arrays$ArrayList">
 						<string>1</string>
 						<string>2</string>
 						<string>3</string>
-					</a>
-				</choices>
-				</hudson.model.ChoiceParameterDefinition>
-				case2: Configured by pipeline syntax, sample:  parameters { choice(name: 'CHOICES', choices: ['one', 'two', 'three'], description: '') }
-				<hudson.model.ChoiceParameterDefinition>
-				<name>1</name>
-				<description>x</description>
-				<choices class="java.util.Arrays$ArrayList">
-					<string>1</string>
-					<string>2</string>
-					<string>3</string>
-				</choices>
-				</hudson.model.ChoiceParameterDefinition>
+					</choices>
+					</hudson.model.ChoiceParameterDefinition>
 				*/
 				choiceParameter := &Parameter{
 					Name:        param.SelectElement("name").Text(),
