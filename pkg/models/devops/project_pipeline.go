@@ -380,7 +380,11 @@ func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
 					Type:         ParameterTypeMap["hudson.model.PasswordParameterDefinition"],
 				})
 			case "hudson.model.ChoiceParameterDefinition":
-				/* case1
+				/*
+				In Jenkins, different configuration methods will lead to different serialization results.
+				We need to be compatible with serialization results.
+
+				case1: Configured by KubeSphere console / Jenkins console
 				<hudson.model.ChoiceParameterDefinition>
 				<name>1</name>
 				<description>x</description>
@@ -392,8 +396,7 @@ func (s *Parameters) fromEtree(properties *etree.Element) *Parameters {
 					</a>
 				</choices>
 				</hudson.model.ChoiceParameterDefinition>
-				*/
-				/* case2
+				case2: Configured by pipeline syntax, sample:  parameters { choice(name: 'CHOICES', choices: ['one', 'two', 'three'], description: '') }
 				<hudson.model.ChoiceParameterDefinition>
 				<name>1</name>
 				<description>x</description>
