@@ -58,7 +58,7 @@ type DevopsOperator interface {
 	GetBranchRunLog(projectName, pipelineName, branchName, runId string, req *http.Request) ([]byte, error)
 	GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error)
 	GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, req *http.Request) ([]devops.NodeSteps, error)
-	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.BranchPipelineRunNodes, error)
+	GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.BranchPipelineRunNodes, error)
 	SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, req *http.Request) ([]byte, error)
 	GetBranchNodesDetail(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.NodesDetail, error)
 	GetPipelineBranch(projectName, pipelineName string, req *http.Request) (*devops.PipelineBranch, error)
@@ -280,6 +280,7 @@ func (d devopsOperator) GetNodesDetail(projectName, pipelineName, runId string, 
 			wg.Done()
 		}(v.ID, i)
 	}
+
 	wg.Wait()
 	close(stepChan)
 
@@ -392,7 +393,7 @@ func (d devopsOperator) GetBranchNodeSteps(projectName, pipelineName, branchName
 	return res, err
 }
 
-func (d devopsOperator) GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) (*devops.BranchPipelineRunNodes, error) {
+func (d devopsOperator) GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, req *http.Request) ([]devops.BranchPipelineRunNodes, error) {
 
 	res, err := d.devopsClient.GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId, convertToHttpParameters(req))
 	if err != nil {
