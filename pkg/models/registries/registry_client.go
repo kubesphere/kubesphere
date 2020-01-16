@@ -64,7 +64,7 @@ type authService struct {
 	Scope   []string
 }
 
-func CreateRegistryClient(username, password, domain string) (*Registry, error) {
+func CreateRegistryClient(username, password, domain string, useSSL bool) (*Registry, error) {
 	authDomain := domain
 	auth, err := GetAuthConfig(username, password, authDomain)
 	if err != nil {
@@ -75,6 +75,7 @@ func CreateRegistryClient(username, password, domain string) (*Registry, error) 
 	// Create the registry client.
 	return New(auth, RegistryOpt{
 		Domain: domain,
+		UseSSL: useSSL,
 	})
 }
 
