@@ -1113,7 +1113,7 @@ type NodesDetail struct {
 	Edges              []interface{} `json:"edges,omitempty" description:"edges"`
 	FirstParent        interface{}   `json:"firstParent,omitempty" description:"first parent"`
 	Restartable        bool          `json:"restartable,omitempty" description:"restartable or not"`
-	Steps []NodeSteps `json:"steps,omitempty" description:"steps"`
+	Steps              []NodeSteps   `json:"steps,omitempty" description:"steps"`
 }
 
 type NodesStepsIndex struct {

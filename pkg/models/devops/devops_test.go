@@ -1,6 +1,7 @@
 package devops
 
 import (
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"net/http"
 	"testing"
@@ -9,41 +10,45 @@ import (
 const baseUrl = "http://127.0.0.1/kapis/devops.kubesphere.io/v1alpha2/"
 
 func TestGetNodesDetail(t *testing.T) {
-	fakeData := make(map[string][]byte)
-	PipelineRunNodes := `[
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "1",
-    "result": "SUCCESS"
-  },
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "2",
-    "result": "SUCCESS"
-  },
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "3",
-    "result": "SUCCESS"
-  }
-]`
+	fakeData := make(map[string]interface{})
+	PipelineRunNodes := []devops.PipelineRunNodes{
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "1",
+			Result:      "SUCCESS",
+		},
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "2",
+			Result:      "SUCCESS",
+		},
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "3",
+			Result:      "SUCCESS",
+		},
+	}
 
-	NodeSteps := `[
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "21",
-    "result": "SUCCESS"
-  }
-]`
+	NodeSteps := []devops.NodeSteps{
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "1",
+			Result:      "SUCCESS",
+		},
+	}
 
-	fakeData["NodeSteps"] = []byte(NodeSteps)
-	fakeData["PipelineRunNodes"] = []byte(PipelineRunNodes)
+	fakeData["project1-pipeline1-run1"] = PipelineRunNodes
+	fakeData["project1-pipeline1-run1-1"] = NodeSteps
+	fakeData["project1-pipeline1-run1-2"] = NodeSteps
+	fakeData["project1-pipeline1-run1-3"] = NodeSteps
 
-	devopsOperator := NewDevopsOperator(fake.NewFakeDevops(fakeData))
+	devopsClient := fake.NewFakeDevops(fakeData)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project/pipelines/pipeline/runs/run/nodesdetail/?limit=10000", nil)
+	devopsOperator := NewDevopsOperator(devopsClient)
 
-	nodesDetails, err := devopsOperator.GetNodesDetail("project", "pipeline", "run", httpReq)
+	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project1/pipelines/pipeline1/runs/run1/nodesdetail/?limit=10000", nil)
+
+	nodesDetails, err := devopsOperator.GetNodesDetail("project1", "pipeline1", "run1", httpReq)
 	if err != nil || nodesDetails == nil {
 		t.Fatalf("should not get error %+v", err)
 	}
@@ -56,42 +61,46 @@ func TestGetNodesDetail(t *testing.T) {
 }
 
 func TestGetBranchNodesDetail(t *testing.T) {
-	fakeData := make(map[string][]byte)
+	fakeData := make(map[string]interface{})
 
-	BranchPipelineRunNodes := `[
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "1",
-    "result": "SUCCESS"
-  },
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "2",
-    "result": "SUCCESS"
-  },
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "3",
-    "result": "SUCCESS"
-  }
-]`
+	BranchPipelineRunNodes := []devops.BranchPipelineRunNodes{
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "1",
+			Result:      "SUCCESS",
+		},
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "2",
+			Result:      "SUCCESS",
+		},
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "3",
+			Result:      "SUCCESS",
+		},
+	}
 
-	BranchNodeSteps := `[
-  {
-    "displayName": "Deploy to Kubernetes",
-    "id": "21",
-    "result": "SUCCESS"
-  }
-]`
+	BranchNodeSteps := []devops.NodeSteps{
+		{
+			DisplayName: "Deploy to Kubernetes",
+			ID:          "1",
+			Result:      "SUCCESS",
+		},
+	}
 
-	fakeData["BranchNodeSteps"] = []byte(BranchNodeSteps)
-	fakeData["BranchPipelineRunNodes"] = []byte(BranchPipelineRunNodes)
+	fakeData["project1-pipeline1-branch1-run1"] = BranchPipelineRunNodes
+	fakeData["project1-pipeline1-branch1-run1-1"] = BranchNodeSteps
+	fakeData["project1-pipeline1-branch1-run1-2"] = BranchNodeSteps
+	fakeData["project1-pipeline1-branch1-run1-3"] = BranchNodeSteps
 
-	devopsOperator := NewDevopsOperator(fake.NewFakeDevops(fakeData))
+	devopsClient := fake.NewFakeDevops(fakeData)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project/pipelines/pipeline/branchs/branc/runs/run/nodesdetail/?limit=10000", nil)
+	devopsOperator := NewDevopsOperator(devopsClient)
 
-	nodesDetails, err := devopsOperator.GetBranchNodesDetail("project", "pipeline", "branch", "run", httpReq)
+	httpReq, _ := http.NewRequest(http.MethodGet, baseUrl+"devops/project1/pipelines/pipeline1/branchs/branch1/runs/run1/nodesdetail/?limit=10000", nil)
+
+	nodesDetails, err := devopsOperator.GetBranchNodesDetail("project1", "pipeline1", "branch1", "run1", httpReq)
 	if err != nil || nodesDetails == nil {
 		t.Fatalf("should not get error %+v", err)
 	}

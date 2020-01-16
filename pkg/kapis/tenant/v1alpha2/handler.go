@@ -1,6 +1,5 @@
 package v1alpha2
 
-
 import (
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
