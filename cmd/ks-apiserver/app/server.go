@@ -176,7 +176,7 @@ func createDeps(s *options.ServerRunOptions, stopCh <-chan struct{}) *apiserver.
 	}
 
 	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
-		deps.OpenPitrix, err = openpitrix.NewOpenPitrixClient(s.OpenPitrixOptions)
+		deps.OpenPitrix, err = openpitrix.NewClient(s.OpenPitrixOptions)
 		if err != nil {
 			klog.Fatalf("error happened when initializing openpitrix client, %v", err)
 		}

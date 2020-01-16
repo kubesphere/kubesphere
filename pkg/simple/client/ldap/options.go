@@ -11,11 +11,14 @@ type Options struct {
 	ManagerPassword string `json:"managerPassword,omitempty" yaml:"managerPassword"`
 	UserSearchBase  string `json:"userSearchBase,omitempty" yaml:"userSearchBase"`
 	GroupSearchBase string `json:"groupSearchBase,omitempty" yaml:"groupSearchBase"`
+	InitialCap      int    `json:"initialCap,omitempty" yaml:"initialCap"`
+	MaxCap          int    `json:"maxCap,omitempty" yaml:"maxCap"`
+	PoolName        string `json:"poolName,omitempty" yaml:"poolName"`
 }
 
-// NewLdapOptions return a default option
+// NewOptions return a default option
 // which host field point to nowhere.
-func NewLdapOptions() *Options {
+func NewOptions() *Options {
 	return &Options{
 		Host:            "",
 		ManagerDN:       "cn=admin,dc=example,dc=org",
@@ -25,7 +28,7 @@ func NewLdapOptions() *Options {
 }
 
 func (l *Options) Validate() []error {
-	errors := []error{}
+	var errors []error
 
 	return errors
 }

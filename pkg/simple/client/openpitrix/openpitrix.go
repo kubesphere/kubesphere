@@ -134,7 +134,7 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 	return pb.NewAppManagerClient(conn), nil
 }
 
-func NewOpenPitrixClient(options *Options) (Client, error) {
+func NewClient(options *Options) (Client, error) {
 
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
 

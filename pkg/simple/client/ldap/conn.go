@@ -8,7 +8,7 @@ import (
 	"github.com/go-ldap/ldap"
 )
 
-// PoolConn implements PoolClient to override the Close() method
+// PoolConn implements Client to override the Close() method
 type PoolConn struct {
 	Conn     ldap.Client
 	c        *channelPool

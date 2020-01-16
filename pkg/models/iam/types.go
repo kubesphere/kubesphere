@@ -47,15 +47,3 @@ type RoleList struct {
 	ClusterRoles []*v1.ClusterRole `json:"clusterRole" description:"cluster role list"`
 	Roles        []*v1.Role        `json:"roles" description:"role list"`
 }
-
-type Config struct {
-	adminEmail         string
-	adminPassword      string
-	authRateLimit      string
-	maxAuthFailed      int
-	authTimeInterval   time.Duration
-	tokenIdleTimeout   time.Duration
-	userInitFile       string
-	enableMultiLogin   bool
-	generateKubeConfig bool
-}

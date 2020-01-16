@@ -37,11 +37,11 @@ func NewClientSetOptions() *ClientSetOptions {
 		mySQLOptions:        mysql.NewMySQLOptions(),
 		redisOptions:        cache.NewRedisOptions(),
 		kubernetesOptions:   k8s.NewKubernetesOptions(),
-		ldapOptions:         ldap.NewLdapOptions(),
+		ldapOptions:         ldap.NewOptions(),
 		devopsOptions:       devops.NewDevopsOptions(),
 		sonarqubeOptions:    sonarqube.NewSonarQubeOptions(),
 		s3Options:           s3.NewS3Options(),
-		openPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
+		openPitrixOptions:   openpitrix.NewOptions(),
 		prometheusOptions:   prometheus.NewPrometheusOptions(),
 		kubesphereOptions:   kubesphere.NewKubeSphereOptions(),
 		elasticSearhOptions: esclient.NewElasticSearchOptions(),
@@ -113,7 +113,7 @@ type ClientSet struct {
 	mySQLClient *mysql.Client
 
 	k8sClient           k8s.Client
-	ldapClient          *ldap.Client
+	ldapClient          ldap.Client
 	devopsClient        *devops.Client
 	sonarQubeClient     *sonarqube.Client
 	redisClient         cache.Interface
@@ -240,7 +240,7 @@ func (cs *ClientSet) SonarQube() (*sonarqube.Client, error) {
 	}
 }
 
-func (cs *ClientSet) Ldap() (*ldap.Client, error) {
+func (cs *ClientSet) Ldap() (ldap.Client, error) {
 	var err error
 
 	if cs.csoptions.ldapOptions == nil || cs.csoptions.ldapOptions.Host == "" {
@@ -254,7 +254,7 @@ func (cs *ClientSet) Ldap() (*ldap.Client, error) {
 		defer mutex.Unlock()
 
 		if cs.ldapClient == nil {
-			cs.ldapClient, err = ldap.NewLdapClient(cs.csoptions.ldapOptions, cs.stopCh)
+			cs.ldapClient, err = ldap.NewClient(cs.csoptions.ldapOptions, cs.stopCh)
 			if err != nil {
 				return nil, err
 			}
@@ -309,7 +309,7 @@ func (cs *ClientSet) OpenPitrix() (openpitrix.Client, error) {
 	if cs.openpitrixClient != nil {
 		return cs.openpitrixClient, nil
 	} else {
-		cs.openpitrixClient, err = openpitrix.NewOpenPitrixClient(cs.csoptions.openPitrixOptions)
+		cs.openpitrixClient, err = openpitrix.NewClient(cs.csoptions.openPitrixOptions)
 		if err != nil {
 			return nil, err
 		}

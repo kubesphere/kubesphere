@@ -25,7 +25,7 @@ type channelPool struct {
 // PoolFactory is a function to create new connections.
 type PoolFactory func(string) (ldap.Client, error)
 
-// NewChannelPool returns a new pool based on buffered channels with an initial
+// newChannelPool returns a new pool based on buffered channels with an initial
 // capacity and maximum capacity. Factory is used when initial capacity is
 // greater than zero to fill the pool. A zero initialCap doesn't fill the Pool
 // until a new Get() is called. During a Get(), If there is no new connection
@@ -36,7 +36,7 @@ type PoolFactory func(string) (ldap.Client, error)
 // of the call is one of those passed, most likely you want to set this to something
 // like
 //   []uint8{ldap.LDAPResultTimeLimitExceeded, ldap.ErrorNetwork}
-func NewChannelPool(initialCap, maxCap int, name string, factory PoolFactory, closeAt []uint16) (Pool, error) {
+func newChannelPool(initialCap, maxCap int, name string, factory PoolFactory, closeAt []uint16) (Pool, error) {
 	if initialCap < 0 || maxCap <= 0 || initialCap > maxCap {
 		return nil, errors.New("invalid capacity settings")
 	}
@@ -85,7 +85,7 @@ func (c *channelPool) Get() (*PoolConn, error) {
 		return nil, ErrClosed
 	}
 
-	// wrap our connections with our ldap.PoolClient implementation (wrapConn
+	// wrap our connections with our ldap.Client implementation (wrapConn
 	// method) that puts the connection back to the pool if it's closed.
 	select {
 	case conn := <-conns:

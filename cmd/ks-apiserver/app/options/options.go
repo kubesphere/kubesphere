@@ -42,7 +42,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		MySQLOptions:            mysql.NewMySQLOptions(),
 		MonitoringOptions:       prometheus.NewPrometheusOptions(),
 		S3Options:               s3.NewS3Options(),
-		OpenPitrixOptions:       openpitrix.NewOpenPitrixOptions(),
+		OpenPitrixOptions:       openpitrix.NewOptions(),
 		LoggingOptions:          esclient.NewElasticSearchOptions(),
 	}
 

@@ -60,7 +60,7 @@ type amOperator struct {
 	resources resource.ResourceGetter
 }
 
-func newAMOperator(informers informers.SharedInformerFactory) AccessManagementInterface {
+func newAMOperator(informers informers.SharedInformerFactory) *amOperator {
 	resourceGetter := resource.ResourceGetter{}
 	resourceGetter.Add(v1alpha2.Role, role.NewRoleSearcher(informers))
 	resourceGetter.Add(v1alpha2.ClusterRoles, clusterrole.NewClusterRoleSearcher(informers))
