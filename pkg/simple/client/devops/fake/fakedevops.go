@@ -1,20 +1,20 @@
 package fake
 
 import (
+	"encoding/json"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
 type FakeDevops struct {
-	PipelineRunNodes []devops.PipelineRunNodes
-	NodeSteps        []devops.NodeSteps
+	Data map[string][]byte
 }
 
-func NewFakeDevopsNodesDetail(pipelineRunNodes []devops.PipelineRunNodes, nodeSteps []devops.NodeSteps) *FakeDevops {
-	return &FakeDevops{
-		PipelineRunNodes: pipelineRunNodes,
-		NodeSteps: nodeSteps,
-	}
+func NewFakeDevops(data map[string][]byte) *FakeDevops {
+	var fakeData FakeDevops
+	fakeData.Data = data
+	return &fakeData
 }
 
 // Pipelinne operator interface
@@ -34,10 +34,22 @@ func (d *FakeDevops) GetArtifacts(projectName, pipelineName, runId string, httpP
 func (d *FakeDevops) GetRunLog(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]byte, error)                               { return nil, nil }
 func (d *FakeDevops) GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) { return nil, nil, nil }
 func (d *FakeDevops) GetNodeSteps(projectName, pipelineName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
-	return d.NodeSteps, nil
+	var res []devops.NodeSteps
+	err := json.Unmarshal(d.Data["NodeSteps"], &res)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return res, nil
 }
 func (d *FakeDevops) GetPipelineRunNodes(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.PipelineRunNodes, error) {
-	return d.PipelineRunNodes, nil
+	var res []devops.PipelineRunNodes
+	err := json.Unmarshal(d.Data["PipelineRunNodes"], &res)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return res, nil
 }
 func (d *FakeDevops) SubmitInputStep(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, error) { return nil, nil }
 
@@ -51,18 +63,21 @@ func (d *FakeDevops) GetBranchArtifacts(projectName, pipelineName, branchName, r
 func (d *FakeDevops) GetBranchRunLog(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]byte, error)                               { return nil, nil }
 func (d *FakeDevops) GetBranchStepLog(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) { return nil, nil, nil }
 func (d *FakeDevops) GetBranchNodeSteps(projectName, pipelineName, branchName, runId, nodeId string, httpParameters *devops.HttpParameters) ([]devops.NodeSteps, error) {
-	res := []devops.NodeSteps{
-		{ID: nodeId, Result: "true", DisplayName: "fakeBranchNodeStep"},
+	var res []devops.NodeSteps
+	err := json.Unmarshal(d.Data["BranchNodeSteps"], &res)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
 	}
 	return res, nil
 }
 func (d *FakeDevops) GetBranchPipelineRunNodes(projectName, pipelineName, branchName, runId string, httpParameters *devops.HttpParameters) ([]devops.BranchPipelineRunNodes, error) {
-	res := []devops.BranchPipelineRunNodes{
-		{ID: "1", Result: "true", DisplayName: "fakeBranchPipelineRunNode1"},
-		{ID: "2", Result: "true", DisplayName: "fakeBranchPipelineRunNode2"},
-		{ID: "3", Result: "true", DisplayName: "fakeBranchPipelineRunNode3"},
+	var res []devops.BranchPipelineRunNodes
+	err := json.Unmarshal(d.Data["BranchPipelineRunNodes"], &res)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
 	}
-
 	return res, nil
 }
 func (d *FakeDevops) SubmitBranchInputStep(projectName, pipelineName, branchName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, error) { return nil, nil }
