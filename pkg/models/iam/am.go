@@ -19,7 +19,6 @@ package iam
 
 import (
 	"fmt"
-	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
 	"strings"
 )
 
@@ -50,14 +48,24 @@ const (
 )
 
 type AccessManagementInterface interface {
-	GetDevopsRoleSimpleRules(role string) []SimpleRule
+	GetClusterRole(username string) (*rbacv1.ClusterRole, error)
+	UnBindAllRoles(username string) error
 	ListRoleBindings(namespace string, role string) ([]*rbacv1.RoleBinding, error)
 	CreateClusterRoleBinding(username string, clusterRole string) error
+	ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
+	ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
+	ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error)
+	GetClusterRoleSimpleRules(clusterRole string) ([]*SimpleRule, error)
+	GetRoleSimpleRules(namespace string, role string) ([]*SimpleRule, error)
 }
 
 type amOperator struct {
 	informers informers.SharedInformerFactory
 	resources resource.ResourceGetter
+}
+
+func (am *amOperator) UnBindAllRoles(username string) error {
+	panic("implement me")
 }
 
 func newAMOperator(informers informers.SharedInformerFactory) *amOperator {
@@ -198,7 +206,7 @@ func (am *amOperator) GetUserClusterRoles(username string) (*rbacv1.ClusterRole,
 	return userFacingClusterRole, clusterRoles, nil
 }
 
-func (am *amOperator) GetUserClusterRole(username string) (*rbacv1.ClusterRole, error) {
+func (am *amOperator) GetClusterRole(username string) (*rbacv1.ClusterRole, error) {
 	userFacingClusterRole, _, err := am.GetUserClusterRoles(username)
 	if err != nil {
 		return nil, err
@@ -341,55 +349,6 @@ func (am *amOperator) GetClusterRoleBindings(clusterRoleName string) ([]*rbacv1.
 	return items, nil
 }
 
-func (am *amOperator) ListClusterRoleUsers(clusterRoleName string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-
-	roleBindings, err := am.GetClusterRoleBindings(clusterRoleName)
-
-	if err != nil {
-		return nil, err
-	}
-	users := make([]*User, 0)
-	for _, roleBinding := range roleBindings {
-		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == rbacv1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
-				user, err := GetUserInfo(subject.Name)
-				if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
-					continue
-				}
-				if err != nil {
-					klog.Errorln(err)
-					return nil, err
-				}
-				users = append(users, user)
-			}
-		}
-	}
-
-	// order & reverse
-	sort.Slice(users, func(i, j int) bool {
-		if reverse {
-			i, j = j, i
-		}
-		switch orderBy {
-		default:
-			fallthrough
-		case v1alpha2.Name:
-			return strings.Compare(users[i].Username, users[j].Username) <= 0
-		}
-	})
-
-	result := make([]interface{}, 0)
-
-	for i, d := range users {
-		if i >= offset && (limit == -1 || len(result) < limit) {
-			result = append(result, d)
-		}
-	}
-
-	return &models.PageableResponse{Items: result, TotalCount: len(users)}, nil
-
-}
-
 func (am *amOperator) ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	return am.resources.ListResources(namespace, v1alpha2.Roles, conditions, orderBy, reverse, limit, offset)
 }
@@ -429,53 +388,6 @@ func (am *amOperator) ListWorkspaceRoles(workspace string, conditions *params.Co
 
 func (am *amOperator) ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	return am.resources.ListResources("", v1alpha2.ClusterRoles, conditions, orderBy, reverse, limit, offset)
-}
-
-func (am *amOperator) NamespaceUsers(namespaceName string) ([]*User, error) {
-	namespace, err := am.informers.Core().V1().Namespaces().Lister().Get(namespaceName)
-	if err != nil {
-		klog.Errorln(err)
-		return nil, err
-	}
-	roleBindings, err := am.GetRoleBindings(namespaceName, "")
-
-	if err != nil {
-		return nil, err
-	}
-
-	users := make([]*User, 0)
-
-	for _, roleBinding := range roleBindings {
-		// controlled by ks-controller-manager
-		if roleBinding.Name == NamespaceViewerRoleBindName {
-			continue
-		}
-		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == rbacv1.UserKind && !k8sutil.ContainsUser(users, subject.Name) {
-
-				// show creator
-				if roleBinding.Name == NamespaceAdminRoleBindName && subject.Name != namespace.Annotations[constants.CreatorAnnotationKey] {
-					continue
-				}
-
-				user, err := GetUserInfo(subject.Name)
-
-				if err != nil {
-					if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
-						continue
-					}
-					return nil, err
-				}
-
-				user.Role = roleBinding.RoleRef.Name
-				user.RoleBindTime = &roleBinding.CreationTimestamp.Time
-				user.RoleBinding = roleBinding.Name
-				users = append(users, user)
-			}
-		}
-	}
-
-	return users, nil
 }
 
 func (am *amOperator) GetUserWorkspaceSimpleRules(workspace, username string) ([]SimpleRule, error) {
