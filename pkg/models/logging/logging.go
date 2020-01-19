@@ -1,73 +1,41 @@
 package logging
 
 import (
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/informers"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/utils/stringutils"
-	"strings"
-	"time"
+	"io"
+	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 )
 
-
-// list namespaces matching the search condition
-func ListMatchedNamespaces(informers informers.SharedInformerFactory, nsFilter []string, nsSearch []string, wsFilter []string, wsSearch []string) (bool, []string) {
-
-	nsLister := informers.Core().V1().Namespaces().Lister()
-	nsList, err := nsLister.List(labels.Everything())
-	if err != nil {
-		klog.Errorf("failed to list namespace, error: %s", err)
-		return true, nil
-	}
-
-	var namespaces []string
-
-	// if no search condition is set on both namespace and workspace,
-	// then return all namespaces
-	if nsSearch == nil && nsFilter == nil && wsSearch == nil && wsFilter == nil {
-		for _, ns := range nsList {
-			namespaces = append(namespaces, ns.Name)
-		}
-		return false, namespaces
-	}
-
-	for _, ns := range nsList {
-		if stringutils.StringIn(ns.Name, nsFilter) ||
-			stringutils.StringIn(ns.Annotations[constants.WorkspaceLabelKey], wsFilter) ||
-			containsIn(ns.Name, nsSearch) ||
-			containsIn(ns.Annotations[constants.WorkspaceLabelKey], wsSearch) {
-			namespaces = append(namespaces, ns.Name)
-		}
-	}
-
-	// if namespaces is equal to nil, indicates no namespace matched
-	// it causes the query to return no result
-	return namespaces == nil, namespaces
+type LoggingOperator interface {
+	GetCurrentStats(sf logging.SearchFilter) (v1alpha2.APIResponse, error)
+	CountLogsByInterval(sf logging.SearchFilter, interval string) (v1alpha2.APIResponse, error)
+	ExportLogs(sf logging.SearchFilter, w io.Writer) error
+	SearchLogs(sf logging.SearchFilter, from, size int64, order string) (v1alpha2.APIResponse, error)
 }
 
-func containsIn(str string, subStrs []string) bool {
-	for _, sub := range subStrs {
-		if strings.Contains(str, sub) {
-			return true
-		}
-	}
-	return false
+type loggingOperator struct {
+	c logging.Interface
 }
 
-func WithCreationTimestamp(informers informers.SharedInformerFactory, namespaces []string) map[string]time.Time {
+func NewLoggingOperator(client logging.Interface) LoggingOperator {
+	return &loggingOperator{client}
+}
 
-	namespaceWithCreationTime := make(map[string]time.Time)
+func (l loggingOperator) GetCurrentStats(sf logging.SearchFilter) (v1alpha2.APIResponse, error) {
+	res, err := l.c.GetCurrentStats(sf)
+	return v1alpha2.APIResponse{Statistics: &res}, err
+}
 
-	nsLister := informers.Core().V1().Namespaces().Lister()
-	for _, item := range namespaces {
-		ns, err := nsLister.Get(item)
-		if err != nil {
-			// the ns doesn't exist
-			continue
-		}
-		namespaceWithCreationTime[ns.Name] = ns.CreationTimestamp.Time
-	}
+func (l loggingOperator) CountLogsByInterval(sf logging.SearchFilter, interval string) (v1alpha2.APIResponse, error) {
+	res, err := l.c.CountLogsByInterval(sf, interval)
+	return v1alpha2.APIResponse{Histogram: &res}, err
+}
 
-	return namespaceWithCreationTime
+func (l loggingOperator) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
+	return l.c.ExportLogs(sf, w)
+}
+
+func (l loggingOperator) SearchLogs(sf logging.SearchFilter, from, size int64, order string) (v1alpha2.APIResponse, error) {
+	res, err := l.c.SearchLogs(sf, from, size, order)
+	return v1alpha2.APIResponse{Logs: &res}, err
 }

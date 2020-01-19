@@ -8,7 +8,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
@@ -30,7 +30,7 @@ type ClientSetOptions struct {
 	openPitrixOptions   *openpitrix.Options
 	prometheusOptions   *prometheus.Options
 	kubesphereOptions   *kubesphere.Options
-	elasticSearhOptions *esclient.Options
+	elasticsearhOptions *elasticsearch.Options
 }
 
 func NewClientSetOptions() *ClientSetOptions {
@@ -45,7 +45,7 @@ func NewClientSetOptions() *ClientSetOptions {
 		openPitrixOptions:   openpitrix.NewOptions(),
 		prometheusOptions:   prometheus.NewPrometheusOptions(),
 		kubesphereOptions:   kubesphere.NewKubeSphereOptions(),
-		elasticSearhOptions: esclient.NewElasticSearchOptions(),
+		elasticsearhOptions: elasticsearch.NewElasticSearchOptions(),
 	}
 }
 
@@ -99,8 +99,8 @@ func (c *ClientSetOptions) SetKubeSphereOptions(options *kubesphere.Options) *Cl
 	return c
 }
 
-func (c *ClientSetOptions) SetElasticSearchOptions(options *esclient.Options) *ClientSetOptions {
-	c.elasticSearhOptions = options
+func (c *ClientSetOptions) SetElasticSearchOptions(options *elasticsearch.Options) *ClientSetOptions {
+	c.elasticsearhOptions = options
 	return c
 }
 
@@ -122,7 +122,7 @@ type ClientSet struct {
 	prometheusClient    *prometheus.Client
 	openpitrixClient    openpitrix.Client
 	kubesphereClient    *kubesphere.Client
-	elasticSearchClient *esclient.ElasticSearchClient
+	elasticSearchClient *elasticsearch.Elasticsearch
 }
 
 var mutex sync.Mutex
@@ -347,10 +347,10 @@ func (cs *ClientSet) KubeSphere() *kubesphere.Client {
 	return cs.kubesphereClient
 }
 
-func (cs *ClientSet) ElasticSearch() (*esclient.ElasticSearchClient, error) {
+func (cs *ClientSet) ElasticSearch() (*elasticsearch.Elasticsearch, error) {
 	var err error
 
-	if cs.csoptions.elasticSearhOptions == nil || cs.csoptions.elasticSearhOptions.Host == "" {
+	if cs.csoptions.elasticsearhOptions == nil || cs.csoptions.elasticsearhOptions.Host == "" {
 		return nil, ErrClientSetNotEnabled
 	}
 
@@ -361,7 +361,7 @@ func (cs *ClientSet) ElasticSearch() (*esclient.ElasticSearchClient, error) {
 		defer mutex.Unlock()
 
 		if cs.elasticSearchClient == nil {
-			cs.elasticSearchClient, err = esclient.NewLoggingClient(cs.csoptions.elasticSearhOptions)
+			cs.elasticSearchClient, err = elasticsearch.NewElasticsearch(cs.csoptions.elasticsearhOptions)
 			if err != nil {
 				return nil, err
 			}

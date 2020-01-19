@@ -29,13 +29,13 @@ func New(address string, index string) *Elastic {
 	return &Elastic{client: client, index: index}
 }
 
-func (e *Elastic) Search(body []byte, scrollTimeout time.Duration) ([]byte, error) {
+func (e *Elastic) Search(body []byte) ([]byte, error) {
 	response, err := e.client.Search(
 		e.client.Search.WithContext(context.Background()),
 		e.client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
 		e.client.Search.WithTrackTotalHits(true),
 		e.client.Search.WithBody(bytes.NewBuffer(body)),
-		e.client.Search.WithScroll(scrollTimeout))
+		e.client.Search.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +48,11 @@ func (e *Elastic) Search(body []byte, scrollTimeout time.Duration) ([]byte, erro
 	return ioutil.ReadAll(response.Body)
 }
 
-func (e *Elastic) Scroll(scrollId string, scrollTimeout time.Duration) ([]byte, error) {
+func (e *Elastic) Scroll(id string) ([]byte, error) {
 	response, err := e.client.Scroll(
 		e.client.Scroll.WithContext(context.Background()),
-		e.client.Scroll.WithScrollID(scrollId),
-		e.client.Scroll.WithScroll(scrollTimeout))
+		e.client.Scroll.WithScrollID(id),
+		e.client.Scroll.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err
 	}

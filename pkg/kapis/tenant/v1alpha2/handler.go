@@ -8,8 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
@@ -289,26 +287,28 @@ func (h *tenantHandler) ListDevopsRules(req *restful.Request, resp *restful.Resp
 	resp.WriteAsJson(rules)
 }
 
-func (h *tenantHandler) LogQuery(req *restful.Request, resp *restful.Response) {
-	operation := req.QueryParameter("operation")
-	req, err := h.regenerateLoggingRequest(req)
-	switch {
-	case err != nil:
-		api.HandleInternalError(resp, err)
-	case req != nil:
-		logging.LoggingQueryCluster(req, resp)
-	default:
-		if operation == "export" {
-			resp.Header().Set(restful.HEADER_ContentType, "text/plain")
-			resp.Header().Set("Content-Disposition", "attachment")
-			resp.Write(nil)
-		} else {
-			resp.WriteAsJson(loggingv1alpha2.QueryResult{Read: new(loggingv1alpha2.ReadResult)})
-		}
-	}
-}
+//TODO(wansir): We need move this part to logging module
+//func (h *tenantHandler) LogQuery(req *restful.Request, resp *restful.Response) {
+//	operation := req.QueryParameter("operation")
+//	req, err := h.regenerateLoggingRequest(req)
+//	switch {
+//	case err != nil:
+//		api.HandleInternalError(resp, err)
+//	case req != nil:
+//		loggingv1alpha2.Get(req, loggingv1alpha2.LevelCluster, h.k8s, h.lo, resp)
+//	default:
+//		if operation == "export" {
+//			resp.Header().Set(restful.HEADER_ContentType, "text/plain")
+//			resp.Header().Set("Content-Disposition", "attachment")
+//			resp.Write(nil)
+//		} else {
+//			resp.WriteAsJson(v1alpha2.APIResponse{Logs: new(loggingclient.Logs)})
+//		}
+//	}
+//}
 
 // override namespace query conditions
+//TODO(wansir): We need move this part to logging module
 func (h *tenantHandler) regenerateLoggingRequest(req *restful.Request) (*restful.Request, error) {
 
 	username := req.HeaderParameter(constants.UserNameHeader)

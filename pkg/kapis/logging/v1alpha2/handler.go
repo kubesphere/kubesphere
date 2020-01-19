@@ -2,73 +2,76 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
-	"io"
-	k8sinformers "k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
-	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	util "kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	levelCluster = iota
-	levelWorkspace
-	levelNamespace
-	levelWorkload
-	levelPod
-	levelContainer
+	LevelCluster = iota
+	LevelContainer
 
 	// query type, default to `query`
-	typeStat = "statistics"
-	typeHist = "histogram"
-	typeExport = "export"
+	TypeStat   = "statistics"
+	TypeHist   = "histogram"
+	TypeExport = "export"
+
+	Ascending  = "asc"
+	Descending = "desc"
 )
 
 type handler struct {
-	informers k8sinformers.SharedInformerFactory
-	c       loggingclient.Interface
+	k  k8s.Client
+	lo logging.LoggingOperator
 }
 
 func newHandler(k k8s.Client, l loggingclient.Interface) *handler {
-	i := informers.NewInformerFactories(k.Kubernetes(), k.KubeSphere(), k.S2i(), k.Application()).KubernetesSharedInformerFactory()
-	return &handler{i, l}
+	return &handler{k, logging.NewLoggingOperator(l)}
 }
 
-func (h handler) queryLog(req *restful.Request, resp *restful.Response) {
+func (h handler) handleClusterQuery(req *restful.Request, resp *restful.Response) {
+	h.get(req, LevelCluster, resp)
+}
+
+func (h handler) handleContainerQuery(req *restful.Request, resp *restful.Response) {
+	h.get(req, LevelContainer, resp)
+}
+
+func (h handler) get(req *restful.Request, lvl int, resp *restful.Response) {
 	typ := req.QueryParameter("type")
 
-	noHit, sf := h.buildSearchFilter(levelCluster, req)
+	noHit, sf, err := h.newSearchFilter(req, lvl)
+	if err != nil {
+		api.HandleBadRequest(resp, err)
+	}
 	if noHit {
 		handleNoHit(typ, resp)
 		return
 	}
 
 	switch typ {
-	case typeStat:
-		res, err := h.c.GetStatistics(sf)
+	case TypeStat:
+		res, err := h.lo.GetCurrentStats(sf)
 		if err != nil {
 			api.HandleInternalError(resp, err)
 		}
 		resp.WriteAsJson(res)
-	case typeHist:
+	case TypeHist:
 		interval := req.QueryParameter("interval")
-		res, err := h.c.CountLogsByInterval(sf, interval)
+		res, err := h.lo.CountLogsByInterval(sf, interval)
 		if err != nil {
 			api.HandleInternalError(resp, err)
 		}
 		resp.WriteAsJson(res)
-	case typeExport:
+	case TypeExport:
 		resp.Header().Set(restful.HEADER_ContentType, "text/plain")
 		resp.Header().Set("Content-Disposition", "attachment")
-		b, err := h.c.ExportLogs(sf)
-		if err != nil {
-			api.HandleInternalError(resp, err)
-		}
-		_, err = io.Copy(resp, b)
+		err := h.lo.ExportLogs(sf, resp.ResponseWriter)
 		if err != nil {
 			api.HandleInternalError(resp, err)
 		}
@@ -79,10 +82,10 @@ func (h handler) queryLog(req *restful.Request, resp *restful.Response) {
 			size = 10
 		}
 		order := req.QueryParameter("sort")
-		if order != loggingclient.Ascending {
-			order = loggingclient.Descending
+		if order != Ascending {
+			order = Descending
 		}
-		res, err := h.c.SearchLogs(sf, from, size, order)
+		res, err := h.lo.SearchLogs(sf, from, size, order)
 		if err != nil {
 			api.HandleInternalError(resp, err)
 		}
@@ -90,80 +93,60 @@ func (h handler) queryLog(req *restful.Request, resp *restful.Response) {
 	}
 }
 
-func (h handler) buildSearchFilter(level int, req *restful.Request) (bool, loggingclient.SearchFilter) {
+func (h handler) newSearchFilter(req *restful.Request, level int) (bool, loggingclient.SearchFilter, error) {
 	var sf loggingclient.SearchFilter
-	// if users try to query logs from namespaces they don't belong to,
-	// return empty result directly without going through the logging store.
- 	var noHit bool
-	var namespaceFilter []string
 
 	switch level {
-	case levelCluster:
-		noHit, namespaceFilter = logging.ListMatchedNamespaces(
-			h.informers,
-			stringutils.Split(req.QueryParameter("namespaces"), ","),
-			stringutils.Split(strings.ToLower(req.QueryParameter("namespace_query")), ","),
-			stringutils.Split(req.QueryParameter("workspaces"), ","),
-			stringutils.Split(strings.ToLower(req.QueryParameter("workspace_query")), ","))
-		sf.WorkloadFilter = stringutils.Split(req.QueryParameter("workloads"), ",")
-		sf.WorkloadSearch = stringutils.Split(req.QueryParameter("workload_query"), ",")
-		sf.PodFilter = stringutils.Split(req.QueryParameter("pods"), ",")
-		sf.PodSearch = stringutils.Split(req.QueryParameter("pod_query"), ",")
-		sf.ContainerFilter = stringutils.Split(req.QueryParameter("containers"), ",")
-		sf.ContainerSearch = stringutils.Split(req.QueryParameter("container_query"), ",")
-	case levelWorkspace:
-		noHit, namespaceFilter = logging.ListMatchedNamespaces(
-			h.informers,
-			stringutils.Split(req.QueryParameter("namespaces"), ","),
-			stringutils.Split(strings.ToLower(req.QueryParameter("namespace_query")), ","),
-			stringutils.Split(req.PathParameter("workspace"), ","), nil)
-		sf.WorkloadFilter = stringutils.Split(req.QueryParameter("workloads"), ",")
-		sf.WorkloadSearch = stringutils.Split(req.QueryParameter("workload_query"), ",")
-		sf.PodFilter = stringutils.Split(req.QueryParameter("pods"), ",")
-		sf.PodSearch = stringutils.Split(req.QueryParameter("pod_query"), ",")
-		sf.ContainerFilter = stringutils.Split(req.QueryParameter("containers"), ",")
-		sf.ContainerSearch = stringutils.Split(req.QueryParameter("container_query"), ",")
-	case levelNamespace:
-		namespaceFilter = []string{req.PathParameter("namespace")}
-		sf.WorkloadFilter = stringutils.Split(req.QueryParameter("workloads"), ",")
-		sf.WorkloadSearch = stringutils.Split(req.QueryParameter("workload_query"), ",")
-		sf.PodFilter = stringutils.Split(req.QueryParameter("pods"), ",")
-		sf.PodSearch = stringutils.Split(req.QueryParameter("pod_query"), ",")
-		sf.ContainerFilter = stringutils.Split(req.QueryParameter("containers"), ",")
-		sf.ContainerSearch = stringutils.Split(req.QueryParameter("container_query"), ",")
-	case levelWorkload:
-		namespaceFilter = []string{req.PathParameter("namespace")}
-		sf.WorkloadFilter = []string{req.PathParameter("workload")}
-		sf.PodFilter = stringutils.Split(req.QueryParameter("pods"), ",")
-		sf.PodSearch = stringutils.Split(req.QueryParameter("pod_query"), ",")
-		sf.ContainerFilter = stringutils.Split(req.QueryParameter("containers"), ",")
-		sf.ContainerSearch = stringutils.Split(req.QueryParameter("container_query"), ",")
-	case levelPod:
-		namespaceFilter = []string{req.PathParameter("namespace")}
-		sf.PodFilter = []string{req.PathParameter("pod")}
-		sf.ContainerFilter = stringutils.Split(req.QueryParameter("containers"), ",")
-		sf.ContainerSearch = stringutils.Split(req.QueryParameter("container_query"), ",")
-	case levelContainer:
-		namespaceFilter = []string{req.PathParameter("namespace")}
+	case LevelCluster:
+		sf.NamespaceFilter = h.intersect(
+			util.Split(req.QueryParameter("namespaces"), ","),
+			util.Split(strings.ToLower(req.QueryParameter("namespace_query")), ","),
+			util.Split(req.QueryParameter("workspaces"), ","),
+			util.Split(strings.ToLower(req.QueryParameter("workspace_query")), ","))
+		sf.WorkloadFilter = util.Split(req.QueryParameter("workloads"), ",")
+		sf.WorkloadSearch = util.Split(req.QueryParameter("workload_query"), ",")
+		sf.PodFilter = util.Split(req.QueryParameter("pods"), ",")
+		sf.PodSearch = util.Split(req.QueryParameter("pod_query"), ",")
+		sf.ContainerFilter = util.Split(req.QueryParameter("containers"), ",")
+		sf.ContainerSearch = util.Split(req.QueryParameter("container_query"), ",")
+	case LevelContainer:
+		sf.NamespaceFilter = h.withCreationTime(req.PathParameter("namespace"))
 		sf.PodFilter = []string{req.PathParameter("pod")}
 		sf.ContainerFilter = []string{req.PathParameter("container")}
 	}
 
-	sf.NamespaceFilter = logging.WithCreationTimestamp(h.informers, namespaceFilter)
-	sf.LogSearch = stringutils.Split(req.QueryParameter("log_query"), ",")
-	sf.Starttime = req.QueryParameter("start_time")
-	sf.Endtime = req.QueryParameter("end_time")
+	sf.LogSearch = util.Split(req.QueryParameter("log_query"), ",")
 
-    return noHit, sf
+	var err error
+	now := time.Now()
+	// If time is not given, set it to now.
+	if req.QueryParameter("start_time") == "" {
+		sf.Starttime = now
+	} else {
+		sf.Starttime, err = time.Parse(time.RFC3339, req.QueryParameter("start_time"))
+		if err != nil {
+			return false, sf, err
+		}
+	}
+	if req.QueryParameter("end_time") == "" {
+		sf.Endtime = now
+	} else {
+		sf.Endtime, err = time.Parse(time.RFC3339, req.QueryParameter("end_time"))
+		if err != nil {
+			return false, sf, err
+		}
+	}
+
+	return len(sf.NamespaceFilter) == 0, sf, nil
 }
 
 func handleNoHit(typ string, resp *restful.Response) {
 	switch typ {
-	case typeStat:
+	case TypeStat:
 		resp.WriteAsJson(new(loggingclient.Statistics))
-	case typeHist:
+	case TypeHist:
 		resp.WriteAsJson(new(loggingclient.Histogram))
-	case typeExport:
+	case TypeExport:
 		resp.Header().Set(restful.HEADER_ContentType, "text/plain")
 		resp.Header().Set("Content-Disposition", "attachment")
 		resp.Write(nil)

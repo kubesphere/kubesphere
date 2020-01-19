@@ -87,7 +87,7 @@ func newTestConfig() *Config {
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
-		LoggingOptions: &esclient.Options{
+		LoggingOptions: &elasticsearch.Options{
 			Host:        "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "elk",
 			Version:     "6",

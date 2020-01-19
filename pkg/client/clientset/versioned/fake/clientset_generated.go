@@ -27,8 +27,6 @@ import (
 	clientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1"
 	fakedevopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1/fake"
-	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/logging/v1alpha2"
-	fakeloggingv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/logging/v1alpha2/fake"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	fakenetworkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1/fake"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
@@ -87,11 +85,6 @@ var _ clientset.Interface = &Clientset{}
 // DevopsV1alpha1 retrieves the DevopsV1alpha1Client
 func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
 	return &fakedevopsv1alpha1.FakeDevopsV1alpha1{Fake: &c.Fake}
-}
-
-// LoggingV1alpha2 retrieves the LoggingV1alpha2Client
-func (c *Clientset) LoggingV1alpha2() loggingv1alpha2.LoggingV1alpha2Interface {
-	return &fakeloggingv1alpha2.FakeLoggingV1alpha2{Fake: &c.Fake}
 }
 
 // NetworkV1alpha1 retrieves the NetworkV1alpha1Client
