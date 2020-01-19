@@ -45,7 +45,7 @@ func TestIMOperator(t *testing.T) {
 
 	defer ldappool.Close()
 
-	im := newIMOperator(ldappool, Config{})
+	im := NewIMOperator(ldappool, Config{})
 
 	err = im.Init()
 

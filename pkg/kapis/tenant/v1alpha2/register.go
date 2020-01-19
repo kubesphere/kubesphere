@@ -32,6 +32,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 
 	"net/http"
 )
@@ -42,9 +44,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, db *mysql.Database) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newTenantHandler()
+	handler := newTenantHandler(k8sClient, db)
 
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).

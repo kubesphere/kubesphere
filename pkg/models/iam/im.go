@@ -78,11 +78,12 @@ var (
 	UserNotExists         = errors.New("user not exists")
 )
 
-func newIMOperator(ldap ldappool.Client, config Config) *imOperator {
+func NewIMOperator(ldap ldappool.Client, config Config) *imOperator {
 	imOperator := &imOperator{ldap: ldap, config: config}
 	return imOperator
 }
 
+// TODO  init in controller
 func (im *imOperator) Init() error {
 
 	userSearchBase := &ldap.AddRequest{

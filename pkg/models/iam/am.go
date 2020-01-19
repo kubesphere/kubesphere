@@ -18,7 +18,6 @@
 package iam
 
 import (
-	"fmt"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"strings"
 )
 
 const (
@@ -55,8 +52,14 @@ type AccessManagementInterface interface {
 	ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 	ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 	ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error)
-	GetClusterRoleSimpleRules(clusterRole string) ([]*SimpleRule, error)
-	GetRoleSimpleRules(namespace string, role string) ([]*SimpleRule, error)
+	GetClusterRoleSimpleRules(clusterRole string) ([]SimpleRule, error)
+	GetRoleSimpleRules(namespace string, role string) ([]SimpleRule, error)
+	GetRoles(namespace, username string) ([]*rbacv1.Role, error)
+	GetClusterPolicyRules(username string) ([]rbacv1.PolicyRule, error)
+	GetPolicyRules(namespace, username string) ([]rbacv1.PolicyRule, error)
+	GetWorkspaceRoleSimpleRules(workspace, roleName string) []SimpleRule
+	GetWorkspaceRole(workspace, username string) (*rbacv1.ClusterRole, error)
+	GetWorkspaceRoleMap(username string) (map[string]string, error)
 }
 
 type amOperator struct {
@@ -64,11 +67,31 @@ type amOperator struct {
 	resources resource.ResourceGetter
 }
 
+func (am *amOperator) ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error) {
+	panic("implement me")
+}
+
+func (am *amOperator) GetRoles(namespace, username string) ([]*rbacv1.Role, error) {
+	panic("implement me")
+}
+
+func (am *amOperator) GetClusterPolicyRules(username string) ([]rbacv1.PolicyRule, error) {
+	panic("implement me")
+}
+
+func (am *amOperator) GetPolicyRules(namespace, username string) ([]rbacv1.PolicyRule, error) {
+	panic("implement me")
+}
+
+func (am *amOperator) GetWorkspaceRole(workspace, username string) (*rbacv1.ClusterRole, error) {
+	panic("implement me")
+}
+
 func (am *amOperator) UnBindAllRoles(username string) error {
 	panic("implement me")
 }
 
-func newAMOperator(informers informers.SharedInformerFactory) *amOperator {
+func NewAMOperator(informers informers.SharedInformerFactory) *amOperator {
 	resourceGetter := resource.ResourceGetter{}
 	resourceGetter.Add(v1alpha2.Role, role.NewRoleSearcher(informers))
 	resourceGetter.Add(v1alpha2.ClusterRoles, clusterrole.NewClusterRoleSearcher(informers))
@@ -264,15 +287,15 @@ func (am *amOperator) GetWorkspaceRoleBindings(workspace string) ([]*rbacv1.Clus
 	return result, nil
 }
 
-func (am *amOperator) GetWorkspaceRole(workspace, role string) (*rbacv1.ClusterRole, error) {
-	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
-		return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
-	}
-	role = fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
-	return am.informers.Rbac().V1().ClusterRoles().Lister().Get(role)
-}
+//func (am *amOperator) GetWorkspaceRole(workspace, role string) (*rbacv1.ClusterRole, error) {
+//	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
+//		return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
+//	}
+//	role = fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
+//	return am.informers.Rbac().V1().ClusterRoles().Lister().Get(role)
+//}
 
-func (am *amOperator) GetUserWorkspaceRoleMap(username string) (map[string]string, error) {
+func (am *amOperator) GetWorkspaceRoleMap(username string) (map[string]string, error) {
 
 	clusterRoleBindings, err := am.informers.Rbac().V1().ClusterRoleBindings().Lister().List(labels.Everything())
 
@@ -294,7 +317,7 @@ func (am *amOperator) GetUserWorkspaceRoleMap(username string) (map[string]strin
 }
 
 func (am *amOperator) GetUserWorkspaceRole(workspace, username string) (*rbacv1.ClusterRole, error) {
-	workspaceRoleMap, err := am.GetUserWorkspaceRoleMap(username)
+	workspaceRoleMap, err := am.GetWorkspaceRoleMap(username)
 
 	if err != nil {
 		return nil, err
@@ -390,45 +413,6 @@ func (am *amOperator) ListClusterRoles(conditions *params.Conditions, orderBy st
 	return am.resources.ListResources("", v1alpha2.ClusterRoles, conditions, orderBy, reverse, limit, offset)
 }
 
-func (am *amOperator) GetUserWorkspaceSimpleRules(workspace, username string) ([]SimpleRule, error) {
-	clusterRules, err := am.GetUserClusterRules(username)
-	if err != nil {
-		return nil, err
-	}
-
-	// cluster-admin
-	if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
-		Verbs:     []string{"*"},
-		APIGroups: []string{"*"},
-		Resources: []string{"*"},
-	}) {
-		return am.GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
-	}
-
-	workspaceRole, err := am.GetUserWorkspaceRole(workspace, username)
-
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-
-			// workspaces-manager
-			if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
-				Verbs:     []string{"*"},
-				APIGroups: []string{"*"},
-				Resources: []string{"workspaces", "workspaces/*"},
-			}) {
-				return am.GetWorkspaceRoleSimpleRules(workspace, constants.WorkspacesManager), nil
-			}
-
-			return []SimpleRule{}, nil
-		}
-
-		klog.Error(err)
-		return nil, err
-	}
-
-	return am.GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Annotations[constants.DisplayNameAnnotationKey]), nil
-}
-
 func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []SimpleRule {
 
 	workspaceRules := make([]SimpleRule, 0)
@@ -495,20 +479,6 @@ func (am *amOperator) GetUserClusterSimpleRules(username string) ([]SimpleRule, 
 	return getClusterSimpleRule(clusterRules), nil
 }
 
-func (am *amOperator) GetUserNamespaceSimpleRules(namespace, username string) ([]SimpleRule, error) {
-	clusterRules, err := am.GetUserClusterRules(username)
-	if err != nil {
-		return nil, err
-	}
-	rules, err := am.GetUserRules(namespace, username)
-	if err != nil {
-		return nil, err
-	}
-	rules = append(rules, clusterRules...)
-
-	return getSimpleRule(rules), nil
-}
-
 // Convert roles to rules
 func (am *amOperator) GetRoleSimpleRules(namespace string, roleName string) ([]SimpleRule, error) {
 
@@ -520,7 +490,7 @@ func (am *amOperator) GetRoleSimpleRules(namespace string, roleName string) ([]S
 		return nil, err
 	}
 
-	return getSimpleRule(role.Rules), nil
+	return ConvertToSimpleRule(role.Rules), nil
 }
 
 func getClusterSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
@@ -541,7 +511,7 @@ func getClusterSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
 	return rules
 }
 
-func getSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
+func ConvertToSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
 	simpleRules := make([]SimpleRule, 0)
 	for i := 0; i < len(policy.RoleRuleMapping); i++ {
 		rule := SimpleRule{Name: policy.RoleRuleMapping[i].Name}

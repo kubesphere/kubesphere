@@ -13,22 +13,25 @@ import (
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	op "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
-func InstallAPIs(container *restful.Container, client k8s.Client) {
+func InstallAPIs(container *restful.Container, client k8s.Client, op op.Client, db *mysql.Database) {
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(container))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(container))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(container))
 	urlruntime.Must(monitoringv1alpha2.AddToContainer(container))
-	urlruntime.Must(openpitrixv1.AddToContainer(container))
+	urlruntime.Must(openpitrixv1.AddToContainer(container, client, op))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, client))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, client))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
-	urlruntime.Must(terminalv1alpha2.AddToContainer(container))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(container))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container, client, db))
+	urlruntime.Must(terminalv1alpha2.AddToContainer(container, client))
 }
 
-func InstallAuthorizationAPIs(container *restful.Container) {
-	urlruntime.Must(iamv1alpha2.AddToContainer(container))
+func InstallAuthorizationAPIs(container *restful.Container, k8sClient k8s.Client, ldapClient ldappool.Client, imOptions iam.Config) {
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, k8sClient, ldapClient, imOptions))
 }

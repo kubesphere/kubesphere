@@ -41,6 +41,7 @@ type NamespaceInterface interface {
 type namespaceSearcher struct {
 	k8s       kubernetes.Interface
 	informers k8sinformers.SharedInformerFactory
+	am        iam.AccessManagementInterface
 }
 
 func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
@@ -56,8 +57,8 @@ func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Name
 	return s.k8s.CoreV1().Namespaces().Create(namespace)
 }
 
-func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory) NamespaceInterface {
-	return &namespaceSearcher{k8s: k8s, informers: informers}
+func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory, am iam.AccessManagementInterface) NamespaceInterface {
+	return &namespaceSearcher{k8s: k8s, informers: informers, am: am}
 }
 
 func (s *namespaceSearcher) match(match map[string]string, item *v1.Namespace) bool {
@@ -111,7 +112,7 @@ func (s *namespaceSearcher) compare(a, b *v1.Namespace, orderBy string) bool {
 
 func (s *namespaceSearcher) GetNamespaces(username string) ([]*v1.Namespace, error) {
 
-	roles, err := iam.GetUserRoles("", username)
+	roles, err := s.am.GetRoles("", username)
 
 	if err != nil {
 		return nil, err
@@ -143,7 +144,7 @@ func containsNamespace(namespaces []*v1.Namespace, namespace *v1.Namespace) bool
 
 func (s *namespaceSearcher) Search(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1.Namespace, error) {
 
-	rules, err := iam.GetUserClusterRules(username)
+	rules, err := s.am.GetClusterPolicyRules(username)
 
 	if err != nil {
 		return nil, err

@@ -11,11 +11,14 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	apierr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
@@ -26,29 +29,34 @@ type iamHandler struct {
 	imOperator iam.IdentityManagementInterface
 }
 
-func newIAMHandler() *iamHandler {
-	return &iamHandler{}
+func newIAMHandler(k8sClient k8s.Client, ldapClient ldappool.Client, options iam.Config) *iamHandler {
+	factory := informers.NewInformerFactories(k8sClient.Kubernetes(), k8sClient.KubeSphere(), k8sClient.S2i(), k8sClient.Application())
+	return &iamHandler{
+		amOperator: iam.NewAMOperator(factory.KubernetesSharedInformerFactory()),
+		imOperator: iam.NewIMOperator(ldapClient, options),
+	}
 }
 
-// k8s token review
+// Implement webhook authentication interface
+// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Response) {
 	var tokenReview iamv1alpha2.TokenReview
 
 	err := req.ReadEntity(&tokenReview)
 
 	if err != nil {
+		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, err)
 		return
 	}
 
-	if tokenReview.Spec == nil {
-		api.HandleBadRequest(resp, errors.New("token must not be null"))
+	if err = tokenReview.Validate(); err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 
-	uToken := tokenReview.Spec.Token
-
-	token, err := jwtutil.ValidateToken(uToken)
+	token, err := jwtutil.ValidateToken(tokenReview.Spec.Token)
 
 	if err != nil {
 		failed := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
@@ -61,18 +69,24 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		api.HandleBadRequest(resp, errors.New("invalid token"))
+		return
+	}
 
 	username, ok := claims["username"].(string)
 
 	if !ok {
-		api.HandleBadRequest(resp, errors.New("username not found"))
+		api.HandleBadRequest(resp, errors.New("invalid token"))
 		return
 	}
 
 	user, err := h.imOperator.DescribeUser(username)
 
 	if err != nil {
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
@@ -94,7 +108,9 @@ func (h *iamHandler) Login(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&loginRequest)
 
 	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
-		resp.WriteHeaderAndEntity(http.StatusUnauthorized, errors.New("incorrect username or password"))
+		err = errors.New("incorrect username or password")
+		klog.V(4).Infoln(err)
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, err)
 		return
 	}
 
@@ -104,10 +120,12 @@ func (h *iamHandler) Login(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if err == iam.AuthRateLimitExceeded {
-			resp.WriteHeaderAndEntity(http.StatusTooManyRequests, apierr.Wrap(err))
+			klog.V(4).Infoln(err)
+			resp.WriteHeaderAndEntity(http.StatusTooManyRequests, err)
 			return
 		}
-		resp.WriteHeaderAndEntity(http.StatusUnauthorized, apierr.Wrap(err))
+		klog.V(4).Infoln(err)
+		resp.WriteHeaderAndEntity(http.StatusUnauthorized, err)
 		return
 	}
 
@@ -118,11 +136,13 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 	var createRequest iamv1alpha2.CreateUserRequest
 	err := req.ReadEntity(&createRequest)
 	if err != nil {
+		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, err)
 		return
 	}
 
 	if err := createRequest.Validate(); err != nil {
+		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, err)
 		return
 	}
@@ -131,9 +151,11 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		if err == iam.UserAlreadyExists {
-			resp.WriteHeaderAndEntity(http.StatusConflict, apierr.Wrap(err))
+			klog.V(4).Infoln(err)
+			resp.WriteHeaderAndEntity(http.StatusConflict, err)
 			return
 		}
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
@@ -141,6 +163,7 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 	err = h.amOperator.CreateClusterRoleBinding(created.Username, createRequest.ClusterRole)
 
 	if err != nil {
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
@@ -153,8 +176,9 @@ func (h *iamHandler) DeleteUser(req *restful.Request, resp *restful.Response) {
 	operator := req.HeaderParameter(constants.UserNameHeader)
 
 	if operator == username {
-		err := fmt.Errorf("cannot delete yourself")
-		api.HandleForbidden(resp, apierr.Wrap(err))
+		err := errors.New("cannot delete yourself")
+		klog.V(4).Infoln(err)
+		api.HandleForbidden(resp, err)
 		return
 	}
 
@@ -230,9 +254,11 @@ func (h *iamHandler) DescribeUser(req *restful.Request, resp *restful.Response) 
 
 	if err != nil {
 		if err == iam.UserNotExists {
-			api.HandleNotFound(resp, apierr.Wrap(err))
+			klog.V(4).Infoln(err)
+			api.HandleNotFound(resp, err)
 			return
 		}
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
@@ -241,6 +267,7 @@ func (h *iamHandler) DescribeUser(req *restful.Request, resp *restful.Response) 
 	clusterRole, err := h.amOperator.GetClusterRole(username)
 
 	if err != nil {
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
@@ -262,15 +289,15 @@ func (h *iamHandler) ListUsers(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, apierr.Wrap(err))
+		api.HandleBadRequest(resp, err)
 		return
 	}
 
 	result, err := h.imOperator.ListUsers(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		klog.Error(err)
-		api.HandleInternalError(resp, apierr.Wrap(err))
+		klog.Errorln(err)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -285,7 +312,7 @@ func (h *iamHandler) ListUserRoles(req *restful.Request, resp *restful.Response)
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, apierr.Wrap(err))
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -301,7 +328,7 @@ func (h *iamHandler) ListRoles(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, apierr.Wrap(err))
+		api.HandleBadRequest(resp, err)
 		return
 	}
 
@@ -324,7 +351,7 @@ func (h *iamHandler) ListClusterRoles(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, apierr.Wrap(err))
+		api.HandleBadRequest(resp, err)
 		return
 	}
 
@@ -336,7 +363,7 @@ func (h *iamHandler) ListClusterRoles(req *restful.Request, resp *restful.Respon
 		return
 	}
 
-	resp.WriteAsJson(result)
+	resp.WriteEntity(result)
 
 }
 
@@ -361,6 +388,7 @@ func (h *iamHandler) ListRoleUsers(req *restful.Request, resp *restful.Response)
 					continue
 				}
 				if err != nil {
+					klog.Errorln(err)
 					api.HandleInternalError(resp, err)
 					return
 				}
@@ -395,6 +423,7 @@ func (h *iamHandler) ListNamespaceUsers(req *restful.Request, resp *restful.Resp
 					continue
 				}
 				if err != nil {
+					klog.Errorln(err)
 					api.HandleInternalError(resp, err)
 					return
 				}
@@ -426,6 +455,7 @@ func (h *iamHandler) ListClusterRoleUsers(req *restful.Request, resp *restful.Re
 					continue
 				}
 				if err != nil {
+					klog.Errorln(err)
 					api.HandleInternalError(resp, err)
 					return
 				}
@@ -434,12 +464,12 @@ func (h *iamHandler) ListClusterRoleUsers(req *restful.Request, resp *restful.Re
 		}
 	}
 
-	resp.WriteAsJson(result)
+	resp.WriteEntity(result)
 }
 
 func (h *iamHandler) RulesMapping(req *restful.Request, resp *restful.Response) {
 	rules := policy.RoleRuleMapping
-	resp.WriteAsJson(rules)
+	resp.WriteEntity(rules)
 }
 
 func (h *iamHandler) ClusterRulesMapping(req *restful.Request, resp *restful.Response) {
@@ -471,4 +501,32 @@ func (h *iamHandler) ListRoleRules(req *restful.Request, resp *restful.Response)
 	}
 
 	resp.WriteEntity(rules)
+}
+
+func (h *iamHandler) ListWorkspaceRoles(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) DescribeWorkspaceRole(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) ListWorkspaceRoleRules(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) ListWorkspaceUsers(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) InviteUser(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) RemoveUser(request *restful.Request, response *restful.Response) {
+	panic("implement me")
+}
+
+func (h *iamHandler) DescribeWorkspaceUser(request *restful.Request, response *restful.Response) {
+	panic("implement me")
 }

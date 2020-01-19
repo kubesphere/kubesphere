@@ -78,6 +78,13 @@ type ModifyUserRequest struct {
 	CurrentPassword string `json:"current_password,omitempty" description:"this is necessary if you need to change your password"`
 }
 
+func (request *TokenReview) Validate() error {
+	if request.Spec == nil || request.Spec.Token == "" {
+		return fmt.Errorf("token must not be null")
+	}
+	return nil
+}
+
 func (request ModifyUserRequest) Validate() error {
 
 	// Parses a single RFC 5322 address, e.g. "Barry Gibbs <bg@example.com>"
