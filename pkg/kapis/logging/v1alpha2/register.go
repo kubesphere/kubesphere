@@ -44,7 +44,10 @@ var (
 func addWebService(c *restful.Container) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	ws.Route(ws.GET("/cluster").To(logging.LoggingQueryCluster).
+	handler := newHandler(nil, nil)
+
+	ws.Route(ws.GET("/cluster").
+		To(handler.queryLog).
 		Doc("Query logs against the cluster.").
 		Param(ws.QueryParameter("operation", "Operation type. This can be one of four types: query (for querying logs), statistics (for retrieving statistical data), histogram (for displaying log count by time interval) and export (for exporting logs). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
 		Param(ws.QueryParameter("workspaces", "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`").DataType("string").Required(false)).
@@ -70,7 +73,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON, "text/plain")
 
-	ws.Route(ws.GET("/workspaces/{workspace}").To(logging.LoggingQueryWorkspace).
+	ws.Route(ws.GET("/workspaces/{workspace}").
+		To(handler.queryLog).
 		Doc("Query logs against the specific workspace.").
 		Param(ws.PathParameter("workspace", "The name of the workspace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
@@ -95,7 +99,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}").To(logging.LoggingQueryNamespace).
+	ws.Route(ws.GET("/namespaces/{namespace}").
+		To(handler.queryLog).
 		Doc("Query logs against the specific namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("operation", "Query type. This can be one of three types: query (for querying logs), statistics (for retrieving statistical data), and histogram (for displaying log count by time interval). Defaults to query.").DefaultValue("query").DataType("string").Required(false)).
@@ -118,7 +123,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload}").To(logging.LoggingQueryWorkload).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{workload}").
+		To(handler.queryLog).
 		Doc("Query logs against the specific workload.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("workload", "The name of the workload.").DataType("string").Required(true)).
@@ -140,7 +146,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").To(logging.LoggingQueryPod).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").
+		To(handler.queryLog).
 		Doc("Query logs against the specific pod.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -160,7 +167,8 @@ func addWebService(c *restful.Container) error {
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(logging.LoggingQueryContainer).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").
+		To(handler.queryLog).
 		Doc("Query logs against the specific container.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -182,8 +190,8 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.GET("/fluentbit/outputs").To(logging.LoggingQueryFluentbitOutputs).
 		Doc("List all Fluent bit output plugins.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
-		Writes(log.FluentbitOutputsResult{}).
-		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
+		Writes(logging.FluentbitOutputsResult{}).
+		Returns(http.StatusOK, RespOK, logging.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -191,8 +199,8 @@ func addWebService(c *restful.Container) error {
 		Doc("Add a new Fluent bit output plugin.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Reads(fluentbitclient.OutputPlugin{}).
-		Writes(log.FluentbitOutputsResult{}).
-		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
+		Writes(logging.FluentbitOutputsResult{}).
+		Returns(http.StatusOK, RespOK, logging.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -201,8 +209,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.PathParameter("output", "ID of the output.").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
 		Reads(fluentbitclient.OutputPlugin{}).
-		Writes(log.FluentbitOutputsResult{}).
-		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
+		Writes(logging.FluentbitOutputsResult{}).
+		Returns(http.StatusOK, RespOK, logging.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 
@@ -210,8 +218,8 @@ func addWebService(c *restful.Container) error {
 		Doc("Delete the specific Fluent bit output plugin.").
 		Param(ws.PathParameter("output", "ID of the output.").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.FluentBitSetting}).
-		Writes(log.FluentbitOutputsResult{}).
-		Returns(http.StatusOK, RespOK, log.FluentbitOutputsResult{})).
+		Writes(logging.FluentbitOutputsResult{}).
+		Returns(http.StatusOK, RespOK, logging.FluentbitOutputsResult{})).
 		Consumes(restful.MIME_JSON, restful.MIME_XML).
 		Produces(restful.MIME_JSON)
 

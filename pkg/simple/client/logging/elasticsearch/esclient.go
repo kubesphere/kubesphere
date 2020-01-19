@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
-	v5 "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch/versions/v5"
-	v6 "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch/versions/v6"
-	v7 "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch/versions/v7"
+	v5 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
+	v6 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
+	v7 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
 	"strings"
 	"time"
 
