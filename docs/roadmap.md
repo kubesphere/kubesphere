@@ -30,6 +30,12 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### DevOps
 
+- [ ] Create / Edit Pipeline Process Optimization.
+- [ ] S2I/B2I supports webhook.
+- [ ] Image registry optimization.
+- [ ] Pipeline support integration with JIRA.
+- [ ] Pipeline integrates the notification of kubesphere.
+- [ ] Pipeline integrates kubesphere custom monitoring.
 #### Observability
 
 #### Network
