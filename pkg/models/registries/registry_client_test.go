@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+const DockerHub = "docker.io"
+
 func TestCreateRegistryClient(t *testing.T) {
 	type imageInfo struct {
 		Username string
@@ -11,17 +13,19 @@ func TestCreateRegistryClient(t *testing.T) {
 		Domain   string
 		ExDomain string
 		ExUrl    string
+		UseSSL   bool
 	}
 
 	testImages := []imageInfo{
-		{Domain: "kubesphere.io", ExDomain: "kubesphere.io", ExUrl: "http://kubesphere.io"},
-		{Domain: "127.0.0.1:5000", ExDomain: "127.0.0.1:5000", ExUrl: "http://127.0.0.1:5000"},
-		{Username: "Username", Password: "Password", Domain: "docker.io", ExDomain: "registry-1.docker.io", ExUrl: "https://registry-1.docker.io"},
-		{Domain: "harbor.devops.kubesphere.local:30280", ExDomain: "harbor.devops.kubesphere.local:30280", ExUrl: "http://harbor.devops.kubesphere.local:30280"},
+		{Domain: "kubesphere.io", ExDomain: "kubesphere.io", ExUrl: "https://kubesphere.io", UseSSL: true},
+		{Domain: "127.0.0.1:5000", ExDomain: "127.0.0.1:5000", ExUrl: "http://127.0.0.1:5000", UseSSL: false},
+		{Username: "Username", Password: "Password", Domain: DockerHub, ExDomain: "registry-1.docker.io", ExUrl: "https://registry-1.docker.io", UseSSL: true},
+		{Domain: "harbor.devops.kubesphere.local:30280", ExDomain: "harbor.devops.kubesphere.local:30280", ExUrl: "http://harbor.devops.kubesphere.local:30280", UseSSL: false},
+		{Domain: "dockerhub.qingcloud.com/zxytest/s2i-jj:jj", ExDomain: "dockerhub.qingcloud.com", ExUrl: "https://dockerhub.qingcloud.com/zxytest/s2i-jj:jj", UseSSL: true},
 	}
 
 	for _, testImage := range testImages {
-		reg, err := CreateRegistryClient(testImage.Username, testImage.Password, testImage.Domain)
+		reg, err := CreateRegistryClient(testImage.Username, testImage.Password, testImage.Domain, testImage.UseSSL)
 		if err != nil {
 			t.Fatalf("Get err %s", err)
 		}
@@ -36,8 +40,8 @@ func TestCreateRegistryClient(t *testing.T) {
 
 	}
 
-	testImage := Image{Domain: "docker.io", Path: "library/alpine", Tag: "latest"}
-	r, err := CreateRegistryClient("", "", "docker.io")
+	testImage := Image{Domain: DockerHub, Path: "library/alpine", Tag: "latest"}
+	r, err := CreateRegistryClient("", "", DockerHub, true)
 	if err != nil {
 		t.Fatalf("Could not get client: %s", err)
 	}
