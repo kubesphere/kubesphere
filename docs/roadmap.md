@@ -28,13 +28,6 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### Multi-cluster
 
-- [ ] Snapshot management
-- [ ] Volume cloning
-- [ ] Volume monitoring and alerting
-- [ ] Identify storage system capabilities
-- [ ] Restore volume to available status
-- [ ] Unified integrate third-party storage plugin
-
 #### DevOps
 
 #### Observability
@@ -42,6 +35,13 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 #### Network
 
 #### Storage
+
+- [ ] Snapshot management
+- [ ] Volume cloning
+- [ ] Volume monitoring and alerting
+- [ ] Identify storage system capabilities
+- [ ] Restore volume to available status
+- [ ] Unified integrate third-party storage plugin
 
 #### Security & Multitenancy
 
