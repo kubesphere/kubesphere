@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -184,45 +183,6 @@ func (h *tenantHandler) DeleteNamespace(req *restful.Request, resp *restful.Resp
 	resp.WriteAsJson(errors.None)
 }
 
-func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.Response) {
-
-	workspace := req.PathParameter("workspace")
-	username := req.PathParameter("member")
-	if username == "" {
-		username = req.HeaderParameter(constants.UserNameHeader)
-	}
-	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, v1alpha2.CreateTime)
-	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
-	conditions, err := params.ParseConditions(req)
-
-	if err != nil {
-		api.HandleBadRequest(resp, err)
-		return
-	}
-
-	result, err := tenant.ListDevopsProjects(workspace, username, conditions, orderBy, reverse, limit, offset)
-
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-
-	resp.WriteAsJson(result)
-}
-
-func (h *tenantHandler) GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	result, err := tenant.GetDevOpsProjectsCount(username)
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-	resp.WriteAsJson(struct {
-		Count uint32 `json:"count"`
-	}{Count: result})
-}
 func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	projectId := req.PathParameter("devops")
 	workspace := req.PathParameter("workspace")
@@ -235,7 +195,7 @@ func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.
 		return
 	}
 
-	err = tenant.DeleteDevOpsProject(projectId, username)
+	err = h.tenant.DeleteDevOpsProject(projectId, username)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)
@@ -245,50 +205,11 @@ func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.
 	resp.WriteAsJson(errors.None)
 }
 
-func (h *tenantHandler) CreateDevopsProject(req *restful.Request, resp *restful.Response) {
-
-	workspaceName := req.PathParameter("workspace")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	var devops devopsv1alpha2.DevOpsProject
-
-	err := req.ReadEntity(&devops)
-
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-
-	project, err := tenant.CreateDevopsProject(username, workspaceName, &devops)
-
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-
-	resp.WriteAsJson(project)
-}
-
 func (h *tenantHandler) ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
 	rules, err := iam.GetUserNamespaceSimpleRules(namespace, username)
-
-	if err != nil {
-		api.HandleInternalError(resp, err)
-		return
-	}
-
-	resp.WriteAsJson(rules)
-}
-
-func (h *tenantHandler) ListDevopsRules(req *restful.Request, resp *restful.Response) {
-
-	devops := req.PathParameter("devops")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	rules, err := tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)

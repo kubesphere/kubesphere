@@ -1,19 +1,13 @@
 package devops
 
-type Job struct {
-
-}
-
 type Interface interface {
-	GetJob(projectId, pipelineName string) (*Job, error)
+	CredentialOperator
 
-	DeleteJob(projectId, pipelineId string) (bool, error)
+	BuildGetter
 
-	CreateJobInFolder()
+	PipelineOperator
 
-	GetGlobalRole(roleName string)
+	ProjectMemberOperator
 
-	AddGlobalRole(roleName string, permission string)
-
-	GetProjectRole(roleName string)
+	ProjectPipelineOperator
 }

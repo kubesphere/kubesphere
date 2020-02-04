@@ -3,38 +3,38 @@ package cache
 import "time"
 
 type simpleObject struct {
-    value  string
-    expire time.Time
+	value  string
+	expire time.Time
 }
 
 type SimpleCache struct {
-    store map[string]simpleObject
+	store map[string]simpleObject
 }
 
 func NewSimpleCache() Interface {
-    return &SimpleCache{store: make(map[string]simpleObject)}
+	return &SimpleCache{store: make(map[string]simpleObject)}
 }
 
 func (s *SimpleCache) Keys(pattern string) ([]string, error) {
-    panic("implement me")
+	panic("implement me")
 }
 
 func (s *SimpleCache) Set(key string, value string, duration time.Duration) error {
-    panic("implement me")
+	panic("implement me")
 }
 
 func (s *SimpleCache) Del(key string) error {
-    panic("implement me")
+	panic("implement me")
 }
 
 func (s *SimpleCache) Get(key string) (string, error) {
-    return "", nil
+	return "", nil
 }
 
 func (s *SimpleCache) Exists(key string) (bool, error) {
-    panic("implement me")
+	panic("implement me")
 }
 
 func (s *SimpleCache) Expire(key string, duration time.Duration) error {
-    panic("implement me")
+	panic("implement me")
 }

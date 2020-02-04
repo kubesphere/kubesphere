@@ -7,7 +7,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/server/config"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -17,7 +17,7 @@ import (
 
 type KubeSphereControllerManagerOptions struct {
 	KubernetesOptions *k8s.KubernetesOptions
-	DevopsOptions     *devops.Options
+	DevopsOptions     *jenkins.Options
 	S3Options         *s3.Options
 	OpenPitrixOptions *openpitrix.Options
 
@@ -27,7 +27,7 @@ type KubeSphereControllerManagerOptions struct {
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
 	s := &KubeSphereControllerManagerOptions{
 		KubernetesOptions: k8s.NewKubernetesOptions(),
-		DevopsOptions:     devops.NewDevopsOptions(),
+		DevopsOptions:     jenkins.NewDevopsOptions(),
 		S3Options:         s3.NewS3Options(),
 		OpenPitrixOptions: openpitrix.NewOpenPitrixOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{

@@ -9,7 +9,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
@@ -159,7 +159,7 @@ var (
 
 type Config struct {
 	MySQLOptions       *mysql.Options         `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
-	DevopsOptions      *devops.Options        `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
+	DevopsOptions      *jenkins.Options       `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
 	SonarQubeOptions   *sonarqube.Options     `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
 	KubernetesOptions  *k8s.KubernetesOptions `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
 	ServiceMeshOptions *servicemesh.Options   `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
@@ -182,7 +182,7 @@ type Config struct {
 func newConfig() *Config {
 	return &Config{
 		MySQLOptions:        mysql.NewMySQLOptions(),
-		DevopsOptions:       devops.NewDevopsOptions(),
+		DevopsOptions:       jenkins.NewDevopsOptions(),
 		SonarQubeOptions:    sonarqube.NewSonarQubeOptions(),
 		KubernetesOptions:   k8s.NewKubernetesOptions(),
 		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),

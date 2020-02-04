@@ -36,11 +36,14 @@ type Interface interface {
 	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
 	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	GetWorkspace(workspace string) (*v1alpha1.Workspace, error)
+	DevOpsProjectOperator
 }
 
 type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
+	DevOpsProjectOperator
 }
 
 func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
@@ -101,7 +104,7 @@ func (t *tenantOperator) appendAnnotations(username string, workspace *v1alpha1.
 	if err == nil {
 		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
 	}
-	devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
+	devops, err := t.ListDevOpsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
 	if err == nil {
 		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
 	}
@@ -131,4 +134,8 @@ func (t *tenantOperator) ListNamespaces(username string, conditions *params.Cond
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: len(namespaces)}, nil
+}
+
+func (t *tenantOperator) GetWorkspace(workspace string) (*v1alpha1.Workspace, error) {
+	return t.workspaces.GetWorkspace(workspace)
 }

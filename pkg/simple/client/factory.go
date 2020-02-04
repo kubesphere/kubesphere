@@ -4,6 +4,7 @@ import (
 	"errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
@@ -22,7 +23,7 @@ type ClientSetOptions struct {
 	mySQLOptions        *mysql.Options
 	redisOptions        *cache.Options
 	kubernetesOptions   *k8s.KubernetesOptions
-	devopsOptions       *devops.Options
+	devopsOptions       *jenkins.Options
 	sonarqubeOptions    *sonarqube.Options
 	ldapOptions         *ldap.Options
 	s3Options           *s3.Options
@@ -38,7 +39,7 @@ func NewClientSetOptions() *ClientSetOptions {
 		redisOptions:        cache.NewRedisOptions(),
 		kubernetesOptions:   k8s.NewKubernetesOptions(),
 		ldapOptions:         ldap.NewLdapOptions(),
-		devopsOptions:       devops.NewDevopsOptions(),
+		devopsOptions:       jenkins.NewDevopsOptions(),
 		sonarqubeOptions:    sonarqube.NewSonarQubeOptions(),
 		s3Options:           s3.NewS3Options(),
 		openPitrixOptions:   openpitrix.NewOpenPitrixOptions(),
@@ -63,7 +64,7 @@ func (c *ClientSetOptions) SetKubernetesOptions(options *k8s.KubernetesOptions) 
 	return c
 }
 
-func (c *ClientSetOptions) SetDevopsOptions(options *devops.Options) *ClientSetOptions {
+func (c *ClientSetOptions) SetDevopsOptions(options *jenkins.Options) *ClientSetOptions {
 	c.devopsOptions = options
 	return c
 }
@@ -114,7 +115,7 @@ type ClientSet struct {
 
 	k8sClient           k8s.Client
 	ldapClient          *ldap.Client
-	devopsClient        *devops.Client
+	devopsClient        *jenkins.Client
 	sonarQubeClient     *sonarqube.Client
 	redisClient         cache.Interface
 	s3Client            s3.Interface
@@ -194,27 +195,28 @@ func (cs *ClientSet) Cache() (cache.Interface, error) {
 	}
 }
 
-func (cs *ClientSet) Devops() (*devops.Client, error) {
-	var err error
-
-	if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
-		return nil, ErrClientSetNotEnabled
-	}
-
-	if cs.devopsClient != nil {
-		return cs.devopsClient, nil
-	} else {
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		if cs.devopsClient == nil {
-			cs.devopsClient, err = devops.NewDevopsClient(cs.csoptions.devopsOptions)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return cs.devopsClient, nil
-	}
+func (cs *ClientSet) Devops() (devops.Interface, error) {
+	//var err error
+	//
+	//if cs.csoptions.devopsOptions == nil || cs.csoptions.devopsOptions.Host == "" {
+	//	return nil, ErrClientSetNotEnabled
+	//}
+	//
+	//if cs.devopsClient != nil {
+	//	return cs.devopsClient, nil
+	//} else {
+	//	mutex.Lock()
+	//	defer mutex.Unlock()
+	//
+	//	if cs.devopsClient == nil {
+	//		cs.devopsClient, err = jenkins.NewDevopsClient(cs.csoptions.devopsOptions)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//	}
+	//	return cs.devopsClient, nil
+	//}
+	return nil, nil
 }
 
 func (cs *ClientSet) SonarQube() (*sonarqube.Client, error) {

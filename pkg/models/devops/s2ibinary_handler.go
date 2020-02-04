@@ -3,6 +3,8 @@ package devops
 import (
 	"code.cloudfoundry.org/bytefmt"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	awsS3 "github.com/aws/aws-sdk-go/service/s3"
 	"github.com/emicklei/go-restful"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -10,7 +12,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"mime/multipart"
 	"net/http"
@@ -22,15 +23,23 @@ const (
 )
 
 type S2iBinaryUploader interface {
-	UploadBinary(name, namespace, md5 string, header *multipart.FileHeader) (*v1alpha1.S2iBinary, error)
+	UploadS2iBinary(namespace, name, md5 string, header *multipart.FileHeader) (*v1alpha1.S2iBinary, error)
 
-	DownloadBinary(name, namespace, fileName string) (string, error)
+	DownloadS2iBinary(namespace, name, fileName string) (string, error)
 }
 
 type s2iBinaryUploader struct {
 	client    versioned.Interface
 	informers externalversions.SharedInformerFactory
 	s3Client  s3.Interface
+}
+
+func NewS2iBinaryUploader(client versioned.Interface, informers externalversions.SharedInformerFactory, s3Client s3.Interface) S2iBinaryUploader {
+	return &s2iBinaryUploader{
+		client:    client,
+		informers: informers,
+		s3Client:  s3Client,
+	}
 }
 
 func (s *s2iBinaryUploader) UploadS2iBinary(namespace, name, md5 string, fileHeader *multipart.FileHeader) (*v1alpha1.S2iBinary, error) {
@@ -75,58 +84,35 @@ func (s *s2iBinaryUploader) UploadS2iBinary(namespace, name, md5 string, fileHea
 	copy.Spec.FileName = fileHeader.Filename
 	copy.Spec.DownloadURL = fmt.Sprintf(GetS2iBinaryURL, namespace, name, copy.Spec.FileName)
 
-	/*
-		TODO: upload binary file use s3.Interface
-		s3session := s3Client.Session()
-		if s3session == nil {
-			err := fmt.Errorf("could not connect to s2i s3")
-			klog.Error(err)
-			_, serr := SetS2iBinaryStatusWithRetry(copy, origin.Status.Phase)
-			if serr != nil {
-				klog.Error(serr)
+	err = s.s3Client.Upload(fmt.Sprintf("%s-%s", namespace, name), copy.Spec.FileName, binFile)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case awsS3.ErrCodeNoSuchBucket:
+				klog.Error(err)
+				_, serr := s.SetS2iBinaryStatusWithRetry(copy, origin.Status.Phase)
+				if serr != nil {
+					klog.Error(serr)
+				}
+				return nil, err
+			default:
+				klog.Error(err)
+				_, serr := s.SetS2iBinaryStatusWithRetry(copy, v1alpha1.StatusUploadFailed)
+				if serr != nil {
+					klog.Error(serr)
+				}
 				return nil, err
 			}
-			return nil, err
 		}
-		uploader := s3manager.NewUploader(s3session, func(uploader *s3manager.Uploader) {
-			uploader.PartSize = 5 * bytefmt.MEGABYTE
-			uploader.LeavePartsOnError = true
-		})
-		_, err = uploader.Upload(&s3manager.UploadInput{
-			Bucket:             s3Client.Bucket(),
-			Key:                aws.String(fmt.Sprintf("%s-%s", namespace, name)),
-			Body:               binFile,
-			ContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", copy.Spec.FileName)),
-		})
+		klog.Error(err)
+		return nil, err
+	}
 
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				switch aerr.Code() {
-				case s3.ErrCodeNoSuchBucket:
-					klog.Error(err)
-					_, serr := SetS2iBinaryStatusWithRetry(copy, origin.Status.Phase)
-					if serr != nil {
-						klog.Error(serr)
-					}
-					return nil, err
-				default:
-					klog.Error(err)
-					_, serr := SetS2iBinaryStatusWithRetry(copy, v1alpha1.StatusUploadFailed)
-					if serr != nil {
-						klog.Error(serr)
-					}
-					return nil, err
-				}
-			}
-			klog.Error(err)
-			return nil, err
-		}
-	*/
 	if copy.Spec.UploadTimeStamp == nil {
 		copy.Spec.UploadTimeStamp = new(metav1.Time)
 	}
 	*copy.Spec.UploadTimeStamp = metav1.Now()
-	copy, err = client.ClientSets().K8s().KubeSphere().DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
+	copy, err = s.client.DevopsV1alpha1().S2iBinaries(namespace).Update(copy)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -159,22 +145,7 @@ func (s *s2iBinaryUploader) DownloadS2iBinary(namespace, name, fileName string) 
 		klog.Error(err)
 		return "", err
 	}
-
-	/*
-		TODO: get download url of requested binary
-		req, _ := s.s3Client.Client().GetObjectRequest(&s3.GetObjectInput{
-			Bucket:                     s3Client.Bucket(),
-			Key:                        aws.String(fmt.Sprintf("%s-%s", namespace, name)),
-			ResponseContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", origin.Spec.FileName)),
-		})
-		url, err := req.Presign(5 * time.Minute)
-		if err != nil {
-			klog.Error(err)
-			return "", err
-		}
-	*/
-	return "", nil
-
+	return s.s3Client.GetDownloadURL(fmt.Sprintf("%s-%s", namespace, name), fileName)
 }
 
 func (s *s2iBinaryUploader) SetS2iBinaryStatus(s2ibin *v1alpha1.S2iBinary, status string) (*v1alpha1.S2iBinary, error) {
@@ -193,7 +164,7 @@ func (s *s2iBinaryUploader) SetS2iBinaryStatusWithRetry(s2ibin *v1alpha1.S2iBina
 	var bin *v1alpha1.S2iBinary
 	var err error
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		bin, err = s.informers.Devops().V1alpha1().S2iBinaries().Lister().S2iBinaries(s2ibin.Namespace).Get(s2ibin.Name)
+		bin, err = s.client.DevopsV1alpha1().S2iBinaries(s2ibin.Namespace).Get(s2ibin.Name, metav1.GetOptions{})
 		if err != nil {
 			klog.Error(err)
 			return err
