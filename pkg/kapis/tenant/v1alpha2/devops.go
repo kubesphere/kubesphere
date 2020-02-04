@@ -101,9 +101,9 @@ func (h *tenantHandler) ListDevOpsProjectsHandler(req *restful.Request, resp *re
 		username = req.HeaderParameter(constants.UserNameHeader)
 	}
 	orderBy := req.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(req)
-	limit, offset := params.ParsePaging(req.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(req.QueryParameter(params.ConditionsParam))
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
+	limit, offset := params.ParsePaging(req)
+	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
 		klog.Errorf("%+v", err)

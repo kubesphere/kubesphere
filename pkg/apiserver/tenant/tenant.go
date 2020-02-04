@@ -211,19 +211,6 @@ func checkResourceQuotas(wokrspace *v1alpha1.Workspace) error {
 	return nil
 }
 
-func GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	result, err := tenant.GetDevOpsProjectsCount(username)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
-		return
-	}
-	resp.WriteAsJson(struct {
-		Count uint32 `json:"count"`
-	}{Count: result})
-}
 
 func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
@@ -233,22 +220,6 @@ func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		resp.WriteError(http.StatusInternalServerError, err)
-		return
-	}
-
-	resp.WriteAsJson(rules)
-}
-
-func ListDevopsRules(req *restful.Request, resp *restful.Response) {
-
-	devops := req.PathParameter("devops")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	rules, err := tenant.GetUserDevopsSimpleRules(username, devops)
-
-	if err != nil {
-		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
 		return
 	}
 
