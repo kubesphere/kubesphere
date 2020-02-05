@@ -313,7 +313,7 @@ func GetPodMetrics(params RequestParams) *Response {
 
 				// add label resouce_name
 				for _, item := range response.Data.Result {
-					item.Metric["resource_name"] = item.Metric["pod_name"]
+					item.Metric["resource_name"] = item.Metric[labelNamePod]
 				}
 
 				ch <- APIResponse{
@@ -364,7 +364,7 @@ func GetContainerMetrics(params RequestParams) *Response {
 
 				// add label resouce_name
 				for _, item := range response.Data.Result {
-					item.Metric["resource_name"] = item.Metric["container_name"]
+					item.Metric["resource_name"] = item.Metric[labelNameContainer]
 				}
 
 				ch <- APIResponse{
@@ -616,9 +616,9 @@ func makePromqlForContainer(metricName string, params RequestParams) string {
 	var containerSelector string
 
 	if params.ContainerName != "" {
-		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name="%s"`, params.PodName, params.NamespaceName, params.ContainerName)
+		containerSelector = fmt.Sprintf(`%s="%s", namespace="%s", %s="%s"`, labelNamePod, params.PodName, params.NamespaceName, labelNameContainer, params.ContainerName)
 	} else {
-		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name=~"%s"`, params.PodName, params.NamespaceName, params.ResourcesFilter)
+		containerSelector = fmt.Sprintf(`%s="%s", namespace="%s", %s=~"%s"`, labelNamePod, params.PodName, params.NamespaceName, labelNameContainer, params.ResourcesFilter)
 	}
 
 	return strings.Replace(exp, "$1", containerSelector, -1)
