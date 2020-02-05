@@ -24,6 +24,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,7 @@ import (
 )
 
 const (
+	inClusterCAFilePath  = "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	kubeconfigNameFormat = "kubeconfig-%s"
 	defaultClusterName   = "local"
 	defaultNamespace     = "default"
@@ -76,7 +78,17 @@ func createKubeConfig(username string) ([]byte, error) {
 	k8sClient := client.ClientSets().K8s().Kubernetes()
 	kubeconfig := client.ClientSets().K8s().Config()
 
-	ca := kubeconfig.CAData
+	var err error
+	var ca []byte
+	if len(kubeconfig.CAData) > 0 {
+		ca = kubeconfig.CAData
+	} else {
+		ca, err = ioutil.ReadFile(inClusterCAFilePath)
+		if err != nil {
+			klog.Errorln(err)
+			return nil, err
+		}
+	}
 
 	csrConfig := &certutil.Config{
 		CommonName:   username,
