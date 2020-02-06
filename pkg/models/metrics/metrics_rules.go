@@ -13,6 +13,16 @@ limitations under the License.
 
 package metrics
 
+import (
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client"
+)
+
+var (
+	labelNamePod       = "pod_name"
+	labelNameContainer = "container_name"
+)
+
 const (
 	// TODO: expose the following metrics in prometheus format
 	MetricClusterWorkspaceCount = "cluster_workspace_count"
@@ -435,14 +445,14 @@ var metricsPromqlMap = map[string]string{
 	// pod
 	"pod_cpu_usage":             `round(label_join(sum by (namespace, pod_name) (irate(container_cpu_usage_seconds_total{job="kubelet", pod_name!="", image!=""}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}, 0.001)`,
 	"pod_memory_usage":          `label_join(sum by (namespace, pod_name) (container_memory_usage_bytes{job="kubelet", pod_name!="", image!=""}), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
-	"pod_memory_usage_wo_cache": `label_join(sum by (namespace, pod_name) (container_memory_usage_bytes{job="kubelet", pod_name!="", image!=""} - container_memory_cache{job="kubelet", pod_name!="", image!=""}), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
+	"pod_memory_usage_wo_cache": `label_join(sum by (namespace, pod_name) (container_memory_working_set_bytes{job="kubelet", pod_name!="", image!=""}), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
 	"pod_net_bytes_transmitted": `label_join(sum by (namespace, pod_name) (irate(container_network_transmit_bytes_total{pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
 	"pod_net_bytes_received":    `label_join(sum by (namespace, pod_name) (irate(container_network_receive_bytes_total{pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
 
 	// container
 	"container_cpu_usage":             `round(sum by (namespace, pod_name, container_name) (irate(container_cpu_usage_seconds_total{job="kubelet", container_name!="POD", container_name!="", image!="", $1}[5m])), 0.001)`,
 	"container_memory_usage":          `sum by (namespace, pod_name, container_name) (container_memory_usage_bytes{job="kubelet", container_name!="POD", container_name!="", image!="", $1})`,
-	"container_memory_usage_wo_cache": `sum by (namespace, pod_name, container_name) (container_memory_usage_bytes{job="kubelet", container_name!="POD", container_name!="", image!="", $1} - container_memory_cache{job="kubelet", container_name!="POD", container_name!="", image!="", $1})`,
+	"container_memory_usage_wo_cache": `sum by (namespace, pod_name, container_name) (container_memory_working_set_bytes{job="kubelet", container_name!="POD", container_name!="", image!="", $1})`,
 
 	// pvc
 	"pvc_inodes_available":   `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{$1}`,
@@ -505,4 +515,33 @@ var metricsPromqlMap = map[string]string{
 
 	"prometheus_up_sum":                          `prometheus:up:sum`,
 	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
+}
+
+// As of Kubernetes v1.16, any Prometheus queries that match `pod_name` and
+// `container_name` labels must be updated to use `pod` and `container` instead.
+func CompatibleMetrics() {
+	version, err := client.ClientSets().K8s().Discovery().ServerVersion()
+	if err != nil {
+		klog.Errorf("fail to fetch k8s version: %v", err)
+		return
+	}
+
+	if version.Minor >= "16" {
+		labelNamePod = "pod"
+		labelNameContainer = "container"
+
+		m := metricsPromqlMap
+		m["workspace_net_bytes_transmitted"] = `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`
+		m["workspace_net_bytes_received"] = `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`
+		m["namespace_net_bytes_transmitted"] = `sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`
+		m["namespace_net_bytes_received"] = `sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`
+		m["pod_cpu_usage"] = `round(sum by (namespace, pod) (irate(container_cpu_usage_seconds_total{job="kubelet", pod!="", image!=""}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}, 0.001)`
+		m["pod_memory_usage"] = `sum by (namespace, pod) (container_memory_usage_bytes{job="kubelet", pod!="", image!=""}) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`
+		m["pod_memory_usage_wo_cache"] = `sum by (namespace, pod) (container_memory_working_set_bytes{job="kubelet", pod!="", image!=""}) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`
+		m["pod_net_bytes_transmitted"] = `sum by (namespace, pod) (irate(container_network_transmit_bytes_total{pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`
+		m["pod_net_bytes_received"] = `sum by (namespace, pod) (irate(container_network_receive_bytes_total{pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`
+		m["container_cpu_usage"] = `round(sum by (namespace, pod, container) (irate(container_cpu_usage_seconds_total{job="kubelet", container!="POD", container!="", image!="", $1}[5m])), 0.001)`
+		m["container_memory_usage"] = `sum by (namespace, pod, container) (container_memory_usage_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`
+		m["container_memory_usage_wo_cache"] = `sum by (namespace, pod, container) (container_memory_working_set_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`
+	}
 }
