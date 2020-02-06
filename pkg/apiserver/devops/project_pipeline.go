@@ -39,6 +39,12 @@ func CreateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
 		return
 	}
+	err = devops.ValidatePipelineConfig(pipeline)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		return
+	}
 	pipelineName, err := devops.CreateProjectPipeline(projectId, pipeline)
 
 	if err != nil {
@@ -94,6 +100,12 @@ func UpdateDevOpsProjectPipelineHandler(request *restful.Request, resp *restful.
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		return
+	}
+	err = devops.ValidatePipelineConfig(pipeline)
+	if err != nil {
+		klog.Errorf("%+v", err)
+		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
 		return
 	}
 	pipelineName, err := devops.UpdateProjectPipeline(projectId, pipelineId, pipeline)

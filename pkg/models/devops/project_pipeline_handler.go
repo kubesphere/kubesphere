@@ -309,3 +309,39 @@ func GetMultiBranchPipelineSonar(projectId, pipelineId, branchId string) ([]*Son
 	}
 	return sonarStatus, nil
 }
+
+func ValidatePipelineConfig(pipeline *ProjectPipeline) error {
+	switch pipeline.Type {
+	case NoScmPipelineType:
+		if pipeline.Pipeline == nil {
+			err := fmt.Errorf("request should contains Pipeline struct")
+			return err
+		}
+		if pipeline.Pipeline.Name == "" {
+			err := fmt.Errorf("pipeline name suport not be nil")
+			return err
+		}
+		if pipeline.Pipeline.Parameters != nil {
+			params := []*Parameter(*pipeline.Pipeline.Parameters)
+			for _, param := range params {
+				if param.Name == "" {
+					err := fmt.Errorf("param name should not be nil")
+					return err
+				}
+			}
+		}
+	case MultiBranchPipelineType:
+		if pipeline.MultiBranchPipeline == nil {
+			err := fmt.Errorf("request should contains MultiBranchPipeline struct")
+			return err
+		}
+		if pipeline.MultiBranchPipeline.Name == "" {
+			err := fmt.Errorf("pipeline name suport not be nil")
+			return err
+		}
+	default:
+		err := fmt.Errorf("unsupport job type")
+		return err
+	}
+	return nil
+}

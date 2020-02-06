@@ -799,3 +799,98 @@ pipeline { agent any parameters { string(name: 'PERSON', defaultValue: 'Mr Jenki
 	}
 
 }
+
+func Test_ValidatePipelineConfig(t *testing.T) {
+	rightInput := []*ProjectPipeline{
+		{
+			Type: "pipeline",
+			Pipeline: &NoScmPipeline{
+				Name:        "test",
+				Parameters:  nil,
+				Jenkinsfile: "echo 1",
+			},
+		}, {
+			Type: "multi-branch-pipeline",
+			MultiBranchPipeline: &MultiBranchPipeline{
+				Name:        "multibranch-test",
+				Description: "xx",
+			},
+		}, {
+			Type: "pipeline",
+			Pipeline: &NoScmPipeline{
+				Name:        "test2",
+				Description: "",
+				Discarder:   nil,
+				Parameters: &Parameters{
+					&Parameter{
+						Name: "xx",
+						Type: "yy",
+					}, &Parameter{
+						Name:         "tt",
+						DefaultValue: "",
+						Type:         "",
+						Description:  "ccc",
+					},
+				},
+				DisableConcurrent: false,
+				TimerTrigger:      nil,
+				RemoteTrigger:     nil,
+				Jenkinsfile:       "",
+			},
+		},
+	}
+	errorInput := []*ProjectPipeline{
+		{
+			Type: "xx",
+			Pipeline: &NoScmPipeline{
+				Name:        "",
+				Parameters:  nil,
+				Jenkinsfile: "echo 1",
+			},
+		},
+		{
+			Type: "pipeline",
+			Pipeline: &NoScmPipeline{
+				Name:        "",
+				Parameters:  nil,
+				Jenkinsfile: "echo 1",
+			},
+		}, {
+			Type: "multi-branch-pipeline",
+			MultiBranchPipeline: &MultiBranchPipeline{
+				Name:        "",
+				Description: "xx",
+			},
+		}, {
+			Type: "pipeline",
+			Pipeline: &NoScmPipeline{
+				Name:        "test2",
+				Description: "",
+				Discarder:   nil,
+				Parameters: &Parameters{
+					&Parameter{
+						Name: "",
+						Type: "yy",
+					}, &Parameter{
+						Name:        "tt",
+						Description: "ccc",
+					},
+				},
+				Jenkinsfile: "",
+			},
+		},
+	}
+	for _, input := range rightInput {
+		err := ValidatePipelineConfig(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, input := range errorInput {
+		err := ValidatePipelineConfig(input)
+		if err == nil {
+			t.Fatalf("%+v, is an error configuration", input)
+		}
+	}
+}
