@@ -405,7 +405,8 @@ func DeleteApplication(clusterId string) error {
 		return err
 	}
 
-	_, err = client.Cluster().DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
+	_, err = client.Cluster().CeaseClusters(openpitrix.SystemContext(),
+		&pb.CeaseClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
 
 	if err != nil {
 		klog.Errorln(err)
