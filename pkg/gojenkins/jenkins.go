@@ -530,7 +530,7 @@ func (j *Jenkins) CreateSshCredential(id, username, passphrase, privateKey, desc
 	requestStruct := NewCreateSshCredentialRequest(id, username, passphrase, privateKey, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
-	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
+	response, err := j.Requester.PostForm("/credentials/store/system/domain/_/createCredentials",
 		nil, &responseString, param)
 	if err != nil {
 		return nil, err
@@ -545,7 +545,7 @@ func (j *Jenkins) CreateUsernamePasswordCredential(id, username, password, descr
 	requestStruct := NewCreateUsernamePasswordRequest(id, username, password, description)
 	param := map[string]string{"json": makeJson(requestStruct)}
 	responseString := ""
-	response, err := j.Requester.Post("/credentials/store/system/domain/_/createCredentials",
+	response, err := j.Requester.PostForm("/credentials/store/system/domain/_/createCredentials",
 		nil, &responseString, param)
 	if err != nil {
 		return nil, err
@@ -570,7 +570,7 @@ func (j *Jenkins) CreateSshCredentialInFolder(domain, id, username, passphrase, 
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/createCredentials", domain),
 		nil, &responseString, param)
 	if err != nil {
@@ -596,7 +596,7 @@ func (j *Jenkins) CreateUsernamePasswordCredentialInFolder(domain, id, username,
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/createCredentials", domain),
 		nil, &responseString, param)
 	if err != nil {
@@ -622,7 +622,7 @@ func (j *Jenkins) CreateSecretTextCredentialInFolder(domain, id, secret, descrip
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/createCredentials", domain),
 		nil, &responseString, param)
 	if err != nil {
@@ -648,7 +648,7 @@ func (j *Jenkins) CreateKubeconfigCredentialInFolder(domain, id, content, descri
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/createCredentials", domain),
 		nil, &responseString, param)
 	if err != nil {
@@ -673,7 +673,7 @@ func (j *Jenkins) UpdateSshCredentialInFolder(domain, id, username, passphrase, 
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s/updateSubmit", domain, id),
 		nil, nil, param)
 	if err != nil {
@@ -698,7 +698,7 @@ func (j *Jenkins) UpdateUsernamePasswordCredentialInFolder(domain, id, username,
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s/updateSubmit", domain, id),
 		nil, nil, param)
 	if err != nil {
@@ -723,7 +723,7 @@ func (j *Jenkins) UpdateSecretTextCredentialInFolder(domain, id, secret, descrip
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s/updateSubmit", domain, id),
 		nil, nil, param)
 	if err != nil {
@@ -748,7 +748,7 @@ func (j *Jenkins) UpdateKubeconfigCredentialInFolder(domain, id, content, descri
 	for _, folder := range folders {
 		prePath = prePath + fmt.Sprintf("/job/%s", folder)
 	}
-	response, err := j.Requester.Post(prePath+
+	response, err := j.Requester.PostForm(prePath+
 		fmt.Sprintf("/credentials/store/folder/domain/%s/credential/%s/updateSubmit", domain, id),
 		nil, nil, param)
 	if err != nil {
