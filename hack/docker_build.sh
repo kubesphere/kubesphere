@@ -13,6 +13,10 @@ elif [[ $TRAVIS_EVENT_TYPE == "cron" ]]; then
     TAG=dev-$(date +%Y%m%d)
 fi
 
+if [[ $TRAVIS_BRANCH == "release-2.1" ]]; then
+    TAG=release-2.1
+fi
+
 
 docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG .
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .

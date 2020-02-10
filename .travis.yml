@@ -29,8 +29,13 @@ install:
   - go get golang.org/x/lint/golint
 
 deploy:
-  skip_cleanup: true
-  provider: script
-  script: bash hack/docker_build.sh 
-  on:
-    branch: master
+  - skip_cleanup: true
+    provider: script
+    script: bash hack/docker_build.sh
+    on:
+      branch: master
+  - skip_cleanup: true
+    provider: script
+    script: bash hack/docker_build.sh
+    on:
+      branch: release-2.1
