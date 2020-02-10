@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/server"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/server/config"
 	"kubesphere.io/kubesphere/pkg/server/filter"
@@ -135,6 +136,7 @@ func CreateAPIServer(s *options.ServerRunOptions) error {
 	container.RecoverHandler(server.LogStackOnRecover)
 
 	apis.InstallAPIs(container)
+	metrics.CompatibleMetrics()
 
 	// install config api
 	apiserverconfig.InstallAPI(container)

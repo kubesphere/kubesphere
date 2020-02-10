@@ -405,8 +405,5 @@ func addWebService(c *restful.Container) error {
 		Produces(restful.MIME_JSON)
 
 	c.Add(ws)
-
-	metrics.CompatibleMetrics()
-
 	return nil
 }
