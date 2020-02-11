@@ -170,9 +170,15 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 	if !controlledByWorkspace {
 
-		err = r.deleteRoleBindings(instance)
+		if err = r.unbindWorkspace(instance); err != nil {
+			return reconcile.Result{}, err
+		}
 
-		return reconcile.Result{}, err
+		if err = r.deleteRoleBindings(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		return reconcile.Result{}, nil
 	}
 
 	if err = r.checkAndBindWorkspace(instance); err != nil {
@@ -220,6 +226,7 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 					klog.Error(err)
 					return err
 				}
+				found = role
 			} else {
 				klog.Error(err)
 				return err
@@ -449,6 +456,21 @@ func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
 		}
 	}
 
+	return nil
+}
+func (r *ReconcileNamespace) unbindWorkspace(instance *corev1.Namespace) error {
+	ownerReferences := make([]metav1.OwnerReference, 0)
+
+	for _, ref := range instance.OwnerReferences {
+		if ref.Kind != v1alpha1.ResourceKindWorkspace {
+			ownerReferences = append(ownerReferences, ref)
+		}
+	}
+
+	if len(ownerReferences) != len(instance.OwnerReferences) {
+		instance.OwnerReferences = ownerReferences
+		return r.Update(context.TODO(), instance)
+	}
 	return nil
 }
 

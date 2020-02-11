@@ -156,16 +156,26 @@ func DeleteWorkspaceRoleBinding(workspace, username string, role string) error {
 	}
 	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 
-	for i, v := range workspaceRoleBinding.Subjects {
-		if v.Kind == v1.UserKind && v.Name == username {
-			workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects[:i], workspaceRoleBinding.Subjects[i+1:]...)
-			i--
+	subjects := make([]v1.Subject, 0)
+
+	for _, subject := range workspaceRoleBinding.Subjects {
+		if subject.Kind != v1.UserKind || subject.Name != username {
+			subjects = append(subjects, subject)
 		}
 	}
 
-	workspaceRoleBinding, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+	if len(subjects) != len(workspaceRoleBinding.Subjects) {
+		workspaceRoleBinding.Subjects = subjects
 
-	return err
+		_, err = clientset.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
+
+		if err != nil {
+			klog.Errorln(err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func GetDevOpsProjectsCount(workspaceName string) (int, error) {
