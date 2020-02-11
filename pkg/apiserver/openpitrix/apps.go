@@ -153,9 +153,9 @@ func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
 		return
 	}
-	conditions.Match["app"] = appId
+	conditions.Match[openpitrix.AppId] = appId
 	if versionId != "" {
-		conditions.Match["version"] = versionId
+		conditions.Match[openpitrix.VersionId] = versionId
 	}
 
 	result, err := openpitrix.ListAppVersionAudits(conditions, orderBy, reverse, limit, offset)

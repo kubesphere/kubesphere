@@ -270,7 +270,7 @@ func ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset 
 	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{
 		RepoId: []string{repoId},
 	}
-	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
+	if eventId := conditions.Match[RepoEventId]; eventId != "" {
 		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")
 	}
 	if status := conditions.Match[Status]; status != "" {

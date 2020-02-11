@@ -843,6 +843,7 @@ const (
 	VersionId      = "version_id"
 	RepoId         = "repo_id"
 	CategoryId     = "category_id"
+	RepoEventId    = "repo_event_id"
 	Status         = "status"
 	Type           = "type"
 	Visibility     = "visibility"
