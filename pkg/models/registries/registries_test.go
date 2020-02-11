@@ -13,6 +13,7 @@ func TestRegistryVerify(t *testing.T) {
 	// some registry can not login with guest.
 	registries := []testRegistry{
 		{Auth: AuthInfo{Username: "guest", Password: "guest", ServerHost: "docker.io"}, Result: true},
+		{Auth: AuthInfo{Username: "guest", Password: "guest", ServerHost: "https://docker.io"}, Result: true},
 		{Auth: AuthInfo{Username: "guest", Password: "guest", ServerHost: "dockerhub.qingcloud.com"}, Result: true},
 		{Auth: AuthInfo{Username: "guest", Password: "guest", ServerHost: "https://dockerhub.qingcloud.com"}, Result: true},
 		{Auth: AuthInfo{Username: "guest", Password: "guest", ServerHost: "http://dockerhub.qingcloud.com"}, Result: false},
