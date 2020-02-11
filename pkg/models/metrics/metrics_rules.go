@@ -520,9 +520,13 @@ var metricsPromqlMap = map[string]string{
 // As of Kubernetes v1.16, any Prometheus queries that match `pod_name` and
 // `container_name` labels must be updated to use `pod` and `container` instead.
 func CompatibleMetrics() {
+	if client.ClientSets() == nil {
+		return
+	}
+
 	version, err := client.ClientSets().K8s().Discovery().ServerVersion()
 	if err != nil {
-		klog.Errorf("fail to fetch k8s version: %v", err)
+		klog.Errorf("fail to fetch k8s version: %v.", err)
 		return
 	}
 
