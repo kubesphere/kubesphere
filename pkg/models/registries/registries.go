@@ -28,6 +28,8 @@ import (
 	"k8s.io/klog"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"net/http"
+	"strings"
 )
 
 const (
@@ -68,6 +70,23 @@ func RegistryVerify(authInfo AuthInfo) error {
 		ServerAddress: authInfo.ServerHost,
 	}
 
+	// Sometimes request DockerHub V2 API will timeout in China. Skipped.
+	if authInfo.ServerHost != DefaultDockerHub {
+		var checkAPIVersionUrl string
+
+		if strings.Contains(authInfo.ServerHost, "://") {
+			checkAPIVersionUrl = authInfo.ServerHost + "/v2/"
+		} else {
+			// default use HTTPS protocol
+			checkAPIVersionUrl = "https://" + authInfo.ServerHost + "/v2/"
+		}
+		_, err := http.Get(checkAPIVersionUrl)
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: deprecated, use native Docker Registry v2 authentication.
 	resp, err := cli.RegistryLogin(ctx, config)
 	cli.Close()
 

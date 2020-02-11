@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// TODO: deprecated, use github.com/docker/docker/api/types.AuthConfig instead
 type AuthInfo struct {
 	Username   string `json:"username" description:"username"`
 	Password   string `json:"password" description:"password"`
