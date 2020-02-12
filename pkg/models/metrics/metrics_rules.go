@@ -303,7 +303,7 @@ var metricsPromqlMap = map[string]string{
 	"cluster_disk_inode_total":           `sum(node:node_inodes_total:)`,
 	"cluster_disk_inode_usage":           `sum(node:node_inodes_total:) - sum(node:node_inodes_free:)`,
 	"cluster_disk_inode_utilisation":     `cluster:disk_inode_utilization:ratio`,
-	"cluster_namespace_count":            `count(kube_namespace_annotations)`,
+	"cluster_namespace_count":            `count(kube_namespace_created)`,
 	"cluster_pod_count":                  `cluster:pod:sum`,
 	"cluster_pod_quota":                  `sum(max(kube_node_status_capacity_pods) by (node) unless on (node) (kube_node_status_condition{condition="Ready",status=~"unknown|false"} > 0))`,
 	"cluster_pod_utilisation":            `cluster:pod_utilization:ratio`,
