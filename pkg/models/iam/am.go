@@ -489,23 +489,21 @@ func GetUserWorkspaceSimpleRules(workspace, username string) ([]models.SimpleRul
 		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
 	}
 
+	// workspaces-manager
+	if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
+		Verbs:     []string{"*"},
+		APIGroups: []string{"*"},
+		Resources: []string{"workspaces", "workspaces/*"},
+	}) {
+		return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspacesManager), nil
+	}
+
 	workspaceRole, err := GetUserWorkspaceRole(workspace, username)
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-
-			// workspaces-manager
-			if RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
-				Verbs:     []string{"*"},
-				APIGroups: []string{"*"},
-				Resources: []string{"workspaces", "workspaces/*"},
-			}) {
-				return GetWorkspaceRoleSimpleRules(workspace, constants.WorkspacesManager), nil
-			}
-
 			return []models.SimpleRule{}, nil
 		}
-
 		klog.Error(err)
 		return nil, err
 	}
