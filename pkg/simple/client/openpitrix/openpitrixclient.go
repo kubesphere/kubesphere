@@ -212,16 +212,15 @@ func (c *OpenPitrixClient) Attachment() pb.AttachmentManagerClient {
 }
 
 func SystemContext() context.Context {
-	ctx := context.Background()
-	ctx = ctxutil.ContextWithSender(ctx, sender.New(SystemUsername, SystemUserPath, ""))
-	return ctx
+	return ContextWithUsername(SystemUsername)
 }
 func ContextWithUsername(username string) context.Context {
 	ctx := context.Background()
 	if username == "" {
 		username = SystemUsername
 	}
-	ctx = ctxutil.ContextWithSender(ctx, sender.New(username, SystemUserPath, ""))
+	ownerPath := fmt.Sprintf(":%s", username)
+	ctx = ctxutil.ContextWithSender(ctx, sender.New(username, sender.OwnerPath(ownerPath), ""))
 	return ctx
 }
 
