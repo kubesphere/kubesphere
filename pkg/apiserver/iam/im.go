@@ -150,14 +150,21 @@ func UpdateUser(req *restful.Request, resp *restful.Response) {
 			resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 			return
 		}
-		if !isUserManager {
-			_, err = iam.Login(usernameInHeader, user.CurrentPassword, "")
-		}
-		if err != nil {
-			err = fmt.Errorf("incorrect current password")
-			klog.Info(err)
-			resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
-			return
+
+		// user manager can modify password without verify old password
+		// if the old password is defined must be verified
+		if !isUserManager || user.CurrentPassword != "" {
+			if _, err = iam.Login(usernameInHeader, user.CurrentPassword, ""); err != nil {
+				if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+					err = fmt.Errorf("incorrect current password")
+					klog.V(4).Info(err)
+					resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))
+				} else {
+					klog.Errorln(err)
+					resp.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+				}
+				return
+			}
 		}
 	}
 
