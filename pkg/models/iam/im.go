@@ -504,6 +504,19 @@ func loginLog(uid, ip string) {
 		redisClient.LTrim(fmt.Sprintf("kubesphere:users:%s:login-log", uid), -10, -1)
 	}
 }
+func deleteLoginLogs(uid string) error {
+	redisClient, err := clientset.ClientSets().Redis()
+	if err != nil {
+		klog.Errorln(err)
+		return err
+	}
+	err = redisClient.Del(fmt.Sprintf("kubesphere:users:%s:login-log", uid)).Err()
+	if err != nil {
+		klog.Errorln(err)
+		return err
+	}
+	return nil
+}
 
 func LoginLog(username string) ([]string, error) {
 	redisClient, err := clientset.ClientSets().Redis()
@@ -790,6 +803,11 @@ func DeleteUser(username string) error {
 	if err := deleteUserInDevOps(username); err != nil {
 		klog.Errorln("delete user in devops failed", username, err)
 	}
+
+	if err := deleteLoginLogs(username); err != nil {
+		klog.Errorln(err)
+	}
+
 	return nil
 
 }
