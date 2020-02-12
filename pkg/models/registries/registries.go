@@ -25,10 +25,10 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -60,7 +60,7 @@ func RegistryVerify(authInfo AuthInfo) error {
 	cli, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 
 	if err != nil {
-		klog.Error(err)
+		log.Error(err)
 	}
 
 	config := types.AuthConfig{
@@ -70,17 +70,16 @@ func RegistryVerify(authInfo AuthInfo) error {
 		ServerAddress: authInfo.ServerHost,
 	}
 
-	// Sometimes request DockerHub V2 API will timeout in China. Skipped.
-	if authInfo.ServerHost != DefaultDockerHub {
-		var checkAPIVersionUrl string
+	if !strings.HasPrefix(authInfo.ServerHost, "https://") && !strings.HasPrefix(authInfo.ServerHost, "http://") {
+		authInfo.ServerHost = "https://" + authInfo.ServerHost
+	}
 
-		if strings.Contains(authInfo.ServerHost, "://") {
-			checkAPIVersionUrl = authInfo.ServerHost + "/v2/"
-		} else {
-			// default use HTTPS protocol
-			checkAPIVersionUrl = "https://" + authInfo.ServerHost + "/v2/"
-		}
-		_, err := http.Get(checkAPIVersionUrl)
+	u, err := url.Parse(authInfo.ServerHost)
+	if err != nil {
+		return err
+	}
+	if u.Host != DefaultDockerHub {
+		_, err := http.Get(authInfo.ServerHost + "/v2/")
 		if err != nil {
 			return err
 		}
