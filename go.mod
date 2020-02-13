@@ -295,7 +295,7 @@ replace (
 	github.com/kelseyhightower/envconfig => github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kevinburke/ssh_config => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 	github.com/keybase/go-ps => github.com/keybase/go-ps v0.0.0-20161005175911-668c8856d999
-	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20190407071308-6b5b818211c3
+	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20200213040359-608aece2aa66
 	github.com/klauspost/cpuid => github.com/klauspost/cpuid v1.2.1
 	github.com/knative/pkg => github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/koding/multiconfig => github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
