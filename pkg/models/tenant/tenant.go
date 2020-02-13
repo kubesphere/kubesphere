@@ -43,7 +43,7 @@ type Interface interface {
 	ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 	GetWorkspaceSimpleRules(workspace, username string) ([]iam.SimpleRule, error)
 	GetNamespaceSimpleRules(namespace, username string) ([]iam.SimpleRule, error)
-	CountDevOpsProjects(username string) (int, error)
+	CountDevOpsProjects(username string) (uint32, error)
 	DeleteDevOpsProject(username, projectId string) error
 	GetUserDevopsSimpleRules(username string, devops string) (interface{}, error)
 }
@@ -52,22 +52,23 @@ type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
 	am         iam.AccessManagementInterface
+	devops     DevOpsProjectOperator
 }
 
-func (t *tenantOperator) CountDevOpsProjects(username string) (int, error) {
-	panic("implement me")
+func (t *tenantOperator) CountDevOpsProjects(username string) (uint32, error) {
+	return t.devops.GetDevOpsProjectsCount(username)
 }
 
 func (t *tenantOperator) DeleteDevOpsProject(username, projectId string) error {
-	panic("implement me")
+	return t.devops.DeleteDevOpsProject(projectId, username)
 }
 
-func (t *tenantOperator) GetUserDevopsSimpleRules(username string, devops string) (interface{}, error) {
-	panic("implement me")
+func (t *tenantOperator) GetUserDevopsSimpleRules(username string, projectId string) (interface{}, error) {
+	return t.devops.GetUserDevOpsSimpleRules(username, projectId)
 }
 
 func (t *tenantOperator) ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
-	panic("implement me")
+	return t.devops.ListDevOpsProjects(conditions.Match["workspace"], username, conditions, orderBy, reverse, limit, offset)
 }
 
 func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
@@ -77,9 +78,9 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
 	amOperator := iam.NewAMOperator(informers)
 	return &tenantOperator{
-		workspaces: newWorkspaceOperator(client, informers, ksinformers, am, db),
+		workspaces: newWorkspaceOperator(client, informers, ksinformers, amOperator, db),
 		namespaces: newNamespaceOperator(client, informers, amOperator),
-		am:         iam.NewAMOperator(informers),
+		am:         amOperator,
 	}
 }
 
