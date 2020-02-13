@@ -7,8 +7,7 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/api/apps/v1beta1"
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	auth_v1 "k8s.io/api/authorization/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	batch_v1beta1 "k8s.io/api/batch/v1beta1"
@@ -39,8 +38,8 @@ type IstioClientInterface interface {
 	GetAdapter(namespace, adapterType, adapterName string) (IstioObject, error)
 	GetAdapters(namespace string) ([]IstioObject, error)
 	GetCronJobs(namespace string) ([]batch_v1beta1.CronJob, error)
-	GetDeployment(namespace string, deploymentName string) (*v1beta1.Deployment, error)
-	GetDeployments(namespace string) ([]v1beta1.Deployment, error)
+	GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment, error)
+	GetDeployments(namespace string) ([]appsv1.Deployment, error)
 	GetDeploymentConfig(namespace string, deploymentconfigName string) (*osappsv1.DeploymentConfig, error)
 	GetDeploymentConfigs(namespace string) ([]osappsv1.DeploymentConfig, error)
 	GetDestinationRule(namespace string, destinationrule string) (IstioObject, error)
@@ -62,14 +61,14 @@ type IstioClientInterface interface {
 	GetQuotaSpecBinding(namespace string, quotaSpecBindingName string) (IstioObject, error)
 	GetQuotaSpecBindings(namespace string) ([]IstioObject, error)
 	GetReplicationControllers(namespace string) ([]v1.ReplicationController, error)
-	GetReplicaSets(namespace string) ([]v1beta2.ReplicaSet, error)
+	GetReplicaSets(namespace string) ([]appsv1.ReplicaSet, error)
 	GetSelfSubjectAccessReview(namespace, api, resourceType string, verbs []string) ([]*auth_v1.SelfSubjectAccessReview, error)
 	GetService(namespace string, serviceName string) (*v1.Service, error)
 	GetServices(namespace string, selectorLabels map[string]string) ([]v1.Service, error)
 	GetServiceEntries(namespace string) ([]IstioObject, error)
 	GetServiceEntry(namespace string, serviceEntryName string) (IstioObject, error)
-	GetStatefulSet(namespace string, statefulsetName string) (*v1beta2.StatefulSet, error)
-	GetStatefulSets(namespace string) ([]v1beta2.StatefulSet, error)
+	GetStatefulSet(namespace string, statefulsetName string) (*appsv1.StatefulSet, error)
+	GetStatefulSets(namespace string) ([]appsv1.StatefulSet, error)
 	GetTemplate(namespace, templateType, templateName string) (IstioObject, error)
 	GetTemplates(namespace string) ([]IstioObject, error)
 	GetPolicy(namespace string, policyName string) (IstioObject, error)
