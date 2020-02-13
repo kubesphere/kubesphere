@@ -74,7 +74,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.6
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/kiali/kiali v0.15.1-0.20190407071308-6b5b818211c3
+	github.com/kiali/kiali v0.15.1-0.20200213040359-608aece2aa66
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
