@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
@@ -34,7 +34,7 @@ func newTestConfig() *Config {
 			MaxOpenConnections:    20,
 			MaxConnectionLifeTime: time.Duration(10) * time.Second,
 		},
-		DevopsOptions: &devops.Options{
+		DevopsOptions: &jenkins.Options{
 			Host:           "http://ks-devops.kubesphere-devops-system.svc",
 			Username:       "jenkins",
 			Password:       "kubesphere",

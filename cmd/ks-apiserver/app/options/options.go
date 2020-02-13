@@ -5,7 +5,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
@@ -21,7 +21,7 @@ type ServerRunOptions struct {
 	ConfigFile              string
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 	KubernetesOptions       *k8s.KubernetesOptions
-	DevopsOptions           *devops.Options
+	DevopsOptions           *jenkins.Options
 	SonarQubeOptions        *sonarqube.Options
 	ServiceMeshOptions      *servicemesh.Options
 	MySQLOptions            *mysql.Options
@@ -36,7 +36,7 @@ func NewServerRunOptions() *ServerRunOptions {
 	s := ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
 		KubernetesOptions:       k8s.NewKubernetesOptions(),
-		DevopsOptions:           devops.NewDevopsOptions(),
+		DevopsOptions:           jenkins.NewDevopsOptions(),
 		SonarQubeOptions:        sonarqube.NewSonarQubeOptions(),
 		ServiceMeshOptions:      servicemesh.NewServiceMeshOptions(),
 		MySQLOptions:            mysql.NewMySQLOptions(),

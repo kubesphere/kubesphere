@@ -27,7 +27,6 @@ import (
 	"time"
 )
 
-
 type Client struct {
 	client            *http.Client
 	endpoint          string

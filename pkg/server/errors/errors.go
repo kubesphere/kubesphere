@@ -38,3 +38,11 @@ func Wrap(err error) error {
 func New(format string, args ...interface{}) error {
 	return Error{Message: fmt.Sprintf(format, args...)}
 }
+
+func GetServiceErrorCode(err error) int {
+	if svcErr, ok := err.(restful.ServiceError); ok {
+		return svcErr.Code
+	} else {
+		return http.StatusInternalServerError
+	}
+}
