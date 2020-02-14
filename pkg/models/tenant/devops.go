@@ -86,9 +86,9 @@ func ListDevopsProjects(workspace, username string, conditions *params.Condition
 		}
 	default:
 		if reverse {
-			query.OrderAsc(devops.DevOpsProjectCreateTimeColumn)
-		} else {
 			query.OrderDesc(devops.DevOpsProjectCreateTimeColumn)
+		} else {
+			query.OrderAsc(devops.DevOpsProjectCreateTimeColumn)
 		}
 
 	}
