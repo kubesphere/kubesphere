@@ -291,7 +291,7 @@ func ListUsers(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	conditions, err := params.ParseConditions(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		klog.Info(err)

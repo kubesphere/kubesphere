@@ -40,7 +40,7 @@ func ListApplications(req *restful.Request, resp *restful.Response) {
 	namespaceName := req.PathParameter("namespace")
 	conditions, err := params.ParseConditions(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

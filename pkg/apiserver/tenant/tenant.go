@@ -60,7 +60,7 @@ func ListWorkspaces(req *restful.Request, resp *restful.Response) {
 	username := req.HeaderParameter(constants.UserNameHeader)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
@@ -112,7 +112,7 @@ func ListNamespaces(req *restful.Request, resp *restful.Response) {
 	conditions, err := params.ParseConditions(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 
 	if err != nil {
 		resp.WriteHeaderAndEntity(http.StatusBadRequest, errors.Wrap(err))

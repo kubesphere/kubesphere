@@ -126,7 +126,7 @@ func DescribeCategory(req *restful.Request, resp *restful.Response) {
 func ListCategories(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
 

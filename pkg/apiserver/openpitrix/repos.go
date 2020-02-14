@@ -167,7 +167,7 @@ func DescribeRepo(req *restful.Request, resp *restful.Response) {
 func ListRepos(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
