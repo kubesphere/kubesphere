@@ -76,7 +76,7 @@ func ListRoles(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, resources.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {

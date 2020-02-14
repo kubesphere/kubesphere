@@ -145,7 +145,7 @@ func GetAppVersionFiles(req *restful.Request, resp *restful.Response) {
 func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	appId := req.PathParameter("app")
 	versionId := req.PathParameter("version")
 	conditions, err := params.ParseConditions(req)
@@ -177,7 +177,7 @@ func ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 func ListReviews(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
@@ -204,7 +204,7 @@ func ListReviews(req *restful.Request, resp *restful.Response) {
 func ListAppVersions(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	appId := req.PathParameter("app")
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
@@ -247,7 +247,7 @@ func ListAppVersions(req *restful.Request, resp *restful.Response) {
 func ListApps(req *restful.Request, resp *restful.Response) {
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
 	limit, offset := params.ParsePaging(req)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	statistics, _ := strconv.ParseBool(req.QueryParameter("statistics"))
 	conditions, err := params.ParseConditions(req)
 
