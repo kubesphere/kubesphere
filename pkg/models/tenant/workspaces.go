@@ -76,7 +76,7 @@ func (*workspaceSearcher) fuzzy(fuzzy map[string]string, item *v1alpha1.Workspac
 func (*workspaceSearcher) compare(a, b *v1alpha1.Workspace, orderBy string) bool {
 	switch orderBy {
 	case resources.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
+		return b.CreationTimestamp.Time.Before(a.CreationTimestamp.Time)
 	case resources.Name:
 		fallthrough
 	default:

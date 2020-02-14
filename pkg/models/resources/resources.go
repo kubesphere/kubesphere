@@ -250,7 +250,7 @@ func compare(a, b metav1.ObjectMeta, by string) bool {
 		if a.CreationTimestamp.Equal(&b.CreationTimestamp) {
 			return strings.Compare(a.Name, b.Name) <= 0
 		}
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
+		return b.CreationTimestamp.Time.Before(a.CreationTimestamp.Time)
 	case Name:
 		fallthrough
 	default:

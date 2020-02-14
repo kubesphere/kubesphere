@@ -623,7 +623,7 @@ func ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limi
 		case "createTime":
 			fallthrough
 		default:
-			return users[i].CreateTime.Before(users[j].CreateTime)
+			return users[j].CreateTime.Before(users[i].CreateTime)
 		}
 	})
 
