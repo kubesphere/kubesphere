@@ -38,9 +38,9 @@ func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.
 		return
 	}
 	orderBy := request.QueryParameter(params.OrderByParam)
-	reverse := params.ParseReverse(request)
-	limit, offset := params.ParsePaging(request.QueryParameter(params.PagingParam))
-	conditions, err := params.ParseConditions(request.QueryParameter(params.ConditionsParam))
+	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
+	limit, offset := params.ParsePaging(request)
+	conditions, err := params.ParseConditions(request)
 
 	project, err := h.projectMemberOperator.GetProjectMembers(projectId, conditions, orderBy, reverse, limit, offset)
 

@@ -4,8 +4,8 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
@@ -13,7 +13,7 @@ func (h PipelineSonarHandler) GetPipelineSonarStatusHandler(request *restful.Req
 	projectId := request.PathParameter("devops")
 	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
@@ -33,7 +33,7 @@ func (h PipelineSonarHandler) GetMultiBranchesPipelineSonarStatusHandler(request
 	username := request.HeaderParameter(constants.UserNameHeader)
 	pipelineId := request.PathParameter("pipeline")
 	branchId := request.PathParameter("branch")
-	err := devops.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
+	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)

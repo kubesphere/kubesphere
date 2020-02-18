@@ -20,6 +20,7 @@ type ProjectPipelineHandler struct {
 
 type PipelineSonarHandler struct {
 	pipelineSonarGetter devops.PipelineSonarGetter
+	projectOperator     devops.ProjectOperator
 }
 
 func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *mysql.Database) ProjectPipelineHandler {
@@ -32,12 +33,14 @@ func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *my
 	}
 }
 
-func NewPipelineSonarHandler(devopsClient devopsClient.Interface, sonarClient sonarqube.SonarInterface) PipelineSonarHandler {
+func NewPipelineSonarHandler(devopsClient devopsClient.Interface, dbClient *mysql.Database, sonarClient sonarqube.SonarInterface) PipelineSonarHandler {
 	return PipelineSonarHandler{
 		pipelineSonarGetter: devops.NewPipelineSonarGetter(devopsClient, sonarClient),
+		projectOperator:     devops.NewProjectOperator(dbClient),
 	}
 }
 
 func NewS2iBinaryHandler(client versioned.Interface, informers externalversions.SharedInformerFactory, s3Client s3.Interface) S2iBinaryHandler {
+
 	return S2iBinaryHandler{devops.NewS2iBinaryUploader(client, informers, s3Client)}
 }
