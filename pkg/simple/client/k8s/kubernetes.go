@@ -1,13 +1,13 @@
 package k8s
 
 import (
-	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	applicationclientset "sigs.k8s.io/application/pkg/client/clientset/versioned"
 	"strings"
 )
 

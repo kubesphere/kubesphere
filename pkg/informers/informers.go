@@ -18,11 +18,11 @@
 package informers
 
 import (
-	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client"
+	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions"
 	"sync"
 	"time"
 )

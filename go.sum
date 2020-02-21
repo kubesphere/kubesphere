@@ -268,8 +268,12 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/kubernetes-sigs/application v0.8.1 h1:tnIN+iijr0kDJxvOhnqjoXV+3hWydRNy8OHisMyO71U=
+github.com/kubernetes-sigs/application v0.8.1/go.mod h1:KqAScqo78PXUrmoFOH8z6P4xQDBdzyJH1FMqrhgJJLE=
 github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7 h1:9dongD6mbssQJGb9pV4sE7IHyua6I/lCOu4h6rEfj20=
 github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7/go.mod h1:xCs7b2bgA24oBSuZYf+5btESJC3xPs//ZTSK1ql+W6I=
+github.com/kubesphere/application v0.0.0-20200221140547-8beafe2fa7ef h1:0s/3VfJ9xP9cqLB7dKj1eXCfC+Nr8fy/5xUJhD2lojU=
+github.com/kubesphere/application v0.0.0-20200221140547-8beafe2fa7ef/go.mod h1:Sn/bPGEhZxJeByRvkBo3I+n343KJ+5PBbhdmCdoJZX8=
 github.com/kubesphere/kiali v0.15.1-0.20200213040359-608aece2aa66 h1:xrYcJkIEsE6RDmBprHn1SSMOoYcew/SAxJPm2+rHg1s=
 github.com/kubesphere/kiali v0.15.1-0.20200213040359-608aece2aa66/go.mod h1:Y1EqeixoXkKkU8I+yvOfhdh21+8+etFE6wYOVT2XFdI=
 github.com/kubesphere/s2ioperator v0.0.13 h1:K6RdjaFluhn/GterbnIykORrueAZcwR/Qj3MsVI4qQs=

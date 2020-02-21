@@ -15,7 +15,6 @@ require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/goquery v1.5.0
-	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf
 	github.com/aws/aws-sdk-go v1.22.2
 	github.com/beevik/etree v1.1.0
@@ -45,7 +44,6 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/logr v0.1.0
-	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.0 // indirect
 	github.com/go-openapi/spec v0.19.0
@@ -78,7 +76,6 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/knative/pkg v0.0.0-20190314204845-cd278f2d3394
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/kubernetes-sigs/application v0.0.0-20190518133311-b9d9eb0b5cf7
 	github.com/kubesphere/s2ioperator v0.0.13
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
@@ -92,8 +89,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
@@ -132,7 +129,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.11.0
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.0.0-20181213150558-05914d821849
+	k8s.io/api v0.0.0-20190831074750-7364b6bdad65
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
 	k8s.io/apimachinery v0.0.0-20190831074630-461753078381
 	k8s.io/apiserver v0.0.0-20190507070644-e9c02aff496d
@@ -149,7 +146,6 @@ require (
 	sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.12
-	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
 
@@ -304,7 +300,6 @@ replace (
 	github.com/kr/pretty => github.com/kr/pretty v0.1.0
 	github.com/kr/pty => github.com/kr/pty v1.1.1
 	github.com/kr/text => github.com/kr/text v0.1.0
-	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20190518133311-b9d9eb0b5cf7
 	github.com/kubesphere/s2ioperator => github.com/kubesphere/s2ioperator v0.0.13
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 	github.com/kylelemons/godebug => github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
@@ -431,7 +426,7 @@ replace (
 	openpitrix.io/logger v0.1.0 => github.com/openpitrix/logger v0.1.0
 	openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
 	rsc.io/goversion => rsc.io/goversion v1.0.0
-	sigs.k8s.io/application => sigs.k8s.io/application v0.0.0-20190404151855-67ae7f915d4e
+	sigs.k8s.io/application => github.com/kubesphere/application v0.0.0-20200221140547-8beafe2fa7ef
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.1.12
 	sigs.k8s.io/testing_frameworks => sigs.k8s.io/testing_frameworks v0.1.1
