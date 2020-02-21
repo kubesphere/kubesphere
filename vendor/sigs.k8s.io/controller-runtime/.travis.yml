@@ -1,0 +1,26 @@
+language: go
+
+os:
+  - linux
+  - osx
+
+go:
+- "1.11"
+
+git:
+  depth: 3
+
+go_import_path: sigs.k8s.io/controller-runtime
+
+install:
+- go get -u github.com/golang/dep/cmd/dep
+#- go get -u golang.org/x/lint/golint
+- go get -u gopkg.in/alecthomas/gometalinter.v2 && gometalinter.v2 --install
+
+script:
+- TRACE=1 ./hack/check-everything.sh
+
+
+# TBD. Suppressing for now.
+notifications:
+  email: false

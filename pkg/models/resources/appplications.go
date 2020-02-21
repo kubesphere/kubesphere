@@ -19,10 +19,10 @@
 package resources
 
 import (
-	"github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"sigs.k8s.io/application/pkg/apis/app/v1beta1"
 	"sort"
 )
 

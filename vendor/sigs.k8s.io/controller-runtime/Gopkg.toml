@@ -1,0 +1,88 @@
+#  Copyright 2018 The Kubernetes Authors.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+# Packages required by users
+# NB(directxman12): be very careful how you word these --
+# dep considers them as a dependency on the package you list
+# meaning that if there's a main.go in the root package
+# (like in apiextensions-apiserver), you'll pull it's deps in.
+required = ["sigs.k8s.io/testing_frameworks/integration",
+            "k8s.io/client-go/plugin/pkg/client/auth",
+            "github.com/spf13/pflag",
+            "github.com/emicklei/go-restful",
+            "github.com/go-openapi/spec",
+            "k8s.io/kube-openapi/pkg/common",
+            "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+            "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
+            "github.com/prometheus/client_golang/prometheus",
+            ]
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.13.1"
+
+[[constraint]]
+  name = "sigs.k8s.io/testing_frameworks"
+  version = "v0.1.1"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  version = "v1.5.0"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  version = "v1.4.0"
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "go.uber.org/zap"
+  version = "1.8.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.9.0"
+
+# these are not listed explicitly until we get version tags,
+# since dep doesn't like bare revision dependencies
+
+# [[constraint]]
+#   name = "github.com/go-logr/logr"
+#
+# [[constraint]]
+#   name = "github.com/go-logr/zapr"
+
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "https://github.com/fsnotify/fsnotify.git"
+version="v1.4.7"
+
+[prune]
+  go-tests = true
+  unused-packages = true

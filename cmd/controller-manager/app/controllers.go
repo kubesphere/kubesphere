@@ -37,12 +37,12 @@ import (
 
 	istioclientset "github.com/knative/pkg/client/clientset/versioned"
 	istioinformers "github.com/knative/pkg/client/informers/externalversions"
-	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
-	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	s2iclientset "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
 	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
 	kubesphereclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubesphereinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	applicationclientset "sigs.k8s.io/application/pkg/client/clientset/versioned"
+	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions"
 )
 
 const defaultResync = 600 * time.Second
