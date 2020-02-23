@@ -20,7 +20,6 @@ package clusterrolebinding
 
 import (
 	"context"
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,8 +99,8 @@ func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reco
 	workspaceName := instance.Labels[constants.WorkspaceLabelKey]
 
 	if workspaceName != "" && k8sutil.IsControlledBy(instance.OwnerReferences, "Workspace", workspaceName) {
-		if instance.Name == getWorkspaceAdminRoleBindingName(workspaceName) ||
-			instance.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
+		if instance.Name == iam.GetWorkspaceAdminRoleBindingName(workspaceName) ||
+			instance.Name == iam.GetWorkspaceViewerRoleBindingName(workspaceName) {
 			nsList := &corev1.NamespaceList{}
 			options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspaceName})}
 
@@ -121,100 +121,60 @@ func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reco
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rbac.ClusterRoleBinding, namespace *corev1.Namespace) error {
-
-	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
-
-	if clusterRoleBinding.Name == getWorkspaceAdminRoleBindingName(workspaceName) {
-		adminBinding := &rbac.RoleBinding{}
-		adminBinding.Name = "admin"
-		adminBinding.Namespace = namespace.Name
-		adminBinding.RoleRef = rbac.RoleRef{Name: "admin", APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-		adminBinding.Subjects = clusterRoleBinding.Subjects
-
-		found := &rbac.RoleBinding{}
-
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: adminBinding.Name}, found)
-
+func (r *ReconcileClusterRoleBinding) createRoleBindingsIfNotExist(roleBinding *rbac.RoleBinding) error {
+	found := &rbac.RoleBinding{}
+	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, found); err != nil {
 		if errors.IsNotFound(err) {
-			err = r.Create(context.TODO(), adminBinding)
+			err := r.Create(context.TODO(), roleBinding)
 			if err != nil {
-				log.Error(err)
+				log.Errorln(err)
 			}
 			return err
-		} else if err != nil {
-			log.Error(err)
-			return err
 		}
-
-		if !reflect.DeepEqual(found.RoleRef, adminBinding.RoleRef) {
-			err = r.Delete(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, adminBinding.Name)
-		}
-
-		if !reflect.DeepEqual(found.Subjects, adminBinding.Subjects) {
-			found.Subjects = adminBinding.Subjects
-			err = r.Update(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-		}
+		log.Errorln(err)
+		return err
 	}
 
-	if clusterRoleBinding.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
-
-		found := &rbac.RoleBinding{}
-
-		viewerBinding := &rbac.RoleBinding{}
-		viewerBinding.Name = "viewer"
-		viewerBinding.Namespace = namespace.Name
-		viewerBinding.RoleRef = rbac.RoleRef{Name: "viewer", APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-		viewerBinding.Subjects = clusterRoleBinding.Subjects
-
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: viewerBinding.Name}, found)
-
-		if errors.IsNotFound(err) {
-			err = r.Create(context.TODO(), viewerBinding)
-			if err != nil {
-				log.Error(err)
-			}
+	if !reflect.DeepEqual(found.Subjects, roleBinding.Subjects) {
+		found.Subjects = roleBinding.Subjects
+		if err := r.Update(context.TODO(), found); err != nil {
+			log.Errorln(err)
 			return err
-		} else if err != nil {
-			log.Error(err)
-			return err
-		}
-
-		if !reflect.DeepEqual(found.RoleRef, viewerBinding.RoleRef) {
-			err = r.Delete(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, viewerBinding.Name)
-		}
-
-		if !reflect.DeepEqual(found.Subjects, viewerBinding.Subjects) {
-			found.Subjects = viewerBinding.Subjects
-			err = r.Update(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
 		}
 	}
 
 	return nil
 }
 
-func getWorkspaceAdminRoleBindingName(workspaceName string) string {
-	return fmt.Sprintf("workspace:%s:admin", workspaceName)
-}
+func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rbac.ClusterRoleBinding, namespace *corev1.Namespace) error {
 
-func getWorkspaceViewerRoleBindingName(workspaceName string) string {
-	return fmt.Sprintf("workspace:%s:viewer", workspaceName)
+	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
+
+	if clusterRoleBinding.Name == iam.GetWorkspaceAdminRoleBindingName(workspaceName) {
+		adminBinding := &rbac.RoleBinding{}
+		adminBinding.Name = iam.NamespaceAdminRoleBindName
+		adminBinding.Namespace = namespace.Name
+		adminBinding.RoleRef = rbac.RoleRef{Name: iam.NamespaceAdminRoleName, APIGroup: "rbac.authorization.k8s.io", Kind: iam.RoleKind}
+		adminBinding.Subjects = clusterRoleBinding.Subjects
+
+		if err := r.createRoleBindingsIfNotExist(adminBinding); err != nil {
+			log.Errorln(err)
+			return err
+		}
+	}
+
+	if clusterRoleBinding.Name == iam.GetWorkspaceViewerRoleBindingName(workspaceName) {
+		viewerBinding := &rbac.RoleBinding{}
+		viewerBinding.Name = iam.NamespaceViewerRoleBindName
+		viewerBinding.Namespace = namespace.Name
+		viewerBinding.RoleRef = rbac.RoleRef{Name: iam.NamespaceViewerRoleName, APIGroup: "rbac.authorization.k8s.io", Kind: iam.RoleKind}
+		viewerBinding.Subjects = clusterRoleBinding.Subjects
+
+		if err := r.createRoleBindingsIfNotExist(viewerBinding); err != nil {
+			log.Errorln(err)
+			return err
+		}
+	}
+
+	return nil
 }

@@ -32,9 +32,9 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"reflect"
@@ -54,12 +54,12 @@ const (
 )
 
 var (
-	admin    = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
-	operator = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
+	admin    = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: iam.NamespaceAdminRoleName, Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
+	operator = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: iam.NamespaceOperatorRoleName, Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
 		{Verbs: []string{"*"}, APIGroups: []string{"apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "autoscaling", "alerting.kubesphere.io", "openpitrix.io", "app.k8s.io", "servicemesh.kubesphere.io", "operations.kubesphere.io", "devops.kubesphere.io"}, Resources: []string{"*"}},
 		{Verbs: []string{"*"}, APIGroups: []string{"", "resources.kubesphere.io"}, Resources: []string{"jobs", "cronjobs", "daemonsets", "deployments", "horizontalpodautoscalers", "ingresses", "endpoints", "configmaps", "events", "persistentvolumeclaims", "pods", "podtemplates", "pods", "secrets", "services"}},
 	}}
-	viewer       = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
+	viewer       = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: iam.NamespaceViewerRoleName, Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
 	defaultRoles = []rbac.Role{admin, operator, viewer}
 )
 
@@ -243,117 +243,82 @@ func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) er
 	return nil
 }
 
+func (r *ReconcileNamespace) createRoleBindingsIfNotExist(roleBinding *rbac.RoleBinding) error {
+	found := &rbac.RoleBinding{}
+	if err := r.Get(context.TODO(), types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, found); err != nil {
+		if errors.IsNotFound(err) {
+			err := r.Create(context.TODO(), roleBinding)
+			if err != nil {
+				klog.Errorln(err)
+			}
+			return err
+		}
+		klog.Errorln(err)
+		return err
+	}
+
+	if !reflect.DeepEqual(found.Subjects, roleBinding.Subjects) {
+		found.Subjects = roleBinding.Subjects
+		if err := r.Update(context.TODO(), found); err != nil {
+			klog.Errorln(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namespace) error {
 
 	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
 	creatorName := namespace.Annotations[constants.CreatorAnnotationKey]
 
-	creator := rbac.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: creatorName}
+	if creatorName != "" {
+		creatorRoleBinding := &rbac.RoleBinding{}
+		creatorRoleBinding.Name = fmt.Sprintf("%s-%s", admin.Name, creatorName)
+		creatorRoleBinding.Namespace = namespace.Name
+		creatorRoleBinding.RoleRef = rbac.RoleRef{Name: admin.Name, APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
+		creatorRoleBinding.Subjects = []rbac.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: creatorName}}
+		if err := r.createRoleBindingsIfNotExist(creatorRoleBinding); err != nil {
+			klog.Errorln(err)
+			return err
+		}
+	}
 
 	workspaceAdminBinding := &rbac.ClusterRoleBinding{}
 
-	err := r.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("workspace:%s:admin", workspaceName)}, workspaceAdminBinding)
-
-	if err != nil {
+	if err := r.Get(context.TODO(), types.NamespacedName{Name: iam.GetWorkspaceAdminRoleBindingName(workspaceName)}, workspaceAdminBinding); err != nil {
+		klog.Errorln(err)
 		return err
 	}
 
 	adminBinding := &rbac.RoleBinding{}
-	adminBinding.Name = admin.Name
+	adminBinding.Name = iam.NamespaceAdminRoleBindName
 	adminBinding.Namespace = namespace.Name
-	adminBinding.RoleRef = rbac.RoleRef{Name: admin.Name, APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
+	adminBinding.RoleRef = rbac.RoleRef{Name: admin.Name, APIGroup: "rbac.authorization.k8s.io", Kind: iam.RoleKind}
 	adminBinding.Subjects = workspaceAdminBinding.Subjects
 
-	if creator.Name != "" {
-		if adminBinding.Subjects == nil {
-			adminBinding.Subjects = make([]rbac.Subject, 0)
-		}
-		if !k8sutil.ContainsUser(adminBinding.Subjects, creatorName) {
-			adminBinding.Subjects = append(adminBinding.Subjects, creator)
-		}
-	}
-
-	found := &rbac.RoleBinding{}
-
-	err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: adminBinding.Name}, found)
-
-	if errors.IsNotFound(err) {
-		err = r.Create(context.TODO(), adminBinding)
-		if err != nil {
-			klog.Errorf("creating role binding namespace: %s,role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
-		found = adminBinding
-	} else if err != nil {
-		klog.Errorf("get role binding namespace: %s,role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
+	if err := r.createRoleBindingsIfNotExist(adminBinding); err != nil {
+		klog.Errorln(err)
 		return err
-	}
-
-	if !reflect.DeepEqual(found.RoleRef, adminBinding.RoleRef) {
-		err = r.Delete(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("deleting role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
-		err = fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, adminBinding.Name)
-		klog.Errorf("conflict role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-		return err
-	}
-
-	if !reflect.DeepEqual(found.Subjects, adminBinding.Subjects) {
-		found.Subjects = adminBinding.Subjects
-		err = r.Update(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("updating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
 	}
 
 	workspaceViewerBinding := &rbac.ClusterRoleBinding{}
 
-	err = r.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("workspace:%s:viewer", workspaceName)}, workspaceViewerBinding)
-
-	if err != nil {
+	if err := r.Get(context.TODO(), types.NamespacedName{Name: iam.GetWorkspaceViewerRoleBindingName(workspaceName)}, workspaceViewerBinding); err != nil {
+		klog.Errorln(err)
 		return err
 	}
 
 	viewerBinding := &rbac.RoleBinding{}
-	viewerBinding.Name = viewer.Name
+	viewerBinding.Name = iam.NamespaceViewerRoleBindName
 	viewerBinding.Namespace = namespace.Name
-	viewerBinding.RoleRef = rbac.RoleRef{Name: viewer.Name, APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
+	viewerBinding.RoleRef = rbac.RoleRef{Name: viewer.Name, APIGroup: "rbac.authorization.k8s.io", Kind: iam.RoleKind}
 	viewerBinding.Subjects = workspaceViewerBinding.Subjects
 
-	err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: viewerBinding.Name}, found)
-
-	if errors.IsNotFound(err) {
-		err = r.Create(context.TODO(), viewerBinding)
-		if err != nil {
-			klog.Errorf("creating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
-		found = viewerBinding
-	} else if err != nil {
+	if err := r.createRoleBindingsIfNotExist(viewerBinding); err != nil {
+		klog.Errorln(err)
 		return err
-	}
-
-	if !reflect.DeepEqual(found.RoleRef, viewerBinding.RoleRef) {
-		err = r.Delete(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("deleting conflict role binding namespace: %s, role binding: %s, %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
-		err = fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, viewerBinding.Name)
-		klog.Errorf("conflict role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-		return err
-	}
-
-	if !reflect.DeepEqual(found.Subjects, viewerBinding.Subjects) {
-		found.Subjects = viewerBinding.Subjects
-		err = r.Update(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("updating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
 	}
 
 	return nil

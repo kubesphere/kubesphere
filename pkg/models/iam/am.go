@@ -42,9 +42,21 @@ import (
 
 const (
 	ClusterRoleKind             = "ClusterRole"
-	NamespaceAdminRoleBindName  = "admin"
-	NamespaceViewerRoleBindName = "viewer"
+	RoleKind                    = "Role"
+	NamespaceAdminRoleName      = "admin"
+	NamespaceOperatorRoleName   = "operator"
+	NamespaceViewerRoleName     = "viewer"
+	NamespaceAdminRoleBindName  = NamespaceAdminRoleName
+	NamespaceViewerRoleBindName = NamespaceViewerRoleName
 )
+
+func GetWorkspaceAdminRoleBindingName(workspaceName string) string {
+	return fmt.Sprintf("workspace:%s:admin", workspaceName)
+}
+
+func GetWorkspaceViewerRoleBindingName(workspaceName string) string {
+	return fmt.Sprintf("workspace:%s:viewer", workspaceName)
+}
 
 func GetDevopsRoleSimpleRules(role string) []models.SimpleRule {
 	var rules []models.SimpleRule
