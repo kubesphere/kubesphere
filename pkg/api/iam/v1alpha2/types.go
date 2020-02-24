@@ -47,12 +47,16 @@ type LoginRequest struct {
 	Password string `json:"password" description:"password"`
 }
 
-type UserCreateRequest struct {
+type UserDetail struct {
 	*iam.User
 	ClusterRole string `json:"cluster_role"`
 }
 
-func (request *UserCreateRequest) Validate() error {
+type CreateUserRequest struct {
+	*UserDetail
+}
+
+func (request *CreateUserRequest) Validate() error {
 	if request.Username == "" {
 		return fmt.Errorf("username must not be empty")
 	}
@@ -67,4 +71,40 @@ func (request *UserCreateRequest) Validate() error {
 	}
 
 	return nil
+}
+
+type ModifyUserRequest struct {
+	*UserDetail
+	CurrentPassword string `json:"current_password,omitempty" description:"this is necessary if you need to change your password"`
+}
+
+func (request *TokenReview) Validate() error {
+	if request.Spec == nil || request.Spec.Token == "" {
+		return fmt.Errorf("token must not be null")
+	}
+	return nil
+}
+
+func (request ModifyUserRequest) Validate() error {
+
+	// Parses a single RFC 5322 address, e.g. "Barry Gibbs <bg@example.com>"
+	if _, err := mail.ParseAddress(request.Email); err != nil {
+		return fmt.Errorf("invalid email: %s", request.Email)
+	}
+
+	if request.Password != "" {
+		if len(request.Password) < minPasswordLength {
+			return fmt.Errorf("password must be at least %d characters long", minPasswordLength)
+		}
+		if len(request.CurrentPassword) < minPasswordLength {
+			return fmt.Errorf("password must be at least %d characters long", minPasswordLength)
+		}
+
+	}
+	return nil
+}
+
+type ListUserResponse struct {
+	Items      []*UserDetail `json:"items"`
+	TotalCount int           `json:"total_count"`
 }

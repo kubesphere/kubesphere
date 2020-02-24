@@ -16,7 +16,7 @@ type Options struct {
 	RepoIndexerEndpoint       string `json:"repoIndexerEndpoint,omitempty" yaml:"repoIndexerEndpoint,omitempty"`
 }
 
-func NewOpenPitrixOptions() *Options {
+func NewOptions() *Options {
 	return &Options{}
 }
 

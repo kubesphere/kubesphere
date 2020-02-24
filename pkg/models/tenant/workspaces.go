@@ -46,13 +46,18 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+type InWorkspaceUser struct {
+	*iam.User
+	WorkspaceRole string `json:"workspaceRole"`
+}
+
 type WorkspaceInterface interface {
 	GetWorkspace(workspace string) (*v1alpha1.Workspace, error)
 	SearchWorkspace(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1alpha1.Workspace, error)
 	ListNamespaces(workspace string) ([]*core.Namespace, error)
 	DeleteNamespace(workspace, namespace string) error
 	RemoveUser(user, workspace string) error
-	AddUser(workspace string, user *iam.User) error
+	AddUser(workspace string, user *InWorkspaceUser) error
 	CountDevopsProjectsInWorkspace(workspace string) (int, error)
 	CountUsersInWorkspace(workspace string) (int, error)
 	CountOrgRoles() (int, error)
@@ -64,17 +69,19 @@ type workspaceOperator struct {
 	client      kubernetes.Interface
 	informers   informers.SharedInformerFactory
 	ksInformers externalversions.SharedInformerFactory
+	am          iam.AccessManagementInterface
 
 	// TODO: use db interface instead of mysql client
 	// we can refactor this after rewrite devops using crd
 	db *mysql.Database
 }
 
-func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, db *mysql.Database) WorkspaceInterface {
+func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, am iam.AccessManagementInterface, db *mysql.Database) WorkspaceInterface {
 	return &workspaceOperator{
 		client:      client,
 		informers:   informers,
 		ksInformers: ksinformers,
+		am:          am,
 		db:          db,
 	}
 }
@@ -104,7 +111,7 @@ func (w *workspaceOperator) DeleteNamespace(workspace string, namespace string) 
 }
 
 func (w *workspaceOperator) RemoveUser(workspace string, username string) error {
-	workspaceRole, err := iam.GetUserWorkspaceRole(workspace, username)
+	workspaceRole, err := w.am.GetWorkspaceRole(workspace, username)
 	if err != nil {
 		return err
 	}
@@ -117,9 +124,9 @@ func (w *workspaceOperator) RemoveUser(workspace string, username string) error 
 	return nil
 }
 
-func (w *workspaceOperator) AddUser(workspaceName string, user *iam.User) error {
+func (w *workspaceOperator) AddUser(workspaceName string, user *InWorkspaceUser) error {
 
-	workspaceRole, err := iam.GetUserWorkspaceRole(workspaceName, user.Username)
+	workspaceRole, err := w.am.GetWorkspaceRole(workspaceName, user.Username)
 
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.Errorf("get workspace role failed: %+v", err)
@@ -215,7 +222,7 @@ func (w *workspaceOperator) CountDevopsProjectsInWorkspace(workspaceName string)
 }
 
 func (w *workspaceOperator) CountUsersInWorkspace(workspace string) (int, error) {
-	count, err := iam.WorkspaceUsersTotalCount(workspace)
+	count, err := w.CountUsersInWorkspace(workspace)
 	if err != nil {
 		return 0, err
 	}
@@ -285,7 +292,7 @@ func (*workspaceOperator) compare(a, b *v1alpha1.Workspace, orderBy string) bool
 }
 
 func (w *workspaceOperator) SearchWorkspace(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1alpha1.Workspace, error) {
-	rules, err := iam.GetUserClusterRules(username)
+	rules, err := w.am.GetClusterPolicyRules(username)
 
 	if err != nil {
 		return nil, err
@@ -299,7 +306,7 @@ func (w *workspaceOperator) SearchWorkspace(username string, conditions *params.
 			return nil, err
 		}
 	} else {
-		workspaceRoles, err := iam.GetUserWorkspaceRoleMap(username)
+		workspaceRoles, err := w.am.GetWorkspaceRoleMap(username)
 		if err != nil {
 			return nil, err
 		}

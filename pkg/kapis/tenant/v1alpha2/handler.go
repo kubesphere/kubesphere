@@ -11,12 +11,15 @@ import (
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/logging"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/metrics"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
-	"kubesphere.io/kubesphere/pkg/server/errors"
+	apierr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"strings"
@@ -24,24 +27,31 @@ import (
 
 type tenantHandler struct {
 	tenant tenant.Interface
+	am     iam.AccessManagementInterface
 }
 
-func newTenantHandler() *tenantHandler {
-	return &tenantHandler{}
+func newTenantHandler(k8sClient k8s.Client, db *mysql.Database) *tenantHandler {
+	factory := informers.NewInformerFactories(k8sClient.Kubernetes(), k8sClient.KubeSphere(), k8sClient.S2i(), k8sClient.Application())
+
+	return &tenantHandler{
+		tenant: tenant.New(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory(), factory.KubeSphereSharedInformerFactory(), db),
+		am:     iam.NewAMOperator(factory.KubernetesSharedInformerFactory()),
+	}
 }
 
 func (h *tenantHandler) ListWorkspaceRules(req *restful.Request, resp *restful.Response) {
 	workspace := req.PathParameter("workspace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err := iam.GetUserWorkspaceSimpleRules(workspace, username)
+	rules, err := h.tenant.GetWorkspaceSimpleRules(workspace, username)
 
 	if err != nil {
+		klog.Errorln(err)
 		api.HandleInternalError(resp, err)
 		return
 	}
 
-	resp.WriteAsJson(rules)
+	resp.WriteEntity(rules)
 }
 
 func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Response) {
@@ -52,6 +62,7 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
+		klog.Errorln(err)
 		api.HandleBadRequest(resp, err)
 		return
 	}
@@ -180,9 +191,49 @@ func (h *tenantHandler) DeleteNamespace(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	resp.WriteAsJson(errors.None)
+	resp.WriteAsJson(apierr.None)
 }
 
+func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.Response) {
+
+	workspace := req.PathParameter("workspace")
+	username := req.PathParameter("member")
+	if username == "" {
+		username = req.HeaderParameter(constants.UserNameHeader)
+	}
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, v1alpha2.CreateTime)
+	limit, offset := params.ParsePaging(req)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	conditions, err := params.ParseConditions(req)
+
+	if err != nil {
+		api.HandleBadRequest(resp, err)
+		return
+	}
+	conditions.Match["workspace"] = workspace
+
+	result, err := h.tenant.ListDevopsProjects(username, conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		api.HandleInternalError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(result)
+}
+
+func (h *tenantHandler) GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
+	username := req.HeaderParameter(constants.UserNameHeader)
+
+	result, err := h.tenant.ListDevopsProjects(username, nil, "", false, 1, 0)
+	if err != nil {
+		api.HandleInternalError(resp, err)
+		return
+	}
+	resp.WriteEntity(struct {
+		Count int `json:"count"`
+	}{Count: result.TotalCount})
+}
 func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
 	projectId := req.PathParameter("devops")
 	workspace := req.PathParameter("workspace")
@@ -195,21 +246,40 @@ func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.
 		return
 	}
 
-	err = h.tenant.DeleteDevOpsProject(projectId, username)
+	err = h.tenant.DeleteDevOpsProject(username, projectId)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)
 		return
 	}
 
-	resp.WriteAsJson(errors.None)
+	resp.WriteEntity(apierr.None)
+}
+
+func (h *tenantHandler) CreateDevopsProject(req *restful.Request, resp *restful.Response) {
+
 }
 
 func (h *tenantHandler) ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	username := req.HeaderParameter(constants.UserNameHeader)
 
-	rules, err := iam.GetUserNamespaceSimpleRules(namespace, username)
+	rules, err := h.tenant.GetNamespaceSimpleRules(namespace, username)
+
+	if err != nil {
+		api.HandleInternalError(resp, err)
+		return
+	}
+
+	resp.WriteAsJson(rules)
+}
+
+func (h *tenantHandler) ListDevopsRules(req *restful.Request, resp *restful.Response) {
+
+	devops := req.PathParameter("devops")
+	username := req.HeaderParameter(constants.UserNameHeader)
+
+	rules, err := h.tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
 		api.HandleInternalError(resp, err)
@@ -247,19 +317,20 @@ func (h *tenantHandler) regenerateLoggingRequest(req *restful.Request) (*restful
 	newUrl := net.FormatURL("http", "127.0.0.1", 80, "/kapis/logging.kubesphere.io/v1alpha2/cluster")
 	values := req.Request.URL.Query()
 
-	clusterRules, err := iam.GetUserClusterRules(username)
+	clusterRoleRules, err := h.am.GetClusterPolicyRules(username)
+
 	if err != nil {
 		klog.Errorln(err)
 		return nil, err
 	}
 
-	hasClusterLogAccess := iam.RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}})
+	hasClusterLogAccess := iam.RulesMatchesRequired(clusterRoleRules, rbacv1.PolicyRule{Verbs: []string{"get"}, Resources: []string{"*"}, APIGroups: []string{"logging.kubesphere.io"}})
 	// if the user is not a cluster admin
 	if !hasClusterLogAccess {
 		queryNamespaces := strings.Split(req.QueryParameter("namespaces"), ",")
 		// then the user can only view logs of namespaces he belongs to
 		namespaces := make([]string, 0)
-		roles, err := iam.GetUserRoles("", username)
+		roles, err := h.am.GetRoles("", username)
 		if err != nil {
 			klog.Errorln(err)
 			return nil, err

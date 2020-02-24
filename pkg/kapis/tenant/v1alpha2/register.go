@@ -32,6 +32,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 
 	"net/http"
 )
@@ -42,9 +44,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, db *mysql.Database) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newTenantHandler()
+	handler := newTenantHandler(k8sClient, db)
 
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).
@@ -103,7 +105,7 @@ func AddToContainer(c *restful.Container) error {
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/devops").
-		To(handler.ListDevOpsProjectsHandler).
+		To(handler.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
 			Required(false).
@@ -115,7 +117,7 @@ func AddToContainer(c *restful.Container) error {
 		Doc("List devops projects for the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/devops").
-		To(handler.ListDevOpsProjectsHandler).
+		To(handler.ListDevopsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "workspace member's username")).
 		Param(ws.QueryParameter(params.PagingParam, "page").
@@ -129,14 +131,14 @@ func AddToContainer(c *restful.Container) error {
 		Doc("List the devops projects for the workspace member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devopscount").
-		To(handler.GetDevOpsProjectsCountHandler).
+		To(handler.GetDevOpsProjectsCount).
 		Returns(http.StatusOK, api.StatusOK, struct {
 			Count uint32 `json:"count"`
 		}{}).
 		Doc("Get the devops projects count for the member").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/devops").
-		To(handler.CreateDevOpsProjectHandler).
+		To(handler.CreateDevopsProject).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("Create a devops project in the specified workspace").
 		Reads(devopsv1alpha2.DevOpsProject{}).

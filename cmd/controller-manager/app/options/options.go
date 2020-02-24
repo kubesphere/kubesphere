@@ -29,7 +29,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		KubernetesOptions: k8s.NewKubernetesOptions(),
 		DevopsOptions:     jenkins.NewDevopsOptions(),
 		S3Options:         s3.NewS3Options(),
-		OpenPitrixOptions: openpitrix.NewOpenPitrixOptions(),
+		OpenPitrixOptions: openpitrix.NewOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,

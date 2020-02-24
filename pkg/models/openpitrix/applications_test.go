@@ -81,7 +81,6 @@ func TestApplicationOperator_CreateApplication(t *testing.T) {
 	defer ctrl.Finish()
 
 	for _, test := range tests {
-
 		op := openpitrix.NewMockClient(ctrl)
 		objs := namespacesToRuntimeObjects(test.existNamespaces...)
 		k8s := fake.NewSimpleClientset(objs...)

@@ -24,104 +24,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	iam2 "kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
-	"time"
 )
 
 const GroupName = "iam.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
-
-type UserUpdateRequest struct {
-	Username        string `json:"username" description:"username"`
-	Email           string `json:"email" description:"email address"`
-	Lang            string `json:"lang" description:"user's language setting, default is zh-CN"`
-	Description     string `json:"description" description:"user's description"`
-	Password        string `json:"password,omitempty" description:"this is necessary if you need to change your password"`
-	CurrentPassword string `json:"current_password,omitempty" description:"this is necessary if you need to change your password"`
-	ClusterRole     string `json:"cluster_role" description:"user's cluster role"`
-}
-
-type CreateUserRequest struct {
-	Username    string `json:"username" description:"username"`
-	Email       string `json:"email" description:"email address"`
-	Lang        string `json:"lang,omitempty" description:"user's language setting, default is zh-CN"`
-	Description string `json:"description" description:"user's description"`
-	Password    string `json:"password" description:"password'"`
-	ClusterRole string `json:"cluster_role" description:"user's cluster role"`
-}
-
-type UserList struct {
-	Items []struct {
-		Username      string    `json:"username" description:"username"`
-		Email         string    `json:"email" description:"email address"`
-		Lang          string    `json:"lang,omitempty" description:"user's language setting, default is zh-CN"`
-		Description   string    `json:"description" description:"user's description"`
-		ClusterRole   string    `json:"cluster_role" description:"user's cluster role"`
-		CreateTime    time.Time `json:"create_time" description:"user creation time"`
-		LastLoginTime time.Time `json:"last_login_time" description:"last login time"`
-	} `json:"items" description:"paging data"`
-	TotalCount int `json:"total_count" description:"total count"`
-}
-type NamespacedUser struct {
-	Username      string    `json:"username" description:"username"`
-	Email         string    `json:"email" description:"email address"`
-	Lang          string    `json:"lang,omitempty" description:"user's language setting, default is zh-CN"`
-	Description   string    `json:"description" description:"user's description"`
-	Role          string    `json:"role" description:"user's role in the specified namespace"`
-	RoleBinding   string    `json:"role_binding" description:"user's role binding name in the specified namespace"`
-	RoleBindTime  string    `json:"role_bind_time" description:"user's role binding time"`
-	CreateTime    time.Time `json:"create_time" description:"user creation time"`
-	LastLoginTime time.Time `json:"last_login_time" description:"last login time"`
-}
-
-type ClusterRoleList struct {
-	Items      []rbacv1.ClusterRole `json:"items" description:"paging data"`
-	TotalCount int                  `json:"total_count" description:"total count"`
-}
-
-type LoginLog struct {
-	LoginTime string `json:"login_time" description:"last login time"`
-	LoginIP   string `json:"login_ip" description:"last login ip"`
-}
-
-type RoleList struct {
-	Items      []rbacv1.Role `json:"items" description:"paging data"`
-	TotalCount int           `json:"total_count" description:"total count"`
-}
-
-type InviteUserRequest struct {
-	Username      string `json:"username" description:"username"`
-	WorkspaceRole string `json:"workspace_role" description:"user's workspace role'"`
-}
-
-type DescribeWorkspaceUserResponse struct {
-	Username      string    `json:"username" description:"username"`
-	Email         string    `json:"email" description:"email address"`
-	Lang          string    `json:"lang" description:"user's language setting, default is zh-CN"`
-	Description   string    `json:"description" description:"user's description"`
-	ClusterRole   string    `json:"cluster_role" description:"user's cluster role"`
-	WorkspaceRole string    `json:"workspace_role" description:"user's workspace role"`
-	CreateTime    time.Time `json:"create_time" description:"user creation time"`
-	LastLoginTime time.Time `json:"last_login_time" description:"last login time"`
-}
-
-func addWebService(c *restful.Container) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, ldapClient ldappool.Client, options iam.Config) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newIAMHandler()
+	handler := newIAMHandler(k8sClient, ldapClient, options)
 
 	ws.Route(ws.POST("/authenticate").
 		To(handler.TokenReviewHandler).
@@ -138,152 +59,132 @@ func addWebService(c *restful.Container) error {
 	ws.Route(ws.POST("/users").
 		To(handler.CreateUser).
 		Doc("Create a user account.").
-		Reads(CreateUserRequest{}).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Reads(iamv1alpha2.CreateUserRequest{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.GET("/users/{user}").
-		To(iam.DescribeUser).
-		Doc("Describe the specified user.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iam2.User{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-
 	ws.Route(ws.DELETE("/users/{user}").
-		To(iam.DeleteUser).
+		To(handler.DeleteUser).
 		Doc("Delete the specified user.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.PUT("/users/{user}").
-		To(iam.UpdateUser).
+		To(handler.ModifyUser).
 		Doc("Update information about the specified user.").
 		Param(ws.PathParameter("user", "username")).
-		Reads(UserUpdateRequest{}).
+		Reads(iamv1alpha2.ModifyUserRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.GET("/users/{user}/logs").
-		To(iam.UserLoginLogs).
-		Doc("Retrieve the \"login logs\" for the specified user.").
+	ws.Route(ws.GET("/users/{user}").
+		To(handler.DescribeUser).
+		Doc("Describe the specified user.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, LoginLog{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.GET("/users").
-		To(iam.ListUsers).
+		To(handler.ListUsers).
 		Doc("List all users.").
-		Returns(http.StatusOK, api.StatusOK, UserList{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 	ws.Route(ws.GET("/users/{user}/roles").
-		To(iam.ListUserRoles).
+		To(handler.ListUserRoles).
 		Doc("Retrieve all the roles that are assigned to the specified user.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iam.RoleList{}).
+		Returns(http.StatusOK, api.StatusOK, []*rbacv1.Role{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
-		To(iam.ListRoles).
+		To(handler.ListRoles).
 		Doc("Retrieve the roles that are assigned to the user in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Returns(http.StatusOK, api.StatusOK, RoleList{}).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles").
-		To(iam.ListClusterRoles).
+		To(handler.ListClusterRoles).
 		Doc("List all cluster roles.").
-		Returns(http.StatusOK, api.StatusOK, ClusterRoleList{}).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users").
 		To(handler.ListRoleUsers).
 		Doc("Retrieve the users that are bound to the role in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, api.StatusOK, []NamespacedUser{}).
+		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/users").
-		To(iam.ListNamespaceUsers).
+		To(handler.ListNamespaceUsers).
 		Doc("List all users in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Returns(http.StatusOK, api.StatusOK, []NamespacedUser{}).
+		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
-		To(iam.ListClusterRoleUsers).
+		To(handler.ListClusterRoleUsers).
 		Doc("List all users that are bound to the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Returns(http.StatusOK, api.StatusOK, UserList{}).
+		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/rules").
-		To(iam.ListClusterRoleRules).
+		To(handler.ListClusterRoleRules).
 		Doc("List all policy rules of the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam2.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, []iam.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/rules").
-		To(iam.ListRoleRules).
+		To(handler.ListRoleRules).
 		Doc("List all policy rules of the specified role in the given namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam2.SimpleRule{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/devops/{devops}/roles/{role}/rules").
-		To(iam.ListDevopsRoleRules).
-		Doc("List all policy rules of the specified role in the given devops project.").
-		Param(ws.PathParameter("devops", "devops project ID")).
-		Param(ws.PathParameter("role", "devops role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam2.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, []iam.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/rulesmapping/clusterroles").
-		To(iam.ClusterRulesMapping).
+		To(handler.ClusterRulesMapping).
 		Doc("Get the mapping relationships between cluster roles and policy rules.").
 		Returns(http.StatusOK, api.StatusOK, policy.ClusterRoleRuleMapping).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/rulesmapping/roles").
-		To(iam.RulesMapping).
+		To(handler.RulesMapping).
 		Doc("Get the mapping relationships between namespaced roles and policy rules.").
 		Returns(http.StatusOK, api.StatusOK, policy.RoleRuleMapping).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/roles").
-		To(iam.ListWorkspaceRoles).
+		To(handler.ListWorkspaceRoles).
 		Doc("List all workspace roles.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Returns(http.StatusOK, api.StatusOK, ClusterRoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}").
-		To(iam.DescribeWorkspaceRole).
+		To(handler.DescribeWorkspaceRole).
 		Doc("Describe the workspace role.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("role", "workspace role name")).
-		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}/rules").
-		To(iam.ListWorkspaceRoleRules).
+		To(handler.ListWorkspaceRoleRules).
 		Doc("List all policy rules of the specified workspace role.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("role", "workspace role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam2.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members").
-		To(iam.ListWorkspaceUsers).
+		To(handler.ListWorkspaceUsers).
 		Doc("List all members in the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Returns(http.StatusOK, api.StatusOK, UserList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/members").
-		To(iam.InviteUser).
+		To(handler.InviteUser).
 		Doc("Invite a member to the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
-		Reads(InviteUserRequest{}).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{member}").
-		To(iam.RemoveUser).
+		To(handler.RemoveUser).
 		Doc("Remove the specified member from the workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "username")).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}").
-		To(iam.DescribeWorkspaceUser).
+		To(handler.DescribeWorkspaceUser).
 		Doc("Describe the specified user in the given workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("member", "username")).
-		Returns(http.StatusOK, api.StatusOK, DescribeWorkspaceUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	c.Add(ws)
 	return nil

@@ -19,12 +19,16 @@ package tenant
 
 import (
 	"k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"strconv"
@@ -36,14 +40,35 @@ type Interface interface {
 	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
 	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
-	GetWorkspace(workspace string) (*v1alpha1.Workspace, error)
-	DevOpsProjectOperator
+	ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
+	GetWorkspaceSimpleRules(workspace, username string) ([]iam.SimpleRule, error)
+	GetNamespaceSimpleRules(namespace, username string) ([]iam.SimpleRule, error)
+	CountDevOpsProjects(username string) (uint32, error)
+	DeleteDevOpsProject(username, projectId string) error
+	GetUserDevopsSimpleRules(username string, devops string) (interface{}, error)
 }
 
 type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
-	DevOpsProjectOperator
+	am         iam.AccessManagementInterface
+	devops     DevOpsProjectOperator
+}
+
+func (t *tenantOperator) CountDevOpsProjects(username string) (uint32, error) {
+	return t.devops.GetDevOpsProjectsCount(username)
+}
+
+func (t *tenantOperator) DeleteDevOpsProject(username, projectId string) error {
+	return t.devops.DeleteDevOpsProject(projectId, username)
+}
+
+func (t *tenantOperator) GetUserDevopsSimpleRules(username string, projectId string) (interface{}, error) {
+	return t.devops.GetUserDevOpsSimpleRules(username, projectId)
+}
+
+func (t *tenantOperator) ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
+	return t.devops.ListDevOpsProjects(conditions.Match["workspace"], username, conditions, orderBy, reverse, limit, offset)
 }
 
 func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
@@ -51,9 +76,11 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 }
 
 func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
+	amOperator := iam.NewAMOperator(informers)
 	return &tenantOperator{
-		workspaces: newWorkspaceOperator(client, informers, ksinformers, db),
-		namespaces: newNamespaceOperator(client, informers),
+		workspaces: newWorkspaceOperator(client, informers, ksinformers, amOperator, db),
+		namespaces: newNamespaceOperator(client, informers, amOperator),
+		am:         amOperator,
 	}
 }
 
@@ -95,17 +122,69 @@ func (t *tenantOperator) ListWorkspaces(username string, conditions *params.Cond
 	return &models.PageableResponse{Items: result, TotalCount: len(workspaces)}, nil
 }
 
+func (t *tenantOperator) GetWorkspaceSimpleRules(workspace, username string) ([]iam.SimpleRule, error) {
+	clusterRules, err := t.am.GetClusterPolicyRules(username)
+	if err != nil {
+		return nil, err
+	}
+
+	// cluster-admin
+	if iam.RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
+		Verbs:     []string{"*"},
+		APIGroups: []string{"*"},
+		Resources: []string{"*"},
+	}) {
+		return t.am.GetWorkspaceRoleSimpleRules(workspace, constants.WorkspaceAdmin), nil
+	}
+
+	workspaceRole, err := t.am.GetWorkspaceRole(workspace, username)
+
+	// workspaces-manager
+	if iam.RulesMatchesRequired(clusterRules, rbacv1.PolicyRule{
+		Verbs:     []string{"*"},
+		APIGroups: []string{"*"},
+		Resources: []string{"workspaces", "workspaces/*"},
+	}) {
+		return t.am.GetWorkspaceRoleSimpleRules(workspace, constants.WorkspacesManager), nil
+	}
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return []iam.SimpleRule{}, nil
+		}
+
+		klog.Error(err)
+		return nil, err
+	}
+
+	return t.am.GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Annotations[constants.DisplayNameAnnotationKey]), nil
+}
+
+func (t *tenantOperator) GetNamespaceSimpleRules(namespace, username string) ([]iam.SimpleRule, error) {
+	clusterRules, err := t.am.GetClusterPolicyRules(username)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := t.am.GetPolicyRules(namespace, username)
+	if err != nil {
+		return nil, err
+	}
+	rules = append(rules, clusterRules...)
+
+	return iam.ConvertToSimpleRule(rules), nil
+}
+
 func (t *tenantOperator) appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
 	workspace = workspace.DeepCopy()
 	if workspace.Annotations == nil {
 		workspace.Annotations = make(map[string]string)
 	}
-	ns, err := t.ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
-	if err == nil {
+
+	if ns, err := t.ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0); err == nil {
 		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
 	}
-	devops, err := t.ListDevOpsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
-	if err == nil {
+
+	if devops, err := t.ListDevopsProjects(username, &params.Conditions{Match: map[string]string{"workspace": workspace.Name}}, "", false, 1, 0); err == nil {
 		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
 	}
 
@@ -134,8 +213,4 @@ func (t *tenantOperator) ListNamespaces(username string, conditions *params.Cond
 	}
 
 	return &models.PageableResponse{Items: result, TotalCount: len(namespaces)}, nil
-}
-
-func (t *tenantOperator) GetWorkspace(workspace string) (*v1alpha1.Workspace, error) {
-	return t.workspaces.GetWorkspace(workspace)
 }

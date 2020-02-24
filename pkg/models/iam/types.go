@@ -28,6 +28,16 @@ const (
 	KindTokenReview = "TokenReview"
 )
 
+type User struct {
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	Lang        string    `json:"lang,omitempty"`
+	Description string    `json:"description"`
+	CreateTime  time.Time `json:"create_time"`
+	Groups      []string  `json:"groups,omitempty"`
+	Password    string    `json:"password,omitempty"`
+}
+
 type Action struct {
 	Name  string          `json:"name"`
 	Rules []v1.PolicyRule `json:"rules"`
@@ -46,16 +56,4 @@ type SimpleRule struct {
 type RoleList struct {
 	ClusterRoles []*v1.ClusterRole `json:"clusterRole" description:"cluster role list"`
 	Roles        []*v1.Role        `json:"roles" description:"role list"`
-}
-
-type Config struct {
-	adminEmail         string
-	adminPassword      string
-	authRateLimit      string
-	maxAuthFailed      int
-	authTimeInterval   time.Duration
-	tokenIdleTimeout   time.Duration
-	userInitFile       string
-	enableMultiLogin   bool
-	generateKubeConfig bool
 }

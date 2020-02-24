@@ -20,19 +20,26 @@ package jwtutil
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"os"
 )
 
 const secretEnv = "JWT_SECRET"
 
-var secret []byte
+var secretKey []byte
 
-func Setup(key string) {
-	secret = []byte(key)
+func init() {
+	if secret := os.Getenv(secretEnv); secret != "" {
+		Setup(secret)
+	}
+}
+
+func Setup(secret string) {
+	secretKey = []byte(secret)
 }
 
 func MustSigned(claims jwt.MapClaims) string {
 	uToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := uToken.SignedString(secret)
+	token, err := uToken.SignedString(secretKey)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +48,7 @@ func MustSigned(claims jwt.MapClaims) string {
 
 func provideKey(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-		return secret, nil
+		return secretKey, nil
 	} else {
 		return nil, fmt.Errorf("expect token signed with HMAC but got %v", token.Header["alg"])
 	}

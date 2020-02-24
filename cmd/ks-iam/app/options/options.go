@@ -49,7 +49,7 @@ func NewServerRunOptions() *ServerRunOptions {
 	s := &ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
 		KubernetesOptions:       k8s.NewKubernetesOptions(),
-		LdapOptions:             ldap.NewLdapOptions(),
+		LdapOptions:             ldap.NewOptions(),
 		MySQLOptions:            mysql.NewMySQLOptions(),
 		RedisOptions:            cache.NewRedisOptions(),
 	}
