@@ -44,7 +44,8 @@ TODO(@soulseen)
 
 ### KubeSphere Monitoring 
 
-TODO(@huanggze)
+- [Overview](kubesphere-monitoring.md#Overview): Explains the architecture and key components behind the monitoring system.
+- [Setup](kubesphere-monitoring.md#Setup): Introduces manifests related to Prometheus setup.
 
 ### KubeSphere Logging 
 

@@ -69,7 +69,10 @@ TODO(@soulseen)
 
 ### KubeSphere Monitoring developer
 
-TODO(@huanggze)
+1. Read kubesphere's [Concepts And Designs for Monitoring](../concepts-and-designs/kubesphere-monitoring.md). Understand KubeSphere's monitoring stack.
+2. For Prometheus and its wider eco-system setup, go to [kube-prometheus](https://github.com/kubesphere/prometheus-operator/tree/ks-v0.27.0/contrib/kube-prometheus).
+3. For KubeSphere builtin metric rules, see [metrics_rules.go](https://github.com/kubesphere/kubesphere/blob/master/pkg/models/metrics/metrics_rules.go) and [kubernetes-mixin](https://github.com/kubesphere/kubernetes-mixin/blob/ks-v0.27.0/rules/rules.libsonnet).
+4. For developers who are interested in KubeSphere monitoring backend, read [Development Guide for Monitoring](kubesphere-monitoring-development-guide.md) and [API doc](https://kubesphere.com.cn/docs/v2.1/api/kubesphere#tag/Cluster-Metrics).
 
 ### KubeSphere Logging developer
 
