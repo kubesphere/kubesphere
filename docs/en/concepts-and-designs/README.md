@@ -40,7 +40,7 @@ Read [DevOps Pipeline Overview](devops-pipeline-overview.md).
 
 ### KubeSphere S2I/B2I 
 
-TODO(@soulseen)
+Read [S2I/B2I Overview](s2i_b2i_overview.md)
 
 ### KubeSphere Monitoring 
 

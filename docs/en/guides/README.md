@@ -65,7 +65,9 @@ The function of KubeSphere DevOps is mainly provided by KubeSphere apiserver.
 
 ### KubeSphere S2I/B2I developer
 
-TODO(@soulseen)
+1. If users who are interested in S2I/B2I, please read [S2I/B2I](https://github.com/kubesphere/s2ioperator#source-to-image-operator) to get start it.
+
+2. For developers who want to contribute, see [Development Guide for S2I/B2I](https://github.com/kubesphere/s2ioperator/blob/master/docs/DEVELOPMENT.md)
 
 ### KubeSphere Monitoring developer
 
