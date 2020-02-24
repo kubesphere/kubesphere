@@ -211,7 +211,6 @@ func checkResourceQuotas(wokrspace *v1alpha1.Workspace) error {
 	return nil
 }
 
-
 func ListNamespaceRules(req *restful.Request, resp *restful.Response) {
 	namespace := req.PathParameter("namespace")
 	username := req.HeaderParameter(constants.UserNameHeader)
