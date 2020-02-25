@@ -78,7 +78,7 @@ func addWebService(c *restful.Container, devopsClient devops.Interface,
 			Writes([]sonarqube.SonarStatus{}))
 	}
 
-	if projectPipleineEnable{
+	if projectPipleineEnable {
 		projectPipelineHander := NewProjectPipelineHandler(devopsClient, dbClient)
 		webservice.Route(webservice.GET("/devops/{devops}").
 			To(projectPipelineHander.GetDevOpsProjectHandler).
@@ -189,8 +189,6 @@ func addWebService(c *restful.Container, devopsClient devops.Interface,
 			Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
 			Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
 			Writes(devops.ProjectPipeline{}))
-
-
 
 		webservice.Route(webservice.POST("/devops/{devops}/credentials").
 			To(projectPipelineHander.CreateDevOpsProjectCredentialHandler).
@@ -785,7 +783,6 @@ The last one is encrypted info, such as the password of the username-password ty
 			Writes(devops.ResJson{}))
 	}
 
-
 	if s2iEnable {
 		s2iHandler := NewS2iBinaryHandler(ksClient, ksInformer, s3Client)
 		webservice.Route(webservice.PUT("/namespaces/{namespace}/s2ibinaries/{s2ibinary}/file").
@@ -808,7 +805,7 @@ The last one is encrypted info, such as the password of the username-password ty
 			Param(webservice.PathParameter("file", "the name of binary file")).
 			Returns(http.StatusOK, RespOK, nil))
 	}
-	
+
 	c.Add(webservice)
 
 	return nil

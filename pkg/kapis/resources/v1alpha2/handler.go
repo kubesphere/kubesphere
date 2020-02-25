@@ -5,10 +5,13 @@ import (
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/git"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/quotas"
 	"kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
@@ -31,6 +34,8 @@ type resourceHandler struct {
 	routerOperator      routers.RouterOperator
 	gitVerifier         git.GitVerifier
 	registryGetter      registries.RegistryGetter
+	kubeconfigOperator  kubeconfig.Interface
+	kubectlOperator     kubectl.Interface
 }
 
 func newResourceHandler(client k8s.Client) *resourceHandler {
@@ -45,6 +50,8 @@ func newResourceHandler(client k8s.Client) *resourceHandler {
 		routerOperator:      routers.NewRouterOperator(client.Kubernetes(), factory.KubernetesSharedInformerFactory()),
 		gitVerifier:         git.NewGitVerifier(factory.KubernetesSharedInformerFactory()),
 		registryGetter:      registries.NewRegistryGetter(factory.KubernetesSharedInformerFactory()),
+		kubeconfigOperator:  kubeconfig.NewKubeconfigOperator(),
+		kubectlOperator:     kubectl.NewKubectlOperator(client.Kubernetes(), factory.KubernetesSharedInformerFactory()),
 	}
 }
 
@@ -340,6 +347,35 @@ func (r *resourceHandler) handleGetNamespacedAbnormalWorkloads(request *restful.
 
 }
 
-func (r *resourceHandler) handleGetAbnormalWorkloads(request *restful.Request, response *restful.Response) {
-	r.handleGetNamespacedAbnormalWorkloads(request, response)
+func (r *resourceHandler) GetKubectlPod(request *restful.Request, response *restful.Response) {
+	user := request.PathParameter("user")
+
+	kubectlPod, err := r.kubectlOperator.GetKubectlPod(user)
+
+	if err != nil {
+		klog.Errorln(err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
+		return
+	}
+
+	response.WriteEntity(kubectlPod)
+}
+
+func (r *resourceHandler) GetKubeconfig(request *restful.Request, response *restful.Response) {
+	user := request.PathParameter("user")
+
+	kubectlConfig, err := r.kubeconfigOperator.GetKubeConfig(user)
+
+	if err != nil {
+		klog.Error(err)
+		if k8serr.IsNotFound(err) {
+			// recreate
+			response.WriteHeaderAndJson(http.StatusNotFound, errors.Wrap(err), restful.MIME_JSON)
+		} else {
+			response.WriteHeaderAndJson(http.StatusInternalServerError, errors.Wrap(err), restful.MIME_JSON)
+		}
+		return
+	}
+
+	response.Write([]byte(kubectlConfig))
 }

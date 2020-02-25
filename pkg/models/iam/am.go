@@ -28,7 +28,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
-	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/clusterrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
@@ -538,17 +537,18 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 		return err
 	}
 
+	// TODO move to user controller
 	if clusterRoleName == constants.ClusterAdmin {
 		// create kubectl pod if cluster role is cluster-admin
-		if err := kubectl.CreateKubectlDeploy(username); err != nil {
-			klog.Error("create user terminal pod failed", username, err)
-		}
+		//if err := kubectl.CreateKubectlDeploy(username); err != nil {
+		//	klog.Error("create user terminal pod failed", username, err)
+		//}
 
 	} else {
 		// delete kubectl pod if cluster role is not cluster-admin, whether it exists or not
-		if err := kubectl.DelKubectlDeploy(username); err != nil {
-			klog.Error("delete user terminal pod failed", username, err)
-		}
+		//if err := kubectl.DelKubectlDeploy(username); err != nil {
+		//	klog.Error("delete user terminal pod failed", username, err)
+		//}
 	}
 
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
