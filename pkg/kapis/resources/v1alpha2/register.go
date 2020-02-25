@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/apiserver/resources"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -82,7 +81,7 @@ func AddToContainer(c *restful.Container, client k8s.Client) error {
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")))
 
 	webservice.Route(webservice.GET("/users/{user}/kubectl").
-		To(resources.GetKubectl).
+		To(handler.GetKubectlPod).
 		Doc("get user's kubectl pod").
 		Param(webservice.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.UserResourcesTag}).
@@ -90,7 +89,7 @@ func AddToContainer(c *restful.Container, client k8s.Client) error {
 
 	webservice.Route(webservice.GET("/users/{user}/kubeconfig").
 		Produces("text/plain", restful.MIME_JSON).
-		To(resources.GetKubeconfig).
+		To(handler.GetKubeconfig).
 		Doc("get users' kubeconfig").
 		Param(webservice.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, "").
@@ -214,7 +213,7 @@ func AddToContainer(c *restful.Container, client k8s.Client) error {
 		Doc("get abnormal workloads' count of whole cluster").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
 		Returns(http.StatusOK, api.StatusOK, api.Workloads{}).
-		To(handler.handleGetAbnormalWorkloads))
+		To(handler.handleGetNamespacedAbnormalWorkloads))
 	webservice.Route(webservice.GET("/namespaces/{namespace}/abnormalworkloads").
 		Doc("get abnormal workloads' count of specified namespace").
 		Param(webservice.PathParameter("namespace", "the name of the project")).
