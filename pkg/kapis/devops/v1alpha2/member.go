@@ -18,12 +18,11 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
-	"net/http"
 )
 
 func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {
@@ -34,7 +33,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	orderBy := request.QueryParameter(params.OrderByParam)
@@ -46,7 +45,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -63,14 +62,14 @@ func (h ProjectPipelineHandler) GetDevOpsProjectMemberHandler(request *restful.R
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	project, err := h.projectMemberOperator.GetProjectMember(projectId, member)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -86,26 +85,26 @@ func (h ProjectPipelineHandler) AddDevOpsProjectMemberHandler(request *restful.R
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	if govalidator.IsNull(member.Username) {
 		err := fmt.Errorf("error need username")
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	if !reflectutils.In(member.Role, devops.AllRoleSlice) {
 		err := fmt.Errorf("err role [%s] not in [%s]", member.Role,
 			devops.AllRoleSlice)
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 
@@ -114,7 +113,7 @@ func (h ProjectPipelineHandler) AddDevOpsProjectMemberHandler(request *restful.R
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -130,41 +129,41 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectMemberHandler(request *restfu
 	err := request.ReadEntity(&member)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	member.Username = request.PathParameter("member")
 	if govalidator.IsNull(member.Username) {
 		err := fmt.Errorf("error need username")
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	if username == member.Username {
 		err := fmt.Errorf("you can not change your role")
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	if !reflectutils.In(member.Role, devops.AllRoleSlice) {
 		err := fmt.Errorf("err role [%s] not in [%s]", member.Role,
 			devops.AllRoleSlice)
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	project, err := h.projectMemberOperator.UpdateProjectMember(projectId, member)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -181,13 +180,13 @@ func (h ProjectPipelineHandler) DeleteDevOpsProjectMemberHandler(request *restfu
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	username, err = h.projectMemberOperator.DeleteProjectMember(projectId, member)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 	resp.WriteAsJson(struct {

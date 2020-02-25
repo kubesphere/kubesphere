@@ -16,10 +16,9 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
 )
 
 func (h ProjectPipelineHandler) CreateDevOpsProjectCredentialHandler(request *restful.Request, resp *restful.Response) {
@@ -30,14 +29,14 @@ func (h ProjectPipelineHandler) CreateDevOpsProjectCredentialHandler(request *re
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	credentialId, err := h.projectCredentialOperator.CreateProjectCredential(projectId, username, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -55,14 +54,14 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectCredentialHandler(request *re
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	credentialId, err = h.projectCredentialOperator.UpdateProjectCredential(projectId, credentialId, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -81,7 +80,7 @@ func (h ProjectPipelineHandler) DeleteDevOpsProjectCredentialHandler(request *re
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -100,7 +99,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectCredentialHandler(request *restf
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -114,7 +113,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectCredentialsHandler(request *rest
 	jenkinsCredentials, err := h.projectCredentialOperator.GetProjectCredentials(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 	resp.WriteAsJson(jenkinsCredentials)
