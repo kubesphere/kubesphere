@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"strconv"
@@ -41,8 +42,8 @@ type Interface interface {
 	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
-	GetWorkspaceSimpleRules(workspace, username string) ([]iam.SimpleRule, error)
-	GetNamespaceSimpleRules(namespace, username string) ([]iam.SimpleRule, error)
+	GetWorkspaceSimpleRules(workspace, username string) ([]policy.SimpleRule, error)
+	GetNamespaceSimpleRules(namespace, username string) ([]policy.SimpleRule, error)
 	CountDevOpsProjects(username string) (uint32, error)
 	DeleteDevOpsProject(username, projectId string) error
 	GetUserDevopsSimpleRules(username string, devops string) (interface{}, error)
@@ -122,7 +123,7 @@ func (t *tenantOperator) ListWorkspaces(username string, conditions *params.Cond
 	return &models.PageableResponse{Items: result, TotalCount: len(workspaces)}, nil
 }
 
-func (t *tenantOperator) GetWorkspaceSimpleRules(workspace, username string) ([]iam.SimpleRule, error) {
+func (t *tenantOperator) GetWorkspaceSimpleRules(workspace, username string) ([]policy.SimpleRule, error) {
 	clusterRules, err := t.am.GetClusterPolicyRules(username)
 	if err != nil {
 		return nil, err
@@ -150,7 +151,7 @@ func (t *tenantOperator) GetWorkspaceSimpleRules(workspace, username string) ([]
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return []iam.SimpleRule{}, nil
+			return []policy.SimpleRule{}, nil
 		}
 
 		klog.Error(err)
@@ -160,7 +161,7 @@ func (t *tenantOperator) GetWorkspaceSimpleRules(workspace, username string) ([]
 	return t.am.GetWorkspaceRoleSimpleRules(workspace, workspaceRole.Annotations[constants.DisplayNameAnnotationKey]), nil
 }
 
-func (t *tenantOperator) GetNamespaceSimpleRules(namespace, username string) ([]iam.SimpleRule, error) {
+func (t *tenantOperator) GetNamespaceSimpleRules(namespace, username string) ([]policy.SimpleRule, error) {
 	clusterRules, err := t.am.GetClusterPolicyRules(username)
 	if err != nil {
 		return nil, err

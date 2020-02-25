@@ -29,7 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -63,19 +63,19 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, db *mysql.Databa
 		To(handler.ListWorkspaceRules).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the rules of the specified workspace for the current user").
-		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, policy.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/rules").
 		To(handler.ListNamespaceRules).
 		Param(ws.PathParameter("namespace", "the name of the namespace")).
 		Doc("List the rules of the specified namespace for the current user").
-		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, policy.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/devops/{devops}/rules").
 		To(handler.ListDevopsRules).
 		Param(ws.PathParameter("devops", "devops project ID")).
 		Doc("List the rules of the specified DevOps project for the current user").
-		Returns(http.StatusOK, api.StatusOK, iam.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, policy.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
 		To(handler.ListNamespaces).
