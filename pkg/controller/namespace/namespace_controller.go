@@ -32,8 +32,8 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"reflect"
@@ -261,7 +261,7 @@ func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namesp
 		if adminBinding.Subjects == nil {
 			adminBinding.Subjects = make([]rbac.Subject, 0)
 		}
-		if !k8sutil.ContainsUser(adminBinding.Subjects, creatorName) {
+		if !iam.ContainsUser(adminBinding.Subjects, creatorName) {
 			adminBinding.Subjects = append(adminBinding.Subjects, creator)
 		}
 	}

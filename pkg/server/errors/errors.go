@@ -19,6 +19,8 @@ package errors
 
 import (
 	"fmt"
+	"github.com/emicklei/go-restful"
+	"net/http"
 )
 
 type Error struct {

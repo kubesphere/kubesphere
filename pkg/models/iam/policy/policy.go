@@ -21,21 +21,20 @@ package policy
 import (
 	"encoding/json"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/models/iam"
-
 	"k8s.io/api/rbac/v1"
 )
 
 const (
-	rulesConfigPath        = iam.ConfigPath + "/rules.json"
-	clusterRulesConfigPath = iam.ConfigPath + "/clusterrules.json"
+	configPath             = "/etc/kubesphere/iam"
+	rulesConfigPath        = configPath + "/rules.json"
+	clusterRulesConfigPath = configPath + "/clusterrules.json"
 )
 
 func init() {
 	rulesConfig, err := ioutil.ReadFile(rulesConfigPath)
 
 	if err == nil {
-		config := &[]iam.Rule{}
+		config := &[]Rule{}
 		json.Unmarshal(rulesConfig, config)
 		if len(*config) > 0 {
 			RoleRuleMapping = *config
@@ -45,7 +44,7 @@ func init() {
 	clusterRulesConfig, err := ioutil.ReadFile(clusterRulesConfigPath)
 
 	if err == nil {
-		config := &[]iam.Rule{}
+		config := &[]Rule{}
 		json.Unmarshal(clusterRulesConfig, config)
 		if len(*config) > 0 {
 			ClusterRoleRuleMapping = *config
@@ -54,9 +53,9 @@ func init() {
 }
 
 var (
-	ClusterRoleRuleMapping = []iam.Rule{
+	ClusterRoleRuleMapping = []Rule{
 		{Name: "workspaces",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{
 					Name: "manage",
 					Rules: []v1.PolicyRule{
@@ -71,7 +70,7 @@ var (
 		},
 		{
 			Name: "monitoring",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -87,7 +86,7 @@ var (
 		},
 		{
 			Name: "alerting",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -113,7 +112,7 @@ var (
 		},
 		{
 			Name: "logging",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -125,7 +124,7 @@ var (
 		},
 		{
 			Name: "accounts",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -192,7 +191,7 @@ var (
 			},
 		}, {
 			Name: "roles",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -238,7 +237,7 @@ var (
 			},
 		}, {
 			Name: "storageclasses",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -282,7 +281,7 @@ var (
 			},
 		}, {
 			Name: "nodes",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -313,7 +312,7 @@ var (
 			},
 		}, {
 			Name: "repos",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -353,7 +352,7 @@ var (
 			},
 		}, {
 			Name: "apps",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -366,7 +365,7 @@ var (
 			},
 		}, {
 			Name: "components",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -379,9 +378,9 @@ var (
 			},
 		}}
 
-	RoleRuleMapping = []iam.Rule{{
+	RoleRuleMapping = []Rule{{
 		Name: "projects",
-		Actions: []iam.Action{
+		Actions: []Action{
 			{Name: "view",
 				Rules: []v1.PolicyRule{
 					{
@@ -418,7 +417,7 @@ var (
 	},
 		{
 			Name: "monitoring",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -435,7 +434,7 @@ var (
 
 		{
 			Name: "alerting",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{{
 						Verbs:     []string{"get", "list"},
@@ -461,7 +460,7 @@ var (
 		},
 		{
 			Name: "members",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -507,7 +506,7 @@ var (
 		},
 		{
 			Name: "roles",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -548,7 +547,7 @@ var (
 		},
 		{
 			Name: "deployments",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -604,7 +603,7 @@ var (
 			},
 		}, {
 			Name: "statefulsets",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -658,7 +657,7 @@ var (
 			},
 		}, {
 			Name: "daemonsets",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -703,7 +702,7 @@ var (
 			},
 		}, {
 			Name: "pods",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "terminal",
 					Rules: []v1.PolicyRule{
 						{
@@ -735,7 +734,7 @@ var (
 		},
 		{
 			Name: "services",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -777,7 +776,7 @@ var (
 		},
 		{
 			Name: "internet",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -819,7 +818,7 @@ var (
 
 		{
 			Name: "routes",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -859,7 +858,7 @@ var (
 			},
 		}, {
 			Name: "volumes",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -899,7 +898,7 @@ var (
 			},
 		}, {
 			Name: "applications",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view",
 					Rules: []v1.PolicyRule{
 						{
@@ -953,7 +952,7 @@ var (
 		},
 		{
 			Name: "jobs",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -986,7 +985,7 @@ var (
 		},
 		{
 			Name: "cronjobs",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -1019,7 +1018,7 @@ var (
 		},
 		{
 			Name: "secrets",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -1052,7 +1051,7 @@ var (
 		},
 		{
 			Name: "configmaps",
-			Actions: []iam.Action{
+			Actions: []Action{
 				{Name: "view", Rules: []v1.PolicyRule{
 					{
 						Verbs:     []string{"get", "list"},
@@ -1085,3 +1084,18 @@ var (
 		},
 	}
 )
+
+type Action struct {
+	Name  string          `json:"name"`
+	Rules []v1.PolicyRule `json:"rules"`
+}
+
+type Rule struct {
+	Name    string   `json:"name"`
+	Actions []Action `json:"actions"`
+}
+
+type SimpleRule struct {
+	Name    string   `json:"name" description:"rule name"`
+	Actions []string `json:"actions" description:"actions"`
+}

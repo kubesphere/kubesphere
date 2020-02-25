@@ -126,14 +126,14 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, ldapClient ldapp
 		To(handler.ListClusterRoleRules).
 		Doc("List all policy rules of the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, []policy.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/rules").
 		To(handler.ListRoleRules).
 		Doc("List all policy rules of the specified role in the given namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, api.StatusOK, []iam.SimpleRule{}).
+		Returns(http.StatusOK, api.StatusOK, []policy.SimpleRule{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/rulesmapping/clusterroles").
 		To(handler.ClusterRulesMapping).

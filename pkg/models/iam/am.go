@@ -51,12 +51,12 @@ type AccessManagementInterface interface {
 	ListRoles(namespace string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 	ListClusterRoles(conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 	ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error)
-	GetClusterRoleSimpleRules(clusterRole string) ([]SimpleRule, error)
-	GetRoleSimpleRules(namespace string, role string) ([]SimpleRule, error)
+	GetClusterRoleSimpleRules(clusterRole string) ([]policy.SimpleRule, error)
+	GetRoleSimpleRules(namespace string, role string) ([]policy.SimpleRule, error)
 	GetRoles(namespace, username string) ([]*rbacv1.Role, error)
 	GetClusterPolicyRules(username string) ([]rbacv1.PolicyRule, error)
 	GetPolicyRules(namespace, username string) ([]rbacv1.PolicyRule, error)
-	GetWorkspaceRoleSimpleRules(workspace, roleName string) []SimpleRule
+	GetWorkspaceRoleSimpleRules(workspace, roleName string) []policy.SimpleRule
 	GetWorkspaceRole(workspace, username string) (*rbacv1.ClusterRole, error)
 	GetWorkspaceRoleMap(username string) (map[string]string, error)
 }
@@ -97,12 +97,12 @@ func NewAMOperator(informers informers.SharedInformerFactory) *amOperator {
 	return &amOperator{informers: informers, resources: resourceGetter}
 }
 
-func (am *amOperator) GetDevopsRoleSimpleRules(role string) []SimpleRule {
-	var rules []SimpleRule
+func (am *amOperator) GetDevopsRoleSimpleRules(role string) []policy.SimpleRule {
+	var rules []policy.SimpleRule
 
 	switch role {
 	case "developer":
-		rules = []SimpleRule{
+		rules = []policy.SimpleRule{
 			{Name: "pipelines", Actions: []string{"view", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
@@ -110,7 +110,7 @@ func (am *amOperator) GetDevopsRoleSimpleRules(role string) []SimpleRule {
 		}
 		break
 	case "owner":
-		rules = []SimpleRule{
+		rules = []policy.SimpleRule{
 			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"create", "edit", "view", "delete"}},
@@ -119,7 +119,7 @@ func (am *amOperator) GetDevopsRoleSimpleRules(role string) []SimpleRule {
 		}
 		break
 	case "maintainer":
-		rules = []SimpleRule{
+		rules = []policy.SimpleRule{
 			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
@@ -130,7 +130,7 @@ func (am *amOperator) GetDevopsRoleSimpleRules(role string) []SimpleRule {
 	case "reporter":
 		fallthrough
 	default:
-		rules = []SimpleRule{
+		rules = []policy.SimpleRule{
 			{Name: "pipelines", Actions: []string{"view"}},
 			{Name: "roles", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
@@ -156,7 +156,7 @@ func (am *amOperator) GetUserRoles(namespace, username string) ([]*rbacv1.Role, 
 	roles := make([]*rbacv1.Role, 0)
 
 	for _, roleBinding := range roleBindings {
-		if k8sutil.ContainsUser(roleBinding.Subjects, username) {
+		if ContainsUser(roleBinding.Subjects, username) {
 			if roleBinding.RoleRef.Kind == ClusterRoleKind {
 				clusterRole, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
 				if err != nil {
@@ -207,7 +207,7 @@ func (am *amOperator) GetUserClusterRoles(username string) (*rbacv1.ClusterRole,
 	clusterRoles := make([]*rbacv1.ClusterRole, 0)
 	userFacingClusterRole := &rbacv1.ClusterRole{}
 	for _, clusterRoleBinding := range clusterRoleBindings {
-		if k8sutil.ContainsUser(clusterRoleBinding.Subjects, username) {
+		if ContainsUser(clusterRoleBinding.Subjects, username) {
 			clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
@@ -307,7 +307,7 @@ func (am *amOperator) GetWorkspaceRoleMap(username string) (map[string]string, e
 
 	for _, roleBinding := range clusterRoleBindings {
 		if workspace := k8sutil.GetControlledWorkspace(roleBinding.OwnerReferences); workspace != "" &&
-			k8sutil.ContainsUser(roleBinding.Subjects, username) {
+			ContainsUser(roleBinding.Subjects, username) {
 			result[workspace] = roleBinding.RoleRef.Name
 		}
 	}
@@ -412,13 +412,13 @@ func (am *amOperator) ListClusterRoles(conditions *params.Conditions, orderBy st
 	return am.resources.ListResources("", v1alpha2.ClusterRoles, conditions, orderBy, reverse, limit, offset)
 }
 
-func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []SimpleRule {
+func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []policy.SimpleRule {
 
-	workspaceRules := make([]SimpleRule, 0)
+	workspaceRules := make([]policy.SimpleRule, 0)
 
 	switch roleName {
 	case constants.WorkspaceAdmin:
-		workspaceRules = []SimpleRule{
+		workspaceRules = []policy.SimpleRule{
 			{Name: "workspaces", Actions: []string{"edit", "delete", "view"}},
 			{Name: "members", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "devops", Actions: []string{"edit", "delete", "create", "view"}},
@@ -428,7 +428,7 @@ func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []
 			{Name: "repos", Actions: []string{"view", "manage"}},
 		}
 	case constants.WorkspaceRegular:
-		workspaceRules = []SimpleRule{
+		workspaceRules = []policy.SimpleRule{
 			{Name: "members", Actions: []string{"view"}},
 			{Name: "devops", Actions: []string{"view", "create"}},
 			{Name: "projects", Actions: []string{"view", "create"}},
@@ -436,7 +436,7 @@ func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []
 			{Name: "repos", Actions: []string{"view"}},
 		}
 	case constants.WorkspaceViewer:
-		workspaceRules = []SimpleRule{
+		workspaceRules = []policy.SimpleRule{
 			{Name: "workspaces", Actions: []string{"view"}},
 			{Name: "members", Actions: []string{"view"}},
 			{Name: "devops", Actions: []string{"view"}},
@@ -446,7 +446,7 @@ func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []
 			{Name: "repos", Actions: []string{"view"}},
 		}
 	case constants.WorkspacesManager:
-		workspaceRules = []SimpleRule{
+		workspaceRules = []policy.SimpleRule{
 			{Name: "workspaces", Actions: []string{"edit", "delete", "view"}},
 			{Name: "members", Actions: []string{"edit", "delete", "create", "view"}},
 			{Name: "roles", Actions: []string{"view"}},
@@ -457,7 +457,7 @@ func (am *amOperator) GetWorkspaceRoleSimpleRules(workspace, roleName string) []
 }
 
 // Convert cluster role to rules
-func (am *amOperator) GetClusterRoleSimpleRules(clusterRoleName string) ([]SimpleRule, error) {
+func (am *amOperator) GetClusterRoleSimpleRules(clusterRoleName string) ([]policy.SimpleRule, error) {
 
 	clusterRoleLister := am.informers.Rbac().V1().ClusterRoles().Lister()
 	clusterRole, err := clusterRoleLister.Get(clusterRoleName)
@@ -470,7 +470,7 @@ func (am *amOperator) GetClusterRoleSimpleRules(clusterRoleName string) ([]Simpl
 	return getClusterSimpleRule(clusterRole.Rules), nil
 }
 
-func (am *amOperator) GetUserClusterSimpleRules(username string) ([]SimpleRule, error) {
+func (am *amOperator) GetUserClusterSimpleRules(username string) ([]policy.SimpleRule, error) {
 	clusterRules, err := am.GetUserClusterRules(username)
 	if err != nil {
 		return nil, err
@@ -479,7 +479,7 @@ func (am *amOperator) GetUserClusterSimpleRules(username string) ([]SimpleRule, 
 }
 
 // Convert roles to rules
-func (am *amOperator) GetRoleSimpleRules(namespace string, roleName string) ([]SimpleRule, error) {
+func (am *amOperator) GetRoleSimpleRules(namespace string, roleName string) ([]policy.SimpleRule, error) {
 
 	roleLister := am.informers.Rbac().V1().Roles().Lister()
 	role, err := roleLister.Roles(namespace).Get(roleName)
@@ -492,8 +492,8 @@ func (am *amOperator) GetRoleSimpleRules(namespace string, roleName string) ([]S
 	return ConvertToSimpleRule(role.Rules), nil
 }
 
-func getClusterSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
-	rules := make([]SimpleRule, 0)
+func getClusterSimpleRule(policyRules []rbacv1.PolicyRule) []policy.SimpleRule {
+	rules := make([]policy.SimpleRule, 0)
 
 	for i := 0; i < len(policy.ClusterRoleRuleMapping); i++ {
 		validActions := make([]string, 0)
@@ -503,17 +503,17 @@ func getClusterSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
 			}
 		}
 		if len(validActions) > 0 {
-			rules = append(rules, SimpleRule{Name: policy.ClusterRoleRuleMapping[i].Name, Actions: validActions})
+			rules = append(rules, policy.SimpleRule{Name: policy.ClusterRoleRuleMapping[i].Name, Actions: validActions})
 		}
 	}
 
 	return rules
 }
 
-func ConvertToSimpleRule(policyRules []rbacv1.PolicyRule) []SimpleRule {
-	simpleRules := make([]SimpleRule, 0)
+func ConvertToSimpleRule(policyRules []rbacv1.PolicyRule) []policy.SimpleRule {
+	simpleRules := make([]policy.SimpleRule, 0)
 	for i := 0; i < len(policy.RoleRuleMapping); i++ {
-		rule := SimpleRule{Name: policy.RoleRuleMapping[i].Name}
+		rule := policy.SimpleRule{Name: policy.RoleRuleMapping[i].Name}
 		rule.Actions = make([]string, 0)
 		for j := 0; j < len(policy.RoleRuleMapping[i].Actions); j++ {
 			if rulesMatchesAction(policyRules, policy.RoleRuleMapping[i].Actions[j]) {
@@ -588,7 +588,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 		return nil
 	}
 
-	if !k8sutil.ContainsUser(found.Subjects, username) {
+	if !ContainsUser(found.Subjects, username) {
 		found.Subjects = clusterRoleBinding.Subjects
 		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(found)
 		if err != nil {

@@ -35,7 +35,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/params"
 	clientset "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
-	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
@@ -164,7 +163,7 @@ func (w *workspaceOperator) createWorkspaceRoleBinding(workspace, username strin
 		return err
 	}
 
-	if !k8sutil.ContainsUser(workspaceRoleBinding.Subjects, username) {
+	if !iam.ContainsUser(workspaceRoleBinding.Subjects, username) {
 		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
 		_, err = w.client.RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)

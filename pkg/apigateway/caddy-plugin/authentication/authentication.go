@@ -25,8 +25,8 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/apigateway/caddy-plugin/internal"
+	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"log"
 	"net/http"
 	"strings"
@@ -140,7 +140,7 @@ func (c *Authentication) roleValidate(attrs authorizer.Attributes) (bool, error)
 	}
 
 	for _, roleBinding := range roleBindings {
-		if k8sutil.ContainsUser(roleBinding.Subjects, attrs.GetUser().GetName()) {
+		if iam.ContainsUser(roleBinding.Subjects, attrs.GetUser().GetName()) {
 			role, err := roleLister.Roles(attrs.GetNamespace()).Get(roleBinding.RoleRef.Name)
 
 			if err != nil {
@@ -171,7 +171,7 @@ func (c *Authentication) clusterRoleValidate(attrs authorizer.Attributes) (bool,
 
 	for _, clusterRoleBinding := range clusterRoleBindings {
 
-		if k8sutil.ContainsUser(clusterRoleBinding.Subjects, attrs.GetUser().GetName()) {
+		if iam.ContainsUser(clusterRoleBinding.Subjects, attrs.GetUser().GetName()) {
 			clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
 
 			if err != nil {

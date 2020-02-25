@@ -20,6 +20,7 @@ package iam
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
+	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func RulesMatchesRequired(rules []rbacv1.PolicyRule, required rbacv1.PolicyRule)
 	return false
 }
 
-func rulesMatchesAction(rules []rbacv1.PolicyRule, action Action) bool {
+func rulesMatchesAction(rules []rbacv1.PolicyRule, action policy.Action) bool {
 
 	for _, required := range action.Rules {
 		if !RulesMatchesRequired(rules, required) {
@@ -174,6 +175,37 @@ func hasString(slice []string, value string) bool {
 	for _, s := range slice {
 		if s == value {
 			return true
+		}
+	}
+	return false
+}
+
+func ContainsUser(subjects interface{}, username string) bool {
+	switch subjects.(type) {
+	case []*rbacv1.Subject:
+		for _, subject := range subjects.([]*rbacv1.Subject) {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
+				return true
+			}
+		}
+	case []rbacv1.Subject:
+		for _, subject := range subjects.([]rbacv1.Subject) {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
+				return true
+			}
+		}
+	case []User:
+		for _, u := range subjects.([]User) {
+			if u.Username == username {
+				return true
+			}
+		}
+
+	case []*User:
+		for _, u := range subjects.([]*User) {
+			if u.Username == username {
+				return true
+			}
 		}
 	}
 	return false

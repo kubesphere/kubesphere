@@ -23,7 +23,6 @@ import (
 	"github.com/json-iterator/go"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/models/workspaces"
 	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"net/url"
 	"regexp"
@@ -665,40 +664,40 @@ func GetClusterStatistics() *Response {
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 
-	go func() {
-		num, err := workspaces.WorkspaceCount()
-		if err != nil {
-			klog.Errorln(err)
-			workspaceStats.Status = "error"
-		} else {
-			workspaceStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//	num, err := workspaces.WorkspaceCount()
+	//	if err != nil {
+	//		klog.Errorln(err)
+	//		workspaceStats.Status = "error"
+	//	} else {
+	//		workspaceStats.withMetricResult(now, num)
+	//	}
+	//	wg.Done()
+	//}()
 
-	go func() {
-		num, err := workspaces.GetAllDevOpsProjectsNums()
-		if err != nil {
-			if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
-				klog.Errorln(err)
-			}
-			devopsStats.Status = "error"
-		} else {
-			devopsStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//num, err := workspaces.GetAllDevOpsProjectsNums()
+	//if err != nil {
+	//	if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
+	//		klog.Errorln(err)
+	//	}
+	//	devopsStats.Status = "error"
+	//} else {
+	//	devopsStats.withMetricResult(now, num)
+	//}
+	//	wg.Done()
+	//}()
 
-	go func() {
-		num, err := workspaces.GetAllProjectNums()
-		if err != nil {
-			klog.Errorln(err)
-			namespaceStats.Status = "error"
-		} else {
-			namespaceStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//num, err := workspaces.GetAllProjectNums()
+	//if err != nil {
+	//	klog.Errorln(err)
+	//	namespaceStats.Status = "error"
+	//} else {
+	//	namespaceStats.withMetricResult(now, num)
+	//}
+	//	wg.Done()
+	//}()
 
 	go func() {
 		ret, err := cs.ClientSets().KubeSphere().ListUsers()
@@ -723,7 +722,7 @@ func GetClusterStatistics() *Response {
 
 func GetWorkspaceStatistics(workspaceName string) *Response {
 
-	now := time.Now().Unix()
+	//now := time.Now().Unix()
 
 	var metricsArray []APIResponse
 	namespaceStats := APIResponse{MetricName: MetricWorkspaceNamespaceCount}
@@ -734,51 +733,51 @@ func GetWorkspaceStatistics(workspaceName string) *Response {
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 
-	go func() {
-		num, err := workspaces.WorkspaceNamespaceCount(workspaceName)
-		if err != nil {
-			klog.Errorln(err)
-			namespaceStats.Status = "error"
-		} else {
-			namespaceStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//	num, err := workspaces.WorkspaceNamespaceCount(workspaceName)
+	//	if err != nil {
+	//		klog.Errorln(err)
+	//		namespaceStats.Status = "error"
+	//	} else {
+	//		namespaceStats.withMetricResult(now, num)
+	//	}
+	//	wg.Done()
+	//}()
 
-	go func() {
-		num, err := workspaces.GetDevOpsProjectsCount(workspaceName)
-		if err != nil {
-			if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
-				klog.Errorln(err)
-			}
-			devopsStats.Status = "error"
-		} else {
-			devopsStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//	num, err := workspaces.GetDevOpsProjectsCount(workspaceName)
+	//	if err != nil {
+	//		if _, notEnabled := err.(cs.ClientSetNotEnabledError); !notEnabled {
+	//			klog.Errorln(err)
+	//		}
+	//		devopsStats.Status = "error"
+	//	} else {
+	//		devopsStats.withMetricResult(now, num)
+	//	}
+	//	wg.Done()
+	//}()
 
-	go func() {
-		num, err := workspaces.WorkspaceUserCount(workspaceName)
-		if err != nil {
-			klog.Errorln(err)
-			memberStats.Status = "error"
-		} else {
-			memberStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//num, err := workspaces.WorkspaceUserCount(workspaceName)
+	//if err != nil {
+	//	klog.Errorln(err)
+	//	memberStats.Status = "error"
+	//} else {
+	//	memberStats.withMetricResult(now, num)
+	//}
+	//	wg.Done()
+	//}()
 
-	go func() {
-		num, err := workspaces.GetOrgRolesCount(workspaceName)
-		if err != nil {
-			klog.Errorln(err)
-			roleStats.Status = "error"
-		} else {
-			roleStats.withMetricResult(now, num)
-		}
-		wg.Done()
-	}()
+	//go func() {
+	//num, err := workspaces.GetOrgRolesCount(workspaceName)
+	//	if err != nil {
+	//		klog.Errorln(err)
+	//		roleStats.Status = "error"
+	//	} else {
+	//		roleStats.withMetricResult(now, num)
+	//	}
+	//	wg.Done()
+	//}()
 
 	wg.Wait()
 
