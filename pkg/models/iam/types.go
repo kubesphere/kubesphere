@@ -19,12 +19,10 @@
 package iam
 
 import (
-	"k8s.io/api/rbac/v1"
 	"time"
 )
 
 const (
-	ConfigPath      = "/etc/kubesphere/iam"
 	KindTokenReview = "TokenReview"
 )
 
@@ -36,24 +34,4 @@ type User struct {
 	CreateTime  time.Time `json:"create_time"`
 	Groups      []string  `json:"groups,omitempty"`
 	Password    string    `json:"password,omitempty"`
-}
-
-type Action struct {
-	Name  string          `json:"name"`
-	Rules []v1.PolicyRule `json:"rules"`
-}
-
-type Rule struct {
-	Name    string   `json:"name"`
-	Actions []Action `json:"actions"`
-}
-
-type SimpleRule struct {
-	Name    string   `json:"name" description:"rule name"`
-	Actions []string `json:"actions" description:"actions"`
-}
-
-type RoleList struct {
-	ClusterRoles []*v1.ClusterRole `json:"clusterRole" description:"cluster role list"`
-	Roles        []*v1.Role        `json:"roles" description:"role list"`
 }

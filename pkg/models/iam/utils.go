@@ -20,6 +20,7 @@ package iam
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
+	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func RulesMatchesRequired(rules []rbacv1.PolicyRule, required rbacv1.PolicyRule)
 	return false
 }
 
-func rulesMatchesAction(rules []rbacv1.PolicyRule, action Action) bool {
+func rulesMatchesAction(rules []rbacv1.PolicyRule, action policy.Action) bool {
 
 	for _, required := range action.Rules {
 		if !RulesMatchesRequired(rules, required) {
