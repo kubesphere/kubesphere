@@ -48,7 +48,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
 			Discarder: &devops.DiscarderProperty{
-				"3", "5",
+				DaysToKeep: "3", NumToKeep: "5",
 			},
 		},
 		{
@@ -56,7 +56,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
 			Discarder: &devops.DiscarderProperty{
-				"3", "",
+				DaysToKeep: "3", NumToKeep: "",
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
 			Discarder: &devops.DiscarderProperty{
-				"", "21321",
+				DaysToKeep: "", NumToKeep: "21321",
 			},
 		},
 		{
@@ -72,7 +72,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
 			Discarder: &devops.DiscarderProperty{
-				"", "",
+				DaysToKeep: "", NumToKeep: "",
 			},
 		},
 	}
