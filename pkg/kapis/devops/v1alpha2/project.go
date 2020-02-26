@@ -16,11 +16,10 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
-	"net/http"
 )
 
 func (h ProjectPipelineHandler) GetDevOpsProjectHandler(request *restful.Request, resp *restful.Response) {
@@ -31,14 +30,14 @@ func (h ProjectPipelineHandler) GetDevOpsProjectHandler(request *restful.Request
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	project, err := h.projectOperator.GetProject(projectId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 
@@ -54,21 +53,21 @@ func (h ProjectPipelineHandler) UpdateProjectHandler(request *restful.Request, r
 	err := request.ReadEntity(&project)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusBadRequest, err.Error()), resp)
+		api.HandleBadRequest(resp, err)
 		return
 	}
 	project.ProjectId = projectId
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(restful.NewError(http.StatusForbidden, err.Error()), resp)
+		api.HandleForbidden(resp, err)
 		return
 	}
 	project, err = h.projectOperator.UpdateProject(project)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		errors.ParseSvcErr(err, resp)
+		api.HandleInternalError(resp, err)
 		return
 	}
 

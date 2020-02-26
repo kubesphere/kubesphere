@@ -179,3 +179,34 @@ func hasString(slice []string, value string) bool {
 	}
 	return false
 }
+
+func ContainsUser(subjects interface{}, username string) bool {
+	switch subjects.(type) {
+	case []*rbacv1.Subject:
+		for _, subject := range subjects.([]*rbacv1.Subject) {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
+				return true
+			}
+		}
+	case []rbacv1.Subject:
+		for _, subject := range subjects.([]rbacv1.Subject) {
+			if subject.Kind == rbacv1.UserKind && subject.Name == username {
+				return true
+			}
+		}
+	case []User:
+		for _, u := range subjects.([]User) {
+			if u.Username == username {
+				return true
+			}
+		}
+
+	case []*User:
+		for _, u := range subjects.([]*User) {
+			if u.Username == username {
+				return true
+			}
+		}
+	}
+	return false
+}

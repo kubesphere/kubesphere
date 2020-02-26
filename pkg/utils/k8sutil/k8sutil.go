@@ -18,9 +18,7 @@
 package k8sutil
 
 import (
-	"k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kubesphere.io/kubesphere/pkg/models/iam"
 )
 
 func IsControlledBy(reference []metav1.OwnerReference, kind string, name string) bool {
@@ -39,35 +37,4 @@ func GetControlledWorkspace(reference []metav1.OwnerReference) string {
 		}
 	}
 	return ""
-}
-
-func ContainsUser(subjects interface{}, username string) bool {
-	switch subjects.(type) {
-	case []*v1.Subject:
-		for _, subject := range subjects.([]*v1.Subject) {
-			if subject.Kind == v1.UserKind && subject.Name == username {
-				return true
-			}
-		}
-	case []v1.Subject:
-		for _, subject := range subjects.([]v1.Subject) {
-			if subject.Kind == v1.UserKind && subject.Name == username {
-				return true
-			}
-		}
-	case []iam.User:
-		for _, u := range subjects.([]iam.User) {
-			if u.Username == username {
-				return true
-			}
-		}
-
-	case []*iam.User:
-		for _, u := range subjects.([]*iam.User) {
-			if u.Username == username {
-				return true
-			}
-		}
-	}
-	return false
 }

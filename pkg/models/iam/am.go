@@ -156,7 +156,7 @@ func (am *amOperator) GetUserRoles(namespace, username string) ([]*rbacv1.Role, 
 	roles := make([]*rbacv1.Role, 0)
 
 	for _, roleBinding := range roleBindings {
-		if k8sutil.ContainsUser(roleBinding.Subjects, username) {
+		if ContainsUser(roleBinding.Subjects, username) {
 			if roleBinding.RoleRef.Kind == ClusterRoleKind {
 				clusterRole, err := clusterRoleLister.Get(roleBinding.RoleRef.Name)
 				if err != nil {
@@ -207,7 +207,7 @@ func (am *amOperator) GetUserClusterRoles(username string) (*rbacv1.ClusterRole,
 	clusterRoles := make([]*rbacv1.ClusterRole, 0)
 	userFacingClusterRole := &rbacv1.ClusterRole{}
 	for _, clusterRoleBinding := range clusterRoleBindings {
-		if k8sutil.ContainsUser(clusterRoleBinding.Subjects, username) {
+		if ContainsUser(clusterRoleBinding.Subjects, username) {
 			clusterRole, err := clusterRoleLister.Get(clusterRoleBinding.RoleRef.Name)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
@@ -307,7 +307,7 @@ func (am *amOperator) GetWorkspaceRoleMap(username string) (map[string]string, e
 
 	for _, roleBinding := range clusterRoleBindings {
 		if workspace := k8sutil.GetControlledWorkspace(roleBinding.OwnerReferences); workspace != "" &&
-			k8sutil.ContainsUser(roleBinding.Subjects, username) {
+			ContainsUser(roleBinding.Subjects, username) {
 			result[workspace] = roleBinding.RoleRef.Name
 		}
 	}
@@ -588,7 +588,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 		return nil
 	}
 
-	if !k8sutil.ContainsUser(found.Subjects, username) {
+	if !ContainsUser(found.Subjects, username) {
 		found.Subjects = clusterRoleBinding.Subjects
 		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(found)
 		if err != nil {
