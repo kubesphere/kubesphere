@@ -1,6 +1,6 @@
 # Development Workflow
 
-![ks-workflow](docs/images/ks-workflow.png)
+![ks-workflow](/docs/images/ks-workflow.png)
 
 ## 1 Fork in the cloud
 
@@ -107,4 +107,3 @@ $ git push -f ${your_remote_name} myfeature
 - Visit your fork at https://github.com/$user/kubesphere
 - Click the` Compare & Pull Request` button next to your myfeature branch.
 - Check out the [pull request process](pull-request.md) for more details and advice.
-
