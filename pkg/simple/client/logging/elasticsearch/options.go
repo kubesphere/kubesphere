@@ -1,4 +1,4 @@
-package esclient
+package elasticsearch
 
 import (
 	"github.com/spf13/pflag"
@@ -33,7 +33,7 @@ func (s *Options) Validate() []error {
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.StringVar(&s.Host, "elasticsearch-host", c.Host, ""+
-		"ElasticSearch logging service host. KubeSphere is using elastic as log store, "+
+		"Elasticsearch logging service host. KubeSphere is using elastic as log store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin log API instead, and"+
 		" the following elastic search options will be ignored.")
 
@@ -41,6 +41,6 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"Index name prefix. KubeSphere will retrieve logs against indices matching the prefix.")
 
 	fs.StringVar(&s.Version, "elasticsearch-version", c.Version, ""+
-		"ElasticSearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
+		"Elasticsearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
 		"Currently, minimum supported version is 5.x")
 }

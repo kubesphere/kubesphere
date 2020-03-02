@@ -10,10 +10,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -168,7 +168,7 @@ type Config struct {
 	S3Options          *s3.Options            `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
 	OpenPitrixOptions  *openpitrix.Options    `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
 	MonitoringOptions  *prometheus.Options    `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	LoggingOptions     *esclient.Options      `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+	LoggingOptions     *elasticsearch.Options `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
 
 	// Options below are only loaded from configuration file, no command line flags for these options now.
 	KubeSphereOptions *kubesphere.Options `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
@@ -194,7 +194,7 @@ func newConfig() *Config {
 		KubeSphereOptions:   kubesphere.NewKubeSphereOptions(),
 		AlertingOptions:     alerting.NewAlertingOptions(),
 		NotificationOptions: notification.NewNotificationOptions(),
-		LoggingOptions:      esclient.NewElasticSearchOptions(),
+		LoggingOptions:      elasticsearch.NewElasticSearchOptions(),
 	}
 }
 

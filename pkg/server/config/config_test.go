@@ -7,10 +7,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
-	"kubesphere.io/kubesphere/pkg/simple/client/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -87,7 +87,7 @@ func newTestConfig() *Config {
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
 			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
-		LoggingOptions: &esclient.Options{
+		LoggingOptions: &elasticsearch.Options{
 			Host:        "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "elk",
 			Version:     "6",

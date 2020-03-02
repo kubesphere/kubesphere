@@ -1,19 +1,19 @@
-package v5
+package v6
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v5"
-	"github.com/elastic/go-elasticsearch/v5/esapi"
+	"github.com/elastic/go-elasticsearch/v6"
+	"github.com/elastic/go-elasticsearch/v6/esapi"
 	"io/ioutil"
 	"k8s.io/klog"
 	"time"
 )
 
 type Elastic struct {
-	client *elasticsearch.Client
+	Client *elasticsearch.Client
 	index  string
 }
 
@@ -26,15 +26,15 @@ func New(address string, index string) *Elastic {
 		return nil
 	}
 
-	return &Elastic{client: client, index: index}
+	return &Elastic{Client: client, index: index}
 }
 
-func (e *Elastic) Search(body []byte, scrollTimeout time.Duration) ([]byte, error) {
-	response, err := e.client.Search(
-		e.client.Search.WithContext(context.Background()),
-		e.client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
-		e.client.Search.WithBody(bytes.NewBuffer(body)),
-		e.client.Search.WithScroll(scrollTimeout))
+func (e *Elastic) Search(body []byte) ([]byte, error) {
+	response, err := e.Client.Search(
+		e.Client.Search.WithContext(context.Background()),
+		e.Client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
+		e.Client.Search.WithBody(bytes.NewBuffer(body)),
+		e.Client.Search.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +47,11 @@ func (e *Elastic) Search(body []byte, scrollTimeout time.Duration) ([]byte, erro
 	return ioutil.ReadAll(response.Body)
 }
 
-func (e *Elastic) Scroll(scrollId string, scrollTimeout time.Duration) ([]byte, error) {
-	response, err := e.client.Scroll(
-		e.client.Scroll.WithContext(context.Background()),
-		e.client.Scroll.WithScrollID(scrollId),
-		e.client.Scroll.WithScroll(scrollTimeout))
+func (e *Elastic) Scroll(id string) ([]byte, error) {
+	response, err := e.Client.Scroll(
+		e.Client.Scroll.WithContext(context.Background()),
+		e.Client.Scroll.WithScrollID(id),
+		e.Client.Scroll.WithScroll(time.Minute))
 	if err != nil {
 		return nil, err
 	}
@@ -65,9 +65,9 @@ func (e *Elastic) Scroll(scrollId string, scrollTimeout time.Duration) ([]byte, 
 }
 
 func (e *Elastic) ClearScroll(scrollId string) {
-	response, _ := e.client.ClearScroll(
-		e.client.ClearScroll.WithContext(context.Background()),
-		e.client.ClearScroll.WithScrollID(scrollId))
+	response, _ := e.Client.ClearScroll(
+		e.Client.ClearScroll.WithContext(context.Background()),
+		e.Client.ClearScroll.WithScrollID(scrollId))
 	defer response.Body.Close()
 }
 
