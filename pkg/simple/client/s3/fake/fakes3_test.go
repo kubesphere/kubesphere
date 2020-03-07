@@ -13,7 +13,7 @@ func TestFakeS3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, ok := s3.storage["hello"]
+	o, ok := s3.Storage["hello"]
 	if !ok {
 		t.Fatal("should have hello object")
 	}
@@ -41,7 +41,7 @@ func TestFakeS3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ok = s3.storage["hello"]
+	_, ok = s3.Storage["hello"]
 	if ok {
 		t.Fatal("should not have hello object")
 	}
