@@ -74,7 +74,7 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 
 ## Latest Release
 
-KubeSphere 2.1.1 was released on **February 23th, 2019**. See the [Release Notes For 2.1.1](https://kubesphere.io/docs/v2.1/en/release/release-v211/) for the updates.
+KubeSphere 2.1.1 was released on **February 23th, 2020**. See the [Release Notes For 2.1.1](https://kubesphere.io/docs/v2.1/en/release/release-v211/) for the updates.
 
 ## Installation
 
