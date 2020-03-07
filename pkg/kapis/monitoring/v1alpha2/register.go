@@ -21,10 +21,11 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/apiserver/monitoring"
+	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/metrics"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"net/http"
 )
 
@@ -35,29 +36,26 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
-
-func addWebService(c *restful.Container) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient monitoring.Interface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	ws.Route(ws.GET("/cluster").To(monitoring.MonitorCluster).
+	h := newHandler(k8sClient, monitoringClient)
+
+	ws.Route(ws.GET("/cluster").
+		To(h.handleClusterMetricsQuery).
 		Doc("Get cluster-level metric data.").
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both cluster CPU usage and disk usage: `cluster_cpu_usage|cluster_disk_size_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("type", "Additional operations. Currently available types is statistics. It retrieves the total number of workspaces, devops projects, namespaces, accounts in the cluster at the moment.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/nodes").To(monitoring.MonitorNode).
+	ws.Route(ws.GET("/nodes").
+		To(h.handleNodeMetricsQuery).
 		Doc("Get node-level metric data of all nodes.").
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both node CPU usage and disk usage: `node_cpu_usage|node_disk_size_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The node filter consists of a regexp pattern. It specifies which node data to return. For example, the following filter matches both node i-caojnter and i-cmu82ogj: `i-caojnter|i-cmu82ogj`.").DataType("string").Required(false)).
@@ -70,12 +68,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/nodes/{node}").To(monitoring.MonitorNode).
+	ws.Route(ws.GET("/nodes/{node}").
+		To(h.handleNodeMetricsQuery).
 		Doc("Get node-level metric data of the specific node.").
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both node CPU usage and disk usage: `node_cpu_usage|node_disk_size_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -84,12 +82,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces").To(monitoring.MonitorWorkspace).
+	ws.Route(ws.GET("/workspaces").
+		To(h.handleWorkspaceMetricsQuery).
 		Doc("Get workspace-level metric data of all workspaces.").
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `workspace_cpu_usage|workspace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The workspace filter consists of a regexp pattern. It specifies which workspace data to return.").DataType("string").Required(false)).
@@ -102,12 +100,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace}").To(monitoring.MonitorWorkspace).
+	ws.Route(ws.GET("/workspaces/{workspace}").
+		To(h.handleWorkspaceMetricsQuery).
 		Doc("Get workspace-level metric data of a specific workspace.").
 		Param(ws.PathParameter("workspace", "Workspace name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workspace CPU usage and memory usage: `workspace_cpu_usage|workspace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -115,14 +113,13 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("type", "Additional operations. Currently available types is statistics. It retrieves the total number of namespaces, devops projects, members and roles in this workspace at the moment.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").To(monitoring.MonitorNamespace).
+	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
+		To(h.handleNamespaceMetricsQuery).
 		Doc("Get namespace-level metric data of a specific workspace.").
 		Param(ws.PathParameter("workspace", "Workspace name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `namespace_cpu_usage|namespace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -136,12 +133,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces").To(monitoring.MonitorNamespace).
+	ws.Route(ws.GET("/namespaces").
+		To(h.handleNamespaceMetricsQuery).
 		Doc("Get namespace-level metric data of all namespaces.").
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `namespace_cpu_usage|namespace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The namespace filter consists of a regexp pattern. It specifies which namespace data to return. For example, the following filter matches both namespace test and kube-system: `test|kube-system`.").DataType("string").Required(false)).
@@ -154,12 +151,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}").To(monitoring.MonitorNamespace).
+	ws.Route(ws.GET("/namespaces/{namespace}").
+		To(h.handleNamespaceMetricsQuery).
 		Doc("Get namespace-level metric data of the specific namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both namespace CPU usage and memory usage: `namespace_cpu_usage|namespace_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -168,12 +165,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads").To(monitoring.MonitorWorkload).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads").
+		To(h.handleWorkloadMetricsQuery).
 		Doc("Get workload-level metric data of a specific namespace's workloads.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both workload CPU usage and memory usage: `workload_cpu_usage|workload_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -187,12 +184,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}").To(monitoring.MonitorWorkload).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}").
+		To(h.handleWorkloadMetricsQuery).
 		Doc("Get workload-level metric data of all workloads which belongs to a specific kind.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("kind", "Workload kind. One of deployment, daemonset, statefulset.").DataType("string").Required(true)).
@@ -207,12 +204,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods").To(monitoring.MonitorPod).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods").
+		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of the specific namespace's pods.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -226,12 +223,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").To(monitoring.MonitorPod).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").
+		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of a specific pod. Navigate to the pod by the pod's namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -241,12 +238,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}/{workload}/pods").To(monitoring.MonitorPod).
+	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}/{workload}/pods").
+		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of a specific workload's pods. Navigate to the workload by the namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("kind", "Workload kind. One of deployment, daemonset, statefulset.").DataType("string").Required(true)).
@@ -262,12 +259,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/nodes/{node}/pods").To(monitoring.MonitorPod).
+	ws.Route(ws.GET("/nodes/{node}/pods").
+		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of all pods on a specific node.").
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both pod CPU usage and memory usage: `pod_cpu_usage|pod_memory_usage`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -281,12 +278,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").To(monitoring.MonitorPod).
+	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").
+		To(h.handlePodMetricsQuery).
 		Doc("Get pod-level metric data of a specific pod. Navigate to the pod by the node where it is scheduled.").
 		Param(ws.PathParameter("node", "Node name.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -296,12 +293,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers").To(monitoring.MonitorContainer).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers").
+		To(h.handleContainerMetricsQuery).
 		Doc("Get container-level metric data of a specific pod's containers. Navigate to the pod by the pod's namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -316,12 +313,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").To(monitoring.MonitorContainer).
+	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").
+		To(h.handleContainerMetricsQuery).
 		Doc("Get container-level metric data of a specific container. Navigate to the container by the pod name and the namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pod", "Pod name.").DataType("string").Required(true)).
@@ -332,12 +329,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/storageclasses/{storageclass}/persistentvolumeclaims").To(monitoring.MonitorPVC).
+	ws.Route(ws.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
+		To(h.handlePVCMetricsQuery).
 		Doc("Get PVC-level metric data of the specific storageclass's PVCs.").
 		Param(ws.PathParameter("storageclass", "The name of the storageclass.").DataType("string").Required(true)).
 		Param(ws.PathParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -351,12 +348,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims").To(monitoring.MonitorPVC).
+	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims").
+		To(h.handlePVCMetricsQuery).
 		Doc("Get PVC-level metric data of the specific namespace's PVCs.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -370,12 +367,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}").To(monitoring.MonitorPVC).
+	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}").
+		To(h.handlePVCMetricsQuery).
 		Doc("Get PVC-level metric data of a specific PVC. Navigate to the PVC by the PVC's namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pvc", "PVC name.").DataType("string").Required(true)).
@@ -385,12 +382,12 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/components/{component}").To(monitoring.MonitorComponent).
+	ws.Route(ws.GET("/components/{component}").
+		To(h.handleComponentMetricsQuery).
 		Doc("Get component-level metric data of the specific system component.").
 		Param(ws.PathParameter("component", "system component to monitor. One of etcd, apiserver, scheduler, controller_manager, coredns, prometheus.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both etcd server list and total size of the underlying database: `etcd_server_list|etcd_mvcc_db_size`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
@@ -399,9 +396,8 @@ func addWebService(c *restful.Container) error {
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentMetricsTag}).
-		Writes(metrics.Response{}).
-		Returns(http.StatusOK, RespOK, metrics.Response{})).
-		Consumes(restful.MIME_JSON, restful.MIME_XML).
+		Writes(v1alpha2.APIResponse{}).
+		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
 		Produces(restful.MIME_JSON)
 
 	c.Add(ws)

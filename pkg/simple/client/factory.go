@@ -9,9 +9,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"kubesphere.io/kubesphere/pkg/simple/client/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"sync"
@@ -119,7 +120,7 @@ type ClientSet struct {
 	sonarQubeClient     *sonarqube.Client
 	redisClient         cache.Interface
 	s3Client            s3.Interface
-	prometheusClient    *prometheus.Client
+	prometheusClient    monitoring.Interface
 	openpitrixClient    openpitrix.Client
 	kubesphereClient    *kubesphere.Client
 	elasticSearchClient *elasticsearch.Elasticsearch
@@ -320,9 +321,7 @@ func (cs *ClientSet) OpenPitrix() (openpitrix.Client, error) {
 	}
 }
 
-func (cs *ClientSet) Prometheus() (*prometheus.Client, error) {
-	var err error
-
+func (cs *ClientSet) MonitoringClient() (monitoring.Interface, error) {
 	if cs.csoptions.prometheusOptions == nil || cs.csoptions.prometheusOptions.Endpoint == "" {
 		return nil, ErrClientSetNotEnabled
 	}
@@ -334,10 +333,7 @@ func (cs *ClientSet) Prometheus() (*prometheus.Client, error) {
 		defer mutex.Unlock()
 
 		if cs.prometheusClient == nil {
-			cs.prometheusClient, err = prometheus.NewPrometheusClient(cs.csoptions.prometheusOptions)
-			if err != nil {
-				return nil, err
-			}
+			cs.prometheusClient = prometheus.NewPrometheus(cs.csoptions.prometheusOptions)
 		}
 		return cs.prometheusClient, nil
 	}

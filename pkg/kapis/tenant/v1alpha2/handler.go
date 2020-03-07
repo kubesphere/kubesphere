@@ -11,7 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam"
-	"kubesphere.io/kubesphere/pkg/models/metrics"
+	"kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	apierr "kubesphere.io/kubesphere/pkg/server/errors"
@@ -127,7 +127,7 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 		namespaces = append(namespaces, item.(*v1.Namespace).DeepCopy())
 	}
 
-	namespaces = metrics.GetNamespacesWithMetrics(namespaces)
+	namespaces = monitoring.GetNamespacesWithMetrics(namespaces)
 
 	items := make([]interface{}, 0)
 

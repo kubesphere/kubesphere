@@ -17,15 +17,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
+	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	op "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 )
 
-func InstallAPIs(container *restful.Container, client k8s.Client, op op.Client, db *mysql.Database, logging logging.Interface) {
+func InstallAPIs(container *restful.Container, client k8s.Client, op op.Client, db *mysql.Database, logging logging.Interface, monitoring monitoring.Interface) {
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(container))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(container))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(container, client, logging))
-	urlruntime.Must(monitoringv1alpha2.AddToContainer(container))
+	urlruntime.Must(monitoringv1alpha2.AddToContainer(container, client, monitoring))
 	urlruntime.Must(openpitrixv1.AddToContainer(container, client, op))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, client))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, client))
