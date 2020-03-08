@@ -20,103 +20,360 @@ package ldap
 import (
 	"fmt"
 	"github.com/go-ldap/ldap"
-	"github.com/golang/mock/gomock"
-	"k8s.io/klog"
+	"github.com/google/uuid"
+	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/server/errors"
+	"sync"
+	"time"
 )
 
-type Client interface {
-	NewConn() (ldap.Client, error)
-	Close()
-	GroupSearchBase() string
-	UserSearchBase() string
+type Interface interface {
+	// Create create a new user in ldap
+	Create(user *iam.User) error
+
+	// Update updates a user information, return error if user not exists
+	Update(user *iam.User) error
+
+	// Delete deletes a user from ldap, return nil if user not exists
+	Delete(name string) error
+
+	// Get gets a user by its username from ldap
+	Get(name string) (*iam.User, error)
+
+	//
+	Verify(name string, password string) error
 }
 
-type poolClient struct {
-	pool    Pool
-	options *Options
+const (
+	ldapAttributeObjectClass       = "objectClass"
+	ldapAttributeCommonName        = "cn"
+	ldapAttributeSerialNumber      = "sn"
+	ldapAttributeGlobalIDNumber    = "gidNumber"
+	ldapAttributeHomeDirectory     = "homeDirectory"
+	ldapAttributeUserID            = "uid"
+	ldapAttributeUserIDNumber      = "uidNumber"
+	ldapAttributeMail              = "mail"
+	ldapAttributeUserPassword      = "userPassword"
+	ldapAttributePreferredLanguage = "preferredLanguage"
+	ldapAttributeDescription       = "description"
+	ldapAttributeCreateTimestamp   = "createTimestamp"
+	ldapAttributeOrganizationUnit  = "ou"
+
+	// ldap create timestamp attribute layout
+	ldapAttributeCreateTimestampLayout = "20060102150405Z"
+)
+
+var ErrUserAlreadyExisted = errors.New("user already existed")
+var ErrUserNotExists = errors.New("user not exists")
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
+type ldapInterfaceImpl struct {
+	pool            Pool
+	userSearchBase  string
+	groupSearchBase string
+	managerDN       string
+	managerPassword string
+
+	once sync.Once
 }
 
-// panic if cannot connect to ldap service
-func NewClient(options *Options, stopCh <-chan struct{}) (Client, error) {
-	pool, err := newChannelPool(options.InitialCap, options.MaxCap, options.PoolName, func(s string) (ldap.Client, error) {
+var _ Interface = &ldapInterfaceImpl{}
+
+func NewLdapClient(options *Options, stopCh <-chan struct{}) (Interface, error) {
+
+	poolFactory := func(s string) (ldap.Client, error) {
 		conn, err := ldap.Dial("tcp", options.Host)
 		if err != nil {
 			return nil, err
 		}
 		return conn, nil
-	}, []uint16{ldap.LDAPResultAdminLimitExceeded, ldap.ErrorNetwork})
+	}
+
+	pool, err := newChannelPool(options.InitialCap,
+		options.MaxCap,
+		options.PoolName,
+		poolFactory,
+		[]uint16{ldap.LDAPResultAdminLimitExceeded, ldap.ErrorNetwork})
 
 	if err != nil {
-		klog.Error(err)
 		return nil, err
 	}
 
-	client := &poolClient{
-		pool:    pool,
-		options: options,
+	client := &ldapInterfaceImpl{
+		pool:            pool,
+		userSearchBase:  options.UserSearchBase,
+		groupSearchBase: options.GroupSearchBase,
+		managerDN:       options.ManagerDN,
+		managerPassword: options.ManagerPassword,
+		once:            sync.Once{},
 	}
 
 	go func() {
 		<-stopCh
-		client.Close()
+		client.close()
 	}()
+
+	client.once.Do(func() {
+		_ = client.createSearchBase()
+	})
 
 	return client, nil
 }
-func (l *poolClient) Close() {
+
+func (l *ldapInterfaceImpl) createSearchBase() error {
+	conn, err := l.newConn()
+	if err != nil {
+		return err
+	}
+
+	createIfNotExistsFunc := func(request *ldap.AddRequest) error {
+		searchRequest := &ldap.SearchRequest{
+			BaseDN:       request.DN,
+			Scope:        ldap.ScopeWholeSubtree,
+			DerefAliases: ldap.NeverDerefAliases,
+			SizeLimit:    0,
+			TimeLimit:    0,
+			TypesOnly:    false,
+			Filter:       "(objectClass=*)",
+		}
+
+		_, err = conn.Search(searchRequest)
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+			return conn.Add(request)
+		}
+		return nil
+	}
+
+	userSearchBaseAddRequest := &ldap.AddRequest{
+		DN: l.userSearchBase,
+		Attributes: []ldap.Attribute{
+			{
+				Type: ldapAttributeObjectClass,
+				Vals: []string{"organizationalUnit", "top"},
+			},
+			{
+				Type: ldapAttributeOrganizationUnit,
+				Vals: []string{"Users"},
+			},
+		},
+	}
+
+	err = createIfNotExistsFunc(userSearchBaseAddRequest)
+	if err != nil {
+		return err
+	}
+
+	groupSearchBaseAddRequest := *userSearchBaseAddRequest
+	groupSearchBaseAddRequest.DN = l.groupSearchBase
+
+	return createIfNotExistsFunc(&groupSearchBaseAddRequest)
+
+}
+
+func (l *ldapInterfaceImpl) close() {
 	if l.pool != nil {
 		l.pool.Close()
 	}
 }
 
-func (l *poolClient) NewConn() (ldap.Client, error) {
-	if l.pool == nil {
-		err := fmt.Errorf("ldap connection pool is not initialized")
-		klog.Errorln(err)
+func (l *ldapInterfaceImpl) newConn() (ldap.Client, error) {
+	conn, err := l.pool.Get()
+	if err != nil {
 		return nil, err
 	}
 
-	conn, err := l.pool.Get()
-	// cannot connect to ldap server or pool is closed
-	if err != nil {
-		klog.Errorln(err)
-		return nil, err
-	}
-	err = conn.Bind(l.options.ManagerDN, l.options.ManagerPassword)
+	err = conn.Bind(l.managerDN, l.managerPassword)
 	if err != nil {
 		conn.Close()
-		klog.Errorln(err)
 		return nil, err
 	}
 	return conn, nil
 }
 
-func (l *poolClient) GroupSearchBase() string {
-	return l.options.GroupSearchBase
+func (l *ldapInterfaceImpl) dnForUsername(username string) string {
+	return fmt.Sprintf("uid=%s,%s", username, l.userSearchBase)
 }
 
-func (l *poolClient) UserSearchBase() string {
-	return l.options.UserSearchBase
+func (l *ldapInterfaceImpl) filterForUsername(username string) string {
+	return fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", username, username)
 }
 
-func NewMockClient(options *Options, ctrl *gomock.Controller, setup func(client *MockClient)) (Client, error) {
-	pool, err := newChannelPool(options.InitialCap, options.MaxCap, options.PoolName, func(s string) (ldap.Client, error) {
-		conn := newMockClient(ctrl)
-		conn.EXPECT().Bind(gomock.Any(), gomock.Any()).AnyTimes()
-		conn.EXPECT().Close().AnyTimes()
-		setup(conn)
-		return conn, nil
-	}, []uint16{ldap.LDAPResultAdminLimitExceeded, ldap.ErrorNetwork})
-
+func (l *ldapInterfaceImpl) Get(name string) (*iam.User, error) {
+	conn, err := l.newConn()
 	if err != nil {
-		klog.Error(err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	searchRequest := &ldap.SearchRequest{
+		BaseDN:       l.userSearchBase,
+		Scope:        ldap.ScopeWholeSubtree,
+		DerefAliases: ldap.NeverDerefAliases,
+		SizeLimit:    0,
+		TimeLimit:    0,
+		TypesOnly:    false,
+		Filter:       l.filterForUsername(name),
+		Attributes: []string{
+			ldapAttributeMail,
+			ldapAttributeDescription,
+			ldapAttributePreferredLanguage,
+			ldapAttributeCreateTimestamp,
+		},
+	}
+
+	searchResults, err := conn.Search(searchRequest)
+	if err != nil {
 		return nil, err
 	}
 
-	client := &poolClient{
-		pool:    pool,
-		options: options,
+	if len(searchResults.Entries) != 1 {
+		return nil, ErrUserNotExists
 	}
 
-	return client, nil
+	userEntry := searchResults.Entries[0]
+
+	user := &iam.User{
+		Username:    userEntry.GetAttributeValue(ldapAttributeUserID),
+		Email:       userEntry.GetAttributeValue(ldapAttributeMail),
+		Lang:        userEntry.GetAttributeValue(ldapAttributePreferredLanguage),
+		Description: userEntry.GetAttributeValue(ldapAttributeDescription),
+	}
+
+	createTimestamp, _ := time.Parse(ldapAttributeCreateTimestampLayout, userEntry.GetAttributeValue(ldapAttributeCreateTimestamp))
+	user.CreateTime = createTimestamp
+
+	return user, nil
+}
+
+func (l *ldapInterfaceImpl) Create(user *iam.User) error {
+	if _, err := l.Get(user.Username); err != nil {
+		return ErrUserAlreadyExisted
+	}
+
+	createRequest := &ldap.AddRequest{
+		DN: l.dnForUsername(user.Username),
+		Attributes: []ldap.Attribute{
+			{
+				Type: ldapAttributeObjectClass,
+				Vals: []string{"inetOrgPerson", "posixAccount", "top"},
+			},
+			{
+				Type: ldapAttributeCommonName,
+				Vals: []string{user.Username},
+			},
+			{
+				Type: ldapAttributeSerialNumber,
+				Vals: []string{" "},
+			},
+			{
+				Type: ldapAttributeGlobalIDNumber,
+				Vals: []string{"500"},
+			},
+			{
+				Type: ldapAttributeHomeDirectory,
+				Vals: []string{"/home/" + user.Username},
+			},
+			{
+				Type: ldapAttributeUserID,
+				Vals: []string{user.Username},
+			},
+			{
+				Type: ldapAttributeUserIDNumber,
+				Vals: []string{uuid.New().String()},
+			},
+			{
+				Type: ldapAttributeMail,
+				Vals: []string{user.Email},
+			},
+			{
+				Type: ldapAttributeUserPassword,
+				Vals: []string{user.Password},
+			},
+			{
+				Type: ldapAttributePreferredLanguage,
+				Vals: []string{user.Lang},
+			},
+			{
+				Type: ldapAttributeDescription,
+				Vals: []string{user.Description},
+			},
+		},
+	}
+
+	conn, err := l.newConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return conn.Add(createRequest)
+}
+
+func (l *ldapInterfaceImpl) Delete(name string) error {
+	conn, err := l.newConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	_, err = l.Get(name)
+	if err != nil {
+		if err == ErrUserNotExists {
+			return nil
+		}
+		return err
+	}
+
+	deleteRequest := &ldap.DelRequest{
+		DN: l.dnForUsername(name),
+	}
+
+	return conn.Del(deleteRequest)
+}
+
+func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
+	conn, err := l.newConn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	// check user existed
+	_, err = l.Get(newUser.Username)
+	if err != nil {
+		return err
+	}
+
+	modifyRequest := &ldap.ModifyRequest{
+		DN: l.dnForUsername(newUser.Username),
+	}
+
+	if newUser.Description != "" {
+		modifyRequest.Replace(ldapAttributeDescription, []string{newUser.Description})
+	}
+
+	if newUser.Lang != "" {
+		modifyRequest.Replace(ldapAttributePreferredLanguage, []string{newUser.Lang})
+	}
+
+	if newUser.Password != "" {
+		modifyRequest.Replace(ldapAttributeUserPassword, []string{newUser.Password})
+	}
+
+	return conn.Modify(modifyRequest)
+
+}
+
+func (l *ldapInterfaceImpl) Verify(username, password string) error {
+	conn, err := l.newConn()
+	if err != nil {
+		return err
+	}
+
+	dn := l.dnForUsername(username)
+	err = conn.Bind(dn, password)
+	if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+		return ErrInvalidCredentials
+	}
+	return err
 }

@@ -46,7 +46,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func addWebService(c *restful.Container, devopsClient devops.Interface,
+func AddToContainer(c *restful.Container, devopsClient devops.Interface,
 	dbClient *mysql.Database, sonarClient sonarqube.SonarInterface, ksClient versioned.Interface,
 	ksInformer externalversions.SharedInformerFactory, s3Client s3.Interface) error {
 

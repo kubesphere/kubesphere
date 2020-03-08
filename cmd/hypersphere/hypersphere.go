@@ -10,7 +10,6 @@ import (
 	controllermanager "kubesphere.io/kubesphere/cmd/controller-manager/app"
 	ksapigateway "kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 	ksapiserver "kubesphere.io/kubesphere/cmd/ks-apiserver/app"
-	ksaiam "kubesphere.io/kubesphere/cmd/ks-iam/app"
 	"os"
 )
 
@@ -46,13 +45,11 @@ func commandFor(basename string, defaultCommand *cobra.Command, commands []func(
 func NewHyperSphereCommand() (*cobra.Command, []func() *cobra.Command) {
 	apiserver := func() *cobra.Command { return ksapiserver.NewAPIServerCommand() }
 	controllermanager := func() *cobra.Command { return controllermanager.NewControllerManagerCommand() }
-	iam := func() *cobra.Command { return ksaiam.NewAPIServerCommand() }
 	apigateway := func() *cobra.Command { return ksapigateway.NewAPIGatewayCommand() }
 
 	commandFns := []func() *cobra.Command{
 		apiserver,
 		controllermanager,
-		iam,
 		apigateway,
 	}
 

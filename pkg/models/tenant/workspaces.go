@@ -33,7 +33,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	clientset "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
@@ -43,10 +42,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+
+	iamapi "kubesphere.io/kubesphere/pkg/api/iam"
 )
 
 type InWorkspaceUser struct {
-	*iam.User
+	*iamapi.User
 	WorkspaceRole string `json:"workspaceRole"`
 }
 
@@ -203,10 +204,6 @@ func (w *workspaceOperator) deleteWorkspaceRoleBinding(workspace, username strin
 }
 
 func (w *workspaceOperator) CountDevopsProjectsInWorkspace(workspaceName string) (int, error) {
-	if w.db == nil {
-		return 0, clientset.ErrClientSetNotEnabled
-	}
-
 	query := w.db.Select(devops.DevOpsProjectIdColumn).
 		From(devops.DevOpsProjectTableName).
 		Where(db.And(db.Eq(devops.DevOpsProjectWorkSpaceColumn, workspaceName),

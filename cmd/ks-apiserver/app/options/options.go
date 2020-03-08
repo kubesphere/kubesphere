@@ -1,12 +1,18 @@
 package options
 
 import (
+	"crypto/tls"
 	"flag"
+	"fmt"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/apiserver"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
@@ -14,6 +20,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
+	"net/http"
 	"strings"
 )
 
@@ -29,6 +36,9 @@ type ServerRunOptions struct {
 	S3Options               *s3.Options
 	OpenPitrixOptions       *openpitrix.Options
 	LoggingOptions          *esclient.Options
+	LdapOptions             *ldap.Options
+	CacheOptions            *cache.Options
+	AuthenticateOptions     *iam.AuthenticationOptions
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -44,22 +54,28 @@ func NewServerRunOptions() *ServerRunOptions {
 		S3Options:               s3.NewS3Options(),
 		OpenPitrixOptions:       openpitrix.NewOptions(),
 		LoggingOptions:          esclient.NewElasticSearchOptions(),
+		LdapOptions:             ldap.NewOptions(),
+		CacheOptions:            cache.NewRedisOptions(),
+		AuthenticateOptions:     iam.NewAuthenticateOptions(),
 	}
 
 	return &s
 }
 
-func (s *ServerRunOptions) Flags(c *ServerRunOptions) (fss cliflag.NamedFlagSets) {
-	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"), c.GenericServerRunOptions)
-	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), c.KubernetesOptions)
-	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), c.MySQLOptions)
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), c.DevopsOptions)
-	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), c.SonarQubeOptions)
-	s.S3Options.AddFlags(fss.FlagSet("s3"), c.S3Options)
-	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), c.OpenPitrixOptions)
-	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), c.ServiceMeshOptions)
-	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), c.MonitoringOptions)
-	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), c.LoggingOptions)
+func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
+	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"), s.GenericServerRunOptions)
+	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
+	s.AuthenticateOptions.AddFlags(fss.FlagSet("authenticate"), s.AuthenticateOptions)
+	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), s.MySQLOptions)
+	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
+	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
+	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
+	s.CacheOptions.AddFlags(fss.FlagSet("cache"), s.CacheOptions)
+	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
+	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
+	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
+	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
+	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)
 
 	fs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -70,4 +86,63 @@ func (s *ServerRunOptions) Flags(c *ServerRunOptions) (fss cliflag.NamedFlagSets
 	})
 
 	return fss
+}
+
+func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
+	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	monitoringClient := prometheus.NewPrometheus(s.MonitoringOptions)
+
+	loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	s3Client, err := s3.NewS3Client(s.S3Options)
+	if err != nil {
+		return nil, err
+	}
+
+	devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheClient, err := cache.NewRedisClient(s.CacheOptions, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%d", s.GenericServerRunOptions.InsecurePort),
+	}
+
+	if s.GenericServerRunOptions.SecurePort != 0 {
+		certificate, err := tls.LoadX509KeyPair(s.GenericServerRunOptions.TlsCertFile, s.GenericServerRunOptions.TlsPrivateKey)
+		if err != nil {
+			return nil, err
+		}
+		server.TLSConfig.Certificates = []tls.Certificate{certificate}
+	}
+
+	apiServer := &apiserver.APIServer{
+		Server:           server,
+		KubernetesClient: kubernetesClient,
+		MonitoringClient: monitoringClient,
+		LoggingClient:    loggingClient,
+		S3Client:         s3Client,
+		DevopsClient:     devopsClient,
+		LdapClient:       ldapClient,
+		CacheClient:      cacheClient,
+	}
+
+	return apiServer, nil
 }

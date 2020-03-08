@@ -19,19 +19,15 @@
 package s2irun
 
 import (
-	"github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
+	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
-
+	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
 	"strings"
-
-	"kubesphere.io/kubesphere/pkg/server/params"
-
-	"k8s.io/apimachinery/pkg/labels"
-
-	"github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
 )
 
 type s2iRunSearcher struct {

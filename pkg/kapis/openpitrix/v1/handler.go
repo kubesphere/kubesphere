@@ -14,7 +14,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	op "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"strconv"
 	"strings"
@@ -25,9 +24,7 @@ type openpitrixHandler struct {
 	informers  k8sinformers.SharedInformerFactory
 }
 
-func newOpenpitrixHandler(k8sClient k8s.Client, opClient op.Client) *openpitrixHandler {
-
-	factory := informers.NewInformerFactories(k8sClient.Kubernetes(), k8sClient.KubeSphere(), k8sClient.S2i(), k8sClient.Application())
+func newOpenpitrixHandler(factory informers.InformerFactory, opClient op.Client) *openpitrixHandler {
 
 	return &openpitrixHandler{
 		openpitrix: openpitrix.NewOpenpitrixOperator(factory.KubernetesSharedInformerFactory(), opClient),

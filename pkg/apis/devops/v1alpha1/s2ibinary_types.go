@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	ResourceKindS2iBinary         = "S2iBinary"
-	ResourceSingularServicePolicy = "s2ibinary"
-	ResourcePluralServicePolicy   = "s2ibinaries"
+	ResourceKindS2iBinary     = "S2iBinary"
+	ResourceSingularS2iBinary = "s2ibinary"
+	ResourcePluralS2iBinary   = "s2ibinaries"
 )
 
 const (

@@ -1,5 +1,0 @@
-linters-settings:
-  lll:
-    line-length: 170
-  dupl:
-    threshold: 400

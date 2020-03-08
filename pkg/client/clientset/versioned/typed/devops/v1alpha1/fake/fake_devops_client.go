@@ -32,6 +32,18 @@ func (c *FakeDevopsV1alpha1) S2iBinaries(namespace string) v1alpha1.S2iBinaryInt
 	return &FakeS2iBinaries{c, namespace}
 }
 
+func (c *FakeDevopsV1alpha1) S2iBuilders(namespace string) v1alpha1.S2iBuilderInterface {
+	return &FakeS2iBuilders{c, namespace}
+}
+
+func (c *FakeDevopsV1alpha1) S2iBuilderTemplates() v1alpha1.S2iBuilderTemplateInterface {
+	return &FakeS2iBuilderTemplates{c}
+}
+
+func (c *FakeDevopsV1alpha1) S2iRuns(namespace string) v1alpha1.S2iRunInterface {
+	return &FakeS2iRuns{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeDevopsV1alpha1) RESTClient() rest.Interface {

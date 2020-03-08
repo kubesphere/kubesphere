@@ -23,7 +23,7 @@ func (s *SimpleCache) Set(key string, value string, duration time.Duration) erro
 	panic("implement me")
 }
 
-func (s *SimpleCache) Del(key string) error {
+func (s *SimpleCache) Del(keys ...string) error {
 	panic("implement me")
 }
 
@@ -31,7 +31,7 @@ func (s *SimpleCache) Get(key string) (string, error) {
 	return "", nil
 }
 
-func (s *SimpleCache) Exists(key string) (bool, error) {
+func (s *SimpleCache) Exists(keys ...string) (bool, error) {
 	panic("implement me")
 }
 

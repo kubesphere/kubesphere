@@ -77,9 +77,9 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters[v1alpha2.StorageClasses] = storageclass.NewStorageClassesSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.HorizontalPodAutoscalers] = hpa.NewHpaSearcher(factory.KubernetesSharedInformerFactory())
 
-	resourceGetters[v1alpha2.S2iBuilders] = s2ibuilder.NewS2iBuilderSearcher(factory.S2iSharedInformerFactory())
-	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.S2iSharedInformerFactory())
-	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.S2iSharedInformerFactory())
+	resourceGetters[v1alpha2.S2iBuilders] = s2ibuilder.NewS2iBuilderSearcher(factory.KubeSphereSharedInformerFactory())
+	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.KubeSphereSharedInformerFactory())
+	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.KubeSphereSharedInformerFactory())
 
 	resourceGetters[v1alpha2.Workspaces] = workspace.NewWorkspaceSearcher(factory.KubeSphereSharedInformerFactory())
 

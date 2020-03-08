@@ -21,10 +21,11 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
 const (
@@ -33,11 +34,11 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface, config *rest.Config) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 
-	handler := newTerminalHandler(k8sClient.Kubernetes(), k8sClient.Config())
+	handler := newTerminalHandler(client, config)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}").
 		To(handler.handleTerminalSession).

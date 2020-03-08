@@ -24,11 +24,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	openpitrix2 "kubesphere.io/kubesphere/pkg/models/openpitrix"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	op "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"net/http"
 )
@@ -39,11 +39,11 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-func AddToContainer(c *restful.Container, k8s k8s.Client, op op.Client) error {
+func AddToContainer(c *restful.Container, factory informers.InformerFactory, op op.Client) error {
 
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := newOpenpitrixHandler(k8s, op)
+	handler := newOpenpitrixHandler(factory, op)
 
 	webservice.Route(webservice.GET("/applications").
 		To(handler.ListApplications).

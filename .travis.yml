@@ -9,8 +9,7 @@ git:
   depth: false
 
 go:
-  - "1.12.x"
-  - "tip"
+  - "1.13.x"
 env:
   - GO111MODULE=on
 cache:
@@ -23,11 +22,10 @@ before_script:
 
 script:
   - diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools)
-  - make openapi
   - make all 
 
 before_install:
-  - go get -t -v ./...
+  - go mod vendor
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/spf13/pflag"
 	"kubesphere.io/kubesphere/pkg/utils/net"
+	"os"
 )
 
 type ServerRunOptions struct {
@@ -63,10 +64,18 @@ func (s *ServerRunOptions) Validate() []error {
 	if net.IsValidPort(s.SecurePort) {
 		if s.TlsCertFile == "" {
 			errs = append(errs, fmt.Errorf("tls cert file is empty while secure serving"))
+		} else {
+			if _, err := os.Stat(s.TlsCertFile); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if s.TlsPrivateKey == "" {
 			errs = append(errs, fmt.Errorf("tls private key file is empty while secure serving"))
+		} else {
+			if _, err := os.Stat(s.TlsPrivateKey); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 

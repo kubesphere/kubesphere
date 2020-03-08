@@ -6,6 +6,7 @@ const (
 	FieldName                = "name"
 	FieldCreationTimeStamp   = "creationTimestamp"
 	FieldLastUpdateTimestamp = "lastUpdateTimestamp"
+	FieldLabel               = "label"
 	FieldNamespace           = "namespace"
 	FieldStatus              = "status"
 	FieldApplication         = "application"

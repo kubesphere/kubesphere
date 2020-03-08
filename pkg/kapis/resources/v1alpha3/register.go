@@ -25,7 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"net/http"
 )
 
@@ -40,10 +40,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddWebService(c *restful.Container, client k8s.Client) error {
+func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := New(client)
+	handler := New(informerFactory)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(handler.handleGetNamespacedResource).

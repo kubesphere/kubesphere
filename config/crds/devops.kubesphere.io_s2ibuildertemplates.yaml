@@ -1,0 +1,141 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: s2ibuildertemplates.devops.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.codeFramework
+    name: Framework
+    type: string
+  - JSONPath: .spec.defaultBaseImage
+    name: DefaultBaseImage
+    type: string
+  - JSONPath: .spec.version
+    name: Version
+    type: string
+  group: devops.kubesphere.io
+  names:
+    categories:
+    - devops
+    kind: S2iBuilderTemplate
+    listKind: S2iBuilderTemplateList
+    plural: s2ibuildertemplates
+    shortNames:
+    - s2ibt
+    singular: s2ibuildertemplate
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: S2iBuilderTemplate is the Schema for the s2ibuildertemplates API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: S2iBuilderTemplateSpec defines the desired state of S2iBuilderTemplate
+          properties:
+            codeFramework:
+              description: CodeFramework means which language this template is designed
+                for and which framework is using if has framework. Like Java, NodeJS
+                etc
+              type: string
+            containerInfo:
+              description: Images are the images this template will use.
+              items:
+                properties:
+                  buildVolumes:
+                    description: BuildVolumes specifies a list of volumes to mount
+                      to container running the build.
+                    items:
+                      type: string
+                    type: array
+                  builderImage:
+                    description: BaseImage are the images this template will use.
+                    type: string
+                  runtimeArtifacts:
+                    items:
+                      description: VolumeSpec represents a single volume mount point.
+                      properties:
+                        destination:
+                          description: Destination is the path to mount the volume
+                            to - absolute or relative.
+                          type: string
+                        keep:
+                          description: Keep indicates if the mounted data should be
+                            kept in the final image.
+                          type: boolean
+                        source:
+                          description: Source is a reference to the volume source.
+                          type: string
+                      type: object
+                    type: array
+                  runtimeImage:
+                    type: string
+                type: object
+              type: array
+            defaultBaseImage:
+              description: DefaultBaseImage is the image that will be used by default
+              type: string
+            description:
+              description: Description illustrate the purpose of this template
+              type: string
+            environment:
+              description: Parameters is a set of environment variables to be passed
+                to the image.
+              items:
+                properties:
+                  defaultValue:
+                    type: string
+                  description:
+                    type: string
+                  key:
+                    type: string
+                  optValues:
+                    items:
+                      type: string
+                    type: array
+                  required:
+                    type: boolean
+                  type:
+                    type: string
+                  value:
+                    type: string
+                type: object
+              type: array
+            iconPath:
+              description: IconPath is used for frontend display
+              type: string
+            version:
+              description: Version of template
+              type: string
+          type: object
+        status:
+          description: S2iBuilderTemplateStatus defines the observed state of S2iBuilderTemplate
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

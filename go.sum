@@ -276,8 +276,6 @@ github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4 h1:pugSGmj8
 github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4/go.mod h1:sILRE7W0CquRyC51JNRj4U7OP7CJl3o62TcX5E6IcWs=
 github.com/kubesphere/kiali v0.15.1-0.20191210080139-edbbad1ef779 h1:52StEbBn6dRFF2DE9DBmVt26JQu9j4DOwagLUq6gZWg=
 github.com/kubesphere/kiali v0.15.1-0.20191210080139-edbbad1ef779/go.mod h1:Y1EqeixoXkKkU8I+yvOfhdh21+8+etFE6wYOVT2XFdI=
-github.com/kubesphere/s2ioperator v0.0.14 h1:oShV/MSn8bwwnRzXU8bY3RH/V4k0TmCcKZ50B0Q9gEk=
-github.com/kubesphere/s2ioperator v0.0.14/go.mod h1:6stEM/ocFZxYhLYl2d5LRYE5WdggHMIX5ngJwloWR4g=
 github.com/kubesphere/sonargo v0.0.2 h1:hsSRE3sv3mkPcUAeSABdp7rtfcNW2zzeHXzFa01CTkU=
 github.com/kubesphere/sonargo v0.0.2/go.mod h1:ww8n9ANlDXhX5PBZ18iaRnCgEkXN0GMml3/KZXOZ11w=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3vkb4ax0b5D2DHbNAUsen0Gx5wZoq3lV4=

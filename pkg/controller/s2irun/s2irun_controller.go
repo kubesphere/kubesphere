@@ -18,26 +18,21 @@ import (
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
-	s2iv1alpha1 "github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1"
-	s2iclient "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
-	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops/v1alpha1"
-	s2ilisters "github.com/kubesphere/s2ioperator/pkg/client/listers/devops/v1alpha1"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	devopsclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha1"
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha1"
 )
 
-type S2iRunController struct {
-	client    clientset.Interface
-	s2iClient s2iclient.Interface
+type Controller struct {
+	client clientset.Interface
 
 	devopsClient devopsclient.Interface
 
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
 
-	s2iRunLister s2ilisters.S2iRunLister
+	s2iRunLister devopslisters.S2iRunLister
 	s2iRunSynced cache.InformerSynced
 
 	s2iBinaryLister devopslisters.S2iBinaryLister
@@ -48,9 +43,10 @@ type S2iRunController struct {
 	workerLoopPeriod time.Duration
 }
 
-func NewController(devopsclientset devopsclient.Interface, s2iclientset s2iclient.Interface,
+func NewS2iRunController(devopsClientSet devopsclient.Interface,
 	client clientset.Interface,
-	s2ibinInformer devopsinformers.S2iBinaryInformer, s2iRunInformer s2iinformers.S2iRunInformer) *S2iRunController {
+	s2iBinInformer devopsinformers.S2iBinaryInformer,
+	s2iRunInformer devopsinformers.S2iRunInformer) *Controller {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -59,13 +55,12 @@ func NewController(devopsclientset devopsclient.Interface, s2iclientset s2iclien
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "s2irun-controller"})
 
-	v := &S2iRunController{
+	v := &Controller{
 		client:           client,
-		devopsClient:     devopsclientset,
-		s2iClient:        s2iclientset,
+		devopsClient:     devopsClientSet,
 		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "s2irun"),
-		s2iBinaryLister:  s2ibinInformer.Lister(),
-		s2iBinarySynced:  s2ibinInformer.Informer().HasSynced,
+		s2iBinaryLister:  s2iBinInformer.Lister(),
+		s2iBinarySynced:  s2iBinInformer.Informer().HasSynced,
 		s2iRunLister:     s2iRunInformer.Lister(),
 		s2iRunSynced:     s2iRunInformer.Informer().HasSynced,
 		workerLoopPeriod: time.Second,
@@ -77,8 +72,8 @@ func NewController(devopsclientset devopsclient.Interface, s2iclientset s2iclien
 	s2iRunInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: v.enqueueS2iRun,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			old := oldObj.(*s2iv1alpha1.S2iRun)
-			new := newObj.(*s2iv1alpha1.S2iRun)
+			old := oldObj.(*devopsv1alpha1.S2iRun)
+			new := newObj.(*devopsv1alpha1.S2iRun)
 			if old.ResourceVersion == new.ResourceVersion {
 				return
 			}
@@ -92,7 +87,7 @@ func NewController(devopsclientset devopsclient.Interface, s2iclientset s2iclien
 // enqueueFoo takes a Foo resource and converts it into a namespace/name
 // string which is then put onto the work workqueue. This method should *not* be
 // passed resources of any type other than Foo.
-func (c *S2iRunController) enqueueS2iRun(obj interface{}) {
+func (c Controller) enqueueS2iRun(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -102,7 +97,7 @@ func (c *S2iRunController) enqueueS2iRun(obj interface{}) {
 	c.workqueue.Add(key)
 }
 
-func (c *S2iRunController) processNextWorkItem() bool {
+func (c Controller) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -136,17 +131,17 @@ func (c *S2iRunController) processNextWorkItem() bool {
 	return true
 }
 
-func (c *S2iRunController) worker() {
+func (c Controller) worker() {
 
 	for c.processNextWorkItem() {
 	}
 }
 
-func (c *S2iRunController) Start(stopCh <-chan struct{}) error {
+func (c Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(1, stopCh)
 }
 
-func (c *S2iRunController) Run(workers int, stopCh <-chan struct{}) error {
+func (c Controller) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
@@ -168,7 +163,7 @@ func (c *S2iRunController) Run(workers int, stopCh <-chan struct{}) error {
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Foo resource
 // with the current status of the resource.
-func (c *S2iRunController) syncHandler(key string) error {
+func (c Controller) syncHandler(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		klog.Error(err, fmt.Sprintf("could not split s2irun meta %s ", key))
@@ -189,7 +184,7 @@ func (c *S2iRunController) syncHandler(key string) error {
 			if s2irun.ObjectMeta.DeletionTimestamp.IsZero() {
 				if !sliceutil.HasString(s2irun.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName) {
 					s2irun.ObjectMeta.Finalizers = append(s2irun.ObjectMeta.Finalizers, devopsv1alpha1.S2iBinaryFinalizerName)
-					_, err := c.s2iClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
+					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
 					if err != nil {
 						klog.Error(err, fmt.Sprintf("failed to update s2irun %s", key))
 						return err
@@ -205,7 +200,7 @@ func (c *S2iRunController) syncHandler(key string) error {
 					s2irun.ObjectMeta.Finalizers = sliceutil.RemoveString(s2irun.ObjectMeta.Finalizers, func(item string) bool {
 						return item == devopsv1alpha1.S2iBinaryFinalizerName
 					})
-					_, err := c.s2iClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
+					_, err = c.devopsClient.DevopsV1alpha1().S2iRuns(namespace).Update(s2irun)
 					if err != nil {
 						klog.Error(err, fmt.Sprintf("failed to update s2irun %s ", key))
 						return err
@@ -218,7 +213,7 @@ func (c *S2iRunController) syncHandler(key string) error {
 	return nil
 }
 
-func (c *S2iRunController) DeleteS2iBinary(s2irun *s2iv1alpha1.S2iRun) error {
+func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 	s2iBinName := s2irun.Labels[devopsv1alpha1.S2iBinaryLabelKey]
 	s2iBin, err := c.s2iBinaryLister.S2iBinaries(s2irun.Namespace).Get(s2iBinName)
 	if err != nil {
@@ -246,7 +241,7 @@ func (c *S2iRunController) DeleteS2iBinary(s2irun *s2iv1alpha1.S2iRun) error {
 }
 
 // cleanOtherS2iBinary clean up s2ibinary created for more than 24 hours without associated s2irun
-func (c *S2iRunController) cleanOtherS2iBinary(namespace string) error {
+func (c Controller) cleanOtherS2iBinary(namespace string) error {
 	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(nil)
 	if err != nil {
 		klog.Error(err, fmt.Sprintf("failed to list s2ibin in %s ", namespace))

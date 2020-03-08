@@ -20,6 +20,7 @@ package iam
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
+	"kubesphere.io/kubesphere/pkg/api/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"strings"
 )
@@ -194,15 +195,15 @@ func ContainsUser(subjects interface{}, username string) bool {
 				return true
 			}
 		}
-	case []User:
-		for _, u := range subjects.([]User) {
+	case []iam.User:
+		for _, u := range subjects.([]iam.User) {
 			if u.Username == username {
 				return true
 			}
 		}
 
-	case []*User:
-		for _, u := range subjects.([]*User) {
+	case []*iam.User:
+		for _, u := range subjects.([]*iam.User) {
 			if u.Username == username {
 				return true
 			}

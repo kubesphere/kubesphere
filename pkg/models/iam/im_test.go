@@ -17,39 +17,3 @@
  */
 
 package iam
-
-import (
-	"github.com/golang/mock/gomock"
-	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"testing"
-)
-
-func TestIMOperator(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	ldappool, err := ldap.NewMockClient(&ldap.Options{
-		Host:            "192.168.0.7:30389",
-		ManagerDN:       "cn=admin,dc=kubesphere,dc=io",
-		ManagerPassword: "admin",
-		UserSearchBase:  "ou=Users,dc=kubesphere,dc=io",
-		GroupSearchBase: "ou=Groups,dc=kubesphere,dc=io",
-		InitialCap:      8,
-		MaxCap:          64,
-	}, ctrl, func(client *ldap.MockClient) {
-		client.EXPECT().Search(gomock.Any()).AnyTimes()
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer ldappool.Close()
-
-	im := NewIMOperator(ldappool, Config{})
-
-	err = im.Init()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-}

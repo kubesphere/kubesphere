@@ -77,7 +77,7 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 }
 
 func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
-	amOperator := iam.NewAMOperator(informers)
+	amOperator := iam.NewAMOperator(client, informers)
 	return &tenantOperator{
 		workspaces: newWorkspaceOperator(client, informers, ksinformers, amOperator, db),
 		namespaces: newNamespaceOperator(client, informers, amOperator),
