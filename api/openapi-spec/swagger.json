@@ -104,7 +104,7 @@
         }
       }
     },
-    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary": {
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinaries": {
       "get": {
         "description": "list or watch objects of kind S2iBinary",
         "consumes": [
@@ -400,7 +400,7 @@
         }
       ]
     },
-    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary/{name}": {
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinaries/{name}": {
       "get": {
         "description": "read the specified S2iBinary",
         "consumes": [
@@ -654,7 +654,7 @@
         }
       ]
     },
-    "/apis/devops.kubesphere.io/v1alpha1/s2ibinary/{name}/status": {
+    "/apis/devops.kubesphere.io/v1alpha1/s2ibinaries/{name}/status": {
       "get": {
         "description": "read status of the specified S2iBinary",
         "consumes": [
@@ -915,7 +915,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderList"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderList"
             }
           }
         },
@@ -949,7 +949,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           {
@@ -971,19 +971,19 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           "202": {
             "description": "Accepted",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1151,7 +1151,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1185,7 +1185,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           {
@@ -1207,13 +1207,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1354,7 +1354,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1405,7 +1405,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1439,7 +1439,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           {
@@ -1461,13 +1461,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1533,7 +1533,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
             }
           }
         },
@@ -1644,7 +1644,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateList"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateList"
             }
           }
         },
@@ -1678,7 +1678,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           {
@@ -1700,19 +1700,19 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           "202": {
             "description": "Accepted",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -1880,7 +1880,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -1914,7 +1914,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           {
@@ -1936,13 +1936,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -2083,7 +2083,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -2134,7 +2134,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -2168,7 +2168,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           {
@@ -2190,13 +2190,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -2262,7 +2262,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
             }
           }
         },
@@ -2373,7 +2373,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunList"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunList"
             }
           }
         },
@@ -2407,7 +2407,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           {
@@ -2429,19 +2429,19 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           "202": {
             "description": "Accepted",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2609,7 +2609,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2643,7 +2643,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           {
@@ -2665,13 +2665,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2812,7 +2812,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2863,7 +2863,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2897,7 +2897,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           {
@@ -2919,13 +2919,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -2991,7 +2991,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
             }
           }
         },
@@ -3020,7 +3020,7 @@
         }
       ]
     },
-    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinary": {
+    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinaries": {
       "get": {
         "description": "watch individual changes to a list of S2iBinary. deprecated: use the 'watch' parameter with a list operation instead.",
         "consumes": [
@@ -3121,7 +3121,7 @@
         }
       ]
     },
-    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinary/{name}": {
+    "/apis/devops.kubesphere.io/v1alpha1/watch/s2ibinaries/{name}": {
       "get": {
         "description": "watch changes to an object of kind S2iBinary. deprecated: use the 'watch' parameter with a list operation instead, filtered to a single item with the 'fieldSelector' parameter.",
         "consumes": [
@@ -5860,911 +5860,6 @@
     }
   },
   "definitions": {
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.AuthConfig": {
-      "description": "AuthConfig is our abstraction of the Registry authorization information for whatever docker client we happen to be based on",
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        },
-        "secretRef": {
-          "$ref": "#/definitions/io.k8s.api.core.v1.LocalObjectReference"
-        },
-        "serverAddress": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.CGroupLimits": {
-      "description": "CGroupLimits holds limits used to constrain container resources.",
-      "type": "object",
-      "required": [
-        "memoryLimitBytes",
-        "cpuShares",
-        "cpuPeriod",
-        "cpuQuota",
-        "memorySwap",
-        "parent"
-      ],
-      "properties": {
-        "cpuPeriod": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "cpuQuota": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "cpuShares": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "memoryLimitBytes": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "memorySwap": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "parent": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ContainerInfo": {
-      "type": "object",
-      "properties": {
-        "buildVolumes": {
-          "description": "BuildVolumes specifies a list of volumes to mount to container running the build.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "builderImage": {
-          "description": "BaseImage are the images this template will use.",
-          "type": "string"
-        },
-        "runtimeArtifacts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec"
-          }
-        },
-        "runtimeImage": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.DockerConfig": {
-      "description": "DockerConfig contains the configuration for a Docker connection.",
-      "type": "object",
-      "required": [
-        "endPoint",
-        "certFile",
-        "keyFile",
-        "caFile",
-        "useTLS",
-        "tlsVerify"
-      ],
-      "properties": {
-        "caFile": {
-          "description": "CAFile is the certificate authority file path for a TLS connection",
-          "type": "string"
-        },
-        "certFile": {
-          "description": "CertFile is the certificate file path for a TLS connection",
-          "type": "string"
-        },
-        "endPoint": {
-          "description": "Endpoint is the docker network endpoint or socket",
-          "type": "string"
-        },
-        "keyFile": {
-          "description": "KeyFile is the key file path for a TLS connection",
-          "type": "string"
-        },
-        "tlsVerify": {
-          "description": "TLSVerify indicates if TLS peer must be verified",
-          "type": "boolean"
-        },
-        "useTLS": {
-          "description": "UseTLS indicates if TLS must be used",
-          "type": "boolean"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.EnvironmentSpec": {
-      "description": "EnvironmentSpec specifies a single environment variable.",
-      "type": "object",
-      "required": [
-        "name",
-        "value"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.Parameter": {
-      "type": "object",
-      "properties": {
-        "defaultValue": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "key": {
-          "type": "string"
-        },
-        "optValues": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "required": {
-          "type": "boolean"
-        },
-        "type": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ProxyConfig": {
-      "description": "ProxyConfig holds proxy configuration.",
-      "type": "object",
-      "properties": {
-        "httpProxy": {
-          "type": "string"
-        },
-        "httpsProxy": {
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuildResult": {
-      "type": "object",
-      "properties": {
-        "commandPull": {
-          "description": "Command for pull image.",
-          "type": "string"
-        },
-        "imageCreated": {
-          "description": "Image created time.",
-          "type": "string"
-        },
-        "imageID": {
-          "description": "Image ID.",
-          "type": "string"
-        },
-        "imageName": {
-          "description": "ImageName is the name of artifact",
-          "type": "string"
-        },
-        "imageRepoTags": {
-          "description": "image tags.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "imageSize": {
-          "description": "The size in bytes of the image",
-          "type": "integer",
-          "format": "int64"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuildSource": {
-      "type": "object",
-      "properties": {
-        "binaryName": {
-          "description": "Binary file Name",
-          "type": "string"
-        },
-        "binarySize": {
-          "description": "Binary file Size",
-          "type": "integer",
-          "format": "int64"
-        },
-        "builderImage": {
-          "description": "// BuilderImage describes which image is used for building the result images.",
-          "type": "string"
-        },
-        "commitID": {
-          "description": "CommitID represents an arbitrary extended object reference in Git as SHA-1",
-          "type": "string"
-        },
-        "committerEmail": {
-          "description": "CommitterEmail contains the e-mail of the committer",
-          "type": "string"
-        },
-        "committerName": {
-          "description": "CommitterName contains the name of the committer",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description is a result image description label. The default is no description.",
-          "type": "string"
-        },
-        "revisionId": {
-          "description": "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
-          "type": "string"
-        },
-        "sourceUrl": {
-          "description": "SourceURL is  url of the codes such as https://github.com/a/b.git",
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder": {
-      "description": "S2iBuilder is the Schema for the s2ibuilders API",
-      "type": "object",
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-        },
-        "spec": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderSpec"
-        },
-        "status": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderStatus"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iBuilder",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderList": {
-      "description": "S2iBuilderList contains a list of S2iBuilder",
-      "type": "object",
-      "required": [
-        "items"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilder"
-          }
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iBuilderList",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderSpec": {
-      "description": "S2iBuilderSpec defines the desired state of S2iBuilder",
-      "type": "object",
-      "properties": {
-        "config": {
-          "description": "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"make\" to regenerate code after modifying this file",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iConfig"
-        },
-        "fromTemplate": {
-          "description": "FromTemplate define some inputs from user",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.UserDefineTemplate"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderStatus": {
-      "description": "S2iBuilderStatus defines the observed state of S2iBuilder",
-      "type": "object",
-      "required": [
-        "runCount"
-      ],
-      "properties": {
-        "lastRunName": {
-          "description": "LastRunState return the name of the newest run of this builder",
-          "type": "string"
-        },
-        "lastRunStartTime": {
-          "description": "LastRunStartTime return the startTime of the newest run of this builder",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-        },
-        "lastRunState": {
-          "description": "LastRunState return the state of the newest run of this builder",
-          "type": "string"
-        },
-        "runCount": {
-          "description": "RunCount represent the sum of s2irun of this builder",
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate": {
-      "description": "S2iBuilderTemplate is the Schema for the s2ibuildertemplates API",
-      "type": "object",
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-        },
-        "spec": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateSpec"
-        },
-        "status": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateStatus"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iBuilderTemplate",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateList": {
-      "description": "S2iBuilderTemplateList contains a list of S2iBuilderTemplate",
-      "type": "object",
-      "required": [
-        "items"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
-          }
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iBuilderTemplateList",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateSpec": {
-      "description": "S2iBuilderTemplateSpec defines the desired state of S2iBuilderTemplate",
-      "type": "object",
-      "properties": {
-        "codeFramework": {
-          "description": "CodeFramework means which language this template is designed for and which framework is using if has framework. Like Java, NodeJS etc",
-          "type": "string"
-        },
-        "containerInfo": {
-          "description": "Images are the images this template will use.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ContainerInfo"
-          }
-        },
-        "defaultBaseImage": {
-          "description": "DefaultBaseImage is the image that will be used by default",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description illustrate the purpose of this template",
-          "type": "string"
-        },
-        "environment": {
-          "description": "Parameters is a set of environment variables to be passed to the image.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.Parameter"
-          }
-        },
-        "iconPath": {
-          "description": "IconPath is used for frontend display",
-          "type": "string"
-        },
-        "version": {
-          "description": "Version of template",
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuilderTemplateStatus": {
-      "description": "S2iBuilderTemplateStatus defines the observed state of S2iBuilderTemplate",
-      "type": "object"
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iConfig": {
-      "type": "object",
-      "required": [
-        "imageName",
-        "sourceUrl"
-      ],
-      "properties": {
-        "addHost": {
-          "description": "AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "asDockerfile": {
-          "description": "AsDockerfile indicates the path where the Dockerfile should be written instead of building a new image.",
-          "type": "string"
-        },
-        "assembleUser": {
-          "description": "AssembleUser specifies the user to run the assemble script in container",
-          "type": "string"
-        },
-        "blockOnBuild": {
-          "description": "BlockOnBuild prevents s2i from performing a docker build operation if one is necessary to execute ONBUILD commands, or to layer source code into the container for images that don't have a tar binary available, if the image contains ONBUILD commands that would be executed.",
-          "type": "boolean"
-        },
-        "buildVolumes": {
-          "description": "BuildVolumes specifies a list of volumes to mount to container running the build.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "builderBaseImageVersion": {
-          "description": "BuilderBaseImageVersion provides optional version information about the builder base image.",
-          "type": "string"
-        },
-        "builderImage": {
-          "description": "BuilderImage describes which image is used for building the result images.",
-          "type": "string"
-        },
-        "builderImageVersion": {
-          "description": "BuilderImageVersion provides optional version information about the builder image.",
-          "type": "string"
-        },
-        "builderPullPolicy": {
-          "description": "BuilderPullPolicy specifies when to pull the builder image",
-          "type": "string"
-        },
-        "callbackUrl": {
-          "description": "CallbackURL is a URL which is called upon successful build to inform about that fact.",
-          "type": "string"
-        },
-        "cgroupLimits": {
-          "description": "CGroupLimits describes the cgroups limits that will be applied to any containers run by s2i.",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.CGroupLimits"
-        },
-        "contextDir": {
-          "description": "Specify a relative directory inside the application repository that should be used as a root directory for the application.",
-          "type": "string"
-        },
-        "description": {
-          "description": "Description is a result image description label. The default is no description.",
-          "type": "string"
-        },
-        "destination": {
-          "description": "Destination specifies a location where the untar operation will place its artifacts.",
-          "type": "string"
-        },
-        "displayName": {
-          "description": "DisplayName is a result image display-name label. This defaults to the output image name.",
-          "type": "string"
-        },
-        "dockerConfig": {
-          "description": "DockerConfig describes how to access host docker daemon.",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.DockerConfig"
-        },
-        "dockerNetworkMode": {
-          "description": "DockerNetworkMode is used to set the docker network setting to --net=container:\u003cid\u003e when the builder is invoked from a container.",
-          "type": "string"
-        },
-        "dropCapabilities": {
-          "description": "DropCapabilities contains a list of capabilities to drop when executing containers",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "environment": {
-          "description": "Environment is a map of environment variables to be passed to the image.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.EnvironmentSpec"
-          }
-        },
-        "excludeRegExp": {
-          "description": "ExcludeRegExp contains a string representation of the regular expression desired for deciding which files to exclude from the tar stream",
-          "type": "string"
-        },
-        "export": {
-          "description": "Export Push the result image to specify image registry in tag",
-          "type": "boolean"
-        },
-        "gitSecretRef": {
-          "description": "GitSecretRef is the BasicAuth Secret of Git Clone",
-          "$ref": "#/definitions/io.k8s.api.core.v1.LocalObjectReference"
-        },
-        "hasOnBuild": {
-          "description": "HasOnBuild will be set to true if the builder image contains ONBUILD instructions",
-          "type": "boolean"
-        },
-        "imageName": {
-          "description": "ImageName Contains the registry address and reponame, tag should set by field tag alone",
-          "type": "string"
-        },
-        "imageScriptsUrl": {
-          "description": "ImageScriptsURL is the default location to find the assemble/run scripts for a builder image. This url can be a reference within the builder image if the scheme is specified as image://",
-          "type": "string"
-        },
-        "imageWorkDir": {
-          "description": "ImageWorkDir is the default working directory for the builder image.",
-          "type": "string"
-        },
-        "incremental": {
-          "description": "Incremental describes whether to try to perform incremental build.",
-          "type": "boolean"
-        },
-        "incrementalAuthentication": {
-          "description": "IncrementalAuthentication holds the authentication information for pulling the previous image from private repositories",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.AuthConfig"
-        },
-        "incrementalFromTag": {
-          "description": "IncrementalFromTag sets an alternative image tag to look for existing artifacts. Tag is used by default if this is not set.",
-          "type": "string"
-        },
-        "injections": {
-          "description": "Injections specifies a list source/destination folders that are injected to the container that runs assemble. All files we inject will be truncated after the assemble script finishes.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec"
-          }
-        },
-        "isBinaryURL": {
-          "description": "IsBinaryURL explain the type of SourceURL. If it is IsBinaryURL, it will download the file directly without using git.",
-          "type": "boolean"
-        },
-        "keepSymlinks": {
-          "description": "KeepSymlinks indicates to copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content.",
-          "type": "boolean"
-        },
-        "labelNamespace": {
-          "description": "LabelNamespace provides the namespace under which the labels will be generated.",
-          "type": "string"
-        },
-        "labels": {
-          "description": "Labels specify labels and their values to be applied to the resulting image. Label keys must have non-zero length. The labels defined here override generated labels in case they have the same name.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "layeredBuild": {
-          "description": "LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.",
-          "type": "boolean"
-        },
-        "nodeAffinityKey": {
-          "description": "The key of Node Affinity.",
-          "type": "string"
-        },
-        "nodeAffinityValues": {
-          "description": "The values of Node Affinity.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "outputBuildResult": {
-          "description": "Whether output build result to status.",
-          "type": "boolean"
-        },
-        "outputImageName": {
-          "description": "OutputImageName is a result image name without tag, default is latest. tag will append to ImageName in the end",
-          "type": "string"
-        },
-        "preserveWorkingDir": {
-          "description": "PreserveWorkingDir describes if working directory should be left after processing.",
-          "type": "boolean"
-        },
-        "previousImagePullPolicy": {
-          "description": "PreviousImagePullPolicy specifies when to pull the previously build image when doing incremental build",
-          "type": "string"
-        },
-        "pullAuthentication": {
-          "description": "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.AuthConfig"
-        },
-        "pushAuthentication": {
-          "description": "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.AuthConfig"
-        },
-        "removePreviousImage": {
-          "description": "RemovePreviousImage describes if previous image should be removed after successful build. This applies only to incremental builds.",
-          "type": "boolean"
-        },
-        "revisionId": {
-          "description": "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
-          "type": "string"
-        },
-        "runImage": {
-          "description": "RunImage will trigger a \"docker run ...\" invocation of the produced image so the user can see if it operates as he would expect",
-          "type": "boolean"
-        },
-        "runtimeArtifacts": {
-          "description": "RuntimeArtifacts specifies a list of source/destination pairs that will be copied from builder to a runtime image. Source can be a file or directory. Destination must be a directory. Regardless whether it is an absolute or relative path, it will be placed into image's WORKDIR. Destination also can be empty or equals to \".\", in this case it just refers to a root of WORKDIR. In case it's empty, S2I will try to get this list from io.openshift.s2i.assemble-input-files label on a RuntimeImage.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec"
-          }
-        },
-        "runtimeAuthentication": {
-          "description": "RuntimeAuthentication holds the authentication information for pulling the runtime Docker images from private repositories.",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.AuthConfig"
-        },
-        "runtimeImage": {
-          "description": "RuntimeImage specifies the image that will be a base for resulting image and will be used for running an application. By default, BuilderImage is used for building and running, but the latter may be overridden.",
-          "type": "string"
-        },
-        "runtimeImagePullPolicy": {
-          "description": "RuntimeImagePullPolicy specifies when to pull a runtime image.",
-          "type": "string"
-        },
-        "scriptDownloadProxyConfig": {
-          "description": "ScriptDownloadProxyConfig optionally specifies the http and https proxy to use when downloading scripts",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.ProxyConfig"
-        },
-        "scriptsUrl": {
-          "description": "ScriptsURL is a URL describing where to fetch the S2I scripts from during build process. This url can be a reference within the builder image if the scheme is specified as image://",
-          "type": "string"
-        },
-        "securityOpt": {
-          "description": "SecurityOpt are passed as options to the docker containers launched by s2i.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sourceUrl": {
-          "description": "SourceURL is  url of the codes such as https://github.com/a/b.git",
-          "type": "string"
-        },
-        "tag": {
-          "description": "Tag is a result image tag name.",
-          "type": "string"
-        },
-        "taintKey": {
-          "description": "The name of taint.",
-          "type": "string"
-        },
-        "usage": {
-          "description": "Usage allows for properly shortcircuiting s2i logic when `s2i usage` is invoked",
-          "type": "boolean"
-        },
-        "workingDir": {
-          "description": "WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.",
-          "type": "string"
-        },
-        "workingSourceDir": {
-          "description": "WorkingSourceDir describes the subdirectory off of WorkingDir set up during the repo download that is later used as the root for ignore processing",
-          "type": "string"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun": {
-      "description": "S2iRun is the Schema for the s2iruns API",
-      "type": "object",
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-        },
-        "spec": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunSpec"
-        },
-        "status": {
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunStatus"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iRun",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunList": {
-      "description": "S2iRunList contains a list of S2iRun",
-      "type": "object",
-      "required": [
-        "items"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRun"
-          }
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "devops.kubesphere.io",
-          "kind": "S2iRunList",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunSpec": {
-      "description": "S2iRunSpec defines the desired state of S2iRun",
-      "type": "object",
-      "required": [
-        "builderName"
-      ],
-      "properties": {
-        "backoffLimit": {
-          "description": "BackoffLimit limits the restart count of each s2irun. Default is 0",
-          "type": "integer",
-          "format": "int32"
-        },
-        "builderName": {
-          "description": "BuilderName specify the name of s2ibuilder, required",
-          "type": "string"
-        },
-        "newRevisionId": {
-          "description": "NewRevisionId override the default NewRevisionId in its s2ibuilder.",
-          "type": "string"
-        },
-        "newSourceURL": {
-          "description": "NewSourceURL is used to download new binary artifacts",
-          "type": "string"
-        },
-        "newTag": {
-          "description": "NewTag override the default tag in its s2ibuilder, image name cannot be changed.",
-          "type": "string"
-        },
-        "secondsAfterFinished": {
-          "description": "SecondsAfterFinished if is set and greater than zero, and the job created by s2irun become successful or failed , the job will be auto deleted after SecondsAfterFinished",
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iRunStatus": {
-      "description": "S2iRunStatus defines the observed state of S2iRun",
-      "type": "object",
-      "properties": {
-        "completionTime": {
-          "description": "Represents time when the job was completed. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC.",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-        },
-        "kubernetesJobName": {
-          "description": "KubernetesJobName is the job name in k8s",
-          "type": "string"
-        },
-        "logURL": {
-          "description": "LogURL is uesd for external log handler to let user know where is log located in",
-          "type": "string"
-        },
-        "runState": {
-          "description": "RunState  indicates whether this job is done or failed",
-          "type": "string"
-        },
-        "s2iBuildResult": {
-          "description": "S2i build result info.",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuildResult"
-        },
-        "s2iBuildSource": {
-          "description": "S2i build source info.",
-          "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.S2iBuildSource"
-        },
-        "startTime": {
-          "description": "StartTime represent when this run began",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.UserDefineTemplate": {
-      "type": "object",
-      "properties": {
-        "builderImage": {
-          "description": "BaseImage specify which version of this template to use",
-          "type": "string"
-        },
-        "name": {
-          "description": "Name specify a template to use, so many fields in Config can left empty",
-          "type": "string"
-        },
-        "parameters": {
-          "description": "Parameters must use with `template`, fill some parameters which template will use",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.Parameter"
-          }
-        }
-      }
-    },
-    "com.github.kubesphere.s2ioperator.pkg.apis.devops.v1alpha1.VolumeSpec": {
-      "description": "VolumeSpec represents a single volume mount point.",
-      "type": "object",
-      "properties": {
-        "destination": {
-          "description": "Destination is the path to mount the volume to - absolute or relative.",
-          "type": "string"
-        },
-        "keep": {
-          "description": "Keep indicates if the mounted data should be kept in the final image.",
-          "type": "boolean"
-        },
-        "source": {
-          "description": "Source is a reference to the volume source.",
-          "type": "string"
-        }
-      }
-    },
     "io.k8s.api.core.v1.LocalObjectReference": {
       "description": "LocalObjectReference contains enough information to let you locate the referenced object inside the same namespace.",
       "type": "object",
@@ -7490,6 +6585,184 @@
       "type": "string",
       "format": "int-or-string"
     },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.AuthConfig": {
+      "description": "AuthConfig is our abstraction of the Registry authorization information for whatever docker client we happen to be based on",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "secretRef": {
+          "$ref": "#/definitions/io.k8s.api.core.v1.LocalObjectReference"
+        },
+        "serverAddress": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.CGroupLimits": {
+      "description": "CGroupLimits holds limits used to constrain container resources.",
+      "type": "object",
+      "required": [
+        "memoryLimitBytes",
+        "cpuShares",
+        "cpuPeriod",
+        "cpuQuota",
+        "memorySwap",
+        "parent"
+      ],
+      "properties": {
+        "cpuPeriod": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "cpuQuota": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "cpuShares": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "memoryLimitBytes": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "memorySwap": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "parent": {
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.ContainerInfo": {
+      "type": "object",
+      "properties": {
+        "buildVolumes": {
+          "description": "BuildVolumes specifies a list of volumes to mount to container running the build.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "builderImage": {
+          "description": "BaseImage are the images this template will use.",
+          "type": "string"
+        },
+        "runtimeArtifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.VolumeSpec"
+          }
+        },
+        "runtimeImage": {
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.DockerConfig": {
+      "description": "DockerConfig contains the configuration for a Docker connection.",
+      "type": "object",
+      "required": [
+        "endPoint",
+        "certFile",
+        "keyFile",
+        "caFile",
+        "useTLS",
+        "tlsVerify"
+      ],
+      "properties": {
+        "caFile": {
+          "description": "CAFile is the certificate authority file path for a TLS connection",
+          "type": "string"
+        },
+        "certFile": {
+          "description": "CertFile is the certificate file path for a TLS connection",
+          "type": "string"
+        },
+        "endPoint": {
+          "description": "Endpoint is the docker network endpoint or socket",
+          "type": "string"
+        },
+        "keyFile": {
+          "description": "KeyFile is the key file path for a TLS connection",
+          "type": "string"
+        },
+        "tlsVerify": {
+          "description": "TLSVerify indicates if TLS peer must be verified",
+          "type": "boolean"
+        },
+        "useTLS": {
+          "description": "UseTLS indicates if TLS must be used",
+          "type": "boolean"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.EnvironmentSpec": {
+      "description": "EnvironmentSpec specifies a single environment variable.",
+      "type": "object",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.Parameter": {
+      "type": "object",
+      "properties": {
+        "defaultValue": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "optValues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.ProxyConfig": {
+      "description": "ProxyConfig holds proxy configuration.",
+      "type": "object",
+      "properties": {
+        "httpProxy": {
+          "type": "string"
+        },
+        "httpsProxy": {
+          "type": "string"
+        }
+      }
+    },
     "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBinary": {
       "description": "S2iBinary is the Schema for the s2ibinaries API",
       "type": "object",
@@ -7585,6 +6858,741 @@
       "properties": {
         "phase": {
           "description": "Phase is status of S2iBinary . Possible value is \"Ready\",\"UnableToDownload\"",
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuildResult": {
+      "type": "object",
+      "properties": {
+        "commandPull": {
+          "description": "Command for pull image.",
+          "type": "string"
+        },
+        "imageCreated": {
+          "description": "Image created time.",
+          "type": "string"
+        },
+        "imageID": {
+          "description": "Image ID.",
+          "type": "string"
+        },
+        "imageName": {
+          "description": "ImageName is the name of artifact",
+          "type": "string"
+        },
+        "imageRepoTags": {
+          "description": "image tags.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "imageSize": {
+          "description": "The size in bytes of the image",
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuildSource": {
+      "type": "object",
+      "properties": {
+        "binaryName": {
+          "description": "Binary file Name",
+          "type": "string"
+        },
+        "binarySize": {
+          "description": "Binary file Size",
+          "type": "integer",
+          "format": "int64"
+        },
+        "builderImage": {
+          "description": "// BuilderImage describes which image is used for building the result images.",
+          "type": "string"
+        },
+        "commitID": {
+          "description": "CommitID represents an arbitrary extended object reference in Git as SHA-1",
+          "type": "string"
+        },
+        "committerEmail": {
+          "description": "CommitterEmail contains the e-mail of the committer",
+          "type": "string"
+        },
+        "committerName": {
+          "description": "CommitterName contains the name of the committer",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description is a result image description label. The default is no description.",
+          "type": "string"
+        },
+        "revisionId": {
+          "description": "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+          "type": "string"
+        },
+        "sourceUrl": {
+          "description": "SourceURL is  url of the codes such as https://github.com/a/b.git",
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder": {
+      "description": "S2iBuilder is the Schema for the s2ibuilders API",
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderStatus"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iBuilder",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderList": {
+      "description": "S2iBuilderList contains a list of S2iBuilder",
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilder"
+          }
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iBuilderList",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderSpec": {
+      "description": "S2iBuilderSpec defines the desired state of S2iBuilder",
+      "type": "object",
+      "properties": {
+        "config": {
+          "description": "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"make\" to regenerate code after modifying this file",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iConfig"
+        },
+        "fromTemplate": {
+          "description": "FromTemplate define some inputs from user",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.UserDefineTemplate"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderStatus": {
+      "description": "S2iBuilderStatus defines the observed state of S2iBuilder",
+      "type": "object",
+      "required": [
+        "runCount"
+      ],
+      "properties": {
+        "lastRunName": {
+          "description": "LastRunState return the name of the newest run of this builder",
+          "type": "string"
+        },
+        "lastRunStartTime": {
+          "description": "LastRunStartTime return the startTime of the newest run of this builder",
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+        },
+        "lastRunState": {
+          "description": "LastRunState return the state of the newest run of this builder",
+          "type": "string"
+        },
+        "runCount": {
+          "description": "RunCount represent the sum of s2irun of this builder",
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate": {
+      "description": "S2iBuilderTemplate is the Schema for the s2ibuildertemplates API",
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateStatus"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iBuilderTemplate",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateList": {
+      "description": "S2iBuilderTemplateList contains a list of S2iBuilderTemplate",
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplate"
+          }
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iBuilderTemplateList",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateSpec": {
+      "description": "S2iBuilderTemplateSpec defines the desired state of S2iBuilderTemplate",
+      "type": "object",
+      "properties": {
+        "codeFramework": {
+          "description": "CodeFramework means which language this template is designed for and which framework is using if has framework. Like Java, NodeJS etc",
+          "type": "string"
+        },
+        "containerInfo": {
+          "description": "Images are the images this template will use.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.ContainerInfo"
+          }
+        },
+        "defaultBaseImage": {
+          "description": "DefaultBaseImage is the image that will be used by default",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description illustrate the purpose of this template",
+          "type": "string"
+        },
+        "environment": {
+          "description": "Parameters is a set of environment variables to be passed to the image.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.Parameter"
+          }
+        },
+        "iconPath": {
+          "description": "IconPath is used for frontend display",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version of template",
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuilderTemplateStatus": {
+      "description": "S2iBuilderTemplateStatus defines the observed state of S2iBuilderTemplate",
+      "type": "object"
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iConfig": {
+      "type": "object",
+      "required": [
+        "imageName",
+        "sourceUrl"
+      ],
+      "properties": {
+        "addHost": {
+          "description": "AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "asDockerfile": {
+          "description": "AsDockerfile indicates the path where the Dockerfile should be written instead of building a new image.",
+          "type": "string"
+        },
+        "assembleUser": {
+          "description": "AssembleUser specifies the user to run the assemble script in container",
+          "type": "string"
+        },
+        "blockOnBuild": {
+          "description": "BlockOnBuild prevents s2i from performing a docker build operation if one is necessary to execute ONBUILD commands, or to layer source code into the container for images that don't have a tar binary available, if the image contains ONBUILD commands that would be executed.",
+          "type": "boolean"
+        },
+        "branchExpression": {
+          "description": "Regular expressions, ignoring names that do not match the provided regular expression",
+          "type": "string"
+        },
+        "buildVolumes": {
+          "description": "BuildVolumes specifies a list of volumes to mount to container running the build.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "builderBaseImageVersion": {
+          "description": "BuilderBaseImageVersion provides optional version information about the builder base image.",
+          "type": "string"
+        },
+        "builderImage": {
+          "description": "BuilderImage describes which image is used for building the result images.",
+          "type": "string"
+        },
+        "builderImageVersion": {
+          "description": "BuilderImageVersion provides optional version information about the builder image.",
+          "type": "string"
+        },
+        "builderPullPolicy": {
+          "description": "BuilderPullPolicy specifies when to pull the builder image",
+          "type": "string"
+        },
+        "callbackUrl": {
+          "description": "CallbackURL is a URL which is called upon successful build to inform about that fact.",
+          "type": "string"
+        },
+        "cgroupLimits": {
+          "description": "CGroupLimits describes the cgroups limits that will be applied to any containers run by s2i.",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.CGroupLimits"
+        },
+        "contextDir": {
+          "description": "Specify a relative directory inside the application repository that should be used as a root directory for the application.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description is a result image description label. The default is no description.",
+          "type": "string"
+        },
+        "destination": {
+          "description": "Destination specifies a location where the untar operation will place its artifacts.",
+          "type": "string"
+        },
+        "displayName": {
+          "description": "DisplayName is a result image display-name label. This defaults to the output image name.",
+          "type": "string"
+        },
+        "dockerConfig": {
+          "description": "DockerConfig describes how to access host docker daemon.",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.DockerConfig"
+        },
+        "dockerNetworkMode": {
+          "description": "DockerNetworkMode is used to set the docker network setting to --net=container:\u003cid\u003e when the builder is invoked from a container.",
+          "type": "string"
+        },
+        "dropCapabilities": {
+          "description": "DropCapabilities contains a list of capabilities to drop when executing containers",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment": {
+          "description": "Environment is a map of environment variables to be passed to the image.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.EnvironmentSpec"
+          }
+        },
+        "excludeRegExp": {
+          "description": "ExcludeRegExp contains a string representation of the regular expression desired for deciding which files to exclude from the tar stream",
+          "type": "string"
+        },
+        "export": {
+          "description": "Export Push the result image to specify image registry in tag",
+          "type": "boolean"
+        },
+        "gitSecretRef": {
+          "description": "GitSecretRef is the BasicAuth Secret of Git Clone",
+          "$ref": "#/definitions/io.k8s.api.core.v1.LocalObjectReference"
+        },
+        "hasOnBuild": {
+          "description": "HasOnBuild will be set to true if the builder image contains ONBUILD instructions",
+          "type": "boolean"
+        },
+        "imageName": {
+          "description": "ImageName Contains the registry address and reponame, tag should set by field tag alone",
+          "type": "string"
+        },
+        "imageScriptsUrl": {
+          "description": "ImageScriptsURL is the default location to find the assemble/run scripts for a builder image. This url can be a reference within the builder image if the scheme is specified as image://",
+          "type": "string"
+        },
+        "imageWorkDir": {
+          "description": "ImageWorkDir is the default working directory for the builder image.",
+          "type": "string"
+        },
+        "incremental": {
+          "description": "Incremental describes whether to try to perform incremental build.",
+          "type": "boolean"
+        },
+        "incrementalAuthentication": {
+          "description": "IncrementalAuthentication holds the authentication information for pulling the previous image from private repositories",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.AuthConfig"
+        },
+        "incrementalFromTag": {
+          "description": "IncrementalFromTag sets an alternative image tag to look for existing artifacts. Tag is used by default if this is not set.",
+          "type": "string"
+        },
+        "injections": {
+          "description": "Injections specifies a list source/destination folders that are injected to the container that runs assemble. All files we inject will be truncated after the assemble script finishes.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.VolumeSpec"
+          }
+        },
+        "isBinaryURL": {
+          "description": "IsBinaryURL explain the type of SourceURL. If it is IsBinaryURL, it will download the file directly without using git.",
+          "type": "boolean"
+        },
+        "keepSymlinks": {
+          "description": "KeepSymlinks indicates to copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content.",
+          "type": "boolean"
+        },
+        "labelNamespace": {
+          "description": "LabelNamespace provides the namespace under which the labels will be generated.",
+          "type": "string"
+        },
+        "labels": {
+          "description": "Labels specify labels and their values to be applied to the resulting image. Label keys must have non-zero length. The labels defined here override generated labels in case they have the same name.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "layeredBuild": {
+          "description": "LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.",
+          "type": "boolean"
+        },
+        "nodeAffinityKey": {
+          "description": "The key of Node Affinity.",
+          "type": "string"
+        },
+        "nodeAffinityValues": {
+          "description": "The values of Node Affinity.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputBuildResult": {
+          "description": "Whether output build result to status.",
+          "type": "boolean"
+        },
+        "outputImageName": {
+          "description": "OutputImageName is a result image name without tag, default is latest. tag will append to ImageName in the end",
+          "type": "string"
+        },
+        "preserveWorkingDir": {
+          "description": "PreserveWorkingDir describes if working directory should be left after processing.",
+          "type": "boolean"
+        },
+        "previousImagePullPolicy": {
+          "description": "PreviousImagePullPolicy specifies when to pull the previously build image when doing incremental build",
+          "type": "string"
+        },
+        "pullAuthentication": {
+          "description": "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.AuthConfig"
+        },
+        "pushAuthentication": {
+          "description": "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.AuthConfig"
+        },
+        "removePreviousImage": {
+          "description": "RemovePreviousImage describes if previous image should be removed after successful build. This applies only to incremental builds.",
+          "type": "boolean"
+        },
+        "revisionId": {
+          "description": "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+          "type": "string"
+        },
+        "runImage": {
+          "description": "RunImage will trigger a \"docker run ...\" invocation of the produced image so the user can see if it operates as he would expect",
+          "type": "boolean"
+        },
+        "runtimeArtifacts": {
+          "description": "RuntimeArtifacts specifies a list of source/destination pairs that will be copied from builder to a runtime image. Source can be a file or directory. Destination must be a directory. Regardless whether it is an absolute or relative path, it will be placed into image's WORKDIR. Destination also can be empty or equals to \".\", in this case it just refers to a root of WORKDIR. In case it's empty, S2I will try to get this list from io.openshift.s2i.assemble-input-files label on a RuntimeImage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.VolumeSpec"
+          }
+        },
+        "runtimeAuthentication": {
+          "description": "RuntimeAuthentication holds the authentication information for pulling the runtime Docker images from private repositories.",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.AuthConfig"
+        },
+        "runtimeImage": {
+          "description": "RuntimeImage specifies the image that will be a base for resulting image and will be used for running an application. By default, BuilderImage is used for building and running, but the latter may be overridden.",
+          "type": "string"
+        },
+        "runtimeImagePullPolicy": {
+          "description": "RuntimeImagePullPolicy specifies when to pull a runtime image.",
+          "type": "string"
+        },
+        "scriptDownloadProxyConfig": {
+          "description": "ScriptDownloadProxyConfig optionally specifies the http and https proxy to use when downloading scripts",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.ProxyConfig"
+        },
+        "scriptsUrl": {
+          "description": "ScriptsURL is a URL describing where to fetch the S2I scripts from during build process. This url can be a reference within the builder image if the scheme is specified as image://",
+          "type": "string"
+        },
+        "secretCode": {
+          "description": "SecretCode",
+          "type": "string"
+        },
+        "securityOpt": {
+          "description": "SecurityOpt are passed as options to the docker containers launched by s2i.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceUrl": {
+          "description": "SourceURL is  url of the codes such as https://github.com/a/b.git",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Tag is a result image tag name.",
+          "type": "string"
+        },
+        "taintKey": {
+          "description": "The name of taint.",
+          "type": "string"
+        },
+        "usage": {
+          "description": "Usage allows for properly shortcircuiting s2i logic when `s2i usage` is invoked",
+          "type": "boolean"
+        },
+        "workingDir": {
+          "description": "WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.",
+          "type": "string"
+        },
+        "workingSourceDir": {
+          "description": "WorkingSourceDir describes the subdirectory off of WorkingDir set up during the repo download that is later used as the root for ignore processing",
+          "type": "string"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun": {
+      "description": "S2iRun is the Schema for the s2iruns API",
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunSpec"
+        },
+        "status": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunStatus"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iRun",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunList": {
+      "description": "S2iRunList contains a list of S2iRun",
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRun"
+          }
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+        }
+      },
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "devops.kubesphere.io",
+          "kind": "S2iRunList",
+          "version": "v1alpha1"
+        }
+      ]
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunSpec": {
+      "description": "S2iRunSpec defines the desired state of S2iRun",
+      "type": "object",
+      "required": [
+        "builderName"
+      ],
+      "properties": {
+        "backoffLimit": {
+          "description": "BackoffLimit limits the restart count of each s2irun. Default is 0",
+          "type": "integer",
+          "format": "int32"
+        },
+        "builderName": {
+          "description": "BuilderName specify the name of s2ibuilder, required",
+          "type": "string"
+        },
+        "newRevisionId": {
+          "description": "NewRevisionId override the default NewRevisionId in its s2ibuilder.",
+          "type": "string"
+        },
+        "newSourceURL": {
+          "description": "NewSourceURL is used to download new binary artifacts",
+          "type": "string"
+        },
+        "newTag": {
+          "description": "NewTag override the default tag in its s2ibuilder, image name cannot be changed.",
+          "type": "string"
+        },
+        "secondsAfterFinished": {
+          "description": "SecondsAfterFinished if is set and greater than zero, and the job created by s2irun become successful or failed , the job will be auto deleted after SecondsAfterFinished",
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iRunStatus": {
+      "description": "S2iRunStatus defines the observed state of S2iRun",
+      "type": "object",
+      "properties": {
+        "completionTime": {
+          "description": "Represents time when the job was completed. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC.",
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+        },
+        "kubernetesJobName": {
+          "description": "KubernetesJobName is the job name in k8s",
+          "type": "string"
+        },
+        "logURL": {
+          "description": "LogURL is uesd for external log handler to let user know where is log located in",
+          "type": "string"
+        },
+        "runState": {
+          "description": "RunState  indicates whether this job is done or failed",
+          "type": "string"
+        },
+        "s2iBuildResult": {
+          "description": "S2i build result info.",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuildResult"
+        },
+        "s2iBuildSource": {
+          "description": "S2i build source info.",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.S2iBuildSource"
+        },
+        "startTime": {
+          "description": "StartTime represent when this run began",
+          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.UserDefineTemplate": {
+      "type": "object",
+      "properties": {
+        "builderImage": {
+          "description": "BaseImage specify which version of this template to use",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name specify a template to use, so many fields in Config can left empty",
+          "type": "string"
+        },
+        "parameters": {
+          "description": "Parameters must use with `template`, fill some parameters which template will use",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.Parameter"
+          }
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.devops.v1alpha1.VolumeSpec": {
+      "description": "VolumeSpec represents a single volume mount point.",
+      "type": "object",
+      "properties": {
+        "destination": {
+          "description": "Destination is the path to mount the volume to - absolute or relative.",
+          "type": "string"
+        },
+        "keep": {
+          "description": "Keep indicates if the mounted data should be kept in the final image.",
+          "type": "boolean"
+        },
+        "source": {
+          "description": "Source is a reference to the volume source.",
           "type": "string"
         }
       }
