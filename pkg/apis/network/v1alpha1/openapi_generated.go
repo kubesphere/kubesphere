@@ -25,6 +25,7 @@ package v1alpha1
 import (
 	spec "github.com/go-openapi/spec"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	common "k8s.io/kube-openapi/pkg/common"
 )
 
@@ -85,6 +86,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta":                                        schema_pkg_apis_meta_v1_TypeMeta(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions":                                   schema_pkg_apis_meta_v1_UpdateOptions(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.WatchEvent":                                      schema_pkg_apis_meta_v1_WatchEvent(ref),
+		"k8s.io/apimachinery/pkg/util/intstr.IntOrString":                                      schema_apimachinery_pkg_util_intstr_IntOrString(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.EntityRule":                        schema_pkg_apis_network_v1alpha1_EntityRule(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.HTTPMatch":                         schema_pkg_apis_network_v1alpha1_HTTPMatch(ref),
 		"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.HTTPPath":                          schema_pkg_apis_network_v1alpha1_HTTPPath(ref),
@@ -2506,6 +2508,18 @@ func schema_pkg_apis_meta_v1_WatchEvent(ref common.ReferenceCallback) common.Ope
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_apimachinery_pkg_util_intstr_IntOrString(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IntOrString is a type that can hold an int32 or a string.  When used in JSON or YAML marshalling and unmarshalling, it produces or consumes the inner type.  This allows you to have, for example, a JSON field that can accept a name or number.",
+				Type:        intstr.IntOrString{}.OpenAPISchemaType(),
+				Format:      intstr.IntOrString{}.OpenAPISchemaFormat(),
+			},
+		},
 	}
 }
 
