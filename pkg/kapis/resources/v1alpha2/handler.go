@@ -5,6 +5,7 @@ import (
 	"github.com/emicklei/go-restful"
 	v1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -20,7 +21,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/routers"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 	"strconv"
 	"strings"
@@ -38,20 +38,18 @@ type resourceHandler struct {
 	kubectlOperator     kubectl.Interface
 }
 
-func newResourceHandler(client k8s.Client) *resourceHandler {
-
-	factory := informers.NewInformerFactories(client.Kubernetes(), client.KubeSphere(), client.S2i(), client.Application())
+func newResourceHandler(client kubernetes.Interface, factory informers.InformerFactory) *resourceHandler {
 
 	return &resourceHandler{
 		resourcesGetter:     resource.NewResourceGetter(factory),
 		componentsGetter:    components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
 		resourceQuotaGetter: quotas.NewResourceQuotaGetter(factory.KubernetesSharedInformerFactory()),
 		revisionGetter:      revisions.NewRevisionGetter(factory.KubernetesSharedInformerFactory()),
-		routerOperator:      routers.NewRouterOperator(client.Kubernetes(), factory.KubernetesSharedInformerFactory()),
+		routerOperator:      routers.NewRouterOperator(client, factory.KubernetesSharedInformerFactory()),
 		gitVerifier:         git.NewGitVerifier(factory.KubernetesSharedInformerFactory()),
 		registryGetter:      registries.NewRegistryGetter(factory.KubernetesSharedInformerFactory()),
 		kubeconfigOperator:  kubeconfig.NewKubeconfigOperator(),
-		kubectlOperator:     kubectl.NewKubectlOperator(client.Kubernetes(), factory.KubernetesSharedInformerFactory()),
+		kubectlOperator:     kubectl.NewKubectlOperator(client, factory.KubernetesSharedInformerFactory()),
 	}
 }
 

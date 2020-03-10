@@ -23,16 +23,17 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	gitmodel "kubesphere.io/kubesphere/pkg/models/git"
 	registriesmodel "kubesphere.io/kubesphere/pkg/models/registries"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
@@ -42,9 +43,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client k8s.Client) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface, factory informers.InformerFactory) error {
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := newResourceHandler(client)
+	handler := newResourceHandler(client, factory)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(handler.handleListNamespaceResources).

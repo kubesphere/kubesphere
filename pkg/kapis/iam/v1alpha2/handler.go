@@ -17,11 +17,18 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	apierr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
+
+	iamapi "kubesphere.io/kubesphere/pkg/api/iam"
+)
+
+const (
+	kindTokenReview = "TokenReview"
 )
 
 type iamHandler struct {
@@ -29,11 +36,10 @@ type iamHandler struct {
 	imOperator iam.IdentityManagementInterface
 }
 
-func newIAMHandler(k8sClient k8s.Client, ldapClient ldappool.Client, options iam.Config) *iamHandler {
-	factory := informers.NewInformerFactories(k8sClient.Kubernetes(), k8sClient.KubeSphere(), k8sClient.S2i(), k8sClient.Application())
+func newIAMHandler(k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *iamapi.AuthenticationOptions) *iamHandler {
 	return &iamHandler{
-		amOperator: iam.NewAMOperator(factory.KubernetesSharedInformerFactory()),
-		imOperator: iam.NewIMOperator(ldapClient, options),
+		amOperator: iam.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
+		imOperator: iam.NewIMOperator(ldapClient, cacheClient, options),
 	}
 }
 
@@ -60,7 +66,7 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		failed := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
-			Kind: iam.KindTokenReview,
+			Kind: kindTokenReview,
 			Status: &iamv1alpha2.Status{
 				Authenticated: false,
 			},
@@ -92,7 +98,7 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 	}
 
 	success := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
-		Kind: iam.KindTokenReview,
+		Kind: kindTokenReview,
 		Status: &iamv1alpha2.Status{
 			Authenticated: true,
 			User:          map[string]interface{}{"username": user.Username, "uid": user.Username, "groups": user.Groups},
@@ -378,7 +384,7 @@ func (h *iamHandler) ListRoleUsers(req *restful.Request, resp *restful.Response)
 		api.HandleInternalError(resp, err)
 		return
 	}
-	result := make([]*iam.User, 0)
+	result := make([]*iamapi.User, 0)
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == rbacv1.UserKind {
@@ -413,7 +419,7 @@ func (h *iamHandler) ListNamespaceUsers(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	result := make([]*iam.User, 0)
+	result := make([]*iamapi.User, 0)
 	for _, roleBinding := range roleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == rbacv1.UserKind {
@@ -445,7 +451,7 @@ func (h *iamHandler) ListClusterRoleUsers(req *restful.Request, resp *restful.Re
 		return
 	}
 
-	result := make([]*iam.User, 0)
+	result := make([]*iamapi.User, 0)
 	for _, roleBinding := range clusterRoleBindings {
 		for _, subject := range roleBinding.Subjects {
 			if subject.Kind == rbacv1.UserKind {

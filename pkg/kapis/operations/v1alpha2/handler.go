@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/models/workloads"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
@@ -14,9 +14,9 @@ type operationHandler struct {
 	jobRunner workloads.JobRunner
 }
 
-func newOperationHandler(client k8s.Client) *operationHandler {
+func newOperationHandler(client kubernetes.Interface) *operationHandler {
 	return &operationHandler{
-		jobRunner: workloads.NewJobRunner(client.Kubernetes()),
+		jobRunner: workloads.NewJobRunner(client),
 	}
 }
 

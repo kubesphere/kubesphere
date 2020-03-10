@@ -23,26 +23,28 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/api/iam"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
 )
 
-const GroupName = "iam.kubesphere.io"
+const groupName = "iam.kubesphere.io"
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, ldapClient ldappool.Client, options iam.Config) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *iam.AuthenticationOptions) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newIAMHandler(k8sClient, ldapClient, options)
+	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)
 
 	ws.Route(ws.POST("/authenticate").
 		To(handler.TokenReviewHandler).

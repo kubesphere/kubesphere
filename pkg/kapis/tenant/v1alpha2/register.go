@@ -27,6 +27,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
@@ -43,9 +44,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, db *mysql.Database) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, db *mysql.Database) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newTenantHandler(k8sClient, db)
+	handler := newTenantHandler(k8sClient, factory, db)
 
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).

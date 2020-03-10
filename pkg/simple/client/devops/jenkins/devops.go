@@ -14,21 +14,11 @@ limitations under the License.
 package jenkins
 
 import (
-	"fmt"
 	"k8s.io/klog"
-	"sync"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
-const (
-	jenkinsAllUserRoleName = "kubesphere-user"
-)
-
-type Client struct {
-	jenkinsClient *Jenkins
-}
-
-func NewDevopsClient(options *Options) (*Client, error) {
-	var d Client
+func NewDevopsClient(options *Options) (devops.Interface, error) {
 
 	jenkins := CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
 	jenkins, err := jenkins.Init()
@@ -37,51 +27,5 @@ func NewDevopsClient(options *Options) (*Client, error) {
 		return nil, err
 	}
 
-	d.jenkinsClient = jenkins
-
-	err = d.initializeJenkins()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	return &d, nil
-}
-
-func (c *Client) Jenkins() *Jenkins {
-	return c.jenkinsClient
-}
-
-var mutex = sync.Mutex{}
-
-func (c *Client) initializeJenkins() error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if c.jenkinsClient == nil {
-		return fmt.Errorf("jenkins intialization failed")
-	}
-
-	globalRole, err := c.jenkinsClient.GetGlobalRole(jenkinsAllUserRoleName)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	// Jenkins uninitialized, create global role
-	if globalRole == nil {
-		_, err := c.jenkinsClient.AddGlobalRole(jenkinsAllUserRoleName, GlobalPermissionIds{GlobalRead: true}, true)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-
-	_, err = c.jenkinsClient.AddProjectRole(jenkinsAllUserRoleName, "\\n\\s*\\r", ProjectPermissionIds{SCMTag: true}, true)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	return nil
+	return jenkins, nil
 }

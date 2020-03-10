@@ -26,20 +26,21 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 	"io/ioutil"
+	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	_ "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/install"
+	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
+	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
+	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
+	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
+	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
+	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
+	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
+	metricsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
+	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"log"
-	// Install apis
-	_ "kubesphere.io/kubesphere/pkg/kapis/devops/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/iam/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/logging/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/monitoring/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/openpitrix/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/operations/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/resources/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/tenant/install"
-	_ "kubesphere.io/kubesphere/pkg/kapis/terminal/install"
 )
 
 var output string
@@ -57,7 +58,17 @@ func generateSwaggerJson() {
 
 	container := runtime.Container
 
-	apiTree(container)
+	urlruntime.Must(devopsv1alpha2.AddToContainer(container, nil, nil, nil, nil, nil, nil))
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, nil, nil, nil, nil, nil))
+	urlruntime.Must(loggingv1alpha2.AddToContainer(container, nil, nil))
+	urlruntime.Must(monitoringv1alpha2.AddToContainer(container, nil, nil))
+	urlruntime.Must(openpitrixv1.AddToContainer(container, nil, nil))
+	urlruntime.Must(operationsv1alpha2.AddToContainer(container, nil))
+	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, nil, nil))
+	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, nil))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container, nil, nil, nil))
+	urlruntime.Must(terminalv1alpha2.AddToContainer(container, nil, nil))
+	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
 
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(),

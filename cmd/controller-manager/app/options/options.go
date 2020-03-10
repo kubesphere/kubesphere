@@ -6,9 +6,10 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	kubesphereconfig "kubesphere.io/kubesphere/pkg/server/config"
+	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"strings"
@@ -20,6 +21,7 @@ type KubeSphereControllerManagerOptions struct {
 	DevopsOptions     *jenkins.Options
 	S3Options         *s3.Options
 	OpenPitrixOptions *openpitrix.Options
+	KubeSphereOptions *kubesphere.Options
 
 	LeaderElection *leaderelection.LeaderElectionConfig
 }
@@ -30,6 +32,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		DevopsOptions:     jenkins.NewDevopsOptions(),
 		S3Options:         s3.NewS3Options(),
 		OpenPitrixOptions: openpitrix.NewOptions(),
+		KubeSphereOptions: kubesphere.NewKubeSphereOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
@@ -47,13 +50,13 @@ func (s *KubeSphereControllerManagerOptions) ApplyTo(conf *kubesphereconfig.Conf
 	s.OpenPitrixOptions.ApplyTo(conf.OpenPitrixOptions)
 }
 
-func (s *KubeSphereControllerManagerOptions) Flags(o *KubeSphereControllerManagerOptions) cliflag.NamedFlagSets {
+func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
-	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), o.KubernetesOptions)
-	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), o.DevopsOptions)
-	s.S3Options.AddFlags(fss.FlagSet("s3"), o.S3Options)
-	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), o.OpenPitrixOptions)
+	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
+	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
+	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
+	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)

@@ -58,6 +58,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=devops.kubesphere.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("s2ibinaries"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBinaries().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("s2ibuilders"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBuilders().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("s2ibuildertemplates"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBuilderTemplates().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("s2iruns"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iRuns().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):

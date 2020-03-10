@@ -108,7 +108,7 @@ func TestListDeployments(t *testing.T) {
 			},
 			api.ListResult{
 				Items: []interface{}{
-					v1.Deployment{
+					&v1.Deployment{
 						ObjectMeta: metaV1.ObjectMeta{
 							Name:      "foo-2",
 							Namespace: "bar",
@@ -141,7 +141,7 @@ func TestListDeployments(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if diff := cmp.Diff(got, test.expected); diff != "" {
+			if diff := cmp.Diff(got.Items, test.expected.Items); diff != "" {
 				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
 			}
 		})

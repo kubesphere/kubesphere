@@ -28,12 +28,11 @@ type tenantHandler struct {
 	am     iam.AccessManagementInterface
 }
 
-func newTenantHandler(k8sClient k8s.Client, db *mysql.Database) *tenantHandler {
-	factory := informers.NewInformerFactories(k8sClient.Kubernetes(), k8sClient.KubeSphere(), k8sClient.S2i(), k8sClient.Application())
+func newTenantHandler(k8sClient k8s.Client, factory informers.InformerFactory, db *mysql.Database) *tenantHandler {
 
 	return &tenantHandler{
 		tenant: tenant.New(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory(), factory.KubeSphereSharedInformerFactory(), db),
-		am:     iam.NewAMOperator(factory.KubernetesSharedInformerFactory()),
+		am:     iam.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
 	}
 }
 

@@ -218,8 +218,6 @@ github.com/go-acme/lego/registration
 github.com/go-ldap/ldap
 # github.com/go-logr/logr v0.1.0 => github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
-# github.com/go-logr/zapr v0.1.1 => github.com/go-logr/zapr v0.1.1
-github.com/go-logr/zapr
 # github.com/go-openapi/errors v0.19.2 => github.com/go-openapi/errors v0.19.2
 github.com/go-openapi/errors
 # github.com/go-openapi/jsonpointer v0.19.3 => github.com/go-openapi/jsonpointer v0.19.3
@@ -399,24 +397,9 @@ github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/app
 github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/internalinterfaces
 github.com/kubernetes-sigs/application/pkg/client/listers/app/v1beta1
 github.com/kubernetes-sigs/application/pkg/component
-github.com/kubernetes-sigs/application/pkg/controller/application
 github.com/kubernetes-sigs/application/pkg/customresource
 github.com/kubernetes-sigs/application/pkg/finalizer
-github.com/kubernetes-sigs/application/pkg/genericreconciler
-github.com/kubernetes-sigs/application/pkg/kbcontroller
 github.com/kubernetes-sigs/application/pkg/resource
-# github.com/kubesphere/s2ioperator v0.0.14 => github.com/kubesphere/s2ioperator v0.0.14
-github.com/kubesphere/s2ioperator/pkg/apis/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned
-github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/scheme
-github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned/typed/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions
-github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops
-github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions/internalinterfaces
-github.com/kubesphere/s2ioperator/pkg/client/listers/devops/v1alpha1
-github.com/kubesphere/s2ioperator/pkg/errors
-github.com/kubesphere/s2ioperator/pkg/util/reflectutils
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 github.com/kubesphere/sonargo/sonar
 # github.com/leodido/go-urn v1.1.0 => github.com/leodido/go-urn v1.1.0
@@ -1418,8 +1401,6 @@ openpitrix.io/openpitrix/pkg/util/stringutil
 openpitrix.io/openpitrix/pkg/util/yamlutil
 openpitrix.io/openpitrix/pkg/version
 # sigs.k8s.io/controller-runtime v0.4.0 => sigs.k8s.io/controller-runtime v0.4.0
-sigs.k8s.io/controller-runtime
-sigs.k8s.io/controller-runtime/pkg/builder
 sigs.k8s.io/controller-runtime/pkg/cache
 sigs.k8s.io/controller-runtime/pkg/cache/internal
 sigs.k8s.io/controller-runtime/pkg/client
@@ -1427,7 +1408,6 @@ sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/controller
 sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
-sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/envtest
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/event
@@ -1439,7 +1419,6 @@ sigs.k8s.io/controller-runtime/pkg/internal/log
 sigs.k8s.io/controller-runtime/pkg/internal/recorder
 sigs.k8s.io/controller-runtime/pkg/leaderelection
 sigs.k8s.io/controller-runtime/pkg/log
-sigs.k8s.io/controller-runtime/pkg/log/zap
 sigs.k8s.io/controller-runtime/pkg/manager
 sigs.k8s.io/controller-runtime/pkg/manager/signals
 sigs.k8s.io/controller-runtime/pkg/metrics
@@ -1447,7 +1426,6 @@ sigs.k8s.io/controller-runtime/pkg/predicate
 sigs.k8s.io/controller-runtime/pkg/reconcile
 sigs.k8s.io/controller-runtime/pkg/recorder
 sigs.k8s.io/controller-runtime/pkg/runtime/inject
-sigs.k8s.io/controller-runtime/pkg/runtime/log
 sigs.k8s.io/controller-runtime/pkg/runtime/scheme
 sigs.k8s.io/controller-runtime/pkg/runtime/signals
 sigs.k8s.io/controller-runtime/pkg/scheme
@@ -1455,7 +1433,6 @@ sigs.k8s.io/controller-runtime/pkg/source
 sigs.k8s.io/controller-runtime/pkg/source/internal
 sigs.k8s.io/controller-runtime/pkg/webhook
 sigs.k8s.io/controller-runtime/pkg/webhook/admission
-sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/certwatcher
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
 # sigs.k8s.io/controller-tools v0.2.4 => sigs.k8s.io/controller-tools v0.2.4

@@ -63,25 +63,30 @@ func NewRedisClient(option *Options, stopCh <-chan struct{}) (Interface, error) 
 }
 
 func (r *Client) Get(key string) (string, error) {
-	return "", nil
+	return r.client.Get(key).Result()
 }
 
 func (r *Client) Keys(pattern string) ([]string, error) {
-	panic("implement me")
+	return r.client.Keys(pattern).Result()
 }
 
 func (r *Client) Set(key string, value string, duration time.Duration) error {
-	panic("implement me")
+	return r.client.Set(key, value, duration).Err()
 }
 
-func (r *Client) Del(key string) error {
-	panic("implement me")
+func (r *Client) Del(keys ...string) error {
+	return r.client.Del(keys...).Err()
 }
 
-func (r *Client) Exists(key string) (bool, error) {
-	panic("implement me")
+func (r *Client) Exists(keys ...string) (bool, error) {
+	existedKeys, err := r.client.Exists(keys...).Result()
+	if err != nil {
+		return false, err
+	}
+
+	return len(keys) == int(existedKeys), nil
 }
 
 func (r *Client) Expire(key string, duration time.Duration) error {
-	panic("implement me")
+	return r.client.Expire(key, duration).Err()
 }

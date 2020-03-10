@@ -29,10 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	log "k8s.io/klog"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sync"
 )
@@ -53,23 +52,16 @@ const (
 	workspaceViewerDescription  = "Allows viewer access to view all resources in the workspace."
 )
 
-var log = logf.Log.WithName("workspace-controller")
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new Workspace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, kubesphereClient kubesphere.Interface) error {
+	return add(mgr, newReconciler(mgr, kubesphereClient))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, kubesphereClient kubesphere.Interface) reconcile.Reconciler {
 	return &ReconcileWorkspace{Client: mgr.GetClient(), scheme: mgr.GetScheme(),
-		recorder: mgr.GetEventRecorderFor("workspace-controller"), ksclient: cs.ClientSets().KubeSphere()}
+		recorder: mgr.GetEventRecorderFor("workspace-controller"), ksclient: kubesphereClient}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -328,7 +320,6 @@ func (r *ReconcileWorkspace) deleteDevOpsProjects(instance *tenantv1alpha1.Works
 
 	log.Info("Delete DevOps Projects")
 	for {
-		errChan := make(chan error, 10)
 		projects, err := r.ksclient.ListWorkspaceDevOpsProjects(instance.Name)
 		if err != nil {
 			log.Error(err, "Failed to Get Workspace's DevOps Projects", "ws", instance.Name)
@@ -337,10 +328,11 @@ func (r *ReconcileWorkspace) deleteDevOpsProjects(instance *tenantv1alpha1.Works
 		if projects.TotalCount == 0 {
 			return nil
 		}
+		errChan := make(chan error, len(projects.Items))
 		for _, project := range projects.Items {
 			wg.Add(1)
 			go func(workspace, devops string) {
-				err := r.ksclient.DeleteWorkspaceDevOpsProjects(workspace, devops)
+				err = r.ksclient.DeleteWorkspaceDevOpsProjects(workspace, devops)
 				errChan <- err
 				wg.Done()
 			}(instance.Name, project.ProjectId)

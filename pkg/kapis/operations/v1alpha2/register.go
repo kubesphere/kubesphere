@@ -20,10 +20,10 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
@@ -33,7 +33,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client k8s.Client) error {
+func AddToContainer(c *restful.Container, client kubernetes.Interface) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
 

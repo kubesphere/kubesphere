@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
@@ -33,7 +34,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/role"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 )
 
@@ -62,8 +62,9 @@ type AccessManagementInterface interface {
 }
 
 type amOperator struct {
-	informers informers.SharedInformerFactory
-	resources resource.ResourceGetter
+	informers  informers.SharedInformerFactory
+	resources  resource.ResourceGetter
+	kubeClient kubernetes.Interface
 }
 
 func (am *amOperator) ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error) {
@@ -90,11 +91,15 @@ func (am *amOperator) UnBindAllRoles(username string) error {
 	panic("implement me")
 }
 
-func NewAMOperator(informers informers.SharedInformerFactory) *amOperator {
+func NewAMOperator(kubeClient kubernetes.Interface, informers informers.SharedInformerFactory) *amOperator {
 	resourceGetter := resource.ResourceGetter{}
 	resourceGetter.Add(v1alpha2.Role, role.NewRoleSearcher(informers))
 	resourceGetter.Add(v1alpha2.ClusterRoles, clusterrole.NewClusterRoleSearcher(informers))
-	return &amOperator{informers: informers, resources: resourceGetter}
+	return &amOperator{
+		informers:  informers,
+		resources:  resourceGetter,
+		kubeClient: kubeClient,
+	}
 }
 
 func (am *amOperator) GetDevopsRoleSimpleRules(role string) []policy.SimpleRule {
@@ -560,7 +565,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 	found, err := clusterRoleBindingLister.Get(username)
 
 	if apierrors.IsNotFound(err) {
-		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		_, err = am.kubeClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if err != nil {
 			klog.Errorln("create cluster role binding", err)
 			return err
@@ -575,12 +580,12 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 		deletePolicy := metav1.DeletePropagationBackground
 		gracePeriodSeconds := int64(0)
 		deleteOption := &metav1.DeleteOptions{PropagationPolicy: &deletePolicy, GracePeriodSeconds: &gracePeriodSeconds}
-		err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Delete(found.Name, deleteOption)
+		err = am.kubeClient.RbacV1().ClusterRoleBindings().Delete(found.Name, deleteOption)
 		if err != nil {
 			klog.Errorln(err)
 			return err
 		}
-		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+		_, err = am.kubeClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
 		if err != nil {
 			klog.Errorln(err)
 			return err
@@ -590,7 +595,7 @@ func (am *amOperator) CreateClusterRoleBinding(username string, clusterRoleName 
 
 	if !ContainsUser(found.Subjects, username) {
 		found.Subjects = clusterRoleBinding.Subjects
-		_, err = client.ClientSets().K8s().Kubernetes().RbacV1().ClusterRoleBindings().Update(found)
+		_, err = am.kubeClient.RbacV1().ClusterRoleBindings().Update(found)
 		if err != nil {
 			klog.Errorln("update cluster role binding", err)
 			return err

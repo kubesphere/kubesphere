@@ -20,7 +20,7 @@ package v1alpha2
 
 import (
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/models/iam"
+	"kubesphere.io/kubesphere/pkg/api/iam"
 	"net/mail"
 )
 

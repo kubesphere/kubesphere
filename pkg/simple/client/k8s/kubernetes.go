@@ -2,7 +2,7 @@ package k8s
 
 import (
 	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
-	s2i "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -14,7 +14,7 @@ import (
 type Client interface {
 	Kubernetes() kubernetes.Interface
 	KubeSphere() kubesphere.Interface
-	S2i() s2i.Interface
+	Istio() istioclient.Interface
 	Application() applicationclientset.Interface
 	Discovery() discovery.DiscoveryInterface
 	Master() string
@@ -23,17 +23,17 @@ type Client interface {
 
 type kubernetesClient struct {
 	// kubernetes client interface
-	k8s *kubernetes.Clientset
+	k8s kubernetes.Interface
 
 	// discovery client
 	discoveryClient *discovery.DiscoveryClient
 
 	// generated clientset
-	ks *kubesphere.Clientset
+	ks kubesphere.Interface
 
-	s2i *s2i.Clientset
+	application applicationclientset.Interface
 
-	application *applicationclientset.Clientset
+	istio istioclient.Interface
 
 	master string
 
@@ -54,7 +54,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) Client {
 		k8s:             kubernetes.NewForConfigOrDie(config),
 		discoveryClient: discovery.NewDiscoveryClientForConfigOrDie(config),
 		ks:              kubesphere.NewForConfigOrDie(config),
-		s2i:             s2i.NewForConfigOrDie(config),
+		istio:           istioclient.NewForConfigOrDie(config),
 		application:     applicationclientset.NewForConfigOrDie(config),
 		master:          config.Host,
 		config:          config,
@@ -93,11 +93,6 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
-	k.s2i, err = s2i.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
 	k.application, err = applicationclientset.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -121,12 +116,12 @@ func (k *kubernetesClient) KubeSphere() kubesphere.Interface {
 	return k.ks
 }
 
-func (k *kubernetesClient) S2i() s2i.Interface {
-	return k.s2i
-}
-
 func (k *kubernetesClient) Application() applicationclientset.Interface {
 	return k.application
+}
+
+func (k *kubernetesClient) Istio() istioclient.Interface {
+	return k.istio
 }
 
 // master address used to generate kubeconfig for downloading

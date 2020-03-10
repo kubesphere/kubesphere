@@ -30,57 +30,85 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup":                     schema_pkg_apis_meta_v1_APIGroup(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList":                 schema_pkg_apis_meta_v1_APIGroupList(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource":                  schema_pkg_apis_meta_v1_APIResource(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList":              schema_pkg_apis_meta_v1_APIResourceList(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.APIVersions":                  schema_pkg_apis_meta_v1_APIVersions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions":                schema_pkg_apis_meta_v1_CreateOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions":                schema_pkg_apis_meta_v1_DeleteOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Duration":                     schema_pkg_apis_meta_v1_Duration(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ExportOptions":                schema_pkg_apis_meta_v1_ExportOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1":                     schema_pkg_apis_meta_v1_FieldsV1(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions":                   schema_pkg_apis_meta_v1_GetOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupKind":                    schema_pkg_apis_meta_v1_GroupKind(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupResource":                schema_pkg_apis_meta_v1_GroupResource(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersion":                 schema_pkg_apis_meta_v1_GroupVersion(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionForDiscovery":     schema_pkg_apis_meta_v1_GroupVersionForDiscovery(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionKind":             schema_pkg_apis_meta_v1_GroupVersionKind(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionResource":         schema_pkg_apis_meta_v1_GroupVersionResource(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.InternalEvent":                schema_pkg_apis_meta_v1_InternalEvent(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector":                schema_pkg_apis_meta_v1_LabelSelector(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement":     schema_pkg_apis_meta_v1_LabelSelectorRequirement(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.List":                         schema_pkg_apis_meta_v1_List(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta":                     schema_pkg_apis_meta_v1_ListMeta(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions":                  schema_pkg_apis_meta_v1_ListOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry":           schema_pkg_apis_meta_v1_ManagedFieldsEntry(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime":                    schema_pkg_apis_meta_v1_MicroTime(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta":                   schema_pkg_apis_meta_v1_ObjectMeta(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference":               schema_pkg_apis_meta_v1_OwnerReference(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadata":        schema_pkg_apis_meta_v1_PartialObjectMetadata(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadataList":    schema_pkg_apis_meta_v1_PartialObjectMetadataList(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Patch":                        schema_pkg_apis_meta_v1_Patch(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions":                 schema_pkg_apis_meta_v1_PatchOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Preconditions":                schema_pkg_apis_meta_v1_Preconditions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.RootPaths":                    schema_pkg_apis_meta_v1_RootPaths(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.ServerAddressByClientCIDR":    schema_pkg_apis_meta_v1_ServerAddressByClientCIDR(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Status":                       schema_pkg_apis_meta_v1_Status(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.StatusCause":                  schema_pkg_apis_meta_v1_StatusCause(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.StatusDetails":                schema_pkg_apis_meta_v1_StatusDetails(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Table":                        schema_pkg_apis_meta_v1_Table(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.TableColumnDefinition":        schema_pkg_apis_meta_v1_TableColumnDefinition(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.TableOptions":                 schema_pkg_apis_meta_v1_TableOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.TableRow":                     schema_pkg_apis_meta_v1_TableRow(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.TableRowCondition":            schema_pkg_apis_meta_v1_TableRowCondition(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Time":                         schema_pkg_apis_meta_v1_Time(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.Timestamp":                    schema_pkg_apis_meta_v1_Timestamp(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta":                     schema_pkg_apis_meta_v1_TypeMeta(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions":                schema_pkg_apis_meta_v1_UpdateOptions(ref),
-		"k8s.io/apimachinery/pkg/apis/meta/v1.WatchEvent":                   schema_pkg_apis_meta_v1_WatchEvent(ref),
-		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinary":       schema_pkg_apis_devops_v1alpha1_S2iBinary(ref),
-		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinaryList":   schema_pkg_apis_devops_v1alpha1_S2iBinaryList(ref),
-		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinarySpec":   schema_pkg_apis_devops_v1alpha1_S2iBinarySpec(ref),
-		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinaryStatus": schema_pkg_apis_devops_v1alpha1_S2iBinaryStatus(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup":                              schema_pkg_apis_meta_v1_APIGroup(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList":                          schema_pkg_apis_meta_v1_APIGroupList(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource":                           schema_pkg_apis_meta_v1_APIResource(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.APIResourceList":                       schema_pkg_apis_meta_v1_APIResourceList(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.APIVersions":                           schema_pkg_apis_meta_v1_APIVersions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.CreateOptions":                         schema_pkg_apis_meta_v1_CreateOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.DeleteOptions":                         schema_pkg_apis_meta_v1_DeleteOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Duration":                              schema_pkg_apis_meta_v1_Duration(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ExportOptions":                         schema_pkg_apis_meta_v1_ExportOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1":                              schema_pkg_apis_meta_v1_FieldsV1(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GetOptions":                            schema_pkg_apis_meta_v1_GetOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupKind":                             schema_pkg_apis_meta_v1_GroupKind(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupResource":                         schema_pkg_apis_meta_v1_GroupResource(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersion":                          schema_pkg_apis_meta_v1_GroupVersion(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionForDiscovery":              schema_pkg_apis_meta_v1_GroupVersionForDiscovery(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionKind":                      schema_pkg_apis_meta_v1_GroupVersionKind(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.GroupVersionResource":                  schema_pkg_apis_meta_v1_GroupVersionResource(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.InternalEvent":                         schema_pkg_apis_meta_v1_InternalEvent(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector":                         schema_pkg_apis_meta_v1_LabelSelector(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement":              schema_pkg_apis_meta_v1_LabelSelectorRequirement(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.List":                                  schema_pkg_apis_meta_v1_List(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta":                              schema_pkg_apis_meta_v1_ListMeta(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions":                           schema_pkg_apis_meta_v1_ListOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry":                    schema_pkg_apis_meta_v1_ManagedFieldsEntry(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime":                             schema_pkg_apis_meta_v1_MicroTime(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta":                            schema_pkg_apis_meta_v1_ObjectMeta(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference":                        schema_pkg_apis_meta_v1_OwnerReference(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadata":                 schema_pkg_apis_meta_v1_PartialObjectMetadata(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.PartialObjectMetadataList":             schema_pkg_apis_meta_v1_PartialObjectMetadataList(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Patch":                                 schema_pkg_apis_meta_v1_Patch(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.PatchOptions":                          schema_pkg_apis_meta_v1_PatchOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Preconditions":                         schema_pkg_apis_meta_v1_Preconditions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.RootPaths":                             schema_pkg_apis_meta_v1_RootPaths(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.ServerAddressByClientCIDR":             schema_pkg_apis_meta_v1_ServerAddressByClientCIDR(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Status":                                schema_pkg_apis_meta_v1_Status(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.StatusCause":                           schema_pkg_apis_meta_v1_StatusCause(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.StatusDetails":                         schema_pkg_apis_meta_v1_StatusDetails(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Table":                                 schema_pkg_apis_meta_v1_Table(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.TableColumnDefinition":                 schema_pkg_apis_meta_v1_TableColumnDefinition(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.TableOptions":                          schema_pkg_apis_meta_v1_TableOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.TableRow":                              schema_pkg_apis_meta_v1_TableRow(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.TableRowCondition":                     schema_pkg_apis_meta_v1_TableRowCondition(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Time":                                  schema_pkg_apis_meta_v1_Time(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.Timestamp":                             schema_pkg_apis_meta_v1_Timestamp(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta":                              schema_pkg_apis_meta_v1_TypeMeta(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.UpdateOptions":                         schema_pkg_apis_meta_v1_UpdateOptions(ref),
+		"k8s.io/apimachinery/pkg/apis/meta/v1.WatchEvent":                            schema_pkg_apis_meta_v1_WatchEvent(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig":               schema_pkg_apis_devops_v1alpha1_AuthConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.CGroupLimits":             schema_pkg_apis_devops_v1alpha1_CGroupLimits(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ContainerConfig":          schema_pkg_apis_devops_v1alpha1_ContainerConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ContainerInfo":            schema_pkg_apis_devops_v1alpha1_ContainerInfo(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfig":             schema_pkg_apis_devops_v1alpha1_DockerConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfigEntry":        schema_pkg_apis_devops_v1alpha1_DockerConfigEntry(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfigJson":         schema_pkg_apis_devops_v1alpha1_DockerConfigJson(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.EnvironmentSpec":          schema_pkg_apis_devops_v1alpha1_EnvironmentSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.Parameter":                schema_pkg_apis_devops_v1alpha1_Parameter(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ProxyConfig":              schema_pkg_apis_devops_v1alpha1_ProxyConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iAutoScale":             schema_pkg_apis_devops_v1alpha1_S2iAutoScale(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinary":                schema_pkg_apis_devops_v1alpha1_S2iBinary(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinaryList":            schema_pkg_apis_devops_v1alpha1_S2iBinaryList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinarySpec":            schema_pkg_apis_devops_v1alpha1_S2iBinarySpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBinaryStatus":          schema_pkg_apis_devops_v1alpha1_S2iBinaryStatus(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildResult":           schema_pkg_apis_devops_v1alpha1_S2iBuildResult(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildSource":           schema_pkg_apis_devops_v1alpha1_S2iBuildSource(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilder":               schema_pkg_apis_devops_v1alpha1_S2iBuilder(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderList":           schema_pkg_apis_devops_v1alpha1_S2iBuilderList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderSpec":           schema_pkg_apis_devops_v1alpha1_S2iBuilderSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderStatus":         schema_pkg_apis_devops_v1alpha1_S2iBuilderStatus(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplate":       schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplate(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateList":   schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateSpec":   schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateStatus": schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateStatus(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iConfig":                schema_pkg_apis_devops_v1alpha1_S2iConfig(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRun":                   schema_pkg_apis_devops_v1alpha1_S2iRun(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunList":               schema_pkg_apis_devops_v1alpha1_S2iRunList(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunSpec":               schema_pkg_apis_devops_v1alpha1_S2iRunSpec(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunStatus":             schema_pkg_apis_devops_v1alpha1_S2iRunStatus(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.UserDefineTemplate":       schema_pkg_apis_devops_v1alpha1_UserDefineTemplate(ref),
+		"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec":               schema_pkg_apis_devops_v1alpha1_VolumeSpec(ref),
 	}
 }
 
@@ -2159,6 +2187,471 @@ func schema_pkg_apis_meta_v1_WatchEvent(ref common.ReferenceCallback) common.Ope
 	}
 }
 
+func schema_pkg_apis_devops_v1alpha1_AuthConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AuthConfig is our abstraction of the Registry authorization information for whatever docker client we happen to be based on",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"username": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"password": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"serverAddress": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"secretRef": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_CGroupLimits(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CGroupLimits holds limits used to constrain container resources.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"memoryLimitBytes": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"cpuShares": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"cpuPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"cpuQuota": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"memorySwap": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"parent": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"memoryLimitBytes", "cpuShares", "cpuPeriod", "cpuQuota", "memorySwap", "parent"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_ContainerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ContainerConfig is the abstraction of the docker client provider (formerly go-dockerclient, now either engine-api or kube docker client) container.Config type that is leveraged by s2i or origin",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Labels": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"Env": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"Labels", "Env"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_ContainerInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"builderImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BaseImage are the images this template will use.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"runtimeImage": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"runtimeArtifacts": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec"),
+									},
+								},
+							},
+						},
+					},
+					"buildVolumes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuildVolumes specifies a list of volumes to mount to container running the build.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_DockerConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DockerConfig contains the configuration for a Docker connection.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"endPoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Endpoint is the docker network endpoint or socket",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertFile is the certificate file path for a TLS connection",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeyFile is the key file path for a TLS connection",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"caFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CAFile is the certificate authority file path for a TLS connection",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"useTLS": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UseTLS indicates if TLS must be used",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"tlsVerify": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TLSVerify indicates if TLS peer must be verified",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"endPoint", "certFile", "keyFile", "caFile", "useTLS", "tlsVerify"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_DockerConfigEntry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"username": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"password": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"email": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"serverAddress": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"username", "password", "email"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_DockerConfigJson(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"auths": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfigEntry"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"auths"},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfigEntry"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_EnvironmentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "EnvironmentSpec specifies a single environment variable.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"name", "value"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_Parameter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"key": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"optValues": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"required": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"defaultValue": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_ProxyConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ProxyConfig holds proxy configuration.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"httpProxy": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"httpsProxy": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iAutoScale(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"initReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"containers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"kind", "name"},
+			},
+		},
+	}
+}
+
 func schema_pkg_apis_devops_v1alpha1_S2iBinary(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2310,6 +2803,1258 @@ func schema_pkg_apis_devops_v1alpha1_S2iBinaryStatus(ref common.ReferenceCallbac
 						SchemaProps: spec.SchemaProps{
 							Description: "Phase is status of S2iBinary . Possible value is \"Ready\",\"UnableToDownload\"",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuildResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"imageName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImageName is the name of artifact",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageSize": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The size in bytes of the image",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"imageID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image ID.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageCreated": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image created time.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageRepoTags": {
+						SchemaProps: spec.SchemaProps{
+							Description: "image tags.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"commandPull": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Command for pull image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuildSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"sourceUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceURL is  url of the codes such as https://github.com/a/b.git",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"revisionId": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"binaryName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Binary file Name",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"binarySize": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Binary file Size",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"builderImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "// BuilderImage describes which image is used for building the result images.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description is a result image description label. The default is no description.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"commitID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitID represents an arbitrary extended object reference in Git as SHA-1",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"committerName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitterName contains the name of the committer",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"committerEmail": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CommitterEmail contains the e-mail of the committer",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilder(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilder is the Schema for the s2ibuilders API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderSpec", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderStatus"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderList contains a list of S2iBuilder",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilder"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilder"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderSpec defines the desired state of S2iBuilder",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"config": {
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"make\" to regenerate code after modifying this file",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iConfig"),
+						},
+					},
+					"fromTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "FromTemplate define some inputs from user",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.UserDefineTemplate"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iConfig", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.UserDefineTemplate"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderStatus defines the observed state of S2iBuilder",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"runCount": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RunCount represent the sum of s2irun of this builder",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"lastRunState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastRunState return the state of the newest run of this builder",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastRunName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastRunState return the name of the newest run of this builder",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastRunStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastRunStartTime return the startTime of the newest run of this builder",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+				Required: []string{"runCount"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderTemplate is the Schema for the s2ibuildertemplates API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateSpec", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplateStatus"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderTemplateList contains a list of S2iBuilderTemplate",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplate"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuilderTemplate"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderTemplateSpec defines the desired state of S2iBuilderTemplate",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"defaultBaseImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DefaultBaseImage is the image that will be used by default",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"containerInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Images are the images this template will use.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ContainerInfo"),
+									},
+								},
+							},
+						},
+					},
+					"codeFramework": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CodeFramework means which language this template is designed for and which framework is using if has framework. Like Java, NodeJS etc",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"environment": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Parameters is a set of environment variables to be passed to the image.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.Parameter"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of template",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description illustrate the purpose of this template",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"iconPath": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IconPath is used for frontend display",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ContainerInfo", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.Parameter"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iBuilderTemplateStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iBuilderTemplateStatus defines the observed state of S2iBuilderTemplate",
+				Type:        []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"displayName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DisplayName is a result image display-name label. This defaults to the output image name.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description is a result image description label. The default is no description.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"builderImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuilderImage describes which image is used for building the result images.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"builderImageVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuilderImageVersion provides optional version information about the builder image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"builderBaseImageVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuilderBaseImageVersion provides optional version information about the builder base image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"runtimeImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RuntimeImage specifies the image that will be a base for resulting image and will be used for running an application. By default, BuilderImage is used for building and running, but the latter may be overridden.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"outputImageName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OutputImageName is a result image name without tag, default is latest. tag will append to ImageName in the end",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"runtimeImagePullPolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RuntimeImagePullPolicy specifies when to pull a runtime image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"runtimeAuthentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RuntimeAuthentication holds the authentication information for pulling the runtime Docker images from private repositories.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig"),
+						},
+					},
+					"runtimeArtifacts": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RuntimeArtifacts specifies a list of source/destination pairs that will be copied from builder to a runtime image. Source can be a file or directory. Destination must be a directory. Regardless whether it is an absolute or relative path, it will be placed into image's WORKDIR. Destination also can be empty or equals to \".\", in this case it just refers to a root of WORKDIR. In case it's empty, S2I will try to get this list from io.openshift.s2i.assemble-input-files label on a RuntimeImage.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec"),
+									},
+								},
+							},
+						},
+					},
+					"dockerConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DockerConfig describes how to access host docker daemon.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfig"),
+						},
+					},
+					"pullAuthentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig"),
+						},
+					},
+					"pushAuthentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PullAuthentication holds the authentication information for pulling the Docker images from private repositories",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig"),
+						},
+					},
+					"incrementalAuthentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IncrementalAuthentication holds the authentication information for pulling the previous image from private repositories",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig"),
+						},
+					},
+					"dockerNetworkMode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DockerNetworkMode is used to set the docker network setting to --net=container:<id> when the builder is invoked from a container.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"preserveWorkingDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PreserveWorkingDir describes if working directory should be left after processing.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"imageName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImageName Contains the registry address and reponame, tag should set by field tag alone",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag is a result image tag name.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"builderPullPolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuilderPullPolicy specifies when to pull the builder image",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"previousImagePullPolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PreviousImagePullPolicy specifies when to pull the previously build image when doing incremental build",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"incremental": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Incremental describes whether to try to perform incremental build.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"incrementalFromTag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IncrementalFromTag sets an alternative image tag to look for existing artifacts. Tag is used by default if this is not set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"removePreviousImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RemovePreviousImage describes if previous image should be removed after successful build. This applies only to incremental builds.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"environment": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Environment is a map of environment variables to be passed to the image.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.EnvironmentSpec"),
+									},
+								},
+							},
+						},
+					},
+					"labelNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LabelNamespace provides the namespace under which the labels will be generated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"callbackUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CallbackURL is a URL which is called upon successful build to inform about that fact.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"scriptsUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ScriptsURL is a URL describing where to fetch the S2I scripts from during build process. This url can be a reference within the builder image if the scheme is specified as image://",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"destination": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Destination specifies a location where the untar operation will place its artifacts.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"workingDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"workingSourceDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "WorkingSourceDir describes the subdirectory off of WorkingDir set up during the repo download that is later used as the root for ignore processing",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"layeredBuild": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"contextDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Specify a relative directory inside the application repository that should be used as a root directory for the application.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"assembleUser": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AssembleUser specifies the user to run the assemble script in container",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"runImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RunImage will trigger a \"docker run ...\" invocation of the produced image so the user can see if it operates as he would expect",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"usage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Usage allows for properly shortcircuiting s2i logic when `s2i usage` is invoked",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"injections": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Injections specifies a list source/destination folders that are injected to the container that runs assemble. All files we inject will be truncated after the assemble script finishes.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec"),
+									},
+								},
+							},
+						},
+					},
+					"cgroupLimits": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CGroupLimits describes the cgroups limits that will be applied to any containers run by s2i.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.CGroupLimits"),
+						},
+					},
+					"dropCapabilities": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DropCapabilities contains a list of capabilities to drop when executing containers",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"scriptDownloadProxyConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ScriptDownloadProxyConfig optionally specifies the http and https proxy to use when downloading scripts",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ProxyConfig"),
+						},
+					},
+					"excludeRegExp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ExcludeRegExp contains a string representation of the regular expression desired for deciding which files to exclude from the tar stream",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"blockOnBuild": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BlockOnBuild prevents s2i from performing a docker build operation if one is necessary to execute ONBUILD commands, or to layer source code into the container for images that don't have a tar binary available, if the image contains ONBUILD commands that would be executed.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"hasOnBuild": {
+						SchemaProps: spec.SchemaProps{
+							Description: "HasOnBuild will be set to true if the builder image contains ONBUILD instructions",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"buildVolumes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuildVolumes specifies a list of volumes to mount to container running the build.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"labels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Labels specify labels and their values to be applied to the resulting image. Label keys must have non-zero length. The labels defined here override generated labels in case they have the same name.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"securityOpt": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecurityOpt are passed as options to the docker containers launched by s2i.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"keepSymlinks": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KeepSymlinks indicates to copy symlinks as symlinks. Default behavior is to follow symlinks and copy files by content.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"asDockerfile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AsDockerfile indicates the path where the Dockerfile should be written instead of building a new image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageWorkDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImageWorkDir is the default working directory for the builder image.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imageScriptsUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImageScriptsURL is the default location to find the assemble/run scripts for a builder image. This url can be a reference within the builder image if the scheme is specified as image://",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"addHost": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AddHost Add a line to /etc/hosts for test purpose or private use in LAN. Its format is host:IP,muliple hosts can be added  by using multiple --add-host",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"export": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Export Push the result image to specify image registry in tag",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"sourceUrl": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SourceURL is  url of the codes such as https://github.com/a/b.git",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"isBinaryURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IsBinaryURL explain the type of SourceURL. If it is IsBinaryURL, it will download the file directly without using git.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"gitSecretRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "GitSecretRef is the BasicAuth Secret of Git Clone",
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"revisionId": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The RevisionId is a branch name or a SHA-1 hash of every important thing about the commit",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"taintKey": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The name of taint.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeAffinityKey": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The key of Node Affinity.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeAffinityValues": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The values of Node Affinity.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"outputBuildResult": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Whether output build result to status.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"branchExpression": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Regular expressions, ignoring names that do not match the provided regular expression",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"secretCode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecretCode",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"imageName", "sourceUrl"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.LocalObjectReference", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.AuthConfig", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.CGroupLimits", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.DockerConfig", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.EnvironmentSpec", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.ProxyConfig", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.VolumeSpec"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iRun(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iRun is the Schema for the s2iruns API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunSpec", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRunStatus"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iRunList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iRunList contains a list of S2iRun",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRun"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iRun"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iRunSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iRunSpec defines the desired state of S2iRun",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"builderName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BuilderName specify the name of s2ibuilder, required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"backoffLimit": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BackoffLimit limits the restart count of each s2irun. Default is 0",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"secondsAfterFinished": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecondsAfterFinished if is set and greater than zero, and the job created by s2irun become successful or failed , the job will be auto deleted after SecondsAfterFinished",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"newTag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NewTag override the default tag in its s2ibuilder, image name cannot be changed.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"newRevisionId": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NewRevisionId override the default NewRevisionId in its s2ibuilder.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"newSourceURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NewSourceURL is used to download new binary artifacts",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"builderName"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_S2iRunStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "S2iRunStatus defines the observed state of S2iRun",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"startTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StartTime represent when this run began",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"completionTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Represents time when the job was completed. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"runState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RunState  indicates whether this job is done or failed",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LogURL is uesd for external log handler to let user know where is log located in",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubernetesJobName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubernetesJobName is the job name in k8s",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"s2iBuildResult": {
+						SchemaProps: spec.SchemaProps{
+							Description: "S2i build result info.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildResult"),
+						},
+					},
+					"s2iBuildSource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "S2i build source info.",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildSource"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildResult", "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.S2iBuildSource"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_UserDefineTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name specify a template to use, so many fields in Config can left empty",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"parameters": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Parameters must use with `template`, fill some parameters which template will use",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.Parameter"),
+									},
+								},
+							},
+						},
+					},
+					"builderImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BaseImage specify which version of this template to use",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1.Parameter"},
+	}
+}
+
+func schema_pkg_apis_devops_v1alpha1_VolumeSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeSpec represents a single volume mount point.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"source": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Source is a reference to the volume source.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"destination": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Destination is the path to mount the volume to - absolute or relative.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keep": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Keep indicates if the mounted data should be kept in the final image.",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},

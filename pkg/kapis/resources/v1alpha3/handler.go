@@ -7,7 +7,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
@@ -16,9 +15,7 @@ type Handler struct {
 	componentsGetter         components.ComponentsGetter
 }
 
-func New(client k8s.Client) *Handler {
-	factory := informers.NewInformerFactories(client.Kubernetes(), client.KubeSphere(), client.S2i(), client.Application())
-
+func New(factory informers.InformerFactory) *Handler {
 	return &Handler{
 		namespacedResourceGetter: resource.New(factory),
 		componentsGetter:         components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
