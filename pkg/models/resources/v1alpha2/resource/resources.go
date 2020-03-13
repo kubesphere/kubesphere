@@ -53,12 +53,16 @@ type ResourceGetter struct {
 }
 
 func (r ResourceGetter) Add(resource string, getter v1alpha2.Interface) {
+	if r.resourcesGetters == nil {
+		r.resourcesGetters = make(map[string]v1alpha2.Interface)
+	}
 	r.resourcesGetters[resource] = getter
 }
 
 func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters := make(map[string]v1alpha2.Interface)
 
+	//resourceGetters[v1alpha2.Deployments] = deployments
 	resourceGetters[v1alpha2.ConfigMaps] = configmap.NewConfigmapSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.CronJobs] = cronjob.NewCronJobSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.DaemonSets] = daemonset.NewDaemonSetSearcher(factory.KubernetesSharedInformerFactory())
@@ -135,7 +139,7 @@ func (r *ResourceGetter) ListResources(namespace, resource string, conditions *p
 		limit = len(result) - offset
 	}
 
-	result = result[offset : offset+limit]
+	items = result[offset : offset+limit]
 
 	return &models.PageableResponse{TotalCount: len(result), Items: items}, nil
 }

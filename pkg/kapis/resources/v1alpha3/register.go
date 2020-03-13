@@ -38,7 +38,7 @@ const (
 	ok = "OK"
 )
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}
 
 func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory) error {
 

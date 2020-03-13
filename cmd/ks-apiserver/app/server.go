@@ -25,7 +25,6 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
-	"kubesphere.io/kubesphere/pkg/apiserver/servicemesh/tracing"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 )
@@ -100,7 +99,7 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	// Initialize kiali config
 	config := kconfig.NewConfig()
 
-	tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
+	//tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
 
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}

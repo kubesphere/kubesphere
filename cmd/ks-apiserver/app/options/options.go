@@ -8,6 +8,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver"
+	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -89,36 +90,66 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 }
 
 func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
+	apiServer := &apiserver.APIServer{}
+
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
 		return nil, err
 	}
+	apiServer.KubernetesClient = kubernetesClient
+
+	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
+	apiServer.InformerFactory = informerFactory
 
 	monitoringClient := prometheus.NewPrometheus(s.MonitoringOptions)
+	apiServer.MonitoringClient = monitoringClient
 
-	loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)
-	if err != nil {
-		return nil, err
+	if s.LoggingOptions.Host != "" {
+		loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.LoggingClient = loggingClient
 	}
 
-	s3Client, err := s3.NewS3Client(s.S3Options)
-	if err != nil {
-		return nil, err
+	if s.S3Options.Endpoint != "" {
+		s3Client, err := s3.NewS3Client(s.S3Options)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.S3Client = s3Client
 	}
 
-	devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
-	if err != nil {
-		return nil, err
+	if s.DevopsOptions.Host != "" {
+		devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.DevopsClient = devopsClient
 	}
 
-	ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
-	if err != nil {
-		return nil, err
+	if s.LdapOptions.Host != "" {
+		ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.LdapClient = ldapClient
 	}
 
-	cacheClient, err := cache.NewRedisClient(s.CacheOptions, stopCh)
-	if err != nil {
-		return nil, err
+	if s.CacheOptions.RedisURL != "" {
+		cacheClient, err := cache.NewRedisClient(s.CacheOptions, stopCh)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.CacheClient = cacheClient
+	}
+
+	if s.MySQLOptions.Host != "" {
+		dbClient, err := mysql.NewMySQLClient(s.MySQLOptions, stopCh)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.DBClient = dbClient
 	}
 
 	server := &http.Server{
@@ -133,16 +164,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		server.TLSConfig.Certificates = []tls.Certificate{certificate}
 	}
 
-	apiServer := &apiserver.APIServer{
-		Server:           server,
-		KubernetesClient: kubernetesClient,
-		MonitoringClient: monitoringClient,
-		LoggingClient:    loggingClient,
-		S3Client:         s3Client,
-		DevopsClient:     devopsClient,
-		LdapClient:       ldapClient,
-		CacheClient:      cacheClient,
-	}
+	apiServer.Server = server
 
 	return apiServer, nil
 }
