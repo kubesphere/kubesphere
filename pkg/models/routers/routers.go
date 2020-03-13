@@ -66,7 +66,7 @@ func NewRouterOperator(client kubernetes.Interface, informers informers.SharedIn
 	routerTemplates := make(map[string]runtime.Object, 2)
 
 	if err != nil {
-		klog.Fatalf("error happened during loading external yamls, %v", err)
+		klog.Errorf("error happened during loading external yamls, %v", err)
 	}
 
 	for _, f := range yamls {

@@ -7,9 +7,18 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
+	"kubesphere.io/kubesphere/pkg/apiserver/filters"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
+	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
@@ -18,14 +27,15 @@ import (
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/db"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"net"
@@ -85,7 +95,7 @@ type APIServer struct {
 	S3Client s3.Interface
 
 	//
-	DBClient db.Interface
+	DBClient *mysql.Client
 
 	//
 	LdapClient ldap.Interface
@@ -104,26 +114,31 @@ func (s *APIServer) PrepareRun() error {
 
 	s.installKubeSphereAPIs()
 
+	for _, ws := range s.container.RegisteredWebServices() {
+		klog.V(2).Infof("%s", ws.RootPath())
+	}
+
+	s.Server.Handler = s.container
+
+	s.buildHandlerChain()
+
 	return nil
 }
 
 func (s *APIServer) installKubeSphereAPIs() {
 
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
-	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
-
 	// Need to refactor devops api registration, too much dependencies
-	//urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.DevopsClient))
-
+	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.DevopsClient, s.DBClient.Database(), nil, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.LoggingClient))
 	urlruntime.Must(monitoringv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.MonitoringClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	//urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient.Database()))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.AuthenticateOptions))
-
+	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) error {
@@ -141,11 +156,33 @@ func (s *APIServer) Run(stopCh <-chan struct{}) error {
 		_ = s.Server.Shutdown(ctx)
 	}()
 
+	klog.V(0).Infof("Start listening on %s", s.Server.Addr)
 	if s.Server.TLSConfig != nil {
 		return s.Server.ListenAndServeTLS("", "")
 	} else {
 		return s.Server.ListenAndServe()
 	}
+}
+
+func (s *APIServer) buildHandlerChain() {
+	requestInfoResolver := &request.RequestInfoFactory{
+		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
+		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+	}
+
+	failed := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+
+	handler := s.Server.Handler
+	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
+	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
+	handler = filters.WithAuthorization(handler, authorizerfactory.NewAlwaysAllowAuthorizer())
+
+	handler = filters.WithAuthentication(handler, bearertoken.New(authentication.NewTokenAuthenticator(s.CacheClient)), failed)
+	handler = filters.WithRequestInfo(handler, requestInfoResolver)
+
+	s.Server.Handler = handler
 }
 
 func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
@@ -337,4 +374,11 @@ func getRequestIP(req *restful.Request) string {
 	}
 
 	return address
+}
+
+type errorResponder struct{}
+
+func (e *errorResponder) Error(w http.ResponseWriter, req *http.Request, err error) {
+	klog.Error(err)
+	responsewriters.InternalError(w, req, err)
 }
