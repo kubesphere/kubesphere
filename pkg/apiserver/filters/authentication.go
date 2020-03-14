@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// WithAuthentication installs authentication handler to handler chain.
 func WithAuthentication(handler http.Handler, auth authenticator.Request, failed http.Handler) http.Handler {
 	if auth == nil {
 		klog.Warningf("Authentication is disabled")

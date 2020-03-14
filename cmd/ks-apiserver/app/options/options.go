@@ -19,6 +19,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
@@ -40,6 +41,9 @@ type ServerRunOptions struct {
 	LdapOptions             *ldap.Options
 	CacheOptions            *cache.Options
 	AuthenticateOptions     *iam.AuthenticationOptions
+
+	//
+	DebugMode bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -64,7 +68,9 @@ func NewServerRunOptions() *ServerRunOptions {
 }
 
 func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
-	s.GenericServerRunOptions.AddFlags(fss.FlagSet("generic"), s.GenericServerRunOptions)
+	fs := fss.FlagSet("generic")
+	fs.BoolVar(&s.DebugMode, "debug", false, "Don't enable this if you don't know what it means.")
+	s.GenericServerRunOptions.AddFlags(fs, s.GenericServerRunOptions)
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.AuthenticateOptions.AddFlags(fss.FlagSet("authenticate"), s.AuthenticateOptions)
 	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), s.MySQLOptions)
@@ -78,7 +84,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)
 
-	fs := fss.FlagSet("klog")
+	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(local)
 	local.VisitAll(func(fl *flag.Flag) {
@@ -89,6 +95,9 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	return fss
 }
 
+const fakeInterface string = "FAKE"
+
+// NewAPIServer creates an APIServer instance using given options
 func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
 	apiServer := &apiserver.APIServer{}
 
@@ -113,11 +122,15 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	if s.S3Options.Endpoint != "" {
-		s3Client, err := s3.NewS3Client(s.S3Options)
-		if err != nil {
-			return nil, err
+		if s.S3Options.Endpoint == fakeInterface && s.DebugMode {
+			apiServer.S3Client = fakeS3.NewFakeS3()
+		} else {
+			s3Client, err := s3.NewS3Client(s.S3Options)
+			if err != nil {
+				return nil, err
+			}
+			apiServer.S3Client = s3Client
 		}
-		apiServer.S3Client = s3Client
 	}
 
 	if s.DevopsOptions.Host != "" {
@@ -129,19 +142,28 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	if s.LdapOptions.Host != "" {
-		ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
-		if err != nil {
-			return nil, err
+		if s.LdapOptions.Host == fakeInterface && s.DebugMode {
+			apiServer.LdapClient = ldap.NewSimpleLdap()
+		} else {
+			ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
+			if err != nil {
+				return nil, err
+			}
+			apiServer.LdapClient = ldapClient
 		}
-		apiServer.LdapClient = ldapClient
 	}
 
+	var cacheClient cache.Interface
 	if s.CacheOptions.RedisURL != "" {
-		cacheClient, err := cache.NewRedisClient(s.CacheOptions, stopCh)
-		if err != nil {
-			return nil, err
+		if s.CacheOptions.RedisURL == fakeInterface && s.DebugMode {
+			apiServer.CacheClient = cache.NewSimpleCache()
+		} else {
+			cacheClient, err = cache.NewRedisClient(s.CacheOptions, stopCh)
+			if err != nil {
+				return nil, err
+			}
+			apiServer.CacheClient = cacheClient
 		}
-		apiServer.CacheClient = cacheClient
 	}
 
 	if s.MySQLOptions.Host != "" {
