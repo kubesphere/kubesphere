@@ -24,13 +24,13 @@ func NewTokenAuthenticator(cacheClient cache.Interface) authenticator.Token {
 
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
 	//if len(token) == 0 {
-		return &authenticator.Response{
-			User: &user.DefaultInfo{
-				Name:   user.Anonymous,
-				UID:    "",
-				Groups: []string{user.AllUnauthenticated},
-				Extra:  nil,
-			},
-		}, true, nil
+	return &authenticator.Response{
+		User: &user.DefaultInfo{
+			Name:   user.Anonymous,
+			UID:    "",
+			Groups: []string{user.AllUnauthenticated},
+			Extra:  nil,
+		},
+	}, true, nil
 	//}
 }

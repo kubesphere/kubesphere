@@ -10,9 +10,9 @@ import (
 var ErrNoSuchKey = errors.New("no such key")
 
 type simpleObject struct {
-	value  string
+	value       string
 	neverExpire bool
-	expiredAt time.Time
+	expiredAt   time.Time
 }
 
 // SimpleCache implements cache.Interface use memory objects, it should be used only for testing
@@ -45,9 +45,9 @@ func (s *simpleCache) Keys(pattern string) ([]string, error) {
 
 func (s *simpleCache) Set(key string, value string, duration time.Duration) error {
 	sobject := simpleObject{
-		value: value,
+		value:       value,
 		neverExpire: false,
-		expiredAt: time.Now().Add(duration),
+		expiredAt:   time.Now().Add(duration),
 	}
 
 	if duration == NeverExpire {
@@ -97,9 +97,9 @@ func (s *simpleCache) Expire(key string, duration time.Duration) error {
 	}
 
 	sobject := simpleObject{
-		value:  value,
+		value:       value,
 		neverExpire: false,
-		expiredAt: time.Now().Add(duration),
+		expiredAt:   time.Now().Add(duration),
 	}
 
 	if duration == NeverExpire {
