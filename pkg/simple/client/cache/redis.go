@@ -32,7 +32,7 @@ func NewRedisClient(option *Options, stopCh <-chan struct{}) (Interface, error) 
 	var r Client
 
 	redisOptions := &redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", option.Host, option.Port),
+		Addr:     fmt.Sprintf("%s:%d", option.Host, option.Port),
 		Password: option.Password,
 		DB:       option.DB,
 	}

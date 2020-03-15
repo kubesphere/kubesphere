@@ -99,7 +99,7 @@ func parse(c *caddy.Controller) (*Rule, error) {
 						return nil, c.ArgErr()
 					}
 
-					options := &cache.Options{RedisURL: c.Val()}
+					options := &cache.Options{Host: c.Val()}
 
 					if err := options.Validate(); len(err) > 0 {
 						return nil, c.ArgErr()
