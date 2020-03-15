@@ -29,15 +29,18 @@ import (
 	"time"
 )
 
+// default re-sync period for all informer factories
 const defaultResync = 600 * time.Second
 
+// InformerFactory is a group all shared informer factories which kubesphere needed
+// callers should check if the return value is nil
 type InformerFactory interface {
 	KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory
 	KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory
 	IstioSharedInformerFactory() istioinformers.SharedInformerFactory
 	ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory
 
-	// Start all the informer factories if not nil
+	// Start shared informer factory one by one if they are not nil
 	Start(stopCh <-chan struct{})
 }
 

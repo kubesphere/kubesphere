@@ -2,6 +2,8 @@ package cache
 
 import "time"
 
+var NeverExpire = time.Duration(0)
+
 type Interface interface {
 	// Keys retrieves all keys match the given pattern
 	Keys(pattern string) ([]string, error)

@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/proxy"
 )
 
-// Dispatcher defines how to forward request to desired cluster apiserver
+// Dispatcher defines how to forward request to designated cluster based on cluster name
 type Dispatcher interface {
 	Dispatch(w http.ResponseWriter, req *http.Request)
 }

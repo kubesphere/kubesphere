@@ -188,6 +188,7 @@ func (conf *Config) toMap() map[string]bool {
 	return result
 }
 
+// Remove invalid options before serializing to json or yaml
 func (conf *Config) stripEmptyOptions() {
 	if conf.MySQLOptions != nil && conf.MySQLOptions.Host == "" {
 		conf.MySQLOptions = nil
