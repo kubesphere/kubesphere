@@ -39,7 +39,7 @@ func newHandler(k k8s.Client, m monitoring.Interface) *handler {
 func (h handler) handleClusterMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelCluster)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -48,7 +48,7 @@ func (h handler) handleClusterMetricsQuery(req *restful.Request, resp *restful.R
 func (h handler) handleNodeMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelNode)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -57,7 +57,7 @@ func (h handler) handleNodeMetricsQuery(req *restful.Request, resp *restful.Resp
 func (h handler) handleWorkspaceMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelWorkspace)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -66,7 +66,7 @@ func (h handler) handleWorkspaceMetricsQuery(req *restful.Request, resp *restful
 func (h handler) handleNamespaceMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelNamespace)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -75,7 +75,7 @@ func (h handler) handleNamespaceMetricsQuery(req *restful.Request, resp *restful
 func (h handler) handleWorkloadMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelWorkload)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -84,7 +84,7 @@ func (h handler) handleWorkloadMetricsQuery(req *restful.Request, resp *restful.
 func (h handler) handlePodMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelPod)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -93,7 +93,7 @@ func (h handler) handlePodMetricsQuery(req *restful.Request, resp *restful.Respo
 func (h handler) handleContainerMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelContainer)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -102,7 +102,7 @@ func (h handler) handleContainerMetricsQuery(req *restful.Request, resp *restful
 func (h handler) handlePVCMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelPVC)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -111,7 +111,7 @@ func (h handler) handlePVCMetricsQuery(req *restful.Request, resp *restful.Respo
 func (h handler) handleComponentMetricsQuery(req *restful.Request, resp *restful.Response) {
 	p, err := h.parseRequestParams(req, monitoring.LevelComponent)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	h.handleNamedMetricsQuery(resp, p)
@@ -124,13 +124,13 @@ func (h handler) handleNamedMetricsQuery(resp *restful.Response, p params) {
 	if p.isRangeQuery() {
 		res, err = h.mo.GetNamedMetricsOverTime(p.start, p.end, p.step, p.option)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 			return
 		}
 	} else {
 		res, err = h.mo.GetNamedMetrics(p.time, p.option)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 			return
 		}
 

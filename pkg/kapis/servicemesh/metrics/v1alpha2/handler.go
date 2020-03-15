@@ -87,7 +87,7 @@ func getServiceTracing(request *restful.Request, response *restful.Response) {
 
 	if err != nil {
 		klog.Errorf("query jaeger faile with err %v", err)
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func getServiceTracing(request *restful.Request, response *restful.Response) {
 
 	if err != nil {
 		klog.Errorf("read response error : %v", err)
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 

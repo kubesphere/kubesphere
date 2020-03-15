@@ -1,6 +1,9 @@
 package ldap
 
-import "kubesphere.io/kubesphere/pkg/api/iam"
+import (
+	"kubesphere.io/kubesphere/pkg/api/iam"
+	"time"
+)
 
 // simpleLdap is a implementation of ldap.Interface, you should never use this in production env!
 type simpleLdap struct {
@@ -8,9 +11,22 @@ type simpleLdap struct {
 }
 
 func NewSimpleLdap() Interface {
-	return &simpleLdap{
+	sl := &simpleLdap{
 		store: map[string]*iam.User{},
 	}
+
+	// initialize with a admin user
+	admin := &iam.User{
+		Username:    "admin",
+		Email:       "admin@kubesphere.io",
+		Lang:        "eng",
+		Description: "administrator",
+		CreateTime:  time.Now(),
+		Groups:      nil,
+		Password:    "P@88w0rd",
+	}
+	sl.store[admin.Username] = admin
+	return sl
 }
 
 func (s simpleLdap) Create(user *iam.User) error {

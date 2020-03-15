@@ -29,14 +29,14 @@ func (h ProjectPipelineHandler) CreateDevOpsProjectCredentialHandler(request *re
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	credentialId, err := h.projectCredentialOperator.CreateProjectCredential(projectId, username, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -54,14 +54,14 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectCredentialHandler(request *re
 	err := request.ReadEntity(&credential)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	credentialId, err = h.projectCredentialOperator.UpdateProjectCredential(projectId, credentialId, credential)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h ProjectPipelineHandler) DeleteDevOpsProjectCredentialHandler(request *re
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectCredentialHandler(request *restf
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h ProjectPipelineHandler) GetDevOpsProjectCredentialsHandler(request *rest
 	jenkinsCredentials, err := h.projectCredentialOperator.GetProjectCredentials(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 	resp.WriteAsJson(jenkinsCredentials)

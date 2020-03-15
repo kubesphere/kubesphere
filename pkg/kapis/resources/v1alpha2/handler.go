@@ -73,7 +73,7 @@ func (r *resourceHandler) handleListNamespaceResources(request *restful.Request,
 	result, err := r.resourcesGetter.ListResources(namespace, resource, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -84,7 +84,7 @@ func (r *resourceHandler) handleGetSystemHealthStatus(_ *restful.Request, respon
 	result, err := r.componentsGetter.GetSystemHealthStatus()
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (r *resourceHandler) handleGetComponentStatus(request *restful.Request, res
 	result, err := r.componentsGetter.GetComponentStatus(component)
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (r *resourceHandler) handleGetComponents(_ *restful.Request, response *rest
 	result, err := r.componentsGetter.GetAllComponentsStatus()
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (r *resourceHandler) handleGetComponents(_ *restful.Request, response *rest
 func (r *resourceHandler) handleGetClusterQuotas(_ *restful.Request, response *restful.Response) {
 	result, err := r.resourceQuotaGetter.GetClusterQuota()
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (r *resourceHandler) handleGetNamespaceQuotas(request *restful.Request, res
 	quota, err := r.resourceQuotaGetter.GetNamespaceQuota(namespace)
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (r *resourceHandler) handleGetStatefulSetRevision(request *restful.Request,
 
 	result, err := r.revisionGetter.GetStatefulSetRevision(namespace, statefulset, revision)
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 	response.WriteAsJson(result)
@@ -196,7 +196,7 @@ func (r *resourceHandler) handleGetRouter(request *restful.Request, response *re
 		if k8serr.IsNotFound(err) {
 			response.WriteHeaderAndEntity(http.StatusNotFound, errors.Wrap(err))
 		} else {
-			api.HandleInternalError(response, err)
+			api.HandleInternalError(response, nil, err)
 		}
 		return
 	}
@@ -221,7 +221,7 @@ func (r *resourceHandler) handleCreateRouter(request *restful.Request, response 
 
 	router, err := r.routerOperator.CreateRouter(namespace, routerType, newRouter.Annotations)
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -234,7 +234,7 @@ func (r *resourceHandler) handleDeleteRouter(request *restful.Request, response 
 
 	router, err := r.routerOperator.DeleteRouter(namespace)
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -257,7 +257,7 @@ func (r *resourceHandler) handleUpdateRouter(request *restful.Request, response 
 	router, err := r.routerOperator.UpdateRouter(namespace, routerType, newRouter.Annotations)
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -269,13 +269,13 @@ func (r *resourceHandler) handleVerifyGitCredential(request *restful.Request, re
 	var credential api.GitCredential
 	err := request.ReadEntity(&credential)
 	if err != nil {
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
 	err = r.gitVerifier.VerifyGitCredential(credential.RemoteUrl, credential.SecretRef.Namespace, credential.SecretRef.Name)
 	if err != nil {
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
@@ -286,13 +286,13 @@ func (r *resourceHandler) handleVerifyRegistryCredential(request *restful.Reques
 	var credential api.RegistryCredential
 	err := request.ReadEntity(&credential)
 	if err != nil {
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
 	err = r.registryGetter.VerifyRegistryCredential(credential)
 	if err != nil {
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
@@ -306,7 +306,7 @@ func (r *resourceHandler) handleGetRegistryEntry(request *restful.Request, respo
 
 	detail, err := r.registryGetter.GetEntry(namespace, secretName, imageName)
 	if err != nil {
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
@@ -335,7 +335,7 @@ func (r *resourceHandler) handleGetNamespacedAbnormalWorkloads(request *restful.
 
 		res, err := r.resourcesGetter.ListResources(namespace, workloadType, &params.Conditions{Match: map[string]string{v1alpha2.Status: notReadyStatus}}, "", false, -1, 0)
 		if err != nil {
-			api.HandleInternalError(response, err)
+			api.HandleInternalError(response, nil, err)
 		}
 
 		result.Count[workloadType] = len(res.Items)

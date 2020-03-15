@@ -27,6 +27,14 @@ func NewUser() *User {
 	}
 }
 
+func (u *User) Name() string {
+	return u.Username
+}
+
+func (u *User) UID() string {
+	return u.Email
+}
+
 func (u *User) Validate() error {
 	if u.Username == "" {
 		return errors.New("username can not be empty")

@@ -99,7 +99,9 @@ const fakeInterface string = "FAKE"
 
 // NewAPIServer creates an APIServer instance using given options
 func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
-	apiServer := &apiserver.APIServer{}
+	apiServer := &apiserver.APIServer{
+		AuthenticateOptions: s.AuthenticateOptions,
+	}
 
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {

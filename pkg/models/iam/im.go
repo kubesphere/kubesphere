@@ -19,17 +19,16 @@ package iam
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/iam/token"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
-	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"time"
 )
 
@@ -42,12 +41,14 @@ type IdentityManagementInterface interface {
 	ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	GetUserRoles(username string) ([]*rbacv1.Role, error)
 	GetUserRole(namespace string, username string) (*rbacv1.Role, error)
+	VerifyToken(token string) (*iam.User, error)
 }
 
 type imOperator struct {
 	authenticateOptions *iam.AuthenticationOptions
 	ldapClient          ldap.Interface
 	cacheClient         cache.Interface
+	issuer              token.Issuer
 }
 
 var (
@@ -57,7 +58,12 @@ var (
 )
 
 func NewIMOperator(ldapClient ldap.Interface, cacheClient cache.Interface, options *iam.AuthenticationOptions) *imOperator {
-	return &imOperator{ldapClient: ldapClient, cacheClient: cacheClient, authenticateOptions: options}
+	return &imOperator{
+		ldapClient:          ldapClient,
+		cacheClient:         cacheClient,
+		authenticateOptions: options,
+		issuer:              token.NewJwtTokenIssuer(token.DefaultIssuerName, []byte(options.JwtSecret)),
+	}
 
 }
 
@@ -78,18 +84,6 @@ func (im *imOperator) ModifyUser(user *iam.User) (*iam.User, error) {
 	return im.ldapClient.Get(user.Username)
 }
 
-func authenticationFailedKeyForUsername(username, failedTimestamp string) string {
-	return fmt.Sprintf("kubesphere:authfailed:%s:%s", username, failedTimestamp)
-}
-
-func tokenKeyForUsername(username, token string) string {
-	return fmt.Sprintf("kubesphere:users:%s:token:%s", username, token)
-}
-
-func loginKeyForUsername(username, loginTimestamp, ip string) string {
-	return fmt.Sprintf("kubesphere:users:%s:login-log:%s:%s", username, loginTimestamp, ip)
-}
-
 func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error) {
 
 	records, err := im.cacheClient.Keys(authenticationFailedKeyForUsername(username, "*"))
@@ -97,7 +91,7 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 		return nil, err
 	}
 
-	if len(records) >= im.authenticateOptions.MaxAuthenticateRetries {
+	if len(records) > im.authenticateOptions.MaxAuthenticateRetries {
 		return nil, AuthRateLimitExceeded
 	}
 
@@ -114,15 +108,12 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 		return nil, err
 	}
 
-	loginTime := time.Now()
-	// token without expiration time will auto sliding
-	claims := jwt.MapClaims{
-		"iat":      loginTime.Unix(),
-		"username": user.Username,
-		"email":    user.Email,
+	issuedToken, err := im.issuer.IssueTo(user)
+	if err != nil {
+		return nil, err
 	}
-	token := jwtutil.MustSigned(claims)
 
+	// TODO: I think we should come up with a better strategy to prevent multiple login.
 	tokenKey := tokenKeyForUsername(user.Username, "*")
 	if !im.authenticateOptions.MultipleLogin {
 		// multi login not allowed, remove the previous token
@@ -140,17 +131,17 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 		}
 	}
 
-	// cache token with expiration time
-	if err = im.cacheClient.Set(tokenKey, token, im.authenticateOptions.TokenExpiration); err != nil {
+	// save token with expiration time
+	if err = im.cacheClient.Set(tokenKey, issuedToken, im.authenticateOptions.TokenExpiration); err != nil {
 		return nil, err
 	}
 
-	im.loginRecord(user.Username, ip, loginTime)
+	im.logLogin(user.Username, ip, time.Now())
 
-	return &oauth2.Token{AccessToken: token}, nil
+	return &oauth2.Token{AccessToken: issuedToken}, nil
 }
 
-func (im *imOperator) loginRecord(username, ip string, loginTime time.Time) {
+func (im *imOperator) logLogin(username, ip string, loginTime time.Time) {
 	if ip != "" {
 		_ = im.cacheClient.Set(loginKeyForUsername(username, loginTime.UTC().Format("2006-01-02T15:04:05Z"), ip), "", 30*24*time.Hour)
 	}
@@ -174,7 +165,6 @@ func (im *imOperator) DescribeUser(username string) (*iam.User, error) {
 }
 
 func (im *imOperator) getLastLoginTime(username string) string {
-
 	return ""
 }
 
@@ -184,6 +174,20 @@ func (im *imOperator) DeleteUser(username string) error {
 
 func (im *imOperator) CreateUser(user *iam.User) (*iam.User, error) {
 	err := im.ldapClient.Create(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (im *imOperator) VerifyToken(tokenString string) (*iam.User, error) {
+	providedUser, err := im.issuer.Verify(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := im.ldapClient.Get(providedUser.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -201,4 +205,16 @@ func (im *imOperator) GetUserRoles(username string) ([]*rbacv1.Role, error) {
 
 func (im *imOperator) GetUserRole(namespace string, username string) (*rbacv1.Role, error) {
 	panic("implement me")
+}
+
+func authenticationFailedKeyForUsername(username, failedTimestamp string) string {
+	return fmt.Sprintf("kubesphere:authfailed:%s:%s", username, failedTimestamp)
+}
+
+func tokenKeyForUsername(username, token string) string {
+	return fmt.Sprintf("kubesphere:users:%s:token:%s", username, token)
+}
+
+func loginKeyForUsername(username, loginTimestamp, ip string) string {
+	return fmt.Sprintf("kubesphere:users:%s:login-log:%s:%s", username, loginTimestamp, ip)
 }
