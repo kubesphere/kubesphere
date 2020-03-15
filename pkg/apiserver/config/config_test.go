@@ -64,7 +64,10 @@ func newTestConfig() *Config {
 			GroupSearchBase: "ou=Groups,dc=example,dc=org",
 		},
 		RedisOptions: &cache.Options{
-			RedisURL: "redis://:qwerty@localhost:6379/1",
+			Host:     "localhost:6379",
+			Port:     6379,
+			Password: "P@88w0rd",
+			DB:       0,
 		},
 		S3Options: &s3.Options{
 			Endpoint:        "http://minio.openpitrix-system.svc",

@@ -78,7 +78,7 @@ type Config struct {
 	// Options below are only loaded from configuration file, no command line flags for these options now.
 	KubeSphereOptions *kubesphere.Options `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
 
-	AuthenticateOptions *iam.AuthenticationOptions `json:"authenticate,omitempty" yaml:"authenticate,omitempty" mapstructure:"authenticate"`
+	AuthenticateOptions *iam.AuthenticationOptions `json:"authentication,omitempty" yaml:"authenticate,omitempty" mapstructure:"authenticate"`
 
 	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
 	// we can add these options to kubesphere command lines
@@ -194,7 +194,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.MySQLOptions = nil
 	}
 
-	if conf.RedisOptions != nil && conf.RedisOptions.RedisURL == "" {
+	if conf.RedisOptions != nil && conf.RedisOptions.Host == "" {
 		conf.RedisOptions = nil
 	}
 
