@@ -1,20 +1,25 @@
 package cache
 
 import (
-	"github.com/go-redis/redis"
+	"fmt"
 	"github.com/spf13/pflag"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 )
 
 type Options struct {
-	RedisURL string
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Password string `json:"password"`
+	DB       int    `json:"db"`
 }
 
 // NewRedisOptions returns options points to nowhere,
 // because redis is not required for some components
 func NewRedisOptions() *Options {
 	return &Options{
-		RedisURL: "",
+		Host:     "",
+		Port:     0,
+		Password: "",
+		DB:       0,
 	}
 }
 
@@ -22,25 +27,20 @@ func NewRedisOptions() *Options {
 func (r *Options) Validate() []error {
 	errors := make([]error, 0)
 
-	_, err := redis.ParseURL(r.RedisURL)
-
-	if err != nil {
-		errors = append(errors, err)
+	if r.Port == 0 {
+		errors = append(errors, fmt.Errorf("invalid service port number"))
 	}
 
 	return errors
 }
 
-// ApplyTo apply to another options if it's a enabled option(non empty host)
-func (r *Options) ApplyTo(options *Options) {
-	if r.RedisURL != "" {
-		reflectutils.Override(options, r)
-	}
-}
-
 // AddFlags add option flags to command line flags,
 // if redis-host left empty, the following options will be ignored.
 func (r *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
-	fs.StringVar(&r.RedisURL, "redis-url", s.RedisURL, "Redis connection URL. If left blank, means redis is unnecessary, "+
-		"redis will be disabled. e.g. redis://:password@host:port/db")
+	fs.StringVar(&r.Host, "redis-host", s.Host, "Redis connection URL. If left blank, means redis is unnecessary, "+
+		"redis will be disabled.")
+
+	fs.IntVar(&r.Port, "redis-port", s.Port, "")
+	fs.StringVar(&r.Password, "redis-password", s.Password, "")
+	fs.IntVar(&r.DB, "redis-db", s.DB, "")
 }

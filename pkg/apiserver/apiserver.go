@@ -143,9 +143,9 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 }
 
-func (s *APIServer) Run(stopCh <-chan struct{}) error {
+func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
 
-	err := s.waitForResourceSync(stopCh)
+	err = s.waitForResourceSync(stopCh)
 	if err != nil {
 		return err
 	}
@@ -160,10 +160,12 @@ func (s *APIServer) Run(stopCh <-chan struct{}) error {
 
 	klog.V(0).Infof("Start listening on %s", s.Server.Addr)
 	if s.Server.TLSConfig != nil {
-		return s.Server.ListenAndServeTLS("", "")
+		err = s.Server.ListenAndServeTLS("", "")
 	} else {
-		return s.Server.ListenAndServe()
+		err = s.Server.ListenAndServe()
 	}
+
+	return err
 }
 
 func (s *APIServer) buildHandlerChain() {

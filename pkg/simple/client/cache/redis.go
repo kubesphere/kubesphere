@@ -18,6 +18,7 @@
 package cache
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"k8s.io/klog"
 	"time"
@@ -30,21 +31,19 @@ type Client struct {
 func NewRedisClient(option *Options, stopCh <-chan struct{}) (Interface, error) {
 	var r Client
 
-	options, err := redis.ParseURL(option.RedisURL)
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+	redisOptions := &redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", option.Host, option.Port),
+		Password: option.Password,
+		DB:       option.DB,
 	}
 
 	if stopCh == nil {
-		klog.Warningf("no stop signal passed, may cause redis connections leaked")
+		klog.Fatalf("no stop channel passed, redis connections will leak.")
 	}
 
-	r.client = redis.NewClient(options)
+	r.client = redis.NewClient(redisOptions)
 
 	if err := r.client.Ping().Err(); err != nil {
-		klog.Error("unable to reach redis host", err)
 		r.client.Close()
 		return nil, err
 	}

@@ -114,7 +114,7 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 	}
 
 	// TODO: I think we should come up with a better strategy to prevent multiple login.
-	tokenKey := tokenKeyForUsername(user.Username, "*")
+	tokenKey := tokenKeyForUsername(user.Username, issuedToken)
 	if !im.authenticateOptions.MultipleLogin {
 		// multi login not allowed, remove the previous token
 		sessions, err := im.cacheClient.Keys(tokenKey)

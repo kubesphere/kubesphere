@@ -8,21 +8,21 @@ import (
 
 type AuthenticationOptions struct {
 	// authenticate rate limit will
-	AuthenticateRateLimiterMaxTries int
-	AuthenticateRateLimiterDuration time.Duration
+	AuthenticateRateLimiterMaxTries int           `json:"authenticateRateLimiterMaxTries" yaml:"authenticateRateLimiterMaxTries"`
+	AuthenticateRateLimiterDuration time.Duration `json:"authenticationRateLimiterDuration" yaml:"authenticationRateLimiterDuration"`
 
 	// maximum retries when authenticate failed
-	MaxAuthenticateRetries int
+	MaxAuthenticateRetries int `json:"maxAuthenticateRetries" yaml:"maxAuthenticateRetries"`
 
 	// token validation duration, will refresh token expiration for each user request
 	// 0 means never expire
-	TokenExpiration time.Duration
+	TokenExpiration time.Duration `json:"tokenExpiration" yaml:"tokenExpiration"`
 
 	// allow multiple users login at the same time
-	MultipleLogin bool
+	MultipleLogin bool `json:"multipleLogin" yaml:"multipleLogin"`
 
 	// secret to signed jwt token
-	JwtSecret string
+	JwtSecret string `json:"jwtSecret" yaml:"jwtSecret"`
 }
 
 func NewAuthenticateOptions() *AuthenticationOptions {

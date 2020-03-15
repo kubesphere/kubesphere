@@ -36,16 +36,17 @@ func NewAPIServerCommand() *cobra.Command {
 	conf, err := apiserverconfig.TryLoadFromDisk()
 	if err == nil {
 		s = &options.ServerRunOptions{
-			KubernetesOptions:   conf.KubernetesOptions,
-			DevopsOptions:       conf.DevopsOptions,
-			SonarQubeOptions:    conf.SonarQubeOptions,
-			ServiceMeshOptions:  conf.ServiceMeshOptions,
-			MySQLOptions:        conf.MySQLOptions,
-			MonitoringOptions:   conf.MonitoringOptions,
-			S3Options:           conf.S3Options,
-			OpenPitrixOptions:   conf.OpenPitrixOptions,
-			LoggingOptions:      conf.LoggingOptions,
-			AuthenticateOptions: conf.AuthenticateOptions,
+			GenericServerRunOptions: s.GenericServerRunOptions,
+			KubernetesOptions:       conf.KubernetesOptions,
+			DevopsOptions:           conf.DevopsOptions,
+			SonarQubeOptions:        conf.SonarQubeOptions,
+			ServiceMeshOptions:      conf.ServiceMeshOptions,
+			MySQLOptions:            conf.MySQLOptions,
+			MonitoringOptions:       conf.MonitoringOptions,
+			S3Options:               conf.S3Options,
+			OpenPitrixOptions:       conf.OpenPitrixOptions,
+			LoggingOptions:          conf.LoggingOptions,
+			AuthenticateOptions:     conf.AuthenticateOptions,
 		}
 	}
 

@@ -156,8 +156,8 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	var cacheClient cache.Interface
-	if s.CacheOptions.RedisURL != "" {
-		if s.CacheOptions.RedisURL == fakeInterface && s.DebugMode {
+	if s.CacheOptions.Host != "" {
+		if s.CacheOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.CacheClient = cache.NewSimpleCache()
 		} else {
 			cacheClient, err = cache.NewRedisClient(s.CacheOptions, stopCh)

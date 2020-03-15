@@ -24,6 +24,9 @@ func NewOptions() *Options {
 		ManagerDN:       "cn=admin,dc=example,dc=org",
 		UserSearchBase:  "ou=Users,dc=example,dc=org",
 		GroupSearchBase: "ou=Groups,dc=example,dc=org",
+		InitialCap:      10,
+		MaxCap:          100,
+		PoolName:        "ldap",
 	}
 }
 
