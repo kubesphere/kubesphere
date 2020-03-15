@@ -9,11 +9,13 @@ import (
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
+	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/iam"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
+	authenticationrequest "kubesphere.io/kubesphere/pkg/apiserver/authentication/request"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -179,7 +181,8 @@ func (s *APIServer) buildHandlerChain() {
 	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
 	handler = filters.WithAuthorization(handler, authorizerfactory.NewAlwaysAllowAuthorizer())
 
-	handler = filters.WithAuthentication(handler, bearertoken.New(authentication.NewTokenAuthenticator(s.CacheClient)), failed)
+	authn := union.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
+	handler = filters.WithAuthentication(handler, authn, failed)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 
 	s.Server.Handler = handler

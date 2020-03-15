@@ -31,8 +31,9 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
 deploy:
-  skip_cleanup: true
-  provider: script
-  script: bash hack/docker_build.sh 
-  on:
-    branch: master
+  - skip_cleanup: true
+    provider: script
+    script: bash hack/docker_build.sh 
+    on:
+      all_branches: true
+      condition: $TRAVIS_BRANCH =~ ^(master|dev)$

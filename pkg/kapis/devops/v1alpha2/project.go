@@ -30,14 +30,14 @@ func (h ProjectPipelineHandler) GetDevOpsProjectHandler(request *restful.Request
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 	project, err := h.projectOperator.GetProject(projectId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -53,21 +53,21 @@ func (h ProjectPipelineHandler) UpdateProjectHandler(request *restful.Request, r
 	err := request.ReadEntity(&project)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, request, err)
 		return
 	}
 	project.ProjectId = projectId
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 	project, err = h.projectOperator.UpdateProject(project)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 

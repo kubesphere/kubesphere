@@ -44,7 +44,7 @@ func (h *tenantHandler) ListWorkspaceRules(req *restful.Request, resp *restful.R
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -60,14 +60,14 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
 	result, err := h.tenant.ListWorkspaces(username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -82,9 +82,9 @@ func (h *tenantHandler) DescribeWorkspace(req *restful.Request, resp *restful.Re
 
 	if err != nil {
 		if k8serr.IsNotFound(err) {
-			api.HandleNotFound(resp, err)
+			api.HandleNotFound(resp, nil, err)
 		} else {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		return
 	}
@@ -107,7 +107,7 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 	result, err := h.tenant.ListNamespaces(username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *tenantHandler) CreateNamespace(req *restful.Request, resp *restful.Resp
 	var namespace v1.Namespace
 	err := req.ReadEntity(&namespace)
 	if err != nil {
-		api.HandleNotFound(resp, err)
+		api.HandleNotFound(resp, nil, err)
 		return
 	}
 
@@ -153,9 +153,9 @@ func (h *tenantHandler) CreateNamespace(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		if k8serr.IsNotFound(err) {
-			api.HandleForbidden(resp, err)
+			api.HandleForbidden(resp, nil, err)
 		} else {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		return
 	}
@@ -166,7 +166,7 @@ func (h *tenantHandler) CreateNamespace(req *restful.Request, resp *restful.Resp
 		if k8serr.IsAlreadyExists(err) {
 			resp.WriteHeaderAndEntity(http.StatusConflict, err)
 		} else {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		return
 	}
@@ -181,9 +181,9 @@ func (h *tenantHandler) DeleteNamespace(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		if k8serr.IsNotFound(err) {
-			api.HandleNotFound(resp, err)
+			api.HandleNotFound(resp, nil, err)
 		} else {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		return
 	}
@@ -204,7 +204,7 @@ func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.R
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	conditions.Match["workspace"] = workspace
@@ -212,7 +212,7 @@ func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.R
 	result, err := h.tenant.ListDevopsProjects(username, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (h *tenantHandler) GetDevOpsProjectsCount(req *restful.Request, resp *restf
 
 	result, err := h.tenant.ListDevopsProjects(username, nil, "", false, 1, 0)
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 	resp.WriteEntity(struct {
@@ -239,14 +239,14 @@ func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.
 	_, err := h.tenant.DescribeWorkspace("", workspace)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, req, err)
 		return
 	}
 
 	err = h.tenant.DeleteDevOpsProject(username, projectId)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -264,7 +264,7 @@ func (h *tenantHandler) ListNamespaceRules(req *restful.Request, resp *restful.R
 	rules, err := h.tenant.GetNamespaceSimpleRules(namespace, username)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -279,7 +279,7 @@ func (h *tenantHandler) ListDevopsRules(req *restful.Request, resp *restful.Resp
 	rules, err := h.tenant.GetUserDevopsSimpleRules(username, devops)
 
 	if err != nil {
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 

@@ -41,7 +41,7 @@ func (h *openpitrixHandler) ListApplications(request *restful.Request, response 
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *openpitrixHandler) ListApplications(request *restful.Request, response 
 
 		if err != nil {
 			klog.Errorln(err)
-			api.HandleInternalError(response, err)
+			api.HandleInternalError(response, nil, err)
 			return
 		}
 
@@ -71,7 +71,7 @@ func (h *openpitrixHandler) ListApplications(request *restful.Request, response 
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 	if runtimeId != app.Cluster.RuntimeId {
 		err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
 		klog.V(4).Infoln(err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *openpitrixHandler) CreateApplication(req *restful.Request, resp *restfu
 	err := req.ReadEntity(&createClusterRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *openpitrixHandler) CreateApplication(req *restful.Request, resp *restfu
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (h *openpitrixHandler) ModifyApplication(req *restful.Request, resp *restfu
 	err := req.ReadEntity(&modifyClusterAttributesRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (h *openpitrixHandler) ModifyApplication(req *restful.Request, resp *restfu
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func (h *openpitrixHandler) ModifyApplication(req *restful.Request, resp *restfu
 	if runtimeId != app.Cluster.RuntimeId {
 		err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
 		klog.V(4).Infoln(err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 
@@ -196,7 +196,7 @@ func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restfu
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -205,7 +205,7 @@ func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restfu
 	if runtimeId != app.Cluster.RuntimeId {
 		err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
 		klog.V(4).Infoln(err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 
@@ -228,7 +228,7 @@ func (h *openpitrixHandler) GetAppVersionPackage(req *restful.Request, resp *res
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -240,7 +240,7 @@ func (h *openpitrixHandler) DoAppAction(req *restful.Request, resp *restful.Resp
 	err := req.ReadEntity(&doActionRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -262,7 +262,7 @@ func (h *openpitrixHandler) DoAppVersionAction(req *restful.Request, resp *restf
 	err := req.ReadEntity(&doActionRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	doActionRequest.Username = req.HeaderParameter(constants.UserNameHeader)
@@ -308,7 +308,7 @@ func (h *openpitrixHandler) ListAppVersionAudits(req *restful.Request, resp *res
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -336,7 +336,7 @@ func (h *openpitrixHandler) ListReviews(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -344,7 +344,7 @@ func (h *openpitrixHandler) ListReviews(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -361,7 +361,7 @@ func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	conditions.Match[openpitrix.AppId] = appId
@@ -370,7 +370,7 @@ func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -380,7 +380,7 @@ func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.
 				statisticsResult, err := h.openpitrix.ListApplications(&params.Conditions{Match: map[string]string{"app_id": version.AppId, "version_id": version.VersionId}}, 0, 0, "", false)
 				if err != nil {
 					klog.Errorln(err)
-					api.HandleInternalError(resp, err)
+					api.HandleInternalError(resp, nil, err)
 					return
 				}
 				version.ClusterTotal = &statisticsResult.TotalCount
@@ -400,7 +400,7 @@ func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Respons
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -438,7 +438,7 @@ func (h *openpitrixHandler) ModifyApp(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -474,10 +474,10 @@ func (h *openpitrixHandler) DeleteApp(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			api.HandleNotFound(resp, err)
+			api.HandleNotFound(resp, nil, err)
 			return
 		}
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -489,7 +489,7 @@ func (h *openpitrixHandler) CreateApp(req *restful.Request, resp *restful.Respon
 	err := req.ReadEntity(createAppRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -511,10 +511,10 @@ func (h *openpitrixHandler) CreateApp(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		if status.Code(err) == codes.InvalidArgument {
-			api.HandleBadRequest(resp, err)
+			api.HandleBadRequest(resp, nil, err)
 			return
 		}
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -526,7 +526,7 @@ func (h *openpitrixHandler) CreateAppVersion(req *restful.Request, resp *restful
 	err := req.ReadEntity(&createAppVersionRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	// override app id
@@ -564,7 +564,7 @@ func (h *openpitrixHandler) ModifyAppVersion(req *restful.Request, resp *restful
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -634,7 +634,7 @@ func (h *openpitrixHandler) CreateCategory(req *restful.Request, resp *restful.R
 	err := req.ReadEntity(createCategoryRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -667,7 +667,7 @@ func (h *openpitrixHandler) ModifyCategory(req *restful.Request, resp *restful.R
 	err := req.ReadEntity(&modifyCategoryRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -703,7 +703,7 @@ func (h *openpitrixHandler) ListCategories(req *restful.Request, resp *restful.R
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -737,7 +737,7 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 	err := req.ReadEntity(createRepoRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
@@ -770,7 +770,7 @@ func (h *openpitrixHandler) DoRepoAction(req *restful.Request, resp *restful.Res
 	err := req.ReadEntity(repoActionRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -805,7 +805,7 @@ func (h *openpitrixHandler) ModifyRepo(req *restful.Request, resp *restful.Respo
 	err := req.ReadEntity(&updateRepoRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -841,7 +841,7 @@ func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -863,7 +863,7 @@ func (h *openpitrixHandler) ListRepoEvents(req *restful.Request, resp *restful.R
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -881,14 +881,14 @@ func (h *openpitrixHandler) ListRepoEvents(req *restful.Request, resp *restful.R
 func handleOpenpitrixError(resp *restful.Response, err error) {
 	if status.Code(err) == codes.NotFound {
 		klog.V(4).Infoln(err)
-		api.HandleNotFound(resp, err)
+		api.HandleNotFound(resp, nil, err)
 		return
 	}
 	if status.Code(err) == codes.InvalidArgument {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	klog.Errorln(err)
-	api.HandleInternalError(resp, err)
+	api.HandleInternalError(resp, nil, err)
 }

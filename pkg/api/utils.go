@@ -5,20 +5,19 @@ import (
 	"net/http"
 )
 
-func HandleInternalError(response *restful.Response, err error) {
-	statusCode := http.StatusInternalServerError
-
-	response.WriteError(statusCode, err)
+func HandleInternalError(response *restful.Response, req *restful.Request, err error) {
+	response.WriteError(http.StatusInternalServerError, err)
 }
 
-func HandleBadRequest(response *restful.Response, err error) {
-
+// HandleBadRequest writes http.StatusBadRequest and log error
+func HandleBadRequest(response *restful.Response, req *restful.Request, err error) {
+	response.WriteError(http.StatusBadRequest, err)
 }
 
-func HandleNotFound(response *restful.Response, err error) {
-
+func HandleNotFound(response *restful.Response, req *restful.Request, err error) {
+	response.WriteError(http.StatusNotFound, err)
 }
 
-func HandleForbidden(response *restful.Response, err error) {
-
+func HandleForbidden(response *restful.Response, req *restful.Request, err error) {
+	response.WriteError(http.StatusForbidden, err)
 }

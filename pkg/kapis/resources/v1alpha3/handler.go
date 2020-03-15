@@ -29,7 +29,7 @@ func (h Handler) handleGetNamespacedResource(request *restful.Request, response 
 
 	result, err := h.namespacedResourceGetter.Get(resource, namespace, name)
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (h Handler) handleListNamespacedResource(request *restful.Request, response
 
 	result, err := h.namespacedResourceGetter.List(resource, namespace, query)
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h Handler) handleGetComponentStatus(request *restful.Request, response *re
 	result, err := h.componentsGetter.GetComponentStatus(component)
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h Handler) handleGetSystemHealthStatus(request *restful.Request, response 
 	result, err := h.componentsGetter.GetSystemHealthStatus()
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h Handler) handleGetComponents(request *restful.Request, response *restful
 	result, err := h.componentsGetter.GetAllComponentsStatus()
 
 	if err != nil {
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 

@@ -3,7 +3,6 @@ package v1alpha2
 import (
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/emicklei/go-restful"
 	"github.com/go-ldap/ldap"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -21,7 +20,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
-	"kubesphere.io/kubesphere/pkg/utils/jwtutil"
 	"net/http"
 
 	iamapi "kubesphere.io/kubesphere/pkg/api/iam"
@@ -51,49 +49,22 @@ func (h *iamHandler) TokenReviewHandler(req *restful.Request, resp *restful.Resp
 	err := req.ReadEntity(&tokenReview)
 
 	if err != nil {
-		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		klog.Error(err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
 	if err = tokenReview.Validate(); err != nil {
-		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		klog.Error(err)
+		api.HandleBadRequest(resp, req, err)
 		return
 	}
 
-	token, err := jwtutil.ValidateToken(tokenReview.Spec.Token)
-
-	if err != nil {
-		failed := iamv1alpha2.TokenReview{APIVersion: tokenReview.APIVersion,
-			Kind: kindTokenReview,
-			Status: &iamv1alpha2.Status{
-				Authenticated: false,
-			},
-		}
-		resp.WriteEntity(failed)
-		return
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-
-	if !ok {
-		api.HandleBadRequest(resp, errors.New("invalid token"))
-		return
-	}
-
-	username, ok := claims["username"].(string)
-
-	if !ok {
-		api.HandleBadRequest(resp, errors.New("invalid token"))
-		return
-	}
-
-	user, err := h.imOperator.DescribeUser(username)
+	user, err := h.imOperator.VerifyToken(tokenReview.Spec.Token)
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, req, err)
 		return
 	}
 
@@ -143,13 +114,13 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 	err := req.ReadEntity(&createRequest)
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
 	if err := createRequest.Validate(); err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -162,7 +133,7 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 			return
 		}
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -170,7 +141,7 @@ func (h *iamHandler) CreateUser(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -184,7 +155,7 @@ func (h *iamHandler) DeleteUser(req *restful.Request, resp *restful.Response) {
 	if operator == username {
 		err := errors.New("cannot delete yourself")
 		klog.V(4).Infoln(err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 
@@ -192,7 +163,7 @@ func (h *iamHandler) DeleteUser(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -201,7 +172,7 @@ func (h *iamHandler) DeleteUser(req *restful.Request, resp *restful.Response) {
 	// TODO release user resources
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -218,20 +189,20 @@ func (h *iamHandler) ModifyUser(request *restful.Request, response *restful.Resp
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
 	if username != modifyUserRequest.Username {
 		err = fmt.Errorf("the name of user (%s) does not match the name on the URL (%s)", modifyUserRequest.Username, username)
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
 	if err = modifyUserRequest.Validate(); err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(response, err)
+		api.HandleBadRequest(response, nil, err)
 		return
 	}
 
@@ -244,7 +215,7 @@ func (h *iamHandler) ModifyUser(request *restful.Request, response *restful.Resp
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(response, err)
+		api.HandleInternalError(response, nil, err)
 		return
 	}
 
@@ -261,11 +232,11 @@ func (h *iamHandler) DescribeUser(req *restful.Request, resp *restful.Response) 
 	if err != nil {
 		if err == iam.UserNotExists {
 			klog.V(4).Infoln(err)
-			api.HandleNotFound(resp, err)
+			api.HandleNotFound(resp, nil, err)
 			return
 		}
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -274,7 +245,7 @@ func (h *iamHandler) DescribeUser(req *restful.Request, resp *restful.Response) 
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -295,7 +266,7 @@ func (h *iamHandler) ListUsers(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -303,7 +274,7 @@ func (h *iamHandler) ListUsers(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -318,7 +289,7 @@ func (h *iamHandler) ListUserRoles(req *restful.Request, resp *restful.Response)
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -334,7 +305,7 @@ func (h *iamHandler) ListRoles(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -342,7 +313,7 @@ func (h *iamHandler) ListRoles(req *restful.Request, resp *restful.Response) {
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -357,7 +328,7 @@ func (h *iamHandler) ListClusterRoles(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 
@@ -365,7 +336,7 @@ func (h *iamHandler) ListClusterRoles(req *restful.Request, resp *restful.Respon
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -381,7 +352,7 @@ func (h *iamHandler) ListRoleUsers(req *restful.Request, resp *restful.Response)
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 	result := make([]*iamapi.User, 0)
@@ -395,7 +366,7 @@ func (h *iamHandler) ListRoleUsers(req *restful.Request, resp *restful.Response)
 				}
 				if err != nil {
 					klog.Errorln(err)
-					api.HandleInternalError(resp, err)
+					api.HandleInternalError(resp, nil, err)
 					return
 				}
 				result = append(result, user)
@@ -415,7 +386,7 @@ func (h *iamHandler) ListNamespaceUsers(req *restful.Request, resp *restful.Resp
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -430,7 +401,7 @@ func (h *iamHandler) ListNamespaceUsers(req *restful.Request, resp *restful.Resp
 				}
 				if err != nil {
 					klog.Errorln(err)
-					api.HandleInternalError(resp, err)
+					api.HandleInternalError(resp, nil, err)
 					return
 				}
 				result = append(result, user)
@@ -447,7 +418,7 @@ func (h *iamHandler) ListClusterRoleUsers(req *restful.Request, resp *restful.Re
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -462,7 +433,7 @@ func (h *iamHandler) ListClusterRoleUsers(req *restful.Request, resp *restful.Re
 				}
 				if err != nil {
 					klog.Errorln(err)
-					api.HandleInternalError(resp, err)
+					api.HandleInternalError(resp, nil, err)
 					return
 				}
 				result = append(result, user)
@@ -488,7 +459,7 @@ func (h *iamHandler) ListClusterRoleRules(req *restful.Request, resp *restful.Re
 	rules, err := h.amOperator.GetClusterRoleSimpleRules(clusterRole)
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 	resp.WriteEntity(rules)
@@ -502,7 +473,7 @@ func (h *iamHandler) ListRoleRules(req *restful.Request, resp *restful.Response)
 
 	if err != nil {
 		klog.Errorln(err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 

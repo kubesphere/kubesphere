@@ -47,7 +47,7 @@ func (h handler) get(req *restful.Request, lvl int, resp *restful.Response) {
 
 	noHit, sf, err := h.newSearchFilter(req, lvl)
 	if err != nil {
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 	}
 	if noHit {
 		handleNoHit(typ, resp)
@@ -58,14 +58,14 @@ func (h handler) get(req *restful.Request, lvl int, resp *restful.Response) {
 	case TypeStat:
 		res, err := h.lo.GetCurrentStats(sf)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		resp.WriteAsJson(res)
 	case TypeHist:
 		interval := req.QueryParameter("interval")
 		res, err := h.lo.CountLogsByInterval(sf, interval)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		resp.WriteAsJson(res)
 	case TypeExport:
@@ -73,7 +73,7 @@ func (h handler) get(req *restful.Request, lvl int, resp *restful.Response) {
 		resp.Header().Set("Content-Disposition", "attachment")
 		err := h.lo.ExportLogs(sf, resp.ResponseWriter)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 	default:
 		from, _ := strconv.ParseInt(req.QueryParameter("from"), 10, 64)
@@ -87,7 +87,7 @@ func (h handler) get(req *restful.Request, lvl int, resp *restful.Response) {
 		}
 		res, err := h.lo.SearchLogs(sf, from, size, order)
 		if err != nil {
-			api.HandleInternalError(resp, err)
+			api.HandleInternalError(resp, nil, err)
 		}
 		resp.WriteAsJson(res)
 	}

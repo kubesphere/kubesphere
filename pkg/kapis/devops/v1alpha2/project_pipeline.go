@@ -29,20 +29,20 @@ func (h ProjectPipelineHandler) CreateDevOpsProjectPipelineHandler(request *rest
 	err := request.ReadEntity(&pipeline)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 	pipelineName, err := h.projectPipelineOperator.CreateProjectPipeline(projectId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -60,14 +60,14 @@ func (h ProjectPipelineHandler) DeleteDevOpsProjectPipelineHandler(request *rest
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, request, err)
 		return
 	}
 	pipelineName, err := h.projectPipelineOperator.DeleteProjectPipeline(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -86,20 +86,20 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectPipelineHandler(request *rest
 	err := request.ReadEntity(&pipeline)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleBadRequest(resp, err)
+		api.HandleBadRequest(resp, nil, err)
 		return
 	}
 	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 	pipelineName, err := h.projectPipelineOperator.UpdateProjectPipeline(projectId, pipelineId, pipeline)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
@@ -118,14 +118,14 @@ func (h ProjectPipelineHandler) GetDevOpsProjectPipelineConfigHandler(request *r
 	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner, devops.ProjectMaintainer})
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, err)
+		api.HandleForbidden(resp, nil, err)
 		return
 	}
 	pipeline, err := h.projectPipelineOperator.GetProjectPipelineConfig(projectId, pipelineId)
 
 	if err != nil {
 		klog.Errorf("%+v", err)
-		api.HandleInternalError(resp, err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 
