@@ -9,13 +9,15 @@ import (
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
-	"k8s.io/apiserver/pkg/authentication/request/union"
-	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/iam"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	authenticationrequest "kubesphere.io/kubesphere/pkg/apiserver/authentication/request"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
+	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -179,13 +181,17 @@ func (s *APIServer) buildHandlerChain() {
 	})
 
 	handler := s.Server.Handler
-	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
-	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
-	handler = filters.WithAuthorization(handler, authorizerfactory.NewAlwaysAllowAuthorizer())
 
-	authn := union.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
-	handler = filters.WithAuthentication(handler, authn, failed)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
+	authn := unionauth.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
+	handler = filters.WithAuthentication(handler, authn, failed)
+
+	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
+	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
+	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer())
+	handler = filters.WithAuthorization(handler, authorizer)
+	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
+	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
 	s.Server.Handler = handler
 }
@@ -194,7 +200,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	klog.V(0).Info("Start cache objects")
 
 	discoveryClient := s.KubernetesClient.Kubernetes().Discovery()
-	apiResourcesList, err := discoveryClient.ServerResources()
+	_, apiResourcesList, err := discoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return err
 	}

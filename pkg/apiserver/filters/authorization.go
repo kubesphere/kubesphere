@@ -3,10 +3,10 @@ package filters
 import (
 	"context"
 	"errors"
-	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"net/http"
 )
@@ -59,12 +59,16 @@ func GetAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error)
 	attribs.ResourceRequest = requestInfo.IsResourceRequest
 	attribs.Path = requestInfo.Path
 	attribs.Verb = requestInfo.Verb
+	attribs.Cluster = requestInfo.Cluster
+	attribs.Workspace = requestInfo.Workspace
+	attribs.KubernetesRequest = requestInfo.IsKubernetesRequest
 
 	attribs.APIGroup = requestInfo.APIGroup
 	attribs.APIVersion = requestInfo.APIVersion
 	attribs.Resource = requestInfo.Resource
 	attribs.Subresource = requestInfo.Subresource
 	attribs.Namespace = requestInfo.Namespace
+	attribs.DevopsProject = requestInfo.DevopsProject
 	attribs.Name = requestInfo.Name
 
 	return &attribs, nil

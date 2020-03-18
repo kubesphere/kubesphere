@@ -26,20 +26,22 @@ var kubernetesAPIPrefixes = sets.NewString("api", "apis")
 type RequestInfo struct {
 	*k8srequest.RequestInfo
 
-	// IsKubeSphereRequest indicates whether or not the request should be handled by kubernetes or kubesphere
+	// IsKubernetesRequest indicates whether or not the request should be handled by kubernetes or kubesphere
 	IsKubernetesRequest bool
 
-	// Workspace of requested namespace, for non-workspaced resources, this may be empty
+	// Workspace of requested resource, for non-workspaced resources, this may be empty
 	Workspace string
 
 	// Cluster of requested resource, this is empty in single-cluster environment
 	Cluster string
+
+	// Devops project of requested resource, this may be empty
+	DevopsProject string
 }
 
 type RequestInfoFactory struct {
-	APIPrefixes           sets.String
-	GrouplessAPIPrefixes  sets.String
-	k8sRequestInfoFactory *k8srequest.RequestInfoFactory
+	APIPrefixes          sets.String
+	GrouplessAPIPrefixes sets.String
 }
 
 // NewRequestInfo returns the information from the http request.  If error is not nil, RequestInfo holds the information as best it is known before the failure
