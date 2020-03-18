@@ -23,13 +23,13 @@ func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.Proje
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
-		if err != nil && GetJenkinsStatusCode(err) != http.StatusNotFound {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		if err != nil && devops.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		_, err = j.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		return pipeline.Pipeline.Name, nil
@@ -45,13 +45,13 @@ func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.Proje
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
-		if err != nil && GetJenkinsStatusCode(err) != http.StatusNotFound {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		if err != nil && devops.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		_, err = j.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		return pipeline.MultiBranchPipeline.Name, nil
@@ -66,7 +66,7 @@ func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.Proje
 func (j *Jenkins) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	_, err := j.DeleteJob(pipelineId, projectId)
 	if err != nil {
-		return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	return pipelineId, nil
 
@@ -83,12 +83,12 @@ func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devops.Proje
 		job, err := j.GetJob(pipeline.Pipeline.Name, projectId)
 
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		return pipeline.Pipeline.Name, nil
@@ -104,13 +104,13 @@ func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devops.Proje
 		job, err := j.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
 
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
 			klog.Errorf("%+v", err)
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		return pipeline.MultiBranchPipeline.Name, nil
@@ -126,17 +126,17 @@ func (j *Jenkins) GetProjectPipelineConfig(projectId, pipelineId string) (*devop
 	job, err := j.GetJob(pipelineId, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	switch job.Raw.Class {
 	case "org.jenkinsci.plugins.workflow.job.WorkflowJob":
 		config, err := job.GetConfig()
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline, err := parsePipelineConfigXml(config)
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
 		return &devops.ProjectPipeline{
@@ -147,11 +147,11 @@ func (j *Jenkins) GetProjectPipelineConfig(projectId, pipelineId string) (*devop
 	case "org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject":
 		config, err := job.GetConfig()
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline, err := parseMultiBranchPipelineConfigXml(config)
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
 		return &devops.ProjectPipeline{

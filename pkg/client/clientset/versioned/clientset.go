@@ -25,6 +25,7 @@ import (
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha3"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
@@ -33,6 +34,7 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
+	DevopsV1alpha3() devopsv1alpha3.DevopsV1alpha3Interface
 	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
@@ -43,6 +45,7 @@ type Interface interface {
 type Clientset struct {
 	*discovery.DiscoveryClient
 	devopsV1alpha1      *devopsv1alpha1.DevopsV1alpha1Client
+	devopsV1alpha3      *devopsv1alpha3.DevopsV1alpha3Client
 	networkV1alpha1     *networkv1alpha1.NetworkV1alpha1Client
 	servicemeshV1alpha2 *servicemeshv1alpha2.ServicemeshV1alpha2Client
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
@@ -51,6 +54,11 @@ type Clientset struct {
 // DevopsV1alpha1 retrieves the DevopsV1alpha1Client
 func (c *Clientset) DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface {
 	return c.devopsV1alpha1
+}
+
+// DevopsV1alpha3 retrieves the DevopsV1alpha3Client
+func (c *Clientset) DevopsV1alpha3() devopsv1alpha3.DevopsV1alpha3Interface {
+	return c.devopsV1alpha3
 }
 
 // NetworkV1alpha1 retrieves the NetworkV1alpha1Client
@@ -93,6 +101,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.devopsV1alpha3, err = devopsv1alpha3.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.networkV1alpha1, err = networkv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -118,6 +130,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.devopsV1alpha1 = devopsv1alpha1.NewForConfigOrDie(c)
+	cs.devopsV1alpha3 = devopsv1alpha3.NewForConfigOrDie(c)
 	cs.networkV1alpha1 = networkv1alpha1.NewForConfigOrDie(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.NewForConfigOrDie(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
@@ -130,6 +143,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.devopsV1alpha1 = devopsv1alpha1.New(c)
+	cs.devopsV1alpha3 = devopsv1alpha3.New(c)
 	cs.networkV1alpha1 = networkv1alpha1.New(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.New(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.New(c)

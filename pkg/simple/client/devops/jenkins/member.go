@@ -218,7 +218,7 @@ func (j *Jenkins) AddProjectMember(membership *devops.ProjectMembership) (*devop
 	globalRole, err := j.GetGlobalRole(JenkinsAllUserRoleName)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	if globalRole == nil {
 		_, err := j.AddGlobalRole(JenkinsAllUserRoleName, GlobalPermissionIds{
@@ -226,33 +226,33 @@ func (j *Jenkins) AddProjectMember(membership *devops.ProjectMembership) (*devop
 		}, true)
 		if err != nil {
 			klog.Errorf("failed to create jenkins global role %+v", err)
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 	}
 	err = globalRole.AssignRole(membership.Username)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	projectRole, err := j.GetProjectRole(GetProjectRoleName(membership.ProjectId, membership.Role))
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	err = projectRole.AssignRole(membership.Username)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	pipelineRole, err := j.GetProjectRole(GetPipelineRoleName(membership.ProjectId, membership.Role))
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	err = pipelineRole.AssignRole(membership.Username)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	return membership, nil
 }
@@ -260,42 +260,42 @@ func (j *Jenkins) AddProjectMember(membership *devops.ProjectMembership) (*devop
 func (j *Jenkins) UpdateProjectMember(oldMembership, newMembership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 	oldProjectRole, err := j.GetProjectRole(GetProjectRoleName(oldMembership.ProjectId, oldMembership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	err = oldProjectRole.UnAssignRole(newMembership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	oldPipelineRole, err := j.GetProjectRole(GetPipelineRoleName(oldMembership.ProjectId, oldMembership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	err = oldPipelineRole.UnAssignRole(newMembership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	projectRole, err := j.GetProjectRole(GetProjectRoleName(oldMembership.ProjectId, newMembership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	err = projectRole.AssignRole(newMembership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	pipelineRole, err := j.GetProjectRole(GetPipelineRoleName(oldMembership.ProjectId, newMembership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	err = pipelineRole.AssignRole(newMembership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	return newMembership, nil
 }
@@ -303,20 +303,20 @@ func (j *Jenkins) UpdateProjectMember(oldMembership, newMembership *devops.Proje
 func (j *Jenkins) DeleteProjectMember(membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
 	oldProjectRole, err := j.GetProjectRole(GetProjectRoleName(membership.ProjectId, membership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	err = oldProjectRole.UnAssignRole(membership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 
 	oldPipelineRole, err := j.GetProjectRole(GetPipelineRoleName(membership.ProjectId, membership.Role))
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	err = oldPipelineRole.UnAssignRole(membership.Username)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	return membership, nil
 }

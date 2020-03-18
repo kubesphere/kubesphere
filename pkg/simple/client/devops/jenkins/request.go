@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -64,7 +65,7 @@ func (r *Requester) SetCrumb(ar *APIRequest) error {
 	crumbData := map[string]string{}
 	response, err := r.GetJSON("/crumbIssuer/api/json", &crumbData, nil)
 	if err != nil {
-		jenkinsError, ok := err.(*ErrorResponse)
+		jenkinsError, ok := err.(*devops.ErrorResponse)
 		if ok && jenkinsError.Response.StatusCode == http.StatusNotFound {
 			return nil
 		}
@@ -440,16 +441,6 @@ func (r *Requester) ReadJSONResponse(response *http.Response, responseStruct int
 	return response, nil
 }
 
-type ErrorResponse struct {
-	Body     []byte
-	Response *http.Response
-	Message  string
-}
-
-func (e *ErrorResponse) Error() string {
-	u := fmt.Sprintf("%s://%s%s", e.Response.Request.URL.Scheme, e.Response.Request.URL.Host, e.Response.Request.URL.RequestURI())
-	return fmt.Sprintf("%s %s: %d %s", e.Response.Request.Method, u, e.Response.StatusCode, e.Message)
-}
 func CheckResponse(r *http.Response) error {
 
 	switch r.StatusCode {
@@ -457,7 +448,7 @@ func CheckResponse(r *http.Response) error {
 		return nil
 	}
 	defer r.Body.Close()
-	errorResponse := &ErrorResponse{Response: r}
+	errorResponse := &devops.ErrorResponse{Response: r}
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && data != nil {
 		errorResponse.Body = data
