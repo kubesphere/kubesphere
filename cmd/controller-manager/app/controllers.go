@@ -75,8 +75,8 @@ func AddControllers(
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		fakeS3.NewFakeS3())
 
-	s2iRunController := s2irun.NewS2iRunController(client.KubeSphere(),
-		client.Kubernetes(),
+	s2iRunController := s2irun.NewS2iRunController(client.Kubernetes(),
+		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
 
