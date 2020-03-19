@@ -49,6 +49,7 @@ type DevOpsProjectStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DevOpsProject is the Schema for the devopsprojects API
+// +kubebuilder:resource:categories="devops",scope="Cluster"
 // +k8s:openapi-gen=true
 type DevOpsProject struct {
 	metav1.TypeMeta   `json:",inline"`

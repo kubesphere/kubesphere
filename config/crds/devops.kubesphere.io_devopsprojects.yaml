@@ -10,11 +10,13 @@ metadata:
 spec:
   group: devops.kubesphere.io
   names:
+    categories:
+    - devops
     kind: DevOpsProject
     listKind: DevOpsProjectList
     plural: devopsprojects
     singular: devopsproject
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: DevOpsProject is the Schema for the devopsprojects API
