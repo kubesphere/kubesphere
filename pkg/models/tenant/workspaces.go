@@ -27,7 +27,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
@@ -64,14 +64,14 @@ type workspaceOperator struct {
 	client      kubernetes.Interface
 	informers   informers.SharedInformerFactory
 	ksInformers externalversions.SharedInformerFactory
-	am          am2.AccessManagementInterface
+	am          am.AccessManagementInterface
 
 	// TODO: use db interface instead of mysql client
 	// we can refactor this after rewrite devops using crd
 	db *mysql.Database
 }
 
-func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, am am2.AccessManagementInterface, db *mysql.Database) WorkspaceInterface {
+func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, am am.AccessManagementInterface, db *mysql.Database) WorkspaceInterface {
 	return &workspaceOperator{
 		client:      client,
 		informers:   informers,

@@ -20,9 +20,9 @@ package tenant
 import (
 	"k8s.io/api/core/v1"
 	k8sinformers "k8s.io/client-go/informers"
-	kubernetes "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/constants"
-	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
@@ -37,7 +37,7 @@ type NamespaceInterface interface {
 type namespaceSearcher struct {
 	k8s       kubernetes.Interface
 	informers k8sinformers.SharedInformerFactory
-	am        am2.AccessManagementInterface
+	am        am.AccessManagementInterface
 }
 
 func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
@@ -53,7 +53,7 @@ func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Name
 	return s.k8s.CoreV1().Namespaces().Create(namespace)
 }
 
-func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory, am am2.AccessManagementInterface) NamespaceInterface {
+func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory, am am.AccessManagementInterface) NamespaceInterface {
 	return &namespaceSearcher{k8s: k8s, informers: informers, am: am}
 }
 

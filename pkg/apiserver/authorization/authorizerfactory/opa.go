@@ -22,79 +22,68 @@ import (
 	"context"
 	"github.com/open-policy-agent/opa/rego"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
-	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 )
 
 type opaAuthorizer struct {
-	am am2.AccessManagementInterface
+	am am.AccessManagementInterface
 }
 
-func (o *opaAuthorizer) Authorize(a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
+func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 
-	platformRole, err := o.am.GetPlatformRole(a.GetUser().GetName())
+	platformRole, err := o.am.GetPlatformRole(attr.GetUser().GetName())
 	if err != nil {
 		return authorizer.DecisionDeny, "", err
 	}
 
 	// check platform role policy rules
-	if a, r, e := o.roleAuthorize(platformRole, a); a == authorizer.DecisionAllow {
+	if a, r, e := makeDecision(platformRole, attr); a == authorizer.DecisionAllow {
 		return a, r, e
 	}
 
 	// it's not in cluster resource, permission denied
 	// TODO declare implicit cluster info in request Info
-	if a.GetCluster() == "" {
+	if attr.GetCluster() == "" {
 		return authorizer.DecisionDeny, "permission undefined", nil
 	}
 
-	clusterRole, err := o.am.GetClusterRole(a.GetCluster(), a.GetUser().GetName())
+	clusterRole, err := o.am.GetClusterRole(attr.GetCluster(), attr.GetUser().GetName())
 	if err != nil {
 		return authorizer.DecisionDeny, "", err
 	}
 
 	// check cluster role policy rules
-	if a, r, e := o.roleAuthorize(clusterRole, a); a == authorizer.DecisionAllow {
+	if a, r, e := makeDecision(clusterRole, attr); a == authorizer.DecisionAllow {
 		return a, r, e
 	}
 
 	// it's not in cluster resource, permission denied
-	if a.GetWorkspace() == "" && a.GetNamespace() == "" && a.GetDevopsProject() == "" {
+	if attr.GetWorkspace() == "" && attr.GetNamespace() == "" {
 		return authorizer.DecisionDeny, "permission undefined", nil
 	}
 
-	workspaceRole, err := o.am.GetWorkspaceRole(a.GetWorkspace(), a.GetUser().GetName())
+	workspaceRole, err := o.am.GetWorkspaceRole(attr.GetWorkspace(), attr.GetUser().GetName())
 	if err != nil {
 		return authorizer.DecisionDeny, "", err
 	}
 
 	// check workspace role policy rules
-	if a, r, e := o.roleAuthorize(workspaceRole, a); a == authorizer.DecisionAllow {
+	if a, r, e := makeDecision(workspaceRole, attr); a == authorizer.DecisionAllow {
 		return a, r, e
 	}
 
 	// it's not in workspace resource, permission denied
-	if a.GetNamespace() == "" && a.GetDevopsProject() == "" {
+	if attr.GetNamespace() == "" {
 		return authorizer.DecisionDeny, "permission undefined", nil
 	}
 
-	if a.GetNamespace() != "" {
-		namespaceRole, err := o.am.GetNamespaceRole(a.GetNamespace(), a.GetUser().GetName())
+	if attr.GetNamespace() != "" {
+		namespaceRole, err := o.am.GetNamespaceRole(attr.GetNamespace(), attr.GetUser().GetName())
 		if err != nil {
 			return authorizer.DecisionDeny, "", err
 		}
 		// check namespace role policy rules
-		if a, r, e := o.roleAuthorize(namespaceRole, a); a == authorizer.DecisionAllow {
-			return a, r, e
-		}
-	}
-
-	if a.GetDevopsProject() != "" {
-		devOpsRole, err := o.am.GetDevOpsRole(a.GetNamespace(), a.GetUser().GetName())
-		if err != nil {
-			return authorizer.DecisionDeny, "", err
-		}
-		// check devops role policy rules
-		if a, r, e := o.roleAuthorize(devOpsRole, a); a == authorizer.DecisionAllow {
+		if a, r, e := makeDecision(namespaceRole, attr); a == authorizer.DecisionAllow {
 			return a, r, e
 		}
 	}
@@ -102,14 +91,18 @@ func (o *opaAuthorizer) Authorize(a authorizer.Attributes) (authorized authorize
 	return authorizer.DecisionDeny, "", nil
 }
 
-func (o *opaAuthorizer) roleAuthorize(role am2.Role, a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
+// Make decision base on role
+func makeDecision(role am.Role, a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 
+	// Call the rego.New function to create an object that can be prepared or evaluated
+	//  After constructing a new rego.Rego object you can call PrepareForEval() to obtain an executable query
 	query, err := rego.New(rego.Query("data.authz.allow"), rego.Module("authz.rego", role.GetRego())).PrepareForEval(context.Background())
 
 	if err != nil {
 		return authorizer.DecisionDeny, "", err
 	}
 
+	// The policy decision is contained in the results returned by the Eval() call. You can inspect the decision and handle it accordingly.
 	results, err := query.Eval(context.Background(), rego.EvalInput(a))
 
 	if err != nil {
@@ -123,6 +116,6 @@ func (o *opaAuthorizer) roleAuthorize(role am2.Role, a authorizer.Attributes) (a
 	return authorizer.DecisionDeny, "permission undefined", nil
 }
 
-func NewOPAAuthorizer(am am2.AccessManagementInterface) *opaAuthorizer {
+func NewOPAAuthorizer(am am.AccessManagementInterface) *opaAuthorizer {
 	return &opaAuthorizer{am: am}
 }

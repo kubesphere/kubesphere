@@ -18,7 +18,6 @@
 package am
 
 import (
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
@@ -38,7 +37,6 @@ type AccessManagementInterface interface {
 	GetClusterRole(cluster, username string) (Role, error)
 	GetWorkspaceRole(workspace, username string) (Role, error)
 	GetNamespaceRole(namespace, username string) (Role, error)
-	GetDevOpsRole(project, username string) (Role, error)
 }
 
 type Role interface {
@@ -50,26 +48,6 @@ type amOperator struct {
 	informers  informers.SharedInformerFactory
 	resources  resource.ResourceGetter
 	kubeClient kubernetes.Interface
-}
-
-func (am *amOperator) ListClusterRoleBindings(clusterRole string) ([]*rbacv1.ClusterRoleBinding, error) {
-	panic("implement me")
-}
-
-func (am *amOperator) GetRoles(namespace, username string) ([]*rbacv1.Role, error) {
-	panic("implement me")
-}
-
-func (am *amOperator) GetClusterPolicyRules(username string) ([]rbacv1.PolicyRule, error) {
-	panic("implement me")
-}
-
-func (am *amOperator) GetPolicyRules(namespace, username string) ([]rbacv1.PolicyRule, error) {
-	panic("implement me")
-}
-
-func (am *amOperator) GetWorkspaceRole(workspace, username string) (Role, error) {
-	panic("implement me")
 }
 
 func NewAMOperator(kubeClient kubernetes.Interface, informers informers.SharedInformerFactory) AccessManagementInterface {
@@ -88,6 +66,10 @@ func (am *amOperator) GetPlatformRole(username string) (Role, error) {
 }
 
 func (am *amOperator) GetClusterRole(cluster, username string) (Role, error) {
+	panic("implement me")
+}
+
+func (am *amOperator) GetWorkspaceRole(workspace, username string) (Role, error) {
 	panic("implement me")
 }
 

@@ -187,7 +187,7 @@ func (s *APIServer) buildHandlerChain() {
 
 	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.KubernetesClient.Kubernetes(), s.InformerFactory.KubernetesSharedInformerFactory())))
+	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator(cache.NewSimpleCache())))
 	handler = filters.WithAuthorization(handler, authorizer)
 	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})

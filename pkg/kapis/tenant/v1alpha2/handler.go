@@ -8,7 +8,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
-	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
@@ -21,14 +21,14 @@ import (
 
 type tenantHandler struct {
 	tenant tenant.Interface
-	am     am2.AccessManagementInterface
+	am     am.AccessManagementInterface
 }
 
 func newTenantHandler(k8sClient k8s.Client, factory informers.InformerFactory, db *mysql.Database) *tenantHandler {
 
 	return &tenantHandler{
 		tenant: tenant.New(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory(), factory.KubeSphereSharedInformerFactory(), db),
-		am:     am2.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
+		am:     am.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
 	}
 }
 

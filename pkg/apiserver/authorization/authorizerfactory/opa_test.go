@@ -19,66 +19,79 @@
 package authorizerfactory
 
 import (
-	"context"
-	"github.com/open-policy-agent/opa/rego"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
 )
 
 func TestPlatformRole(t *testing.T) {
 
-	module := `package platform.authz
-default allow = false
+	opa := NewOPAAuthorizer(am.NewFakeAMOperator(cache.NewSimpleCache()))
 
-allow {
-    input.User.name == "admin"
-}
-
-allow {
-    is_admin
-}
-
-is_admin {
-    input.User.Groups[_] == "admin"
-}
-`
-	query, err := rego.New(rego.Query("data.authz.allow"), rego.Module("authz.rego", module)).PrepareForEval(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	input := authorizer.AttributesRecord{
-		User: &user.DefaultInfo{
-			Name:   "admin",
-			UID:    "0",
-			Groups: []string{"admin"},
-			Extra:  nil,
+	tests := []struct {
+		name             string
+		request          authorizer.AttributesRecord
+		expectedDecision authorizer.Decision
+	}{
+		{
+			name: "list nodes",
+			request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name:   "admin",
+					UID:    "0",
+					Groups: []string{"admin"},
+					Extra:  nil,
+				},
+				Verb:              "list",
+				Cluster:           "",
+				Workspace:         "",
+				Namespace:         "",
+				APIGroup:          "",
+				APIVersion:        "v1",
+				Resource:          "nodes",
+				Subresource:       "",
+				Name:              "",
+				KubernetesRequest: true,
+				ResourceRequest:   true,
+				Path:              "/api/v1/nodes",
+			},
+			expectedDecision: authorizer.DecisionAllow,
 		},
-		Verb:              "list",
-		Cluster:           "",
-		Workspace:         "",
-		Namespace:         "",
-		DevopsProject:     "",
-		APIGroup:          "",
-		APIVersion:        "v1",
-		Resource:          "nodes",
-		Subresource:       "",
-		Name:              "",
-		KubernetesRequest: true,
-		ResourceRequest:   true,
-		Path:              "/api/v1/nodes",
+		{
+			name: "list nodes",
+			request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name:   user.Anonymous,
+					UID:    "0",
+					Groups: []string{"admin"},
+					Extra:  nil,
+				},
+				Verb:              "list",
+				Cluster:           "",
+				Workspace:         "",
+				Namespace:         "",
+				APIGroup:          "",
+				APIVersion:        "v1",
+				Resource:          "nodes",
+				Subresource:       "",
+				Name:              "",
+				KubernetesRequest: true,
+				ResourceRequest:   true,
+				Path:              "/api/v1/nodes",
+			},
+			expectedDecision: authorizer.DecisionDeny,
+		},
 	}
 
-	results, err := query.Eval(context.Background(), rego.EvalInput(input))
-
-	if err != nil {
-		t.Log(err)
-	}
-
-	if len(results) > 0 && results[0].Expressions[0].Value == true {
-		t.Log("allowed")
-	} else {
-		t.Log("deny")
+	for _, test := range tests {
+		decision, _, err := opa.Authorize(test.request)
+		if err != nil {
+			t.Error(err)
+		}
+		if decision != test.expectedDecision {
+			t.Errorf("%s: expected decision %v, actual %+v", test.name, test.expectedDecision, decision)
+		}
 	}
 }

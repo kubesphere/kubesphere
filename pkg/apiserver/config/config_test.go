@@ -64,7 +64,7 @@ func newTestConfig() *Config {
 			GroupSearchBase: "ou=Groups,dc=example,dc=org",
 		},
 		RedisOptions: &cache.Options{
-			Host:     "localhost:6379",
+			Host:     "localhost",
 			Port:     6379,
 			Password: "P@88w0rd",
 			DB:       0,

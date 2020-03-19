@@ -43,6 +43,8 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		expectedResource          string
 		expectedIsResourceRequest bool
 		expectedCluster           string
+		expectedWorkspace         string
+		exceptedNamespace         string
 	}{
 		{
 			name:                      "login",
@@ -55,14 +57,87 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedCluster:           "",
 		},
 		{
+			name:                      "list cluster roles",
+			url:                       "/apis/rbac.authorization.k8s.io/v1/clusters/cluster1/clusterroles",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "clusterroles",
+			expectedIsResourceRequest: true,
+			expectedCluster:           "cluster1",
+		},
+		{
+			name:                      "list cluster nodes",
+			url:                       "/api/v1/clusters/cluster1/nodes",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "nodes",
+			expectedIsResourceRequest: true,
+			expectedCluster:           "cluster1",
+		},
+		{
+			name:                      "list cluster nodes",
+			url:                       "/api/v1/clusters/cluster1/nodes",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "nodes",
+			expectedIsResourceRequest: true,
+			expectedCluster:           "cluster1",
+		},
+		{
+			name:                      "list cluster nodes",
+			url:                       "/api/v1/nodes",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "nodes",
+			expectedIsResourceRequest: true,
+			expectedCluster:           "host-cluster",
+		},
+		{
+			name:                      "list roles",
+			url:                       "/apis/rbac.authorization.k8s.io/v1/clusters/cluster1/namespaces/namespace1/roles",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "roles",
+			expectedIsResourceRequest: true,
+			exceptedNamespace:         "namespace1",
+			expectedCluster:           "cluster1",
+		},
+		{
+			name:                      "list roles",
+			url:                       "/apis/rbac.authorization.k8s.io/v1/namespaces/namespace1/roles",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "roles",
+			expectedIsResourceRequest: true,
+			expectedCluster:           "host-cluster",
+		},
+		{
 			name:                      "list namespaces",
-			url:                       "/kapis/resources.kubesphere.io/v1alpha2/namespaces",
+			url:                       "/kapis/resources.kubesphere.io/v1alpha3/workspaces/workspace1/namespaces",
 			method:                    http.MethodGet,
 			expectedErr:               nil,
 			expectedVerb:              "list",
 			expectedResource:          "namespaces",
 			expectedIsResourceRequest: true,
-			expectedCluster:           "",
+			expectedWorkspace:         "workspace1",
+			expectedCluster:           "host-cluster",
+		},
+		{
+			name:                      "list namespaces",
+			url:                       "/kapis/resources.kubesphere.io/v1alpha3/clusters/cluster1/workspaces/workspace1/namespaces",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedResource:          "namespaces",
+			expectedIsResourceRequest: true,
+			expectedWorkspace:         "workspace1",
+			expectedCluster:           "cluster1",
 		},
 	}
 
@@ -80,14 +155,23 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 				t.Errorf("%s: expected error %v, actual %v", test.name, test.expectedErr, err)
 			}
 		} else {
-			if test.expectedVerb != requestInfo.Verb {
+			if test.expectedVerb != "" && test.expectedVerb != requestInfo.Verb {
 				t.Errorf("%s: expected verb %v, actual %+v", test.name, test.expectedVerb, requestInfo.Verb)
 			}
-			if test.expectedResource != requestInfo.Resource {
+			if test.expectedResource != "" && test.expectedResource != requestInfo.Resource {
 				t.Errorf("%s: expected resource %v, actual %+v", test.name, test.expectedResource, requestInfo.Resource)
 			}
 			if test.expectedIsResourceRequest != requestInfo.IsResourceRequest {
 				t.Errorf("%s: expected is resource request %v, actual %+v", test.name, test.expectedIsResourceRequest, requestInfo.IsResourceRequest)
+			}
+			if test.expectedCluster != "" && test.expectedCluster != requestInfo.Cluster {
+				t.Errorf("%s: expected cluster %v, actual %+v", test.name, test.expectedCluster, requestInfo.Cluster)
+			}
+			if test.expectedWorkspace != "" && test.expectedWorkspace != requestInfo.Workspace {
+				t.Errorf("%s: expected workspace %v, actual %+v", test.name, test.expectedWorkspace, requestInfo.Workspace)
+			}
+			if test.exceptedNamespace != "" && test.exceptedNamespace != requestInfo.Namespace {
+				t.Errorf("%s: expected namespace %v, actual %+v", test.name, test.exceptedNamespace, requestInfo.Namespace)
 			}
 		}
 	}

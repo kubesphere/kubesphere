@@ -24,7 +24,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models"
-	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 )
@@ -43,7 +43,7 @@ type Interface interface {
 type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
-	am         am2.AccessManagementInterface
+	am         am.AccessManagementInterface
 	devops     DevOpsProjectOperator
 }
 
@@ -68,7 +68,7 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 }
 
 func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
-	amOperator := am2.NewAMOperator(client, informers)
+	amOperator := am.NewAMOperator(client, informers)
 	return &tenantOperator{
 		workspaces: newWorkspaceOperator(client, informers, ksinformers, amOperator, db),
 		namespaces: newNamespaceOperator(client, informers, amOperator),
