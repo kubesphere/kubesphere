@@ -17,8 +17,8 @@ func TestFakeS3(t *testing.T) {
 	if !ok {
 		t.Fatal("should have hello object")
 	}
-	if o.key != key || o.fileName != fileName {
-		t.Fatalf("key should be %s, fileName should be %s", key, fileName)
+	if o.Key != key || o.FileName != fileName {
+		t.Fatalf("Key should be %s, FileName should be %s", key, fileName)
 	}
 
 	url, err := s3.GetDownloadURL(key, fileName+"1")

@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -69,9 +70,10 @@ func AddControllers(
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
-	s2iBinaryController := s2ibinary.NewController(client.KubeSphere(),
-		client.Kubernetes(),
-		kubesphereInformer.Devops().V1alpha1().S2iBinaries())
+	s2iBinaryController := s2ibinary.NewController(client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+		fakeS3.NewFakeS3())
 
 	s2iRunController := s2irun.NewS2iRunController(client.KubeSphere(),
 		client.Kubernetes(),
