@@ -27,13 +27,11 @@ import (
 
 func TestStorageDevOpsProject(t *testing.T) {
 	key := types.NamespacedName{
-		Name:      "foo",
-		Namespace: "default",
+		Name: "foo",
 	}
 	created := &DevOpsProject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
+			Name: "foo",
 		}}
 	g := gomega.NewGomegaWithT(t)
 
