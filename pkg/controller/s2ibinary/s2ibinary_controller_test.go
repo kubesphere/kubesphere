@@ -69,7 +69,7 @@ func newDeletingS2iBinary(name string) *s2i.S2iBinary {
 	}
 }
 
-func (f *fixture) newController() (*S2iBinaryController, informers.SharedInformerFactory, *fakeS3.FakeS3) {
+func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, *fakeS3.FakeS3) {
 	f.client = fake.NewSimpleClientset(f.objects...)
 	f.kubeclient = k8sfake.NewSimpleClientset()
 

@@ -24,6 +24,10 @@ import (
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 )
 
+/**
+	DevOps project controller is used to maintain the state of the DevOps project.
+*/
+
 type Controller struct {
 	client           clientset.Interface
 	kubesphereClient kubesphereclient.Interface
@@ -171,7 +175,10 @@ func (c *Controller) syncHandler(key string) error {
 		klog.Error(err, fmt.Sprintf("could not get devopsproject %s ", key))
 		return err
 	}
+	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Use Finalizers to sync DevOps status when DevOps project was deleted
+		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			project.ObjectMeta.Finalizers = append(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName)
 			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
@@ -180,6 +187,7 @@ func (c *Controller) syncHandler(key string) error {
 				return err
 			}
 		}
+		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(key)
 		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
 			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
@@ -192,6 +200,7 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 	} else {
+		// Finalizers processing logic
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			_, err := c.devopsClient.GetDevOpsProject(key)
 			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {

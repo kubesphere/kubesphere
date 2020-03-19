@@ -24,6 +24,10 @@ import (
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha1"
 )
 
+/**
+	s2irun-controller used to handle s2irun's delete logic.
+	s2irun creation and operation provided by s2ioperator
+*/
 type Controller struct {
 	client clientset.Interface
 
@@ -214,6 +218,11 @@ func (c Controller) syncHandler(key string) error {
 	return nil
 }
 
+/**
+	DeleteS2iBinary mainly cleans up two parts of S2iBinary
+	1. s2ibinary bound to s2irun
+    2. s2ibinary that has been created for more than 24 hours but has not been used
+*/
 func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 	s2iBinName := s2irun.Labels[devopsv1alpha1.S2iBinaryLabelKey]
 	s2iBin, err := c.s2iBinaryLister.S2iBinaries(s2irun.Namespace).Get(s2iBinName)
