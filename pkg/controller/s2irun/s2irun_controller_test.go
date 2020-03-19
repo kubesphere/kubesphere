@@ -226,10 +226,10 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	ret := []core.Action{}
 	for _, action := range actions {
 		if len(action.GetNamespace()) == 0 &&
-			(action.Matches("list", "foos") ||
-				action.Matches("watch", "foos") ||
-				action.Matches("list", "deployments") ||
-				action.Matches("watch", "deployments")) {
+			(action.Matches("list", s2i.ResourcePluralS2iRun) ||
+				action.Matches("watch", s2i.ResourcePluralS2iRun) ||
+				action.Matches("list", s2i.ResourcePluralS2iBinary) ||
+				action.Matches("watch", s2i.ResourcePluralS2iBinary)) {
 			continue
 		}
 		ret = append(ret, action)

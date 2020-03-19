@@ -25,7 +25,7 @@ import (
 )
 
 /**
-	DevOps project controller is used to maintain the state of the DevOps project.
+DevOps project controller is used to maintain the state of the DevOps project.
 */
 
 type Controller struct {

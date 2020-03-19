@@ -25,8 +25,8 @@ import (
 )
 
 /**
-	s2irun-controller used to handle s2irun's delete logic.
-	s2irun creation and operation provided by s2ioperator
+s2irun-controller used to handle s2irun's delete logic.
+s2irun creation and operation provided by s2ioperator
 */
 type Controller struct {
 	client clientset.Interface
