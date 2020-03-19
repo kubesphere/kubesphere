@@ -43,8 +43,9 @@ type Controller struct {
 	workerLoopPeriod time.Duration
 }
 
-func NewS2iRunController(devopsClientSet devopsclient.Interface,
+func NewS2iRunController(
 	client clientset.Interface,
+	devopsClientSet devopsclient.Interface,
 	s2iBinInformer devopsinformers.S2iBinaryInformer,
 	s2iRunInformer devopsinformers.S2iRunInformer) *Controller {
 
@@ -242,7 +243,7 @@ func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 
 // cleanOtherS2iBinary clean up s2ibinary created for more than 24 hours without associated s2irun
 func (c Controller) cleanOtherS2iBinary(namespace string) error {
-	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(nil)
+	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(labels.Everything())
 	if err != nil {
 		klog.Error(err, fmt.Sprintf("failed to list s2ibin in %s ", namespace))
 		return err

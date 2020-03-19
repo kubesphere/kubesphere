@@ -43,7 +43,7 @@ type S2iBinaryController struct {
 func NewController(client clientset.Interface,
 	devopsclientset devopsclient.Interface,
 	s2ibinInformer devopsinformers.S2iBinaryInformer,
-    s3Client s3.Interface) *S2iBinaryController {
+	s3Client s3.Interface) *S2iBinaryController {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -59,7 +59,7 @@ func NewController(client clientset.Interface,
 		s2iBinaryLister:  s2ibinInformer.Lister(),
 		s2iBinarySynced:  s2ibinInformer.Informer().HasSynced,
 		workerLoopPeriod: time.Second,
-		s3Client: s3Client,
+		s3Client:         s3Client,
 	}
 
 	v.eventBroadcaster = broadcaster

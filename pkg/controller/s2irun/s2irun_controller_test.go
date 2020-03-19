@@ -1,7 +1,6 @@
-package s2ibinary
+package s2irun
 
 import (
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"reflect"
 	"testing"
 	"time"
@@ -31,12 +30,10 @@ type fixture struct {
 	kubeclient *k8sfake.Clientset
 	// Objects to put in the store.
 	s2ibinaryLister []*s2i.S2iBinary
+	s2irunLister    []*s2i.S2iRun
 	actions         []core.Action
 	// Objects from here preloaded into NewSimpleFake.
 	objects []runtime.Object
-	// Objects from here preloaded into s3
-	initS3Objects   []*fakeS3.Object
-	expectS3Objects []*fakeS3.Object
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -46,7 +43,7 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func newS2iBinary(name string, spec s2i.S2iBinarySpec) *s2i.S2iBinary {
+func newS2iBinary(name string) *s2i.S2iBinary {
 	return &s2i.S2iBinary{
 		TypeMeta: metav1.TypeMeta{APIVersion: s2i.SchemeGroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,27 +53,56 @@ func newS2iBinary(name string, spec s2i.S2iBinarySpec) *s2i.S2iBinary {
 		Spec: s2i.S2iBinarySpec{},
 	}
 }
-func newDeletingS2iBinary(name string) *s2i.S2iBinary {
-	deleteTime := metav1.Now()
+
+func newS2iBinaryWithCreateTime(name string, createTime metav1.Time) *s2i.S2iBinary {
 	return &s2i.S2iBinary{
 		TypeMeta: metav1.TypeMeta{APIVersion: s2i.SchemeGroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
 			Namespace:         metav1.NamespaceDefault,
-			Finalizers:        []string{s2i.S2iBinaryFinalizerName},
-			DeletionTimestamp: &deleteTime,
+			CreationTimestamp: createTime,
+		},
+		Spec: s2i.S2iBinarySpec{},
+	}
+}
+
+func newS2iRun(name string, s2iBinaryName string) *s2i.S2iRun {
+	return &s2i.S2iRun{
+		TypeMeta: metav1.TypeMeta{APIVersion: s2i.SchemeGroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				s2i.S2iBinaryLabelKey: s2iBinaryName,
+			},
 		},
 	}
 }
 
-func (f *fixture) newController() (*S2iBinaryController, informers.SharedInformerFactory, *fakeS3.FakeS3) {
+func newDeletetingS2iRun(name string, s2iBinaryName string) *s2i.S2iRun {
+	now := metav1.Now()
+	return &s2i.S2iRun{
+		TypeMeta: metav1.TypeMeta{APIVersion: s2i.SchemeGroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				s2i.S2iBinaryLabelKey: s2iBinaryName,
+			},
+			Finalizers:        []string{s2i.S2iBinaryFinalizerName},
+			DeletionTimestamp: &now,
+		},
+	}
+}
+
+func (f *fixture) newController() (*Controller, informers.SharedInformerFactory) {
 	f.client = fake.NewSimpleClientset(f.objects...)
 	f.kubeclient = k8sfake.NewSimpleClientset()
 
 	i := informers.NewSharedInformerFactory(f.client, noResyncPeriodFunc())
-	s3I := fakeS3.NewFakeS3(f.expectS3Objects...)
 
-	c := NewController(f.kubeclient, f.client, i.Devops().V1alpha1().S2iBinaries(), s3I)
+	c := NewS2iRunController(f.kubeclient, f.client,
+		i.Devops().V1alpha1().S2iBinaries(), i.Devops().V1alpha1().S2iRuns())
 
 	c.s2iBinarySynced = alwaysReady
 	c.eventRecorder = &record.FakeRecorder{}
@@ -84,8 +110,11 @@ func (f *fixture) newController() (*S2iBinaryController, informers.SharedInforme
 	for _, f := range f.s2ibinaryLister {
 		i.Devops().V1alpha1().S2iBinaries().Informer().GetIndexer().Add(f)
 	}
+	for _, f := range f.s2irunLister {
+		i.Devops().V1alpha1().S2iRuns().Informer().GetIndexer().Add(f)
+	}
 
-	return c, i, s3I
+	return c, i
 }
 
 func (f *fixture) run(fooName string) {
@@ -96,15 +125,15 @@ func (f *fixture) runExpectError(fooName string) {
 	f.runController(fooName, true, true)
 }
 
-func (f *fixture) runController(s2iBinaryName string, startInformers bool, expectError bool) {
-	c, i, s3I := f.newController()
+func (f *fixture) runController(s2iRunName string, startInformers bool, expectError bool) {
+	c, i := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
 		defer close(stopCh)
 		i.Start(stopCh)
 	}
 
-	err := c.syncHandler(s2iBinaryName)
+	err := c.syncHandler(s2iRunName)
 	if !expectError && err != nil {
 		f.t.Errorf("error syncing foo: %v", err)
 	} else if expectError && err == nil {
@@ -124,9 +153,6 @@ func (f *fixture) runController(s2iBinaryName string, startInformers bool, expec
 
 	if len(f.actions) > len(actions) {
 		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
-	}
-	if len(s3I.Storage) != len(f.expectS3Objects) {
-		f.t.Errorf(" unexpected objects: %v", s3I.Storage)
 	}
 }
 
@@ -171,6 +197,22 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 			t.Errorf("Action %s %s has wrong patch\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expPatch, patch))
 		}
+	case core.DeleteActionImpl:
+		e, _ := expected.(core.DeleteActionImpl)
+
+		expName := e.GetName()
+		objectName := a.GetName()
+
+		if !reflect.DeepEqual(expName, objectName) {
+			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
+				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expName, objectName))
+		}
+		expNamespace := e.GetNamespace()
+		objectNamespace := a.GetNamespace()
+		if !reflect.DeepEqual(expNamespace, objectNamespace) {
+			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
+				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expNamespace, objectNamespace))
+		}
 	default:
 		t.Errorf("Uncaptured Action %s %s, you should explicitly add a case to capture it",
 			actual.GetVerb(), actual.GetResource().Resource)
@@ -196,15 +238,20 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	return ret
 }
 
-func (f *fixture) expectUpdateS2iBinaryAction(s2ibinary *s2i.S2iBinary) {
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: s2i.ResourcePluralS2iBinary}, s2ibinary.Namespace, s2ibinary)
+func (f *fixture) expectUpdateS2iRunAction(s2iRun *s2i.S2iRun) {
+	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: s2i.ResourcePluralS2iRun}, s2iRun.Namespace, s2iRun)
 	f.actions = append(f.actions, action)
 }
 
-func getKey(s2ibinary *s2i.S2iBinary, t *testing.T) string {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(s2ibinary)
+func (f *fixture) expectDeleteS2iBinaryAction(s2iBinary *s2i.S2iBinary) {
+	action := core.NewDeleteAction(schema.GroupVersionResource{Resource: s2i.ResourcePluralS2iBinary}, s2iBinary.Namespace, s2iBinary.Name)
+	f.actions = append(f.actions, action)
+}
+
+func getKey(s2i *s2i.S2iRun, t *testing.T) string {
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(s2i)
 	if err != nil {
-		t.Errorf("Unexpected error getting key for s2ibinary %v: %v", s2ibinary.Name, err)
+		t.Errorf("Unexpected error getting key for s2i %v: %v", s2i.Name, err)
 		return ""
 	}
 	return key
@@ -212,26 +259,47 @@ func getKey(s2ibinary *s2i.S2iBinary, t *testing.T) string {
 
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
-	s2iBinary := newS2iBinary("test", s2i.S2iBinarySpec{})
+	s2iBinary := newS2iBinary("test")
+	s2iRun := newS2iRun("test", s2iBinary.Name)
 
 	f.s2ibinaryLister = append(f.s2ibinaryLister, s2iBinary)
+	f.s2irunLister = append(f.s2irunLister, s2iRun)
 	f.objects = append(f.objects, s2iBinary)
+	f.objects = append(f.objects, s2iRun)
 
-	f.expectUpdateS2iBinaryAction(s2iBinary)
-	f.run(getKey(s2iBinary, t))
+	f.expectUpdateS2iRunAction(s2iRun)
+	f.run(getKey(s2iRun, t))
 }
 
-func TestDeleteS3Object(t *testing.T) {
+func TestDeleteS2iBinary(t *testing.T) {
 	f := newFixture(t)
-	s2iBinary := newDeletingS2iBinary("test")
+	s2iBinary := newS2iBinary("test")
+	s2iRun := newDeletetingS2iRun("test", s2iBinary.Name)
 
 	f.s2ibinaryLister = append(f.s2ibinaryLister, s2iBinary)
+	f.s2irunLister = append(f.s2irunLister, s2iRun)
 	f.objects = append(f.objects, s2iBinary)
-	f.initS3Objects = []*fakeS3.Object{&fakeS3.Object{
-		Key: "default-test",
-	}}
-	f.expectS3Objects = []*fakeS3.Object{}
-	f.expectUpdateS2iBinaryAction(s2iBinary)
-	f.run(getKey(s2iBinary, t))
+	f.objects = append(f.objects, s2iRun)
 
+	f.expectDeleteS2iBinaryAction(s2iBinary)
+	f.expectUpdateS2iRunAction(s2iRun)
+	f.run(getKey(s2iRun, t))
+}
+
+func TestDeleteOtherS2iBinary(t *testing.T) {
+	f := newFixture(t)
+	s2iBinary := newS2iBinary("test")
+	s2iRun := newDeletetingS2iRun("test", s2iBinary.Name)
+	otherS2iBinary := newS2iBinaryWithCreateTime("test2", metav1.NewTime(time.Date(2000, 1, 1, 12, 0, 0, 0, time.UTC)))
+
+	f.s2ibinaryLister = append(f.s2ibinaryLister, s2iBinary)
+	f.s2ibinaryLister = append(f.s2ibinaryLister, otherS2iBinary)
+	f.s2irunLister = append(f.s2irunLister, s2iRun)
+	f.objects = append(f.objects, s2iBinary)
+	f.objects = append(f.objects, s2iRun)
+	f.objects = append(f.objects, otherS2iBinary)
+	f.expectDeleteS2iBinaryAction(s2iBinary)
+	f.expectDeleteS2iBinaryAction(otherS2iBinary)
+	f.expectUpdateS2iRunAction(s2iRun)
+	f.run(getKey(s2iRun, t))
 }

@@ -13,7 +13,7 @@ type FakeS3 struct {
 
 func NewFakeS3(objects ...*Object) *FakeS3 {
 	s3 := &FakeS3{Storage: map[string]*Object{}}
-	for _, object := range objects{
+	for _, object := range objects {
 		s3.Storage[object.Key] = object
 	}
 	return s3
