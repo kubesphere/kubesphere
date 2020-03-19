@@ -17,9 +17,8 @@ limitations under the License.
 package path
 
 import (
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"testing"
-
-	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
 func TestNewAuthorizer(t *testing.T) {

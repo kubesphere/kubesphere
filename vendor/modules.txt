@@ -22,6 +22,8 @@ github.com/BurntSushi/toml
 github.com/Microsoft/go-winio
 # github.com/NYTimes/gziphandler v1.1.1 => github.com/NYTimes/gziphandler v1.1.1
 github.com/NYTimes/gziphandler
+# github.com/OneOfOne/xxhash v1.2.7 => github.com/OneOfOne/xxhash v1.2.2
+github.com/OneOfOne/xxhash
 # github.com/PuerkitoBio/goquery v1.5.0 => github.com/PuerkitoBio/goquery v1.5.0
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.1.1 => github.com/PuerkitoBio/purell v1.1.1
@@ -247,6 +249,15 @@ github.com/go-redis/redis/internal/util
 github.com/go-sql-driver/mysql
 # github.com/gobuffalo/flect v0.1.5 => github.com/gobuffalo/flect v0.1.5
 github.com/gobuffalo/flect
+# github.com/gobwas/glob v0.2.3 => github.com/gobwas/glob v0.2.3
+github.com/gobwas/glob
+github.com/gobwas/glob/compiler
+github.com/gobwas/glob/match
+github.com/gobwas/glob/syntax
+github.com/gobwas/glob/syntax/ast
+github.com/gobwas/glob/syntax/lexer
+github.com/gobwas/glob/util/runes
+github.com/gobwas/glob/util/strings
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
@@ -526,6 +537,41 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
+# github.com/open-policy-agent/opa v0.18.0 => github.com/open-policy-agent/opa v0.18.0
+github.com/open-policy-agent/opa/ast
+github.com/open-policy-agent/opa/bundle
+github.com/open-policy-agent/opa/internal/compiler/wasm
+github.com/open-policy-agent/opa/internal/compiler/wasm/opa
+github.com/open-policy-agent/opa/internal/file/archive
+github.com/open-policy-agent/opa/internal/file/url
+github.com/open-policy-agent/opa/internal/ir
+github.com/open-policy-agent/opa/internal/leb128
+github.com/open-policy-agent/opa/internal/merge
+github.com/open-policy-agent/opa/internal/planner
+github.com/open-policy-agent/opa/internal/version
+github.com/open-policy-agent/opa/internal/wasm/constant
+github.com/open-policy-agent/opa/internal/wasm/encoding
+github.com/open-policy-agent/opa/internal/wasm/instruction
+github.com/open-policy-agent/opa/internal/wasm/module
+github.com/open-policy-agent/opa/internal/wasm/opcode
+github.com/open-policy-agent/opa/internal/wasm/types
+github.com/open-policy-agent/opa/loader
+github.com/open-policy-agent/opa/metrics
+github.com/open-policy-agent/opa/rego
+github.com/open-policy-agent/opa/storage
+github.com/open-policy-agent/opa/storage/inmem
+github.com/open-policy-agent/opa/topdown
+github.com/open-policy-agent/opa/topdown/builtins
+github.com/open-policy-agent/opa/topdown/copypropagation
+github.com/open-policy-agent/opa/topdown/internal/jwx/buffer
+github.com/open-policy-agent/opa/topdown/internal/jwx/jwa
+github.com/open-policy-agent/opa/topdown/internal/jwx/jwk
+github.com/open-policy-agent/opa/topdown/internal/jwx/jws
+github.com/open-policy-agent/opa/topdown/internal/jwx/jws/sign
+github.com/open-policy-agent/opa/topdown/internal/jwx/jws/verify
+github.com/open-policy-agent/opa/types
+github.com/open-policy-agent/opa/util
+github.com/open-policy-agent/opa/version
 # github.com/opencontainers/go-digest v1.0.0-rc1 => github.com/opencontainers/go-digest v1.0.0-rc1
 github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1 => github.com/opencontainers/image-spec v1.0.1
@@ -595,6 +641,8 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084 => github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
+# github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
+github.com/rcrowley/go-metrics
 # github.com/russross/blackfriday v1.5.2 => github.com/russross/blackfriday v1.5.2
 github.com/russross/blackfriday
 # github.com/satori/go.uuid v1.2.0 => github.com/satori/go.uuid v1.2.0
@@ -632,6 +680,8 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/xanzy/ssh-agent v0.2.1 => github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
+# github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b => github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b
+github.com/yashtewari/glob-intersection
 # go.uber.org/atomic v1.4.0 => go.uber.org/atomic v1.4.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.1.0 => go.uber.org/multierr v1.1.0
@@ -1389,6 +1439,9 @@ k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
 # openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
+openpitrix.io/openpitrix/pkg/client
+openpitrix.io/openpitrix/pkg/client/access
+openpitrix.io/openpitrix/pkg/client/account
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

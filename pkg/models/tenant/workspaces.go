@@ -18,27 +18,22 @@
 package tenant
 
 import (
-	"fmt"
 	core "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	"kubesphere.io/kubesphere/pkg/models/iam"
+	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
 	"strings"
 
-	"k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -69,14 +64,14 @@ type workspaceOperator struct {
 	client      kubernetes.Interface
 	informers   informers.SharedInformerFactory
 	ksInformers externalversions.SharedInformerFactory
-	am          iam.AccessManagementInterface
+	am          am2.AccessManagementInterface
 
 	// TODO: use db interface instead of mysql client
 	// we can refactor this after rewrite devops using crd
 	db *mysql.Database
 }
 
-func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, am iam.AccessManagementInterface, db *mysql.Database) WorkspaceInterface {
+func newWorkspaceOperator(client kubernetes.Interface, informers informers.SharedInformerFactory, ksinformers externalversions.SharedInformerFactory, am am2.AccessManagementInterface, db *mysql.Database) WorkspaceInterface {
 	return &workspaceOperator{
 		client:      client,
 		informers:   informers,
@@ -111,96 +106,12 @@ func (w *workspaceOperator) DeleteNamespace(workspace string, namespace string) 
 }
 
 func (w *workspaceOperator) RemoveUser(workspace string, username string) error {
-	workspaceRole, err := w.am.GetWorkspaceRole(workspace, username)
-	if err != nil {
-		return err
-	}
-
-	err = w.deleteWorkspaceRoleBinding(workspace, username, workspaceRole.Annotations[constants.DisplayNameAnnotationKey])
-	if err != nil {
-		return err
-	}
-
-	return nil
+	panic("implement me")
 }
 
 func (w *workspaceOperator) AddUser(workspaceName string, user *InWorkspaceUser) error {
 
-	workspaceRole, err := w.am.GetWorkspaceRole(workspaceName, user.Username)
-
-	if err != nil && !apierrors.IsNotFound(err) {
-		klog.Errorf("get workspace role failed: %+v", err)
-		return err
-	}
-
-	workspaceRoleName := fmt.Sprintf("workspace:%s:%s", workspaceName, strings.TrimPrefix(user.WorkspaceRole, "workspace-"))
-	var currentWorkspaceRoleName string
-	if workspaceRole != nil {
-		currentWorkspaceRoleName = workspaceRole.Name
-	}
-
-	if currentWorkspaceRoleName != workspaceRoleName && currentWorkspaceRoleName != "" {
-		err := w.deleteWorkspaceRoleBinding(workspaceName, user.Username, workspaceRole.Annotations[constants.DisplayNameAnnotationKey])
-		if err != nil {
-			klog.Errorf("delete workspace role binding failed: %+v", err)
-			return err
-		}
-	} else if currentWorkspaceRoleName != "" {
-		return nil
-	}
-
-	return w.createWorkspaceRoleBinding(workspaceName, user.Username, user.WorkspaceRole)
-}
-
-func (w *workspaceOperator) createWorkspaceRoleBinding(workspace, username string, role string) error {
-
-	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
-		return apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
-	}
-
-	roleBindingName := fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
-	workspaceRoleBinding, err := w.informers.Rbac().V1().ClusterRoleBindings().Lister().Get(roleBindingName)
-	if err != nil {
-		return err
-	}
-
-	if !iam.ContainsUser(workspaceRoleBinding.Subjects, username) {
-		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
-		workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects, v1.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: username})
-		_, err = w.client.RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
-		if err != nil {
-			klog.Errorf("update workspace role binding failed: %+v", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (w *workspaceOperator) deleteWorkspaceRoleBinding(workspace, username string, role string) error {
-
-	if !sliceutil.HasString(constants.WorkSpaceRoles, role) {
-		return apierrors.NewNotFound(schema.GroupResource{Resource: "workspace role"}, role)
-	}
-
-	roleBindingName := fmt.Sprintf("workspace:%s:%s", workspace, strings.TrimPrefix(role, "workspace-"))
-
-	workspaceRoleBinding, err := w.informers.Rbac().V1().ClusterRoleBindings().Lister().Get(roleBindingName)
-	if err != nil {
-		return err
-	}
-	workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
-
-	for i, v := range workspaceRoleBinding.Subjects {
-		if v.Kind == v1.UserKind && v.Name == username {
-			workspaceRoleBinding.Subjects = append(workspaceRoleBinding.Subjects[:i], workspaceRoleBinding.Subjects[i+1:]...)
-			i--
-		}
-	}
-
-	workspaceRoleBinding, err = w.client.RbacV1().ClusterRoleBindings().Update(workspaceRoleBinding)
-
-	return err
+	panic("implement me")
 }
 
 func (w *workspaceOperator) CountDevopsProjectsInWorkspace(workspaceName string) (int, error) {
@@ -288,50 +199,7 @@ func (*workspaceOperator) compare(a, b *v1alpha1.Workspace, orderBy string) bool
 }
 
 func (w *workspaceOperator) SearchWorkspace(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1alpha1.Workspace, error) {
-	rules, err := w.am.GetClusterPolicyRules(username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	workspaces := make([]*v1alpha1.Workspace, 0)
-
-	if iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"list"}, APIGroups: []string{"tenant.kubesphere.io"}, Resources: []string{"workspaces"}}) {
-		workspaces, err = w.ksInformers.Tenant().V1alpha1().Workspaces().Lister().List(labels.Everything())
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		workspaceRoles, err := w.am.GetWorkspaceRoleMap(username)
-		if err != nil {
-			return nil, err
-		}
-		for k := range workspaceRoles {
-			workspace, err := w.ksInformers.Tenant().V1alpha1().Workspaces().Lister().Get(k)
-			if err != nil {
-				return nil, err
-			}
-			workspaces = append(workspaces, workspace)
-		}
-	}
-
-	result := make([]*v1alpha1.Workspace, 0)
-
-	for _, workspace := range workspaces {
-		if w.match(conditions.Match, workspace) && w.fuzzy(conditions.Fuzzy, workspace) {
-			result = append(result, workspace)
-		}
-	}
-
-	// order & reverse
-	sort.Slice(result, func(i, j int) bool {
-		if reverse {
-			i, j = j, i
-		}
-		return w.compare(result[i], result[j], orderBy)
-	})
-
-	return result, nil
+	panic("implement me")
 }
 
 func (w *workspaceOperator) GetWorkspace(workspaceName string) (*v1alpha1.Workspace, error) {

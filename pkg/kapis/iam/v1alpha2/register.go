@@ -29,7 +29,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -123,29 +122,6 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Doc("List all users that are bound to the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/clusterroles/{clusterrole}/rules").
-		To(handler.ListClusterRoleRules).
-		Doc("List all policy rules of the specified cluster role.").
-		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Returns(http.StatusOK, api.StatusOK, []policy.SimpleRule{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/rules").
-		To(handler.ListRoleRules).
-		Doc("List all policy rules of the specified role in the given namespace.").
-		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, api.StatusOK, []policy.SimpleRule{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/rulesmapping/clusterroles").
-		To(handler.ClusterRulesMapping).
-		Doc("Get the mapping relationships between cluster roles and policy rules.").
-		Returns(http.StatusOK, api.StatusOK, policy.ClusterRoleRuleMapping).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/rulesmapping/roles").
-		To(handler.RulesMapping).
-		Doc("Get the mapping relationships between namespaced roles and policy rules.").
-		Returns(http.StatusOK, api.StatusOK, policy.RoleRuleMapping).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/roles").

@@ -19,17 +19,13 @@ package tenant
 
 import (
 	"k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	k8sinformers "k8s.io/client-go/informers"
 	kubernetes "k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/iam"
+	am2 "kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
 	"strings"
 )
 
@@ -41,7 +37,7 @@ type NamespaceInterface interface {
 type namespaceSearcher struct {
 	k8s       kubernetes.Interface
 	informers k8sinformers.SharedInformerFactory
-	am        iam.AccessManagementInterface
+	am        am2.AccessManagementInterface
 }
 
 func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
@@ -57,7 +53,7 @@ func (s *namespaceSearcher) CreateNamespace(workspace string, namespace *v1.Name
 	return s.k8s.CoreV1().Namespaces().Create(namespace)
 }
 
-func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory, am iam.AccessManagementInterface) NamespaceInterface {
+func newNamespaceOperator(k8s kubernetes.Interface, informers k8sinformers.SharedInformerFactory, am am2.AccessManagementInterface) NamespaceInterface {
 	return &namespaceSearcher{k8s: k8s, informers: informers, am: am}
 }
 
@@ -111,76 +107,9 @@ func (s *namespaceSearcher) compare(a, b *v1.Namespace, orderBy string) bool {
 }
 
 func (s *namespaceSearcher) GetNamespaces(username string) ([]*v1.Namespace, error) {
-
-	roles, err := s.am.GetRoles("", username)
-
-	if err != nil {
-		return nil, err
-	}
-	namespaces := make([]*v1.Namespace, 0)
-	namespaceLister := s.informers.Core().V1().Namespaces().Lister()
-	for _, role := range roles {
-		namespace, err := namespaceLister.Get(role.Namespace)
-		if err != nil {
-			klog.Errorf("get namespace failed: %+v", err)
-			return nil, err
-		}
-		if !containsNamespace(namespaces, namespace) {
-			namespaces = append(namespaces, namespace)
-		}
-	}
-
-	return namespaces, nil
-}
-
-func containsNamespace(namespaces []*v1.Namespace, namespace *v1.Namespace) bool {
-	for _, item := range namespaces {
-		if item.Name == namespace.Name {
-			return true
-		}
-	}
-	return false
+	panic("implement me")
 }
 
 func (s *namespaceSearcher) Search(username string, conditions *params.Conditions, orderBy string, reverse bool) ([]*v1.Namespace, error) {
-
-	rules, err := s.am.GetClusterPolicyRules(username)
-
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces := make([]*v1.Namespace, 0)
-
-	if iam.RulesMatchesRequired(rules, rbacv1.PolicyRule{Verbs: []string{"list"}, APIGroups: []string{"tenant.kubesphere.io"}, Resources: []string{"namespaces"}}) {
-		namespaces, err = s.informers.Core().V1().Namespaces().Lister().List(labels.Everything())
-	} else {
-		namespaces, err = s.GetNamespaces(username)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*v1.Namespace, 0)
-
-	for _, namespace := range namespaces {
-		if s.match(conditions.Match, namespace) && s.fuzzy(conditions.Fuzzy, namespace) {
-			result = append(result, namespace)
-		}
-	}
-
-	// order & reverse
-	sort.Slice(result, func(i, j int) bool {
-		if reverse {
-			i, j = j, i
-		}
-		return s.compare(result[i], result[j], orderBy)
-	})
-
-	return result, nil
-}
-
-func CreateNamespace() {
-
+	panic("implement me")
 }

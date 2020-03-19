@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	controllermanager "kubesphere.io/kubesphere/cmd/controller-manager/app"
-	ksapigateway "kubesphere.io/kubesphere/cmd/ks-apigateway/app"
 	ksapiserver "kubesphere.io/kubesphere/cmd/ks-apiserver/app"
 	"os"
 )
@@ -45,12 +44,10 @@ func commandFor(basename string, defaultCommand *cobra.Command, commands []func(
 func NewHyperSphereCommand() (*cobra.Command, []func() *cobra.Command) {
 	apiserver := func() *cobra.Command { return ksapiserver.NewAPIServerCommand() }
 	controllermanager := func() *cobra.Command { return controllermanager.NewControllerManagerCommand() }
-	apigateway := func() *cobra.Command { return ksapigateway.NewAPIGatewayCommand() }
 
 	commandFns := []func() *cobra.Command{
 		apiserver,
 		controllermanager,
-		apigateway,
 	}
 
 	cmd := &cobra.Command{

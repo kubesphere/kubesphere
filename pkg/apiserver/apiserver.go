@@ -33,6 +33,7 @@ import (
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -103,8 +104,6 @@ type APIServer struct {
 
 	//
 	LdapClient ldap.Interface
-
-	//
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -188,7 +187,7 @@ func (s *APIServer) buildHandlerChain() {
 
 	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer())
+	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.KubernetesClient.Kubernetes(), s.InformerFactory.KubernetesSharedInformerFactory())))
 	handler = filters.WithAuthorization(handler, authorizer)
 	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})

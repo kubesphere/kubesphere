@@ -26,7 +26,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/db"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/devops"
-	"kubesphere.io/kubesphere/pkg/models/iam/policy"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	dsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
@@ -38,7 +37,6 @@ type DevOpsProjectOperator interface {
 	CreateDevOpsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
 	GetDevOpsProjectsCount(username string) (uint32, error)
 	DeleteDevOpsProject(projectId, username string) error
-	GetUserDevOpsSimpleRules(username, projectId string) ([]policy.SimpleRule, error)
 }
 
 type devopsProjectOperator struct {
@@ -208,16 +206,6 @@ func (o *devopsProjectOperator) CreateDevOpsProject(username string, workspace s
 	return project, nil
 }
 
-func (o *devopsProjectOperator) GetUserDevOpsSimpleRules(username, projectId string) ([]policy.SimpleRule, error) {
-
-	role, err := o.getProjectUserRole(username, projectId)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusForbidden, err.Error())
-	}
-	return GetDevopsRoleSimpleRules(role), nil
-}
-
 func (o *devopsProjectOperator) getProjectUserRole(username, projectId string) (string, error) {
 	if username == devops.KS_ADMIN {
 		return dsClient.ProjectOwner, nil
@@ -234,48 +222,4 @@ func (o *devopsProjectOperator) getProjectUserRole(username, projectId string) (
 	}
 
 	return membership.Role, nil
-}
-
-func GetDevopsRoleSimpleRules(role string) []policy.SimpleRule {
-	var rules []policy.SimpleRule
-
-	switch role {
-	case "developer":
-		rules = []policy.SimpleRule{
-			{Name: "pipelines", Actions: []string{"view", "trigger"}},
-			{Name: "roles", Actions: []string{"view"}},
-			{Name: "members", Actions: []string{"view"}},
-			{Name: "devops", Actions: []string{"view"}},
-		}
-		break
-	case "owner":
-		rules = []policy.SimpleRule{
-			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
-			{Name: "roles", Actions: []string{"view"}},
-			{Name: "members", Actions: []string{"create", "edit", "view", "delete"}},
-			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
-			{Name: "devops", Actions: []string{"edit", "view", "delete"}},
-		}
-		break
-	case "maintainer":
-		rules = []policy.SimpleRule{
-			{Name: "pipelines", Actions: []string{"create", "edit", "view", "delete", "trigger"}},
-			{Name: "roles", Actions: []string{"view"}},
-			{Name: "members", Actions: []string{"view"}},
-			{Name: "credentials", Actions: []string{"create", "edit", "view", "delete"}},
-			{Name: "devops", Actions: []string{"view"}},
-		}
-		break
-	case "reporter":
-		fallthrough
-	default:
-		rules = []policy.SimpleRule{
-			{Name: "pipelines", Actions: []string{"view"}},
-			{Name: "roles", Actions: []string{"view"}},
-			{Name: "members", Actions: []string{"view"}},
-			{Name: "devops", Actions: []string{"view"}},
-		}
-		break
-	}
-	return rules
 }
