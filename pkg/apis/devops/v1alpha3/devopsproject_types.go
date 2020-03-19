@@ -25,6 +25,12 @@ import (
 
 const DevOpsProjectFinalizerName = "devopsproject.finalizers.kubesphere.io"
 
+const (
+	ResourceKindDevOpsProject     = "DevOpsProject"
+	ResourceSingularDevOpsProject = "devopsproject"
+	ResourcePluralDevOpsProject   = "devopsprojects"
+)
+
 // DevOpsProjectSpec defines the desired state of DevOpsProject
 type DevOpsProjectSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster

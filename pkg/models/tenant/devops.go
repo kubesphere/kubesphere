@@ -186,7 +186,7 @@ func (o *devopsProjectOperator) DeleteDevOpsProject(projectId, username string) 
 func (o *devopsProjectOperator) CreateDevOpsProject(username string, workspace string, req *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error) {
 
 	project := devops.NewDevOpsProject(req.Name, req.Description, username, req.Extra, workspace)
-	_, err := o.dsProject.CreateDevOpsProject(username, project)
+	_, err := o.dsProject.CreateDevOpsProject(project.ProjectId)
 	if err != nil {
 		klog.Error(err)
 		return nil, err

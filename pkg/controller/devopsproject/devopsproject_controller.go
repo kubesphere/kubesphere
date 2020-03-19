@@ -1,4 +1,4 @@
-package s2ibinary
+package devopsproject
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ import (
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 )
 
-type DevOpsProjectController struct {
+type Controller struct {
 	client           clientset.Interface
 	kubesphereClient kubesphereclient.Interface
 
@@ -41,10 +41,10 @@ type DevOpsProjectController struct {
 	devopsClient devopsClient.Interface
 }
 
-func NewController(kubesphereClient kubesphereclient.Interface,
-	client clientset.Interface,
+func NewController(client clientset.Interface,
+	kubesphereClient kubesphereclient.Interface,
 	devopsClinet devopsClient.Interface,
-	devopsInformer devopsinformers.DevOpsProjectInformer) *DevOpsProjectController {
+	devopsInformer devopsinformers.DevOpsProjectInformer) *Controller {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -53,7 +53,7 @@ func NewController(kubesphereClient kubesphereclient.Interface,
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "devopsproject-controller"})
 
-	v := &DevOpsProjectController{
+	v := &Controller{
 		client:              client,
 		devopsClient:        devopsClinet,
 		kubesphereClient:    kubesphereClient,
@@ -84,7 +84,7 @@ func NewController(kubesphereClient kubesphereclient.Interface,
 // enqueueDevOpsProject takes a Foo resource and converts it into a namespace/name
 // string which is then put onto the work workqueue. This method should *not* be
 // passed resources of any type other than DevOpsProject.
-func (c *DevOpsProjectController) enqueueDevOpsProject(obj interface{}) {
+func (c *Controller) enqueueDevOpsProject(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -94,7 +94,7 @@ func (c *DevOpsProjectController) enqueueDevOpsProject(obj interface{}) {
 	c.workqueue.Add(key)
 }
 
-func (c *DevOpsProjectController) processNextWorkItem() bool {
+func (c *Controller) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -129,17 +129,17 @@ func (c *DevOpsProjectController) processNextWorkItem() bool {
 	return true
 }
 
-func (c *DevOpsProjectController) worker() {
+func (c *Controller) worker() {
 
 	for c.processNextWorkItem() {
 	}
 }
 
-func (c *DevOpsProjectController) Start(stopCh <-chan struct{}) error {
+func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(1, stopCh)
 }
 
-func (c *DevOpsProjectController) Run(workers int, stopCh <-chan struct{}) error {
+func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
@@ -161,7 +161,7 @@ func (c *DevOpsProjectController) Run(workers int, stopCh <-chan struct{}) error
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the devopsproject resource
 // with the current status of the resource.
-func (c *DevOpsProjectController) syncHandler(key string) error {
+func (c *Controller) syncHandler(key string) error {
 	project, err := c.devOpsProjectLister.Get(key)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -180,23 +180,6 @@ func (c *DevOpsProjectController) syncHandler(key string) error {
 				return err
 			}
 		}
-
-	} else {
-		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
-			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
-				klog.Error(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-				return err
-			}
-			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.DevOpsProjectFinalizerName
-			})
-			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
-			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to update project %s ", key))
-				return err
-			}
-		}
-
 		_, err := c.devopsClient.GetDevOpsProject(key)
 		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
 			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
@@ -208,12 +191,35 @@ func (c *DevOpsProjectController) syncHandler(key string) error {
 				return err
 			}
 		}
+	} else {
+		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
+			_, err := c.devopsClient.GetDevOpsProject(key)
+			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
+				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
+				return err
+			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
+			} else {
+				if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
+					klog.Error(err, fmt.Sprintf("failed to delete resource %s in devops", key))
+					return err
+				}
+			}
+			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
+				return item == devopsv1alpha3.DevOpsProjectFinalizerName
+			})
+
+			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to update project %s ", key))
+				return err
+			}
+		}
 	}
 
 	return nil
 }
 
-func (c *DevOpsProjectController) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) error {
+func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) error {
 
 	err := c.devopsClient.DeleteDevOpsProject(project.Name)
 	if err != nil {
