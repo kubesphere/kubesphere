@@ -19,7 +19,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
@@ -125,7 +125,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 
 	if s.S3Options.Endpoint != "" {
 		if s.S3Options.Endpoint == fakeInterface && s.DebugMode {
-			apiServer.S3Client = fakeS3.NewFakeS3()
+			apiServer.S3Client = fakes3.NewFakeS3()
 		} else {
 			s3Client, err := s3.NewS3Client(s.S3Options)
 			if err != nil {

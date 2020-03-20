@@ -1,7 +1,7 @@
 package s2ibinary
 
 import (
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"reflect"
 	"testing"
 	"time"
@@ -35,8 +35,8 @@ type fixture struct {
 	// Objects from here preloaded into NewSimpleFake.
 	objects []runtime.Object
 	// Objects from here preloaded into s3
-	initS3Objects   []*fakeS3.Object
-	expectS3Objects []*fakeS3.Object
+	initS3Objects   []*fakes3.Object
+	expectS3Objects []*fakes3.Object
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -69,12 +69,12 @@ func newDeletingS2iBinary(name string) *s2i.S2iBinary {
 	}
 }
 
-func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, *fakeS3.FakeS3) {
+func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, *fakes3.FakeS3) {
 	f.client = fake.NewSimpleClientset(f.objects...)
 	f.kubeclient = k8sfake.NewSimpleClientset()
 
 	i := informers.NewSharedInformerFactory(f.client, noResyncPeriodFunc())
-	s3I := fakeS3.NewFakeS3(f.expectS3Objects...)
+	s3I := fakes3.NewFakeS3(f.expectS3Objects...)
 
 	c := NewController(f.kubeclient, f.client, i.Devops().V1alpha1().S2iBinaries(), s3I)
 
@@ -225,10 +225,10 @@ func TestDeleteS3Object(t *testing.T) {
 
 	f.s2ibinaryLister = append(f.s2ibinaryLister, s2iBinary)
 	f.objects = append(f.objects, s2iBinary)
-	f.initS3Objects = []*fakeS3.Object{&fakeS3.Object{
+	f.initS3Objects = []*fakes3.Object{&fakes3.Object{
 		Key: "default-test",
 	}}
-	f.expectS3Objects = []*fakeS3.Object{}
+	f.expectS3Objects = []*fakes3.Object{}
 	f.expectUpdateS2iBinaryAction(s2iBinary)
 	f.run(getKey(s2iBinary, t))
 

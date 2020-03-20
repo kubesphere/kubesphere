@@ -21,14 +21,16 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
+	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -36,6 +38,8 @@ func AddControllers(
 	mgr manager.Manager,
 	client k8s.Client,
 	informerFactory informers.InformerFactory,
+	devopsClient devops.Interface,
+	s3Client s3.Interface,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -73,12 +77,17 @@ func AddControllers(
 	s2iBinaryController := s2ibinary.NewController(client.Kubernetes(),
 		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-		fakeS3.NewFakeS3())
+		s3Client,
+	)
 
 	s2iRunController := s2irun.NewS2iRunController(client.Kubernetes(),
 		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
+	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
+		client.KubeSphere(), devopsClient,
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
+	)
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
 		client.Kubernetes(),
@@ -97,6 +106,7 @@ func AddControllers(
 		"s2ibinary-controller":       s2iBinaryController,
 		"s2irun-controller":          s2iRunController,
 		"volumeexpansion-controller": volumeExpansionController,
+		"devopsprojects-controller":  devopsProjectController,
 	}
 
 	for name, ctrl := range controllers {

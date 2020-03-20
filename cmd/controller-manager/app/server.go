@@ -37,9 +37,11 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	kclient "kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -103,22 +105,18 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		klog.Errorf("Failed to create openpitrix client %v", err)
 		return err
 	}
-	/*
-		devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
-		if err != nil {
-			klog.Errorf("Failed to create devops client %v", err)
-			return err
-		}
 
-		s3Client, err := s3.NewS3Client(s.S3Options)
-		if err != nil {
-			klog.Errorf("Failed to create s3 client", err)
-			return err
-		}
+	devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
+	if err != nil {
+		klog.Errorf("Failed to create devops client %v", err)
+		return err
+	}
 
-
-
-	*/
+	s3Client, err := s3.NewS3Client(s.S3Options)
+	if err != nil {
+		klog.Errorf("Failed to create s3 client", err)
+		return err
+	}
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
 	informerFactory.Start(stopCh)
@@ -146,7 +144,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			klog.Fatal("Unable to create namespace controller")
 		}
 
-		if err := AddControllers(mgr, kubernetesClient, informerFactory, stopCh); err != nil {
+		if err := AddControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 
