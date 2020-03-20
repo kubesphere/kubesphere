@@ -114,7 +114,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	s3Client, err := s3.NewS3Client(s.S3Options)
 	if err != nil {
-		klog.Errorf("Failed to create s3 client", err)
+		klog.Errorf("Failed to create s3 client %v", err)
 		return err
 	}
 
