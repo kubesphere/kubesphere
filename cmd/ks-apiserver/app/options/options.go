@@ -6,7 +6,7 @@ import (
 	"fmt"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -40,7 +40,7 @@ type ServerRunOptions struct {
 	LoggingOptions          *esclient.Options
 	LdapOptions             *ldap.Options
 	CacheOptions            *cache.Options
-	AuthenticateOptions     *iam.AuthenticationOptions
+	AuthenticateOptions     *auth.AuthenticationOptions
 
 	//
 	DebugMode bool
@@ -61,7 +61,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		LoggingOptions:          esclient.NewElasticSearchOptions(),
 		LdapOptions:             ldap.NewOptions(),
 		CacheOptions:            cache.NewRedisOptions(),
-		AuthenticateOptions:     iam.NewAuthenticateOptions(),
+		AuthenticateOptions:     auth.NewAuthenticateOptions(),
 	}
 
 	return &s

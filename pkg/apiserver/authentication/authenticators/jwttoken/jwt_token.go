@@ -2,10 +2,9 @@ package jwttoken
 
 import (
 	"context"
-	"fmt"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"kubesphere.io/kubesphere/pkg/api/iam/token"
+	"kubesphere.io/kubesphere/pkg/api/auth/token"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 )
@@ -50,9 +49,4 @@ func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil
-
-}
-
-func tokenKeyForUsername(username, token string) string {
-	return fmt.Sprintf("kubesphere:users:%s:token:%s", username, token)
 }

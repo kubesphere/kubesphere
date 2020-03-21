@@ -12,7 +12,7 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	authenticationrequest "kubesphere.io/kubesphere/pkg/apiserver/authentication/request"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
@@ -26,6 +26,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
@@ -69,7 +70,7 @@ type APIServer struct {
 	//
 	Server *http.Server
 
-	AuthenticateOptions *iam.AuthenticationOptions
+	AuthenticateOptions *auth.AuthenticationOptions
 
 	// webservice container, where all webservice defines
 	container *restful.Container
@@ -141,6 +142,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient.Database()))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.AuthenticateOptions))
+	urlruntime.Must(oauth.AddToContainer(s.container, s.AuthenticateOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 }
 

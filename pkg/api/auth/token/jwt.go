@@ -3,7 +3,6 @@ package token
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"kubesphere.io/kubesphere/pkg/api/iam"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"time"
 )
@@ -13,8 +12,9 @@ const DefaultIssuerName = "kubesphere"
 var errInvalidToken = errors.New("invalid token")
 
 type claims struct {
-	Username string `json:"username"`
-	UID      string `json:"uid"`
+	Username string   `json:"username"`
+	UID      string   `json:"uid"`
+	Groups   []string `json:"groups"`
 	// Currently, we are not using any field in jwt.StandardClaims
 	jwt.StandardClaims
 }
@@ -37,13 +37,14 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 		return nil, err
 	}
 
-	return &iam.User{Username: clm.Username, UID: clm.UID}, nil
+	return &AuthUser{Name: clm.Username, UID: clm.UID, Groups: clm.Groups}, nil
 }
 
 func (s *jwtTokenIssuer) IssueTo(user User) (string, error) {
 	clm := &claims{
 		Username: user.GetName(),
 		UID:      user.GetUID(),
+		Groups:   user.GetGroups(),
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    s.name,

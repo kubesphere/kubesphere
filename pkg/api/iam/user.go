@@ -16,25 +16,16 @@ type User struct {
 	Password    string    `json:"password,omitempty"`
 }
 
-func NewUser() *User {
-	return &User{
-		Username:    "",
-		UID:         "",
-		Email:       "",
-		Lang:        "",
-		Description: "",
-		CreateTime:  time.Time{},
-		Groups:      nil,
-		Password:    "",
-	}
-}
-
 func (u *User) GetName() string {
 	return u.Username
 }
 
 func (u *User) GetUID() string {
-	return ""
+	return u.UID
+}
+
+func (u *User) GetGroups() []string {
+	return u.Groups
 }
 
 func (u *User) Validate() error {

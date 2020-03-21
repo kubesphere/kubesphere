@@ -20,11 +20,9 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/iam"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/api/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -40,88 +38,44 @@ const groupName = "iam.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *iam.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *auth.AuthenticationOptions) error {
 	ws := runtime.NewWebService(GroupVersion)
 
 	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)
 
-	ws.Route(ws.POST("/authenticate").
-		To(handler.TokenReviewHandler).
-		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.").
-		Reads(iamv1alpha2.TokenReview{}).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.TokenReview{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.POST("/login").
-		To(handler.Login).
-		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
-		Reads(iamv1alpha2.LoginRequest{}).
-		Returns(http.StatusOK, api.StatusOK, models.AuthGrantResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.POST("/users").
-		To(handler.CreateUser).
-		Doc("Create a user account.").
-		Reads(iamv1alpha2.CreateUserRequest{}).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.DELETE("/users/{user}").
-		To(handler.DeleteUser).
-		Doc("Delete the specified user.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.PUT("/users/{user}").
-		To(handler.ModifyUser).
-		Doc("Update information about the specified user.").
-		Param(ws.PathParameter("user", "username")).
-		Reads(iamv1alpha2.ModifyUserRequest{}).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.GET("/users/{user}").
-		To(handler.DescribeUser).
-		Doc("Describe the specified user.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.GET("/users").
-		To(handler.ListUsers).
-		Doc("List all users.").
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.ListUserResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
-	ws.Route(ws.GET("/users/{user}/roles").
-		To(handler.ListUserRoles).
-		Doc("Retrieve all the roles that are assigned to the specified user.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, []*rbacv1.Role{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	// implemented by create CRD object.
+	ws.Route(ws.POST("/users"))
+	ws.Route(ws.DELETE("/users/{user}"))
+	ws.Route(ws.PUT("/users/{user}"))
+	ws.Route(ws.GET("/users/{user}"))
+
+	// TODO move to resources api
+	ws.Route(ws.GET("/users"))
+
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
 		To(handler.ListRoles).
 		Doc("Retrieve the roles that are assigned to the user in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	ws.Route(ws.GET("/clusterroles").
 		To(handler.ListClusterRoles).
 		Doc("List all cluster roles.").
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users").
-		To(handler.ListRoleUsers).
-		Doc("Retrieve the users that are bound to the role in the specified namespace.").
-		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Param(ws.PathParameter("role", "role name")).
-		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	// TODO merge
+	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users"))
 	ws.Route(ws.GET("/namespaces/{namespace}/users").
 		To(handler.ListNamespaceUsers).
 		Doc("List all users in the specified namespace.").
 		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
 		To(handler.ListClusterRoleUsers).
 		Doc("List all users that are bound to the specified cluster role.").
 		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Returns(http.StatusOK, api.StatusOK, []iamv1alpha2.ListUserResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/workspaces/{workspace}/roles").
@@ -129,23 +83,14 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Doc("List all workspace roles.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}").
-		To(handler.DescribeWorkspaceRole).
-		Doc("Describe the workspace role.").
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("role", "workspace role name")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/roles/{role}/rules").
-		To(handler.ListWorkspaceRoleRules).
-		Doc("List all policy rules of the specified workspace role.").
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("role", "workspace role name")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/members").
 		To(handler.ListWorkspaceUsers).
 		Doc("List all members in the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	// TODO re-design
 	ws.Route(ws.POST("/workspaces/{workspace}/members").
 		To(handler.InviteUser).
 		Doc("Invite a member to the specified workspace.").
@@ -158,12 +103,7 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Param(ws.PathParameter("member", "username")).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}").
-		To(handler.DescribeWorkspaceUser).
-		Doc("Describe the specified user in the given workspace.").
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("member", "username")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	c.Add(ws)
 	return nil
 }

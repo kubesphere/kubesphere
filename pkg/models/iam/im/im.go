@@ -23,8 +23,9 @@ import (
 	"golang.org/x/oauth2"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/api/auth/token"
 	"kubesphere.io/kubesphere/pkg/api/iam"
-	"kubesphere.io/kubesphere/pkg/api/iam/token"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -35,17 +36,16 @@ import (
 type IdentityManagementInterface interface {
 	CreateUser(user *iam.User) (*iam.User, error)
 	DeleteUser(username string) error
+	ModifyUser(user *iam.User) (*iam.User, error)
 	DescribeUser(username string) (*iam.User, error)
 	Login(username, password, ip string) (*oauth2.Token, error)
-	ModifyUser(user *iam.User) (*iam.User, error)
 	ListUsers(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	GetUserRoles(username string) ([]*rbacv1.Role, error)
 	GetUserRole(namespace string, username string) (*rbacv1.Role, error)
-	VerifyToken(token string) (*iam.User, error)
 }
 
 type imOperator struct {
-	authenticateOptions *iam.AuthenticationOptions
+	authenticateOptions *auth.AuthenticationOptions
 	ldapClient          ldap.Interface
 	cacheClient         cache.Interface
 	issuer              token.Issuer
@@ -57,7 +57,7 @@ var (
 	UserNotExists         = errors.New("user not exists")
 )
 
-func NewIMOperator(ldapClient ldap.Interface, cacheClient cache.Interface, options *iam.AuthenticationOptions) *imOperator {
+func NewIMOperator(ldapClient ldap.Interface, cacheClient cache.Interface, options *auth.AuthenticationOptions) *imOperator {
 	return &imOperator{
 		ldapClient:          ldapClient,
 		cacheClient:         cacheClient,
