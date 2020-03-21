@@ -7,6 +7,7 @@ import (
 
 type User struct {
 	Username    string    `json:"username"`
+	UID         string    `json:"uid"`
 	Email       string    `json:"email"`
 	Lang        string    `json:"lang,omitempty"`
 	Description string    `json:"description"`
@@ -18,6 +19,7 @@ type User struct {
 func NewUser() *User {
 	return &User{
 		Username:    "",
+		UID:         "",
 		Email:       "",
 		Lang:        "",
 		Description: "",
@@ -27,12 +29,12 @@ func NewUser() *User {
 	}
 }
 
-func (u *User) Name() string {
+func (u *User) GetName() string {
 	return u.Username
 }
 
-func (u *User) UID() string {
-	return u.Email
+func (u *User) GetUID() string {
+	return ""
 }
 
 func (u *User) Validate() error {

@@ -175,23 +175,19 @@ func (s *APIServer) buildHandlerChain() {
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
 	}
 
-	failed := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	})
-
 	handler := s.Server.Handler
 
-	handler = filters.WithRequestInfo(handler, requestInfoResolver)
-	authn := unionauth.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
-	handler = filters.WithAuthentication(handler, authn, failed)
+	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
+	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
 
 	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator(cache.NewSimpleCache())))
 	handler = filters.WithAuthorization(handler, authorizer)
-	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
-	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
+	authn := unionauth.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
+	handler = filters.WithAuthentication(handler, authn)
+	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
 }
 

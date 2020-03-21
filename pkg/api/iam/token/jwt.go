@@ -37,13 +37,13 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 		return nil, err
 	}
 
-	return &iam.User{Username: clm.Username, Email: clm.UID}, nil
+	return &iam.User{Username: clm.Username, UID: clm.UID}, nil
 }
 
 func (s *jwtTokenIssuer) IssueTo(user User) (string, error) {
 	clm := &claims{
-		Username: user.Name(),
-		UID:      user.UID(),
+		Username: user.GetName(),
+		UID:      user.GetUID(),
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    s.name,

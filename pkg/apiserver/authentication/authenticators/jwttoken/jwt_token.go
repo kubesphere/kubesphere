@@ -35,17 +35,18 @@ func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string
 		return nil, false, err
 	}
 
-	_, err = t.cacheClient.Get(tokenKeyForUsername(providedUser.Name(), token))
-	if err != nil {
-		return nil, false, errTokenExpired
-	}
+	// TODO implement token cache
+	//_, err = t.cacheClient.Get(tokenKeyForUsername(providedUser.Name(), token))
+	//if err != nil {
+	//	return nil, false, errTokenExpired
+	//}
 
 	// Should we need to refresh token?
 
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
-			Name:   providedUser.Name(),
-			UID:    providedUser.UID(),
+			Name:   providedUser.GetName(),
+			UID:    providedUser.GetUID(),
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil

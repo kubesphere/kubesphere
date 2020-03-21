@@ -2,7 +2,8 @@ package token
 
 type User interface {
 	// Name
-	Name() string
+	GetName() string
 
-	UID() string
+	// UID
+	GetUID() string
 }

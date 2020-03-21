@@ -3,8 +3,9 @@ package filters
 import (
 	"context"
 	"errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -17,6 +18,8 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer) http.Handl
 		klog.Warningf("Authorization is disabled")
 		return handler
 	}
+
+	serializer := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
@@ -38,14 +41,14 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer) http.Handl
 		}
 
 		klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
-		w.WriteHeader(http.StatusForbidden)
+		responsewriters.Forbidden(ctx, attributes, w, req, reason, serializer)
 	})
 }
 
 func GetAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error) {
 	attribs := authorizer.AttributesRecord{}
 
-	user, ok := k8srequest.UserFrom(ctx)
+	user, ok := request.UserFrom(ctx)
 	if ok {
 		attribs.User = user
 	}

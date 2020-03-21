@@ -12,22 +12,22 @@ func TestJwtTokenIssuer(t *testing.T) {
 	testCases := []struct {
 		description string
 		name        string
-		email       string
+		uid         string
 	}{
 		{
-			name:  "admin",
-			email: "admin@kubesphere.io",
+			name: "admin",
+			uid:  "b8be6edd-2c92-4535-9b2a-df6326474458",
 		},
 		{
-			name:  "bar",
-			email: "bar@kubesphere.io",
+			name: "bar",
+			uid:  "b8be6edd-2c92-4535-9b2a-df6326474452",
 		},
 	}
 
 	for _, testCase := range testCases {
 		user := &iam.User{
 			Username: testCase.name,
-			Email:    testCase.email,
+			UID:      testCase.uid,
 		}
 
 		t.Run(testCase.description, func(t *testing.T) {

@@ -187,7 +187,7 @@ func (im *imOperator) VerifyToken(tokenString string) (*iam.User, error) {
 		return nil, err
 	}
 
-	user, err := im.ldapClient.Get(providedUser.Name())
+	user, err := im.ldapClient.Get(providedUser.GetName())
 	if err != nil {
 		return nil, err
 	}
