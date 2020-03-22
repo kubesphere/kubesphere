@@ -19,19 +19,25 @@
 package oauth
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
-	"kubesphere.io/kubesphere/pkg/api/auth/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"net/http"
 )
 
 type oauthHandler struct {
 	issuer token.Issuer
+	config oauth.Configuration
 }
 
-func newOAUTHHandler(issuer token.Issuer) *oauthHandler {
-	return &oauthHandler{issuer: issuer}
+func newOAUTHHandler(issuer token.Issuer, config oauth.Configuration) *oauthHandler {
+	return &oauthHandler{issuer: issuer, config: config}
 }
 
 // Implement webhook authentication interface
@@ -53,7 +59,7 @@ func (h *oauthHandler) TokenReviewHandler(req *restful.Request, resp *restful.Re
 		return
 	}
 
-	user, err := h.issuer.Verify(tokenReview.Spec.Token)
+	user, _, err := h.issuer.Verify(tokenReview.Spec.Token)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -70,4 +76,46 @@ func (h *oauthHandler) TokenReviewHandler(req *restful.Request, resp *restful.Re
 	}
 
 	resp.WriteEntity(success)
+}
+
+func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Response) {
+	user, ok := request.UserFrom(req.Request.Context())
+	clientId := req.QueryParameter("client_id")
+	responseType := req.QueryParameter("response_type")
+
+	conf, err := h.config.Load(clientId)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	if responseType != "token" {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: response type %s is not supported", responseType))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	if !ok {
+		err := apierrors.NewUnauthorized("Unauthorized")
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	accessToken, clm, err := h.issuer.IssueTo(user)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	redirectURL := fmt.Sprintf("%s?access_token=%s&token_type=Bearer", conf.RedirectURL, accessToken)
+	expiresIn := clm.ExpiresAt - clm.IssuedAt
+	if expiresIn > 0 {
+		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, expiresIn)
+	}
+
+	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }

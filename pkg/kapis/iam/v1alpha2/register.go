@@ -44,13 +44,13 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)
 
 	// implemented by create CRD object.
-	ws.Route(ws.POST("/users"))
-	ws.Route(ws.DELETE("/users/{user}"))
-	ws.Route(ws.PUT("/users/{user}"))
-	ws.Route(ws.GET("/users/{user}"))
+	//ws.Route(ws.POST("/users"))
+	//ws.Route(ws.DELETE("/users/{user}"))
+	//ws.Route(ws.PUT("/users/{user}"))
+	//ws.Route(ws.GET("/users/{user}"))
 
 	// TODO move to resources api
-	ws.Route(ws.GET("/users"))
+	//ws.Route(ws.GET("/users"))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
 		To(handler.ListRoles).
@@ -66,7 +66,7 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	// TODO merge
-	ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users"))
+	//ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users"))
 	ws.Route(ws.GET("/namespaces/{namespace}/users").
 		To(handler.ListNamespaceUsers).
 		Doc("List all users in the specified namespace.").

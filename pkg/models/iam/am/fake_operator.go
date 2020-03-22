@@ -21,6 +21,7 @@ package am
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 )
 
@@ -124,6 +125,15 @@ func (f FakeRole) GetRego() string {
 	return f.Rego
 }
 
-func NewFakeAMOperator(cache cache.Interface) *FakeOperator {
-	return &FakeOperator{cache: cache}
+func NewFakeAMOperator() *FakeOperator {
+	operator := &FakeOperator{cache: cache.NewSimpleCache()}
+	operator.saveFakeRole(platformRoleCacheKey("admin"), FakeRole{
+		Name: "admin",
+		Rego: "package authz\ndefault allow = true",
+	})
+	operator.saveFakeRole(platformRoleCacheKey(user.Anonymous), FakeRole{
+		Name: "admin",
+		Rego: "package authz\ndefault allow = false",
+	})
+	return operator
 }

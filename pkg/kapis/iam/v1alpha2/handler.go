@@ -19,7 +19,7 @@ type iamHandler struct {
 func newIAMHandler(k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *auth.AuthenticationOptions) *iamHandler {
 	return &iamHandler{
 		amOperator: am.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
-		imOperator: im.NewIMOperator(ldapClient, cacheClient, options),
+		imOperator: im.NewLDAPOperator(ldapClient),
 	}
 }
 
@@ -48,6 +48,7 @@ func (h *iamHandler) ListUserRoles(req *restful.Request, resp *restful.Response)
 }
 
 func (h *iamHandler) ListRoles(req *restful.Request, resp *restful.Response) {
+
 	panic("implement me")
 }
 func (h *iamHandler) ListClusterRoles(req *restful.Request, resp *restful.Response) {

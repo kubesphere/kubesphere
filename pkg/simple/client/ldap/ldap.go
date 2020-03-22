@@ -347,7 +347,7 @@ func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
 
 }
 
-func (l *ldapInterfaceImpl) Verify(username, password string) error {
+func (l *ldapInterfaceImpl) Authenticate(username, password string) error {
 	conn, err := l.newConn()
 	if err != nil {
 		return err

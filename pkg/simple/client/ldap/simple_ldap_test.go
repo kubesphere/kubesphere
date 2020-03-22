@@ -85,12 +85,12 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = ldapClient.Verify(foo.Name, foo.Password)
+		err = ldapClient.Authenticate(foo.Name, foo.Password)
 		if err != nil {
 			t.Fatalf("should pass but got an error %v", err)
 		}
 
-		err = ldapClient.Verify(foo.Name, "gibberish")
+		err = ldapClient.Authenticate(foo.Name, "gibberish")
 		if err == nil || err != ErrInvalidCredentials {
 			t.Fatalf("expected error ErrInvalidCrenentials but got %v", err)
 		}

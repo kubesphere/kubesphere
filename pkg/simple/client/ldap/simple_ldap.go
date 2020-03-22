@@ -60,7 +60,7 @@ func (s simpleLdap) Get(name string) (*iam.User, error) {
 	}
 }
 
-func (s simpleLdap) Verify(name string, password string) error {
+func (s simpleLdap) Authenticate(name string, password string) error {
 	if user, err := s.Get(name); err != nil {
 		return err
 	} else {

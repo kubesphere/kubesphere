@@ -23,18 +23,19 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
-	"kubesphere.io/kubesphere/pkg/api/auth/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 )
 
-func AddToContainer(c *restful.Container, options *auth.AuthenticationOptions) error {
-	ws := restful.WebService{}
+func AddToContainer(c *restful.Container, issuer token.Issuer, configuration oauth.Configuration) error {
+	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newOAUTHHandler(token.NewJwtTokenIssuer(token.DefaultIssuerName, []byte(options.JwtSecret)))
+	handler := newOAUTHHandler(issuer, configuration)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
@@ -46,16 +47,17 @@ func AddToContainer(c *restful.Container, options *auth.AuthenticationOptions) e
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 
 	// TODO Built-in oauth2 server (provider)
-	// Low priority
-	c.Add(ws.Route(ws.POST("/authorize")))
-
 	// web console use 'Resource Owner Password Credentials Grant' or 'Client Credentials Grant' request for an OAuth token
 	// https://tools.ietf.org/html/rfc6749#section-4.3
 	// https://tools.ietf.org/html/rfc6749#section-4.4
-	c.Add(ws.Route(ws.POST("/token")))
 
-	// oauth2 client callback
-	c.Add(ws.Route(ws.POST("/callback/{callback}")))
+	// curl -u admin:P@88w0rd 'http://ks-apiserver.kubesphere-system.svc/oauth/authorize?client_id=kubesphere-console-client&response_type=token' -v
+	ws.Route(ws.GET("/authorize").
+		To(handler.AuthorizeHandler))
+	//ws.Route(ws.POST("/token"))
+	//ws.Route(ws.POST("/callback/{callback}"))
+
+	c.Add(ws)
 
 	return nil
 }

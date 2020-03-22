@@ -13,8 +13,12 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
-	authenticationrequest "kubesphere.io/kubesphere/pkg/apiserver/authentication/request"
+	oauth2 "kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
@@ -35,6 +39,7 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -142,7 +147,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient.Database()))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.AuthenticateOptions))
-	urlruntime.Must(oauth.AddToContainer(s.container, s.AuthenticateOptions))
+	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.AuthenticateOptions, s.CacheClient), &oauth2.SimpleConfigManager{}))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 }
 
@@ -184,10 +189,14 @@ func (s *APIServer) buildHandlerChain() {
 
 	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-	authorizer := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator(cache.NewSimpleCache())))
+	authorizer := unionauthorizer.New(pathAuthorizer,
+		authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator()))
 	handler = filters.WithAuthorization(handler, authorizer)
 
-	authn := unionauth.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
+	authn := unionauth.New(anonymous.NewAuthenticator(),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewFakeOperator())),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(
+			token.NewJwtTokenIssuer(token.DefaultIssuerName, s.AuthenticateOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
 )
 
@@ -46,7 +45,7 @@ resources_in_cluster1 {
 	},
 	}
 
-	operator := am.NewFakeAMOperator(cache.NewSimpleCache())
+	operator := am.NewFakeAMOperator()
 	operator.Prepare(platformRoles, nil, nil, nil)
 
 	opa := NewOPAAuthorizer(operator)
