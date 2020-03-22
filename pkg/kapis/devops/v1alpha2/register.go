@@ -23,6 +23,7 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -41,6 +42,29 @@ const (
 )
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+
+func AddToContainer(container *restful.Container, ksInformers externalversions.SharedInformerFactory, devopsClient devops.Interface, sonarqubeClient sonarqube.SonarInterface, ksClient versioned.Interface, s3Client s3.Interface) error {
+	ws := runtime.NewWebService(GroupVersion)
+
+	err := AddPipelineToWebService(ws, devopsClient)
+	if err != nil {
+		return err
+	}
+
+	err = AddSonarToWebService(ws, devopsClient, sonarqubeClient)
+	if err != nil {
+		return err
+	}
+
+	err = AddS2IToWebService(ws, ksClient, ksInformers, s3Client)
+	if err != nil {
+		return err
+	}
+
+	container.Add(ws)
+
+	return nil
+}
 
 func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface) error {
 

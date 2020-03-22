@@ -7,9 +7,9 @@ github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
 # github.com/Azure/go-autorest/autorest v0.9.0 => github.com/Azure/go-autorest/autorest v0.9.0
 github.com/Azure/go-autorest/autorest
+github.com/Azure/go-autorest/autorest/azure
 # github.com/Azure/go-autorest/autorest/adal v0.5.0 => github.com/Azure/go-autorest/autorest/adal v0.5.0
 github.com/Azure/go-autorest/autorest/adal
-github.com/Azure/go-autorest/autorest/azure
 # github.com/Azure/go-autorest/autorest/date v0.1.0 => github.com/Azure/go-autorest/autorest/date v0.1.0
 github.com/Azure/go-autorest/autorest/date
 # github.com/Azure/go-autorest/logger v0.1.0 => github.com/Azure/go-autorest/logger v0.1.0
@@ -166,9 +166,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.9.5+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
+github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0 => github.com/emicklei/go-restful-openapi v1.0.0
 github.com/emicklei/go-restful-openapi
-github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -195,18 +195,27 @@ github.com/globalsign/mgo/internal/json
 github.com/go-ldap/ldap
 # github.com/go-logr/logr v0.1.0 => github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
+# github.com/go-openapi/analysis v0.19.2 => github.com/go-openapi/analysis v0.19.2
+github.com/go-openapi/analysis
+github.com/go-openapi/analysis/internal
 # github.com/go-openapi/errors v0.19.2 => github.com/go-openapi/errors v0.19.2
 github.com/go-openapi/errors
 # github.com/go-openapi/jsonpointer v0.19.3 => github.com/go-openapi/jsonpointer v0.19.3
 github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.19.3 => github.com/go-openapi/jsonreference v0.19.3
 github.com/go-openapi/jsonreference
+# github.com/go-openapi/loads v0.19.2 => github.com/go-openapi/loads v0.19.2
+github.com/go-openapi/loads
+# github.com/go-openapi/runtime v0.19.0 => github.com/go-openapi/runtime v0.19.0
+github.com/go-openapi/runtime
 # github.com/go-openapi/spec v0.19.3 => github.com/go-openapi/spec v0.19.3
 github.com/go-openapi/spec
 # github.com/go-openapi/strfmt v0.19.0 => github.com/go-openapi/strfmt v0.19.0
 github.com/go-openapi/strfmt
 # github.com/go-openapi/swag v0.19.5 => github.com/go-openapi/swag v0.19.5
 github.com/go-openapi/swag
+# github.com/go-openapi/validate v0.19.2 => github.com/go-openapi/validate v0.19.2
+github.com/go-openapi/validate
 # github.com/go-playground/locales v0.12.1 => github.com/go-playground/locales v0.12.1
 github.com/go-playground/locales
 github.com/go-playground/locales/currency

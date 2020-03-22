@@ -5,13 +5,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
+	clients3 "kubesphere.io/kubesphere/pkg/simple/client/s3"
 )
 
 type FakeS3 struct {
 	Storage map[string]*Object
 }
 
-func NewFakeS3(objects ...*Object) *FakeS3 {
+func NewFakeS3(objects ...*Object) clients3.Interface {
 	s3 := &FakeS3{Storage: map[string]*Object{}}
 	for _, object := range objects {
 		s3.Storage[object.Key] = object
