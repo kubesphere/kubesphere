@@ -65,7 +65,7 @@ func (h *oauthHandler) TokenReviewHandler(req *restful.Request, resp *restful.Re
 		Kind: auth.KindTokenReview,
 		Status: &auth.Status{
 			Authenticated: true,
-			User:          map[string]interface{}{"username": user.GetName(), "uid": user.GetUID(), "groups": user.GetGroups()},
+			User:          map[string]interface{}{"username": user.GetName(), "uid": user.GetUID()},
 		},
 	}
 

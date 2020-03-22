@@ -36,7 +36,7 @@ type AccessManagementInterface interface {
 	GetPlatformRole(username string) (Role, error)
 	GetClusterRole(cluster, username string) (Role, error)
 	GetWorkspaceRole(workspace, username string) (Role, error)
-	GetNamespaceRole(namespace, username string) (Role, error)
+	GetNamespaceRole(cluster, namespace, username string) (Role, error)
 }
 
 type Role interface {
@@ -73,10 +73,6 @@ func (am *amOperator) GetWorkspaceRole(workspace, username string) (Role, error)
 	panic("implement me")
 }
 
-func (am *amOperator) GetNamespaceRole(namespace, username string) (Role, error) {
-	panic("implement me")
-}
-
-func (am *amOperator) GetDevOpsRole(namespace, username string) (Role, error) {
+func (am *amOperator) GetNamespaceRole(cluster, namespace, username string) (Role, error) {
 	panic("implement me")
 }

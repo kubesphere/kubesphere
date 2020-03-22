@@ -27,8 +27,29 @@ import (
 )
 
 func TestPlatformRole(t *testing.T) {
+	platformRoles := map[string]am.FakeRole{"admin": {
+		Name: "admin",
+		Rego: "package authz\ndefault allow = true",
+	}, "anonymous": {
+		Name: "anonymous",
+		Rego: "package authz\ndefault allow = false",
+	}, "tom": {
+		Name: "tom",
+		Rego: `package authz
+default allow = false
+allow {
+  resources_in_cluster1
+}
+resources_in_cluster1 {
+	input.Cluster == "cluster1"
+}`,
+	},
+	}
 
-	opa := NewOPAAuthorizer(am.NewFakeAMOperator(cache.NewSimpleCache()))
+	operator := am.NewFakeAMOperator(cache.NewSimpleCache())
+	operator.Prepare(platformRoles, nil, nil, nil)
+
+	opa := NewOPAAuthorizer(operator)
 
 	tests := []struct {
 		name             string
@@ -36,7 +57,7 @@ func TestPlatformRole(t *testing.T) {
 		expectedDecision authorizer.Decision
 	}{
 		{
-			name: "list nodes",
+			name: "admin can list nodes",
 			request: authorizer.AttributesRecord{
 				User: &user.DefaultInfo{
 					Name:   "admin",
@@ -60,7 +81,7 @@ func TestPlatformRole(t *testing.T) {
 			expectedDecision: authorizer.DecisionAllow,
 		},
 		{
-			name: "list nodes",
+			name: "anonymous can not list nodes",
 			request: authorizer.AttributesRecord{
 				User: &user.DefaultInfo{
 					Name:   user.Anonymous,
@@ -82,13 +103,54 @@ func TestPlatformRole(t *testing.T) {
 				Path:              "/api/v1/nodes",
 			},
 			expectedDecision: authorizer.DecisionDeny,
+		}, {
+			name: "tom can list nodes in cluster1",
+			request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "tom",
+				},
+				Verb:              "list",
+				Cluster:           "cluster1",
+				Workspace:         "",
+				Namespace:         "",
+				APIGroup:          "",
+				APIVersion:        "v1",
+				Resource:          "nodes",
+				Subresource:       "",
+				Name:              "",
+				KubernetesRequest: true,
+				ResourceRequest:   true,
+				Path:              "/api/v1/clusters/cluster1/nodes",
+			},
+			expectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			name: "tom can not list nodes in cluster2",
+			request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "tom",
+				},
+				Verb:              "list",
+				Cluster:           "cluster2",
+				Workspace:         "",
+				Namespace:         "",
+				APIGroup:          "",
+				APIVersion:        "v1",
+				Resource:          "nodes",
+				Subresource:       "",
+				Name:              "",
+				KubernetesRequest: true,
+				ResourceRequest:   true,
+				Path:              "/api/v1/clusters/cluster2/nodes",
+			},
+			expectedDecision: authorizer.DecisionDeny,
 		},
 	}
 
 	for _, test := range tests {
 		decision, _, err := opa.Authorize(test.request)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("test failed: %s, %v", test.name, err)
 		}
 		if decision != test.expectedDecision {
 			t.Errorf("%s: expected decision %v, actual %+v", test.name, test.expectedDecision, decision)

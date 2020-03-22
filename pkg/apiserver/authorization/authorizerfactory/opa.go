@@ -29,20 +29,21 @@ type opaAuthorizer struct {
 	am am.AccessManagementInterface
 }
 
+// Make decision by request attributes
 func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 
+	// Make decisions based on the authorization policy of different levels of roles
 	platformRole, err := o.am.GetPlatformRole(attr.GetUser().GetName())
 	if err != nil {
 		return authorizer.DecisionDeny, "", err
 	}
 
 	// check platform role policy rules
-	if a, r, e := makeDecision(platformRole, attr); a == authorizer.DecisionAllow {
-		return a, r, e
+	if authorized, reason, err = makeDecision(platformRole, attr); authorized == authorizer.DecisionAllow {
+		return authorized, reason, err
 	}
 
 	// it's not in cluster resource, permission denied
-	// TODO declare implicit cluster info in request Info
 	if attr.GetCluster() == "" {
 		return authorizer.DecisionDeny, "permission undefined", nil
 	}
@@ -78,7 +79,7 @@ func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized author
 	}
 
 	if attr.GetNamespace() != "" {
-		namespaceRole, err := o.am.GetNamespaceRole(attr.GetNamespace(), attr.GetUser().GetName())
+		namespaceRole, err := o.am.GetNamespaceRole(attr.GetCluster(), attr.GetNamespace(), attr.GetUser().GetName())
 		if err != nil {
 			return authorizer.DecisionDeny, "", err
 		}
@@ -102,6 +103,29 @@ func makeDecision(role am.Role, a authorizer.Attributes) (authorized authorizer.
 		return authorizer.DecisionDeny, "", err
 	}
 
+	// data example
+	//{
+	//  "User": {
+	//    "Name": "admin",
+	//    "UID": "0",
+	//    "Groups": [
+	//      "admin"
+	//    ],
+	//    "Extra": null
+	//  },
+	//  "Verb": "list",
+	//  "Cluster": "cluster1",
+	//  "Workspace": "",
+	//  "Namespace": "",
+	//  "APIGroup": "",
+	//  "APIVersion": "v1",
+	//  "Resource": "nodes",
+	//  "Subresource": "",
+	//  "Name": "",
+	//  "KubernetesRequest": true,
+	//  "ResourceRequest": true,
+	//  "Path": "/api/v1/nodes"
+	//}
 	// The policy decision is contained in the results returned by the Eval() call. You can inspect the decision and handle it accordingly.
 	results, err := query.Eval(context.Background(), rego.EvalInput(a))
 

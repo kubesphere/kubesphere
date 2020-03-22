@@ -2,6 +2,7 @@ package token
 
 import (
 	"github.com/google/go-cmp/cmp"
+	"kubesphere.io/kubesphere/pkg/api/iam"
 	"testing"
 )
 
@@ -12,19 +13,22 @@ func TestJwtTokenIssuer(t *testing.T) {
 		description string
 		name        string
 		uid         string
+		email       string
 	}{
 		{
-			name: "admin",
-			uid:  "b8be6edd-2c92-4535-9b2a-df6326474458",
+			name:  "admin",
+			uid:   "b8be6edd-2c92-4535-9b2a-df6326474458",
+			email: "admin@kubesphere.io",
 		},
 		{
-			name: "bar",
-			uid:  "b8be6edd-2c92-4535-9b2a-df6326474452",
+			name:  "bar",
+			uid:   "b8be6edd-2c92-4535-9b2a-df6326474452",
+			email: "bar@kubesphere.io",
 		},
 	}
 
 	for _, testCase := range testCases {
-		user := &AuthUser{
+		user := &iam.User{
 			Name: testCase.name,
 			UID:  testCase.uid,
 		}

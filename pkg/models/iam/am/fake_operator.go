@@ -19,55 +19,111 @@
 package am
 
 import (
-	"k8s.io/apiserver/pkg/authentication/user"
+	"encoding/json"
+	"fmt"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 )
 
-type fakeRole struct {
+type FakeRole struct {
 	Name string
 	Rego string
 }
-type fakeOperator struct {
+type FakeOperator struct {
 	cache cache.Interface
 }
 
-func newFakeRole(username string) Role {
-	if username == user.Anonymous {
-		return &fakeRole{
-			Name: "anonymous",
-			Rego: "package authz\ndefault allow = false",
+func (f FakeOperator) queryFakeRole(cacheKey string) (Role, error) {
+	data, err := f.cache.Get(cacheKey)
+	if err != nil {
+		if err == cache.ErrNoSuchKey {
+			return &FakeRole{
+				Name: "DenyAll",
+				Rego: "package authz\ndefault allow = false",
+			}, nil
+		}
+		return nil, err
+	}
+	var role FakeRole
+	err = json.Unmarshal([]byte(data), &role)
+	if err != nil {
+		return nil, err
+	}
+	return role, nil
+}
+
+func (f FakeOperator) saveFakeRole(cacheKey string, role FakeRole) error {
+	data, err := json.Marshal(role)
+	if err != nil {
+		return err
+	}
+	return f.cache.Set(cacheKey, string(data), 0)
+}
+
+func (f FakeOperator) GetPlatformRole(username string) (Role, error) {
+	return f.queryFakeRole(platformRoleCacheKey(username))
+}
+
+func (f FakeOperator) GetClusterRole(cluster, username string) (Role, error) {
+	return f.queryFakeRole(clusterRoleCacheKey(cluster, username))
+}
+
+func (f FakeOperator) GetWorkspaceRole(workspace, username string) (Role, error) {
+	return f.queryFakeRole(workspaceRoleCacheKey(workspace, username))
+}
+
+func (f FakeOperator) GetNamespaceRole(cluster, namespace, username string) (Role, error) {
+	return f.queryFakeRole(namespaceRoleCacheKey(cluster, namespace, username))
+}
+
+func (f FakeOperator) Prepare(platformRoles map[string]FakeRole, clusterRoles map[string]map[string]FakeRole, workspaceRoles map[string]map[string]FakeRole, namespaceRoles map[string]map[string]map[string]FakeRole) {
+
+	for username, role := range platformRoles {
+		f.saveFakeRole(platformRoleCacheKey(username), role)
+	}
+	for cluster, roles := range clusterRoles {
+		for username, role := range roles {
+			f.saveFakeRole(clusterRoleCacheKey(cluster, username), role)
 		}
 	}
-	return &fakeRole{
-		Name: "admin",
-		Rego: "package authz\ndefault allow = true",
+
+	for workspace, roles := range workspaceRoles {
+		for username, role := range roles {
+			f.saveFakeRole(workspaceRoleCacheKey(workspace, username), role)
+		}
+	}
+
+	for cluster, nsRoles := range namespaceRoles {
+		for namespace, roles := range nsRoles {
+			for username, role := range roles {
+				f.saveFakeRole(namespaceRoleCacheKey(cluster, namespace, username), role)
+			}
+		}
 	}
 }
 
-func (f fakeOperator) GetPlatformRole(username string) (Role, error) {
-	return newFakeRole(username), nil
+func namespaceRoleCacheKey(cluster, namespace, username string) string {
+	return fmt.Sprintf("cluster.%s.namespaces.%s.roles.%s", cluster, namespace, username)
 }
 
-func (f fakeOperator) GetClusterRole(cluster, username string) (Role, error) {
-	return newFakeRole(username), nil
+func clusterRoleCacheKey(cluster, username string) string {
+	return fmt.Sprintf("cluster.%s.roles.%s", cluster, username)
+}
+func workspaceRoleCacheKey(workspace, username string) string {
+	return fmt.Sprintf("workspace.%s.roles.%s", workspace, username)
 }
 
-func (f fakeOperator) GetWorkspaceRole(workspace, username string) (Role, error) {
-	return newFakeRole(username), nil
+func platformRoleCacheKey(username string) string {
+	return fmt.Sprintf("platform.roles.%s", username)
 }
 
-func (f fakeOperator) GetNamespaceRole(namespace, username string) (Role, error) {
-	return newFakeRole(username), nil
-}
-
-func (f fakeRole) GetName() string {
+func (f FakeRole) GetName() string {
 	return f.Name
 }
 
-func (f fakeRole) GetRego() string {
+func (f FakeRole) GetRego() string {
 	return f.Rego
 }
 
-func NewFakeAMOperator(cache cache.Interface) AccessManagementInterface {
-	return &fakeOperator{cache: cache}
+func NewFakeAMOperator(cache cache.Interface) *FakeOperator {
+	return &FakeOperator{cache: cache}
 }

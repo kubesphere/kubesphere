@@ -75,13 +75,13 @@ func (im *imOperator) ModifyUser(user *iam.User) (*iam.User, error) {
 
 	// clear auth failed record
 	if user.Password != "" {
-		records, err := im.cacheClient.Keys(authenticationFailedKeyForUsername(user.Username, "*"))
+		records, err := im.cacheClient.Keys(authenticationFailedKeyForUsername(user.Name, "*"))
 		if err == nil {
 			im.cacheClient.Del(records...)
 		}
 	}
 
-	return im.ldapClient.Get(user.Username)
+	return im.ldapClient.Get(user.Name)
 }
 
 func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error) {
@@ -100,7 +100,7 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 		return nil, err
 	}
 
-	err = im.ldapClient.Verify(user.Username, password)
+	err = im.ldapClient.Verify(user.Name, password)
 	if err != nil {
 		if err == ldap.ErrInvalidCredentials {
 			im.cacheClient.Set(authenticationFailedKeyForUsername(username, fmt.Sprintf("%d", time.Now().UnixNano())), "", 30*time.Minute)
@@ -114,7 +114,7 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 	}
 
 	// TODO: I think we should come up with a better strategy to prevent multiple login.
-	tokenKey := tokenKeyForUsername(user.Username, issuedToken)
+	tokenKey := tokenKeyForUsername(user.Name, issuedToken)
 	if !im.authenticateOptions.MultipleLogin {
 		// multi login not allowed, remove the previous token
 		sessions, err := im.cacheClient.Keys(tokenKey)
@@ -136,7 +136,7 @@ func (im *imOperator) Login(username, password, ip string) (*oauth2.Token, error
 		return nil, err
 	}
 
-	im.logLogin(user.Username, ip, time.Now())
+	im.logLogin(user.Name, ip, time.Now())
 
 	return &oauth2.Token{AccessToken: issuedToken}, nil
 }
