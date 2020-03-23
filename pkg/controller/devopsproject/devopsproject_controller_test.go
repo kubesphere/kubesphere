@@ -301,8 +301,8 @@ func TestDoNothing(t *testing.T) {
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, project)
-	f.initDevOpsProject = []string{project.Name}
-	f.expectDevOpsProject = []string{project.Name}
+	f.initDevOpsProject = []string{ns.Name}
+	f.expectDevOpsProject = []string{ns.Name}
 
 	f.run(getKey(project, t))
 }
@@ -318,8 +318,8 @@ func TestUpdateProjectFinalizers(t *testing.T) {
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, project)
 	f.kubeobjects = append(f.kubeobjects, ns)
-	f.initDevOpsProject = []string{project.Name}
-	f.expectDevOpsProject = []string{project.Name}
+	f.initDevOpsProject = []string{ns.Name}
+	f.expectDevOpsProject = []string{ns.Name}
 	expectUpdateProject := project.DeepCopy()
 	expectUpdateProject.Finalizers = []string{devops.DevOpsProjectFinalizerName}
 	f.expectUpdateDevOpsProjectAction(expectUpdateProject)
@@ -337,8 +337,8 @@ func TestUpdateProjectStatus(t *testing.T) {
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, project)
 	f.kubeobjects = append(f.kubeobjects, ns)
-	f.initDevOpsProject = []string{project.Name}
-	f.expectDevOpsProject = []string{project.Name}
+	f.initDevOpsProject = []string{ns.Name}
+	f.expectDevOpsProject = []string{ns.Name}
 	expectUpdateProject := project.DeepCopy()
 	expectUpdateProject.Status.AdminNamespace = nsName
 	f.expectUpdateDevOpsProjectAction(expectUpdateProject)
@@ -356,8 +356,8 @@ func TestUpdateNsOwnerReference(t *testing.T) {
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, project)
 	f.kubeobjects = append(f.kubeobjects, ns)
-	f.initDevOpsProject = []string{project.Name}
-	f.expectDevOpsProject = []string{project.Name}
+	f.initDevOpsProject = []string{ns.Name}
+	f.expectDevOpsProject = []string{ns.Name}
 	expectUpdateNs := newNamespace(nsName, projectName, false, true)
 
 	f.expectUpdateNamespaceAction(expectUpdateNs)
@@ -370,7 +370,7 @@ func TestCreateDevOpsProjects(t *testing.T) {
 	ns := newNamespace("test-123", "test", true, true)
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
 	f.objects = append(f.objects, project)
-	f.expectDevOpsProject = []string{project.Name}
+	f.expectDevOpsProject = []string{""}
 
 	// because generateName not work in fakeClient, so DevOpsProject would not be update
 	// f.expectUpdateDevOpsProjectAction(project)

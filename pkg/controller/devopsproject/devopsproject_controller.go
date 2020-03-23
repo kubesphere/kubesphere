@@ -197,18 +197,7 @@ func (c *Controller) syncHandler(key string) error {
 		if !sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			copyProject.ObjectMeta.Finalizers = append(copyProject.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName)
 		}
-		// Check project exists, otherwise we will create it.
-		_, err := c.devopsClient.GetDevOpsProject(key)
-		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
-			return err
-		} else {
-			_, err := c.devopsClient.CreateDevOpsProject(key)
-			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
-				return err
-			}
-		}
+
 		if project.Status.AdminNamespace != "" {
 			ns, err := c.namespaceLister.Get(project.Status.AdminNamespace)
 			if err != nil && !errors.IsNotFound(err) {
@@ -244,6 +233,7 @@ func (c *Controller) syncHandler(key string) error {
 					return err
 				}
 			}
+
 		} else {
 			// list ns by devops project
 			namespaces, err := c.namespaceLister.List(
@@ -283,10 +273,23 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 
+
 		if !reflect.DeepEqual(copyProject, project) {
 			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
 			if err != nil {
 				klog.Error(err, fmt.Sprintf("failed to update ns %s ", key))
+				return err
+			}
+		}
+		// Check project exists, otherwise we will create it.
+		_, err := c.devopsClient.GetDevOpsProject(copyProject.Status.AdminNamespace)
+		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
+			return err
+		} else {
+			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
 				return err
 			}
 		}
