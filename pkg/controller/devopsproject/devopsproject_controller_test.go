@@ -1,7 +1,9 @@
 package devopsproject
 
 import (
+	v1 "k8s.io/api/core/v1"
 	devopsprojects "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/constants"
 	fakeDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"reflect"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
+	kubeinformers "k8s.io/client-go/informers"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -32,7 +35,11 @@ type fixture struct {
 	kubeclient *k8sfake.Clientset
 	// Objects to put in the store.
 	devopsProjectLister []*devops.DevOpsProject
+	namespaceLister     []*v1.Namespace
 	actions             []core.Action
+	kubeactions         []core.Action
+
+	kubeobjects []runtime.Object
 	// Objects from here preloaded into NewSimpleFake.
 	objects []runtime.Object
 	// Objects from here preloaded into devops
@@ -47,14 +54,52 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func newDevOpsProject(name string) *devopsprojects.DevOpsProject {
-	return &devopsprojects.DevOpsProject{
+func newDevOpsProject(name string, nsName string, withFinalizers bool, withStatus bool) *devopsprojects.DevOpsProject {
+	project := &devopsprojects.DevOpsProject{
 		TypeMeta: metav1.TypeMeta{APIVersion: devopsprojects.SchemeGroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}
+	if withFinalizers {
+		project.Finalizers = []string{devopsprojects.DevOpsProjectFinalizerName}
+	}
+	if withStatus {
+		project.Status = devops.DevOpsProjectStatus{AdminNamespace: nsName}
+	}
+	return project
 }
+
+func newNamespace(name string, projectName string, useGenerateName, withOwnerReference bool) *v1.Namespace {
+	ns := &v1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: v1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: map[string]string{constants.DevOpsProjectLabelKey: projectName},
+		},
+	}
+	if useGenerateName {
+		ns.ObjectMeta.Name = ""
+		ns.ObjectMeta.GenerateName = projectName
+	}
+	if withOwnerReference {
+		TRUE := true
+		ns.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion:         devops.SchemeGroupVersion.String(),
+				Kind:               devops.ResourceKindDevOpsProject,
+				Name:               projectName,
+				BlockOwnerDeletion: &TRUE,
+				Controller:         &TRUE,
+			},
+		}
+	}
+	return ns
+}
+
 func newDeletingDevOpsProject(name string) *devopsprojects.DevOpsProject {
 	now := metav1.Now()
 	return &devopsprojects.DevOpsProject{
@@ -67,14 +112,16 @@ func newDeletingDevOpsProject(name string) *devopsprojects.DevOpsProject {
 	}
 }
 
-func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, *fakeDevOps.Devops) {
+func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, kubeinformers.SharedInformerFactory, *fakeDevOps.Devops) {
 	f.client = fake.NewSimpleClientset(f.objects...)
-	f.kubeclient = k8sfake.NewSimpleClientset()
+	f.kubeclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
 
 	i := informers.NewSharedInformerFactory(f.client, noResyncPeriodFunc())
+	k8sI := kubeinformers.NewSharedInformerFactory(f.kubeclient, noResyncPeriodFunc())
 	dI := fakeDevOps.New(f.initDevOpsProject...)
 
-	c := NewController(f.kubeclient, f.client, dI, i.Devops().V1alpha3().DevOpsProjects())
+	c := NewController(f.kubeclient, f.client, dI, k8sI.Core().V1().Namespaces(),
+		i.Devops().V1alpha3().DevOpsProjects())
 
 	c.devOpsProjectSynced = alwaysReady
 	c.eventRecorder = &record.FakeRecorder{}
@@ -83,7 +130,11 @@ func (f *fixture) newController() (*Controller, informers.SharedInformerFactory,
 		i.Devops().V1alpha3().DevOpsProjects().Informer().GetIndexer().Add(f)
 	}
 
-	return c, i, dI
+	for _, d := range f.namespaceLister {
+		k8sI.Core().V1().Namespaces().Informer().GetIndexer().Add(d)
+	}
+
+	return c, i, k8sI, dI
 }
 
 func (f *fixture) run(fooName string) {
@@ -95,11 +146,12 @@ func (f *fixture) runExpectError(fooName string) {
 }
 
 func (f *fixture) runController(projectName string, startInformers bool, expectError bool) {
-	c, i, dI := f.newController()
+	c, i, k8sI, dI := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
 		defer close(stopCh)
 		i.Start(stopCh)
+		k8sI.Start(stopCh)
 	}
 
 	err := c.syncHandler(projectName)
@@ -118,6 +170,20 @@ func (f *fixture) runController(projectName string, startInformers bool, expectE
 
 		expectedAction := f.actions[i]
 		checkAction(expectedAction, action, f.t)
+	}
+	k8sActions := filterInformerActions(f.kubeclient.Actions())
+	for i, action := range k8sActions {
+		if len(f.kubeactions) < i+1 {
+			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
+			break
+		}
+
+		expectedAction := f.kubeactions[i]
+		checkAction(expectedAction, action, f.t)
+	}
+
+	if len(f.kubeactions) > len(k8sActions) {
+		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
 	}
 
 	if len(f.actions) > len(actions) {
@@ -183,7 +249,9 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	for _, action := range actions {
 		if len(action.GetNamespace()) == 0 &&
 			(action.Matches("list", devopsprojects.ResourcePluralDevOpsProject) ||
-				action.Matches("watch", devopsprojects.ResourcePluralDevOpsProject)) {
+				action.Matches("watch", devopsprojects.ResourcePluralDevOpsProject) ||
+				action.Matches("list", "namespaces") ||
+				action.Matches("watch", "namespaces")) {
 			continue
 		}
 		ret = append(ret, action)
@@ -198,6 +266,22 @@ func (f *fixture) expectUpdateDevOpsProjectAction(p *devopsprojects.DevOpsProjec
 	f.actions = append(f.actions, action)
 }
 
+func (f *fixture) expectUpdateNamespaceAction(p *v1.Namespace) {
+	action := core.NewUpdateAction(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "namespaces",
+	}, p.Namespace, p)
+	f.kubeactions = append(f.kubeactions, action)
+}
+
+func (f *fixture) expectCreateNamespaceAction(p *v1.Namespace) {
+	action := core.NewCreateAction(schema.GroupVersionResource{
+		Version:  "v1",
+		Resource: "namespaces",
+	}, p.Namespace, p)
+	f.kubeactions = append(f.kubeactions, action)
+}
+
 func getKey(p *devopsprojects.DevOpsProject, t *testing.T) string {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(p)
 	if err != nil {
@@ -209,26 +293,88 @@ func getKey(p *devopsprojects.DevOpsProject, t *testing.T) string {
 
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
-	project := newDevOpsProject("test")
+	nsName := "test-123"
+	projectName := "test"
+	project := newDevOpsProject(projectName, nsName, true, true)
+	ns := newNamespace(nsName, projectName, false, true)
 
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
+	f.namespaceLister = append(f.namespaceLister, ns)
 	f.objects = append(f.objects, project)
 	f.initDevOpsProject = []string{project.Name}
 	f.expectDevOpsProject = []string{project.Name}
 
-	f.expectUpdateDevOpsProjectAction(project)
+	f.run(getKey(project, t))
+}
+
+func TestUpdateProjectFinalizers(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	projectName := "test"
+	project := newDevOpsProject(projectName, nsName, false, true)
+	ns := newNamespace(nsName, projectName, false, true)
+
+	f.devopsProjectLister = append(f.devopsProjectLister, project)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.objects = append(f.objects, project)
+	f.kubeobjects = append(f.kubeobjects, ns)
+	f.initDevOpsProject = []string{project.Name}
+	f.expectDevOpsProject = []string{project.Name}
+	expectUpdateProject := project.DeepCopy()
+	expectUpdateProject.Finalizers = []string{devops.DevOpsProjectFinalizerName}
+	f.expectUpdateDevOpsProjectAction(expectUpdateProject)
+	f.run(getKey(project, t))
+}
+
+func TestUpdateProjectStatus(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	projectName := "test"
+	project := newDevOpsProject(projectName, nsName, true, false)
+	ns := newNamespace(nsName, projectName, false, true)
+
+	f.devopsProjectLister = append(f.devopsProjectLister, project)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.objects = append(f.objects, project)
+	f.kubeobjects = append(f.kubeobjects, ns)
+	f.initDevOpsProject = []string{project.Name}
+	f.expectDevOpsProject = []string{project.Name}
+	expectUpdateProject := project.DeepCopy()
+	expectUpdateProject.Status.AdminNamespace = nsName
+	f.expectUpdateDevOpsProjectAction(expectUpdateProject)
+	f.run(getKey(project, t))
+}
+
+func TestUpdateNsOwnerReference(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	projectName := "test"
+	project := newDevOpsProject(projectName, nsName, true, true)
+	ns := newNamespace(nsName, projectName, false, false)
+
+	f.devopsProjectLister = append(f.devopsProjectLister, project)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.objects = append(f.objects, project)
+	f.kubeobjects = append(f.kubeobjects, ns)
+	f.initDevOpsProject = []string{project.Name}
+	f.expectDevOpsProject = []string{project.Name}
+	expectUpdateNs := newNamespace(nsName, projectName, false, true)
+
+	f.expectUpdateNamespaceAction(expectUpdateNs)
 	f.run(getKey(project, t))
 }
 
 func TestCreateDevOpsProjects(t *testing.T) {
 	f := newFixture(t)
-	project := newDevOpsProject("test")
-
+	project := newDevOpsProject("test", "", true, false)
+	ns := newNamespace("test-123", "test", true, true)
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
 	f.objects = append(f.objects, project)
 	f.expectDevOpsProject = []string{project.Name}
 
-	f.expectUpdateDevOpsProjectAction(project)
+	// because generateName not work in fakeClient, so DevOpsProject would not be update
+	// f.expectUpdateDevOpsProjectAction(project)
+	f.expectCreateNamespaceAction(ns)
 	f.run(getKey(project, t))
 }
 
@@ -243,6 +389,7 @@ func TestDeleteDevOpsProjects(t *testing.T) {
 	f.expectUpdateDevOpsProjectAction(project)
 	f.run(getKey(project, t))
 }
+
 func TestDeleteDevOpsProjectsWithNull(t *testing.T) {
 	f := newFixture(t)
 	project := newDeletingDevOpsProject("test")

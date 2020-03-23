@@ -4,19 +4,27 @@ import (
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	corev1informer "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
+	"kubesphere.io/kubesphere/pkg/constants"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
+	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
@@ -25,7 +33,7 @@ import (
 )
 
 /**
-DevOps project controller is used to maintain the state of the DevOps project.
+  DevOps project controller is used to maintain the state of the DevOps project.
 */
 
 type Controller struct {
@@ -38,6 +46,9 @@ type Controller struct {
 	devOpsProjectLister devopslisters.DevOpsProjectLister
 	devOpsProjectSynced cache.InformerSynced
 
+	namespaceLister corev1lister.NamespaceLister
+	namespaceSynced cache.InformerSynced
+
 	workqueue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
@@ -48,6 +59,7 @@ type Controller struct {
 func NewController(client clientset.Interface,
 	kubesphereClient kubesphereclient.Interface,
 	devopsClinet devopsClient.Interface,
+	namespaceInformer corev1informer.NamespaceInformer,
 	devopsInformer devopsinformers.DevOpsProjectInformer) *Controller {
 
 	broadcaster := record.NewBroadcaster()
@@ -64,6 +76,8 @@ func NewController(client clientset.Interface,
 		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "devopsproject"),
 		devOpsProjectLister: devopsInformer.Lister(),
 		devOpsProjectSynced: devopsInformer.Informer().HasSynced,
+		namespaceLister:     namespaceInformer.Lister(),
+		namespaceSynced:     namespaceInformer.Informer().HasSynced,
 		workerLoopPeriod:    time.Second,
 	}
 
@@ -175,17 +189,13 @@ func (c *Controller) syncHandler(key string) error {
 		klog.Error(err, fmt.Sprintf("could not get devopsproject %s ", key))
 		return err
 	}
+	copyProject := project.DeepCopy()
 	// DeletionTimestamp.IsZero() means DevOps project has not been deleted.
 	if project.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Use Finalizers to sync DevOps status when DevOps project was deleted
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
 		if !sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
-			project.ObjectMeta.Finalizers = append(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName)
-			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
-			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to update project %s ", key))
-				return err
-			}
+			copyProject.ObjectMeta.Finalizers = append(copyProject.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName)
 		}
 		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(key)
@@ -199,6 +209,88 @@ func (c *Controller) syncHandler(key string) error {
 				return err
 			}
 		}
+		if project.Status.AdminNamespace != "" {
+			ns, err := c.namespaceLister.Get(project.Status.AdminNamespace)
+			if err != nil && !errors.IsNotFound(err) {
+				klog.Error(err, fmt.Sprintf("faild to get namespace"))
+				return err
+			} else if errors.IsNotFound(err) {
+				// if admin ns is not found, clean project status, rerun reconcile
+				copyProject.Status.AdminNamespace = ""
+				_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+				if err != nil {
+					klog.Error(err, fmt.Sprintf("failed to update project %s ", key))
+					return err
+				}
+				c.enqueueDevOpsProject(key)
+				return nil
+			}
+			// If ns exists, but the associated attributes with the project are not set correctly,
+			// then reset the associated attributes
+			if k8sutil.IsControlledBy(ns.OwnerReferences,
+				devopsv1alpha3.ResourceKindDevOpsProject, project.Name) &&
+				ns.Labels[constants.DevOpsProjectLabelKey] == project.Name {
+			} else {
+				copyNs := ns.DeepCopy()
+				err := controllerutil.SetControllerReference(copyProject, copyNs, scheme.Scheme)
+				if err != nil {
+					klog.Error(err, fmt.Sprintf("failed to set ownerreference %s ", key))
+					return err
+				}
+				copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
+				_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+				if err != nil {
+					klog.Error(err, fmt.Sprintf("failed to update ns %s ", key))
+					return err
+				}
+			}
+		} else {
+			// list ns by devops project
+			namespaces, err := c.namespaceLister.List(
+				labels.SelectorFromSet(labels.Set{constants.DevOpsProjectLabelKey: project.Name}))
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to list ns %s ", key))
+				return err
+			}
+			// if there is no ns, generate new one
+			if len(namespaces) == 0 {
+				ns := c.generateNewNamespace(project)
+				ns, err := c.client.CoreV1().Namespaces().Create(ns)
+				if err != nil {
+					klog.Error(err, fmt.Sprintf("failed to create ns %s ", key))
+					return err
+				}
+				copyProject.Status.AdminNamespace = ns.Name
+			} else if len(namespaces) != 0 {
+				ns := namespaces[0]
+				// reset ownerReferences
+				if !k8sutil.IsControlledBy(ns.OwnerReferences,
+					devopsv1alpha3.ResourceKindDevOpsProject, project.Name) {
+					copyNs := ns.DeepCopy()
+					err := controllerutil.SetControllerReference(copyProject, copyNs, scheme.Scheme)
+					if err != nil {
+						klog.Error(err, fmt.Sprintf("failed to set ownerreference %s ", key))
+						return err
+					}
+					copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
+					_, err = c.client.CoreV1().Namespaces().Update(copyNs)
+					if err != nil {
+						klog.Error(err, fmt.Sprintf("failed to update ns %s ", key))
+						return err
+					}
+				}
+				copyProject.Status.AdminNamespace = ns.Name
+			}
+		}
+
+		if !reflect.DeepEqual(copyProject, project) {
+			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to update ns %s ", key))
+				return err
+			}
+		}
+
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
@@ -236,4 +328,19 @@ func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsP
 	}
 
 	return nil
+}
+
+func (c *Controller) generateNewNamespace(project *devopsv1alpha3.DevOpsProject) *v1.Namespace {
+	ns := &v1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: v1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: project.Name,
+			Labels:       map[string]string{constants.DevOpsProjectLabelKey: project.Name},
+		},
+	}
+	controllerutil.SetControllerReference(project, ns, scheme.Scheme)
+	return ns
 }

@@ -86,6 +86,7 @@ func AddControllers(
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
 	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
 		client.KubeSphere(), devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
 		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
 	)
 
