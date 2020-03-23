@@ -2,15 +2,10 @@ package jwttoken
 
 import (
 	"context"
-	"fmt"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"kubesphere.io/kubesphere/pkg/api/iam/token"
-	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+	token2 "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 )
-
-var errTokenExpired = errors.New("expired token")
 
 // TokenAuthenticator implements kubernetes token authenticate interface with our custom logic.
 // TokenAuthenticator will retrieve user info from cache by given token. If empty or invalid token
@@ -18,40 +13,26 @@ var errTokenExpired = errors.New("expired token")
 // and group from user.AllUnauthenticated. This helps requests be passed along the handler chain,
 // because some resources are public accessible.
 type tokenAuthenticator struct {
-	cacheClient    cache.Interface
-	jwtTokenIssuer token.Issuer
+	jwtTokenIssuer token2.Issuer
 }
 
-func NewTokenAuthenticator(cacheClient cache.Interface, jwtSecret string) authenticator.Token {
+func NewTokenAuthenticator(issuer token2.Issuer) authenticator.Token {
 	return &tokenAuthenticator{
-		cacheClient:    cacheClient,
-		jwtTokenIssuer: token.NewJwtTokenIssuer(token.DefaultIssuerName, []byte(jwtSecret)),
+		jwtTokenIssuer: issuer,
 	}
 }
 
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	providedUser, err := t.jwtTokenIssuer.Verify(token)
+	providedUser, _, err := t.jwtTokenIssuer.Verify(token)
 	if err != nil {
 		return nil, false, err
 	}
 
-	_, err = t.cacheClient.Get(tokenKeyForUsername(providedUser.Name(), token))
-	if err != nil {
-		return nil, false, errTokenExpired
-	}
-
-	// Should we need to refresh token?
-
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
-			Name:   providedUser.Name(),
-			UID:    providedUser.UID(),
+			Name:   providedUser.GetName(),
+			UID:    providedUser.GetUID(),
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil
-
-}
-
-func tokenKeyForUsername(username, token string) string {
-	return fmt.Sprintf("kubesphere:users:%s:token:%s", username, token)
 }

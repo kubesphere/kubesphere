@@ -46,6 +46,8 @@ func NewAPIServerCommand() *cobra.Command {
 			S3Options:               conf.S3Options,
 			OpenPitrixOptions:       conf.OpenPitrixOptions,
 			LoggingOptions:          conf.LoggingOptions,
+			LdapOptions:             conf.LdapOptions,
+			CacheOptions:            conf.RedisOptions,
 			AuthenticateOptions:     conf.AuthenticateOptions,
 		}
 	}

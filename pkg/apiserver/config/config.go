@@ -5,7 +5,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -78,7 +78,7 @@ type Config struct {
 	// Options below are only loaded from configuration file, no command line flags for these options now.
 	KubeSphereOptions *kubesphere.Options `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
 
-	AuthenticateOptions *iam.AuthenticationOptions `json:"authentication,omitempty" yaml:"authenticate,omitempty" mapstructure:"authenticate"`
+	AuthenticateOptions *auth.AuthenticationOptions `json:"authentication,omitempty" yaml:"authenticate,omitempty" mapstructure:"authenticate"`
 
 	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
 	// we can add these options to kubesphere command lines
@@ -103,7 +103,7 @@ func New() *Config {
 		AlertingOptions:     alerting.NewAlertingOptions(),
 		NotificationOptions: notification.NewNotificationOptions(),
 		LoggingOptions:      elasticsearch.NewElasticSearchOptions(),
-		AuthenticateOptions: iam.NewAuthenticateOptions(),
+		AuthenticateOptions: auth.NewAuthenticateOptions(),
 	}
 }
 

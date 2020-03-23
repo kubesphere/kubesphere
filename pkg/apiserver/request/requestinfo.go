@@ -3,7 +3,11 @@ package request
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/validation/path"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 	"net/http"
 	"strings"
 
@@ -19,6 +23,13 @@ type RequestInfoResolver interface {
 // master's Mux.
 var specialVerbs = sets.NewString("proxy", "watch")
 
+// specialVerbsNoSubresources contains root verbs which do not allow subresources
+var specialVerbsNoSubresources = sets.NewString("proxy")
+
+// namespaceSubresources contains subresources of namespace
+// this list allows the parser to distinguish between a namespace subresource, and a namespaced resource
+var namespaceSubresources = sets.NewString("status", "finalize")
+
 var kubernetesAPIPrefixes = sets.NewString("api", "apis")
 
 // RequestInfo holds information parsed from the http.Request,
@@ -26,10 +37,10 @@ var kubernetesAPIPrefixes = sets.NewString("api", "apis")
 type RequestInfo struct {
 	*k8srequest.RequestInfo
 
-	// IsKubeSphereRequest indicates whether or not the request should be handled by kubernetes or kubesphere
+	// IsKubernetesRequest indicates whether or not the request should be handled by kubernetes or kubesphere
 	IsKubernetesRequest bool
 
-	// Workspace of requested namespace, for non-workspaced resources, this may be empty
+	// Workspace of requested resource, for non-workspaced resources, this may be empty
 	Workspace string
 
 	// Cluster of requested resource, this is empty in single-cluster environment
@@ -37,9 +48,8 @@ type RequestInfo struct {
 }
 
 type RequestInfoFactory struct {
-	APIPrefixes           sets.String
-	GrouplessAPIPrefixes  sets.String
-	k8sRequestInfoFactory *k8srequest.RequestInfoFactory
+	APIPrefixes          sets.String
+	GrouplessAPIPrefixes sets.String
 }
 
 // NewRequestInfo returns the information from the http request.  If error is not nil, RequestInfo holds the information as best it is known before the failure
@@ -99,16 +109,9 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	currentParts = currentParts[1:]
 
 	if !r.GrouplessAPIPrefixes.Has(requestInfo.APIPrefix) {
-		if len(currentParts) < 2 {
-			return &requestInfo, nil
-		}
-
-		if currentParts[0] == "clusters" {
-			requestInfo.Cluster = currentParts[1]
-			currentParts = currentParts[2:]
-		}
-
+		// one part (APIPrefix) has already been consumed, so this is actually "do we have four parts?"
 		if len(currentParts) < 3 {
+			// return a non-resource request
 			return &requestInfo, nil
 		}
 
@@ -119,6 +122,18 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.IsResourceRequest = true
 	requestInfo.APIVersion = currentParts[0]
 	currentParts = currentParts[1:]
+
+	if currentParts[0] == "clusters" {
+		requestInfo.Cluster = currentParts[1]
+		currentParts = currentParts[2:]
+	} else if len(currentParts) > 0 {
+		requestInfo.Cluster = "host-cluster"
+	}
+
+	if currentParts[0] == "workspaces" {
+		requestInfo.Workspace = currentParts[1]
+		currentParts = currentParts[2:]
+	}
 
 	if specialVerbs.Has(currentParts[0]) {
 		if len(currentParts) < 2 {
@@ -142,6 +157,73 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		default:
 			requestInfo.Verb = ""
 		}
+	}
+
+	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
+	if currentParts[0] == "namespaces" {
+		if len(currentParts) > 1 {
+			requestInfo.Namespace = currentParts[1]
+
+			// if there is another step after the namespace name and it is not a known namespace subresource
+			// move currentParts to include it as a resource in its own right
+			if len(currentParts) > 2 && !namespaceSubresources.Has(currentParts[2]) {
+				currentParts = currentParts[2:]
+			}
+		}
+	} else {
+		requestInfo.Namespace = metav1.NamespaceNone
+	}
+
+	// parsing successful, so we now know the proper value for .Parts
+	requestInfo.Parts = currentParts
+
+	// parts look like: resource/resourceName/subresource/other/stuff/we/don't/interpret
+	switch {
+	case len(requestInfo.Parts) >= 3 && !specialVerbsNoSubresources.Has(requestInfo.Verb):
+		requestInfo.Subresource = requestInfo.Parts[2]
+		fallthrough
+	case len(requestInfo.Parts) >= 2:
+		requestInfo.Name = requestInfo.Parts[1]
+		fallthrough
+	case len(requestInfo.Parts) >= 1:
+		requestInfo.Resource = requestInfo.Parts[0]
+	}
+
+	// if there's no name on the request and we thought it was a get before, then the actual verb is a list or a watch
+	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
+		opts := metainternalversion.ListOptions{}
+		if err := metainternalversion.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts); err != nil {
+			// An error in parsing request will result in default to "list" and not setting "name" field.
+			klog.Errorf("Couldn't parse request %#v: %v", req.URL.Query(), err)
+			// Reset opts to not rely on partial results from parsing.
+			// However, if watch is set, let's report it.
+			opts = metainternalversion.ListOptions{}
+			if values := req.URL.Query()["watch"]; len(values) > 0 {
+				switch strings.ToLower(values[0]) {
+				case "false", "0":
+				default:
+					opts.Watch = true
+				}
+			}
+		}
+
+		if opts.Watch {
+			requestInfo.Verb = "watch"
+		} else {
+			requestInfo.Verb = "list"
+		}
+
+		if opts.FieldSelector != nil {
+			if name, ok := opts.FieldSelector.RequiresExactMatch("metadata.name"); ok {
+				if len(path.IsValidPathSegmentName(name)) == 0 {
+					requestInfo.Name = name
+				}
+			}
+		}
+	}
+	// if there's no name on the request and we thought it was a delete before, then the actual verb is deletecollection
+	if len(requestInfo.Name) == 0 && requestInfo.Verb == "delete" {
+		requestInfo.Verb = "deletecollection"
 	}
 
 	return &requestInfo, nil

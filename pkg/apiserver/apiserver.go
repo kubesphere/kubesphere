@@ -9,13 +9,19 @@ import (
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
-	"k8s.io/apiserver/pkg/authentication/request/union"
-	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
-	authenticationrequest "kubesphere.io/kubesphere/pkg/apiserver/authentication/request"
+	oauth2 "kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
+	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -24,6 +30,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
@@ -31,6 +38,8 @@ import (
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -66,7 +75,7 @@ type APIServer struct {
 	//
 	Server *http.Server
 
-	AuthenticateOptions *iam.AuthenticationOptions
+	AuthenticateOptions *auth.AuthenticationOptions
 
 	// webservice container, where all webservice defines
 	container *restful.Container
@@ -101,8 +110,6 @@ type APIServer struct {
 
 	//
 	LdapClient ldap.Interface
-
-	//
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -140,6 +147,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient.Database()))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.AuthenticateOptions))
+	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.AuthenticateOptions, s.CacheClient), &oauth2.SimpleConfigManager{}))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 }
 
@@ -174,19 +182,23 @@ func (s *APIServer) buildHandlerChain() {
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
 	}
 
-	failed := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	})
-
 	handler := s.Server.Handler
+
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
-	handler = filters.WithAuthorization(handler, authorizerfactory.NewAlwaysAllowAuthorizer())
 
-	authn := union.New(&authenticationrequest.AnonymousAuthenticator{}, bearertoken.New(jwttoken.NewTokenAuthenticator(s.CacheClient, s.AuthenticateOptions.JwtSecret)))
-	handler = filters.WithAuthentication(handler, authn, failed)
+	excludedPaths := []string{"/oauth/authorize", "/oauth/token"}
+	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
+	authorizer := unionauthorizer.New(pathAuthorizer,
+		authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator()))
+	handler = filters.WithAuthorization(handler, authorizer)
+
+	authn := unionauth.New(anonymous.NewAuthenticator(),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewFakeOperator())),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(
+			token.NewJwtTokenIssuer(token.DefaultIssuerName, s.AuthenticateOptions, s.CacheClient))))
+	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
-
 	s.Server.Handler = handler
 }
 
@@ -194,7 +206,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	klog.V(0).Info("Start cache objects")
 
 	discoveryClient := s.KubernetesClient.Kubernetes().Discovery()
-	apiResourcesList, err := discoveryClient.ServerResources()
+	_, apiResourcesList, err := discoveryClient.ServerGroupsAndResources()
 	if err != nil {
 		return err
 	}

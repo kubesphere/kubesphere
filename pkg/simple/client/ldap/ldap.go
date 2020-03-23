@@ -216,7 +216,7 @@ func (l *ldapInterfaceImpl) Get(name string) (*iam.User, error) {
 	userEntry := searchResults.Entries[0]
 
 	user := &iam.User{
-		Username:    userEntry.GetAttributeValue(ldapAttributeUserID),
+		Name:        userEntry.GetAttributeValue(ldapAttributeUserID),
 		Email:       userEntry.GetAttributeValue(ldapAttributeMail),
 		Lang:        userEntry.GetAttributeValue(ldapAttributePreferredLanguage),
 		Description: userEntry.GetAttributeValue(ldapAttributeDescription),
@@ -229,12 +229,12 @@ func (l *ldapInterfaceImpl) Get(name string) (*iam.User, error) {
 }
 
 func (l *ldapInterfaceImpl) Create(user *iam.User) error {
-	if _, err := l.Get(user.Username); err != nil {
+	if _, err := l.Get(user.Name); err != nil {
 		return ErrUserAlreadyExisted
 	}
 
 	createRequest := &ldap.AddRequest{
-		DN: l.dnForUsername(user.Username),
+		DN: l.dnForUsername(user.Name),
 		Attributes: []ldap.Attribute{
 			{
 				Type: ldapAttributeObjectClass,
@@ -242,7 +242,7 @@ func (l *ldapInterfaceImpl) Create(user *iam.User) error {
 			},
 			{
 				Type: ldapAttributeCommonName,
-				Vals: []string{user.Username},
+				Vals: []string{user.Name},
 			},
 			{
 				Type: ldapAttributeSerialNumber,
@@ -254,11 +254,11 @@ func (l *ldapInterfaceImpl) Create(user *iam.User) error {
 			},
 			{
 				Type: ldapAttributeHomeDirectory,
-				Vals: []string{"/home/" + user.Username},
+				Vals: []string{"/home/" + user.Name},
 			},
 			{
 				Type: ldapAttributeUserID,
-				Vals: []string{user.Username},
+				Vals: []string{user.Name},
 			},
 			{
 				Type: ldapAttributeUserIDNumber,
@@ -322,13 +322,13 @@ func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
 	defer conn.Close()
 
 	// check user existed
-	_, err = l.Get(newUser.Username)
+	_, err = l.Get(newUser.Name)
 	if err != nil {
 		return err
 	}
 
 	modifyRequest := &ldap.ModifyRequest{
-		DN: l.dnForUsername(newUser.Username),
+		DN: l.dnForUsername(newUser.Name),
 	}
 
 	if newUser.Description != "" {
@@ -347,7 +347,7 @@ func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
 
 }
 
-func (l *ldapInterfaceImpl) Verify(username, password string) error {
+func (l *ldapInterfaceImpl) Authenticate(username, password string) error {
 	conn, err := l.newConn()
 	if err != nil {
 		return err

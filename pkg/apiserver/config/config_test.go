@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	iamapi "kubesphere.io/kubesphere/pkg/api/iam"
+	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -64,7 +64,7 @@ func newTestConfig() *Config {
 			GroupSearchBase: "ou=Groups,dc=example,dc=org",
 		},
 		RedisOptions: &cache.Options{
-			Host:     "localhost:6379",
+			Host:     "localhost",
 			Port:     6379,
 			Password: "P@88w0rd",
 			DB:       0,
@@ -106,7 +106,7 @@ func newTestConfig() *Config {
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
 		},
-		AuthenticateOptions: &iamapi.AuthenticationOptions{
+		AuthenticateOptions: &auth.AuthenticationOptions{
 			AuthenticateRateLimiterMaxTries: 5,
 			AuthenticateRateLimiterDuration: 30 * time.Minute,
 			MaxAuthenticateRetries:          6,

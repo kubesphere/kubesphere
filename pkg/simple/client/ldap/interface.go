@@ -16,6 +16,6 @@ type Interface interface {
 	// Get gets a user by its username from ldap, return ErrUserNotExists if user not exists
 	Get(name string) (*iam.User, error)
 
-	// Verify checks if (name, password) is valid, return ErrInvalidCredentials if not
-	Verify(name string, password string) error
+	// Authenticate checks if (name, password) is valid, return ErrInvalidCredentials if not
+	Authenticate(name string, password string) error
 }
