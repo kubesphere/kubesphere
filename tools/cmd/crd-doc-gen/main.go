@@ -16,6 +16,7 @@ import (
 	"k8s.io/kube-openapi/pkg/common"
 	devopsinstall "kubesphere.io/kubesphere/pkg/apis/devops/crdinstall"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	networkinstall "kubesphere.io/kubesphere/pkg/apis/network/crdinstall"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	servicemeshinstall "kubesphere.io/kubesphere/pkg/apis/servicemesh/crdinstall"
@@ -74,7 +75,9 @@ func main() {
 	mapper.AddSpecific(networkv1alpha1.SchemeGroupVersion.WithKind(networkv1alpha1.ResourceKindWorkspaceNetworkPolicy),
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourceSingularWorkspaceNetworkPolicy), meta.RESTScopeRoot)
-
+	mapper.AddSpecific(devopsv1alpha3.SchemeGroupVersion.WithKind(devopsv1alpha3.ResourceKindDevOpsProject),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourceSingularDevOpsProject), meta.RESTScopeRoot)
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,
 		Codecs: Codecs,
@@ -96,6 +99,7 @@ func main() {
 			tenantv1alpha1.GetOpenAPIDefinitions,
 			networkv1alpha1.GetOpenAPIDefinitions,
 			devopsv1alpha1.GetOpenAPIDefinitions,
+			devopsv1alpha3.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
 			//TODO（runzexia） At present, the document generation requires the openapi structure of the go language,
@@ -109,6 +113,7 @@ func main() {
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilderTemplate),
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilder),
 			networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
+			devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject),
 		},
 		Mapper: mapper,
 	})

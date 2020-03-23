@@ -273,7 +273,6 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		}
 
-
 		if !reflect.DeepEqual(copyProject, project) {
 			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
 			if err != nil {
