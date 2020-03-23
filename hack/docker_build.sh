@@ -3,16 +3,10 @@
 set -ex
 set -o pipefail
 
+# Default image repo
 REPO=kubespheredev
-TAG=latest
-
-# check if build was triggered by a travis cronjob
-if [[ -z "$TRAVIS_EVENT_TYPE" ]]; then
-    echo "TRAVIS_EVENT_TYPE is empty, also normaly build"
-elif [[ $TRAVIS_EVENT_TYPE == "cron" ]]; then
-    TAG=dev-$(date +%Y%m%d)
-fi
-
+# Set tag to latest if no argument was given, normally was branch name
+TAG=${1:-latest}
 
 docker build -f build/ks-apigateway/Dockerfile -t $REPO/ks-apigateway:$TAG .
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
