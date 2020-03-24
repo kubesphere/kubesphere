@@ -11,19 +11,11 @@
 
 > [English](README.md) | 中文
 
-[KubeSphere](https://kubesphere.io/) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户**容器平台**，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了 **运维友好的向导式操作界面**，帮助企业快速构建一个强大和功能丰富的容器云平台，包括 **Kubernetes 资源管理、DevOps (CI/CD)、应用生命周期管理、微服务治理 (Service Mesh)、多租户管理、监控日志、告警通知、存储与网络管理、GPU support** 等功能，未来还将提供 **多集群管理、Network Policy、镜像仓库管理** 等功能。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态系统进行即插即用（plug-and-play）的集成。
+[KubeSphere](https://kubesphere.com.cn) 是在 [Kubernetes](https://kubernetes.io) 之上构建的以**应用为中心的**多租户容器平台，提供全栈的 IT 自动化运维的能力，简化企业的 DevOps 工作流。KubeSphere 提供了运维友好的向导式操作界面，帮助企业快速构建一个强大和功能丰富的容器云平台，包括 Kubernetes 资源管理、DevOps (CI/CD)、应用生命周期管理、微服务治理 (Service Mesh)、多租户管理、监控日志、告警通知、存储与网络管理、GPU support** 等功能，未来还将提供多集群管理、Network Policy、镜像仓库管理等功能。KubeSphere 愿景是打造一个基于 Kubernetes 的云原生分布式操作系统，它的架构可以很方便地与云原生生态系统进行即插即用（plug-and-play）的集成。
 
 
-KubeSphere 作为一个**全栈的容器平台**，不仅支持**安装和纳管原生 Kubernetes**，还设计了一套完整的管理界面方便开发者与运维在一个**统一的平台**中安装与管理最常用的云原生工具，**从业务视角提供了一致的用户体验来降低复杂性**，并且所有功能组件都是可插拔的。
+> 说明：KubeSphere 目前最新的版本为 2.1.1，所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/zh-CN/introduction/intro/)。
 
-![](docs/images/kubesphere-platform-overview.png)
-
-KubeSphere 可以运行在任何私有或托管的 Kubernetes、私有云、公有云、VM 或物理环境之上。已大规模服务于社区用户，广泛地应用在以容器为中心的开发测试及生产环境，大量服务平稳地运行在 KubeSphere 之上。
-
-> 说明：KubeSphere 目前最新的版本为 2.1.1，并且所有版本 100% 开源，关于 KubeSphere 更详细的介绍与说明请参阅 [什么是 KubeSphere](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/intro/)。
-
-
-点击 [KubeSphere 快览](docs/en/guides/screenshots.md) 快速查看 KubeSphere UI；
 
 <table>
   <tr>
@@ -31,22 +23,28 @@ KubeSphere 可以运行在任何私有或托管的 Kubernetes、私有云、公�
       <td width="50%" align="center"><b>Project Resources</b></td>
   </tr>
   <tr>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094014.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112094426.png"/></td>
+     <td><img src="docs/images/console.png"/></td>
+     <td><img src="docs/images/project.png"/></td>
   </tr>
   <tr>
       <td width="50%" align="center"><b>CI/CD Pipeline</b></td>
       <td width="50%" align="center"><b>Application Store</b></td>
   </tr>
   <tr>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20190925000712.png"/></td>
-     <td><img src="https://pek3b.qingstor.com/kubesphere-docs/png/20191112095006.png"/></td>
+     <td><img src="docs/images/cicd.png"/></td>
+     <td><img src="docs/images/app-store.png"/></td>
   </tr>
 </table>
 
 ## 快速体验
 
 使用体验账号 `demo1 / Demo123` 登录 [Demo 环境](https://demo.kubesphere.io/)，该账号仅授予了 viewer 权限，建议自行安装体验完整的管理功能。您还可以访问 Youtube 查看 [KubeSphere Demo 视频](https://youtu.be/u5lQvhi_Xlc)。
+
+## 架构
+
+KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，详见 [架构说明](https://kubesphere.com.cn/docs/zh-CN/introduction/architecture/)。本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
+
+![](docs/images/architecture.png)
 
 ## 核心功能
 
@@ -65,18 +63,13 @@ KubeSphere 可以运行在任何私有或托管的 Kubernetes、私有云、公�
 | GPU support | 集群支持添加 GPU 与 vGPU，可运行 TensorFlow 等 ML 框架 |
 
 
-> 以上功能说明详见 [产品功能](https://kubesphere.io/docs/v2.1/zh-CN/introduction/features/)。
+> 以上功能说明详见 [产品功能](https://kubesphere.com.cn/docs/zh-CN/introduction/features/)。
 
 ----
 
-## 架构
-
-KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件可通过 REST API 对接外部系统，详见 [架构说明](https://kubesphere.com.cn/docs/v2.1/zh-CN/introduction/architecture/)。本仓库仅包含后端代码，前端代码参考 [Console 项目](https://github.com/kubesphere/console)。
-
-
 ## 最新发布
 
-KubeSphere 2.1.1 已于 2020 年 02 月 23 日 正式发布，点击 [Release Notes For 2.1.1](https://kubesphere.io/docs/v2.1/zh-CN/release/release-v211/) 查看 2.1.1 版本的更新详情。
+KubeSphere 2.1.1 已于 2020 年 02 月 23 日 正式发布，点击 [Release Notes For 2.1.1](https://kubesphere.com.cn/docs/zh-CN/release/release-v211/) 查看 2.1.1 版本的更新详情。
 
 ## 快速安装
 
@@ -101,14 +94,14 @@ curl -L https://kubesphere.io/download/stable/latest > installer.tar.gz \
 ./install.sh
 ```
 
-直接选择 `"1) All-in-one"` 即可开始快速安装。默认仅开启最小安装，请参考 [开启可插拔功能功能组件](https://kubesphere.com.cn/docs/v2.1/zh-CN/installation/pluggable-components/) 按需开启其它功能组件。
+直接选择 `"1) All-in-one"` 即可开始快速安装。默认仅开启最小安装，请参考 [开启可插拔功能功能组件](https://kubesphere.com.cn/docs/zh-CN/installation/pluggable-components/) 按需开启其它功能组件。
 
-> 注意：All-in-One 仅适用于**测试环境**，**正式环境** 安装和使用请参考 [安装说明](https://kubesphere.com.cn/docs/v2.1/zh-CN/installation/intro/)。
+> 注意：All-in-One 仅适用于**测试环境**，**正式环境** 安装和使用请参考 [安装说明](https://kubesphere.com.cn/docs/zh-CN/installation/intro/)。
 
 
 ### 部署在 Kubernetes
 
-可参考 [前提条件](https://kubesphere.io/docs/v2.1/zh-CN/installation/prerequisites/) 验证是否满足以下条件：
+可参考 [前提条件](https://kubesphere.com.cn/docs/zh-CN/installation/prerequisites/) 验证是否满足以下条件：
 
 > - `Kubernetes` 版本： `1.15.x、1.16.x、1.17.x`；
 > - `Helm`版本： `2.10.0 ≤ Helm Version ＜ 3.0.0`（不支持 helm 2.16.0 [#6894](https://github.com/helm/helm/issues/6894)），且已安装了 Tiller，参考 [如何安装与配置 Helm](https://devopscube.com/install-configure-helm-kubernetes/) （预计 3.0 支持 Helm v3）；
@@ -142,7 +135,7 @@ kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=
 
 ## 开发 KubeSphere
 
-[开发指南](CONTRIBUTING.md) 详细说明了如何从源码编译、KubeSphere 的 GitHub 工作流、如何贡献代码以及如何测试等。
+[开发指南](https://github.com/kubesphere/community/tree/master/developer-guide/development) 详细说明了如何从源码编译、KubeSphere 的 GitHub 工作流、如何贡献代码以及如何测试等。
 
 ## 路线图
 
@@ -169,15 +162,10 @@ KubeSphere 是 CNCF 基金会成员并且通过了 <a href="https://www.cncf.io/
 
 ## 技术社区
 
-- [技术论坛](https://kubesphere.com.cn/forum/)
-
+- [论坛](https://kubesphere.com.cn/forum/)
 - [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
-
-- 微信群 (请备注 “公司 - 名字”）
-
-<img width="150px" src="https://pek3b.qingstor.com/kubesphere-docs/png/20190902002055.png" />
 
 
 ## Bug 与建议反馈
 
-KubeSphere 的日益完善与快速发展离不开社区用户的支持，KubeSphere 也一直在反哺社区，为开源用户提供更多的支持。若您安装使用时有任何建议问题、反馈或发现的 Bug，欢迎在 [GitHub Issue](https://github.com/kubesphere/kubesphere/issues) 提交 Issue。
+欢迎在 [GitHub Issue](https://github.com/kubesphere/kubesphere/issues) 提交 Issue。
