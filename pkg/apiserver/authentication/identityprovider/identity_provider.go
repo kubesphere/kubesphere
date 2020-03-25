@@ -16,15 +16,10 @@
  * /
  */
 
-package oauth
+package identityprovider
 
-import (
-	"errors"
-	"golang.org/x/oauth2"
-)
+import "k8s.io/apiserver/pkg/authentication/user"
 
-var ConfigNotFound = errors.New("config not found")
-
-type Configuration interface {
-	Load(clientId string) (*oauth2.Config, error)
+type OAuth2Interface interface {
+	IdentityExchange(code string) (user.Info, error)
 }

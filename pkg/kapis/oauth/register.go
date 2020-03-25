@@ -23,19 +23,19 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 )
 
-func AddToContainer(c *restful.Container, issuer token.Issuer, configuration oauth.Configuration) error {
+func AddToContainer(c *restful.Container, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newOAUTHHandler(issuer, configuration)
+	handler := newOAUTHHandler(issuer, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
@@ -46,16 +46,14 @@ func AddToContainer(c *restful.Container, issuer token.Issuer, configuration oau
 		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 
-	// TODO Built-in oauth2 server (provider)
-	// web console use 'Resource Owner Password Credentials Grant' or 'Client Credentials Grant' request for an OAuth token
-	// https://tools.ietf.org/html/rfc6749#section-4.3
-	// https://tools.ietf.org/html/rfc6749#section-4.4
-
+	// Only support implicit grant flow
+	// https://tools.ietf.org/html/rfc6749#section-4.2
 	// curl -u admin:P@88w0rd 'http://ks-apiserver.kubesphere-system.svc/oauth/authorize?client_id=kubesphere-console-client&response_type=token' -v
 	ws.Route(ws.GET("/authorize").
 		To(handler.AuthorizeHandler))
 	//ws.Route(ws.POST("/token"))
-	//ws.Route(ws.POST("/callback/{callback}"))
+	ws.Route(ws.GET("/callback/{callback}").
+		To(handler.OAuthCallBackHandler))
 
 	c.Add(ws)
 

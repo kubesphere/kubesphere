@@ -26,18 +26,19 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"net/http"
 )
 
 type oauthHandler struct {
-	issuer token.Issuer
-	config oauth.Configuration
+	issuer  token.Issuer
+	options *authoptions.AuthenticationOptions
 }
 
-func newOAUTHHandler(issuer token.Issuer, config oauth.Configuration) *oauthHandler {
-	return &oauthHandler{issuer: issuer, config: config}
+func newOAUTHHandler(issuer token.Issuer, options *authoptions.AuthenticationOptions) *oauthHandler {
+	return &oauthHandler{issuer: issuer, options: options}
 }
 
 // Implement webhook authentication interface
@@ -59,7 +60,7 @@ func (h *oauthHandler) TokenReviewHandler(req *restful.Request, resp *restful.Re
 		return
 	}
 
-	user, _, err := h.issuer.Verify(tokenReview.Spec.Token)
+	user, err := h.issuer.Verify(tokenReview.Spec.Token)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -82,8 +83,9 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 	user, ok := request.UserFrom(req.Request.Context())
 	clientId := req.QueryParameter("client_id")
 	responseType := req.QueryParameter("response_type")
+	redirectURI := req.QueryParameter("redirect_uri")
 
-	conf, err := h.config.Load(clientId)
+	conf, err := h.options.OAuthOptions.GetOAuthClient(clientId)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
@@ -103,7 +105,13 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	accessToken, clm, err := h.issuer.IssueTo(user)
+	expiresIn := h.options.OAuthOptions.AccessTokenMaxAgeSeconds
+
+	if conf.AccessTokenMaxAgeSeconds != nil {
+		expiresIn = *conf.AccessTokenMaxAgeSeconds
+	}
+
+	accessToken, err := h.issuer.IssueTo(user, expiresIn)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
@@ -111,11 +119,71 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	redirectURL := fmt.Sprintf("%s?access_token=%s&token_type=Bearer", conf.RedirectURL, accessToken)
-	expiresIn := clm.ExpiresAt - clm.IssuedAt
+	redirectURL, err := conf.ResolveRedirectURL(redirectURI)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	redirectURL = fmt.Sprintf("%s#access_token=%s&token_type=Bearer", redirectURL, accessToken)
+
 	if expiresIn > 0 {
 		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, expiresIn)
 	}
 
+	resp.Header().Set("Content-Type", "text/plain")
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
+}
+
+func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.Response) {
+
+	code := req.QueryParameter("code")
+	name := req.PathParameter("callback")
+
+	if code == "" {
+		err := apierrors.NewUnauthorized("Unauthorized: missing code")
+		resp.WriteError(http.StatusUnauthorized, err)
+	}
+
+	idP, err := h.options.OAuthOptions.GetIdentityProvider(name)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+	}
+
+	oauthIdentityProvider, err := idP.GetOAuth2IdentityProviderInstance()
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+	}
+
+	user, err := oauthIdentityProvider.IdentityExchange(code)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+	}
+
+	expiresIn := h.options.OAuthOptions.AccessTokenMaxAgeSeconds
+
+	accessToken, err := h.issuer.IssueTo(user, expiresIn)
+
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	result := oauth.Token{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   expiresIn,
+	}
+
+	resp.WriteEntity(result)
+	return
 }

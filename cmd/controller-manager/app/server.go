@@ -38,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	kclient "kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
@@ -96,8 +95,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		return err
 	}
 
-	kubesphereClient := kclient.NewKubeSphereClient(s.KubeSphereOptions)
-
 	openpitrixClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
 	if err != nil {
 		klog.Errorf("Failed to create openpitrix client %v", err)
@@ -136,7 +133,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		}
 
 		klog.V(0).Info("Setting up controllers")
-		err = workspace.Add(mgr, kubesphereClient)
+		err = workspace.Add(mgr)
 		if err != nil {
 			klog.Fatal("Unable to create workspace controller")
 		}

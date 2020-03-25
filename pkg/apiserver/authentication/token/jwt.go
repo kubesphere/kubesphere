@@ -21,8 +21,8 @@ package token
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/api/iam"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"time"
@@ -44,35 +44,35 @@ type Claims struct {
 
 type jwtTokenIssuer struct {
 	name    string
-	options *auth.AuthenticationOptions
+	options *authoptions.AuthenticationOptions
 	cache   cache.Interface
 	keyFunc jwt.Keyfunc
 }
 
-func (s *jwtTokenIssuer) Verify(tokenString string) (User, *Claims, error) {
+func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 	if len(tokenString) == 0 {
-		return nil, nil, errInvalidToken
+		return nil, errInvalidToken
 	}
 	_, err := s.cache.Get(tokenCacheKey(tokenString))
 
 	if err != nil {
 		if err == cache.ErrNoSuchKey {
-			return nil, nil, errTokenExpired
+			return nil, errTokenExpired
 		}
-		return nil, nil, err
+		return nil, err
 	}
 
 	clm := &Claims{}
 
 	_, err = jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return &iam.User{Name: clm.Username, UID: clm.UID}, clm, nil
+	return &iam.User{Name: clm.Username, UID: clm.UID}, nil
 }
 
-func (s *jwtTokenIssuer) IssueTo(user User) (string, *Claims, error) {
+func (s *jwtTokenIssuer) IssueTo(user User, expiresInSecond int) (string, error) {
 	clm := &Claims{
 		Username: user.GetName(),
 		UID:      user.GetUID(),
@@ -83,8 +83,8 @@ func (s *jwtTokenIssuer) IssueTo(user User) (string, *Claims, error) {
 		},
 	}
 
-	if s.options.TokenExpiration > 0 {
-		clm.ExpiresAt = clm.IssuedAt + int64(s.options.TokenExpiration.Seconds())
+	if expiresInSecond > 0 {
+		clm.ExpiresAt = clm.IssuedAt + int64(expiresInSecond)
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clm)
@@ -92,19 +92,19 @@ func (s *jwtTokenIssuer) IssueTo(user User) (string, *Claims, error) {
 	tokenString, err := token.SignedString([]byte(s.options.JwtSecret))
 
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 
-	s.cache.Set(tokenCacheKey(tokenString), tokenString, s.options.TokenExpiration)
+	s.cache.Set(tokenCacheKey(tokenString), tokenString, time.Second*time.Duration(expiresInSecond))
 
-	return tokenString, clm, nil
+	return tokenString, nil
 }
 
 func (s *jwtTokenIssuer) Revoke(token string) error {
 	return s.cache.Del(tokenCacheKey(token))
 }
 
-func NewJwtTokenIssuer(issuerName string, options *auth.AuthenticationOptions, cache cache.Interface) Issuer {
+func NewJwtTokenIssuer(issuerName string, options *authoptions.AuthenticationOptions, cache cache.Interface) Issuer {
 	return &jwtTokenIssuer{
 		name:    issuerName,
 		options: options,

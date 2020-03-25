@@ -6,8 +6,9 @@ import (
 	"fmt"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -29,42 +30,32 @@ import (
 type ServerRunOptions struct {
 	ConfigFile              string
 	GenericServerRunOptions *genericoptions.ServerRunOptions
-	KubernetesOptions       *k8s.KubernetesOptions
-	DevopsOptions           *jenkins.Options
-	SonarQubeOptions        *sonarqube.Options
-	ServiceMeshOptions      *servicemesh.Options
-	MySQLOptions            *mysql.Options
-	MonitoringOptions       *prometheus.Options
-	S3Options               *s3.Options
-	OpenPitrixOptions       *openpitrix.Options
-	LoggingOptions          *esclient.Options
-	LdapOptions             *ldap.Options
-	CacheOptions            *cache.Options
-	AuthenticateOptions     *auth.AuthenticationOptions
+	*apiserverconfig.Config
 
 	//
 	DebugMode bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
-
-	s := ServerRunOptions{
+	s := &ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
-		KubernetesOptions:       k8s.NewKubernetesOptions(),
-		DevopsOptions:           jenkins.NewDevopsOptions(),
-		SonarQubeOptions:        sonarqube.NewSonarQubeOptions(),
-		ServiceMeshOptions:      servicemesh.NewServiceMeshOptions(),
-		MySQLOptions:            mysql.NewMySQLOptions(),
-		MonitoringOptions:       prometheus.NewPrometheusOptions(),
-		S3Options:               s3.NewS3Options(),
-		OpenPitrixOptions:       openpitrix.NewOptions(),
-		LoggingOptions:          esclient.NewElasticSearchOptions(),
-		LdapOptions:             ldap.NewOptions(),
-		CacheOptions:            cache.NewRedisOptions(),
-		AuthenticateOptions:     auth.NewAuthenticateOptions(),
+		Config: &apiserverconfig.Config{
+			KubernetesOptions:     k8s.NewKubernetesOptions(),
+			DevopsOptions:         jenkins.NewDevopsOptions(),
+			SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
+			ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
+			MySQLOptions:          mysql.NewMySQLOptions(),
+			MonitoringOptions:     prometheus.NewPrometheusOptions(),
+			S3Options:             s3.NewS3Options(),
+			OpenPitrixOptions:     openpitrix.NewOptions(),
+			LoggingOptions:        esclient.NewElasticSearchOptions(),
+			LdapOptions:           ldap.NewOptions(),
+			RedisOptions:          cache.NewRedisOptions(),
+			AuthenticationOptions: authoptions.NewAuthenticateOptions(),
+		},
 	}
 
-	return &s
+	return s
 }
 
 func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
@@ -72,12 +63,12 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	fs.BoolVar(&s.DebugMode, "debug", false, "Don't enable this if you don't know what it means.")
 	s.GenericServerRunOptions.AddFlags(fs, s.GenericServerRunOptions)
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
-	s.AuthenticateOptions.AddFlags(fss.FlagSet("authenticate"), s.AuthenticateOptions)
+	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
 	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), s.MySQLOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
-	s.CacheOptions.AddFlags(fss.FlagSet("cache"), s.CacheOptions)
+	s.RedisOptions.AddFlags(fss.FlagSet("redis"), s.RedisOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
@@ -100,7 +91,7 @@ const fakeInterface string = "FAKE"
 // NewAPIServer creates an APIServer instance using given options
 func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIServer, error) {
 	apiServer := &apiserver.APIServer{
-		AuthenticateOptions: s.AuthenticateOptions,
+		Config: s.Config,
 	}
 
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
@@ -156,11 +147,11 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	}
 
 	var cacheClient cache.Interface
-	if s.CacheOptions.Host != "" {
-		if s.CacheOptions.Host == fakeInterface && s.DebugMode {
+	if s.RedisOptions.Host != "" {
+		if s.RedisOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.CacheClient = cache.NewSimpleCache()
 		} else {
-			cacheClient, err = cache.NewRedisClient(s.CacheOptions, stopCh)
+			cacheClient, err = cache.NewRedisClient(s.RedisOptions, stopCh)
 			if err != nil {
 				return nil, err
 			}

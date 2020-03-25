@@ -2,7 +2,7 @@ package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
-	"kubesphere.io/kubesphere/pkg/api/auth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
@@ -16,7 +16,7 @@ type iamHandler struct {
 	imOperator im.IdentityManagementInterface
 }
 
-func newIAMHandler(k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *auth.AuthenticationOptions) *iamHandler {
+func newIAMHandler(k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *authoptions.AuthenticationOptions) *iamHandler {
 	return &iamHandler{
 		amOperator: am.NewAMOperator(k8sClient.Kubernetes(), factory.KubernetesSharedInformerFactory()),
 		imOperator: im.NewLDAPOperator(ldapClient),

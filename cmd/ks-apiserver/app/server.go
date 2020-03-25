@@ -37,18 +37,7 @@ func NewAPIServerCommand() *cobra.Command {
 	if err == nil {
 		s = &options.ServerRunOptions{
 			GenericServerRunOptions: s.GenericServerRunOptions,
-			KubernetesOptions:       conf.KubernetesOptions,
-			DevopsOptions:           conf.DevopsOptions,
-			SonarQubeOptions:        conf.SonarQubeOptions,
-			ServiceMeshOptions:      conf.ServiceMeshOptions,
-			MySQLOptions:            conf.MySQLOptions,
-			MonitoringOptions:       conf.MonitoringOptions,
-			S3Options:               conf.S3Options,
-			OpenPitrixOptions:       conf.OpenPitrixOptions,
-			LoggingOptions:          conf.LoggingOptions,
-			LdapOptions:             conf.LdapOptions,
-			CacheOptions:            conf.RedisOptions,
-			AuthenticateOptions:     conf.AuthenticateOptions,
+			Config:                  conf,
 		}
 	}
 
