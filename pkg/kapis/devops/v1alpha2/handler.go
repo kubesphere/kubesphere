@@ -13,7 +13,6 @@ import (
 type ProjectPipelineHandler struct {
 	projectCredentialOperator devops.ProjectCredentialOperator
 	projectMemberOperator     devops.ProjectMemberOperator
-	projectPipelineOperator   devops.ProjectPipelineOperator
 	devopsOperator            devops.DevopsOperator
 	projectOperator           devops.ProjectOperator
 }
@@ -27,7 +26,6 @@ func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *my
 	return ProjectPipelineHandler{
 		projectCredentialOperator: devops.NewProjectCredentialOperator(devopsClient, dbClient),
 		projectMemberOperator:     devops.NewProjectMemberOperator(devopsClient, dbClient),
-		projectPipelineOperator:   devops.NewProjectPipelineOperator(devopsClient),
 		devopsOperator:            devops.NewDevopsOperator(devopsClient),
 		projectOperator:           devops.NewProjectOperator(dbClient),
 	}

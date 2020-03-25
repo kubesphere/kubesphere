@@ -1,7 +1,10 @@
 package fake
 
 import (
+	"fmt"
+	"github.com/emicklei/go-restful"
 	"io/ioutil"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
@@ -12,15 +15,32 @@ type Devops struct {
 	Data map[string]interface{}
 
 	Projects map[string]interface{}
+
+	Pipelines map[string]map[string]*devopsv1alpha3.Pipeline
 }
 
 func New(projects ...string) *Devops {
 	d := &Devops{
-		Data:     nil,
-		Projects: map[string]interface{}{},
+		Data:      nil,
+		Projects:  map[string]interface{}{},
+		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
 	}
 	for _, p := range projects {
 		d.Projects[p] = true
+	}
+	return d
+}
+func NewWithPipelines(project string, pipelines ...*devopsv1alpha3.Pipeline) *Devops {
+	d := &Devops{
+		Data:      nil,
+		Projects:  map[string]interface{}{},
+		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
+	}
+
+	d.Projects[project] = true
+	d.Pipelines[project] = map[string]*devopsv1alpha3.Pipeline{}
+	for _, f := range pipelines {
+		d.Pipelines[project][f.Name] = f
 	}
 	return d
 }
@@ -30,12 +50,14 @@ func (d *Devops) CreateDevOpsProject(projectId string) (string, error) {
 		return projectId, nil
 	}
 	d.Projects[projectId] = true
+	d.Pipelines[projectId] = map[string]*devopsv1alpha3.Pipeline{}
 	return projectId, nil
 }
 
 func (d *Devops) DeleteDevOpsProject(projectId string) error {
 	if _, ok := d.Projects[projectId]; ok {
 		delete(d.Projects, projectId)
+		delete(d.Pipelines, projectId)
 		return nil
 	} else {
 		return &devops.ErrorResponse{
@@ -276,15 +298,122 @@ func (d *Devops) DeleteProjectMember(membership *devops.ProjectMembership) (*dev
 }
 
 // ProjectPipelineOperator
-func (d *Devops) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
+func (d *Devops) CreateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
+	if _, ok := d.Pipelines[projectId][pipeline.Name]; ok {
+		err := fmt.Errorf("pipeline name [%s] has been used", pipeline.Name)
+		return "", restful.NewError(http.StatusConflict, err.Error())
+	}
+	d.Pipelines[projectId][pipeline.Name] = pipeline
 	return "", nil
 }
 func (d *Devops) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
+	if _, ok := d.Pipelines[projectId][pipelineId]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return "", err
+	}
+	delete(d.Pipelines[projectId], pipelineId)
 	return "", nil
 }
-func (d *Devops) UpdateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
+func (d *Devops) UpdateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
+	if _, ok := d.Pipelines[projectId][pipeline.Name]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return "", err
+	}
+	d.Pipelines[projectId][pipeline.Name] = pipeline
 	return "", nil
 }
-func (d *Devops) GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
-	return nil, nil
+func (d *Devops) GetProjectPipelineConfig(projectId, pipelineId string) (*devopsv1alpha3.Pipeline, error) {
+	if _, ok := d.Pipelines[projectId][pipelineId]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return nil, err
+	}
+
+	return d.Pipelines[projectId][pipelineId], nil
 }

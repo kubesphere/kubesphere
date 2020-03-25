@@ -21,3 +21,11 @@ package v1alpha3
 // DevOpsProjectListerExpansion allows custom methods to be added to
 // DevOpsProjectLister.
 type DevOpsProjectListerExpansion interface{}
+
+// PipelineListerExpansion allows custom methods to be added to
+// PipelineLister.
+type PipelineListerExpansion interface{}
+
+// PipelineNamespaceListerExpansion allows custom methods to be added to
+// PipelineNamespaceLister.
+type PipelineNamespaceListerExpansion interface{}

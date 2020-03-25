@@ -69,6 +69,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=devops.kubesphere.io, Version=v1alpha3
 	case v1alpha3.SchemeGroupVersion.WithResource("devopsprojects"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha3().DevOpsProjects().Informer()}, nil
+	case v1alpha3.SchemeGroupVersion.WithResource("pipelines"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha3().Pipelines().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):

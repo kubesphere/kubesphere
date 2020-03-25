@@ -27,6 +27,7 @@ import (
 type DevopsV1alpha3Interface interface {
 	RESTClient() rest.Interface
 	DevOpsProjectsGetter
+	PipelinesGetter
 }
 
 // DevopsV1alpha3Client is used to interact with features provided by the devops.kubesphere.io group.
@@ -36,6 +37,10 @@ type DevopsV1alpha3Client struct {
 
 func (c *DevopsV1alpha3Client) DevOpsProjects() DevOpsProjectInterface {
 	return newDevOpsProjects(c)
+}
+
+func (c *DevopsV1alpha3Client) Pipelines(namespace string) PipelineInterface {
+	return newPipelines(c, namespace)
 }
 
 // NewForConfig creates a new DevopsV1alpha3Client for the given config.

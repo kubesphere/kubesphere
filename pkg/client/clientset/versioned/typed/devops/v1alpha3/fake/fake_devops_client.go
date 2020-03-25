@@ -32,6 +32,10 @@ func (c *FakeDevopsV1alpha3) DevOpsProjects() v1alpha3.DevOpsProjectInterface {
 	return &FakeDevOpsProjects{c}
 }
 
+func (c *FakeDevopsV1alpha3) Pipelines(namespace string) v1alpha3.PipelineInterface {
+	return &FakePipelines{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeDevopsV1alpha3) RESTClient() rest.Interface {

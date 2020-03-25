@@ -156,40 +156,6 @@ func AddToContainer(c *restful.Container, devopsClient devops.Interface,
 			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
 			Writes(devops.ProjectMembership{}))
 
-		webservice.Route(webservice.POST("/devops/{devops}/pipelines").
-			To(projectPipelineHander.CreateDevOpsProjectPipelineHandler).
-			Doc("Create a DevOps project pipeline").
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-			Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
-			Writes(devops.ProjectPipeline{}).
-			Reads(devops.ProjectPipeline{}))
-
-		webservice.Route(webservice.PUT("/devops/{devops}/pipelines/{pipeline}").
-			To(projectPipelineHander.UpdateDevOpsProjectPipelineHandler).
-			Doc("Update the specified pipeline of the DevOps project").
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-			Writes(devops.ProjectPipeline{}).
-			Reads(devops.ProjectPipeline{}))
-
-		webservice.Route(webservice.DELETE("/devops/{devops}/pipelines/{pipeline}").
-			To(projectPipelineHander.DeleteDevOpsProjectPipelineHandler).
-			Doc("Delete the specified pipeline of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")))
-
-		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/config").
-			To(projectPipelineHander.GetDevOpsProjectPipelineConfigHandler).
-			Doc("Get the configuration information of the specified pipeline of the DevOps Project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("pipeline", "the name of pipeline, e.g. sample-pipeline")).
-			Returns(http.StatusOK, RespOK, devops.ProjectPipeline{}).
-			Writes(devops.ProjectPipeline{}))
-
 		webservice.Route(webservice.POST("/devops/{devops}/credentials").
 			To(projectPipelineHander.CreateDevOpsProjectCredentialHandler).
 			Doc("Create a credential in the specified DevOps project").
