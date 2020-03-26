@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
@@ -85,7 +86,7 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 	responseType := req.QueryParameter("response_type")
 	redirectURI := req.QueryParameter("redirect_uri")
 
-	conf, err := h.options.OAuthOptions.GetOAuthClient(clientId)
+	conf, err := h.options.OAuthOptions.OAuthClient(clientId)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
@@ -105,10 +106,10 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	expiresIn := h.options.OAuthOptions.AccessTokenMaxAgeSeconds
+	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
 
-	if conf.AccessTokenMaxAgeSeconds != nil {
-		expiresIn = *conf.AccessTokenMaxAgeSeconds
+	if conf.AccessTokenMaxAge != nil {
+		expiresIn = *conf.AccessTokenMaxAge
 	}
 
 	accessToken, err := h.issuer.IssueTo(user, expiresIn)
@@ -130,7 +131,7 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 	redirectURL = fmt.Sprintf("%s#access_token=%s&token_type=Bearer", redirectURL, accessToken)
 
 	if expiresIn > 0 {
-		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, expiresIn)
+		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, expiresIn.Seconds())
 	}
 
 	resp.Header().Set("Content-Type", "text/plain")
@@ -147,14 +148,14 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 		resp.WriteError(http.StatusUnauthorized, err)
 	}
 
-	idP, err := h.options.OAuthOptions.GetIdentityProvider(name)
+	idP, err := h.options.OAuthOptions.IdentityProviderOptions(name)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
 	}
 
-	oauthIdentityProvider, err := idP.GetOAuth2IdentityProviderInstance()
+	oauthIdentityProvider, err := identityprovider.ResolveOAuthProvider(idP.Type, idP.Provider)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
@@ -168,7 +169,7 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 		resp.WriteError(http.StatusUnauthorized, err)
 	}
 
-	expiresIn := h.options.OAuthOptions.AccessTokenMaxAgeSeconds
+	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
 
 	accessToken, err := h.issuer.IssueTo(user, expiresIn)
 
@@ -181,7 +182,7 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 	result := oauth.Token{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
-		ExpiresIn:   expiresIn,
+		ExpiresIn:   int(expiresIn.Seconds()),
 	}
 
 	resp.WriteEntity(result)

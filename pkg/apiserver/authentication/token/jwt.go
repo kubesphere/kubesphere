@@ -72,7 +72,7 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 	return &iam.User{Name: clm.Username, UID: clm.UID}, nil
 }
 
-func (s *jwtTokenIssuer) IssueTo(user User, expiresInSecond int) (string, error) {
+func (s *jwtTokenIssuer) IssueTo(user User, expiresIn time.Duration) (string, error) {
 	clm := &Claims{
 		Username: user.GetName(),
 		UID:      user.GetUID(),
@@ -83,8 +83,8 @@ func (s *jwtTokenIssuer) IssueTo(user User, expiresInSecond int) (string, error)
 		},
 	}
 
-	if expiresInSecond > 0 {
-		clm.ExpiresAt = clm.IssuedAt + int64(expiresInSecond)
+	if expiresIn > 0 {
+		clm.ExpiresAt = clm.IssuedAt + int64(expiresIn.Seconds())
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clm)
@@ -95,7 +95,7 @@ func (s *jwtTokenIssuer) IssueTo(user User, expiresInSecond int) (string, error)
 		return "", err
 	}
 
-	s.cache.Set(tokenCacheKey(tokenString), tokenString, time.Second*time.Duration(expiresInSecond))
+	s.cache.Set(tokenCacheKey(tokenString), tokenString, expiresIn)
 
 	return tokenString, nil
 }

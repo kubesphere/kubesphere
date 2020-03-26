@@ -16,14 +16,17 @@
  * /
  */
 
-package oauth
+package github
 
 import (
 	"context"
 	"encoding/json"
 	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"time"
 )
 
@@ -96,6 +99,44 @@ type GithubIdentity struct {
 	OwnedPrivateRepos int       `json:"owned_private_repos"`
 	DiskUsage         int       `json:"disk_usage"`
 	Collaborators     int       `json:"collaborators"`
+}
+
+func init() {
+	identityprovider.RegisterOAuthProviderCodec(&codec{t: "github"})
+}
+
+type codec struct {
+	t string
+}
+
+func (c codec) Type() string {
+	return c.t
+}
+
+func (codec) Encode(provider identityprovider.OAuthProvider) (*oauth.DynamicOptions, error) {
+	data, err := yaml.Marshal(provider)
+	if err != nil {
+		return nil, err
+	}
+	var options oauth.DynamicOptions
+	err = yaml.Unmarshal(data, &options)
+	if err != nil {
+		return nil, err
+	}
+	return &options, nil
+}
+
+func (codec) Decode(options *oauth.DynamicOptions) (identityprovider.OAuthProvider, error) {
+	data, err := yaml.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+	var provider Github
+	err = yaml.Unmarshal(data, &provider)
+	if err != nil {
+		return nil, err
+	}
+	return &provider, nil
 }
 
 func (g GithubIdentity) GetName() string {

@@ -20,8 +20,8 @@ package oauth
 
 import (
 	"errors"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"time"
 )
 
 type GrantHandlerType string
@@ -43,26 +43,23 @@ const (
 	MappingMethodLookup MappingMethod = "lookup"
 	// MappingMethodMixed  A user entity can be mapped with multiple identifyProvider.
 	MappingMethodMixed MappingMethod = "mixed"
-
-	IdentityProviderTypeGithub = "github"
 )
 
 var (
-	ErrorClientNotFound           = errors.New("the OAuth client was not found")
-	ErrorRedirectURLNotAllowed    = errors.New("redirect URL is not allowed")
-	ErrorIdentityProviderNotFound = errors.New("the identity provider was not found")
+	ErrorClientNotFound        = errors.New("the OAuth client was not found")
+	ErrorRedirectURLNotAllowed = errors.New("redirect URL is not allowed")
 )
 
 type Options struct {
 	// LDAPPasswordIdentityProvider provider is used by default.
-	IdentityProviders []IdentityProvider `json:"identityProviders,omitempty" yaml:"identityProviders,omitempty"`
+	IdentityProviders []IdentityProviderOptions `json:"identityProviders,omitempty" yaml:"identityProviders,omitempty"`
 
 	// Register additional OAuth clients.
 	Clients []Client `json:"clients,omitempty" yaml:"clients,omitempty"`
 
 	// AccessTokenMaxAgeSeconds  control the lifetime of access tokens. The default lifetime is 24 hours.
 	// 0 means no expiration.
-	AccessTokenMaxAgeSeconds int `json:"accessTokenMaxAgeSeconds" yaml:"accessTokenMaxAgeSeconds"`
+	AccessTokenMaxAge time.Duration `json:"accessTokenMaxAge" yaml:"accessTokenMaxAge"`
 
 	// Inactivity timeout for tokens
 	// The value represents the maximum amount of time that can occur between
@@ -72,12 +69,14 @@ type Options struct {
 	// This value needs to be set only if the default set in configuration is
 	// not appropriate for this client. Valid values are:
 	// - 0: Tokens for this client never time out
-	// - X: Tokens time out if there is no activity for X seconds
-	// The current minimum allowed value for X is 300 (5 minutes)
-	AccessTokenInactivityTimeoutSeconds int `json:"accessTokenInactivityTimeoutSeconds" yaml:"accessTokenInactivityTimeoutSeconds"`
+	// - X: Tokens time out if there is no activity
+	// The current minimum allowed value for X is 5 minutes
+	AccessTokenInactivityTimeout time.Duration `json:"accessTokenInactivityTimeout" yaml:"accessTokenInactivityTimeout"`
 }
 
-type IdentityProvider struct {
+type DynamicOptions map[string]interface{}
+
+type IdentityProviderOptions struct {
 	// The provider name.
 	Name string `json:"name" yaml:"name"`
 
@@ -96,8 +95,8 @@ type IdentityProvider struct {
 	// The type of identify provider
 	Type string `json:"type" yaml:"type"`
 
-	// Provider options
-	Github *Github `json:"github" yaml:"github" `
+	// The options of identify provider
+	Provider *DynamicOptions `json:"provider,omitempty" yaml:"provider,omitempty"`
 }
 
 type Token struct {
@@ -145,15 +144,15 @@ type Client struct {
 	// If no restriction matches, then the scope is denied.
 	ScopeRestrictions []string `json:"scopeRestrictions,omitempty" yaml:"scopeRestrictions,omitempty"`
 
-	// AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
-	AccessTokenMaxAgeSeconds *int `json:"accessTokenMaxAgeSeconds,omitempty" yaml:"accessTokenMaxAgeSeconds,omitempty"`
+	// AccessTokenMaxAge overrides the default access token max age for tokens granted to this client.
+	AccessTokenMaxAge *time.Duration `json:"accessTokenMaxAge,omitempty" yaml:"accessTokenMaxAge,omitempty"`
 
-	// AccessTokenInactivityTimeoutSeconds overrides the default token
+	// AccessTokenInactivityTimeout overrides the default token
 	// inactivity timeout for tokens granted to this client.
-	AccessTokenInactivityTimeoutSeconds *int `json:"accessTokenInactivityTimeoutSeconds,omitempty" yaml:"accessTokenInactivityTimeoutSeconds,omitempty"`
+	AccessTokenInactivityTimeout *time.Duration `json:"accessTokenInactivityTimeout,omitempty" yaml:"accessTokenInactivityTimeout,omitempty"`
 }
 
-func (o *Options) GetOAuthClient(name string) (Client, error) {
+func (o *Options) OAuthClient(name string) (Client, error) {
 	for _, found := range o.Clients {
 		if found.Name == name {
 			return found, nil
@@ -161,13 +160,13 @@ func (o *Options) GetOAuthClient(name string) (Client, error) {
 	}
 	return Client{}, ErrorClientNotFound
 }
-func (o *Options) GetIdentityProvider(name string) (IdentityProvider, error) {
+func (o *Options) IdentityProviderOptions(name string) (IdentityProviderOptions, error) {
 	for _, found := range o.IdentityProviders {
 		if found.Name == name {
 			return found, nil
 		}
 	}
-	return IdentityProvider{}, ErrorClientNotFound
+	return IdentityProviderOptions{}, ErrorClientNotFound
 }
 
 func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
@@ -183,21 +182,11 @@ func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
 	return "", ErrorRedirectURLNotAllowed
 }
 
-func (i IdentityProvider) GetOAuth2IdentityProviderInstance() (identityprovider.OAuth2Interface, error) {
-	switch i.Type {
-	case IdentityProviderTypeGithub:
-		if i.Github != nil {
-			return i.Github, nil
-		}
-	}
-	return nil, ErrorIdentityProviderNotFound
-}
-
 func NewOptions() *Options {
 	return &Options{
-		IdentityProviders:                   make([]IdentityProvider, 0),
-		Clients:                             make([]Client, 0),
-		AccessTokenMaxAgeSeconds:            86400,
-		AccessTokenInactivityTimeoutSeconds: 0,
+		IdentityProviders:            make([]IdentityProviderOptions, 0),
+		Clients:                      make([]Client, 0),
+		AccessTokenMaxAge:            time.Hour * 24,
+		AccessTokenInactivityTimeout: 0,
 	}
 }

@@ -5,6 +5,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
@@ -20,13 +22,26 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"os"
 	"testing"
 	"time"
 )
 
-func newTestConfig() *Config {
+func newTestConfig() (*Config, error) {
+
+	githubOAuthProvider, err := identityprovider.ResolveOAuthOptions("github", &github.Github{
+		ClientID:     "de6ff7bed0304e487b6e",
+		ClientSecret: "xxxxxx-xxxxx-xxxxx",
+		Endpoint: github.Endpoint{
+			AuthURL:  "https://github.com/login/oauth/authorize",
+			TokenURL: "https://github.com/login/oauth/token",
+		},
+		RedirectURL: "https://ks-console.kubesphere-system.svc/oauth/callbak/github",
+		Scopes:      []string{"user"},
+	})
+	if err != nil {
+		return nil, err
+	}
 	var conf = &Config{
 		MySQLOptions: &mysql.Options{
 			Host:                  "10.68.96.5:3306",
@@ -110,36 +125,27 @@ func newTestConfig() *Config {
 			JwtSecret:                       "xxxxxx",
 			MultipleLogin:                   false,
 			OAuthOptions: &oauth.Options{
-				IdentityProviders: []oauth.IdentityProvider{{
+				IdentityProviders: []oauth.IdentityProviderOptions{{
 					Name:          "github",
 					MappingMethod: "auto",
 					LoginRedirect: true,
-					Type:          oauth.IdentityProviderTypeGithub,
-					Github: &oauth.Github{
-						ClientID:     "de6ff7bed0304e487b6e",
-						ClientSecret: "xxxxxx-xxxxx-xxxxx",
-						Endpoint: oauth.Endpoint{
-							AuthURL:  "https://github.com/login/oauth/authorize",
-							TokenURL: "https://github.com/login/oauth/token",
-						},
-						RedirectURL: "https://ks-console.kubesphere-system.svc/oauth/callbak/github",
-						Scopes:      []string{"user"},
-					},
+					Type:          "github",
+					Provider:      githubOAuthProvider,
 				}},
 				Clients: []oauth.Client{{
-					Name:                                "kubesphere-console-client",
-					Secret:                              "xxxxxx-xxxxxx-xxxxxx",
-					RespondWithChallenges:               true,
-					RedirectURIs:                        []string{"http://ks-console.kubesphere-system.svc/oauth/token/implicit"},
-					GrantMethod:                         oauth.GrantHandlerAuto,
-					AccessTokenInactivityTimeoutSeconds: nil,
+					Name:                         "kubesphere-console-client",
+					Secret:                       "xxxxxx-xxxxxx-xxxxxx",
+					RespondWithChallenges:        true,
+					RedirectURIs:                 []string{"http://ks-console.kubesphere-system.svc/oauth/token/implicit"},
+					GrantMethod:                  oauth.GrantHandlerAuto,
+					AccessTokenInactivityTimeout: nil,
 				}},
-				AccessTokenMaxAgeSeconds:            86400,
-				AccessTokenInactivityTimeoutSeconds: 0,
+				AccessTokenMaxAge:            time.Hour * 24,
+				AccessTokenInactivityTimeout: 0,
 			},
 		},
 	}
-	return conf
+	return conf, nil
 }
 
 func saveTestConfig(t *testing.T, conf *Config) {
@@ -147,7 +153,6 @@ func saveTestConfig(t *testing.T, conf *Config) {
 	if err != nil {
 		t.Fatalf("error marshal config. %v", err)
 	}
-
 	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", defaultConfigurationName), content, 0640)
 	if err != nil {
 		t.Fatalf("error write configuration file, %v", err)
@@ -169,7 +174,10 @@ func cleanTestConfig(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	conf := newTestConfig()
+	conf, err := newTestConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
 	saveTestConfig(t, conf)
 	defer cleanTestConfig(t)
 
@@ -178,8 +186,7 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmp.Diff(conf, conf2)
-	if diff := reflectutils.Equal(conf, conf2); diff != nil {
+	if diff := cmp.Diff(conf, conf2); diff != "" {
 		t.Fatal(diff)
 	}
 }

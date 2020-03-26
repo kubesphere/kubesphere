@@ -16,30 +16,34 @@
  * /
  */
 
-package serverconfig
+package v1alpha2
 
 import (
 	"github.com/emicklei/go-restful"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
 
-func AddToContainer(c *restful.Container, config *apiserverconfig.Config) error {
-	configs := &restful.WebService{}
+const (
+	GroupName = "config.kubesphere.io"
+)
 
-	configs.Path("/server/configs").
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
+var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+
+func AddToContainer(c *restful.Container, config *apiserverconfig.Config) error {
+	webservice := runtime.NewWebService(GroupVersion)
 
 	// information about the authorization server are published.
-	configs.Route(configs.GET("/oauth-configz").To(func(request *restful.Request, response *restful.Response) {
+	webservice.Route(webservice.GET("/configs/oauth").To(func(request *restful.Request, response *restful.Response) {
 		response.WriteEntity(config.AuthenticationOptions.OAuthOptions)
 	}))
 
 	// information about the server configuration
-	configs.Route(configs.GET("/configz").To(func(request *restful.Request, response *restful.Response) {
+	webservice.Route(webservice.GET("/configs/configz").To(func(request *restful.Request, response *restful.Response) {
 		response.WriteAsJson(config.ToMap())
 	}))
 
-	c.Add(configs)
+	c.Add(webservice)
 	return nil
 }

@@ -23,12 +23,19 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 )
 
+// ks-apiserver includes a built-in OAuth server. Users obtain OAuth access tokens to authenticate themselves to the API.
+// The OAuth server supports standard authorization code grant and the implicit grant OAuth authorization flows.
+// All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.
+// Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
+// to validate credentials against a backing identity provider.
+// Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
 func AddToContainer(c *restful.Container, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
@@ -48,12 +55,17 @@ func AddToContainer(c *restful.Container, issuer token.Issuer, options *authopti
 
 	// Only support implicit grant flow
 	// https://tools.ietf.org/html/rfc6749#section-4.2
-	// curl -u admin:P@88w0rd 'http://ks-apiserver.kubesphere-system.svc/oauth/authorize?client_id=kubesphere-console-client&response_type=token' -v
 	ws.Route(ws.GET("/authorize").
+		Doc("All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.").
 		To(handler.AuthorizeHandler))
 	//ws.Route(ws.POST("/token"))
+
+	// Authorization callback URL, where the end of the URL contains the identity provider name.
+	// The provider name is also used to build the callback URL.
 	ws.Route(ws.GET("/callback/{callback}").
-		To(handler.OAuthCallBackHandler))
+		Doc("OAuth callback API, the path param callback is config by identity provider").
+		To(handler.OAuthCallBackHandler).
+		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
 
 	c.Add(ws)
 
