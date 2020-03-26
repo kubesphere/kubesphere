@@ -1,6 +1,7 @@
 package devops
 
 import (
+	v1 "k8s.io/api/core/v1"
 	"time"
 )
 
@@ -50,28 +51,14 @@ type KubeconfigCredential struct {
 	Content string `json:"content,omitempty" description:"content of kubeconfig"`
 }
 
-const (
-	CredentialTypeUsernamePassword = "username_password"
-	CredentialTypeSsh              = "ssh"
-	CredentialTypeSecretText       = "secret_text"
-	CredentialTypeKubeConfig       = "kubeconfig"
-)
-
-var CredentialTypeMap = map[string]string{
-	"SSH Username with private key":         CredentialTypeSsh,
-	"Username with password":                CredentialTypeUsernamePassword,
-	"Secret text":                           CredentialTypeSecretText,
-	"Kubernetes configuration (kubeconfig)": CredentialTypeKubeConfig,
-}
-
 type CredentialOperator interface {
-	CreateCredentialInProject(projectId string, credential *Credential) (*string, error)
+	CreateCredentialInProject(projectId string, credential *v1.Secret) (string, error)
 
-	UpdateCredentialInProject(projectId string, credential *Credential) (*string, error)
+	UpdateCredentialInProject(projectId string, credential *v1.Secret) (string, error)
 
-	GetCredentialInProject(projectId, id string, content bool) (*Credential, error)
+	GetCredentialInProject(projectId, id string) (*Credential, error)
 
 	GetCredentialsInProject(projectId string) ([]*Credential, error)
 
-	DeleteCredentialInProject(projectId, id string) (*string, error)
+	DeleteCredentialInProject(projectId, id string) (string, error)
 }

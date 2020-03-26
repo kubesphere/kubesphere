@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
@@ -17,6 +18,8 @@ type Devops struct {
 	Projects map[string]interface{}
 
 	Pipelines map[string]map[string]*devopsv1alpha3.Pipeline
+
+	Credentials map[string]map[string]*v1.Secret
 }
 
 func New(projects ...string) *Devops {
@@ -45,12 +48,28 @@ func NewWithPipelines(project string, pipelines ...*devopsv1alpha3.Pipeline) *De
 	return d
 }
 
+func NewWithCredentials(project string, credentials ...*v1.Secret) *Devops {
+	d := &Devops{
+		Data:        nil,
+		Projects:    map[string]interface{}{},
+		Credentials: map[string]map[string]*v1.Secret{},
+	}
+
+	d.Projects[project] = true
+	d.Credentials[project] = map[string]*v1.Secret{}
+	for _, f := range credentials {
+		d.Credentials[project][f.Name] = f
+	}
+	return d
+}
+
 func (d *Devops) CreateDevOpsProject(projectId string) (string, error) {
 	if _, ok := d.Projects[projectId]; ok {
 		return projectId, nil
 	}
 	d.Projects[projectId] = true
 	d.Pipelines[projectId] = map[string]*devopsv1alpha3.Pipeline{}
+	d.Credentials[projectId] = map[string]*v1.Secret{}
 	return projectId, nil
 }
 
@@ -58,6 +77,7 @@ func (d *Devops) DeleteDevOpsProject(projectId string) error {
 	if _, ok := d.Projects[projectId]; ok {
 		delete(d.Projects, projectId)
 		delete(d.Pipelines, projectId)
+		delete(d.Credentials, projectId)
 		return nil
 	} else {
 		return &devops.ErrorResponse{
@@ -264,19 +284,128 @@ func (d *Devops) ToJson(httpParameters *devops.HttpParameters) (*devops.ResJson,
 }
 
 // CredentialOperator
-func (d *Devops) CreateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
-	return nil, nil
+func (d *Devops) CreateCredentialInProject(projectId string, credential *v1.Secret) (string, error) {
+	if _, ok := d.Credentials[projectId][credential.Name]; ok {
+		err := fmt.Errorf("credential name [%s] has been used", credential.Name)
+		return "", restful.NewError(http.StatusConflict, err.Error())
+	}
+	d.Credentials[projectId][credential.Name] = credential
+	return credential.Name, nil
 }
-func (d *Devops) UpdateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
-	return nil, nil
+func (d *Devops) UpdateCredentialInProject(projectId string, credential *v1.Secret) (string, error) {
+	if _, ok := d.Credentials[projectId][credential.Name]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return "", err
+	}
+	d.Credentials[projectId][credential.Name] = credential
+	return credential.Name, nil
 }
-func (d *Devops) GetCredentialInProject(projectId, id string, content bool) (*devops.Credential, error) {
-	return nil, nil
+
+func (d *Devops) GetCredentialInProject(projectId, id string) (*devops.Credential, error) {
+	if _, ok := d.Credentials[projectId][id]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return nil, err
+	}
+	return &devops.Credential{Id: id}, nil
 }
 func (d *Devops) GetCredentialsInProject(projectId string) ([]*devops.Credential, error) {
 	return nil, nil
 }
-func (d *Devops) DeleteCredentialInProject(projectId, id string) (*string, error) { return nil, nil }
+func (d *Devops) DeleteCredentialInProject(projectId, id string) (string, error) {
+	if _, ok := d.Credentials[projectId][id]; !ok {
+		err := &devops.ErrorResponse{
+			Body: []byte{},
+			Response: &http.Response{
+				Status:        "404 Not Found",
+				StatusCode:    404,
+				Proto:         "HTTP/1.1",
+				ProtoMajor:    1,
+				ProtoMinor:    1,
+				ContentLength: 50,
+				Header: http.Header{
+					"Foo": []string{"Bar"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader("foo")), // shouldn't be used
+				Request: &http.Request{
+					Method: "",
+					URL: &url.URL{
+						Scheme:     "",
+						Opaque:     "",
+						User:       nil,
+						Host:       "",
+						Path:       "",
+						RawPath:    "",
+						ForceQuery: false,
+						RawQuery:   "",
+						Fragment:   "",
+					},
+				},
+			},
+			Message: "",
+		}
+		return "", err
+	}
+	delete(d.Credentials[projectId], id)
+	return "", nil
+}
 
 // BuildGetter
 func (d *Devops) GetProjectPipelineBuildByType(projectId, pipelineId string, status string) (*devops.Build, error) {
@@ -306,6 +435,7 @@ func (d *Devops) CreateProjectPipeline(projectId string, pipeline *devopsv1alpha
 	d.Pipelines[projectId][pipeline.Name] = pipeline
 	return "", nil
 }
+
 func (d *Devops) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	if _, ok := d.Pipelines[projectId][pipelineId]; !ok {
 		err := &devops.ErrorResponse{
@@ -343,6 +473,7 @@ func (d *Devops) DeleteProjectPipeline(projectId string, pipelineId string) (str
 	delete(d.Pipelines[projectId], pipelineId)
 	return "", nil
 }
+
 func (d *Devops) UpdateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
 	if _, ok := d.Pipelines[projectId][pipeline.Name]; !ok {
 		err := &devops.ErrorResponse{
@@ -380,6 +511,7 @@ func (d *Devops) UpdateProjectPipeline(projectId string, pipeline *devopsv1alpha
 	d.Pipelines[projectId][pipeline.Name] = pipeline
 	return "", nil
 }
+
 func (d *Devops) GetProjectPipelineConfig(projectId, pipelineId string) (*devopsv1alpha3.Pipeline, error) {
 	if _, ok := d.Pipelines[projectId][pipelineId]; !ok {
 		err := &devops.ErrorResponse{

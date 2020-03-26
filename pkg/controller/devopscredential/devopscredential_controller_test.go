@@ -1,4 +1,4 @@
-package pipeline
+package devopscredential
 
 import (
 	v1 "k8s.io/api/core/v1"
@@ -18,8 +18,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	devops "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )
 
 var (
@@ -30,11 +28,9 @@ var (
 type fixture struct {
 	t *testing.T
 
-	client          *fake.Clientset
 	kubeclient      *k8sfake.Clientset
 	namespaceLister []*v1.Namespace
-	pipelineLister  []*devops.Pipeline
-	actions         []core.Action
+	secretLister    []*v1.Secret
 	kubeactions     []core.Action
 
 	kubeobjects []runtime.Object
@@ -42,8 +38,8 @@ type fixture struct {
 	objects []runtime.Object
 	// Objects from here preloaded into devops
 	initDevOpsProject string
-	initPipeline      []*devops.Pipeline
-	expectPipeline    []*devops.Pipeline
+	initCredential    []*v1.Secret
+	expectCredential  []*v1.Secret
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -78,8 +74,8 @@ func newNamespace(name string, projectName string) *v1.Namespace {
 	return ns
 }
 
-func newPipeline(namespace, name string, spec devops.PipelineSpec, withFinalizers bool) *devops.Pipeline {
-	pipeline := &devops.Pipeline{
+func newSecret(namespace, name string, data map[string][]byte, withFinalizers bool, autoSync bool) *v1.Secret {
+	secret := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       devops.ResourceKindPipeline,
 			APIVersion: devops.SchemeGroupVersion.String(),
@@ -88,18 +84,24 @@ func newPipeline(namespace, name string, spec devops.PipelineSpec, withFinalizer
 			Namespace: namespace,
 			Name:      name,
 		},
-		Spec:   spec,
-		Status: devops.PipelineStatus{},
+		Data: data,
+		Type: devops.DevOpsCredentialPrefix + "test",
 	}
 	if withFinalizers {
-		pipeline.Finalizers = append(pipeline.Finalizers, devops.PipelineFinalizerName)
+		secret.Finalizers = append(secret.Finalizers, devops.CredentialFinalizerName)
 	}
-	return pipeline
+	if autoSync{
+		if secret.Annotations == nil{
+			secret.Annotations = map[string]string{}
+		}
+		secret.Annotations[devops.CredentialAutoSyncAnnoKey] = "true"
+	}
+	return secret
 }
 
-func newDeletingPipeline(namespace, name string) *devops.Pipeline {
+func newDeletingSecret(namespace, name string) *v1.Secret {
 	now := metav1.Now()
-	pipeline := &devops.Pipeline{
+	pipeline := &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       devops.ResourceKindPipeline,
 			APIVersion: devops.SchemeGroupVersion.String(),
@@ -109,35 +111,34 @@ func newDeletingPipeline(namespace, name string) *devops.Pipeline {
 			Name:              name,
 			DeletionTimestamp: &now,
 		},
+		Type: devops.DevOpsCredentialPrefix + "test",
 	}
-	pipeline.Finalizers = append(pipeline.Finalizers, devops.PipelineFinalizerName)
+	pipeline.Finalizers = append(pipeline.Finalizers, devops.CredentialFinalizerName)
 
 	return pipeline
 }
 
-func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, kubeinformers.SharedInformerFactory, *fakeDevOps.Devops) {
-	f.client = fake.NewSimpleClientset(f.objects...)
+func (f *fixture) newController() (*Controller, kubeinformers.SharedInformerFactory, *fakeDevOps.Devops) {
 	f.kubeclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
 
-	i := informers.NewSharedInformerFactory(f.client, noResyncPeriodFunc())
 	k8sI := kubeinformers.NewSharedInformerFactory(f.kubeclient, noResyncPeriodFunc())
-	dI := fakeDevOps.NewWithPipelines(f.initDevOpsProject, f.initPipeline...)
+	dI := fakeDevOps.NewWithCredentials(f.initDevOpsProject, f.initCredential...)
 
-	c := NewController(f.kubeclient, f.client, dI, k8sI.Core().V1().Namespaces(),
-		i.Devops().V1alpha3().Pipelines())
+	c := NewController(f.kubeclient, dI, k8sI.Core().V1().Namespaces(),
+		k8sI.Core().V1().Secrets())
 
-	c.pipelineSynced = alwaysReady
+	c.secretSynced = alwaysReady
 	c.eventRecorder = &record.FakeRecorder{}
 
-	for _, f := range f.pipelineLister {
-		i.Devops().V1alpha3().Pipelines().Informer().GetIndexer().Add(f)
+	for _, f := range f.secretLister {
+		k8sI.Core().V1().Secrets().Informer().GetIndexer().Add(f)
 	}
 
 	for _, d := range f.namespaceLister {
 		k8sI.Core().V1().Namespaces().Informer().GetIndexer().Add(d)
 	}
 
-	return c, i, k8sI, dI
+	return c, k8sI, dI
 }
 
 func (f *fixture) run(fooName string) {
@@ -148,32 +149,21 @@ func (f *fixture) runExpectError(fooName string) {
 	f.runController(fooName, true, true)
 }
 
-func (f *fixture) runController(projectName string, startInformers bool, expectError bool) {
-	c, i, k8sI, dI := f.newController()
+func (f *fixture) runController(name string, startInformers bool, expectError bool) {
+	c, k8sI, dI := f.newController()
 	if startInformers {
 		stopCh := make(chan struct{})
 		defer close(stopCh)
-		i.Start(stopCh)
 		k8sI.Start(stopCh)
 	}
 
-	err := c.syncHandler(projectName)
+	err := c.syncHandler(name)
 	if !expectError && err != nil {
 		f.t.Errorf("error syncing foo: %v", err)
 	} else if expectError && err == nil {
 		f.t.Error("expected error syncing foo, got nil")
 	}
 
-	actions := filterInformerActions(f.client.Actions())
-	for i, action := range actions {
-		if len(f.actions) < i+1 {
-			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
-			break
-		}
-
-		expectedAction := f.actions[i]
-		checkAction(expectedAction, action, f.t)
-	}
 	k8sActions := filterInformerActions(f.kubeclient.Actions())
 	for i, action := range k8sActions {
 		if len(f.kubeactions) < i+1 {
@@ -189,18 +179,14 @@ func (f *fixture) runController(projectName string, startInformers bool, expectE
 		f.t.Errorf("%d additional expected actions:%+v", len(f.kubeactions)-len(k8sActions), f.kubeactions[len(k8sActions):])
 	}
 
-	if len(f.actions) > len(actions) {
-		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
-	}
-	if len(dI.Pipelines[f.initDevOpsProject]) != len(f.expectPipeline) {
+	if len(dI.Credentials[f.initDevOpsProject]) != len(f.expectCredential) {
 		f.t.Errorf(" unexpected objects: %v", dI.Projects)
 	}
-	for _, pipeline := range f.expectPipeline {
-		actualPipeline := dI.Pipelines[f.initDevOpsProject][pipeline.Name]
-		if !reflect.DeepEqual(actualPipeline, pipeline) {
-			f.t.Errorf(" pipeline %+v not match %+v", pipeline, actualPipeline)
+	for _, credential := range f.expectCredential {
+		actualCredential := dI.Credentials[f.initDevOpsProject][credential.Name]
+		if !reflect.DeepEqual(actualCredential, credential) {
+			f.t.Errorf(" credential %+v not match \n %+v", credential, actualCredential)
 		}
-
 	}
 }
 
@@ -258,8 +244,8 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	ret := []core.Action{}
 	for _, action := range actions {
 		if len(action.GetNamespace()) == 0 &&
-			(action.Matches("list", devops.ResourcePluralPipeline) ||
-				action.Matches("watch", devops.ResourcePluralPipeline) ||
+			(action.Matches("list", "secrets") ||
+				action.Matches("watch", "secrets") ||
 				action.Matches("list", "namespaces") ||
 				action.Matches("watch", "namespaces")) {
 			continue
@@ -270,16 +256,15 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	return ret
 }
 
-func (f *fixture) expectUpdatePipelineAction(p *devops.Pipeline) {
+func (f *fixture) expectUpdateSecretAction(p *v1.Secret) {
 	action := core.NewUpdateAction(schema.GroupVersionResource{
-		Version:  devops.SchemeGroupVersion.Version,
-		Resource: devops.ResourcePluralPipeline,
-		Group:    devops.SchemeGroupVersion.Group,
+		Version:  "v1",
+		Resource: "secrets",
 	}, p.Namespace, p)
-	f.actions = append(f.actions, action)
+	f.kubeactions = append(f.kubeactions, action)
 }
 
-func getKey(p *devops.Pipeline, t *testing.T) string {
+func getKey(p *v1.Secret, t *testing.T) string {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(p)
 	if err != nil {
 		t.Errorf("Unexpected error getting key for pipeline %v: %v", p.Name, err)
@@ -291,116 +276,135 @@ func getKey(p *devops.Pipeline, t *testing.T) string {
 func TestDoNothing(t *testing.T) {
 	f := newFixture(t)
 	nsName := "test-123"
-	pipelineName := "test"
+	secretName := "test"
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
+	secret := newSecret(nsName, secretName, nil, true, true)
 
-	f.pipelineLister = append(f.pipelineLister, pipeline)
+	f.secretLister = append(f.secretLister, secret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, pipeline)
+	f.objects = append(f.objects, secret)
 	f.initDevOpsProject = nsName
-	f.initPipeline = []*devops.Pipeline{pipeline}
-	f.expectPipeline = []*devops.Pipeline{pipeline}
+	f.initCredential = []*v1.Secret{secret}
+	f.expectCredential = []*v1.Secret{secret}
 
-	f.run(getKey(pipeline, t))
+	f.run(getKey(secret, t))
 }
 
-func TestAddPipelineFinalizers(t *testing.T) {
+func TestAddCredentialFinalizers(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	secretName := "test"
+	projectName := "test_project"
+
+	ns := newNamespace(nsName, projectName)
+	secret := newSecret(nsName, secretName, nil, false, true)
+
+	expectSecret := newSecret(nsName, secretName, nil, true, true)
+
+	f.secretLister = append(f.secretLister, secret)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.kubeobjects = append(f.kubeobjects, secret)
+	f.initDevOpsProject = nsName
+	f.initCredential = []*v1.Secret{secret}
+	f.expectCredential = []*v1.Secret{expectSecret}
+	f.expectUpdateSecretAction(expectSecret)
+	f.run(getKey(secret, t))
+}
+
+func TestCreateCredential(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	secretName := "test"
+	projectName := "test_project"
+
+	ns := newNamespace(nsName, projectName)
+	secret := newSecret(nsName, secretName, nil, true, true)
+
+	f.secretLister = append(f.secretLister, secret)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.kubeobjects = append(f.kubeobjects, secret)
+	f.initDevOpsProject = nsName
+	f.expectCredential = []*v1.Secret{secret}
+	f.run(getKey(secret, t))
+}
+
+func TestDeleteCredential(t *testing.T) {
+	f := newFixture(t)
+	nsName := "test-123"
+	secretName := "test"
+	projectName := "test_project"
+
+	ns := newNamespace(nsName, projectName)
+	secret := newDeletingSecret(nsName, secretName)
+
+	expectSecret := secret.DeepCopy()
+	expectSecret.Finalizers = []string{}
+	f.secretLister = append(f.secretLister, secret)
+	f.namespaceLister = append(f.namespaceLister, ns)
+	f.kubeobjects = append(f.kubeobjects, secret)
+	f.initDevOpsProject = nsName
+	f.initCredential = []*v1.Secret{secret}
+	f.expectCredential = []*v1.Secret{}
+	f.expectUpdateSecretAction(expectSecret)
+	f.run(getKey(secret, t))
+}
+
+func TestDeleteNotExistCredential(t *testing.T) {
 	f := newFixture(t)
 	nsName := "test-123"
 	pipelineName := "test"
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, false)
+	secret := newDeletingSecret(nsName, pipelineName)
 
-	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
-
-	f.pipelineLister = append(f.pipelineLister, pipeline)
+	expectSecret := secret.DeepCopy()
+	expectSecret.Finalizers = []string{}
+	f.secretLister = append(f.secretLister, secret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, pipeline)
+	f.kubeobjects = append(f.kubeobjects, secret)
 	f.initDevOpsProject = nsName
-	f.initPipeline = []*devops.Pipeline{pipeline}
-	f.expectPipeline = []*devops.Pipeline{pipeline}
-	f.expectUpdatePipelineAction(expectPipeline)
-	f.run(getKey(pipeline, t))
+	f.initCredential = []*v1.Secret{}
+	f.expectCredential = []*v1.Secret{}
+	f.expectUpdateSecretAction(expectSecret)
+	f.run(getKey(secret, t))
 }
 
-func TestCreatePipeline(t *testing.T) {
+func TestUpdateCredential(t *testing.T) {
 	f := newFixture(t)
 	nsName := "test-123"
-	pipelineName := "test"
+	secretName := "test"
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
-
-	f.pipelineLister = append(f.pipelineLister, pipeline)
+	initSecret := newSecret(nsName, secretName, nil, true, true)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a":[]byte("aa")}, true, true)
+	f.secretLister = append(f.secretLister, expectSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, pipeline)
+	f.kubeobjects = append(f.kubeobjects, expectSecret)
 	f.initDevOpsProject = nsName
-	f.expectPipeline = []*devops.Pipeline{pipeline}
-	f.run(getKey(pipeline, t))
+	f.initCredential = []*v1.Secret{initSecret}
+	f.expectCredential = []*v1.Secret{expectSecret}
+	f.run(getKey(expectSecret, t))
 }
 
-func TestDeletePipeline(t *testing.T) {
+func TestNotUpdateCredential(t *testing.T) {
 	f := newFixture(t)
 	nsName := "test-123"
-	pipelineName := "test"
+	secretName := "test"
 	projectName := "test_project"
 
 	ns := newNamespace(nsName, projectName)
-	pipeline := newDeletingPipeline(nsName, pipelineName)
-
-	expectPipeline := pipeline.DeepCopy()
-	expectPipeline.Finalizers = []string{}
-	f.pipelineLister = append(f.pipelineLister, pipeline)
+	initSecret := newSecret(nsName, secretName, nil, true, false)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a":[]byte("aa")}, true, false)
+	f.secretLister = append(f.secretLister, expectSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, pipeline)
+	f.kubeobjects = append(f.kubeobjects, expectSecret)
 	f.initDevOpsProject = nsName
-	f.initPipeline = []*devops.Pipeline{pipeline}
-	f.expectPipeline = []*devops.Pipeline{}
-	f.expectUpdatePipelineAction(expectPipeline)
-	f.run(getKey(pipeline, t))
+	f.initCredential = []*v1.Secret{initSecret}
+	f.expectCredential = []*v1.Secret{initSecret}
+	f.run(getKey(expectSecret, t))
 }
 
-func TestDeleteNotExistPipeline(t *testing.T) {
-	f := newFixture(t)
-	nsName := "test-123"
-	pipelineName := "test"
-	projectName := "test_project"
-
-	ns := newNamespace(nsName, projectName)
-	pipeline := newDeletingPipeline(nsName, pipelineName)
-
-	expectPipeline := pipeline.DeepCopy()
-	expectPipeline.Finalizers = []string{}
-	f.pipelineLister = append(f.pipelineLister, pipeline)
-	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, pipeline)
-	f.initDevOpsProject = nsName
-	f.initPipeline = []*devops.Pipeline{}
-	f.expectPipeline = []*devops.Pipeline{}
-	f.expectUpdatePipelineAction(expectPipeline)
-	f.run(getKey(pipeline, t))
-}
-
-func TestUpdatePipelineConfig(t *testing.T) {
-	f := newFixture(t)
-	nsName := "test-123"
-	pipelineName := "test"
-	projectName := "test_project"
-
-	ns := newNamespace(nsName, projectName)
-	initPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{}, true)
-	expectPipeline := newPipeline(nsName, pipelineName, devops.PipelineSpec{Type: "aa"}, true)
-	f.pipelineLister = append(f.pipelineLister, expectPipeline)
-	f.namespaceLister = append(f.namespaceLister, ns)
-	f.objects = append(f.objects, expectPipeline)
-	f.initDevOpsProject = nsName
-	f.initPipeline = []*devops.Pipeline{initPipeline}
-	f.expectPipeline = []*devops.Pipeline{expectPipeline}
-	f.run(getKey(expectPipeline, t))
-}

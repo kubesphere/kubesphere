@@ -11,10 +11,9 @@ import (
 )
 
 type ProjectPipelineHandler struct {
-	projectCredentialOperator devops.ProjectCredentialOperator
-	projectMemberOperator     devops.ProjectMemberOperator
-	devopsOperator            devops.DevopsOperator
-	projectOperator           devops.ProjectOperator
+	projectMemberOperator devops.ProjectMemberOperator
+	devopsOperator        devops.DevopsOperator
+	projectOperator       devops.ProjectOperator
 }
 
 type PipelineSonarHandler struct {
@@ -24,10 +23,9 @@ type PipelineSonarHandler struct {
 
 func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *mysql.Database) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
-		projectCredentialOperator: devops.NewProjectCredentialOperator(devopsClient, dbClient),
-		projectMemberOperator:     devops.NewProjectMemberOperator(devopsClient, dbClient),
-		devopsOperator:            devops.NewDevopsOperator(devopsClient),
-		projectOperator:           devops.NewProjectOperator(dbClient),
+		projectMemberOperator: devops.NewProjectMemberOperator(devopsClient, dbClient),
+		devopsOperator:        devops.NewDevopsOperator(devopsClient),
+		projectOperator:       devops.NewProjectOperator(dbClient),
 	}
 }
 
@@ -39,6 +37,5 @@ func NewPipelineSonarHandler(devopsClient devopsClient.Interface, dbClient *mysq
 }
 
 func NewS2iBinaryHandler(client versioned.Interface, informers externalversions.SharedInformerFactory, s3Client s3.Interface) S2iBinaryHandler {
-
 	return S2iBinaryHandler{devops.NewS2iBinaryUploader(client, informers, s3Client)}
 }

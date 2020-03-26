@@ -1,4 +1,4 @@
-package pipeline
+package devopscredential
 
 import (
 	"fmt"
@@ -17,14 +17,13 @@ import (
 	"k8s.io/klog"
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	devopsinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
-	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/constants"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -39,8 +38,8 @@ type Controller struct {
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
 
-	devOpsProjectLister devopslisters.PipelineLister
-	pipelineSynced      cache.InformerSynced
+	secretLister corev1lister.SecretLister
+	secretSynced cache.InformerSynced
 
 	namespaceLister corev1lister.NamespaceLister
 	namespaceSynced cache.InformerSynced
@@ -53,10 +52,9 @@ type Controller struct {
 }
 
 func NewController(client clientset.Interface,
-	kubesphereClient kubesphereclient.Interface,
 	devopsClinet devopsClient.Interface,
 	namespaceInformer corev1informer.NamespaceInformer,
-	devopsInformer devopsinformers.PipelineInformer) *Controller {
+	secretInformer corev1informer.SecretInformer) *Controller {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -66,39 +64,50 @@ func NewController(client clientset.Interface,
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "pipeline-controller"})
 
 	v := &Controller{
-		client:              client,
-		devopsClient:        devopsClinet,
-		kubesphereClient:    kubesphereClient,
-		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "pipeline"),
-		devOpsProjectLister: devopsInformer.Lister(),
-		pipelineSynced:      devopsInformer.Informer().HasSynced,
-		namespaceLister:     namespaceInformer.Lister(),
-		namespaceSynced:     namespaceInformer.Informer().HasSynced,
-		workerLoopPeriod:    time.Second,
+		client:           client,
+		devopsClient:     devopsClinet,
+		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "pipeline"),
+		secretLister:     secretInformer.Lister(),
+		secretSynced:     secretInformer.Informer().HasSynced,
+		namespaceLister:  namespaceInformer.Lister(),
+		namespaceSynced:  namespaceInformer.Informer().HasSynced,
+		workerLoopPeriod: time.Second,
 	}
 
 	v.eventBroadcaster = broadcaster
 	v.eventRecorder = recorder
 
-	devopsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: v.enqueuePipeline,
+	secretInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			secret := obj.(*v1.Secret)
+			if strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+				v.enqueueSecret(obj)
+			}
+		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			old := oldObj.(*devopsv1alpha3.Pipeline)
-			new := newObj.(*devopsv1alpha3.Pipeline)
+			old := oldObj.(*v1.Secret)
+			new := newObj.(*v1.Secret)
 			if old.ResourceVersion == new.ResourceVersion {
 				return
 			}
-			v.enqueuePipeline(newObj)
+			if strings.HasPrefix(string(new.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+				v.enqueueSecret(newObj)
+			}
 		},
-		DeleteFunc: v.enqueuePipeline,
+		DeleteFunc: func(obj interface{}) {
+			secret := obj.(*v1.Secret)
+			if strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+				v.enqueueSecret(obj)
+			}
+		},
 	})
 	return v
 }
 
-// enqueuePipeline takes a Foo resource and converts it into a namespace/name
+// enqueueSecret takes a Foo resource and converts it into a namespace/name
 // string which is then put onto the work workqueue. This method should *not* be
 // passed resources of any type other than DevOpsProject.
-func (c *Controller) enqueuePipeline(obj interface{}) {
+func (c *Controller) enqueueSecret(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -160,7 +169,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 	klog.Info("starting pipeline controller")
 	defer klog.Info("shutting down  pipeline controller")
 
-	if !cache.WaitForCacheSync(stopCh, c.pipelineSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.secretSynced) {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -178,7 +187,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 func (c *Controller) syncHandler(key string) error {
 	nsName, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		klog.Error(err, fmt.Sprintf("could not split copyPipeline meta %s ", key))
+		klog.Error(err, fmt.Sprintf("could not split copySecret meta %s ", key))
 		return nil
 	}
 	namespace, err := c.namespaceLister.Get(nsName)
@@ -191,75 +200,74 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 	if !isDevOpsProjectAdminNamespace(namespace) {
-		err := fmt.Errorf("cound not create copyPipeline in normal namespaces %s", namespace.Name)
+		err := fmt.Errorf("cound not create credential in normal namespaces %s", namespace.Name)
 		klog.Warning(err)
 		return err
 	}
 
-	pipeline, err := c.devOpsProjectLister.Pipelines(nsName).Get(name)
+	secret, err := c.secretLister.Secrets(nsName).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.Info(fmt.Sprintf("copyPipeline '%s' in work queue no longer exists ", key))
+			klog.Info(fmt.Sprintf("secret '%s' in work queue no longer exists ", key))
 			return nil
 		}
-		klog.Error(err, fmt.Sprintf("could not get copyPipeline %s ", key))
+		klog.Error(err, fmt.Sprintf("could not get secret %s ", key))
 		return err
 	}
 
-	copyPipeline := pipeline.DeepCopy()
-	// DeletionTimestamp.IsZero() means copyPipeline has not been deleted.
-	if copyPipeline.ObjectMeta.DeletionTimestamp.IsZero() {
+	copySecret := secret.DeepCopy()
+	// DeletionTimestamp.IsZero() means copySecret has not been deleted.
+	if copySecret.ObjectMeta.DeletionTimestamp.IsZero() {
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
-		if !sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
-			copyPipeline.ObjectMeta.Finalizers = append(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName)
+		if !sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
+			copySecret.ObjectMeta.Finalizers = append(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName)
 		}
-
-		// Check pipeline config exists, otherwise we will create it.
-		// if pipeline exists, check & update config
-		jenkinsPipeline, err := c.devopsClient.GetProjectPipelineConfig(nsName, pipeline.Name)
-		if err == nil {
-			if !reflect.DeepEqual(jenkinsPipeline.Spec, copyPipeline.Spec) {
-				_, err := c.devopsClient.UpdateProjectPipeline(nsName, copyPipeline)
+		// Check secret config exists, otherwise we will create it.
+		// if secret exists, update config
+		_, err := c.devopsClient.GetCredentialInProject(nsName, secret.Name)
+		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			klog.Error(err, fmt.Sprintf("failed to get secret %s ", key))
+			return err
+		} else if err != nil {
+			_, err := c.devopsClient.CreateCredentialInProject(nsName, copySecret)
+			if err != nil {
+				klog.Error(err, fmt.Sprintf("failed to create secret %s ", key))
+				return err
+			}
+		} else {
+			if _, ok := copySecret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey]; ok {
+				_, err := c.devopsClient.UpdateCredentialInProject(nsName, copySecret)
 				if err != nil {
-					klog.Error(err, fmt.Sprintf("failed to update pipeline config %s ", key))
+					klog.Error(err, fmt.Sprintf("failed to update secret %s ", key))
 					return err
 				}
-			}
-		} else if devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("failed to get copyPipeline %s ", key))
-			return err
-		} else {
-			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
-			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to get copyPipeline %s ", key))
-				return err
 			}
 		}
 
 	} else {
 		// Finalizers processing logic
-		if sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
-			_, err := c.devopsClient.GetProjectPipelineConfig(nsName, pipeline.Name)
+		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
+			_, err := c.devopsClient.GetCredentialInProject(nsName, secret.Name)
 			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-				klog.Error(err, fmt.Sprintf("failed to get pipeline %s ", key))
+				klog.Error(err, fmt.Sprintf("failed to get secret %s ", key))
 				return err
 			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
 			} else {
-				if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
-					klog.Error(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
+				if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
+					klog.Error(err, fmt.Sprintf("failed to delete secret %s in devops", key))
 					return err
 				}
 			}
-			copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
-				return item == devopsv1alpha3.PipelineFinalizerName
+			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
+				return item == devopsv1alpha3.CredentialFinalizerName
 			})
 
 		}
 	}
-	if !reflect.DeepEqual(pipeline, copyPipeline) {
-		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
+	if !reflect.DeepEqual(secret, copySecret) {
+		_, err = c.client.CoreV1().Secrets(nsName).Update(copySecret)
 		if err != nil {
-			klog.Error(err, fmt.Sprintf("failed to update pipeline %s ", key))
+			klog.Error(err, fmt.Sprintf("failed to update secret %s ", key))
 			return err
 		}
 	}

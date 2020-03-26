@@ -156,49 +156,6 @@ func AddToContainer(c *restful.Container, devopsClient devops.Interface,
 			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
 			Writes(devops.ProjectMembership{}))
 
-		webservice.Route(webservice.POST("/devops/{devops}/credentials").
-			To(projectPipelineHander.CreateDevOpsProjectCredentialHandler).
-			Doc("Create a credential in the specified DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Reads(devops.Credential{}))
-
-		webservice.Route(webservice.PUT("/devops/{devops}/credentials/{credential}").
-			To(projectPipelineHander.UpdateDevOpsProjectCredentialHandler).
-			Doc("Update the specified credential of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
-			Reads(devops.Credential{}))
-
-		webservice.Route(webservice.DELETE("/devops/{devops}/credentials/{credential}").
-			To(projectPipelineHander.DeleteDevOpsProjectCredentialHandler).
-			Doc("Delete the specified credential of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")))
-
-		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}").
-			To(projectPipelineHander.GetDevOpsProjectCredentialHandler).
-			Doc("Get the specified credential of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
-			Param(webservice.QueryParameter("content", `
-Get extra credential content if this query parameter is set. 
-Specifically, there are three types of info in a credential. One is the basic info that must be returned for each query such as name, id, etc.
-The second one is non-encrypted info such as the username of the username-password type of credential, which returns when the "content" parameter is set to non-empty.
-The last one is encrypted info, such as the password of the username-password type of credential, which never returns.
-`)).
-			Returns(http.StatusOK, RespOK, devops.Credential{}))
-
-		webservice.Route(webservice.GET("/devops/{devops}/credentials").
-			To(projectPipelineHander.GetDevOpsProjectCredentialsHandler).
-			Doc("Get all credentials of the specified DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Returns(http.StatusOK, RespOK, []devops.Credential{}))
-
 		// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
 			To(projectPipelineHander.GetPipeline).
