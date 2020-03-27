@@ -61,12 +61,12 @@ func NewController(client clientset.Interface,
 		klog.Info(fmt.Sprintf(format, args))
 	})
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
-	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "pipeline-controller"})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "devopscredential-controller"})
 
 	v := &Controller{
 		client:           client,
 		devopsClient:     devopsClinet,
-		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "pipeline"),
+		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "devopscredential"),
 		secretLister:     secretInformer.Lister(),
 		secretSynced:     secretInformer.Informer().HasSynced,
 		namespaceLister:  namespaceInformer.Lister(),
@@ -79,24 +79,24 @@ func NewController(client clientset.Interface,
 
 	secretInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			secret := obj.(*v1.Secret)
-			if strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+			secret, ok := obj.(*v1.Secret)
+			if ok && strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
 				v.enqueueSecret(obj)
 			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			old := oldObj.(*v1.Secret)
-			new := newObj.(*v1.Secret)
-			if old.ResourceVersion == new.ResourceVersion {
+			old, ook := oldObj.(*v1.Secret)
+			new, nok := newObj.(*v1.Secret)
+			if ook && nok && old.ResourceVersion == new.ResourceVersion {
 				return
 			}
-			if strings.HasPrefix(string(new.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+			if ook && nok && strings.HasPrefix(string(new.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
 				v.enqueueSecret(newObj)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
-			secret := obj.(*v1.Secret)
-			if strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
+			secret, ok := obj.(*v1.Secret)
+			if ok && strings.HasPrefix(string(secret.Type), devopsv1alpha3.DevOpsCredentialPrefix) {
 				v.enqueueSecret(obj)
 			}
 		},
@@ -166,8 +166,8 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
-	klog.Info("starting pipeline controller")
-	defer klog.Info("shutting down  pipeline controller")
+	klog.Info("starting devopscredential controller")
+	defer klog.Info("shutting down  devopscredential controller")
 
 	if !cache.WaitForCacheSync(stopCh, c.secretSynced) {
 		return fmt.Errorf("failed to wait for caches to sync")
@@ -182,7 +182,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 }
 
 // syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the pipeline resource
+// converge the two. It then updates the Status block of the secret resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
 	nsName, name, err := cache.SplitMetaNamespaceKey(key)

@@ -21,8 +21,10 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
+	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
@@ -89,6 +91,16 @@ func AddControllers(
 		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
 		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
 	)
+	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
+		client.KubeSphere(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
+
+	devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
 		client.Kubernetes(),
@@ -100,14 +112,16 @@ func AddControllers(
 		kubernetesInformer.Apps().V1().StatefulSets())
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":  vsController,
-		"destinationrule-controller": drController,
-		"application-controller":     apController,
-		"job-controller":             jobController,
-		"s2ibinary-controller":       s2iBinaryController,
-		"s2irun-controller":          s2iRunController,
-		"volumeexpansion-controller": volumeExpansionController,
-		"devopsprojects-controller":  devopsProjectController,
+		"virtualservice-controller":   vsController,
+		"destinationrule-controller":  drController,
+		"application-controller":      apController,
+		"job-controller":              jobController,
+		"s2ibinary-controller":        s2iBinaryController,
+		"s2irun-controller":           s2iRunController,
+		"volumeexpansion-controller":  volumeExpansionController,
+		"devopsprojects-controller":   devopsProjectController,
+		"pipeline-controller":         devopsPipelineController,
+		"devopscredential-controller": devopsCredentialController,
 	}
 
 	for name, ctrl := range controllers {
