@@ -21,8 +21,8 @@ type Credential struct {
 			} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
 		} `json:"usage,omitempty" description:"all usage of Credential"`
 	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
-	Description                string                      `json:"description,omitempty" description:"Credential's description'"`
-	Domain                     string                      `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
+	Description string `json:"description,omitempty" description:"Credential's description'"`
+	Domain      string `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
 }
 
 type UsernamePasswordCredential struct {

@@ -24,9 +24,9 @@ type Devops struct {
 
 func New(projects ...string) *Devops {
 	d := &Devops{
-		Data:      nil,
-		Projects:  map[string]interface{}{},
-		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
+		Data:        nil,
+		Projects:    map[string]interface{}{},
+		Pipelines:   map[string]map[string]*devopsv1alpha3.Pipeline{},
 		Credentials: map[string]map[string]*v1.Secret{},
 	}
 	for _, p := range projects {
@@ -36,9 +36,9 @@ func New(projects ...string) *Devops {
 }
 func NewWithPipelines(project string, pipelines ...*devopsv1alpha3.Pipeline) *Devops {
 	d := &Devops{
-		Data:      nil,
-		Projects:  map[string]interface{}{},
-		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
+		Data:        nil,
+		Projects:    map[string]interface{}{},
+		Pipelines:   map[string]map[string]*devopsv1alpha3.Pipeline{},
 		Credentials: map[string]map[string]*v1.Secret{},
 	}
 
