@@ -2,7 +2,6 @@ package devops
 
 import (
 	v1 "k8s.io/api/core/v1"
-	"time"
 )
 
 type Credential struct {
@@ -24,12 +23,6 @@ type Credential struct {
 	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
 	Description                string                      `json:"description,omitempty" description:"Credential's description'"`
 	Domain                     string                      `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
-	CreateTime                 *time.Time                  `json:"create_time,omitempty" description:"Credential's create_time'"`
-	Creator                    string                      `json:"creator,omitempty" description:"Creator's username"`
-	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password Credential struct"`
-	SshCredential              *SshCredential              `json:"ssh,omitempty" description:"ssh Credential struct"`
-	SecretTextCredential       *SecretTextCredential       `json:"secret_text,omitempty" description:"secret_text Credential struct"`
-	KubeconfigCredential       *KubeconfigCredential       `json:"kubeconfig,omitempty" description:"kubeconfig Credential struct"`
 }
 
 type UsernamePasswordCredential struct {

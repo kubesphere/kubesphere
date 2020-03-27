@@ -27,6 +27,7 @@ func New(projects ...string) *Devops {
 		Data:      nil,
 		Projects:  map[string]interface{}{},
 		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
+		Credentials: map[string]map[string]*v1.Secret{},
 	}
 	for _, p := range projects {
 		d.Projects[p] = true
@@ -38,6 +39,7 @@ func NewWithPipelines(project string, pipelines ...*devopsv1alpha3.Pipeline) *De
 		Data:      nil,
 		Projects:  map[string]interface{}{},
 		Pipelines: map[string]map[string]*devopsv1alpha3.Pipeline{},
+		Credentials: map[string]map[string]*v1.Secret{},
 	}
 
 	d.Projects[project] = true
