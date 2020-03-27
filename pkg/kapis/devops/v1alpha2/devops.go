@@ -20,6 +20,7 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	log "k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
 	"strings"
@@ -620,6 +621,20 @@ func (h *ProjectPipelineHandler) ToJson(req *restful.Request, resp *restful.Resp
 	}
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
+}
+
+func (h *ProjectPipelineHandler) GetProjectCredentialUsage(req *restful.Request, resp *restful.Response) {
+	projectId := req.PathParameter("devops")
+	credentialId := req.PathParameter("credential")
+	response, err := h.projectCredentialGetter.GetProjectCredentialUsage(projectId, credentialId)
+	if err != nil {
+		log.Errorf("%+v", err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+	resp.WriteAsJson(response)
+	return
+
 }
 
 func parseErr(err error, resp *restful.Response) {

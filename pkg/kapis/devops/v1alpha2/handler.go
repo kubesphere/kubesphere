@@ -11,9 +11,10 @@ import (
 )
 
 type ProjectPipelineHandler struct {
-	projectMemberOperator devops.ProjectMemberOperator
-	devopsOperator        devops.DevopsOperator
-	projectOperator       devops.ProjectOperator
+	projectMemberOperator   devops.ProjectMemberOperator
+	devopsOperator          devops.DevopsOperator
+	projectOperator         devops.ProjectOperator
+	projectCredentialGetter devops.ProjectCredentialGetter
 }
 
 type PipelineSonarHandler struct {
@@ -23,9 +24,10 @@ type PipelineSonarHandler struct {
 
 func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *mysql.Database) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
-		projectMemberOperator: devops.NewProjectMemberOperator(devopsClient, dbClient),
-		devopsOperator:        devops.NewDevopsOperator(devopsClient),
-		projectOperator:       devops.NewProjectOperator(dbClient),
+		projectMemberOperator:   devops.NewProjectMemberOperator(devopsClient, dbClient),
+		devopsOperator:          devops.NewDevopsOperator(devopsClient),
+		projectOperator:         devops.NewProjectOperator(dbClient),
+		projectCredentialGetter: devops.NewProjectCredentialOperator(devopsClient),
 	}
 }
 

@@ -80,6 +80,7 @@ func AddToContainer(c *restful.Container, devopsClient devops.Interface,
 
 	if projectPipleineEnable {
 		projectPipelineHander := NewProjectPipelineHandler(devopsClient, dbClient)
+
 		webservice.Route(webservice.GET("/devops/{devops}").
 			To(projectPipelineHander.GetDevOpsProjectHandler).
 			Doc("Get the specified DevOps Project").
@@ -155,6 +156,14 @@ func AddToContainer(c *restful.Container, devopsClient devops.Interface,
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
 			Writes(devops.ProjectMembership{}))
+
+		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
+			To(projectPipelineHander.GetProjectCredentialUsage).
+			Doc("Get the specified credential usage of the DevOps project").
+			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
+			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
+			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
+			Returns(http.StatusOK, RespOK, devops.Credential{}))
 
 		// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
