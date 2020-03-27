@@ -90,8 +90,8 @@ func newSecret(namespace, name string, data map[string][]byte, withFinalizers bo
 	if withFinalizers {
 		secret.Finalizers = append(secret.Finalizers, devops.CredentialFinalizerName)
 	}
-	if autoSync{
-		if secret.Annotations == nil{
+	if autoSync {
+		if secret.Annotations == nil {
 			secret.Annotations = map[string]string{}
 		}
 		secret.Annotations[devops.CredentialAutoSyncAnnoKey] = "true"
@@ -380,7 +380,7 @@ func TestUpdateCredential(t *testing.T) {
 
 	ns := newNamespace(nsName, projectName)
 	initSecret := newSecret(nsName, secretName, nil, true, true)
-	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a":[]byte("aa")}, true, true)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, true)
 	f.secretLister = append(f.secretLister, expectSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.kubeobjects = append(f.kubeobjects, expectSecret)
@@ -398,7 +398,7 @@ func TestNotUpdateCredential(t *testing.T) {
 
 	ns := newNamespace(nsName, projectName)
 	initSecret := newSecret(nsName, secretName, nil, true, false)
-	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a":[]byte("aa")}, true, false)
+	expectSecret := newSecret(nsName, secretName, map[string][]byte{"a": []byte("aa")}, true, false)
 	f.secretLister = append(f.secretLister, expectSecret)
 	f.namespaceLister = append(f.namespaceLister, ns)
 	f.kubeobjects = append(f.kubeobjects, expectSecret)
@@ -407,4 +407,3 @@ func TestNotUpdateCredential(t *testing.T) {
 	f.expectCredential = []*v1.Secret{initSecret}
 	f.run(getKey(expectSecret, t))
 }
-
