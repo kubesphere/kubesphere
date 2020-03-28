@@ -34,15 +34,17 @@ var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 func AddToContainer(c *restful.Container, config *apiserverconfig.Config) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
-	// information about the authorization server are published.
-	webservice.Route(webservice.GET("/configs/oauth").To(func(request *restful.Request, response *restful.Response) {
-		response.WriteEntity(config.AuthenticationOptions.OAuthOptions)
-	}))
+	webservice.Route(webservice.GET("/configs/oauth").
+		Doc("Information about the authorization server are published.").
+		To(func(request *restful.Request, response *restful.Response) {
+			response.WriteEntity(config.AuthenticationOptions.OAuthOptions)
+		}))
 
-	// information about the server configuration
-	webservice.Route(webservice.GET("/configs/configz").To(func(request *restful.Request, response *restful.Response) {
-		response.WriteAsJson(config.ToMap())
-	}))
+	webservice.Route(webservice.GET("/configs/configz").
+		Doc("Information about the server configuration").
+		To(func(request *restful.Request, response *restful.Response) {
+			response.WriteAsJson(config.ToMap())
+		}))
 
 	c.Add(webservice)
 	return nil

@@ -47,7 +47,8 @@ func AddToContainer(c *restful.Container, issuer token.Issuer, options *authopti
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 	ws.Route(ws.POST("/authenticate").
-		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.").
+		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
+			"cached by the webhook token authenticator plugin in the kube-apiserver.").
 		Reads(auth.TokenReview{}).
 		To(handler.TokenReviewHandler).
 		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
@@ -57,6 +58,14 @@ func AddToContainer(c *restful.Container, issuer token.Issuer, options *authopti
 	// https://tools.ietf.org/html/rfc6749#section-4.2
 	ws.Route(ws.GET("/authorize").
 		Doc("All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.").
+		Param(ws.QueryParameter("response_type", "The value MUST be one of \"code\" for requesting an "+
+			"authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant)"+
+			" as described by [RFC6749] Section 4.2.2.").Required(true)).
+		Param(ws.QueryParameter("client_id", "The client identifier issued to the client during the "+
+			"registration process described by [RFC6749] Section 2.2.").Required(true)).
+		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
+			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
+			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
 		To(handler.AuthorizeHandler))
 	//ws.Route(ws.POST("/token"))
 
@@ -64,6 +73,19 @@ func AddToContainer(c *restful.Container, issuer token.Issuer, options *authopti
 	// The provider name is also used to build the callback URL.
 	ws.Route(ws.GET("/callback/{callback}").
 		Doc("OAuth callback API, the path param callback is config by identity provider").
+		Param(ws.QueryParameter("access_token", "The access token issued by the authorization server.").
+			Required(true)).
+		Param(ws.QueryParameter("token_type", "The type of the token issued as described in [RFC6479] Section 7.1. "+
+			"Value is case insensitive.").Required(true)).
+		Param(ws.QueryParameter("expires_in", "The lifetime in seconds of the access token.  For "+
+			"example, the value \"3600\" denotes that the access token will "+
+			"expire in one hour from the time the response was generated."+
+			"If omitted, the authorization server SHOULD provide the "+
+			"expiration time via other means or document the default value.")).
+		Param(ws.QueryParameter("scope", "if identical to the scope requested by the client;"+
+			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
+		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
+			"The exact value received from the client.").Required(true)).
 		To(handler.OAuthCallBackHandler).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
 

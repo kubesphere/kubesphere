@@ -66,7 +66,6 @@ type Controller struct {
 func NewController(kubeclientset kubernetes.Interface,
 	kubesphereklientset kubesphereclient.Interface,
 	userInformer userinformer.UserInformer) *Controller {
-
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -180,7 +179,7 @@ func (c *Controller) processNextWorkItem() bool {
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		klog.Info("Successfully synced", "key", key)
+		klog.Infof("Successfully synced %s:%s", "key", key)
 		return nil
 	}(obj)
 
@@ -206,11 +205,11 @@ func (c *Controller) reconcile(key string) error {
 			utilruntime.HandleError(fmt.Errorf("user '%s' in work queue no longer exists", key))
 			return nil
 		}
-
 		return err
 	}
 
 	err = c.updateUserStatus(user)
+
 	if err != nil {
 		return err
 	}
@@ -220,9 +219,12 @@ func (c *Controller) reconcile(key string) error {
 }
 
 func (c *Controller) updateUserStatus(user *iamv1alpha2.User) error {
-
 	userCopy := user.DeepCopy()
-	userCopy.Status.Phase = iamv1alpha2.UserActive
+	userCopy.Status.State = iamv1alpha2.UserActive
 	_, err := c.kubesphereClientset.IamV1alpha2().Users().Update(userCopy)
 	return err
+}
+
+func (c *Controller) Start(stopCh <-chan struct{}) error {
+	return c.Run(4, stopCh)
 }

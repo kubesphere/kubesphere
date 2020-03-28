@@ -29,6 +29,7 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:nonNamespaced
 // +kubebuilder:printcolumn:name="Email",type="string",JSONPath=".spec.email"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type User struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -62,40 +63,40 @@ type UserSpec struct {
 	Finalizers []FinalizerName `json:"finalizers,omitempty"`
 }
 
-type UserPhase string
+type UserState string
 
 // These are the valid phases of a user.
 const (
 	// UserActive means the user is available.
-	UserActive UserPhase = "Active"
+	UserActive UserState = "Active"
 	// UserDisabled means the user is disabled.
-	UserDisabled UserPhase = "Disabled"
+	UserDisabled UserState = "Disabled"
 )
 
 // UserStatus defines the observed state of User
 type UserStatus struct {
-	// Phase is the phase of the user.
+	// The user status
 	// +optional
-	Phase UserPhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=UserPhase"`
+	State UserState `json:"state,omitempty"`
 
 	// Represents the latest available observations of a namespace's current state.
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
-	Conditions []UserCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
+	Conditions []UserCondition `json:"conditions,omitempty"`
 }
 
 type UserCondition struct {
 	// Type of namespace controller condition.
-	Type UserConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=NamespaceConditionType"`
+	Type UserConditionType `json:"type"`
 	// Status of the condition, one of True, False, Unknown.
-	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	Status ConditionStatus `json:"status"`
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// +optional
-	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
+	Reason string `json:"reason,omitempty"`
 	// +optional
-	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
+	Message string `json:"message,omitempty"`
 }
 
 type UserConditionType string

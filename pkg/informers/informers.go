@@ -98,7 +98,7 @@ func (f *informerFactories) Start(stopCh <-chan struct{}) {
 		f.ksInformerFactory.Start(stopCh)
 	}
 
-	if f.informerFactory != nil {
+	if f.istioInformerFactory != nil {
 		f.istioInformerFactory.Start(stopCh)
 	}
 

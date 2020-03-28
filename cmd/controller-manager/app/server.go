@@ -49,11 +49,13 @@ func NewControllerManagerCommand() *cobra.Command {
 	s := options.NewKubeSphereControllerManagerOptions()
 	conf, err := controllerconfig.TryLoadFromDisk()
 	if err == nil {
+		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
 			KubernetesOptions: conf.KubernetesOptions,
 			DevopsOptions:     conf.DevopsOptions,
 			S3Options:         conf.S3Options,
 			OpenPitrixOptions: conf.OpenPitrixOptions,
+			LeaderElection:    s.LeaderElection,
 		}
 	}
 
@@ -118,7 +120,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	*/
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
-	informerFactory.Start(stopCh)
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")
@@ -146,6 +147,9 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		if err := AddControllers(mgr, kubernetesClient, informerFactory, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
+
+		// Start cache data after all informer is registered
+		informerFactory.Start(stopCh)
 
 		klog.V(0).Info("Starting the controllers.")
 		if err = mgr.Start(stopCh); err != nil {

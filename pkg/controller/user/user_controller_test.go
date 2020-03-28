@@ -219,7 +219,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 
 func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
 	expect := user.DeepCopy()
-	expect.Status.Phase = iamv1alpha2.UserActive
+	expect.Status.State = iamv1alpha2.UserActive
 	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
 	f.actions = append(f.actions, action)
 }

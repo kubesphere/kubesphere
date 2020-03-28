@@ -12,6 +12,9 @@ spec:
   - JSONPath: .spec.email
     name: Email
     type: string
+  - JSONPath: .status.state
+    name: Status
+    type: string
   group: iam.kubesphere.io
   names:
     categories:
@@ -94,8 +97,8 @@ spec:
                 - type
                 type: object
               type: array
-            phase:
-              description: Phase is the phase of the user.
+            state:
+              description: The user status
               type: string
           type: object
       required:
