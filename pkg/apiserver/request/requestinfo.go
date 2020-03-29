@@ -126,8 +126,6 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	if currentParts[0] == "clusters" {
 		requestInfo.Cluster = currentParts[1]
 		currentParts = currentParts[2:]
-	} else if len(currentParts) > 0 {
-		requestInfo.Cluster = "host-cluster"
 	}
 
 	if currentParts[0] == "workspaces" {

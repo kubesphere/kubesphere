@@ -28,6 +28,7 @@ import (
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
+	towerv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tower/v1alpha1"
 )
 
 type Interface interface {
@@ -36,6 +37,7 @@ type Interface interface {
 	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
+	TowerV1alpha1() towerv1alpha1.TowerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -46,6 +48,7 @@ type Clientset struct {
 	networkV1alpha1     *networkv1alpha1.NetworkV1alpha1Client
 	servicemeshV1alpha2 *servicemeshv1alpha2.ServicemeshV1alpha2Client
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
+	towerV1alpha1       *towerv1alpha1.TowerV1alpha1Client
 }
 
 // DevopsV1alpha1 retrieves the DevopsV1alpha1Client
@@ -66,6 +69,11 @@ func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha
 // TenantV1alpha1 retrieves the TenantV1alpha1Client
 func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
 	return c.tenantV1alpha1
+}
+
+// TowerV1alpha1 retrieves the TowerV1alpha1Client
+func (c *Clientset) TowerV1alpha1() towerv1alpha1.TowerV1alpha1Interface {
+	return c.towerV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -105,6 +113,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.towerV1alpha1, err = towerv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -121,6 +133,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 	cs.networkV1alpha1 = networkv1alpha1.NewForConfigOrDie(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.NewForConfigOrDie(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
+	cs.towerV1alpha1 = towerv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -133,6 +146,7 @@ func New(c rest.Interface) *Clientset {
 	cs.networkV1alpha1 = networkv1alpha1.New(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.New(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.New(c)
+	cs.towerV1alpha1 = towerv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
