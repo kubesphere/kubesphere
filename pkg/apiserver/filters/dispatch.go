@@ -7,7 +7,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"net/http"
-	"strings"
 )
 
 // Multiple cluster dispatcher forward request to desired cluster based on request cluster name
@@ -24,12 +23,10 @@ func WithMultipleClusterDispatcher(handler http.Handler, dispatch dispatch.Dispa
 			return
 		}
 
-		if info.Cluster == "host-cluster" || info.Cluster == "" {
+		if info.Cluster == "" {
 			handler.ServeHTTP(w, req)
 		} else {
-			// remove cluster path
-			req.URL.Path = strings.Replace(req.URL.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
-			dispatch.Dispatch(w, req)
+			dispatch.Dispatch(w, req, handler)
 		}
 	})
 }

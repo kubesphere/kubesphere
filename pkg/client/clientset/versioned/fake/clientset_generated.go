@@ -33,6 +33,8 @@ import (
 	fakeservicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2/fake"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 	faketenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1/fake"
+	towerv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tower/v1alpha1"
+	faketowerv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tower/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -100,4 +102,9 @@ func (c *Clientset) ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha
 // TenantV1alpha1 retrieves the TenantV1alpha1Client
 func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
 	return &faketenantv1alpha1.FakeTenantV1alpha1{Fake: &c.Fake}
+}
+
+// TowerV1alpha1 retrieves the TowerV1alpha1Client
+func (c *Clientset) TowerV1alpha1() towerv1alpha1.TowerV1alpha1Interface {
+	return &faketowerv1alpha1.FakeTowerV1alpha1{Fake: &c.Fake}
 }
