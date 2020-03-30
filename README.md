@@ -79,7 +79,7 @@ KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In 
 #### Prerequisites
 
 - `Kubernetes version`： `1.15.x, 1.16.x, 1.17.x`
-- `Helm version` >= `2.10.0`，see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/), (Helm v3 will be supported in KubeSphere 3.0.0)
+- `2.10.0 ≤ Helm Version ＜ 3.0.0` excluding 2.16.0 because of [#6894](https://github.com/helm/helm/issues/6894). Please see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/). Helm v3 will be supported in KubeSphere 3.0.0.
 - An existing Storage Class in your Kubernetes cluster, use `kubectl get sc` to verify it
 - The CSR signing feature is activated in kube-apiserver, see [RKE installation issue](https://github.com/kubesphere/kubesphere/issues/1925#issuecomment-591698309).
 
@@ -95,6 +95,12 @@ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/maste
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-complete-setup.yaml
+```
+
+Wait the installation logs using the following command till showing `"Successful"`, then you can log in the console using the default username and password.
+
+```bash
+kubectl logs -n kubesphere-system $(kubectl get pod -n kubesphere-system -l app=ks-install -o jsonpath='{.items[0].metadata.name}') -f
 ```
 
 ### Deploy on Linux
@@ -132,7 +138,7 @@ You can enable other components after installation, see [Pluggable Components In
 
 ## Contributing, Support, Discussion, and Community
 
-This [document](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere.
+This [document](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere. The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) explains how to set up development environment.
 
 If you need any help with KubeSphere, please join us at [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE).
 
