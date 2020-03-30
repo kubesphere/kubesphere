@@ -30,7 +30,6 @@ import (
 type ProjectOperator interface {
 	GetProject(projectId string) (*v1alpha2.DevOpsProject, error)
 	UpdateProject(project *v1alpha2.DevOpsProject) (*v1alpha2.DevOpsProject, error)
-	CheckProjectUserInRole(username, projectId string, roles []string) error
 }
 
 type projectOperator struct {

@@ -28,14 +28,7 @@ import (
 func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 
-	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, nil, err)
-		return
-	}
 	orderBy := request.QueryParameter(params.OrderByParam)
 	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
 	limit, offset := params.ParsePaging(request)
@@ -56,15 +49,8 @@ func (h ProjectPipelineHandler) GetDevOpsProjectMembersHandler(request *restful.
 func (h ProjectPipelineHandler) GetDevOpsProjectMemberHandler(request *restful.Request, resp *restful.Response) {
 
 	projectId := request.PathParameter("devops")
-	username := request.HeaderParameter(constants.UserNameHeader)
 	member := request.PathParameter("member")
 
-	err := h.projectOperator.CheckProjectUserInRole(username, projectId, devops.AllRoleSlice)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, nil, err)
-		return
-	}
 	project, err := h.projectMemberOperator.GetProjectMember(projectId, member)
 
 	if err != nil {
@@ -99,12 +85,6 @@ func (h ProjectPipelineHandler) AddDevOpsProjectMemberHandler(request *restful.R
 			devops.AllRoleSlice)
 		klog.Errorf("%+v", err)
 		api.HandleBadRequest(resp, request, err)
-		return
-	}
-	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, nil, err)
 		return
 	}
 
@@ -153,12 +133,6 @@ func (h ProjectPipelineHandler) UpdateDevOpsProjectMemberHandler(request *restfu
 		return
 	}
 
-	err = h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, nil, err)
-		return
-	}
 	project, err := h.projectMemberOperator.UpdateProjectMember(projectId, member)
 
 	if err != nil {
@@ -177,13 +151,7 @@ func (h ProjectPipelineHandler) DeleteDevOpsProjectMemberHandler(request *restfu
 	username := request.HeaderParameter(constants.UserNameHeader)
 	member := request.PathParameter("member")
 
-	err := h.projectOperator.CheckProjectUserInRole(username, projectId, []string{devops.ProjectOwner})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		api.HandleForbidden(resp, nil, err)
-		return
-	}
-	username, err = h.projectMemberOperator.DeleteProjectMember(projectId, member)
+	username, err := h.projectMemberOperator.DeleteProjectMember(projectId, member)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		api.HandleInternalError(resp, nil, err)

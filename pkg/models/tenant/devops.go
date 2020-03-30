@@ -145,13 +145,7 @@ func (o *devopsProjectOperator) GetDevOpsProjectsCount(username string) (uint32,
 }
 
 func (o *devopsProjectOperator) DeleteDevOpsProject(projectId, username string) error {
-	err := o.ksProjectOperator.CheckProjectUserInRole(username, projectId, []string{dsClient.ProjectOwner})
-	if err != nil {
-		klog.Errorf("%+v", err)
-		return restful.NewError(http.StatusForbidden, err.Error())
-	}
-
-	err = o.dsProject.DeleteDevOpsProject(projectId)
+	err := o.dsProject.DeleteDevOpsProject(projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
 		return err
