@@ -21,6 +21,7 @@ package oauth
 import (
 	"errors"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
+	"net/url"
 	"time"
 )
 
@@ -152,10 +153,31 @@ type Client struct {
 	AccessTokenInactivityTimeout *time.Duration `json:"accessTokenInactivityTimeout,omitempty" yaml:"accessTokenInactivityTimeout,omitempty"`
 }
 
+var (
+	// Allow any redirect URI if the redirectURI is defined in request
+	AllowAllRedirectURI                 = "*"
+	DefaultTokenMaxAge                  = time.Second * 86400
+	DefaultAccessTokenInactivityTimeout = time.Duration(0)
+	DefaultClients                      = []Client{{
+		Name:                         "default",
+		RespondWithChallenges:        true,
+		RedirectURIs:                 []string{AllowAllRedirectURI},
+		GrantMethod:                  GrantHandlerAuto,
+		ScopeRestrictions:            []string{"full"},
+		AccessTokenMaxAge:            &DefaultTokenMaxAge,
+		AccessTokenInactivityTimeout: &DefaultAccessTokenInactivityTimeout,
+	}}
+)
+
 func (o *Options) OAuthClient(name string) (Client, error) {
 	for _, found := range o.Clients {
 		if found.Name == name {
 			return found, nil
+		}
+	}
+	for _, defaultClient := range DefaultClients {
+		if defaultClient.Name == name {
+			return defaultClient, nil
 		}
 	}
 	return Client{}, ErrorClientNotFound
@@ -169,16 +191,37 @@ func (o *Options) IdentityProviderOptions(name string) (IdentityProviderOptions,
 	return IdentityProviderOptions{}, ErrorClientNotFound
 }
 
+func (c Client) anyRedirectAbleURI() []string {
+	uris := make([]string, 0)
+	for _, uri := range c.RedirectURIs {
+		_, err := url.Parse(uri)
+		if err == nil {
+			uris = append(uris, uri)
+		}
+	}
+	return uris
+}
+
 func (c Client) ResolveRedirectURL(expectURL string) (string, error) {
+	// RedirectURIs is empty
 	if len(c.RedirectURIs) == 0 {
 		return "", ErrorRedirectURLNotAllowed
 	}
+	allowAllRedirectURI := sliceutil.HasString(c.RedirectURIs, AllowAllRedirectURI)
+	redirectAbleURIs := c.anyRedirectAbleURI()
+
 	if expectURL == "" {
-		return c.RedirectURIs[0], nil
+		// Need to specify at least one RedirectURI
+		if len(redirectAbleURIs) > 0 {
+			return redirectAbleURIs[0], nil
+		} else {
+			return "", ErrorRedirectURLNotAllowed
+		}
 	}
-	if sliceutil.HasString(c.RedirectURIs, expectURL) {
+	if allowAllRedirectURI || sliceutil.HasString(redirectAbleURIs, expectURL) {
 		return expectURL, nil
 	}
+
 	return "", ErrorRedirectURLNotAllowed
 }
 

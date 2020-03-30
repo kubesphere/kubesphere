@@ -5,8 +5,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
@@ -29,19 +27,6 @@ import (
 
 func newTestConfig() (*Config, error) {
 
-	githubOAuthProvider, err := identityprovider.ResolveOAuthOptions("github", &github.Github{
-		ClientID:     "de6ff7bed0304e487b6e",
-		ClientSecret: "xxxxxx-xxxxx-xxxxx",
-		Endpoint: github.Endpoint{
-			AuthURL:  "https://github.com/login/oauth/authorize",
-			TokenURL: "https://github.com/login/oauth/token",
-		},
-		RedirectURL: "https://ks-console.kubesphere-system.svc/oauth/callbak/github",
-		Scopes:      []string{"user"},
-	})
-	if err != nil {
-		return nil, err
-	}
 	var conf = &Config{
 		MySQLOptions: &mysql.Options{
 			Host:                  "10.68.96.5:3306",
@@ -125,13 +110,7 @@ func newTestConfig() (*Config, error) {
 			JwtSecret:                       "xxxxxx",
 			MultipleLogin:                   false,
 			OAuthOptions: &oauth.Options{
-				IdentityProviders: []oauth.IdentityProviderOptions{{
-					Name:          "github",
-					MappingMethod: "auto",
-					LoginRedirect: true,
-					Type:          "github",
-					Provider:      githubOAuthProvider,
-				}},
+				IdentityProviders: []oauth.IdentityProviderOptions{},
 				Clients: []oauth.Client{{
 					Name:                         "kubesphere-console-client",
 					Secret:                       "xxxxxx-xxxxxx-xxxxxx",
@@ -185,7 +164,6 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if diff := cmp.Diff(conf, conf2); diff != "" {
 		t.Fatal(diff)
 	}
