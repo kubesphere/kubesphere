@@ -6,37 +6,30 @@ import (
 )
 
 type User struct {
-	Username    string    `json:"username"`
+	Name        string    `json:"username"`
+	UID         string    `json:"uid"`
 	Email       string    `json:"email"`
 	Lang        string    `json:"lang,omitempty"`
 	Description string    `json:"description"`
-	CreateTime  time.Time `json:"create_time"`
+	CreateTime  time.Time `json:"createTime"`
 	Groups      []string  `json:"groups,omitempty"`
 	Password    string    `json:"password,omitempty"`
 }
 
-func NewUser() *User {
-	return &User{
-		Username:    "",
-		Email:       "",
-		Lang:        "",
-		Description: "",
-		CreateTime:  time.Time{},
-		Groups:      nil,
-		Password:    "",
-	}
+func (u *User) GetName() string {
+	return u.Name
 }
 
-func (u *User) Name() string {
-	return u.Username
+func (u *User) GetUID() string {
+	return u.UID
 }
 
-func (u *User) UID() string {
+func (u *User) GetEmail() string {
 	return u.Email
 }
 
 func (u *User) Validate() error {
-	if u.Username == "" {
+	if u.Name == "" {
 		return errors.New("username can not be empty")
 	}
 

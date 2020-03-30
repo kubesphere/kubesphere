@@ -32,11 +32,9 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/iam"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"openpitrix.io/openpitrix/pkg/pb"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -183,14 +181,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	if err = r.checkAndCreateRoles(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err = r.checkAndCreateRoleBindings(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	if err := r.checkAndCreateRuntime(instance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -208,152 +198,6 @@ func (r *ReconcileNamespace) isControlledByWorkspace(namespace *corev1.Namespace
 	}
 
 	return true, nil
-}
-
-// Create default roles
-func (r *ReconcileNamespace) checkAndCreateRoles(namespace *corev1.Namespace) error {
-	for _, role := range defaultRoles {
-		found := &rbac.Role{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: role.Name}, found)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				role := role.DeepCopy()
-				role.Namespace = namespace.Name
-				err = r.Create(context.TODO(), role)
-				if err != nil {
-					klog.Error(err)
-					return err
-				}
-			} else {
-				klog.Error(err)
-				return err
-			}
-		}
-		if !reflect.DeepEqual(found.Rules, role.Rules) {
-			found.Rules = role.Rules
-			if err := r.Update(context.TODO(), found); err != nil {
-				klog.Error(err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (r *ReconcileNamespace) checkAndCreateRoleBindings(namespace *corev1.Namespace) error {
-
-	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
-	creatorName := namespace.Annotations[constants.CreatorAnnotationKey]
-
-	creator := rbac.Subject{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: creatorName}
-
-	workspaceAdminBinding := &rbac.ClusterRoleBinding{}
-
-	err := r.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("workspace:%s:admin", workspaceName)}, workspaceAdminBinding)
-
-	if err != nil {
-		return err
-	}
-
-	adminBinding := &rbac.RoleBinding{}
-	adminBinding.Name = admin.Name
-	adminBinding.Namespace = namespace.Name
-	adminBinding.RoleRef = rbac.RoleRef{Name: admin.Name, APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-	adminBinding.Subjects = workspaceAdminBinding.Subjects
-
-	if creator.Name != "" {
-		if adminBinding.Subjects == nil {
-			adminBinding.Subjects = make([]rbac.Subject, 0)
-		}
-		if !iam.ContainsUser(adminBinding.Subjects, creatorName) {
-			adminBinding.Subjects = append(adminBinding.Subjects, creator)
-		}
-	}
-
-	found := &rbac.RoleBinding{}
-
-	err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: adminBinding.Name}, found)
-
-	if errors.IsNotFound(err) {
-		err = r.Create(context.TODO(), adminBinding)
-		if err != nil {
-			klog.Errorf("creating role binding namespace: %s,role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
-		found = adminBinding
-	} else if err != nil {
-		klog.Errorf("get role binding namespace: %s,role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-		return err
-	}
-
-	if !reflect.DeepEqual(found.RoleRef, adminBinding.RoleRef) {
-		err = r.Delete(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("deleting role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
-		err = fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, adminBinding.Name)
-		klog.Errorf("conflict role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-		return err
-	}
-
-	if !reflect.DeepEqual(found.Subjects, adminBinding.Subjects) {
-		found.Subjects = adminBinding.Subjects
-		err = r.Update(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("updating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, adminBinding.Name, err)
-			return err
-		}
-	}
-
-	workspaceViewerBinding := &rbac.ClusterRoleBinding{}
-
-	err = r.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("workspace:%s:viewer", workspaceName)}, workspaceViewerBinding)
-
-	if err != nil {
-		return err
-	}
-
-	viewerBinding := &rbac.RoleBinding{}
-	viewerBinding.Name = viewer.Name
-	viewerBinding.Namespace = namespace.Name
-	viewerBinding.RoleRef = rbac.RoleRef{Name: viewer.Name, APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-	viewerBinding.Subjects = workspaceViewerBinding.Subjects
-
-	err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: viewerBinding.Name}, found)
-
-	if errors.IsNotFound(err) {
-		err = r.Create(context.TODO(), viewerBinding)
-		if err != nil {
-			klog.Errorf("creating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
-		found = viewerBinding
-	} else if err != nil {
-		return err
-	}
-
-	if !reflect.DeepEqual(found.RoleRef, viewerBinding.RoleRef) {
-		err = r.Delete(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("deleting conflict role binding namespace: %s, role binding: %s, %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
-		err = fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, viewerBinding.Name)
-		klog.Errorf("conflict role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-		return err
-	}
-
-	if !reflect.DeepEqual(found.Subjects, viewerBinding.Subjects) {
-		found.Subjects = viewerBinding.Subjects
-		err = r.Update(context.TODO(), found)
-		if err != nil {
-			klog.Errorf("updating role binding namespace: %s, role binding: %s, error: %s", namespace.Name, viewerBinding.Name, err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Create openpitrix runtime

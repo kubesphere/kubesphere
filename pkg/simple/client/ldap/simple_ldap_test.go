@@ -11,7 +11,7 @@ func TestSimpleLdap(t *testing.T) {
 	ldapClient := NewSimpleLdap()
 
 	foo := &iam.User{
-		Username:    "jerry",
+		Name:        "jerry",
 		Email:       "jerry@kubesphere.io",
 		Lang:        "en",
 		Description: "Jerry is kind and gentle.",
@@ -27,7 +27,7 @@ func TestSimpleLdap(t *testing.T) {
 		}
 
 		// check if user really created
-		user, err := ldapClient.Get(foo.Username)
+		user, err := ldapClient.Get(foo.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -35,7 +35,7 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatalf("%T differ (-got, +want): %s", user, diff)
 		}
 
-		_ = ldapClient.Delete(foo.Username)
+		_ = ldapClient.Delete(foo.Name)
 	})
 
 	t.Run("should update user", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestSimpleLdap(t *testing.T) {
 		}
 
 		// check if user really created
-		user, err := ldapClient.Get(foo.Username)
+		user, err := ldapClient.Get(foo.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,7 +59,7 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatalf("%T differ (-got, +want): %s", user, diff)
 		}
 
-		_ = ldapClient.Delete(foo.Username)
+		_ = ldapClient.Delete(foo.Name)
 	})
 
 	t.Run("should delete user", func(t *testing.T) {
@@ -68,12 +68,12 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = ldapClient.Delete(foo.Username)
+		err = ldapClient.Delete(foo.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_, err = ldapClient.Get(foo.Username)
+		_, err = ldapClient.Get(foo.Name)
 		if err == nil || err != ErrUserNotExists {
 			t.Fatalf("expected ErrUserNotExists error, got %v", err)
 		}
@@ -85,12 +85,12 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = ldapClient.Verify(foo.Username, foo.Password)
+		err = ldapClient.Authenticate(foo.Name, foo.Password)
 		if err != nil {
 			t.Fatalf("should pass but got an error %v", err)
 		}
 
-		err = ldapClient.Verify(foo.Username, "gibberish")
+		err = ldapClient.Authenticate(foo.Name, "gibberish")
 		if err == nil || err != ErrInvalidCredentials {
 			t.Fatalf("expected error ErrInvalidCrenentials but got %v", err)
 		}

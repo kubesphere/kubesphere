@@ -17,7 +17,7 @@ func NewSimpleLdap() Interface {
 
 	// initialize with a admin user
 	admin := &iam.User{
-		Username:    "admin",
+		Name:        "admin",
 		Email:       "admin@kubesphere.io",
 		Lang:        "eng",
 		Description: "administrator",
@@ -25,21 +25,21 @@ func NewSimpleLdap() Interface {
 		Groups:      nil,
 		Password:    "P@88w0rd",
 	}
-	sl.store[admin.Username] = admin
+	sl.store[admin.Name] = admin
 	return sl
 }
 
 func (s simpleLdap) Create(user *iam.User) error {
-	s.store[user.Username] = user
+	s.store[user.Name] = user
 	return nil
 }
 
 func (s simpleLdap) Update(user *iam.User) error {
-	_, err := s.Get(user.Username)
+	_, err := s.Get(user.Name)
 	if err != nil {
 		return err
 	}
-	s.store[user.Username] = user
+	s.store[user.Name] = user
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (s simpleLdap) Get(name string) (*iam.User, error) {
 	}
 }
 
-func (s simpleLdap) Verify(name string, password string) error {
+func (s simpleLdap) Authenticate(name string, password string) error {
 	if user, err := s.Get(name); err != nil {
 		return err
 	} else {

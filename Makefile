@@ -39,15 +39,11 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test hypersphere ks-apiserver ks-apigateway controller-manager
+all: test hypersphere ks-apiserver controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: fmt vet
 	hack/gobuild.sh cmd/ks-apiserver
-
-# Build ks-apigateway binary
-ks-apigateway: fmt vet
-	hack/gobuild.sh cmd/ks-apigateway
 
 # Build controller-manager binary
 controller-manager: fmt vet
