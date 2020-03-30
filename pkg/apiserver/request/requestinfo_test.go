@@ -44,7 +44,8 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 		expectedIsResourceRequest bool
 		expectedCluster           string
 		expectedWorkspace         string
-		exceptedNamespace         string
+		expectedNamespace         string
+		expectedKubernetesRequest bool
 	}{
 		{
 			name:                      "login",
@@ -55,6 +56,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedResource:          "",
 			expectedIsResourceRequest: false,
 			expectedCluster:           "",
+			expectedKubernetesRequest: false,
 		},
 		{
 			name:                      "list cluster roles",
@@ -65,6 +67,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedResource:          "clusterroles",
 			expectedIsResourceRequest: true,
 			expectedCluster:           "cluster1",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list cluster nodes",
@@ -75,6 +78,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedResource:          "nodes",
 			expectedIsResourceRequest: true,
 			expectedCluster:           "cluster1",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list cluster nodes",
@@ -85,6 +89,7 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedResource:          "nodes",
 			expectedIsResourceRequest: true,
 			expectedCluster:           "cluster1",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list cluster nodes",
@@ -94,7 +99,8 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedVerb:              "list",
 			expectedResource:          "nodes",
 			expectedIsResourceRequest: true,
-			expectedCluster:           "host-cluster",
+			expectedCluster:           "",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list roles",
@@ -104,8 +110,9 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedVerb:              "list",
 			expectedResource:          "roles",
 			expectedIsResourceRequest: true,
-			exceptedNamespace:         "namespace1",
+			expectedNamespace:         "namespace1",
 			expectedCluster:           "cluster1",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list roles",
@@ -115,7 +122,9 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedVerb:              "list",
 			expectedResource:          "roles",
 			expectedIsResourceRequest: true,
-			expectedCluster:           "host-cluster",
+			expectedCluster:           "",
+			expectedNamespace:         "namespace1",
+			expectedKubernetesRequest: true,
 		},
 		{
 			name:                      "list namespaces",
@@ -126,7 +135,8 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedResource:          "namespaces",
 			expectedIsResourceRequest: true,
 			expectedWorkspace:         "workspace1",
-			expectedCluster:           "host-cluster",
+			expectedCluster:           "",
+			expectedKubernetesRequest: false,
 		},
 		{
 			name:                      "list namespaces",
@@ -138,6 +148,32 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedIsResourceRequest: true,
 			expectedWorkspace:         "workspace1",
 			expectedCluster:           "cluster1",
+			expectedKubernetesRequest: false,
+		},
+		{
+			name:                      "random query",
+			url:                       "/foo/bar",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "GET",
+			expectedResource:          "",
+			expectedIsResourceRequest: false,
+			expectedWorkspace:         "",
+			expectedCluster:           "",
+			expectedKubernetesRequest: false,
+		},
+		{
+			name:                      "kubesphere api without clusters",
+			url:                       "/kapis/foo/bar/",
+			method:                    http.MethodPost,
+			expectedErr:               nil,
+			expectedVerb:              "POST",
+			expectedResource:          "",
+			expectedNamespace:         "",
+			expectedWorkspace:         "",
+			expectedCluster:           "",
+			expectedIsResourceRequest: false,
+			expectedKubernetesRequest: false,
 		},
 	}
 
@@ -155,23 +191,27 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 				t.Errorf("%s: expected error %v, actual %v", test.name, test.expectedErr, err)
 			}
 		} else {
-			if test.expectedVerb != "" && test.expectedVerb != requestInfo.Verb {
+			if test.expectedVerb != requestInfo.Verb {
 				t.Errorf("%s: expected verb %v, actual %+v", test.name, test.expectedVerb, requestInfo.Verb)
 			}
-			if test.expectedResource != "" && test.expectedResource != requestInfo.Resource {
+			if test.expectedResource != requestInfo.Resource {
 				t.Errorf("%s: expected resource %v, actual %+v", test.name, test.expectedResource, requestInfo.Resource)
 			}
 			if test.expectedIsResourceRequest != requestInfo.IsResourceRequest {
 				t.Errorf("%s: expected is resource request %v, actual %+v", test.name, test.expectedIsResourceRequest, requestInfo.IsResourceRequest)
 			}
-			if test.expectedCluster != "" && test.expectedCluster != requestInfo.Cluster {
+			if test.expectedCluster != requestInfo.Cluster {
 				t.Errorf("%s: expected cluster %v, actual %+v", test.name, test.expectedCluster, requestInfo.Cluster)
 			}
-			if test.expectedWorkspace != "" && test.expectedWorkspace != requestInfo.Workspace {
+			if test.expectedWorkspace != requestInfo.Workspace {
 				t.Errorf("%s: expected workspace %v, actual %+v", test.name, test.expectedWorkspace, requestInfo.Workspace)
 			}
-			if test.exceptedNamespace != "" && test.exceptedNamespace != requestInfo.Namespace {
-				t.Errorf("%s: expected namespace %v, actual %+v", test.name, test.exceptedNamespace, requestInfo.Namespace)
+			if test.expectedNamespace != requestInfo.Namespace {
+				t.Errorf("%s: expected namespace %v, actual %+v", test.name, test.expectedNamespace, requestInfo.Namespace)
+			}
+
+			if test.expectedKubernetesRequest != requestInfo.IsKubernetesRequest {
+				t.Errorf("%s: expected kubernetes request %v, actual %+v", test.name, test.expectedKubernetesRequest, requestInfo.IsKubernetesRequest)
 			}
 		}
 	}

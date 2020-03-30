@@ -183,7 +183,7 @@ func (s *APIServer) buildHandlerChain() {
 	handler := s.Server.Handler
 
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
-	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.DefaultClusterDispatch)
+	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Tower().V1alpha1().Agents().Lister()))
 
 	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
@@ -273,6 +273,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
+		{Group: "tower.kubesphere.io", Version: "v1alpha1", Resource: "agents"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

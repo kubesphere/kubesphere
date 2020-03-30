@@ -34,6 +34,7 @@ import (
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
 	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
+	tower "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tower"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -181,6 +182,7 @@ type SharedInformerFactory interface {
 	Network() network.Interface
 	Servicemesh() servicemesh.Interface
 	Tenant() tenant.Interface
+	Tower() tower.Interface
 }
 
 func (f *sharedInformerFactory) Devops() devops.Interface {
@@ -201,4 +203,8 @@ func (f *sharedInformerFactory) Servicemesh() servicemesh.Interface {
 
 func (f *sharedInformerFactory) Tenant() tenant.Interface {
 	return tenant.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Tower() tower.Interface {
+	return tower.New(f, f.namespace, f.tweakListOptions)
 }
