@@ -1,4 +1,5 @@
 # KubeSphere Container Platform
+
 [![License](http://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/KubeSphere/KubeSphere/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/kubesphere/kubesphere.svg?branch=master)](https://travis-ci.org/kubesphere/kubesphere)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kubesphere/kubesphere)](https://goreportcard.com/report/github.com/kubesphere/kubesphere)
@@ -12,15 +13,13 @@
 
 > English | [中文](README_zh.md)
 
-[KubeSphere](https://kubesphere.io/) is a **distributed operating system providing cloud native stack** with [Kubernetes](https://kubernetes.io) as its kernel, and aims to be plug-and-play architecture for third-party applications seamless integration to boost its ecosystem. KubeSphere is also a multi-tenant enterprise-grade container platform with full-stack automated IT operation and streamlined DevOps workflows. It provides developer-friendly wizard web UI, helping enterprises to build out a more robust and feature-rich platform, which includes most common functionalities needed for enterprise Kubernetes strategy, see [Feature list](#features) for details.
+[KubeSphere](https://kubesphere.io/) is a **distributed operating system providing cloud native stack** with [Kubernetes](https://kubernetes.io) as its kernel, and aims to be plug-and-play architecture for third-party applications seamless integration to boost its ecosystem. KubeSphere is also a multi-tenant enterprise-grade container platform with full-stack automated IT operation and streamlined DevOps workflows. It provides developer-friendly wizard web UI, helping enterprises to build out a more robust and feature-rich platform, which includes most common functionalities needed for enterprise Kubernetes strategy, see [Feature List](#features) for details.
 
-
-> Note: The [Screenshots](docs/en/guides/screenshots.md) give a close insight into KubeSphere, see [What is KubeSphere](https://kubesphere.io/docs/v2.1/en/introduction/what-is-kubesphere) for further information.
-
+The following screenshots give a close insight into KubeSphere. Please check [What is KubeSphere](https://kubesphere.io/docs/introduction/what-is-kubesphere/) for further information.
 
 <table>
   <tr>
-      <td width="50%" align="center"><b>KubeSphere Dashboard</b></td>
+      <td width="50%" align="center"><b>Workbench</b></td>
       <td width="50%" align="center"><b>Project Resources</b></td>
   </tr>
   <tr>
@@ -29,7 +28,7 @@
   </tr>
   <tr>
       <td width="50%" align="center"><b>CI/CD Pipeline</b></td>
-      <td width="50%" align="center"><b>Application Store</b></td>
+      <td width="50%" align="center"><b>App Store</b></td>
   </tr>
   <tr>
      <td><img src="docs/images/cicd.png"/></td>
@@ -39,14 +38,13 @@
 
 ## Demo Environment
 
-Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted viewer access. You can also have a quick view of [KubeSphere Demo Video](https://youtu.be/u5lQvhi_Xlc).
+Using the account `demo1 / Demo123` to log in the [demo environment](https://demo.kubesphere.io/). Please note the account is granted view access. You can also have a quick view of [KubeSphere Demo Video](https://youtu.be/u5lQvhi_Xlc).
 
 ## Architecture
 
-KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere), the back end can also be connected with external systems through the REST API, all components are designed as Docker containers. See [Architecture](https://kubesphere.io/docs/v2.1/en/introduction/architecture/) for details.
+KubeSphere uses a loosely-coupled architecture that separates the [frontend](https://github.com/kubesphere/console) from the [backend](https://github.com/kubesphere/kubesphere). External systems can access the components of the backend which are delivered as Docker containers through the REST APIs. See [Architecture](https://kubesphere.io/docs/introduction/architecture/) for details.
 
-![](docs/images/architecture.png)
-
+![Architecture](docs/images/architecture.png)
 
 ## Features
 
@@ -64,38 +62,34 @@ KubeSphere uses a loosely-coupled architecture that separates the [frontend](htt
 | Network Support | Support Calico, Flannel, etc. open source network solutions, provides load balancer plug-in [Porter](https://github.com/kubesphere/porter) for Kubernetes installed on physical machines |
 | GPU Support | Support add GPU node, support vGPU, enables running ML applications on Kubernetes, e.g. TensorFlow |
 
-
-> Note: See this [Feature and Benefits](https://kubesphere.io/docs/v2.1/en/introduction/features/) for further information.
+Please See the [Feature and Benefits](https://kubesphere.io/docs/introduction/features/) for further information.
 
 ----
 
-
 ## Latest Release
 
-KubeSphere 2.1.1 was released on **February 23th, 2020**. See the [Release Notes For 2.1.1](https://kubesphere.io/docs/v2.1/en/release/release-v211/) for the updates.
+KubeSphere 2.1.1 was released on **February 23rd, 2020**. See the [Release Notes For 2.1.1](https://kubesphere.io/docs/release/release-v211/) for the updates.
 
 ## Installation
 
-KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible Kubernetes cluster.
+KubeSphere can run anywhere from on-premise datacenter to any cloud to edge. In addition, it can be deployed on any version-compatible running Kubernetes cluster.
 
-### Deploy on Existing Kubernetes
+### Deploy on Existing Kubernetes Cluster
 
-**Prerequisites**
+#### Prerequisites
 
-> - `Kubernetes version`： `1.15.x, 1.16.x, 1.17.x`
-> - `Helm version` >= `2.10.0`，see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/), (Helm v3 will be supported in KubeSphere 3.0.0)
-> - An existing Storage Class in your Kubernetes cluster, use `kubectl get sc` to verify it
-> - The CSR signing feature is activated in kube-apiserver, see [RKE installation issue](https://github.com/kubesphere/kubesphere/issues/1925#issuecomment-591698309).
+- `Kubernetes version`： `1.15.x, 1.16.x, 1.17.x`
+- `Helm version` >= `2.10.0`，see [Install and Configure Helm in Kubernetes](https://devopscube.com/install-configure-helm-kubernetes/), (Helm v3 will be supported in KubeSphere 3.0.0)
+- An existing Storage Class in your Kubernetes cluster, use `kubectl get sc` to verify it
+- The CSR signing feature is activated in kube-apiserver, see [RKE installation issue](https://github.com/kubesphere/kubesphere/issues/1925#issuecomment-591698309).
 
 Install KubeSphere using kubectl.
 
-- If there are 1 Core and 2 GB RAM available in your cluster, use the command below to set up a default minimal installation only:
+- If there are 1 Core and 2 GB RAM available in your cluster, use the command below to set up a default minimal installation only. You can enable other components after installation if more resource added in later on. See [Pluggable Components Installation](https://kubesphere.io/docs/installation/pluggable-components/) for detailed information.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/master/kubesphere-minimal.yaml
 ```
-
-You can enable other components after installation, see [Pluggable components Installation](https://kubesphere.io/docs/v2.1/en/installation/pluggable-components/).
 
 - If there are 8 Cores and 16 GB RAM available in your cluster, use the command below to install a complete KubeSphere, i.e. with all components enabled:
 
@@ -105,17 +99,17 @@ kubectl apply -f https://raw.githubusercontent.com/kubesphere/ks-installer/maste
 
 ### Deploy on Linux
 
-KubeSphere Installer can help you to install KubeSphere and Kubernetes on your linux machines. It provides [All-in-One](https://kubesphere.io/docs/v2.1/en/installation/all-in-one/) and [Multi-Node](https://kubesphere.io/docs/v2.1/en/installation/multi-node/) installation options.
+KubeSphere Installer can help you to install KubeSphere and Kubernetes on your linux machines. It provides [All-in-One](https://kubesphere.io/docs/installation/all-in-one/) and [Multi-Node](https://kubesphere.io/docs/installation/multi-node/) installation options.
 
-**Minimum Requirements**
+#### Minimum Requirements
 
 - Operating Systems
-   - CentOS 7.5 (64 bit)
-   - Ubuntu 16.04/18.04 LTS (64 bit)
-   - Red Hat Enterprise Linux Server 7.4 (64 bit)
-   - Debian Stretch 9.5 (64 bit)
+  - CentOS 7.5 (64 bit)
+  - Ubuntu 16.04/18.04 LTS (64 bit)
+  - Red Hat Enterprise Linux Server 7.4 (64 bit)
+  - Debian Stretch 9.5 (64 bit)
 - Hardware
-   - CPU：2 Core,  Memory：4 G, Disk Space：100 G
+  - CPU：2 Cores,  Memory：4 GB, Disk Space：100 GB
 
 > Note:  Please disable the firewall, or ensure your firewall meets the [port requirements](https://kubesphere.io/docs/installation/port-firewall/).
 
@@ -129,17 +123,24 @@ $ ./install.sh
 
 Choose `"1) All-in-one"` to start the default minimal installation.
 
-You can enable other components after installation, see [Pluggable Components Installation](https://kubesphere.io/docs/v2.1/en/installation/pluggable-components/).
-
+You can enable other components after installation, see [Pluggable Components Installation](https://kubesphere.io/docs/installation/pluggable-components/).
 
 ## To start using KubeSphere
 
-- KubeSphere Documentation ([En](https://kubesphere.io/docs/en/)/[中](https://kubesphere.io/docs/zh-CN/)）
-- [API Documentation](https://kubesphere.io/docs/v2.1/en/api-reference/api-docs/)
+- KubeSphere Documentation ([En](https://kubesphere.io/docs/)/[中](https://kubesphere.io/docs/zh-CN/)）
+- [API Documentation](https://kubesphere.io/docs/api-reference/api-docs/)
 
-## To start developing KubeSphere
+## Contributing, Support, Discussion, and Community
 
-The [development guide](https://github.com/kubesphere/community/tree/master/developer-guide/development) hosts all information about building KubeSphere from source, git workflow, how to contribute code and how to test.
+This [document](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere.
+
+If you need any help with KubeSphere, please join us at [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE).
+
+Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
+
+## Who are using KubeSphere
+
+The [Powered by KubeSphere](docs/powered-by-kubesphere.md) page includes users list of the project. You can submit your institution name and homepage if you are using KubeSphere.
 
 ## RoadMap
 
@@ -147,7 +148,7 @@ Currently, KubeSphere has released the following 5 major editions. The future re
 
 **Express Edition** => **v1.0.x** => **v2.0.x**  => **v2.1.0** => **v2.1.1** => **v3.0.0**
 
-![](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
+![Roadmap](https://pek3b.qingstor.com/kubesphere-docs/png/20190926000413.png)
 
 ## Landscapes
 
@@ -159,18 +160,3 @@ KubeSphere is a member of CNCF and a <a href="https://www.cncf.io/certification/
 </a>, which enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.
 </a>
 </p>
-
-## Who Uses KubeSphere
-
-The [Powered by KubeSphere](docs/powered-by-kubesphere.md) page includes users list of the project. You can submit your institution name and homepage if you are using KubeSphere.
-
-
-## Support, Discussion, and Community
-
-If you need any help with KubeSphere, please join us at [Slack Channel](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE).
-
-Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere GitHub Issue](https://github.com/kubesphere/kubesphere/issues).
-
-## Contributing to the project
-
-This [document](https://github.com/kubesphere/community) walks you through how to get started contributing KubeSphere.
