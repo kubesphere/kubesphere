@@ -23,7 +23,7 @@ func NewTokenAuthenticator(issuer token2.Issuer) authenticator.Token {
 }
 
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	providedUser, _, err := t.jwtTokenIssuer.Verify(token)
+	providedUser, err := t.jwtTokenIssuer.Verify(token)
 	if err != nil {
 		return nil, false, err
 	}

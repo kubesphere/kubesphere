@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"github.com/spf13/pflag"
-	reflectutils "kubesphere.io/kubesphere/pkg/utils/reflectutils"
+	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"time"
 )
 

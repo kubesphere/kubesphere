@@ -20,14 +20,14 @@ package token
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/api/iam"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
 )
 
 func TestJwtTokenIssuer(t *testing.T) {
-	options := auth.NewAuthenticateOptions()
+	options := authoptions.NewAuthenticateOptions()
 	options.JwtSecret = "kubesphere"
 	issuer := NewJwtTokenIssuer(DefaultIssuerName, options, cache.NewSimpleCache())
 
@@ -54,12 +54,12 @@ func TestJwtTokenIssuer(t *testing.T) {
 		}
 
 		t.Run(testCase.description, func(t *testing.T) {
-			token, _, err := issuer.IssueTo(user)
+			token, err := issuer.IssueTo(user, 0)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			got, _, err := issuer.Verify(token)
+			got, err := issuer.Verify(token)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -133,7 +133,9 @@ func NewFakeAMOperator() *FakeOperator {
 	})
 	operator.saveFakeRole(platformRoleCacheKey(user.Anonymous), FakeRole{
 		Name: "admin",
-		Rego: "package authz\ndefault allow = false",
+		Rego: `package authz
+default allow = false
+`,
 	})
 	return operator
 }

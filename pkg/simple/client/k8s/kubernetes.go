@@ -98,6 +98,12 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
+	k.istio, err = istioclient.NewForConfig(config)
+
+	if err != nil {
+		return nil, err
+	}
+
 	k.master = options.Master
 	k.config = config
 
