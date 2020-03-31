@@ -22,6 +22,7 @@ func AddToContainer(c *restful.Container, notifier *v1alpha3.EventNotifier) erro
 		"eventType", "event type of event")).
 		Reads(v1alpha3.JenkinsEvent{}))
 	c.Add(webservice)
+	return nil
 }
 
 // RegisterEventHandler registers the EventHandler into the notifier.
