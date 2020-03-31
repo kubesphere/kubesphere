@@ -14,7 +14,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}
 
-func AddToContainer(c *restful.Container, notifier *v1alpha3.EventNotifier) error {
+func AddEventHandlerToContainer(c *restful.Container, notifier *v1alpha3.EventNotifier) error {
 	eventHandler := NewKubeSphereEventHandler(notifier)
 	webservice := runtime.NewWebService(GroupVersion)
 	webservice.Route(webservice.POST("/jenkinsEvent/${eventType}").
