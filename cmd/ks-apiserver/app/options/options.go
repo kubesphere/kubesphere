@@ -7,6 +7,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apiserver"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -141,6 +142,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			return nil, err
 		}
 		apiServer.DevopsClient = devopsClient
+		apiServer.DevOpsEventNotifier = v1alpha3.NewEventNotifier()
 	}
 
 	if s.LdapOptions.Host != "" {

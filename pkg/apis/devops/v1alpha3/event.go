@@ -1,21 +1,24 @@
 package v1alpha3
 
-import "sync"
+import (
+	"sync"
+)
 
-var notifier eventNotifier
-var once sync.Once
-
-// eventNotifier is the bus for event distribution.
+// EventNotifier is a special EventHandler that is responsible for sending events to registered Handlers
 // when you need to add a specific Event handler,
-// you need to implement the EventHandler interface and call RegisterEventHandler to register with eventNotifier.
-// eventNotifier should be accessed in singleton mode, do not initialize an eventNotifier instance yourself.
-
-type eventNotifier struct {
+// you need to implement the EventHandler interface and call RegisterEventHandler to register with EventNotifier.
+type EventNotifier struct {
 	lock      sync.RWMutex
 	listeners []EventHandler
 }
 
-func (e *eventNotifier) onPipelineStarted(event Event) {
+func NewEventNotifier() *EventNotifier {
+	return &EventNotifier{
+		lock: sync.RWMutex{},
+	}
+}
+
+func (e *EventNotifier) OnPipelineStarted(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -23,7 +26,7 @@ func (e *eventNotifier) onPipelineStarted(event Event) {
 	}
 }
 
-func (e *eventNotifier) onPipelineCompleted(event Event) {
+func (e *EventNotifier) OnPipelineCompleted(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -31,7 +34,7 @@ func (e *eventNotifier) onPipelineCompleted(event Event) {
 	}
 }
 
-func (e *eventNotifier) onPipelineFinalized(event Event) {
+func (e *EventNotifier) OnPipelineFinalized(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -39,7 +42,7 @@ func (e *eventNotifier) onPipelineFinalized(event Event) {
 	}
 }
 
-func (e *eventNotifier) onPipelinePendingReview(event Event) {
+func (e *EventNotifier) OnPipelinePendingReview(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -47,7 +50,7 @@ func (e *eventNotifier) onPipelinePendingReview(event Event) {
 	}
 }
 
-func (e *eventNotifier) onPipelineReviewProceeded(event Event) {
+func (e *EventNotifier) OnPipelineReviewProceeded(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -55,7 +58,7 @@ func (e *eventNotifier) onPipelineReviewProceeded(event Event) {
 	}
 }
 
-func (e *eventNotifier) onPipelineReviewAborted(event Event) {
+func (e *EventNotifier) OnPipelineReviewAborted(event Event) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 	for _, handler := range e.listeners {
@@ -63,20 +66,10 @@ func (e *eventNotifier) onPipelineReviewAborted(event Event) {
 	}
 }
 
-func GetEventNotifier() *eventNotifier {
-	once.Do(func() {
-		notifier = eventNotifier{
-			lock: sync.RWMutex{},
-		}
-	})
-	return &notifier
-}
-
-func RegisterEventHandler(handler EventHandler) {
-	notifier := GetEventNotifier()
-	notifier.lock.Lock()
-	defer notifier.lock.Unlock()
-	notifier.listeners = append(notifier.listeners, handler)
+func (e *EventNotifier) RegisterEventHandler(handler EventHandler) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	e.listeners = append(e.listeners, handler)
 }
 
 type EventHandler interface {
@@ -132,7 +125,7 @@ func (r ResourceEventHandlerFuncs) OnPipelineReviewProceeded(event Event) {
 	}
 }
 
-// onPipelineReviewAborted calls PipelineReviewAborted if it's not nil.
+// OnPipelineReviewAborted calls PipelineReviewAborted if it's not nil.
 func (r ResourceEventHandlerFuncs) OnPipelineReviewAborted(event Event) {
 	if r.PipelineReviewAborted != nil {
 		r.PipelineReviewAborted(event)

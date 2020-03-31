@@ -15,7 +15,8 @@ func (r *recorder) record(event Event) {
 
 func TestRegisterEventHandler(t *testing.T) {
 	r := &recorder{}
-	RegisterEventHandler(ResourceEventHandlerFuncs{
+	notifier := NewEventNotifier()
+	notifier.RegisterEventHandler(ResourceEventHandlerFuncs{
 		PipelineStartedFunc: func(event Event) {
 			r.record(event)
 		},
@@ -25,7 +26,7 @@ func TestRegisterEventHandler(t *testing.T) {
 		{Timestamp: 2},
 	}
 	for _, expect := range expects {
-		GetEventNotifier().onPipelineStarted(expect)
+		notifier.OnPipelineStarted(expect)
 	}
 	if len(r.store) != 2 {
 		t.Fatalf("expect store length %v, but got %v", len(expects), len(r.store))

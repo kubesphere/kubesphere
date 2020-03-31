@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	oauth2 "kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
@@ -27,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
@@ -110,6 +112,8 @@ type APIServer struct {
 
 	//
 	LdapClient ldap.Interface
+
+	DevOpsEventNotifier *v1alpha3.EventNotifier
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -139,6 +143,8 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
 	// Need to refactor devops api registration, too much dependencies
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.DevopsClient, s.DBClient.Database(), nil, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
+	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container, s.DevOpsEventNotifier))
+	urlruntime.Must(devopsv1alpha3.RegisterEventHandler(s.DevOpsEventNotifier))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.LoggingClient))
 	urlruntime.Must(monitoringv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.MonitoringClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
@@ -149,6 +155,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.AuthenticateOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.AuthenticateOptions, s.CacheClient), &oauth2.SimpleConfigManager{}))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
+
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
