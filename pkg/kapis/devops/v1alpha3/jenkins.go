@@ -11,6 +11,7 @@ const (
 	JenkinsJobInputAborted   = "jenkins.job.input.aborted"
 )
 
+// Correspondence between jenkins event and general event.
 var JenkinsEventTypeMap = map[string]string{
 	JenkinsJobStarted:        PipelineStarted,
 	JenkinsJobCompleted:      PipelineCompleted,

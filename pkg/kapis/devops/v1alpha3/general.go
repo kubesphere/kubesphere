@@ -13,6 +13,7 @@ type Artifact struct {
 	Archive string `json:"archive,omitempty"`
 }
 
+// TestState shows pipeline test results
 type TestState struct {
 	Total       int      `json:"total,omitempty"`
 	Failed      int      `json:"failed,omitempty"`
@@ -21,6 +22,8 @@ type TestState struct {
 	FailedTests []string `json:"failedTests,omitempty"`
 }
 
+// ReviewState shows current review status of the pipeline.
+// This field is only set when the pipeline event is pipeline.pendingReview/pipeline.reviewProceeded/pipeline.reviewAbort.
 type ReviewState struct {
 	Message   string   `json:"message,omitempty"`
 	Id        string   `json:"id"`
@@ -28,6 +31,7 @@ type ReviewState struct {
 	Approver  string   `json:"approver,omitempty"`
 }
 
+// BuildState shows status information for pipeline runs.
 type BuildState struct {
 	Artifacts   map[string]Artifact `json:"artifacts,omitempty"`
 	FullUrl     string              `json:"fullUrl"`
@@ -43,6 +47,7 @@ type BuildState struct {
 	ReviewState ReviewState         `json:"reviewState,omitempty"`
 }
 
+// PipelineState shows the status of the pipeline when the event occurs.
 type PipelineState struct {
 	Name                   string     `json:"name"`
 	DisplayName            string     `json:"displayName"`
@@ -57,6 +62,7 @@ type EventArgs struct {
 	PipelineState PipelineState `json:"pipelineState"`
 }
 
+// Event is a general Event.
 type Event struct {
 	Timestamp int64     `json:"timestamp"`
 	Type      string    `json:"type"`
