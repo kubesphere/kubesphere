@@ -24,7 +24,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,22 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-)
-
-const (
-	adminDescription    = "Allows admin access to perform any action on any resource, it gives full control over every resource in the namespace."
-	operatorDescription = "The maintainer of the namespace who can manage resources other than users and roles in the namespace."
-	viewerDescription   = "Allows viewer access to view all resources in the namespace."
-)
-
-var (
-	admin    = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "admin", Annotations: map[string]string{constants.DescriptionAnnotationKey: adminDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"*"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
-	operator = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "operator", Annotations: map[string]string{constants.DescriptionAnnotationKey: operatorDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}},
-		{Verbs: []string{"*"}, APIGroups: []string{"apps", "extensions", "batch", "logging.kubesphere.io", "monitoring.kubesphere.io", "iam.kubesphere.io", "autoscaling", "alerting.kubesphere.io", "openpitrix.io", "app.k8s.io", "servicemesh.kubesphere.io", "operations.kubesphere.io", "devops.kubesphere.io"}, Resources: []string{"*"}},
-		{Verbs: []string{"*"}, APIGroups: []string{"", "resources.kubesphere.io"}, Resources: []string{"jobs", "cronjobs", "daemonsets", "deployments", "horizontalpodautoscalers", "ingresses", "endpoints", "configmaps", "events", "persistentvolumeclaims", "pods", "podtemplates", "pods", "secrets", "services"}},
-	}}
-	viewer       = rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: "viewer", Annotations: map[string]string{constants.DescriptionAnnotationKey: viewerDescription, constants.CreatorAnnotationKey: constants.System}}, Rules: []rbac.PolicyRule{{Verbs: []string{"get", "list", "watch"}, APIGroups: []string{"*"}, Resources: []string{"*"}}}}
-	defaultRoles = []rbac.Role{admin, operator, viewer}
 )
 
 /**
@@ -162,19 +145,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 		// Our finalizer has finished, so the reconciler can do nothing.
 		return reconcile.Result{}, nil
-	}
-
-	controlledByWorkspace, err := r.isControlledByWorkspace(instance)
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if !controlledByWorkspace {
-
-		err = r.deleteRoleBindings(instance)
-
-		return reconcile.Result{}, err
 	}
 
 	if err = r.checkAndBindWorkspace(instance); err != nil {
@@ -356,25 +326,4 @@ func (r *ReconcileNamespace) deleteRouter(namespace string) error {
 
 	return nil
 
-}
-
-func (r *ReconcileNamespace) deleteRoleBindings(namespace *corev1.Namespace) error {
-	klog.V(4).Info("deleting role bindings namespace: ", namespace.Name)
-	adminBinding := &rbac.RoleBinding{}
-	adminBinding.Name = admin.Name
-	adminBinding.Namespace = namespace.Name
-	err := r.Delete(context.TODO(), adminBinding)
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Errorf("deleting role binding namespace: %s, role binding: %s,error: %s", namespace.Name, adminBinding.Name, err)
-		return err
-	}
-	viewerBinding := &rbac.RoleBinding{}
-	viewerBinding.Name = viewer.Name
-	viewerBinding.Namespace = namespace.Name
-	err = r.Delete(context.TODO(), viewerBinding)
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Errorf("deleting role binding namespace: %s,role binding: %s,error: %s", namespace.Name, viewerBinding.Name, err)
-		return err
-	}
-	return nil
 }

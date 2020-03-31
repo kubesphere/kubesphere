@@ -2,14 +2,15 @@ package config
 
 import (
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"kubesphere.io/kubesphere/pkg/api/auth"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
@@ -19,14 +20,14 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"kubesphere.io/kubesphere/pkg/utils/reflectutils"
 	"os"
 	"testing"
 	"time"
 )
 
-func newTestConfig() *Config {
-	conf := &Config{
+func newTestConfig() (*Config, error) {
+
+	var conf = &Config{
 		MySQLOptions: &mysql.Options{
 			Host:                  "10.68.96.5:3306",
 			Username:              "root",
@@ -96,25 +97,34 @@ func newTestConfig() *Config {
 			IndexPrefix: "elk",
 			Version:     "6",
 		},
-		KubeSphereOptions: &kubesphere.Options{
-			APIServer:     "http://ks-apiserver.kubesphere-system.svc",
-			AccountServer: "http://ks-account.kubesphere-system.svc",
-		},
 		AlertingOptions: &alerting.Options{
 			Endpoint: "http://alerting.kubesphere-alerting-system.svc:9200",
 		},
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
 		},
-		AuthenticateOptions: &auth.AuthenticationOptions{
+		AuthenticationOptions: &authoptions.AuthenticationOptions{
 			AuthenticateRateLimiterMaxTries: 5,
 			AuthenticateRateLimiterDuration: 30 * time.Minute,
 			MaxAuthenticateRetries:          6,
-			TokenExpiration:                 30 * time.Minute,
+			JwtSecret:                       "xxxxxx",
 			MultipleLogin:                   false,
+			OAuthOptions: &oauth.Options{
+				IdentityProviders: []oauth.IdentityProviderOptions{},
+				Clients: []oauth.Client{{
+					Name:                         "kubesphere-console-client",
+					Secret:                       "xxxxxx-xxxxxx-xxxxxx",
+					RespondWithChallenges:        true,
+					RedirectURIs:                 []string{"http://ks-console.kubesphere-system.svc/oauth/token/implicit"},
+					GrantMethod:                  oauth.GrantHandlerAuto,
+					AccessTokenInactivityTimeout: nil,
+				}},
+				AccessTokenMaxAge:            time.Hour * 24,
+				AccessTokenInactivityTimeout: 0,
+			},
 		},
 	}
-	return conf
+	return conf, nil
 }
 
 func saveTestConfig(t *testing.T, conf *Config) {
@@ -122,7 +132,6 @@ func saveTestConfig(t *testing.T, conf *Config) {
 	if err != nil {
 		t.Fatalf("error marshal config. %v", err)
 	}
-
 	err = ioutil.WriteFile(fmt.Sprintf("%s.yaml", defaultConfigurationName), content, 0640)
 	if err != nil {
 		t.Fatalf("error write configuration file, %v", err)
@@ -144,7 +153,10 @@ func cleanTestConfig(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	conf := newTestConfig()
+	conf, err := newTestConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
 	saveTestConfig(t, conf)
 	defer cleanTestConfig(t)
 
@@ -152,48 +164,7 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if diff := reflectutils.Equal(conf, conf2); diff != nil {
+	if diff := cmp.Diff(conf, conf2); diff != "" {
 		t.Fatal(diff)
 	}
-}
-
-func TestKubeSphereOptions(t *testing.T) {
-	conf := newTestConfig()
-
-	t.Run("save nil kubesphere options", func(t *testing.T) {
-		savedConf := *conf
-		savedConf.KubeSphereOptions = nil
-		saveTestConfig(t, &savedConf)
-		defer cleanTestConfig(t)
-
-		loadedConf, err := TryLoadFromDisk()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if diff := reflectutils.Equal(conf, loadedConf); diff != nil {
-			t.Fatal(diff)
-		}
-	})
-
-	t.Run("save partially kubesphere options", func(t *testing.T) {
-		savedConf := *conf
-		savedConf.KubeSphereOptions.APIServer = "http://example.com"
-		savedConf.KubeSphereOptions.AccountServer = ""
-
-		saveTestConfig(t, &savedConf)
-		defer cleanTestConfig(t)
-
-		loadedConf, err := TryLoadFromDisk()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		savedConf.KubeSphereOptions.AccountServer = "http://ks-account.kubesphere-system.svc"
-
-		if diff := reflectutils.Equal(&savedConf, loadedConf); diff != nil {
-			t.Fatal(diff)
-		}
-	})
 }

@@ -34,7 +34,7 @@ func (s *simpleCache) Keys(pattern string) ([]string, error) {
 		return nil, err
 	}
 	var keys []string
-	for k, _ := range s.store {
+	for k := range s.store {
 		if re.MatchString(k) {
 			keys = append(keys, k)
 		}

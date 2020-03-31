@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
+	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -87,6 +88,11 @@ func AddControllers(
 		kubernetesInformer.Apps().V1().ReplicaSets(),
 		kubernetesInformer.Apps().V1().StatefulSets())
 
+	userController := user.NewController(
+		client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().Users())
+
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":  vsController,
 		"destinationrule-controller": drController,
@@ -95,6 +101,7 @@ func AddControllers(
 		"s2ibinary-controller":       s2iBinaryController,
 		"s2irun-controller":          s2iRunController,
 		"volumeexpansion-controller": volumeExpansionController,
+		"user-controller":            userController,
 	}
 
 	for name, ctrl := range controllers {

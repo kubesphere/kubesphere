@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/docker/distribution/reference"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // Image holds information about an image.

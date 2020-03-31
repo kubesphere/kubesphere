@@ -38,7 +38,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	kclient "kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
@@ -50,11 +49,13 @@ func NewControllerManagerCommand() *cobra.Command {
 	s := options.NewKubeSphereControllerManagerOptions()
 	conf, err := controllerconfig.TryLoadFromDisk()
 	if err == nil {
+		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
 			KubernetesOptions: conf.KubernetesOptions,
 			DevopsOptions:     conf.DevopsOptions,
 			S3Options:         conf.S3Options,
 			OpenPitrixOptions: conf.OpenPitrixOptions,
+			LeaderElection:    s.LeaderElection,
 		}
 	}
 
@@ -96,8 +97,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		return err
 	}
 
-	kubesphereClient := kclient.NewKubeSphereClient(s.KubeSphereOptions)
-
 	openpitrixClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
 	if err != nil {
 		klog.Errorf("Failed to create openpitrix client %v", err)
@@ -121,7 +120,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	*/
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
-	informerFactory.Start(stopCh)
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")
@@ -136,7 +134,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		}
 
 		klog.V(0).Info("Setting up controllers")
-		err = workspace.Add(mgr, kubesphereClient)
+		err = workspace.Add(mgr)
 		if err != nil {
 			klog.Fatal("Unable to create workspace controller")
 		}
@@ -149,6 +147,9 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		if err := AddControllers(mgr, kubernetesClient, informerFactory, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
+
+		// Start cache data after all informer is registered
+		informerFactory.Start(stopCh)
 
 		klog.V(0).Info("Starting the controllers.")
 		if err = mgr.Start(stopCh); err != nil {

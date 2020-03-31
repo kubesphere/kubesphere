@@ -29,6 +29,7 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	devops "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops"
+	iam "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
@@ -177,6 +178,7 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Devops() devops.Interface
+	Iam() iam.Interface
 	Network() network.Interface
 	Servicemesh() servicemesh.Interface
 	Tenant() tenant.Interface
@@ -185,6 +187,10 @@ type SharedInformerFactory interface {
 
 func (f *sharedInformerFactory) Devops() devops.Interface {
 	return devops.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Iam() iam.Interface {
+	return iam.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Network() network.Interface {

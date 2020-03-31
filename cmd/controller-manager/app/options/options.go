@@ -9,7 +9,6 @@ import (
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"strings"
@@ -21,9 +20,7 @@ type KubeSphereControllerManagerOptions struct {
 	DevopsOptions     *jenkins.Options
 	S3Options         *s3.Options
 	OpenPitrixOptions *openpitrix.Options
-	KubeSphereOptions *kubesphere.Options
-
-	LeaderElection *leaderelection.LeaderElectionConfig
+	LeaderElection    *leaderelection.LeaderElectionConfig
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
@@ -32,7 +29,6 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		DevopsOptions:     jenkins.NewDevopsOptions(),
 		S3Options:         s3.NewS3Options(),
 		OpenPitrixOptions: openpitrix.NewOptions(),
-		KubeSphereOptions: kubesphere.NewKubeSphereOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
