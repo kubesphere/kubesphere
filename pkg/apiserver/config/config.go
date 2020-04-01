@@ -5,13 +5,12 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/api/auth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/kubesphere"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
@@ -63,23 +62,18 @@ const (
 
 // Config defines everything needed for apiserver to deal with external services
 type Config struct {
-	MySQLOptions       *mysql.Options         `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
-	DevopsOptions      *jenkins.Options       `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
-	SonarQubeOptions   *sonarqube.Options     `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
-	KubernetesOptions  *k8s.KubernetesOptions `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
-	ServiceMeshOptions *servicemesh.Options   `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
-	LdapOptions        *ldap.Options          `json:"ldap,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
-	RedisOptions       *cache.Options         `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
-	S3Options          *s3.Options            `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
-	OpenPitrixOptions  *openpitrix.Options    `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
-	MonitoringOptions  *prometheus.Options    `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	LoggingOptions     *elasticsearch.Options `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
-
-	// Options below are only loaded from configuration file, no command line flags for these options now.
-	KubeSphereOptions *kubesphere.Options `json:"-" yaml:"kubesphere,omitempty" mapstructure:"kubesphere"`
-
-	AuthenticateOptions *auth.AuthenticationOptions `json:"authentication,omitempty" yaml:"authenticate,omitempty" mapstructure:"authenticate"`
-
+	MySQLOptions          *mysql.Options                     `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
+	DevopsOptions         *jenkins.Options                   `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
+	SonarQubeOptions      *sonarqube.Options                 `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
+	KubernetesOptions     *k8s.KubernetesOptions             `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
+	ServiceMeshOptions    *servicemesh.Options               `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
+	LdapOptions           *ldap.Options                      `json:"ldap,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
+	RedisOptions          *cache.Options                     `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
+	S3Options             *s3.Options                        `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
+	OpenPitrixOptions     *openpitrix.Options                `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
+	MonitoringOptions     *prometheus.Options                `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
+	LoggingOptions        *elasticsearch.Options             `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+	AuthenticationOptions *authoptions.AuthenticationOptions `json:"authentication,omitempty" yaml:"authentication,omitempty" mapstructure:"authentication"`
 	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
 	// we can add these options to kubesphere command lines
 	AlertingOptions     *alerting.Options     `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
@@ -89,21 +83,20 @@ type Config struct {
 // newConfig creates a default non-empty Config
 func New() *Config {
 	return &Config{
-		MySQLOptions:        mysql.NewMySQLOptions(),
-		DevopsOptions:       jenkins.NewDevopsOptions(),
-		SonarQubeOptions:    sonarqube.NewSonarQubeOptions(),
-		KubernetesOptions:   k8s.NewKubernetesOptions(),
-		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),
-		LdapOptions:         ldap.NewOptions(),
-		RedisOptions:        cache.NewRedisOptions(),
-		S3Options:           s3.NewS3Options(),
-		OpenPitrixOptions:   openpitrix.NewOptions(),
-		MonitoringOptions:   prometheus.NewPrometheusOptions(),
-		KubeSphereOptions:   kubesphere.NewKubeSphereOptions(),
-		AlertingOptions:     alerting.NewAlertingOptions(),
-		NotificationOptions: notification.NewNotificationOptions(),
-		LoggingOptions:      elasticsearch.NewElasticSearchOptions(),
-		AuthenticateOptions: auth.NewAuthenticateOptions(),
+		MySQLOptions:          mysql.NewMySQLOptions(),
+		DevopsOptions:         jenkins.NewDevopsOptions(),
+		SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
+		KubernetesOptions:     k8s.NewKubernetesOptions(),
+		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
+		LdapOptions:           ldap.NewOptions(),
+		RedisOptions:          cache.NewRedisOptions(),
+		S3Options:             s3.NewS3Options(),
+		OpenPitrixOptions:     openpitrix.NewOptions(),
+		MonitoringOptions:     prometheus.NewPrometheusOptions(),
+		AlertingOptions:       alerting.NewAlertingOptions(),
+		NotificationOptions:   notification.NewNotificationOptions(),
+		LoggingOptions:        elasticsearch.NewElasticSearchOptions(),
+		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
 	}
 }
 
@@ -125,17 +118,9 @@ func TryLoadFromDisk() (*Config, error) {
 	}
 
 	conf := New()
+
 	if err := viper.Unmarshal(conf); err != nil {
 		return nil, err
-	} else {
-		// make sure kubesphere options always exists
-		if conf.KubeSphereOptions == nil {
-			conf.KubeSphereOptions = kubesphere.NewKubeSphereOptions()
-		} else {
-			ksOptions := kubesphere.NewKubeSphereOptions()
-			conf.KubeSphereOptions.ApplyTo(ksOptions)
-			conf.KubeSphereOptions = ksOptions
-		}
 	}
 
 	return conf, nil
@@ -151,7 +136,7 @@ func (conf *Config) InstallAPI(c *restful.Container) {
 	ws.Route(ws.GET("/configz").
 		To(func(request *restful.Request, response *restful.Response) {
 			conf.stripEmptyOptions()
-			response.WriteAsJson(conf.toMap())
+			response.WriteAsJson(conf.ToMap())
 		}).
 		Doc("Get system components configuration").
 		Produces(restful.MIME_JSON).
@@ -163,7 +148,8 @@ func (conf *Config) InstallAPI(c *restful.Container) {
 
 // convertToMap simply converts config to map[string]bool
 // to hide sensitive information
-func (conf *Config) toMap() map[string]bool {
+func (conf *Config) ToMap() map[string]bool {
+	conf.stripEmptyOptions()
 	result := make(map[string]bool, 0)
 
 	if conf == nil {

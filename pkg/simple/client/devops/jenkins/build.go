@@ -339,7 +339,7 @@ func (b *Build) GetRevisionBranch() string {
 }
 
 func (b *Build) IsGood() bool {
-	return (!b.IsRunning() && b.Raw.Result == STATUS_SUCCESS)
+	return !b.IsRunning() && b.Raw.Result == STATUS_SUCCESS
 }
 
 func (b *Build) IsRunning() bool {

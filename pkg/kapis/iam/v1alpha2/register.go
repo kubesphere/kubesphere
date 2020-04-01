@@ -22,7 +22,7 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/api/auth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -38,7 +38,7 @@ const groupName = "iam.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *auth.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *authoptions.AuthenticationOptions) error {
 	ws := runtime.NewWebService(GroupVersion)
 
 	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)

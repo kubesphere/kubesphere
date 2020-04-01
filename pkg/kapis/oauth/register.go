@@ -24,38 +24,70 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 )
 
-func AddToContainer(c *restful.Container, issuer token.Issuer, configuration oauth.Configuration) error {
+// ks-apiserver includes a built-in OAuth server. Users obtain OAuth access tokens to authenticate themselves to the API.
+// The OAuth server supports standard authorization code grant and the implicit grant OAuth authorization flows.
+// All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.
+// Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
+// to validate credentials against a backing identity provider.
+// Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
+func AddToContainer(c *restful.Container, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newOAUTHHandler(issuer, configuration)
+	handler := newOAUTHHandler(issuer, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
 	ws.Route(ws.POST("/authenticate").
-		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be cached by the webhook token authenticator plugin in the kube-apiserver.").
+		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
+			"cached by the webhook token authenticator plugin in the kube-apiserver.").
 		Reads(auth.TokenReview{}).
 		To(handler.TokenReviewHandler).
 		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 
-	// TODO Built-in oauth2 server (provider)
-	// web console use 'Resource Owner Password Credentials Grant' or 'Client Credentials Grant' request for an OAuth token
-	// https://tools.ietf.org/html/rfc6749#section-4.3
-	// https://tools.ietf.org/html/rfc6749#section-4.4
-
-	// curl -u admin:P@88w0rd 'http://ks-apiserver.kubesphere-system.svc/oauth/authorize?client_id=kubesphere-console-client&response_type=token' -v
+	// Only support implicit grant flow
+	// https://tools.ietf.org/html/rfc6749#section-4.2
 	ws.Route(ws.GET("/authorize").
+		Doc("All requests for OAuth tokens involve a request to <ks-apiserver>/oauth/authorize.").
+		Param(ws.QueryParameter("response_type", "The value MUST be one of \"code\" for requesting an "+
+			"authorization code as described by [RFC6749] Section 4.1.1, \"token\" for requesting an access token (implicit grant)"+
+			" as described by [RFC6749] Section 4.2.2.").Required(true)).
+		Param(ws.QueryParameter("client_id", "The client identifier issued to the client during the "+
+			"registration process described by [RFC6749] Section 2.2.").Required(true)).
+		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
+			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
+			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
 		To(handler.AuthorizeHandler))
 	//ws.Route(ws.POST("/token"))
-	//ws.Route(ws.POST("/callback/{callback}"))
+
+	// Authorization callback URL, where the end of the URL contains the identity provider name.
+	// The provider name is also used to build the callback URL.
+	ws.Route(ws.GET("/callback/{callback}").
+		Doc("OAuth callback API, the path param callback is config by identity provider").
+		Param(ws.QueryParameter("access_token", "The access token issued by the authorization server.").
+			Required(true)).
+		Param(ws.QueryParameter("token_type", "The type of the token issued as described in [RFC6479] Section 7.1. "+
+			"Value is case insensitive.").Required(true)).
+		Param(ws.QueryParameter("expires_in", "The lifetime in seconds of the access token.  For "+
+			"example, the value \"3600\" denotes that the access token will "+
+			"expire in one hour from the time the response was generated."+
+			"If omitted, the authorization server SHOULD provide the "+
+			"expiration time via other means or document the default value.")).
+		Param(ws.QueryParameter("scope", "if identical to the scope requested by the client;"+
+			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
+		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
+			"The exact value received from the client.").Required(true)).
+		To(handler.OAuthCallBackHandler).
+		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
 
 	c.Add(ws)
 
