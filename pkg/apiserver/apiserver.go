@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
+	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
@@ -33,7 +34,6 @@ import (
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
-	"kubesphere.io/kubesphere/pkg/kapis/serverconfig/v1alpha2"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -133,7 +133,7 @@ func (s *APIServer) PrepareRun() error {
 }
 
 func (s *APIServer) installKubeSphereAPIs() {
-	urlruntime.Must(v1alpha2.AddToContainer(s.container, s.Config))
+	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
 	// Need to refactor devops api registration, too much dependencies
 	//urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.DevopsClient, s.DBClient.Database(), nil, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
@@ -181,20 +181,20 @@ func (s *APIServer) buildHandlerChain() {
 	}
 
 	handler := s.Server.Handler
-
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Tower().V1alpha1().Agents().Lister()))
 
 	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-	authorizer := unionauthorizer.New(pathAuthorizer,
-		authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator()))
-	handler = filters.WithAuthorization(handler, authorizer)
 
+	// union authorizers are ordered, don't change the order here
+	authorizers := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator()))
+	handler = filters.WithAuthorization(handler, authorizers)
+
+	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
 		basictoken.New(basic.NewBasicAuthenticator(im.NewFakeOperator())),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(
-			token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
+		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
