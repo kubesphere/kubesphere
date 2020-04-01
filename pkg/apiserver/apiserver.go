@@ -24,7 +24,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	ksruntime "kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
+	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
@@ -47,6 +49,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net"
 	"net/http"
 	rt "runtime"
@@ -108,6 +111,8 @@ type APIServer struct {
 
 	//
 	LdapClient ldap.Interface
+
+	SonarClient sonarqube.SonarInterface
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -135,18 +140,20 @@ func (s *APIServer) PrepareRun() error {
 func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(v1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
-	// Need to refactor devops api registration, too much dependencies
-	//urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.DevopsClient, s.DBClient.Database(), nil, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.LoggingClient))
 	urlruntime.Must(monitoringv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.MonitoringClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	//urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.DBClient.Database()))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.Config.AuthenticationOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
+	devopsv1alpha2Service := ksruntime.NewWebService(devopsv1alpha2.GroupVersion)
+	urlruntime.Must(devopsv1alpha2.AddPipelineToWebService(devopsv1alpha2Service, s.DevopsClient, s.DBClient.Database()))
+	urlruntime.Must(devopsv1alpha2.AddS2IToWebService(devopsv1alpha2Service, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
+	urlruntime.Must(devopsv1alpha2.AddSonarToWebService(devopsv1alpha2Service, s.DevopsClient, s.DBClient.Database(), s.SonarClient))
+	s.container.Add(devopsv1alpha2Service)
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
