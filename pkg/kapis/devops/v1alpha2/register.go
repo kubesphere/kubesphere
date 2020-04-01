@@ -22,19 +22,16 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 
 	//"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 
-	"kubesphere.io/kubesphere/pkg/server/params"
 	"net/http"
 )
 
@@ -45,89 +42,12 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface,
-	dbClient *mysql.Database) error {
+func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops.Interface) error {
 
-	projectPipelineEnable := devopsClient != nil && dbClient != nil
+	projectPipelineEnable := devopsClient != nil
 
 	if projectPipelineEnable {
-		projectPipelineHandler := NewProjectPipelineHandler(devopsClient, dbClient)
-
-		webservice.Route(webservice.GET("/devops/{devops}").
-			To(projectPipelineHandler.GetDevOpsProjectHandler).
-			Doc("Get the specified DevOps Project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Returns(http.StatusOK, RespOK, v1alpha2.DevOpsProject{}).
-			Writes(v1alpha2.DevOpsProject{}))
-
-		webservice.Route(webservice.PATCH("/devops/{devops}").
-			To(projectPipelineHandler.UpdateProjectHandler).
-			Doc("Update the specified DevOps Project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Reads(v1alpha2.DevOpsProject{}).
-			Returns(http.StatusOK, RespOK, v1alpha2.DevOpsProject{}).
-			Writes(v1alpha2.DevOpsProject{}))
-
-		webservice.Route(webservice.GET("/devops/{devops}/defaultroles").
-			To(GetDevOpsProjectDefaultRoles).
-			Doc("Get the build-in roles info of the specified DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Returns(http.StatusOK, RespOK, []devops.Role{}).
-			Writes([]devops.Role{}))
-
-		webservice.Route(webservice.GET("/devops/{devops}/members").
-			To(projectPipelineHandler.GetDevOpsProjectMembersHandler).
-			Doc("Get the members of the specified DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.QueryParameter(params.PagingParam, "page").
-				Required(false).
-				DataFormat("limit=%d,page=%d").
-				DefaultValue("limit=10,page=1")).
-			Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, support using key-value pairs separated by comma to search, like 'conditions:somekey=somevalue,anotherkey=anothervalue'").
-				Required(false).
-				DataFormat("key=%s,key~%s")).
-			Returns(http.StatusOK, RespOK, []devops.ProjectMembership{}).
-			Writes([]devops.ProjectMembership{}))
-
-		webservice.Route(webservice.GET("/devops/{devops}/members/{member}").
-			To(projectPipelineHandler.GetDevOpsProjectMemberHandler).
-			Doc("Get the specified member of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
-			Returns(http.StatusOK, RespOK, devops.ProjectMembership{}).
-			Writes(devops.ProjectMembership{}))
-
-		webservice.Route(webservice.POST("/devops/{devops}/members").
-			To(projectPipelineHandler.AddDevOpsProjectMemberHandler).
-			Doc("Add a member to the specified DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Returns(http.StatusOK, RespOK, devops.ProjectMembership{}).
-			Writes(devops.ProjectMembership{}).
-			Reads(devops.ProjectMembership{}))
-
-		webservice.Route(webservice.PATCH("/devops/{devops}/members/{member}").
-			To(projectPipelineHandler.UpdateDevOpsProjectMemberHandler).
-			Doc("Update the specified member of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
-			Returns(http.StatusOK, RespOK, devops.ProjectMembership{}).
-			Reads(devops.ProjectMembership{}).
-			Writes(devops.ProjectMembership{}))
-
-		webservice.Route(webservice.DELETE("/devops/{devops}/members/{member}").
-			To(projectPipelineHandler.DeleteDevOpsProjectMemberHandler).
-			Doc("Delete the specified member of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectMemberTag}).
-			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("member", "member's username, e.g. admin")).
-			Writes(devops.ProjectMembership{}))
+		projectPipelineHandler := NewProjectPipelineHandler(devopsClient)
 
 		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
 			To(projectPipelineHandler.GetProjectCredentialUsage).
@@ -137,7 +57,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
 			Returns(http.StatusOK, RespOK, devops.Credential{}))
 
-		// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
+		// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}"
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}").
 			To(projectPipelineHandler.GetPipeline).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -147,7 +67,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Returns(http.StatusOK, RespOK, devops.Pipeline{}).
 			Writes(devops.Pipeline{}))
 
-		// match Jenkisn api: "jenkins_api/blue/rest/search"
+		// match Jenkins api: "jenkins_api/blue/rest/search"
 		webservice.Route(webservice.GET("/search").
 			To(projectPipelineHandler.ListPipelines).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -178,7 +98,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Returns(http.StatusOK, RespOK, devops.PipelineRun{}).
 			Writes(devops.PipelineRun{}))
 
-		// match Jenkisn api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
+		// match Jenkins api "/blue/rest/organizations/jenkins/pipelines/{devops}/{pipeline}/runs/"
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/runs").
 			To(projectPipelineHandler.ListPipelineRuns).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
@@ -689,7 +609,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 	return nil
 }
 
-func AddSonarToWebService(webservice *restful.WebService, devopsClient devops.Interface, dbClient *mysql.Database, sonarClient sonarqube.SonarInterface) error {
+func AddSonarToWebService(webservice *restful.WebService, devopsClient devops.Interface, sonarClient sonarqube.SonarInterface) error {
 	sonarEnable := devopsClient != nil && sonarClient != nil
 	if sonarEnable {
 		sonarHandler := NewPipelineSonarHandler(devopsClient, sonarClient)

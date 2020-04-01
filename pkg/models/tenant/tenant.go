@@ -35,32 +35,18 @@ type Interface interface {
 	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
 	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
-	ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
-	CountDevOpsProjects(username string) (uint32, error)
-	DeleteDevOpsProject(username, projectId string) error
+	ListDevopsProjects(conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
 }
 
 type tenantOperator struct {
 	workspaces WorkspaceInterface
 	namespaces NamespaceInterface
 	am         am.AccessManagementInterface
-	devops     DevOpsProjectOperator
+	devops     DevOpsProjectLister
 }
 
-func (t *tenantOperator) CountDevOpsProjects(username string) (uint32, error) {
-	return t.devops.GetDevOpsProjectsCount(username)
-}
-
-func (t *tenantOperator) DeleteDevOpsProject(username, projectId string) error {
-	return t.devops.DeleteDevOpsProject(projectId, username)
-}
-
-func (t *tenantOperator) GetUserDevopsSimpleRules(username string, projectId string) (interface{}, error) {
-	panic("implement me")
-}
-
-func (t *tenantOperator) ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
-	return t.devops.ListDevOpsProjects(conditions.Match["workspace"], username, conditions, orderBy, reverse, limit, offset)
+func (t *tenantOperator) ListDevopsProjects(conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
+	return t.devops.ListDevOpsProjects(conditions.Match["workspace"], conditions, orderBy, reverse, limit, offset)
 }
 
 func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {

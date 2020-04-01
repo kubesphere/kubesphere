@@ -23,7 +23,6 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
-	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/api/devops/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -96,41 +95,6 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 			Required(false).
 			DataFormat("key=%s,key~%s")).
 		Doc("List devops projects for the current user").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/members/{member}/devops").
-		To(handler.ListDevopsProjects).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("member", "workspace member's username")).
-		Param(ws.QueryParameter(params.PagingParam, "page").
-			Required(false).
-			DataFormat("limit=%d,page=%d").
-			DefaultValue("limit=10,page=1")).
-		Param(ws.QueryParameter(params.ConditionsParam, "query conditions").
-			Required(false).
-			DataFormat("key=%s,key~%s")).
-		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
-		Doc("List the devops projects for the workspace member").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
-	ws.Route(ws.GET("/devopscount").
-		To(handler.GetDevOpsProjectsCount).
-		Returns(http.StatusOK, api.StatusOK, struct {
-			Count uint32 `json:"count"`
-		}{}).
-		Doc("Get the devops projects count for the member").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
-	ws.Route(ws.POST("/workspaces/{workspace}/devops").
-		To(handler.CreateDevopsProject).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Doc("Create a devops project in the specified workspace").
-		Reads(devopsv1alpha2.DevOpsProject{}).
-		Returns(http.StatusOK, api.StatusOK, devopsv1alpha2.DevOpsProject{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
-	ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
-		To(handler.DeleteDevopsProject).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("devops", "devops project ID")).
-		Doc("Delete the specified devops project from the workspace").
-		Returns(http.StatusOK, api.StatusOK, devopsv1alpha2.DevOpsProject{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	c.Add(ws)

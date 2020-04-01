@@ -46,7 +46,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
@@ -107,9 +106,6 @@ type APIServer struct {
 	S3Client s3.Interface
 
 	//
-	DBClient *mysql.Client
-
-	//
 	LdapClient ldap.Interface
 
 	SonarClient sonarqube.SonarInterface
@@ -150,9 +146,9 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	devopsv1alpha2Service := ksruntime.NewWebService(devopsv1alpha2.GroupVersion)
-	urlruntime.Must(devopsv1alpha2.AddPipelineToWebService(devopsv1alpha2Service, s.DevopsClient, s.DBClient.Database()))
+	urlruntime.Must(devopsv1alpha2.AddPipelineToWebService(devopsv1alpha2Service, s.DevopsClient))
 	urlruntime.Must(devopsv1alpha2.AddS2IToWebService(devopsv1alpha2Service, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
-	urlruntime.Must(devopsv1alpha2.AddSonarToWebService(devopsv1alpha2Service, s.DevopsClient, s.DBClient.Database(), s.SonarClient))
+	urlruntime.Must(devopsv1alpha2.AddSonarToWebService(devopsv1alpha2Service, s.DevopsClient, s.SonarClient))
 	s.container.Add(devopsv1alpha2Service)
 }
 

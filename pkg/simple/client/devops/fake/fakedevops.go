@@ -417,17 +417,6 @@ func (d *Devops) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch
 	return nil, nil
 }
 
-// ProjectMemberOperator
-func (d *Devops) AddProjectMember(membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
-	return nil, nil
-}
-func (d *Devops) UpdateProjectMember(oldMembership, newMembership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
-	return nil, nil
-}
-func (d *Devops) DeleteProjectMember(membership *devops.ProjectMembership) (*devops.ProjectMembership, error) {
-	return nil, nil
-}
-
 // ProjectPipelineOperator
 func (d *Devops) CreateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
 	if _, ok := d.Pipelines[projectId][pipeline.Name]; ok {

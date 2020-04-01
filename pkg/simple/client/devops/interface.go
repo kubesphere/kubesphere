@@ -14,8 +14,6 @@ type Interface interface {
 
 	PipelineOperator
 
-	ProjectMemberOperator
-
 	ProjectPipelineOperator
 
 	ProjectOperator

@@ -190,7 +190,7 @@ func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.R
 	}
 	conditions.Match["workspace"] = workspace
 
-	result, err := h.tenant.ListDevopsProjects(username, conditions, orderBy, reverse, limit, offset)
+	result, err := h.tenant.ListDevopsProjects(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
@@ -198,42 +198,4 @@ func (h *tenantHandler) ListDevopsProjects(req *restful.Request, resp *restful.R
 	}
 
 	resp.WriteEntity(result)
-}
-
-func (h *tenantHandler) GetDevOpsProjectsCount(req *restful.Request, resp *restful.Response) {
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	result, err := h.tenant.ListDevopsProjects(username, nil, "", false, 1, 0)
-	if err != nil {
-		api.HandleInternalError(resp, nil, err)
-		return
-	}
-	resp.WriteEntity(struct {
-		Count int `json:"count"`
-	}{Count: result.TotalCount})
-}
-func (h *tenantHandler) DeleteDevopsProject(req *restful.Request, resp *restful.Response) {
-	projectId := req.PathParameter("devops")
-	workspace := req.PathParameter("workspace")
-	username := req.HeaderParameter(constants.UserNameHeader)
-
-	_, err := h.tenant.DescribeWorkspace("", workspace)
-
-	if err != nil {
-		api.HandleInternalError(resp, req, err)
-		return
-	}
-
-	err = h.tenant.DeleteDevOpsProject(username, projectId)
-
-	if err != nil {
-		api.HandleInternalError(resp, nil, err)
-		return
-	}
-
-	resp.WriteEntity(apierr.None)
-}
-
-func (h *tenantHandler) CreateDevopsProject(req *restful.Request, resp *restful.Response) {
-
 }

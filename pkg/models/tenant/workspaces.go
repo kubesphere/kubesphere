@@ -25,8 +25,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/db"
-	"kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
@@ -115,17 +113,8 @@ func (w *workspaceOperator) AddUser(workspaceName string, user *InWorkspaceUser)
 }
 
 func (w *workspaceOperator) CountDevopsProjectsInWorkspace(workspaceName string) (int, error) {
-	query := w.db.Select(devops.DevOpsProjectIdColumn).
-		From(devops.DevOpsProjectTableName).
-		Where(db.And(db.Eq(devops.DevOpsProjectWorkSpaceColumn, workspaceName),
-			db.Eq(devops.StatusColumn, devops.StatusActive)))
-
-	devOpsProjects := make([]string, 0)
-
-	if _, err := query.Load(&devOpsProjects); err != nil {
-		return 0, err
-	}
-	return len(devOpsProjects), nil
+	//TODO:runzexia use informer to impl it
+	return 0, nil
 }
 
 func (w *workspaceOperator) CountUsersInWorkspace(workspace string) (int, error) {

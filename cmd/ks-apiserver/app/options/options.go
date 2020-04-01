@@ -17,7 +17,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
@@ -44,7 +43,6 @@ func NewServerRunOptions() *ServerRunOptions {
 			DevopsOptions:         jenkins.NewDevopsOptions(),
 			SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
 			ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
-			MySQLOptions:          mysql.NewMySQLOptions(),
 			MonitoringOptions:     prometheus.NewPrometheusOptions(),
 			S3Options:             s3.NewS3Options(),
 			OpenPitrixOptions:     openpitrix.NewOptions(),
@@ -64,7 +62,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.GenericServerRunOptions.AddFlags(fs, s.GenericServerRunOptions)
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
-	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), s.MySQLOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
@@ -165,14 +162,6 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			}
 			apiServer.CacheClient = cacheClient
 		}
-	}
-
-	if s.MySQLOptions.Host != "" {
-		dbClient, err := mysql.NewMySQLClient(s.MySQLOptions, stopCh)
-		if err != nil {
-			return nil, err
-		}
-		apiServer.DBClient = dbClient
 	}
 
 	server := &http.Server{
