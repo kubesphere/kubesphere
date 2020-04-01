@@ -49,7 +49,7 @@ jobs:
       - name: Get branch name
         id: extract_branch
         shell: bash
-        run: echo "##[set-output name=branch;]$(ehco ${GITHUB_REF#refs/heads/})"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
 
       - name: Build and push docker images
         env:

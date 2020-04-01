@@ -18,4 +18,10 @@ limitations under the License.
 
 package v1alpha2
 
+type PolicyRuleExpansion interface{}
+
+type RoleExpansion interface{}
+
+type RoleBindingExpansion interface{}
+
 type UserExpansion interface{}

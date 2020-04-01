@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
@@ -16,6 +15,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
@@ -30,7 +30,7 @@ import (
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
-	monitoringv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha2"
+	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
 	operationsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/operations/v1alpha2"
@@ -137,12 +137,15 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.LoggingClient))
-	urlruntime.Must(monitoringv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.MonitoringClient))
+	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.MonitoringClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory, s.LdapClient, s.CacheClient, s.Config.AuthenticationOptions))
+	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(),
+		s.InformerFactory.KubeSphereSharedInformerFactory()),
+		am.NewAMOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory()),
+		s.Config.AuthenticationOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	devopsv1alpha2Service := ksruntime.NewWebService(devopsv1alpha2.GroupVersion)
@@ -185,18 +188,20 @@ func (s *APIServer) buildHandlerChain() {
 
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
-	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Tower().V1alpha1().Agents().Lister()))
+
+	clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Agents().Lister(), s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
+	handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 
 	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 
 	// union authorizers are ordered, don't change the order here
-	authorizers := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewFakeAMOperator()))
+	authorizers := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory())))
 	handler = filters.WithAuthorization(handler, authorizers)
 
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewFakeOperator())),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory()))),
 		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
@@ -276,6 +281,10 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "roles"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "rolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "policyrules"},
 		{Group: "tower.kubesphere.io", Version: "v1alpha1", Resource: "agents"},
 	}
 

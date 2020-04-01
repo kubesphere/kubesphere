@@ -28,6 +28,18 @@ type FakeIamV1alpha2 struct {
 	*testing.Fake
 }
 
+func (c *FakeIamV1alpha2) PolicyRules() v1alpha2.PolicyRuleInterface {
+	return &FakePolicyRules{c}
+}
+
+func (c *FakeIamV1alpha2) Roles() v1alpha2.RoleInterface {
+	return &FakeRoles{c}
+}
+
+func (c *FakeIamV1alpha2) RoleBindings() v1alpha2.RoleBindingInterface {
+	return &FakeRoleBindings{c}
+}
+
 func (c *FakeIamV1alpha2) Users() v1alpha2.UserInterface {
 	return &FakeUsers{c}
 }

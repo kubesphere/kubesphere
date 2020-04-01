@@ -4,6 +4,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
+	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/tools/lib"
 	"log"
 	"os"
@@ -43,6 +45,9 @@ func main() {
 	networkinstall.Install(Scheme)
 	devopsinstall.Install(Scheme)
 
+	urlruntime.Must(clusterv1alpha1.AddToScheme(Scheme))
+	urlruntime.Must(Scheme.SetVersionPriority(clusterv1alpha1.SchemeGroupVersion))
+
 	mapper := meta.NewDefaultRESTMapper(nil)
 
 	mapper.AddSpecific(servicemeshv1alpha2.SchemeGroupVersion.WithKind(servicemeshv1alpha2.ResourceKindServicePolicy),
@@ -81,6 +86,15 @@ func main() {
 	mapper.AddSpecific(devopsv1alpha3.SchemeGroupVersion.WithKind(devopsv1alpha3.ResourceKindPipeline),
 		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralPipeline),
 		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourceSingularPipeline), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularCluster), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularAgent), meta.RESTScopeRoot)
+
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,
 		Codecs: Codecs,
@@ -103,6 +117,7 @@ func main() {
 			networkv1alpha1.GetOpenAPIDefinitions,
 			devopsv1alpha1.GetOpenAPIDefinitions,
 			devopsv1alpha3.GetOpenAPIDefinitions,
+			clusterv1alpha1.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
 			//TODO（runzexia） At present, the document generation requires the openapi structure of the go language,
@@ -118,6 +133,8 @@ func main() {
 			networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
 			devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject),
 			devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralPipeline),
+			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
+			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
 		},
 		Mapper: mapper,
 	})

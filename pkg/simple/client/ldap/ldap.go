@@ -21,7 +21,8 @@ import (
 	"fmt"
 	"github.com/go-ldap/ldap"
 	"github.com/google/uuid"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"sync"
 	"time"
@@ -181,7 +182,7 @@ func (l *ldapInterfaceImpl) filterForUsername(username string) string {
 	return fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", username, username)
 }
 
-func (l *ldapInterfaceImpl) Get(name string) (*iam.User, error) {
+func (l *ldapInterfaceImpl) Get(name string) (*iamv1alpha2.User, error) {
 	conn, err := l.newConn()
 	if err != nil {
 		return nil, err
@@ -215,20 +216,24 @@ func (l *ldapInterfaceImpl) Get(name string) (*iam.User, error) {
 
 	userEntry := searchResults.Entries[0]
 
-	user := &iam.User{
-		Name:        userEntry.GetAttributeValue(ldapAttributeUserID),
-		Email:       userEntry.GetAttributeValue(ldapAttributeMail),
-		Lang:        userEntry.GetAttributeValue(ldapAttributePreferredLanguage),
-		Description: userEntry.GetAttributeValue(ldapAttributeDescription),
+	user := &iamv1alpha2.User{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: userEntry.GetAttributeValue(ldapAttributeUserID),
+		},
+		Spec: iamv1alpha2.UserSpec{
+			Email:       userEntry.GetAttributeValue(ldapAttributeMail),
+			Lang:        userEntry.GetAttributeValue(ldapAttributePreferredLanguage),
+			Description: userEntry.GetAttributeValue(ldapAttributeDescription),
+		},
 	}
 
 	createTimestamp, _ := time.Parse(ldapAttributeCreateTimestampLayout, userEntry.GetAttributeValue(ldapAttributeCreateTimestamp))
-	user.CreateTime = createTimestamp
+	user.ObjectMeta.CreationTimestamp.Time = createTimestamp
 
 	return user, nil
 }
 
-func (l *ldapInterfaceImpl) Create(user *iam.User) error {
+func (l *ldapInterfaceImpl) Create(user *iamv1alpha2.User) error {
 	if _, err := l.Get(user.Name); err != nil {
 		return ErrUserAlreadyExisted
 	}
@@ -266,19 +271,19 @@ func (l *ldapInterfaceImpl) Create(user *iam.User) error {
 			},
 			{
 				Type: ldapAttributeMail,
-				Vals: []string{user.Email},
+				Vals: []string{user.Spec.Email},
 			},
 			{
 				Type: ldapAttributeUserPassword,
-				Vals: []string{user.Password},
+				Vals: []string{user.Spec.EncryptedPassword},
 			},
 			{
 				Type: ldapAttributePreferredLanguage,
-				Vals: []string{user.Lang},
+				Vals: []string{user.Spec.Lang},
 			},
 			{
 				Type: ldapAttributeDescription,
-				Vals: []string{user.Description},
+				Vals: []string{user.Spec.Description},
 			},
 		},
 	}
@@ -314,7 +319,7 @@ func (l *ldapInterfaceImpl) Delete(name string) error {
 	return conn.Del(deleteRequest)
 }
 
-func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
+func (l *ldapInterfaceImpl) Update(newUser *iamv1alpha2.User) error {
 	conn, err := l.newConn()
 	if err != nil {
 		return err
@@ -331,16 +336,16 @@ func (l *ldapInterfaceImpl) Update(newUser *iam.User) error {
 		DN: l.dnForUsername(newUser.Name),
 	}
 
-	if newUser.Description != "" {
-		modifyRequest.Replace(ldapAttributeDescription, []string{newUser.Description})
+	if newUser.Spec.Description != "" {
+		modifyRequest.Replace(ldapAttributeDescription, []string{newUser.Spec.Description})
 	}
 
-	if newUser.Lang != "" {
-		modifyRequest.Replace(ldapAttributePreferredLanguage, []string{newUser.Lang})
+	if newUser.Spec.Lang != "" {
+		modifyRequest.Replace(ldapAttributePreferredLanguage, []string{newUser.Spec.Lang})
 	}
 
-	if newUser.Password != "" {
-		modifyRequest.Replace(ldapAttributeUserPassword, []string{newUser.Password})
+	if newUser.Spec.EncryptedPassword != "" {
+		modifyRequest.Replace(ldapAttributeUserPassword, []string{newUser.Spec.EncryptedPassword})
 	}
 
 	return conn.Modify(modifyRequest)

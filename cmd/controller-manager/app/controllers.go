@@ -20,6 +20,7 @@ package app
 import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
@@ -117,6 +118,13 @@ func AddControllers(
 		client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().Users())
 
+	clusterController := cluster.NewClusterController(
+		client.Kubernetes(),
+		kubesphereInformer.Cluster().V1alpha1().Clusters(),
+		kubesphereInformer.Cluster().V1alpha1().Agents(),
+		client.KubeSphere().ClusterV1alpha1().Agents(),
+		client.KubeSphere().ClusterV1alpha1().Clusters())
+
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":   vsController,
 		"destinationrule-controller":  drController,
@@ -128,7 +136,7 @@ func AddControllers(
 		"devopsprojects-controller":   devopsProjectController,
 		"pipeline-controller":         devopsPipelineController,
 		"devopscredential-controller": devopsCredentialController,
-		"user-controller":             userController,
+		"cluster-controller":         clusterController,
 	}
 
 	for name, ctrl := range controllers {

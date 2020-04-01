@@ -20,7 +20,8 @@ package token
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
@@ -48,7 +49,7 @@ func TestJwtTokenIssuer(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		user := &iam.User{
+		user := &user.DefaultInfo{
 			Name: testCase.name,
 			UID:  testCase.uid,
 		}
@@ -68,5 +69,41 @@ func TestJwtTokenIssuer(t *testing.T) {
 				t.Errorf("%T differ (-got, +expected), %s", user, diff)
 			}
 		})
+	}
+}
+
+func TestTokenVerifyWithoutCacheValidate(t *testing.T) {
+	options := authoptions.NewAuthenticateOptions()
+
+	// do not set token cache and disable token cache validate,
+	options.OAuthOptions = &oauth.Options{AccessTokenMaxAge: 0}
+	options.JwtSecret = "kubesphere"
+	issuer := NewJwtTokenIssuer(DefaultIssuerName, options, nil)
+
+	client, err := options.OAuthOptions.OAuthClient("default")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user := &user.DefaultInfo{
+		Name: "admin",
+		UID:  "admin",
+	}
+
+	tokenString, err := issuer.IssueTo(user, *client.AccessTokenMaxAge)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := issuer.Verify(tokenString)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(got, user); diff != "" {
+		t.Error("token validate failed")
 	}
 }

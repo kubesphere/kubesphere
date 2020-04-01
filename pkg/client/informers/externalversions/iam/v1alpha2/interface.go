@@ -24,6 +24,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// PolicyRules returns a PolicyRuleInformer.
+	PolicyRules() PolicyRuleInformer
+	// Roles returns a RoleInformer.
+	Roles() RoleInformer
+	// RoleBindings returns a RoleBindingInformer.
+	RoleBindings() RoleBindingInformer
 	// Users returns a UserInformer.
 	Users() UserInformer
 }
@@ -37,6 +43,21 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// PolicyRules returns a PolicyRuleInformer.
+func (v *version) PolicyRules() PolicyRuleInformer {
+	return &policyRuleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Roles returns a RoleInformer.
+func (v *version) Roles() RoleInformer {
+	return &roleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// RoleBindings returns a RoleBindingInformer.
+func (v *version) RoleBindings() RoleBindingInformer {
+	return &roleBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Users returns a UserInformer.

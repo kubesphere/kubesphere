@@ -15,7 +15,7 @@ type namespaceGetter struct {
 	informers informers.SharedInformerFactory
 }
 
-func NewNamespaceGetter(informers informers.SharedInformerFactory) v1alpha3.Interface {
+func New(informers informers.SharedInformerFactory) v1alpha3.Interface {
 	return &namespaceGetter{informers: informers}
 }
 
@@ -42,14 +42,11 @@ func (n namespaceGetter) filter(item runtime.Object, filter query.Filter) bool {
 	if !ok {
 		return false
 	}
-
 	switch filter.Field {
-	case query.FieldName:
-		return query.ComparableString(namespace.Name).Contains(filter.Value)
 	case query.FieldStatus:
-		return query.ComparableString(namespace.Status.Phase).Compare(filter.Value) == 0
+		return strings.Compare(string(namespace.Status.Phase), string(filter.Value)) == 0
 	default:
-		return false
+		return v1alpha3.DefaultObjectMetaFilter(namespace.ObjectMeta, filter)
 	}
 }
 
@@ -63,13 +60,5 @@ func (n namespaceGetter) compare(left runtime.Object, right runtime.Object, fiel
 	if !ok {
 		return true
 	}
-
-	switch field {
-	case query.FieldName:
-		return strings.Compare(leftNs.Name, rightNs.Name) > 0
-	case query.FieldCreationTimeStamp:
-		return leftNs.CreationTimestamp.After(rightNs.CreationTimestamp.Time)
-	default:
-		return false
-	}
+	return v1alpha3.DefaultObjectMetaCompare(leftNs.ObjectMeta, rightNs.ObjectMeta, field)
 }

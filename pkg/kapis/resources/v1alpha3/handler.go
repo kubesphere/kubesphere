@@ -11,7 +11,7 @@ import (
 )
 
 type Handler struct {
-	namespacedResourceGetter *resource.NamespacedResourceGetter
+	namespacedResourceGetter *resource.ResourceGetter
 	componentsGetter         components.ComponentsGetter
 }
 
@@ -22,22 +22,8 @@ func New(factory informers.InformerFactory) *Handler {
 	}
 }
 
-func (h Handler) handleGetNamespacedResource(request *restful.Request, response *restful.Response) {
-	resource := request.PathParameter("resources")
-	namespace := request.PathParameter("namespace")
-	name := request.PathParameter("name")
-
-	result, err := h.namespacedResourceGetter.Get(resource, namespace, name)
-	if err != nil {
-		api.HandleInternalError(response, nil, err)
-		return
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
-}
-
-// handleListNamedResource retrieves namespaced scope resources
-func (h Handler) handleListNamespacedResource(request *restful.Request, response *restful.Response) {
+// handleListResources retrieves resources
+func (h Handler) handleListResources(request *restful.Request, response *restful.Response) {
 	query := query.ParseQueryParameter(request)
 	resource := request.PathParameter("resources")
 	namespace := request.PathParameter("namespace")
@@ -48,7 +34,7 @@ func (h Handler) handleListNamespacedResource(request *restful.Request, response
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	response.WriteEntity(result)
 }
 
 func (h Handler) handleGetComponentStatus(request *restful.Request, response *restful.Response) {

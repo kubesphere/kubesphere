@@ -2,22 +2,26 @@ package ldap
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"testing"
-	"time"
 )
 
 func TestSimpleLdap(t *testing.T) {
 	ldapClient := NewSimpleLdap()
 
-	foo := &iam.User{
-		Name:        "jerry",
-		Email:       "jerry@kubesphere.io",
-		Lang:        "en",
-		Description: "Jerry is kind and gentle.",
-		CreateTime:  time.Now(),
-		Groups:      []string{},
-		Password:    "P@88w0rd",
+	foo := &iamv1alpha2.User{
+		TypeMeta: metav1.TypeMeta{APIVersion: iamv1alpha2.SchemeGroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "jerry",
+		},
+		Spec: iamv1alpha2.UserSpec{
+			Email:             "jerry@kubesphere.io",
+			Lang:              "en",
+			Description:       "Jerry is kind and gentle.",
+			Groups:            []string{},
+			EncryptedPassword: "P@88w0rd",
+		},
 	}
 
 	t.Run("should create user", func(t *testing.T) {
@@ -44,7 +48,7 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		foo.Description = "Jerry needs some drinks."
+		foo.Spec.Description = "Jerry needs some drinks."
 		err = ldapClient.Update(foo)
 		if err != nil {
 			t.Fatal(err)
@@ -85,7 +89,7 @@ func TestSimpleLdap(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		err = ldapClient.Authenticate(foo.Name, foo.Password)
+		err = ldapClient.Authenticate(foo.Name, foo.Spec.EncryptedPassword)
 		if err != nil {
 			t.Fatalf("should pass but got an error %v", err)
 		}

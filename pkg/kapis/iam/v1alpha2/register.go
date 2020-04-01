@@ -22,15 +22,14 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	ldappool "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"net/http"
 )
 
@@ -38,19 +37,38 @@ const groupName = "iam.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory, ldapClient ldappool.Interface, cacheClient cache.Interface, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(container *restful.Container, im im.IdentityManagementInterface, am am.AccessManagementInterface, options *authoptions.AuthenticationOptions) error {
 	ws := runtime.NewWebService(GroupVersion)
 
-	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)
+	handler := newIAMHandler(im, am, options)
 
-	// implemented by create CRD object.
-	//ws.Route(ws.POST("/users"))
-	//ws.Route(ws.DELETE("/users/{user}"))
-	//ws.Route(ws.PUT("/users/{user}"))
-	//ws.Route(ws.GET("/users/{user}"))
+	ws.Route(ws.GET("/users/{user}").
+		To(handler.DescribeUser).
+		Doc("Retrieve user details.").
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	// TODO move to resources api
-	//ws.Route(ws.GET("/users"))
+	ws.Route(ws.GET("/users/{user}/workspaceroles").
+		To(handler.ListRolesOfUser).
+		Doc("Retrieve user roles in workspaces.").
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	ws.Route(ws.GET("/users/{user}/clusterroles").
+		To(handler.ListRolesOfUser).
+		Doc("Retrieve user roles in clusters.").
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	ws.Route(ws.GET("/users/{user}/namespaceroles").
+		To(handler.ListRolesOfUser).
+		Doc("Retrieve user roles in namespaces.").
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").
 		To(handler.ListRoles).
@@ -104,6 +122,6 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	c.Add(ws)
+	container.Add(ws)
 	return nil
 }

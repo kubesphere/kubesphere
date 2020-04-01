@@ -2,11 +2,8 @@ package config
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
 	"github.com/spf13/viper"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -19,7 +16,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net/http"
 	"reflect"
 	"strings"
 )
@@ -121,26 +117,6 @@ func TryLoadFromDisk() (*Config, error) {
 	}
 
 	return conf, nil
-}
-
-// InstallAPI installs api for config
-func (conf *Config) InstallAPI(c *restful.Container) {
-	ws := runtime.NewWebService(schema.GroupVersion{
-		Group:   "",
-		Version: "v1alpha1",
-	})
-
-	ws.Route(ws.GET("/configz").
-		To(func(request *restful.Request, response *restful.Response) {
-			conf.stripEmptyOptions()
-			response.WriteAsJson(conf.ToMap())
-		}).
-		Doc("Get system components configuration").
-		Produces(restful.MIME_JSON).
-		Writes(Config{}).
-		Returns(http.StatusOK, "ok", Config{}))
-
-	c.Add(ws)
 }
 
 // convertToMap simply converts config to map[string]bool
