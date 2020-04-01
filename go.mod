@@ -68,6 +68,7 @@ require (
 	github.com/openshift/api v0.0.0-20180801171038-322a19404e37 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
+	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/common v0.4.0
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -77,7 +78,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	google.golang.org/grpc v1.23.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect
@@ -86,12 +87,12 @@ require (
 	gopkg.in/yaml.v2 v2.2.4
 	istio.io/api v0.0.0-20191111210003-35e06ef8d838
 	istio.io/client-go v0.0.0-20191113122552-9bd0ba57c3d2
-	k8s.io/api v0.18.0
+	k8s.io/api v0.0.0-20191114100352-16d7abae0d2a
 	k8s.io/apiextensions-apiserver v0.0.0-20191114105449-027877536833
-	k8s.io/apimachinery v0.18.0
+	k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
 	k8s.io/apiserver v0.0.0-20191114103151-9ca1dc586682
 	k8s.io/client-go v0.0.0-20191114101535-6c5935290e33
-	k8s.io/code-generator v0.18.0
+	k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 	k8s.io/component-base v0.0.0-20191114102325-35a9586014f7
 	k8s.io/gengo v0.0.0-20191120174120-e74f70b9b27e // indirect
 	k8s.io/klog v1.0.0

@@ -1,19 +1,5 @@
 package monitoring
 
-type MonitoringLevel int
-
-const (
-	LevelCluster = MonitoringLevel(1) << iota
-	LevelNode
-	LevelWorkspace
-	LevelNamespace
-	LevelWorkload
-	LevelPod
-	LevelContainer
-	LevelPVC
-	LevelComponent
-)
-
 var ClusterMetrics = []string{
 	"cluster_cpu_utilisation",
 	"cluster_cpu_usage",
@@ -161,7 +147,6 @@ var WorkloadMetrics = []string{
 	"workload_memory_usage_wo_cache",
 	"workload_net_bytes_transmitted",
 	"workload_net_bytes_received",
-
 	"workload_deployment_replica",
 	"workload_deployment_replica_available",
 	"workload_statefulset_replica",
@@ -198,7 +183,7 @@ var PVCMetrics = []string{
 	"pvc_bytes_utilisation",
 }
 
-var ComponentMetrics = []string{
+var EtcdMetrics = []string{
 	"etcd_server_list",
 	"etcd_server_total",
 	"etcd_server_up_total",
@@ -219,34 +204,20 @@ var ComponentMetrics = []string{
 	"etcd_disk_wal_fsync_duration_quantile",
 	"etcd_disk_backend_commit_duration",
 	"etcd_disk_backend_commit_duration_quantile",
+}
 
+var APIServerMetrics = []string{
 	"apiserver_up_sum",
 	"apiserver_request_rate",
 	"apiserver_request_by_verb_rate",
 	"apiserver_request_latencies",
 	"apiserver_request_by_verb_latencies",
+}
 
+var SchedulerMetrics = []string{
 	"scheduler_up_sum",
 	"scheduler_schedule_attempts",
 	"scheduler_schedule_attempt_rate",
 	"scheduler_e2e_scheduling_latency",
 	"scheduler_e2e_scheduling_latency_quantile",
-
-	"controller_manager_up_sum",
-
-	"coredns_up_sum",
-	"coredns_cache_hits",
-	"coredns_cache_misses",
-	"coredns_dns_request_rate",
-	"coredns_dns_request_duration",
-	"coredns_dns_request_duration_quantile",
-	"coredns_dns_request_by_type_rate",
-	"coredns_dns_request_by_rcode_rate",
-	"coredns_panic_rate",
-	"coredns_proxy_request_rate",
-	"coredns_proxy_request_duration",
-	"coredns_proxy_request_duration_quantile",
-
-	"prometheus_up_sum",
-	"prometheus_tsdb_head_samples_appended_rate",
 }

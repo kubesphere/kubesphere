@@ -103,8 +103,13 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
 	apiServer.InformerFactory = informerFactory
 
-	monitoringClient := prometheus.NewPrometheus(s.MonitoringOptions)
-	apiServer.MonitoringClient = monitoringClient
+	if s.MonitoringOptions.Endpoint != "" {
+		monitoringClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.MonitoringClient = monitoringClient
+	}
 
 	if s.LoggingOptions.Host != "" {
 		loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)

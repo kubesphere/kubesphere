@@ -170,7 +170,9 @@ func (d *FakeDevops) GetCredentialInProject(projectId, id string, content bool) 
 func (d *FakeDevops) GetCredentialsInProject(projectId string) ([]*devops.Credential, error) {
 	return nil, nil
 }
-func (d *FakeDevops) DeleteCredentialInProject(projectId, id string) (*string, error) { return nil, nil }
+func (d *FakeDevops) DeleteCredentialInProject(projectId, id string) (*string, error) {
+	return nil, nil
+}
 
 // BuildGetter
 func (d *FakeDevops) GetProjectPipelineBuildByType(projectId, pipelineId string, status string) (*devops.Build, error) {
