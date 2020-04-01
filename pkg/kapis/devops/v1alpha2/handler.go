@@ -31,10 +31,9 @@ func NewProjectPipelineHandler(devopsClient devopsClient.Interface, dbClient *my
 	}
 }
 
-func NewPipelineSonarHandler(devopsClient devopsClient.Interface, dbClient *mysql.Database, sonarClient sonarqube.SonarInterface) PipelineSonarHandler {
+func NewPipelineSonarHandler(devopsClient devopsClient.Interface, sonarClient sonarqube.SonarInterface) PipelineSonarHandler {
 	return PipelineSonarHandler{
 		pipelineSonarGetter: devops.NewPipelineSonarGetter(devopsClient, sonarClient),
-		projectOperator:     devops.NewProjectOperator(dbClient),
 	}
 }
 

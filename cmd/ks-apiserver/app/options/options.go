@@ -134,6 +134,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.DevopsClient = devopsClient
 	}
 
+	if s.SonarQubeOptions.Host != "" {
+		sonarClient, err := sonarqube.NewSonarQubeClient(s.SonarQubeOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
+	}
+
 	if s.LdapOptions.Host != "" {
 		if s.LdapOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.LdapClient = ldap.NewSimpleLdap()

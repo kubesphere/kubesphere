@@ -690,9 +690,9 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 }
 
 func AddSonarToWebService(webservice *restful.WebService, devopsClient devops.Interface, dbClient *mysql.Database, sonarClient sonarqube.SonarInterface) error {
-	sonarEnable := devopsClient != nil && dbClient != nil && sonarClient != nil
+	sonarEnable := devopsClient != nil && sonarClient != nil
 	if sonarEnable {
-		sonarHandler := NewPipelineSonarHandler(devopsClient, dbClient, sonarClient)
+		sonarHandler := NewPipelineSonarHandler(devopsClient, sonarClient)
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/sonarstatus").
 			To(sonarHandler.GetPipelineSonarStatusHandler).
 			Doc("Get the sonar quality information for the specified pipeline of the DevOps project. More info: https://docs.sonarqube.org/7.4/user-guide/metric-definitions/").
