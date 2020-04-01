@@ -155,4 +155,7 @@ const (
 	ResourceKindeS2iRun                  = "s2iruns"
 	ResourceKindS2iBuilder               = "s2ibuilders"
 	ResourceKindApplication              = "applications"
+
+	WorkspaceNone = ""
+	ClusterNone   = ""
 )
