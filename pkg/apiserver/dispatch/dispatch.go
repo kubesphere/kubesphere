@@ -54,7 +54,7 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	}
 
 	u := *req.URL
-	u.Host = agent.Spec.Proxy
+	u.Host = fmt.Sprintf("%s:%d", agent.Spec.Proxy, agent.Spec.KubeSphereAPIServerPort)
 	u.Path = strings.Replace(u.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
 
 	httpProxy := proxy.NewUpgradeAwareHandler(&u, http.DefaultTransport, true, false, c)
