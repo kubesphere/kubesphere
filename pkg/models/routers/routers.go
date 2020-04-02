@@ -343,7 +343,7 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 			deployment.Spec.Template.Labels["project"] = namespace
 
 			// Add configmap
-			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name)
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name+"-nginx")
 
 			// Isolate namespace
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)
