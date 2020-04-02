@@ -47,10 +47,6 @@ func NewAuthorizer(alwaysAllowPaths []string) (authorizer.Authorizer, error) {
 	}
 
 	return authorizer.AuthorizerFunc(func(a authorizer.Attributes) (authorizer.Decision, string, error) {
-		if a.IsResourceRequest() {
-			return authorizer.DecisionNoOpinion, "", nil
-		}
-
 		pth := strings.TrimPrefix(a.GetPath(), "/")
 		if paths.Has(pth) {
 			return authorizer.DecisionAllow, "", nil

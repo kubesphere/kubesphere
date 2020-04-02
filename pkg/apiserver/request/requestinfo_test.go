@@ -163,6 +163,19 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 			expectedKubernetesRequest: false,
 		},
 		{
+			name:                      "",
+			url:                       "/kapis/tenant.kubesphere.io/v1alpha2/workspaces",
+			method:                    http.MethodGet,
+			expectedErr:               nil,
+			expectedVerb:              "list",
+			expectedNamespace:         "",
+			expectedCluster:           "",
+			expectedWorkspace:         "",
+			expectedKubernetesRequest: false,
+			expectedIsResourceRequest: true,
+			expectedResource:          "workspaces",
+		},
+		{
 			name:                      "kubesphere api without clusters",
 			url:                       "/kapis/foo/bar/",
 			method:                    http.MethodPost,
@@ -180,39 +193,42 @@ func TestRequestInfoFactory_NewRequestInfo(t *testing.T) {
 	requestInfoResolver := newTestRequestInfoResolver()
 
 	for _, test := range tests {
-		req, err := http.NewRequest(test.method, test.url, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		requestInfo, err := requestInfoResolver.NewRequestInfo(req)
+		t.Run(test.url, func(t *testing.T) {
+			req, err := http.NewRequest(test.method, test.url, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			requestInfo, err := requestInfoResolver.NewRequestInfo(req)
 
-		if err != nil {
-			if test.expectedErr != err {
-				t.Errorf("%s: expected error %v, actual %v", test.name, test.expectedErr, err)
-			}
-		} else {
-			if test.expectedVerb != requestInfo.Verb {
-				t.Errorf("%s: expected verb %v, actual %+v", test.name, test.expectedVerb, requestInfo.Verb)
-			}
-			if test.expectedResource != requestInfo.Resource {
-				t.Errorf("%s: expected resource %v, actual %+v", test.name, test.expectedResource, requestInfo.Resource)
-			}
-			if test.expectedIsResourceRequest != requestInfo.IsResourceRequest {
-				t.Errorf("%s: expected is resource request %v, actual %+v", test.name, test.expectedIsResourceRequest, requestInfo.IsResourceRequest)
-			}
-			if test.expectedCluster != requestInfo.Cluster {
-				t.Errorf("%s: expected cluster %v, actual %+v", test.name, test.expectedCluster, requestInfo.Cluster)
-			}
-			if test.expectedWorkspace != requestInfo.Workspace {
-				t.Errorf("%s: expected workspace %v, actual %+v", test.name, test.expectedWorkspace, requestInfo.Workspace)
-			}
-			if test.expectedNamespace != requestInfo.Namespace {
-				t.Errorf("%s: expected namespace %v, actual %+v", test.name, test.expectedNamespace, requestInfo.Namespace)
-			}
+			if err != nil {
+				if test.expectedErr != err {
+					t.Errorf("%s: expected error %v, actual %v", test.name, test.expectedErr, err)
+				}
+			} else {
+				if test.expectedVerb != requestInfo.Verb {
+					t.Errorf("%s: expected verb %v, actual %+v", test.name, test.expectedVerb, requestInfo.Verb)
+				}
+				if test.expectedResource != requestInfo.Resource {
+					t.Errorf("%s: expected resource %v, actual %+v", test.name, test.expectedResource, requestInfo.Resource)
+				}
+				if test.expectedIsResourceRequest != requestInfo.IsResourceRequest {
+					t.Errorf("%s: expected is resource request %v, actual %+v", test.name, test.expectedIsResourceRequest, requestInfo.IsResourceRequest)
+				}
+				if test.expectedCluster != requestInfo.Cluster {
+					t.Errorf("%s: expected cluster %v, actual %+v", test.name, test.expectedCluster, requestInfo.Cluster)
+				}
+				if test.expectedWorkspace != requestInfo.Workspace {
+					t.Errorf("%s: expected workspace %v, actual %+v", test.name, test.expectedWorkspace, requestInfo.Workspace)
+				}
+				if test.expectedNamespace != requestInfo.Namespace {
+					t.Errorf("%s: expected namespace %v, actual %+v", test.name, test.expectedNamespace, requestInfo.Namespace)
+				}
 
-			if test.expectedKubernetesRequest != requestInfo.IsKubernetesRequest {
-				t.Errorf("%s: expected kubernetes request %v, actual %+v", test.name, test.expectedKubernetesRequest, requestInfo.IsKubernetesRequest)
+				if test.expectedKubernetesRequest != requestInfo.IsKubernetesRequest {
+					t.Errorf("%s: expected kubernetes request %v, actual %+v", test.name, test.expectedKubernetesRequest, requestInfo.IsKubernetesRequest)
+				}
 			}
-		}
+		})
+
 	}
 }
