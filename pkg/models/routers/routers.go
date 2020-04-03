@@ -19,11 +19,9 @@
 package routers
 
 import (
-	"fmt"
 	"io/ioutil"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client"
 	"sort"
@@ -50,12 +48,16 @@ const (
 	sidecarInject      = "sidecar.istio.io/inject"
 )
 
-var routerTemplates map[string]runtime.Object
+type templates struct {
+	deploymetntTemp v1.Deployment
+	serviceTemp     corev1.Service
+}
+
+var temps templates
 
 // Load yamls
 func init() {
 	yamls, err := loadYamls()
-	routerTemplates = make(map[string]runtime.Object, 2)
 
 	if err != nil {
 		klog.Warning("error happened during loading external yamls", err)
@@ -73,9 +75,9 @@ func init() {
 
 		switch obj.(type) {
 		case *corev1.Service:
-			routerTemplates["SERVICE"] = obj
+			temps.serviceTemp = *obj.(*corev1.Service)
 		case *v1.Deployment:
-			routerTemplates["DEPLOYMENT"] = obj
+			temps.deploymetntTemp = *obj.(*v1.Deployment)
 		}
 	}
 
@@ -247,15 +249,15 @@ func DeleteRouter(namespace string) (*corev1.Service, error) {
 
 func createRouterService(namespace string, routerType corev1.ServiceType, annotations map[string]string) (*corev1.Service, error) {
 
-	obj, ok := routerTemplates["SERVICE"]
-	if !ok {
-		klog.Error("service template not loaded")
-		return nil, fmt.Errorf("service template not loaded")
-	}
+	//obj, ok := routerTemplates["SERVICE"]
+	//if !ok {
+	//	klog.Error("service template not loaded")
+	//	return nil, fmt.Errorf("service template not loaded")
+	//}
 
 	k8sClient := client.ClientSets().K8s().Kubernetes()
 
-	service := obj.(*corev1.Service)
+	service := temps.serviceTemp.DeepCopy()
 
 	service.SetAnnotations(annotations)
 	service.Spec.Type = routerType
@@ -319,11 +321,6 @@ func deleteRouterService(namespace string) (*corev1.Service, error) {
 }
 
 func createOrUpdateRouterWorkload(namespace string, publishService bool, servicemeshEnabled bool) error {
-	obj, ok := routerTemplates["DEPLOYMENT"]
-	if !ok {
-		klog.Error("Deployment template file not loaded")
-		return fmt.Errorf("deployment template file not loaded")
-	}
 
 	deployName := constants.IngressControllerPrefix + namespace
 
@@ -334,8 +331,7 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			deployment = obj.(*v1.Deployment)
-
+			deployment = temps.deploymetntTemp.DeepCopy()
 			deployment.Name = constants.IngressControllerPrefix + namespace
 
 			// Add project label
@@ -397,7 +393,6 @@ func createOrUpdateRouterWorkload(namespace string, publishService bool, service
 		klog.Error(err)
 		return err
 	}
-
 	return nil
 }
 
