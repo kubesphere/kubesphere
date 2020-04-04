@@ -6,8 +6,8 @@ import (
 )
 
 type ListResult struct {
-	Items      []interface{} `json:"items,omitempty"`
-	TotalItems int           `json:"totalItems,omitempty"`
+	Items      []interface{} `json:"items"`
+	TotalItems int           `json:"totalItems"`
 }
 
 type ResourceQuota struct {

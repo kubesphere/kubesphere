@@ -193,7 +193,7 @@ func (s *APIServer) buildHandlerChain() {
 
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewFakeOperator())),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory()))),
 		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
@@ -273,6 +273,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
 		{Group: "tower.kubesphere.io", Version: "v1alpha1", Resource: "agents"},
 	}
 

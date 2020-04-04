@@ -3,7 +3,6 @@ package query
 import (
 	"github.com/emicklei/go-restful"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -15,24 +14,6 @@ const (
 	ParameterOrderBy       = "sortBy"
 	ParameterAscending     = "ascending"
 )
-
-type Comparable interface {
-	Compare(Comparable) int
-
-	Contains(Comparable) bool
-}
-
-type ComparableString string
-
-func (c ComparableString) Compare(comparable Comparable) int {
-	other := comparable.(ComparableString)
-	return strings.Compare(string(c), string(other))
-}
-
-func (c ComparableString) Contains(comparable Comparable) bool {
-	other := comparable.(ComparableString)
-	return strings.Contains(string(c), string(other))
-}
 
 // Query represents api search terms
 type Query struct {
@@ -52,29 +33,30 @@ type Pagination struct {
 	// items per page
 	Limit int
 
-	// page number
-	Page int
+	// offset
+	Offset int
 }
 
-var NoPagination = newPagination(-1, -1)
+var NoPagination = newPagination(-1, 0)
 
-func newPagination(limit int, page int) *Pagination {
+// make sure that pagination is valid
+func newPagination(limit int, offset int) *Pagination {
 	return &Pagination{
-		Limit: limit,
-		Page:  page,
+		Limit:  limit,
+		Offset: offset,
 	}
 }
 
-func (p *Pagination) IsValidPagintaion() bool {
-	return p.Limit >= 0 && p.Page >= 0
-}
+func (p *Pagination) GetValidPagination(total int) (startIndex, endIndex int) {
+	if p.Limit == NoPagination.Limit {
+		return 0, total
+	}
 
-func (p *Pagination) IsPageAvailable(total, startIndex int) bool {
-	return total > startIndex && p.Limit > 0
-}
+	if p.Limit < 0 || p.Offset < 0 {
+		return 0, 0
+	}
 
-func (p *Pagination) GetPaginationSettings(total int) (startIndex, endIndex int) {
-	startIndex = p.Limit * p.Page
+	startIndex = p.Limit * p.Offset
 	endIndex = startIndex + p.Limit
 
 	if endIndex > total {
@@ -86,33 +68,33 @@ func (p *Pagination) GetPaginationSettings(total int) (startIndex, endIndex int)
 
 func New() *Query {
 	return &Query{
-		Pagination: &Pagination{
-			Limit: -1,
-			Page:  -1,
-		},
-		SortBy:    "",
-		Ascending: false,
-		Filters:   []Filter{},
+		Pagination: NoPagination,
+		SortBy:     "",
+		Ascending:  false,
+		Filters:    []Filter{},
 	}
 }
 
 type Filter struct {
 	Field Field
-	Value Comparable
+	Value Value
 }
 
 func ParseQueryParameter(request *restful.Request) *Query {
 	query := New()
 
-	limit, err := strconv.ParseInt(request.QueryParameter("limit"), 10, 0)
+	limit, err := strconv.Atoi(request.QueryParameter("limit"))
+	// equivalent to undefined, use the default value
 	if err != nil {
-		query.Pagination = NoPagination
+		limit = -1
+	}
+	page, err := strconv.Atoi(request.QueryParameter("page"))
+	// equivalent to undefined, use the default value
+	if err != nil {
+		page = 1
 	}
 
-	page, err := strconv.ParseInt(request.QueryParameter("page"), 10, 0)
-	if err == nil {
-		query.Pagination = newPagination(int(limit), int(page-1))
-	}
+	query.Pagination = newPagination(limit, page-1)
 
 	query.SortBy = Field(defaultString(request.QueryParameter("sortBy"), FieldCreationTimeStamp))
 
@@ -128,13 +110,12 @@ func ParseQueryParameter(request *restful.Request) *Query {
 		if len(f) != 0 {
 			query.Filters = append(query.Filters, Filter{
 				Field: field,
-				Value: ComparableString(f),
+				Value: Value(f),
 			})
 		}
 	}
 
 	return query
-
 }
 
 func defaultString(value, defaultValue string) string {

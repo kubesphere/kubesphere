@@ -20,7 +20,7 @@ package token
 
 import (
 	"github.com/google/go-cmp/cmp"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"k8s.io/apiserver/pkg/authentication/user"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
@@ -48,7 +48,7 @@ func TestJwtTokenIssuer(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		user := &iam.User{
+		user := &user.DefaultInfo{
 			Name: testCase.name,
 			UID:  testCase.uid,
 		}

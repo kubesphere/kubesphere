@@ -44,7 +44,7 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 	handler := newIAMHandler(k8sClient, factory, ldapClient, cacheClient, options)
 
 	// implemented by create CRD object.
-	//ws.Route(ws.POST("/users"))
+	//ws.Route(ws.POST("/users").To(handler.CreateUser))
 	//ws.Route(ws.DELETE("/users/{user}"))
 	//ws.Route(ws.PUT("/users/{user}"))
 	//ws.Route(ws.GET("/users/{user}"))

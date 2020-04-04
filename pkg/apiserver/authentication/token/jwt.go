@@ -21,7 +21,7 @@ package token
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"kubesphere.io/kubesphere/pkg/api/iam"
+	"k8s.io/apiserver/pkg/authentication/user"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -69,7 +69,7 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 		return nil, err
 	}
 
-	return &iam.User{Name: clm.Username, UID: clm.UID}, nil
+	return &user.DefaultInfo{Name: clm.Username, UID: clm.UID}, nil
 }
 
 func (s *jwtTokenIssuer) IssueTo(user User, expiresIn time.Duration) (string, error) {

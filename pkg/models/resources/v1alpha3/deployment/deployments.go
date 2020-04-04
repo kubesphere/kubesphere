@@ -32,9 +32,6 @@ import (
 )
 
 const (
-	applicationLabel = "app.kubernetes.io/name"
-	ReleaseLabel     = "relase"
-
 	statusStopped  = "stopped"
 	statusRunning  = "running"
 	statusUpdating = "updating"
@@ -80,14 +77,10 @@ func (d *deploymentsGetter) compare(left runtime.Object, right runtime.Object, f
 	}
 
 	switch field {
-	case query.FieldCreationTimeStamp:
-		return leftDeployment.CreationTimestamp.After(rightDeployment.CreationTimestamp.Time)
 	case query.FieldLastUpdateTimestamp:
 		return lastUpdateTime(leftDeployment).After(lastUpdateTime(rightDeployment))
 	default:
-		fallthrough
-	case query.FieldName:
-		return strings.Compare(leftDeployment.Name, rightDeployment.Name) > 0
+		return v1alpha3.DefaultObjectMetaCompare(leftDeployment.ObjectMeta, rightDeployment.ObjectMeta, field)
 	}
 }
 
@@ -98,18 +91,12 @@ func (d *deploymentsGetter) filter(object runtime.Object, filter query.Filter) b
 	}
 
 	switch filter.Field {
-	case query.FieldName:
-		return query.ComparableString(deployment.Name).Contains(filter.Value)
-	case query.FieldApplication:
-		if app, ok := deployment.Labels[applicationLabel]; ok {
-			return query.ComparableString(app).Contains(filter.Value)
-		}
+
 	case query.FieldStatus:
-		return filter.Value.Compare(query.ComparableString(deploymentStatus(deployment.Status))) == 0
+		return strings.Compare(deploymentStatus(deployment.Status), string(filter.Value)) == 0
 	default:
-		return false
+		return v1alpha3.DefaultObjectMetaFilter(deployment.ObjectMeta, filter)
 	}
-	return false
 }
 
 func deploymentStatus(status v1.DeploymentStatus) string {

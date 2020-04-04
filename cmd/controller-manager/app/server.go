@@ -151,6 +151,14 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		// Start cache data after all informer is registered
 		informerFactory.Start(stopCh)
 
+		// Setup webhooks TODO enable webhook
+		//klog.Info("setting up webhook server")
+		//hookServer := mgr.GetWebhookServer()
+		//
+		//klog.Info("registering webhooks to the webhook server")
+		//hookServer.Register("//mutating-encrypt-password-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.PasswordCipher{Client: mgr.GetClient()}})
+		//hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
+
 		klog.V(0).Info("Starting the controllers.")
 		if err = mgr.Start(stopCh); err != nil {
 			klog.Fatalf("unable to run the manager: %v", err)
