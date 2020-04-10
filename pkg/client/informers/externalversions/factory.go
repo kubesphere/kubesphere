@@ -28,13 +28,13 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	versioned "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	cluster "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster"
 	devops "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops"
 	iam "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 	network "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network"
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
 	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
-	tower "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tower"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -177,12 +177,16 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
+	Cluster() cluster.Interface
 	Devops() devops.Interface
 	Iam() iam.Interface
 	Network() network.Interface
 	Servicemesh() servicemesh.Interface
 	Tenant() tenant.Interface
-	Tower() tower.Interface
+}
+
+func (f *sharedInformerFactory) Cluster() cluster.Interface {
+	return cluster.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Devops() devops.Interface {
@@ -203,8 +207,4 @@ func (f *sharedInformerFactory) Servicemesh() servicemesh.Interface {
 
 func (f *sharedInformerFactory) Tenant() tenant.Interface {
 	return tenant.New(f, f.namespace, f.tweakListOptions)
-}
-
-func (f *sharedInformerFactory) Tower() tower.Interface {
-	return tower.New(f, f.namespace, f.tweakListOptions)
 }

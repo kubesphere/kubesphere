@@ -185,7 +185,9 @@ func (s *APIServer) buildHandlerChain() {
 
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
-	handler = filters.WithMultipleClusterDispatcher(handler, dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Tower().V1alpha1().Agents().Lister()))
+
+	clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Agents().Lister(), s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
+	handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 
 	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)

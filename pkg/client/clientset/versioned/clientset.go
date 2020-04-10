@@ -24,34 +24,39 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/devops/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
-	towerv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tower/v1alpha1"
 )
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
 	DevopsV1alpha1() devopsv1alpha1.DevopsV1alpha1Interface
 	IamV1alpha2() iamv1alpha2.IamV1alpha2Interface
 	NetworkV1alpha1() networkv1alpha1.NetworkV1alpha1Interface
 	ServicemeshV1alpha2() servicemeshv1alpha2.ServicemeshV1alpha2Interface
 	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
-	TowerV1alpha1() towerv1alpha1.TowerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	clusterV1alpha1     *clusterv1alpha1.ClusterV1alpha1Client
 	devopsV1alpha1      *devopsv1alpha1.DevopsV1alpha1Client
 	iamV1alpha2         *iamv1alpha2.IamV1alpha2Client
 	networkV1alpha1     *networkv1alpha1.NetworkV1alpha1Client
 	servicemeshV1alpha2 *servicemeshv1alpha2.ServicemeshV1alpha2Client
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
-	towerV1alpha1       *towerv1alpha1.TowerV1alpha1Client
+}
+
+// ClusterV1alpha1 retrieves the ClusterV1alpha1Client
+func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
+	return c.clusterV1alpha1
 }
 
 // DevopsV1alpha1 retrieves the DevopsV1alpha1Client
@@ -79,11 +84,6 @@ func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
 	return c.tenantV1alpha1
 }
 
-// TowerV1alpha1 retrieves the TowerV1alpha1Client
-func (c *Clientset) TowerV1alpha1() towerv1alpha1.TowerV1alpha1Interface {
-	return c.towerV1alpha1
-}
-
 // Discovery retrieves the DiscoveryClient
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 	if c == nil {
@@ -105,6 +105,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
+	cs.clusterV1alpha1, err = clusterv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 	cs.devopsV1alpha1, err = devopsv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
@@ -125,10 +129,6 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs.towerV1alpha1, err = towerv1alpha1.NewForConfig(&configShallowCopy)
-	if err != nil {
-		return nil, err
-	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -141,12 +141,12 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
+	cs.clusterV1alpha1 = clusterv1alpha1.NewForConfigOrDie(c)
 	cs.devopsV1alpha1 = devopsv1alpha1.NewForConfigOrDie(c)
 	cs.iamV1alpha2 = iamv1alpha2.NewForConfigOrDie(c)
 	cs.networkV1alpha1 = networkv1alpha1.NewForConfigOrDie(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.NewForConfigOrDie(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
-	cs.towerV1alpha1 = towerv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -155,12 +155,12 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.clusterV1alpha1 = clusterv1alpha1.New(c)
 	cs.devopsV1alpha1 = devopsv1alpha1.New(c)
 	cs.iamV1alpha2 = iamv1alpha2.New(c)
 	cs.networkV1alpha1 = networkv1alpha1.New(c)
 	cs.servicemeshV1alpha2 = servicemeshv1alpha2.New(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.New(c)
-	cs.towerV1alpha1 = towerv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
+	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/tools/lib"
 	"log"
 	"os"
@@ -42,6 +44,9 @@ func main() {
 	networkinstall.Install(Scheme)
 	devopsinstall.Install(Scheme)
 
+	urlruntime.Must(clusterv1alpha1.AddToScheme(Scheme))
+	urlruntime.Must(Scheme.SetVersionPriority(clusterv1alpha1.SchemeGroupVersion))
+
 	mapper := meta.NewDefaultRESTMapper(nil)
 
 	mapper.AddSpecific(servicemeshv1alpha2.SchemeGroupVersion.WithKind(servicemeshv1alpha2.ResourceKindServicePolicy),
@@ -75,6 +80,14 @@ func main() {
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourceSingularWorkspaceNetworkPolicy), meta.RESTScopeRoot)
 
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularCluster), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularAgent), meta.RESTScopeRoot)
+
 	spec, err := lib.RenderOpenAPISpec(lib.Config{
 		Scheme: Scheme,
 		Codecs: Codecs,
@@ -96,6 +109,7 @@ func main() {
 			tenantv1alpha1.GetOpenAPIDefinitions,
 			networkv1alpha1.GetOpenAPIDefinitions,
 			devopsv1alpha1.GetOpenAPIDefinitions,
+			clusterv1alpha1.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
 			//TODO（runzexia） At present, the document generation requires the openapi structure of the go language,
@@ -109,6 +123,8 @@ func main() {
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilderTemplate),
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilder),
 			networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
+			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
+			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
 		},
 		Mapper: mapper,
 	})
