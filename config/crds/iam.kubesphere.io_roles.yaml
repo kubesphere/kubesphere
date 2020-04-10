@@ -8,6 +8,13 @@ metadata:
   creationTimestamp: null
   name: roles.iam.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .target.scope
+    name: Scope
+    type: string
+  - JSONPath: .target.name
+    name: Target
+    type: string
   group: iam.kubesphere.io
   names:
     categories:
@@ -17,6 +24,7 @@ spec:
     plural: roles
     singular: role
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -52,21 +60,19 @@ spec:
             - name
             type: object
           type: array
-        scope:
+        target:
           properties:
-            level:
+            name:
               type: string
-            scopes:
-              items:
-                type: string
-              type: array
+            scope:
+              type: string
           required:
-          - level
-          - scopes
+          - name
+          - scope
           type: object
       required:
       - rules
-      - scope
+      - target
       type: object
   version: v1alpha2
   versions:

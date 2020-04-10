@@ -10,7 +10,6 @@ const (
 	FieldLastUpdateTimestamp = "lastUpdateTimestamp"
 	FieldLabel               = "label"
 	FieldAnnotation          = "annotation"
-	FieldClusterName         = "clusterName"
 	FieldNamespace           = "namespace"
 	FieldStatus              = "status"
 	FieldOwnerReference      = "ownerReference"
@@ -29,7 +28,6 @@ var ComparableFields = []Field{
 	FieldUID,
 	FieldLabel,
 	FieldAnnotation,
-	FieldClusterName,
 	FieldNamespace,
 	FieldStatus,
 	FieldOwnerReference,

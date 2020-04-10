@@ -3,7 +3,53 @@ kind: PolicyRule
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: policyrule-sample
-spec:
-  # Add fields here
-  foo: bar
+  name: always-allow
+scope: Global
+rego: 'package authz\ndefault allow = true'
+
+---
+
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: PolicyRule
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: always-deny
+scope: Global
+rego: ｜
+  package authz
+  default allow = false
+
+---
+
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: PolicyRule
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: cluster-manage
+scope: Global
+rego: ｜
+  package authz
+  default allow = false
+  allow {
+    input.Resource == 'clusters'
+  }
+
+---
+
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: PolicyRule
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: some-namespace-manage
+scope: Namespace
+rego: ｜
+  package authz
+  default allow = false
+  allow {
+  input.Resource == 'clusters'
+  }
+
+

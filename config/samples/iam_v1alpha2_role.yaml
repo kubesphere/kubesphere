@@ -3,7 +3,28 @@ kind: Role
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: role-sample
-spec:
-  # Add fields here
-  foo: bar
+  name: cluster-admin
+target:
+  scope: Global
+  name: ''
+rules:
+  - apiGroup: iam.kubesphere.io/v1alpha2
+    kind: PolicyRule
+    name: always-allow
+
+---
+
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: Role
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: anonymous
+target:
+  scope: Global
+  name: ''
+rules:
+  - apiGroup: iam.kubesphere.io/v1alpha2
+    kind: PolicyRule
+    name: always-deny
+

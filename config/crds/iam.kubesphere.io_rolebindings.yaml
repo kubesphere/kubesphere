@@ -8,6 +8,16 @@ metadata:
   creationTimestamp: null
   name: rolebindings.iam.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .scope
+    name: Scope
+    type: string
+  - JSONPath: .roleRef.name
+    name: RoleRef
+    type: string
+  - JSONPath: .subjects[*].name
+    name: Subjects
+    type: string
   group: iam.kubesphere.io
   names:
     categories:
@@ -17,6 +27,7 @@ spec:
     plural: rolebindings
     singular: rolebinding
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: RoleBinding is the Schema for the rolebindings API
@@ -30,8 +41,6 @@ spec:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        level:
           type: string
         metadata:
           type: object
@@ -53,6 +62,8 @@ spec:
           - kind
           - name
           type: object
+        scope:
+          type: string
         subjects:
           description: Subjects holds references to the users the role applies to.
           items:
@@ -77,8 +88,8 @@ spec:
             type: object
           type: array
       required:
-      - level
       - roleRef
+      - scope
       type: object
   version: v1alpha2
   versions:

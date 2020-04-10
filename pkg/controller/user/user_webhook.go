@@ -30,6 +30,10 @@ import (
 	"strconv"
 )
 
+const (
+	encryptedAnnotation = "iam.kubesphere.io/password-encrypted"
+)
+
 type EmailValidator struct {
 	Client  client.Client
 	decoder *admission.Decoder
@@ -51,7 +55,11 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 
 	allUsers := v1alpha2.UserList{}
 
-	a.Client.List(ctx, &v1alpha2.UserList{}, &client.ListOptions{})
+	err = a.Client.List(ctx, &v1alpha2.UserList{}, &client.ListOptions{})
+
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
 
 	found := emailAlreadyExist(allUsers, email)
 
@@ -78,7 +86,7 @@ func (a *PasswordCipher) Handle(ctx context.Context, req admission.Request) admi
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	encrypted, err := strconv.ParseBool(user.Annotations["iam.kubesphere.io/password-encrypted"])
+	encrypted, err := strconv.ParseBool(user.Annotations[encryptedAnnotation])
 
 	if err != nil || !encrypted {
 		password, err := hashPassword(user.Spec.EncryptedPassword)
@@ -86,6 +94,7 @@ func (a *PasswordCipher) Handle(ctx context.Context, req admission.Request) admi
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 		user.Spec.EncryptedPassword = password
+		user.Annotations[encryptedAnnotation] = "true"
 	}
 
 	marshaledUser, err := json.Marshal(user)

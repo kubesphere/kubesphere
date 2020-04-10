@@ -35,6 +35,7 @@ import (
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
+	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -43,6 +44,7 @@ import (
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -151,13 +153,13 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		// Start cache data after all informer is registered
 		informerFactory.Start(stopCh)
 
-		// Setup webhooks TODO enable webhook
-		//klog.Info("setting up webhook server")
-		//hookServer := mgr.GetWebhookServer()
-		//
-		//klog.Info("registering webhooks to the webhook server")
-		//hookServer.Register("//mutating-encrypt-password-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.PasswordCipher{Client: mgr.GetClient()}})
-		//hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
+		// Setup webhooks
+		klog.Info("setting up webhook server")
+		hookServer := mgr.GetWebhookServer()
+
+		klog.Info("registering webhooks to the webhook server")
+		hookServer.Register("/mutating-encrypt-password-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.PasswordCipher{Client: mgr.GetClient()}})
+		hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
 
 		klog.V(0).Info("Starting the controllers.")
 		if err = mgr.Start(stopCh); err != nil {

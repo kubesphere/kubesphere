@@ -21,8 +21,8 @@ import (
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 
 // User is the Schema for the users API
@@ -125,30 +125,38 @@ type UserList struct {
 	Items           []User `json:"items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".target.scope"
+// +kubebuilder:printcolumn:name="Target",type="string",JSONPath=".target.name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type Role struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Scope Scope     `json:"scope"`
-	Rules []RuleRef `json:"rules"`
+	Target Target    `json:"target"`
+	Rules  []RuleRef `json:"rules"`
 }
 
-type Scope struct {
-	Level  Level    `json:"level"`
-	Scopes []string `json:"scopes"`
+type Target struct {
+	Scope Scope  `json:"scope"`
+	Name  string `json:"name"`
 }
 
-type Level string
+type Scope string
 
 const (
-	LevelGlobal    Level = "Global"
-	LevelCluster   Level = "Cluster"
-	LevelWorkspace Level = "Workspace"
-	LevelNamespace Level = "Namespace"
-	ScopeALL             = "*"
+	GlobalScope     Scope = "Global"
+	ClusterScope    Scope = "Cluster"
+	WorkspaceScope  Scope = "Workspace"
+	NamespaceScope  Scope = "Namespace"
+	TargetAll             = "*"
+	UserKind              = "User"
+	PolicyRuleKind        = "PolicyRule"
+	RoleKind              = "Role"
+	RoleBindingKind       = "RoleBinding"
 )
 
 // RuleRef contains information that points to the role being used
@@ -170,14 +178,17 @@ type RoleList struct {
 	Items           []Role `json:"items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".scope"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type PolicyRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Level Level  `json:"level"`
+	Scope Scope  `json:"scope"`
 	Rego  string `json:"rego"`
 }
 
@@ -190,15 +201,20 @@ type PolicyRuleList struct {
 	Items           []PolicyRule `json:"items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RoleBinding is the Schema for the rolebindings API
+// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".scope"
+// +kubebuilder:printcolumn:name="RoleRef",type="string",JSONPath=".roleRef.name"
+// +kubebuilder:printcolumn:name="Subjects",type="string",JSONPath=".subjects[*].name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type RoleBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Level   Level   `json:"level"`
+	Scope   Scope   `json:"scope"`
 	RoleRef RoleRef `json:"roleRef"`
 	// Subjects holds references to the users the role applies to.
 	// +optional
@@ -233,4 +249,9 @@ type RoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RoleBinding `json:"items"`
+}
+
+type UserDetail struct {
+	*User
+	GlobalRole *Role `json:"globalRole"`
 }

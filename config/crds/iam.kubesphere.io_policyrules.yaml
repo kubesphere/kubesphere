@@ -8,6 +8,10 @@ metadata:
   creationTimestamp: null
   name: policyrules.iam.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .scope
+    name: Scope
+    type: string
   group: iam.kubesphere.io
   names:
     categories:
@@ -17,6 +21,7 @@ spec:
     plural: policyrules
     singular: policyrule
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -30,15 +35,15 @@ spec:
             object represents. Servers may infer this from the endpoint the client
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
-        level:
-          type: string
         metadata:
           type: object
         rego:
           type: string
+        scope:
+          type: string
       required:
-      - level
       - rego
+      - scope
       type: object
   version: v1alpha2
   versions:

@@ -46,11 +46,12 @@ func DefaultList(objects []runtime.Object, query *query.Query, compareFunc Compa
 		return compareFunc(filtered[i], filtered[j], query.SortBy)
 	})
 
-	start, end := query.Pagination.GetValidPagination(len(filtered))
+	total := len(filtered)
+	start, end := query.Pagination.GetValidPagination(total)
 
 	return &api.ListResult{
-		Items:      objectsToInterfaces(filtered[start:end]),
 		TotalItems: len(filtered),
+		Items:      objectsToInterfaces(filtered[start:end]),
 	}
 }
 
@@ -101,8 +102,6 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
 		return containsAnyValue(item.Labels, string(filter.Value))
-	case query.FieldClusterName:
-		return strings.Compare(item.ClusterName, string(filter.Value)) == 0
 	default:
 		return false
 	}
