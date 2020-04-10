@@ -82,8 +82,6 @@ type AgentCondition struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
 	// Represents the latest available observations of a agent's current state.
 	Conditions []AgentCondition `json:"conditions,omitempty"`
@@ -99,6 +97,8 @@ type AgentStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +genclient:nonNamespaced
+// +kubebuilder:printcolumn:name="Paused",type="bool",JSONPath=".spec.Paused"
+// +kubebuilder:resource:scope=Cluster
 
 // Agent is the Schema for the agents API
 type Agent struct {

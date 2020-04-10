@@ -14,7 +14,7 @@ spec:
     listKind: ClusterList
     plural: clusters
     singular: cluster
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: Cluster is the schema for the clusters API
@@ -37,35 +37,52 @@ spec:
               description: Desired state of the cluster
               type: boolean
             federated:
-              description: Join cluster as kubefed cluster
+              description: Join cluster as a kubefed cluster
               type: boolean
+            provider:
+              description: Provider of the cluster, this field is just for description
+              type: string
           type: object
         status:
           properties:
-            lastTransitionTime:
-              description: Last time the condition transitioned from one status to
-                another.
-              format: date-time
+            conditions:
+              description: Represents the latest available observations of a cluster's
+                current state.
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    description: The last time this condition was updated.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      the transition.
+                    type: string
+                  reason:
+                    description: The reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of the condition
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            count:
+              type: integer
+            version:
+              description: GitVersion of the kubernetes cluster, this field is set
+                by cluster controller
               type: string
-            lastUpdateTime:
-              description: The last time this condition was updated.
-              format: date-time
-              type: string
-            message:
-              description: A human readable message indicating details about the transition.
-              type: string
-            reason:
-              description: The reason for the condition's last transition.
-              type: string
-            status:
-              description: Status of the condition, one of True, False, Unknown.
-              type: string
-            type:
-              description: Type of the condition
-              type: string
-          required:
-          - status
-          - type
           type: object
       type: object
   version: v1alpha1

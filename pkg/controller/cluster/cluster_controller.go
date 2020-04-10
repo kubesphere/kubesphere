@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
@@ -87,6 +88,12 @@ func NewClusterController(
 		DeleteFunc: c.addCluster,
 	})
 
+	agentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    nil,
+		UpdateFunc: nil,
+		DeleteFunc: nil,
+	})
+
 	return c
 }
 
@@ -141,7 +148,7 @@ func (c *ClusterController) syncCluster(key string) error {
 	}
 
 	defer func() {
-		klog.V(4).Info("Finished syncing cluster.", "name", name, "duration", time.Since(startTime))
+		klog.V(4).Infof("Finished syncing cluster %s in %s", name, time.Since(startTime))
 	}()
 
 	cluster, err := c.clusterLister.Get(name)
@@ -209,6 +216,66 @@ func (c *ClusterController) syncCluster(key string) error {
 		})
 	}
 
+	// agent connection is ready, update cluster status
+	// set
+	if len(agent.Status.KubeConfig) != 0 && c.isAgentReady(agent) {
+		clientConfig, err := clientcmd.NewClientConfigFromBytes(agent.Status.KubeConfig)
+		if err != nil {
+			klog.Errorf("Unable to create client config from kubeconfig bytes, %#v", err)
+			return err
+		}
+
+		config, err := clientConfig.ClientConfig()
+		if err != nil {
+			klog.Errorf("Failed to get client config, %#v", err)
+			return err
+		}
+
+		clientSet, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			klog.Errorf("Failed to create ClientSet from config, %#v", err)
+			return nil
+		}
+
+		version, err := clientSet.Discovery().ServerVersion()
+		if err != nil {
+			klog.Errorf("Failed to get kubernetes version, %#v", err)
+			return err
+		}
+
+		cluster.Status.KubernetesVersion = version.GitVersion
+
+		nodes, err := clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
+		if err != nil {
+			klog.Errorf("Failed to get cluster nodes, %#v", err)
+			return err
+		}
+
+		cluster.Status.NodeCount = len(nodes.Items)
+	}
+
+	agentReadyCondition := clusterv1alpha1.ClusterCondition{
+		Type:               clusterv1alpha1.ClusterAgentAvailable,
+		LastUpdateTime:     metav1.NewTime(time.Now()),
+		LastTransitionTime: metav1.NewTime(time.Now()),
+		Reason:             "",
+		Message:            "Cluster agent is available now.",
+	}
+
+	if c.isAgentReady(agent) {
+		agentReadyCondition.Status = v1.ConditionTrue
+	} else {
+		agentReadyCondition.Status = v1.ConditionFalse
+	}
+
+	c.addClusterCondition(cluster, agentReadyCondition)
+
+	_, err = c.clusterClient.Update(cluster)
+	if err != nil {
+		klog.Errorf("Failed to update cluster status, %#v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -217,14 +284,64 @@ func (c *ClusterController) addCluster(obj interface{}) {
 
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("get cluster key %s/%s failed", cluster.Namespace, cluster.Name))
+		utilruntime.HandleError(fmt.Errorf("get cluster key %s failed", cluster.Name))
 		return
 	}
 
 	c.queue.Add(key)
-
 }
 
 func (c *ClusterController) handleErr(err error, key interface{}) {
+	if err == nil {
+		c.queue.Forget(key)
+		return
+	}
 
+	if c.queue.NumRequeues(key) < maxRetries {
+		klog.V(2).Infof("Error syncing virtualservice %s for service retrying, %#v", key, err)
+		c.queue.AddRateLimited(key)
+		return
+	}
+
+	klog.V(4).Infof("Dropping service %s out of the queue.", key)
+	c.queue.Forget(key)
+	utilruntime.HandleError(err)
+}
+
+func (c *ClusterController) addAgent(obj interface{}) {
+	agent := obj.(*clusterv1alpha1.Agent)
+	key, err := cache.MetaNamespaceKeyFunc(obj)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("get agent key %s failed", agent.Name))
+		return
+	}
+
+	c.queue.Add(key)
+}
+
+func (c *ClusterController) isAgentReady(agent *clusterv1alpha1.Agent) bool {
+	for _, condition := range agent.Status.Conditions {
+		if condition.Type == clusterv1alpha1.AgentConnected && condition.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+// addClusterCondition add condition
+func (c *ClusterController) addClusterCondition(cluster *clusterv1alpha1.Cluster, condition clusterv1alpha1.ClusterCondition) {
+	if cluster.Status.Conditions == nil {
+		cluster.Status.Conditions = make([]clusterv1alpha1.ClusterCondition, 0)
+	}
+
+	newConditions := make([]clusterv1alpha1.ClusterCondition, 0)
+	for _, cond := range cluster.Status.Conditions {
+		if cond.Type == condition.Type {
+			continue
+		}
+		newConditions = append(newConditions, cond)
+	}
+
+	newConditions = append(newConditions, condition)
+	cluster.Status.Conditions = newConditions
 }
