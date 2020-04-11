@@ -8,13 +8,18 @@ metadata:
   creationTimestamp: null
   name: agents.cluster.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.Paused
+    name: Paused
+    type: bool
   group: cluster.kubesphere.io
   names:
     kind: Agent
     listKind: AgentList
     plural: agents
     singular: agent
-  scope: Namespaced
+  scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: Agent is the Schema for the agents API

@@ -8,6 +8,19 @@ metadata:
   creationTimestamp: null
   name: clusters.cluster.kubesphere.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.federated
+    name: Federated
+    type: boolean
+  - JSONPath: .spec.provider
+    name: Provider
+    type: string
+  - JSONPath: .spec.active
+    name: Active
+    type: boolean
+  - JSONPath: .status.kubernetesVersion
+    name: Version
+    type: string
   group: cluster.kubesphere.io
   names:
     kind: Cluster
@@ -15,6 +28,7 @@ spec:
     plural: clusters
     singular: cluster
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: Cluster is the schema for the clusters API
@@ -77,12 +91,13 @@ spec:
                 - type
                 type: object
               type: array
-            count:
-              type: integer
-            version:
+            kubernetesVersion:
               description: GitVersion of the kubernetes cluster, this field is set
                 by cluster controller
               type: string
+            nodeCount:
+              description: Count of the kubernetes cluster nodes
+              type: integer
           type: object
       type: object
   version: v1alpha1

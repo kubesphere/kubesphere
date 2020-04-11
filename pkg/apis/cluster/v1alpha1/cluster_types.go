@@ -62,20 +62,21 @@ type ClusterStatus struct {
 
 	// GitVersion of the kubernetes cluster, this field is set by cluster controller
 	// +optional
-	KubernetesVersion string `json:"version,omitempty"`
+	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
-	//
-	NodeCount int `json:"count,omitempty"`
+	// Count of the kubernetes cluster nodes
+	// +optional
+	NodeCount int `json:"nodeCount,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +genclient:nonNamespaced
-// +groupName
-// +kubebuilder:printcolumn:name="Federated",type="bool",JSONPath=".spec.Federated"
-// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.Provider"
-// +kubebuilder:printcolumn:name="Active",type="bool",JSONPath=".spec.Active"
+// +kubebuilder:printcolumn:name="Federated",type="boolean",JSONPath=".spec.federated"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
+// +kubebuilder:printcolumn:name="Active",type="boolean",JSONPath=".spec.active"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.kubernetesVersion"
 // +kubebuilder:resource:scope=Cluster
 
 // Cluster is the schema for the clusters API
