@@ -7,9 +7,7 @@ package github.com.openshift.api.project.v1;
 
 import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -20,26 +18,25 @@ option go_package = "v1";
 // membership, editors can create and manage the resources, and viewers can see but not access running
 // containers. In a normal cluster project administrators are not able to alter their quotas - that is
 // restricted to cluster administrators.
-// 
+//
 // Listing or watching projects will return only projects the user has the reader role on.
-// 
+//
 // An OpenShift project is an alternative representation of a Kubernetes namespace. Projects are exposed
 // as editable to end users while namespaces are not. Direct creation of a project is typically restricted
 // to administrators, while end users should use the requestproject resource.
 message Project {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the behavior of the Namespace.
   optional ProjectSpec spec = 2;
 
   // Status describes the current status of a Namespace
+  // +optional
   optional ProjectStatus status = 3;
 }
 
 // ProjectList is a list of Project objects.
 message ProjectList {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of projects
@@ -48,7 +45,6 @@ message ProjectList {
 
 // ProjecRequest is the set of options necessary to fully qualify a project request
 message ProjectRequest {
-  // Standard object's metadata.
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // DisplayName is the display name to apply to a project
@@ -67,6 +63,13 @@ message ProjectSpec {
 // ProjectStatus is information about the current status of a Project
 message ProjectStatus {
   // Phase is the current lifecycle phase of the project
+  // +optional
   optional string phase = 1;
+
+  // Represents the latest available observations of the project current state.
+  // +optional
+  // +patchMergeKey=type
+  // +patchStrategy=merge
+  repeated k8s.io.api.core.v1.NamespaceCondition conditions = 2;
 }
 

@@ -74,6 +74,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iRuns().Informer()}, nil
 
 		// Group=iam.kubesphere.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("policyrules"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().PolicyRules().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("roles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Roles().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("rolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().RoleBindings().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("users"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Users().Informer()}, nil
 

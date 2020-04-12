@@ -169,7 +169,6 @@ func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rba
 	if clusterRoleBinding.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
 
 		found := &rbac.RoleBinding{}
-
 		viewerBinding := &rbac.RoleBinding{}
 		viewerBinding.Name = "viewer"
 		viewerBinding.Namespace = namespace.Name

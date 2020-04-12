@@ -25,14 +25,14 @@ import (
 // is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment
 // is triggered by any means.
 type DeploymentConfig struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status represents the current deployment state.
+	// +optional
 	Status DeploymentConfigStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -120,7 +120,7 @@ const (
 
 // CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
-	// Image specifies a Docker image which can carry out a deployment.
+	// Image specifies a container image which can carry out a deployment.
 	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 	// Environment holds the environment which will be given to the container for Image.
 	Environment []corev1.EnvVar `json:"environment,omitempty" protobuf:"bytes,2,rep,name=environment"`
@@ -225,7 +225,7 @@ type ExecNewPodHook struct {
 	// Env is a set of environment variables to supply to the hook pod's container.
 	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,2,rep,name=env"`
 	// ContainerName is the name of a container in the deployment pod template
-	// whose Docker image will be used for the hook pod's container.
+	// whose container image will be used for the hook pod's container.
 	ContainerName string `json:"containerName" protobuf:"bytes,3,opt,name=containerName"`
 	// Volumes is a list of named volumes from the pod template which should be
 	// copied to the hook pod. Volumes names not found in pod spec are ignored.
@@ -264,7 +264,7 @@ type DeploymentTriggerType string
 
 const (
 	// DeploymentTriggerOnImageChange will create new deployments in response to updated tags from
-	// a Docker image repository.
+	// a container image repository.
 	DeploymentTriggerOnImageChange DeploymentTriggerType = "ImageChange"
 	// DeploymentTriggerOnConfigChange will create new deployments in response to changes to
 	// the ControllerTemplate of a DeploymentConfig.
@@ -389,7 +389,6 @@ type DeploymentCondition struct {
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of deployment configs

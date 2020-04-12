@@ -1,16 +1,18 @@
 package query
 
 type Field string
+type Value string
 
 const (
 	FieldName                = "name"
+	FieldUID                 = "uid"
 	FieldCreationTimeStamp   = "creationTimestamp"
 	FieldLastUpdateTimestamp = "lastUpdateTimestamp"
 	FieldLabel               = "label"
+	FieldAnnotation          = "annotation"
 	FieldNamespace           = "namespace"
 	FieldStatus              = "status"
-	FieldApplication         = "application"
-	FieldOwner               = "owner"
+	FieldOwnerReference      = "ownerReference"
 	FieldOwnerKind           = "ownerKind"
 )
 
@@ -23,9 +25,11 @@ var SortableFields = []Field{
 // Field contains all the query field that can be compared
 var ComparableFields = []Field{
 	FieldName,
+	FieldUID,
+	FieldLabel,
+	FieldAnnotation,
 	FieldNamespace,
 	FieldStatus,
-	FieldApplication,
-	FieldOwner,
+	FieldOwnerReference,
 	FieldOwnerKind,
 }

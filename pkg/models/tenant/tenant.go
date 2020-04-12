@@ -18,97 +18,147 @@
 package tenant
 
 import (
-	"k8s.io/api/core/v1"
-	k8sinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/models"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
 type Interface interface {
-	CreateNamespace(workspace string, namespace *v1.Namespace, username string) (*v1.Namespace, error)
-	DeleteNamespace(workspace, namespace string) error
-	DescribeWorkspace(username, workspace string) (*v1alpha1.Workspace, error)
-	ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
-	ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
-	ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error)
-	CountDevOpsProjects(username string) (uint32, error)
-	DeleteDevOpsProject(username, projectId string) error
+	ListWorkspaces(username string) (*api.ListResult, error)
+	ListNamespaces(username, workspace string) (*api.ListResult, error)
 }
 
 type tenantOperator struct {
-	workspaces WorkspaceInterface
-	namespaces NamespaceInterface
-	am         am.AccessManagementInterface
-	devops     DevOpsProjectOperator
+	informers informers.InformerFactory
+	am        am.AccessManagementInterface
 }
 
-func (t *tenantOperator) CountDevOpsProjects(username string) (uint32, error) {
-	return t.devops.GetDevOpsProjectsCount(username)
-}
-
-func (t *tenantOperator) DeleteDevOpsProject(username, projectId string) error {
-	return t.devops.DeleteDevOpsProject(projectId, username)
-}
-
-func (t *tenantOperator) GetUserDevopsSimpleRules(username string, projectId string) (interface{}, error) {
-	panic("implement me")
-}
-
-func (t *tenantOperator) ListDevopsProjects(username string, conditions *params.Conditions, orderBy string, reverse bool, limit int, offset int) (*models.PageableResponse, error) {
-	return t.devops.ListDevOpsProjects(conditions.Match["workspace"], username, conditions, orderBy, reverse, limit, offset)
-}
-
-func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
-	return t.workspaces.DeleteNamespace(workspace, namespace)
-}
-
-func New(client kubernetes.Interface, informers k8sinformers.SharedInformerFactory, ksinformers ksinformers.SharedInformerFactory, db *mysql.Database) Interface {
-	amOperator := am.NewAMOperator(client, informers)
+func New(k8sClient k8s.Client, informers informers.InformerFactory) Interface {
 	return &tenantOperator{
-		workspaces: newWorkspaceOperator(client, informers, ksinformers, amOperator, db),
-		namespaces: newNamespaceOperator(client, informers, amOperator),
-		am:         amOperator,
+		informers: informers,
+		am:        am.NewAMOperator(k8sClient.KubeSphere(), informers.KubeSphereSharedInformerFactory()),
 	}
 }
 
-func (t *tenantOperator) CreateNamespace(workspaceName string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
-	return t.namespaces.CreateNamespace(workspaceName, namespace, username)
-}
+func (t *tenantOperator) ListWorkspaces(username string) (*api.ListResult, error) {
 
-func (t *tenantOperator) DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
-	workspace, err := t.workspaces.GetWorkspace(workspaceName)
-
+	workspaceRoles, err := t.am.ListRolesOfUser(iamv1alpha2.WorkspaceScope, username)
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
 
-	return workspace, nil
-}
+	workspaces := make([]*tenantv1alpha1.Workspace, 0)
 
-func (t *tenantOperator) ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	panic("implement me")
-}
+	for _, role := range workspaceRoles {
 
-func (t *tenantOperator) ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+		// all workspaces are allowed
+		if role.Target.Name == iamv1alpha2.TargetAll {
+			workspaces, err = t.informers.KubeSphereSharedInformerFactory().
+				Tenant().V1alpha1().Workspaces().Lister().List(labels.Everything())
+			break
+		}
+		workspace, err := t.informers.KubeSphereSharedInformerFactory().
+			Tenant().V1alpha1().Workspaces().Lister().Get(role.Target.Name)
 
-	namespaces, err := t.namespaces.Search(username, conditions, orderBy, reverse)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// limit offset
-	result := make([]interface{}, 0)
-	for i, v := range namespaces {
-		if len(result) < limit && i >= offset {
-			result = append(result, v)
+		if errors.IsNotFound(err) {
+			klog.Warningf("workspace role: %s found but workspace not exist", role.Target)
+			continue
+		}
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		if !containsWorkspace(workspaces, workspace) {
+			workspaces = append(workspaces, workspace)
 		}
 	}
 
-	return &models.PageableResponse{Items: result, TotalCount: len(namespaces)}, nil
+	return &api.ListResult{
+		TotalItems: len(workspaces),
+		Items:      workspacesToInterfaces(workspaces),
+	}, nil
+}
+
+func (t *tenantOperator) ListNamespaces(username, workspace string) (*api.ListResult, error) {
+
+	namespaceRoles, err := t.am.ListRolesOfUser(iamv1alpha2.NamespaceScope, username)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	namespaces := make([]*corev1.Namespace, 0)
+
+	for _, role := range namespaceRoles {
+
+		// all workspaces are allowed
+		if role.Target.Name == iamv1alpha2.TargetAll {
+			namespaces, err = t.informers.KubernetesSharedInformerFactory().
+				Core().V1().Namespaces().Lister().List(labels.Everything())
+			break
+		}
+
+		namespace, err := t.informers.KubernetesSharedInformerFactory().
+			Core().V1().Namespaces().Lister().Get(role.Target.Name)
+
+		if errors.IsNotFound(err) {
+			klog.Warningf("workspace role: %s found but workspace not exist", role.Target)
+			continue
+		}
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		if !containsNamespace(namespaces, namespace) {
+			namespaces = append(namespaces, namespace)
+		}
+	}
+
+	return &api.ListResult{
+		TotalItems: len(namespaces),
+		Items:      namespacesToInterfaces(namespaces),
+	}, nil
+}
+
+func containsWorkspace(workspaces []*tenantv1alpha1.Workspace, workspace *tenantv1alpha1.Workspace) bool {
+	for _, item := range workspaces {
+		if item.Name == workspace.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func containsNamespace(namespaces []*corev1.Namespace, namespace *corev1.Namespace) bool {
+	for _, item := range namespaces {
+		if item.Name == namespace.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func workspacesToInterfaces(workspaces []*tenantv1alpha1.Workspace) []interface{} {
+	ret := make([]interface{}, len(workspaces))
+	for index, v := range workspaces {
+		ret[index] = v
+	}
+	return ret
+}
+
+func namespacesToInterfaces(namespaces []*corev1.Namespace) []interface{} {
+	ret := make([]interface{}, len(namespaces))
+	for index, v := range namespaces {
+		ret[index] = v
+	}
+	return ret
 }

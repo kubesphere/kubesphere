@@ -51,7 +51,7 @@ func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username,
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
 			Name:   providedUser.GetName(),
-			UID:    providedUser.GetUID(),
+			UID:    string(providedUser.GetUID()),
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil
