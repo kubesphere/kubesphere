@@ -52,13 +52,6 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Doc("List the namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/clusters").
-		To(handler.ListNamespaces).
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("member", "workspace member's username")).
-		Doc("List the namespaces for the workspace member").
-		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	c.Add(ws)
 	return nil

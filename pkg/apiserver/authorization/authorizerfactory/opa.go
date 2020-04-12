@@ -32,10 +32,17 @@ type opaAuthorizer struct {
 	am am.AccessManagementInterface
 }
 
+const (
+	permissionUndefined = "permission undefined"
+	defaultRegoQuery    = "data.authz.allow"
+)
+
 // Make decision by request attributes
 func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 
 	// Make decisions based on the authorization policy of different levels of roles
+	// Error returned when an internal error occurs
+	// Reason must be returned when access is denied
 	globalRole, err := o.am.GetRoleOfUserInTargetScope(iamv1alpha2.GlobalScope, "", attr.GetUser().GetName())
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -46,12 +53,12 @@ func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized author
 
 	// check platform role policy rules
 	if authorized, reason, err = o.makeDecision(globalRole, attr); authorized == authorizer.DecisionAllow {
-		return authorized, reason, err
+		return authorized, reason, nil
 	}
 
 	// it's not in cluster resource, permission denied
 	if attr.GetCluster() == "" {
-		return authorizer.DecisionDeny, "permission undefined", nil
+		return authorizer.DecisionDeny, permissionUndefined, nil
 	}
 
 	clusterRole, err := o.am.GetRoleOfUserInTargetScope(iamv1alpha2.ClusterScope, attr.GetCluster(), attr.GetUser().GetName())
@@ -63,13 +70,15 @@ func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized author
 	}
 
 	// check cluster role policy rules
-	if a, r, e := o.makeDecision(clusterRole, attr); a == authorizer.DecisionAllow {
-		return a, r, e
+	if authorized, reason, err := o.makeDecision(clusterRole, attr); authorized == authorizer.DecisionAllow {
+		return authorized, reason, nil
+	} else if err != nil {
+		return authorizer.DecisionDeny, "", err
 	}
 
 	// it's not in cluster resource, permission denied
 	if attr.GetWorkspace() == "" && attr.GetNamespace() == "" {
-		return authorizer.DecisionDeny, "permission undefined", nil
+		return authorizer.DecisionDeny, permissionUndefined, nil
 	}
 
 	workspaceRole, err := o.am.GetRoleOfUserInTargetScope(iamv1alpha2.WorkspaceScope, attr.GetWorkspace(), attr.GetUser().GetName())
@@ -81,30 +90,32 @@ func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized author
 	}
 
 	// check workspace role policy rules
-	if a, r, e := o.makeDecision(workspaceRole, attr); a == authorizer.DecisionAllow {
-		return a, r, e
+	if authorized, reason, err := o.makeDecision(workspaceRole, attr); authorized == authorizer.DecisionAllow {
+		return authorized, reason, err
+	} else if err != nil {
+		return authorizer.DecisionDeny, "", err
 	}
 
 	// it's not in workspace resource, permission denied
 	if attr.GetNamespace() == "" {
-		return authorizer.DecisionDeny, "permission undefined", nil
+		return authorizer.DecisionDeny, permissionUndefined, nil
 	}
 
-	if attr.GetNamespace() != "" {
-		namespaceRole, err := o.am.GetRoleOfUserInTargetScope(iamv1alpha2.NamespaceScope, attr.GetNamespace(), attr.GetUser().GetName())
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return authorizer.DecisionDeny, err.Error(), nil
-			}
-			return authorizer.DecisionDeny, "", err
+	namespaceRole, err := o.am.GetRoleOfUserInTargetScope(iamv1alpha2.NamespaceScope, attr.GetNamespace(), attr.GetUser().GetName())
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return authorizer.DecisionDeny, err.Error(), nil
 		}
-		// check namespace role policy rules
-		if a, r, e := o.makeDecision(namespaceRole, attr); a == authorizer.DecisionAllow {
-			return a, r, e
-		}
+		return authorizer.DecisionDeny, "", err
+	}
+	// check namespace role policy rules
+	if authorized, reason, err := o.makeDecision(namespaceRole, attr); authorized == authorizer.DecisionAllow {
+		return authorized, reason, err
+	} else if err != nil {
+		return authorizer.DecisionDeny, "", err
 	}
 
-	return authorizer.DecisionDeny, "", nil
+	return authorizer.DecisionDeny, permissionUndefined, nil
 }
 
 // Make decision base on role
@@ -120,7 +131,7 @@ func (o *opaAuthorizer) makeDecision(role *iamv1alpha2.Role, a authorizer.Attrib
 		}
 		// Call the rego.New function to create an object that can be prepared or evaluated
 		//  After constructing a new rego.Rego object you can call PrepareForEval() to obtain an executable query
-		query, err := rego.New(rego.Query("data.authz.allow"), rego.Module("authz.rego", rule.Rego)).PrepareForEval(context.Background())
+		query, err := rego.New(rego.Query(defaultRegoQuery), rego.Module("authz.rego", rule.Rego)).PrepareForEval(context.Background())
 
 		if err != nil {
 			klog.Errorf("rule syntax error:%s", err)
@@ -140,7 +151,7 @@ func (o *opaAuthorizer) makeDecision(role *iamv1alpha2.Role, a authorizer.Attrib
 		}
 	}
 
-	return authorizer.DecisionDeny, "permission undefined", nil
+	return authorizer.DecisionDeny, permissionUndefined, nil
 }
 
 func NewOPAAuthorizer(am am.AccessManagementInterface) *opaAuthorizer {

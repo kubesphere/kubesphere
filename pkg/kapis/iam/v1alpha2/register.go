@@ -22,7 +22,7 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
-	iamvealpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -46,28 +46,28 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		To(handler.DescribeUser).
 		Doc("Retrieve user details.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamvealpha2.UserDetail{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/users/{user}/workspaceroles").
 		To(handler.ListRolesOfUser).
 		Doc("Retrieve user roles in workspaces.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamvealpha2.RoleList{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/users/{user}/clusterroles").
 		To(handler.ListRolesOfUser).
 		Doc("Retrieve user roles in clusters.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamvealpha2.RoleList{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/users/{user}/namespaceroles").
 		To(handler.ListRolesOfUser).
 		Doc("Retrieve user roles in namespaces.").
 		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamvealpha2.RoleList{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/roles").

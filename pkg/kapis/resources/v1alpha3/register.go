@@ -48,8 +48,8 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 	webservice.Route(webservice.GET("/{resources}").
 		To(handler.handleListResources).
 		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
-		Doc("Cluster level resource query").
-		Param(webservice.PathParameter("resources", "namespace level resource type, e.g. pods,jobs,configmaps,services.")).
+		Doc("Cluster level resources").
+		Param(webservice.PathParameter("resources", "cluster level resource type, e.g. pods,jobs,configmaps,services.")).
 		Param(webservice.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
 		Param(webservice.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
 		Param(webservice.QueryParameter(query.ParameterLimit, "limit").Required(false)).
