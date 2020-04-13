@@ -69,4 +69,5 @@ func (options *AuthenticationOptions) AddFlags(fs *pflag.FlagSet, s *Authenticat
 	fs.IntVar(&options.MaxAuthenticateRetries, "authenticate-max-retries", s.MaxAuthenticateRetries, "")
 	fs.BoolVar(&options.MultipleLogin, "multiple-login", s.MultipleLogin, "Allow multiple login with the same account, disable means only one user can login at the same time.")
 	fs.StringVar(&options.JwtSecret, "jwt-secret", s.JwtSecret, "Secret to sign jwt token, must not be empty.")
+	fs.DurationVar(&options.OAuthOptions.AccessTokenMaxAge, "access-token-max-age", s.OAuthOptions.AccessTokenMaxAge, "AccessTokenMaxAgeSeconds  control the lifetime of access tokens, 0 means no expiration.")
 }

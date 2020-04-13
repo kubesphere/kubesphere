@@ -33,6 +33,9 @@ func WithKubeAPIServer(handler http.Handler, config *rest.Config, failed proxy.E
 			s.Host = kubernetes.Host
 			s.Scheme = kubernetes.Scheme
 
+			// Do not cover k8s client authorization header
+			req.Header.Del("Authorization")
+
 			httpProxy := proxy.NewUpgradeAwareHandler(&s, defaultTransport, true, false, failed)
 			httpProxy.ServeHTTP(w, req)
 			return

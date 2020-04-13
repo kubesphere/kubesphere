@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -53,20 +54,26 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 	if len(tokenString) == 0 {
 		return nil, errInvalidToken
 	}
-	_, err := s.cache.Get(tokenCacheKey(tokenString))
-
-	if err != nil {
-		if err == cache.ErrNoSuchKey {
-			return nil, errTokenExpired
-		}
-		return nil, err
-	}
 
 	clm := &Claims{}
 
-	_, err = jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
+	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
+
 	if err != nil {
 		return nil, err
+	}
+
+	// 0 means no expiration.
+	// validate token cache
+	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
+		_, err = s.cache.Get(tokenCacheKey(tokenString))
+
+		if err != nil {
+			if err == cache.ErrNoSuchKey {
+				return nil, errTokenExpired
+			}
+			return nil, err
+		}
 	}
 
 	return &user.DefaultInfo{Name: clm.Username, UID: clm.UID}, nil
@@ -92,16 +99,28 @@ func (s *jwtTokenIssuer) IssueTo(user User, expiresIn time.Duration) (string, er
 	tokenString, err := token.SignedString([]byte(s.options.JwtSecret))
 
 	if err != nil {
+		klog.Error(err)
 		return "", err
 	}
 
-	s.cache.Set(tokenCacheKey(tokenString), tokenString, expiresIn)
+	// 0 means no expiration.
+	// validate token cache
+	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
+		err = s.cache.Set(tokenCacheKey(tokenString), tokenString, s.options.OAuthOptions.AccessTokenMaxAge)
+		if err != nil {
+			klog.Error(err)
+			return "", err
+		}
+	}
 
 	return tokenString, nil
 }
 
 func (s *jwtTokenIssuer) Revoke(token string) error {
-	return s.cache.Del(tokenCacheKey(token))
+	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
+		return s.cache.Del(tokenCacheKey(token))
+	}
+	return nil
 }
 
 func NewJwtTokenIssuer(issuerName string, options *authoptions.AuthenticationOptions, cache cache.Interface) Issuer {
