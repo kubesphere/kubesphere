@@ -21,7 +21,6 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"net/http"
@@ -51,28 +50,26 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	email := user.Spec.Email
-
 	allUsers := v1alpha2.UserList{}
 
-	err = a.Client.List(ctx, &v1alpha2.UserList{}, &client.ListOptions{})
+	err = a.Client.List(ctx, &allUsers, &client.ListOptions{})
 
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	found := emailAlreadyExist(allUsers, email)
+	alreadyExist := emailAlreadyExist(allUsers, user)
 
-	if !found {
-		return admission.Denied(fmt.Sprintf("email %s must be unique", email))
+	if alreadyExist {
+		return admission.Denied("user email already exists")
 	}
 
 	return admission.Allowed("")
 }
 
-func emailAlreadyExist(users v1alpha2.UserList, email string) bool {
-	for _, user := range users.Items {
-		if user.Spec.Email == email {
+func emailAlreadyExist(users v1alpha2.UserList, user *v1alpha2.User) bool {
+	for _, exist := range users.Items {
+		if exist.Spec.Email == user.Spec.Email && exist.Name != user.Name {
 			return true
 		}
 	}
@@ -108,4 +105,16 @@ func (a *PasswordCipher) Handle(ctx context.Context, req admission.Request) admi
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	return string(bytes), err
+}
+
+// InjectDecoder injects the decoder.
+func (a *PasswordCipher) InjectDecoder(d *admission.Decoder) error {
+	a.decoder = d
+	return nil
+}
+
+// InjectDecoder injects the decoder.
+func (a *EmailValidator) InjectDecoder(d *admission.Decoder) error {
+	a.decoder = d
+	return nil
 }
