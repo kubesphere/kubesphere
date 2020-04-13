@@ -25,7 +25,6 @@ const (
 	Deployment  = "Deployment"
 )
 
-//TODO(huanggze): move this part to a ConfigMap
 var promQLTemplates = map[string]string{
 	//cluster
 	"cluster_cpu_utilisation":            ":node_cpu_utilisation:avg1m",
@@ -256,31 +255,33 @@ var promQLTemplates = map[string]string{
 	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
 }
 
-func makeExpression(metric string, opt monitoring.QueryOptions) string {
+func makeExpr(metric string, opt monitoring.QueryOptions) string {
 	tmpl := promQLTemplates[metric]
 	switch opt.Level {
 	case monitoring.LevelCluster:
+		return tmpl
 	case monitoring.LevelNode:
-		makeNodeMetricExpression(tmpl, opt)
+		return makeNodeMetricExpr(tmpl, opt)
 	case monitoring.LevelWorkspace:
-		makeWorkspaceMetricExpression(tmpl, opt)
+		return makeWorkspaceMetricExpr(tmpl, opt)
 	case monitoring.LevelNamespace:
-		makeNamespaceMetricExpression(tmpl, opt)
+		return makeNamespaceMetricExpr(tmpl, opt)
 	case monitoring.LevelWorkload:
-		makeWorkloadMetricExpression(tmpl, opt)
+		return makeWorkloadMetricExpr(tmpl, opt)
 	case monitoring.LevelPod:
-		makePodMetricExpression(tmpl, opt)
+		return makePodMetricExpr(tmpl, opt)
 	case monitoring.LevelContainer:
-		makeContainerMetricExpression(tmpl, opt)
+		return makeContainerMetricExpr(tmpl, opt)
 	case monitoring.LevelPVC:
-		makePVCMetricExpression(tmpl, opt)
+		return makePVCMetricExpr(tmpl, opt)
 	case monitoring.LevelComponent:
+		return tmpl
 	default:
+		return tmpl
 	}
-	return tmpl
 }
 
-func makeNodeMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makeNodeMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var nodeSelector string
 	if o.NodeName != "" {
 		nodeSelector = fmt.Sprintf(`node="%s"`, o.NodeName)
@@ -290,7 +291,7 @@ func makeNodeMetricExpression(tmpl string, o monitoring.QueryOptions) string {
 	return strings.Replace(tmpl, "$1", nodeSelector, -1)
 }
 
-func makeWorkspaceMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makeWorkspaceMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var workspaceSelector string
 	if o.WorkspaceName != "" {
 		workspaceSelector = fmt.Sprintf(`label_kubesphere_io_workspace="%s"`, o.WorkspaceName)
@@ -300,7 +301,7 @@ func makeWorkspaceMetricExpression(tmpl string, o monitoring.QueryOptions) strin
 	return strings.Replace(tmpl, "$1", workspaceSelector, -1)
 }
 
-func makeNamespaceMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makeNamespaceMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var namespaceSelector string
 
 	// For monitoring namespaces in the specific workspace
@@ -321,7 +322,7 @@ func makeNamespaceMetricExpression(tmpl string, o monitoring.QueryOptions) strin
 	return strings.Replace(tmpl, "$1", namespaceSelector, -1)
 }
 
-func makeWorkloadMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makeWorkloadMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var kindSelector, workloadSelector string
 	switch o.WorkloadKind {
 	case "deployment":
@@ -341,7 +342,7 @@ func makeWorkloadMetricExpression(tmpl string, o monitoring.QueryOptions) string
 	return strings.NewReplacer("$1", workloadSelector, "$2", kindSelector).Replace(tmpl)
 }
 
-func makePodMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makePodMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var podSelector, workloadSelector string
 
 	// For monitoriong pods of the specific workload
@@ -371,7 +372,7 @@ func makePodMetricExpression(tmpl string, o monitoring.QueryOptions) string {
 
 	// For monitoring pods on the specific node
 	// GET /nodes/{node}/pods/{pod}
-	if o.PodName != "" {
+	if o.NodeName != "" {
 		if o.PodName != "" {
 			podSelector = fmt.Sprintf(`pod="%s", node="%s"`, o.PodName, o.NodeName)
 		} else {
@@ -381,7 +382,7 @@ func makePodMetricExpression(tmpl string, o monitoring.QueryOptions) string {
 	return strings.NewReplacer("$1", workloadSelector, "$2", podSelector).Replace(tmpl)
 }
 
-func makeContainerMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makeContainerMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var containerSelector string
 	if o.ContainerName != "" {
 		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name="%s"`, o.PodName, o.NamespaceName, o.ContainerName)
@@ -391,7 +392,7 @@ func makeContainerMetricExpression(tmpl string, o monitoring.QueryOptions) strin
 	return strings.Replace(tmpl, "$1", containerSelector, -1)
 }
 
-func makePVCMetricExpression(tmpl string, o monitoring.QueryOptions) string {
+func makePVCMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var pvcSelector string
 
 	// For monitoring persistentvolumeclaims in the specific namespace

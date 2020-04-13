@@ -236,7 +236,7 @@ github.com/gobwas/glob/util/strings
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
-# github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.0
+# github.com/gogo/protobuf v1.3.0 => github.com/gogo/protobuf v1.3.0
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
@@ -487,7 +487,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1 => github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/openshift/api v0.0.0-20200331152225-585af27e34fd => github.com/openshift/api v0.0.0-20200331152225-585af27e34fd
+# github.com/openshift/api v0.0.0-20180801171038-322a19404e37 => github.com/openshift/api v0.0.0-20180801171038-322a19404e37
 github.com/openshift/api/apps/v1
 github.com/openshift/api/project/v1
 # github.com/pborman/uuid v1.2.0 => github.com/pborman/uuid v1.2.0
@@ -625,7 +625,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20191004110552-13f9640d40b9 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -674,7 +674,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200115044656-831fdb1e1868 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+# golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
@@ -860,7 +860,7 @@ istio.io/client-go/pkg/listers/security/v1beta1
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a => istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# k8s.io/api v0.18.0 => k8s.io/api v0.0.0-20191114100352-16d7abae0d2a
+# k8s.io/api v0.0.0-20191114100352-16d7abae0d2a => k8s.io/api v0.0.0-20191114100352-16d7abae0d2a
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
 k8s.io/api/admissionregistration/v1
@@ -909,7 +909,7 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
-# k8s.io/apimachinery v0.18.0 => k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
+# k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb => k8s.io/apimachinery v0.0.0-20191028221656-72ed19daf4bb
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -1280,7 +1280,7 @@ k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/code-generator v0.18.0 => k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
+# k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894 => k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 k8s.io/code-generator/cmd/client-gen
 k8s.io/code-generator/cmd/client-gen/args
 k8s.io/code-generator/cmd/client-gen/generators
@@ -1336,9 +1336,6 @@ k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
 # openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
-openpitrix.io/openpitrix/pkg/client
-openpitrix.io/openpitrix/pkg/client/access
-openpitrix.io/openpitrix/pkg/client/account
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

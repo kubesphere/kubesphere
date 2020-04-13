@@ -15,16 +15,16 @@
  limitations under the License.
 
 */
-package v1alpha2
+package v1alpha3
 
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"net/http"
 )
@@ -36,7 +36,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient monitoring.Interface) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface) error {
 	ws := runtime.NewWebService(GroupVersion)
 
 	h := newHandler(k8sClient, monitoringClient)
@@ -50,8 +50,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes").
@@ -68,8 +68,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}").
@@ -82,8 +82,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces").
@@ -100,8 +100,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}").
@@ -114,8 +114,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
@@ -133,8 +133,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces").
@@ -151,8 +151,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}").
@@ -165,8 +165,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads").
@@ -184,8 +184,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}").
@@ -204,8 +204,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").
@@ -223,8 +223,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").
@@ -238,8 +238,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}/{workload}/pods").
@@ -259,8 +259,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods").
@@ -278,8 +278,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").
@@ -293,8 +293,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers").
@@ -313,8 +313,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").
@@ -329,8 +329,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
@@ -348,8 +348,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims").
@@ -367,8 +367,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("page", "The page number. This field paginates result data of each metric, then returns a specific page. For example, setting **page** to 2 returns the second page. It only applies to sorted metric data.").DataType("integer").Required(false)).
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}").
@@ -382,8 +382,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/components/{component}").
@@ -396,8 +396,8 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, monitoringClient
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentMetricsTag}).
-		Writes(v1alpha2.APIResponse{}).
-		Returns(http.StatusOK, RespOK, v1alpha2.APIResponse{})).
+		Writes(model.Metrics{}).
+		Returns(http.StatusOK, RespOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	c.Add(ws)

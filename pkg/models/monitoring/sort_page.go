@@ -19,7 +19,6 @@
 package monitoring
 
 import (
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"math"
 	"sort"
@@ -41,7 +40,7 @@ const (
 
 type wrapper struct {
 	monitoring.MetricData
-	by func(p, q *monitoring.MetricValue) bool
+	identifier, order string
 }
 
 func (w wrapper) Len() int {
@@ -49,156 +48,142 @@ func (w wrapper) Len() int {
 }
 
 func (w wrapper) Less(i, j int) bool {
-	return w.by(&w.MetricValues[i], &w.MetricValues[j])
+	p := w.MetricValues[i]
+	q := w.MetricValues[j]
+
+	if p.Sample.Value() == q.Sample.Value() {
+		return p.Metadata[w.identifier] < q.Metadata[w.identifier]
+	}
+
+	switch w.order {
+	case OrderAscending:
+		return p.Sample.Value() < q.Sample.Value()
+	default:
+		return p.Sample.Value() > q.Sample.Value()
+	}
 }
 
-func (w wrapper) Swap(i, j int) {
-	w.MetricValues[i], w.MetricValues[j] = w.MetricValues[j], w.MetricValues[i]
+func (id wrapper) Swap(i, j int) {
+	id.MetricValues[i], id.MetricValues[j] = id.MetricValues[j], id.MetricValues[i]
 }
 
-// The sortMetrics sorts a group of resources by a given metric
+// SortMetrics sorts a group of resources by a given metric. Range query doesn't support ranking.
 // Example:
 //
-// before sorting
-// |------| Metric 1 | Metric 2 | Metric 3 |
-// | ID a |     1     |     XL    |           |
-// | ID b |     1     |     S     |           |
-// | ID c |     3     |     M     |           |
+// Before sorting:
+// |  ID | Metric 1  |  Metric 2 |  Metric 3 |
+// |  a  |     1     |     XL    |           |
+// |  b  |     1     |     S     |           |
+// |  c  |     3     |     M     |           |
 //
-// sort by metrics_2
-// |------| Metric 1 | Metric 2 (asc) | Metric 3 |
-// | ID a |     1     |        XL       |           |
-// | ID c |     3     |        M        |           |
-// | ID b |     1     |        S        |           |
-//
-// ranking can only be applied to instant query results, not range query
-func (mo monitoringOperator) SortMetrics(raw v1alpha2.APIResponse, target, order, identifier string) (v1alpha2.APIResponse, int) {
-	if target == "" || len(raw.Results) == 0 {
-		return raw, -1
-	}
-
-	if order == "" {
-		order = OrderDescending
-	}
-
-	var currentResourceMap = make(map[string]int)
-
-	// resource-ordinal map
-	var indexMap = make(map[string]int)
-	i := 0
-
-	for _, item := range raw.Results {
-		if item.MetricType == monitoring.MetricTypeVector && item.Status == monitoring.StatusSuccess {
-			if item.MetricName == target {
-				if order == OrderAscending {
-					sort.Sort(wrapper{item.MetricData, func(p, q *monitoring.MetricValue) bool {
-						if p.Sample[1] == q.Sample[1] {
-							return p.Metadata[identifier] < q.Metadata[identifier]
-						}
-						return p.Sample[1] < q.Sample[1]
-					}})
-				} else {
-					sort.Sort(wrapper{item.MetricData, func(p, q *monitoring.MetricValue) bool {
-						if p.Sample[1] == q.Sample[1] {
-							return p.Metadata[identifier] > q.Metadata[identifier]
-						}
-						return p.Sample[1] > q.Sample[1]
-					}})
-				}
-
-				for _, r := range item.MetricValues {
-					// record the ordinal of resource to indexMap
-					resourceName, exist := r.Metadata[identifier]
-					if exist {
-						if _, exist := indexMap[resourceName]; !exist {
-							indexMap[resourceName] = i
-							i = i + 1
-						}
-					}
-				}
-			}
-
-			// get total number of rows
-			for _, r := range item.MetricValues {
-				k, ok := r.Metadata[identifier]
-				if ok {
-					currentResourceMap[k] = 1
-				}
-			}
-
-		}
-	}
-
-	var keys []string
-	for k := range currentResourceMap {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, resource := range keys {
-		if _, exist := indexMap[resource]; !exist {
-			indexMap[resource] = i
-			i = i + 1
-		}
-	}
-
-	// sort other metrics
-	for i := 0; i < len(raw.Results); i++ {
-		item := raw.Results[i]
-		if item.MetricType == monitoring.MetricTypeVector && item.Status == monitoring.StatusSuccess {
-			sortedMetric := make([]monitoring.MetricValue, len(indexMap))
-			for j := 0; j < len(item.MetricValues); j++ {
-				r := item.MetricValues[j]
-				k, exist := r.Metadata[identifier]
-				if exist {
-					index, exist := indexMap[k]
-					if exist {
-						sortedMetric[index] = r
-					}
-				}
-			}
-
-			raw.Results[i].MetricValues = sortedMetric
-		}
-	}
-
-	return raw, len(indexMap)
-}
-
-func (mo monitoringOperator) PageMetrics(raw v1alpha2.APIResponse, page, limit, rows int) v1alpha2.APIResponse {
-	if page <= 0 || limit <= 0 || rows <= 0 || len(raw.Results) == 0 {
+// After sorting: target=metric_2, order=asc, identifier=id
+// |  ID | Metric 1  |  Metric 2 (asc) |  Metric 3 |
+// |  a  |     1     |        XL       |           |
+// |  c  |     3     |        M        |           |
+// |  b  |     1     |        S        |           |
+func (raw *Metrics) Sort(target, order, identifier string) *Metrics {
+	if target == "" || identifier == "" || len(raw.Results) == 0 {
 		return raw
 	}
 
-	// matrix type can not be sorted
+	resourceSet := make(map[string]bool)    // resource set records possible values of the identifier
+	resourceOrdinal := make(map[string]int) // resource-ordinal map
+
+	ordinal := 0
 	for _, item := range raw.Results {
-		if item.MetricType != monitoring.MetricTypeVector {
-			return raw
+		if item.MetricType != monitoring.MetricTypeVector || item.Error != "" {
+			continue
+		}
+
+		if item.MetricName == target {
+			sort.Sort(wrapper{
+				MetricData: item.MetricData,
+				identifier: identifier,
+				order:      order,
+			})
+
+			for _, mv := range item.MetricValues {
+				// Record ordinals in the final result
+				v, ok := mv.Metadata[identifier]
+				if ok && v != "" {
+					resourceOrdinal[v] = ordinal
+					ordinal++
+				}
+			}
+		}
+
+		// Add every unique identifier value to the set
+		for _, mv := range item.MetricValues {
+			v, ok := mv.Metadata[identifier]
+			if ok && v != "" {
+				resourceSet[v] = true
+			}
 		}
 	}
 
-	// the i page: [(page-1) * limit, (page) * limit - 1]
-	start := (page - 1) * limit
-	end := (page)*limit - 1
+	var resourceList []string
+	for k := range resourceSet {
+		resourceList = append(resourceList, k)
+	}
+	sort.Strings(resourceList)
 
-	for i := 0; i < len(raw.Results); i++ {
-		if raw.Results[i].MetricType != monitoring.MetricTypeVector || raw.Results[i].Status != monitoring.StatusSuccess {
+	// Fill resource-ordinal map with resources never present in the target, and give them ordinals.
+	for _, r := range resourceList {
+		if _, ok := resourceOrdinal[r]; !ok {
+			resourceOrdinal[r] = ordinal
+			ordinal++
+		}
+	}
+
+	// Sort metrics
+	for i, item := range raw.Results {
+		if item.MetricType != monitoring.MetricTypeVector || item.Error != "" {
 			continue
 		}
-		resultLen := len(raw.Results[i].MetricValues)
-		if start >= resultLen {
+
+		sorted := make([]monitoring.MetricValue, len(resourceList))
+		for _, mv := range item.MetricValues {
+			v, ok := mv.Metadata[identifier]
+			if ok && v != "" {
+				ordinal, _ := resourceOrdinal[v]
+				sorted[ordinal] = mv
+			}
+		}
+		raw.Results[i].MetricValues = sorted
+	}
+
+	raw.CurrentPage = 1
+	raw.TotalPages = 1
+	raw.TotalItems = len(resourceList)
+	return raw
+}
+
+func (raw *Metrics) Page(page, limit int) *Metrics {
+	if page < 1 || limit < 1 || len(raw.Results) == 0 {
+		return raw
+	}
+
+	start := (page - 1) * limit
+	end := page * limit
+
+	for i, item := range raw.Results {
+		if item.MetricType != monitoring.MetricTypeVector || item.Error != "" {
+			continue
+		}
+
+		total := len(item.MetricValues)
+		if start >= total {
 			raw.Results[i].MetricValues = nil
 			continue
 		}
-		if end >= resultLen {
-			end = resultLen - 1
+		if end >= total {
+			end = total
 		}
-		slice := raw.Results[i].MetricValues[start : end+1]
-		raw.Results[i].MetricValues = slice
+
+		raw.Results[i].MetricValues = item.MetricValues[start:end]
 	}
 
 	raw.CurrentPage = page
-	raw.TotalPage = int(math.Ceil(float64(rows) / float64(limit)))
-	raw.TotalItem = rows
+	raw.TotalPages = int(math.Ceil(float64(raw.TotalItems) / float64(limit)))
 	return raw
 }
