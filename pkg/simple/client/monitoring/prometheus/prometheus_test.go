@@ -24,7 +24,8 @@ func TestGetNamedMetrics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			expected, err := jsonFromFile(tt.expected)
+			expected := make([]monitoring.Metric, 0)
+			err := jsonFromFile(tt.expected, &expected)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -53,7 +54,8 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			expected, err := jsonFromFile(tt.expected)
+			expected := make([]monitoring.Metric, 0)
+			err := jsonFromFile(tt.expected, &expected)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -70,6 +72,44 @@ func TestGetNamedMetricsOverTime(t *testing.T) {
 	}
 }
 
+func TestGetMetadata(t *testing.T) {
+	tests := []struct {
+		fakeResp string
+		expected string
+	}{
+		{
+			fakeResp: "metadata-prom.json",
+			expected: "metadata-res.json",
+		},
+		{
+			fakeResp: "metadata-notfound-prom.json",
+			expected: "metadata-notfound-res.json",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			expected := make([]monitoring.Metadata, 0)
+			err := jsonFromFile(tt.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(expected) == 0 {
+				expected = nil
+			}
+
+			srv := mockPrometheusService("/api/v1/targets/metadata", tt.fakeResp)
+			defer srv.Close()
+
+			client, _ := NewPrometheus(&Options{Endpoint: srv.URL})
+			result := client.GetMetadata("default")
+			if diff := cmp.Diff(result, expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
 func mockPrometheusService(pattern, fakeResp string) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
@@ -79,17 +119,15 @@ func mockPrometheusService(pattern, fakeResp string) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-func jsonFromFile(expectedFile string) ([]monitoring.Metric, error) {
-	expectedJson := []monitoring.Metric{}
-
+func jsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
 	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
 	if err != nil {
-		return expectedJson, err
+		return err
 	}
-	err = jsoniter.Unmarshal(json, &expectedJson)
+	err = jsoniter.Unmarshal(json, expectedJsonPtr)
 	if err != nil {
-		return expectedJson, err
+		return err
 	}
 
-	return expectedJson, nil
+	return nil
 }

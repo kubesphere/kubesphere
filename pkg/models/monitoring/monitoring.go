@@ -19,15 +19,17 @@
 package monitoring
 
 import (
+	"kubesphere.io/kubesphere/pkg/models/monitoring/expressions"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"time"
 )
 
 type MonitoringOperator interface {
-	GetMetrics(stmts []string, time time.Time) Metrics
-	GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) Metrics
+	GetMetric(expr, namespace string, time time.Time) (monitoring.Metric, error)
+	GetMetricOverTime(expr, namespace string, start, end time.Time, step time.Duration) (monitoring.Metric, error)
 	GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics
 	GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics
+	GetMetadata(namespace string) Metadata
 }
 
 type monitoringOperator struct {
@@ -38,14 +40,28 @@ func NewMonitoringOperator(client monitoring.Interface) MonitoringOperator {
 	return &monitoringOperator{client}
 }
 
-// TODO(huanggze): reserve for custom monitoring
-func (mo monitoringOperator) GetMetrics(stmts []string, time time.Time) Metrics {
-	panic("implement me")
+func (mo monitoringOperator) GetMetric(expr, namespace string, time time.Time) (monitoring.Metric, error) {
+	// Different monitoring backend implementations have different ways to enforce namespace isolation.
+	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+	// We hard code "prometheus" here because we only support this datasource so far.
+	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+	expr, err := expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
+	if err != nil {
+		return monitoring.Metric{}, err
+	}
+	return mo.c.GetMetric(expr, time), nil
 }
 
-// TODO(huanggze): reserve for custom monitoring
-func (mo monitoringOperator) GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) Metrics {
-	panic("implement me")
+func (mo monitoringOperator) GetMetricOverTime(expr, namespace string, start, end time.Time, step time.Duration) (monitoring.Metric, error) {
+	// Different monitoring backend implementations have different ways to enforce namespace isolation.
+	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+	// We hard code "prometheus" here because we only support this datasource so far.
+	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+	expr, err := expressions.ReplaceNamespaceFns["prometheus"](expr, namespace)
+	if err != nil {
+		return monitoring.Metric{}, err
+	}
+	return mo.c.GetMetricOverTime(expr, start, end, step), nil
 }
 
 func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics {
@@ -56,4 +72,9 @@ func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, o
 func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics {
 	ress := mo.c.GetNamedMetricsOverTime(metrics, start, end, step, opt)
 	return Metrics{Results: ress}
+}
+
+func (mo monitoringOperator) GetMetadata(namespace string) Metadata {
+	data := mo.c.GetMetadata(namespace)
+	return Metadata{Data: data}
 }

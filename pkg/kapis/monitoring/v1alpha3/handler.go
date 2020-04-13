@@ -192,3 +192,36 @@ func (h handler) handleNamedMetricsQuery(resp *restful.Response, q queryOptions)
 	}
 	resp.WriteAsJson(res)
 }
+
+func (h handler) handleMetadataQuery(req *restful.Request, resp *restful.Response) {
+	res := h.mo.GetMetadata(req.PathParameter("namespace"))
+	resp.WriteAsJson(res)
+}
+
+func (h handler) handleAdhocQuery(req *restful.Request, resp *restful.Response) {
+	var res monitoring.Metric
+
+	params := parseRequestParams(req)
+	opt, err := h.makeQueryOptions(params, 0)
+	if err != nil {
+		if err.Error() == ErrNoHit {
+			resp.WriteAsJson(res)
+			return
+		}
+
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	if opt.isRangeQuery() {
+		res, err = h.mo.GetMetricOverTime(params.expression, params.namespaceName, opt.start, opt.end, opt.step)
+	} else {
+		res, err = h.mo.GetMetric(params.expression, params.namespaceName, opt.time)
+	}
+
+	if err != nil {
+		api.HandleBadRequest(resp, nil, err)
+	} else {
+		resp.WriteAsJson(res)
+	}
+}

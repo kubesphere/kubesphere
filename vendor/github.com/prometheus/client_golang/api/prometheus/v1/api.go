@@ -17,16 +17,104 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+	"unsafe"
+
+	json "github.com/json-iterator/go"
+
+	"github.com/prometheus/common/model"
 
 	"github.com/prometheus/client_golang/api"
-	"github.com/prometheus/common/model"
 )
+
+func init() {
+	json.RegisterTypeEncoderFunc("model.SamplePair", marshalPointJSON, marshalPointJSONIsEmpty)
+	json.RegisterTypeDecoderFunc("model.SamplePair", unMarshalPointJSON)
+}
+
+func unMarshalPointJSON(ptr unsafe.Pointer, iter *json.Iterator) {
+	p := (*model.SamplePair)(ptr)
+	if !iter.ReadArray() {
+		iter.ReportError("unmarshal model.SamplePair", "SamplePair must be [timestamp, value]")
+		return
+	}
+	t := iter.ReadNumber()
+	if err := p.Timestamp.UnmarshalJSON([]byte(t)); err != nil {
+		iter.ReportError("unmarshal model.SamplePair", err.Error())
+		return
+	}
+	if !iter.ReadArray() {
+		iter.ReportError("unmarshal model.SamplePair", "SamplePair missing value")
+		return
+	}
+
+	f, err := strconv.ParseFloat(iter.ReadString(), 64)
+	if err != nil {
+		iter.ReportError("unmarshal model.SamplePair", err.Error())
+		return
+	}
+	p.Value = model.SampleValue(f)
+
+	if iter.ReadArray() {
+		iter.ReportError("unmarshal model.SamplePair", "SamplePair has too many values, must be [timestamp, value]")
+		return
+	}
+}
+
+func marshalPointJSON(ptr unsafe.Pointer, stream *json.Stream) {
+	p := *((*model.SamplePair)(ptr))
+	stream.WriteArrayStart()
+	// Write out the timestamp as a float divided by 1000.
+	// This is ~3x faster than converting to a float.
+	t := int64(p.Timestamp)
+	if t < 0 {
+		stream.WriteRaw(`-`)
+		t = -t
+	}
+	stream.WriteInt64(t / 1000)
+	fraction := t % 1000
+	if fraction != 0 {
+		stream.WriteRaw(`.`)
+		if fraction < 100 {
+			stream.WriteRaw(`0`)
+		}
+		if fraction < 10 {
+			stream.WriteRaw(`0`)
+		}
+		stream.WriteInt64(fraction)
+	}
+	stream.WriteMore()
+	stream.WriteRaw(`"`)
+
+	// Taken from https://github.com/json-iterator/go/blob/master/stream_float.go#L71 as a workaround
+	// to https://github.com/json-iterator/go/issues/365 (jsoniter, to follow json standard, doesn't allow inf/nan)
+	buf := stream.Buffer()
+	abs := math.Abs(float64(p.Value))
+	fmt := byte('f')
+	// Note: Must use float32 comparisons for underlying float32 value to get precise cutoffs right.
+	if abs != 0 {
+		if abs < 1e-6 || abs >= 1e21 {
+			fmt = 'e'
+			fmt = 'e'
+		}
+	}
+	buf = strconv.AppendFloat(buf, float64(p.Value), fmt, -1, 64)
+	stream.SetBuffer(buf)
+
+	stream.WriteRaw(`"`)
+	stream.WriteArrayEnd()
+
+}
+
+func marshalPointJSONIsEmpty(ptr unsafe.Pointer) bool {
+	return false
+}
 
 const (
 	statusAPIError = 422
@@ -40,6 +128,7 @@ const (
 	epLabelValues     = apiPrefix + "/label/:name/values"
 	epSeries          = apiPrefix + "/series"
 	epTargets         = apiPrefix + "/targets"
+	epTargetsMetadata = apiPrefix + "/targets/metadata"
 	epRules           = apiPrefix + "/rules"
 	epSnapshot        = apiPrefix + "/admin/tsdb/snapshot"
 	epDeleteSeries    = apiPrefix + "/admin/tsdb/delete_series"
@@ -62,6 +151,9 @@ type RuleType string
 
 // RuleHealth models the health status of a rule.
 type RuleHealth string
+
+// MetricType models the type of a metric.
+type MetricType string
 
 const (
 	// Possible values for AlertState.
@@ -91,17 +183,40 @@ const (
 	RuleHealthGood    = "ok"
 	RuleHealthUnknown = "unknown"
 	RuleHealthBad     = "err"
+
+	// Possible values for MetricType
+	MetricTypeCounter        MetricType = "counter"
+	MetricTypeGauge          MetricType = "gauge"
+	MetricTypeHistogram      MetricType = "histogram"
+	MetricTypeGaugeHistogram MetricType = "gaugehistogram"
+	MetricTypeSummary        MetricType = "summary"
+	MetricTypeInfo           MetricType = "info"
+	MetricTypeStateset       MetricType = "stateset"
+	MetricTypeUnknown        MetricType = "unknown"
 )
 
 // Error is an error returned by the API.
 type Error struct {
-	Type   ErrorType
-	Msg    string
-	Detail string
+	Type     ErrorType
+	Msg      string
+	Detail   string
+	warnings []string
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("%s: %s", e.Type, e.Msg)
+	if e.Type != "" || e.Msg != "" {
+		return fmt.Sprintf("%s: %s", e.Type, e.Msg)
+	}
+
+	return "Warnings: " + strings.Join(e.warnings, " , ")
+}
+
+func (w *Error) Err() error {
+	return w
+}
+
+func (w *Error) Warnings() []string {
+	return w.warnings
 }
 
 // Range represents a sliced time range.
@@ -115,32 +230,34 @@ type Range struct {
 // API provides bindings for Prometheus's v1 API.
 type API interface {
 	// Alerts returns a list of all active alerts.
-	Alerts(ctx context.Context) (AlertsResult, error)
+	Alerts(ctx context.Context) (AlertsResult, api.Error)
 	// AlertManagers returns an overview of the current state of the Prometheus alert manager discovery.
-	AlertManagers(ctx context.Context) (AlertManagersResult, error)
+	AlertManagers(ctx context.Context) (AlertManagersResult, api.Error)
 	// CleanTombstones removes the deleted data from disk and cleans up the existing tombstones.
-	CleanTombstones(ctx context.Context) error
+	CleanTombstones(ctx context.Context) api.Error
 	// Config returns the current Prometheus configuration.
-	Config(ctx context.Context) (ConfigResult, error)
+	Config(ctx context.Context) (ConfigResult, api.Error)
 	// DeleteSeries deletes data for a selection of series in a time range.
-	DeleteSeries(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) error
+	DeleteSeries(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) api.Error
 	// Flags returns the flag values that Prometheus was launched with.
-	Flags(ctx context.Context) (FlagsResult, error)
+	Flags(ctx context.Context) (FlagsResult, api.Error)
 	// LabelValues performs a query for the values of the given label.
-	LabelValues(ctx context.Context, label string) (model.LabelValues, error)
+	LabelValues(ctx context.Context, label string) (model.LabelValues, api.Error)
 	// Query performs a query for the given time.
-	Query(ctx context.Context, query string, ts time.Time) (model.Value, error)
+	Query(ctx context.Context, query string, ts time.Time) (model.Value, api.Error)
 	// QueryRange performs a query for the given range.
-	QueryRange(ctx context.Context, query string, r Range) (model.Value, error)
+	QueryRange(ctx context.Context, query string, r Range) (model.Value, api.Error)
 	// Series finds series by label matchers.
-	Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error)
+	Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, api.Error)
 	// Snapshot creates a snapshot of all current data into snapshots/<datetime>-<rand>
 	// under the TSDB's data directory and returns the directory as response.
-	Snapshot(ctx context.Context, skipHead bool) (SnapshotResult, error)
+	Snapshot(ctx context.Context, skipHead bool) (SnapshotResult, api.Error)
 	// Rules returns a list of alerting and recording rules that are currently loaded.
-	Rules(ctx context.Context) (RulesResult, error)
+	Rules(ctx context.Context) (RulesResult, api.Error)
 	// Targets returns an overview of the current state of the Prometheus target discovery.
-	Targets(ctx context.Context) (TargetsResult, error)
+	Targets(ctx context.Context) (TargetsResult, api.Error)
+	// TargetsMetadata returns metadata about metrics currently scraped by the target.
+	TargetsMetadata(ctx context.Context, matchTarget string, metric string, limit string) ([]MetricMetadata, api.Error)
 }
 
 // AlertsResult contains the result from querying the alerts endpoint.
@@ -226,7 +343,7 @@ type Alert struct {
 	Annotations model.LabelSet
 	Labels      model.LabelSet
 	State       AlertState
-	Value       float64
+	Value       string
 }
 
 // TargetsResult contains the result from querying the targets endpoint.
@@ -248,6 +365,15 @@ type ActiveTarget struct {
 // DroppedTarget models a dropped Prometheus scrape target.
 type DroppedTarget struct {
 	DiscoveredLabels map[string]string `json:"discoveredLabels"`
+}
+
+// MetricMetadata models the metadata of a metric.
+type MetricMetadata struct {
+	Target map[string]string `json:"target"`
+	Metric string            `json:"metric,omitempty"`
+	Type   MetricType        `json:"type"`
+	Help   string            `json:"help"`
+	Unit   string            `json:"unit"`
 }
 
 // queryResult contains result data for a query.
@@ -408,73 +534,73 @@ type httpAPI struct {
 	client api.Client
 }
 
-func (h *httpAPI) Alerts(ctx context.Context) (AlertsResult, error) {
+func (h *httpAPI) Alerts(ctx context.Context) (AlertsResult, api.Error) {
 	u := h.client.URL(epAlerts, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return AlertsResult{}, err
+		return AlertsResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return AlertsResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return AlertsResult{}, apiErr
 	}
 
 	var res AlertsResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) AlertManagers(ctx context.Context) (AlertManagersResult, error) {
+func (h *httpAPI) AlertManagers(ctx context.Context) (AlertManagersResult, api.Error) {
 	u := h.client.URL(epAlertManagers, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return AlertManagersResult{}, err
+		return AlertManagersResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return AlertManagersResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return AlertManagersResult{}, apiErr
 	}
 
 	var res AlertManagersResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) CleanTombstones(ctx context.Context) error {
+func (h *httpAPI) CleanTombstones(ctx context.Context) api.Error {
 	u := h.client.URL(epCleanTombstones, nil)
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), nil)
 	if err != nil {
-		return err
+		return api.NewErrorAPI(err, nil)
 	}
 
-	_, _, err = h.client.Do(ctx, req)
-	return err
+	_, _, apiErr := h.client.Do(ctx, req)
+	return apiErr
 }
 
-func (h *httpAPI) Config(ctx context.Context) (ConfigResult, error) {
+func (h *httpAPI) Config(ctx context.Context) (ConfigResult, api.Error) {
 	u := h.client.URL(epConfig, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return ConfigResult{}, err
+		return ConfigResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return ConfigResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return ConfigResult{}, apiErr
 	}
 
 	var res ConfigResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) DeleteSeries(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) error {
+func (h *httpAPI) DeleteSeries(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) api.Error {
 	u := h.client.URL(epDeleteSeries, nil)
 	q := u.Query()
 
@@ -489,47 +615,47 @@ func (h *httpAPI) DeleteSeries(ctx context.Context, matches []string, startTime 
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), nil)
 	if err != nil {
-		return err
+		return api.NewErrorAPI(err, nil)
 	}
 
-	_, _, err = h.client.Do(ctx, req)
-	return err
+	_, _, apiErr := h.client.Do(ctx, req)
+	return apiErr
 }
 
-func (h *httpAPI) Flags(ctx context.Context) (FlagsResult, error) {
+func (h *httpAPI) Flags(ctx context.Context) (FlagsResult, api.Error) {
 	u := h.client.URL(epFlags, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return FlagsResult{}, err
+		return FlagsResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return FlagsResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return FlagsResult{}, apiErr
 	}
 
 	var res FlagsResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) LabelValues(ctx context.Context, label string) (model.LabelValues, error) {
+func (h *httpAPI) LabelValues(ctx context.Context, label string) (model.LabelValues, api.Error) {
 	u := h.client.URL(epLabelValues, map[string]string{"name": label})
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, api.NewErrorAPI(err, nil)
 	}
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return nil, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 	var labelValues model.LabelValues
 	err = json.Unmarshal(body, &labelValues)
-	return labelValues, err
+	return labelValues, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) Query(ctx context.Context, query string, ts time.Time) (model.Value, error) {
+func (h *httpAPI) Query(ctx context.Context, query string, ts time.Time) (model.Value, api.Error) {
 	u := h.client.URL(epQuery, nil)
 	q := u.Query()
 
@@ -538,18 +664,16 @@ func (h *httpAPI) Query(ctx context.Context, query string, ts time.Time) (model.
 		q.Set("time", ts.Format(time.RFC3339Nano))
 	}
 
-	_, body, err := api.DoGetFallback(h.client, ctx, u, q)
-	if err != nil {
-		return nil, err
+	_, body, apiErr := api.DoGetFallback(h.client, ctx, u, q)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	var qres queryResult
-	err = json.Unmarshal(body, &qres)
-
-	return model.Value(qres.v), err
+	return model.Value(qres.v), api.NewErrorAPI(json.Unmarshal(body, &qres), nil)
 }
 
-func (h *httpAPI) QueryRange(ctx context.Context, query string, r Range) (model.Value, error) {
+func (h *httpAPI) QueryRange(ctx context.Context, query string, r Range) (model.Value, api.Error) {
 	u := h.client.URL(epQueryRange, nil)
 	q := u.Query()
 
@@ -564,18 +688,17 @@ func (h *httpAPI) QueryRange(ctx context.Context, query string, r Range) (model.
 	q.Set("end", end)
 	q.Set("step", step)
 
-	_, body, err := api.DoGetFallback(h.client, ctx, u, q)
-	if err != nil {
-		return nil, err
+	_, body, apiErr := api.DoGetFallback(h.client, ctx, u, q)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	var qres queryResult
-	err = json.Unmarshal(body, &qres)
 
-	return model.Value(qres.v), err
+	return model.Value(qres.v), api.NewErrorAPI(json.Unmarshal(body, &qres), nil)
 }
 
-func (h *httpAPI) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error) {
+func (h *httpAPI) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, api.Error) {
 	u := h.client.URL(epSeries, nil)
 	q := u.Query()
 
@@ -590,20 +713,20 @@ func (h *httpAPI) Series(ctx context.Context, matches []string, startTime time.T
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return nil, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	var mset []model.LabelSet
 	err = json.Unmarshal(body, &mset)
-	return mset, err
+	return mset, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) Snapshot(ctx context.Context, skipHead bool) (SnapshotResult, error) {
+func (h *httpAPI) Snapshot(ctx context.Context, skipHead bool) (SnapshotResult, api.Error) {
 	u := h.client.URL(epSnapshot, nil)
 	q := u.Query()
 
@@ -613,53 +736,78 @@ func (h *httpAPI) Snapshot(ctx context.Context, skipHead bool) (SnapshotResult, 
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), nil)
 	if err != nil {
-		return SnapshotResult{}, err
+		return SnapshotResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return SnapshotResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return SnapshotResult{}, apiErr
 	}
 
 	var res SnapshotResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) Rules(ctx context.Context) (RulesResult, error) {
+func (h *httpAPI) Rules(ctx context.Context) (RulesResult, api.Error) {
 	u := h.client.URL(epRules, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return RulesResult{}, err
+		return RulesResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return RulesResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return RulesResult{}, apiErr
 	}
 
 	var res RulesResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
 }
 
-func (h *httpAPI) Targets(ctx context.Context) (TargetsResult, error) {
+func (h *httpAPI) Targets(ctx context.Context) (TargetsResult, api.Error) {
 	u := h.client.URL(epTargets, nil)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return TargetsResult{}, err
+		return TargetsResult{}, api.NewErrorAPI(err, nil)
 	}
 
-	_, body, err := h.client.Do(ctx, req)
-	if err != nil {
-		return TargetsResult{}, err
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return TargetsResult{}, apiErr
 	}
 
 	var res TargetsResult
 	err = json.Unmarshal(body, &res)
-	return res, err
+	return res, api.NewErrorAPI(err, nil)
+}
+
+func (h *httpAPI) TargetsMetadata(ctx context.Context, matchTarget string, metric string, limit string) ([]MetricMetadata, api.Error) {
+	u := h.client.URL(epTargetsMetadata, nil)
+	q := u.Query()
+
+	q.Set("match_target", matchTarget)
+	q.Set("metric", metric)
+	q.Set("limit", limit)
+
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, api.NewErrorAPI(err, nil)
+	}
+
+	_, body, apiErr := h.client.Do(ctx, req)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	var res []MetricMetadata
+	err = json.Unmarshal(body, &res)
+	return res, api.NewErrorAPI(err, nil)
 }
 
 // apiClient wraps a regular client and processes successful API responses.
@@ -673,6 +821,7 @@ type apiResponse struct {
 	Data      json.RawMessage `json:"data"`
 	ErrorType ErrorType       `json:"errorType"`
 	Error     string          `json:"error"`
+	Warnings  []string        `json:"warnings,omitempty"`
 }
 
 func apiError(code int) bool {
@@ -690,13 +839,15 @@ func errorTypeAndMsgFor(resp *http.Response) (ErrorType, string) {
 	return ErrBadResponse, fmt.Sprintf("bad response code %d", resp.StatusCode)
 }
 
-func (c apiClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
-	resp, body, err := c.Client.Do(ctx, req)
-	if err != nil {
-		return resp, body, err
+func (c apiClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, api.Error) {
+	resp, body, apiErr := c.Client.Do(ctx, req)
+	if apiErr != nil {
+		return resp, body, apiErr
 	}
 
 	code := resp.StatusCode
+
+	var err api.Error
 
 	if code/100 != 2 && !apiError(code) {
 		errorType, errorMsg := errorTypeAndMsgFor(resp)
@@ -710,27 +861,30 @@ func (c apiClient) Do(ctx context.Context, req *http.Request) (*http.Response, [
 	var result apiResponse
 
 	if http.StatusNoContent != code {
-		if err = json.Unmarshal(body, &result); err != nil {
+		if jsonErr := json.Unmarshal(body, &result); jsonErr != nil {
 			return resp, body, &Error{
 				Type: ErrBadResponse,
-				Msg:  err.Error(),
+				Msg:  jsonErr.Error(),
 			}
 		}
 	}
 
 	if apiError(code) != (result.Status == "error") {
 		err = &Error{
-			Type: ErrBadResponse,
-			Msg:  "inconsistent body for response code",
+			Type:     ErrBadResponse,
+			Msg:      "inconsistent body for response code",
+			warnings: result.Warnings,
 		}
 	}
 
 	if apiError(code) && result.Status == "error" {
 		err = &Error{
-			Type: result.ErrorType,
-			Msg:  result.Error,
+			Type:     result.ErrorType,
+			Msg:      result.Error,
+			warnings: result.Warnings,
 		}
 	}
 
 	return resp, []byte(result.Data), err
+
 }
