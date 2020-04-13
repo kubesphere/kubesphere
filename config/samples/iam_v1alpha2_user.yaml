@@ -6,4 +6,4 @@ metadata:
   name: admin
 spec:
   email: admin@kubesphere.io
-  password: $2a$04$wr/XmTQ99uQpgi335xPyoOM08h34ZQk265pdqHMv5Yw6Xo2vfiO/6
+  password: P@88w0rd
