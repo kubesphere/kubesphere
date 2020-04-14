@@ -1,7 +1,10 @@
 package v1alpha2
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/server/params"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"strings"
 )
 
@@ -24,6 +27,7 @@ const (
 	Keyword          = "keyword"
 	UserFacing       = "userfacing"
 	Status           = "status"
+	Owner            = "owner"
 
 	StatusRunning            = "running"
 	StatusPaused             = "paused"
@@ -66,7 +70,61 @@ type Interface interface {
 	Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error)
 }
 
-func SearchFuzzy(m map[string]string, key, value string) bool {
+func ObjectMetaExactlyMath(key, value string, item metav1.ObjectMeta) bool {
+	switch key {
+	case Name:
+		names := strings.Split(value, "|")
+		if !sliceutil.HasString(names, item.Name) {
+			return false
+		}
+	case Keyword:
+		if !strings.Contains(item.Name, value) && !FuzzyMatch(item.Labels, "", value) && !FuzzyMatch(item.Annotations, "", value) {
+			return false
+		}
+	default:
+		// label not exist or value not equal
+		if val, ok := item.Labels[key]; !ok || val != value {
+			return false
+		}
+	}
+	return true
+}
+
+func ObjectMetaFuzzyMath(key, value string, item metav1.ObjectMeta) bool {
+	switch key {
+	case Name:
+		if !strings.Contains(item.Name, value) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], value) {
+			return false
+		}
+	case Label:
+		if !FuzzyMatch(item.Labels, "", value) {
+			return false
+		}
+	case Annotation:
+		if !FuzzyMatch(item.Annotations, "", value) {
+			return false
+		}
+		return false
+	case App:
+		if !strings.Contains(item.Labels[Chart], value) && !strings.Contains(item.Labels[Release], value) {
+			return false
+		}
+	case Owner:
+		for _, ownerReference := range item.OwnerReferences {
+			if strings.Compare(string(ownerReference.UID), value) == 0 {
+				return true
+			}
+		}
+		return false
+	default:
+		if !FuzzyMatch(item.Labels, key, value) {
+			return false
+		}
+	}
+	return true
+}
+
+func FuzzyMatch(m map[string]string, key, value string) bool {
 
 	val, exist := m[key]
 
@@ -77,4 +135,18 @@ func SearchFuzzy(m map[string]string, key, value string) bool {
 	}
 
 	return false
+}
+
+func ObjectMetaCompare(left, right metav1.ObjectMeta, compareField string) bool {
+	switch compareField {
+	case CreateTime:
+		if left.CreationTimestamp.Equal(&right.CreationTimestamp) {
+			return strings.Compare(left.Name, right.Name) <= 0
+		}
+		return left.CreationTimestamp.Time.Before(right.CreationTimestamp.Time)
+	case Name:
+		fallthrough
+	default:
+		return strings.Compare(left.Name, right.Name) <= 0
+	}
 }

@@ -152,7 +152,6 @@ const (
 	ClusterScope    Scope = "Cluster"
 	WorkspaceScope  Scope = "Workspace"
 	NamespaceScope  Scope = "Namespace"
-	TargetAll             = "*"
 	UserKind              = "User"
 	PolicyRuleKind        = "PolicyRule"
 	RoleKind              = "Role"

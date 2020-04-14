@@ -1,8 +1,8 @@
-package deployment
+package configmap
 
 import (
 	"github.com/google/go-cmp/cmp"
-	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func TestListDeployments(t *testing.T) {
+func TestListConfigMaps(t *testing.T) {
 	tests := []struct {
 		description string
 		namespace   string
@@ -22,26 +22,24 @@ func TestListDeployments(t *testing.T) {
 	}{
 		{
 			"test name filter",
-			"bar",
+			"default",
 			&query.Query{
 				Pagination: &query.Pagination{
-					Limit:  1,
+					Limit:  10,
 					Offset: 0,
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
 				Filters: []query.Filter{
 					{
-						Field: query.FieldName,
-						Value: query.Value("foo2"),
+						Field: query.FieldNamespace,
+						Value: query.Value("default"),
 					},
 				},
 			},
 			&api.ListResult{
-				Items: []interface{}{
-					foo2,
-				},
-				TotalItems: 1,
+				Items:      []interface{}{foo3, foo2, foo1},
+				TotalItems: len(configmaps),
 			},
 			nil,
 		},
@@ -50,53 +48,48 @@ func TestListDeployments(t *testing.T) {
 	getter := prepare()
 
 	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
+		got, err := getter.List(test.namespace, test.query)
+		if test.expectedErr != nil && err != test.expectedErr {
+			t.Errorf("expected error, got nothing")
+		} else if err != nil {
+			t.Fatal(err)
+		}
 
-			got, err := getter.List(test.namespace, test.query)
-
-			if test.expectedErr != nil && err != test.expectedErr {
-				t.Errorf("expected error, got nothing")
-			} else if err != nil {
-				t.Fatal(err)
-			}
-
-			if diff := cmp.Diff(got, test.expected); diff != "" {
-				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
-			}
-		})
+		if diff := cmp.Diff(got, test.expected); diff != "" {
+			t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
+		}
 	}
 }
 
 var (
-	foo1 = &appsv1.Deployment{
+	foo1 = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo1",
-			Namespace: "bar",
+			Namespace: "default",
 		},
 	}
-
-	foo2 = &appsv1.Deployment{
+	foo2 = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo2",
-			Namespace: "bar",
+			Namespace: "default",
 		},
 	}
-	bar1 = &appsv1.Deployment{
+	foo3 = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bar1",
-			Namespace: "bar",
+			Name:      "foo3",
+			Namespace: "default",
 		},
 	}
-
-	deployments = []interface{}{foo1, foo2, bar1}
+	configmaps = []interface{}{foo1, foo2, foo3}
 )
 
 func prepare() v1alpha3.Interface {
+
 	client := fake.NewSimpleClientset()
 	informer := informers.NewSharedInformerFactory(client, 0)
 
-	for _, deployment := range deployments {
-		informer.Apps().V1().Deployments().Informer().GetIndexer().Add(deployment)
+	for _, configmap := range configmaps {
+		informer.Core().V1().ConfigMaps().Informer().GetIndexer().Add(configmap)
 	}
 
 	return New(informer)

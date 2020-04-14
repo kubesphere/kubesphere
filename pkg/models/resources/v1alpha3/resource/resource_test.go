@@ -22,8 +22,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
-	v1 "k8s.io/api/core/v1"
-	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -34,37 +34,7 @@ import (
 
 func TestResourceGetter(t *testing.T) {
 
-	namespaces := make([]interface{}, 0)
-	defaultNamespace := &v1.Namespace{
-		ObjectMeta: corev1.ObjectMeta{
-			Name:   "default",
-			Labels: map[string]string{"kubesphere.io/workspace": "system-workspace"},
-		},
-	}
-	kubesphereNamespace := &v1.Namespace{
-		ObjectMeta: corev1.ObjectMeta{
-			Name:   "kubesphere-system",
-			Labels: map[string]string{"kubesphere.io/workspace": "system-workspace"},
-		},
-	}
-
-	namespaces = append(namespaces, defaultNamespace, kubesphereNamespace)
-
-	ksClient := fakeks.NewSimpleClientset()
-	k8sClient := fakek8s.NewSimpleClientset(defaultNamespace, kubesphereNamespace)
-	istioClient := fakeistio.NewSimpleClientset()
-	appClient := fakeapp.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient)
-
-	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
-	for _, namespace := range namespaces {
-		err := k8sInformerFactory.Core().V1().Namespaces().Informer().GetIndexer().Add(namespace)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	resource := New(fakeInformerFactory)
+	resource := prepare()
 
 	tests := []struct {
 		Name           string
@@ -89,8 +59,8 @@ func TestResourceGetter(t *testing.T) {
 			},
 			ExpectError: nil,
 			ExpectResponse: &api.ListResult{
-				Items:      namespaces,
-				TotalItems: 2,
+				Items:      []interface{}{foo2, foo1, bar1},
+				TotalItems: 3,
 			},
 		},
 	}
@@ -99,7 +69,6 @@ func TestResourceGetter(t *testing.T) {
 
 		result, err := resource.List(test.Resource, test.Namespace, test.Query)
 
-		t.Logf("%+v", result)
 		if err != test.ExpectError {
 			t.Errorf("expected error: %s, got: %s", test.ExpectError, err)
 		}
@@ -107,5 +76,44 @@ func TestResourceGetter(t *testing.T) {
 			t.Errorf(diff)
 		}
 	}
+}
 
+var (
+	foo1 = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo1",
+			Namespace: "bar",
+		},
+	}
+
+	foo2 = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo2",
+			Namespace: "bar",
+		},
+	}
+	bar1 = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar1",
+			Namespace: "bar",
+		},
+	}
+
+	namespaces = []interface{}{foo1, foo2, bar1}
+)
+
+func prepare() *ResourceGetter {
+
+	ksClient := fakeks.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	istioClient := fakeistio.NewSimpleClientset()
+	appClient := fakeapp.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient)
+
+	for _, namespace := range namespaces {
+		fakeInformerFactory.KubernetesSharedInformerFactory().Core().V1().
+			Namespaces().Informer().GetIndexer().Add(namespace)
+	}
+
+	return NewResourceGetter(fakeInformerFactory)
 }

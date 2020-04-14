@@ -19,15 +19,11 @@ package hpa
 
 import (
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 type hpaSearcher struct {
@@ -58,17 +54,8 @@ func (*hpaSearcher) match(match map[string]string, item *autoscalingv2beta2.Hori
 			if !hpaTargetMatch(item, kind, name) {
 				return false
 			}
-		case v1alpha2.Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case v1alpha2.Keyword:
-			if !strings.Contains(item.Name, v) && !v1alpha2.SearchFuzzy(item.Labels, "", v) && !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			if item.Labels[k] != v {
+			if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -76,45 +63,13 @@ func (*hpaSearcher) match(match map[string]string, item *autoscalingv2beta2.Hori
 	return true
 }
 
-// Fuzzy searchInNamespace
 func (*hpaSearcher) fuzzy(fuzzy map[string]string, item *autoscalingv2beta2.HorizontalPodAutoscaler) bool {
 	for k, v := range fuzzy {
-		switch k {
-		case v1alpha2.Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case v1alpha2.Label:
-			if !v1alpha2.SearchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case v1alpha2.Annotation:
-			if !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
-		case v1alpha2.App:
-			if !strings.Contains(item.Labels[v1alpha2.Chart], v) && !strings.Contains(item.Labels[v1alpha2.Release], v) {
-				return false
-			}
-		default:
-			if !v1alpha2.SearchFuzzy(item.Labels, k, v) && !v1alpha2.SearchFuzzy(item.Annotations, k, v) {
-				return false
-			}
 		}
 	}
 	return true
-}
-
-func (*hpaSearcher) compare(a, b *autoscalingv2beta2.HorizontalPodAutoscaler, orderBy string) bool {
-	switch orderBy {
-	case v1alpha2.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case v1alpha2.Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
 }
 
 func (s *hpaSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
@@ -138,11 +93,9 @@ func (s *hpaSearcher) Search(namespace string, conditions *params.Conditions, or
 	}
 	sort.Slice(result, func(i, j int) bool {
 		if reverse {
-			tmp := i
-			i = j
-			j = tmp
+			i, j = j, i
 		}
-		return s.compare(result[i], result[j], orderBy)
+		return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
 	})
 
 	r := make([]interface{}, 0)

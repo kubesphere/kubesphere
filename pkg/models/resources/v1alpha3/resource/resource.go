@@ -7,6 +7,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/application"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
 )
@@ -17,11 +18,12 @@ type ResourceGetter struct {
 	getters map[schema.GroupVersionResource]v1alpha3.Interface
 }
 
-func New(factory informers.InformerFactory) *ResourceGetter {
+func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters := make(map[schema.GroupVersionResource]v1alpha3.Interface)
 
 	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}] = deployment.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}] = namespace.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"}] = application.New(factory.ApplicationSharedInformerFactory())
 
 	return &ResourceGetter{
 		getters: getters,

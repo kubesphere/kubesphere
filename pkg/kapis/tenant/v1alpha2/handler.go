@@ -32,7 +32,7 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 		return
 	}
 
-	result, err := h.tenant.ListWorkspaces(user.GetName())
+	result, err := h.tenant.ListWorkspaces(user)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
@@ -52,9 +52,9 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 		return
 	}
 
-	worksapceName := req.PathParameter("workspace")
+	workspace := req.PathParameter("workspace")
 
-	result, err := h.tenant.ListNamespaces(worksapceName, user.GetName())
+	result, err := h.tenant.ListNamespaces(user, workspace)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
