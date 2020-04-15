@@ -52,6 +52,7 @@ func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informer
 		Doc("List the namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	c.Add(ws)
 	return nil
 }
