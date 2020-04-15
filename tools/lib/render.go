@@ -86,15 +86,15 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 
 	{
 		// api router map
-		table := map[schema.GroupVersion]map[string]ResourceInfo{}
+		table := map[string]map[string]ResourceInfo{}
 		for _, gvr := range cfg.Resources {
 			var resmap map[string]ResourceInfo
 			// init ResourceInfo map
-			if m, found := table[gvr.GroupVersion()]; found {
+			if m, found := table[gvr.Group]; found {
 				resmap = m
 			} else {
 				resmap = map[string]ResourceInfo{}
-				table[gvr.GroupVersion()] = resmap
+				table[gvr.Group] = resmap
 			}
 
 			gvk, err := cfg.Mapper.KindFor(gvr)
@@ -119,13 +119,15 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 			}
 		}
 
-		for gv, resmap := range table {
-			apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(gv.Group, cfg.Scheme, metav1.ParameterCodec, cfg.Codecs)
-			apiGroupInfo.MetaGroupVersion = &gv
-			storage := map[string]rest.Storage{}
+		for g, resmap := range table {
+			apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(g, cfg.Scheme, metav1.ParameterCodec, cfg.Codecs)
+			storage := map[string]map[string]rest.Storage{}
 			for r, stuff := range resmap {
-				storage[r] = NewREST(stuff)
-				storage[r+"/status"] = NewStatusREST(
+				if storage[stuff.gvk.Version] == nil {
+					storage[stuff.gvk.Version] = map[string]rest.Storage{}
+				}
+				storage[stuff.gvk.Version][r] = NewREST(stuff)
+				storage[stuff.gvk.Version][r+"/status"] = NewStatusREST(
 					StatusResourceInfo{
 						gvk: struct {
 							Group   string
@@ -135,8 +137,9 @@ func RenderOpenAPISpec(cfg Config) (string, error) {
 						obj: stuff.obj,
 					})
 			}
-
-			apiGroupInfo.VersionedResourcesStorageMap[gv.Version] = storage
+			for version, s := range storage {
+				apiGroupInfo.VersionedResourcesStorageMap[version] = s
+			}
 
 			if err := genericServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 				log.Fatal(err)

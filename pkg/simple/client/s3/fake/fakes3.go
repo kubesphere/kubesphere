@@ -8,31 +8,35 @@ import (
 )
 
 type FakeS3 struct {
-	Storage map[string]*object
+	Storage map[string]*Object
 }
 
-func NewFakeS3() *FakeS3 {
-	return &FakeS3{Storage: map[string]*object{}}
+func NewFakeS3(objects ...*Object) *FakeS3 {
+	s3 := &FakeS3{Storage: map[string]*Object{}}
+	for _, object := range objects {
+		s3.Storage[object.Key] = object
+	}
+	return s3
 }
 
-type object struct {
-	key      string
-	fileName string
-	body     io.Reader
+type Object struct {
+	Key      string
+	FileName string
+	Body     io.Reader
 }
 
 func (s *FakeS3) Upload(key, fileName string, body io.Reader) error {
-	s.Storage[key] = &object{
-		key:      key,
-		fileName: fileName,
-		body:     body,
+	s.Storage[key] = &Object{
+		Key:      key,
+		FileName: fileName,
+		Body:     body,
 	}
 	return nil
 }
 
 func (s *FakeS3) GetDownloadURL(key string, fileName string) (string, error) {
 	if o, ok := s.Storage[key]; ok {
-		return fmt.Sprintf("http://%s/%s", o.key, fileName), nil
+		return fmt.Sprintf("http://%s/%s", o.Key, fileName), nil
 	}
 	return "", awserr.New(s3.ErrCodeNoSuchKey, "no such object", nil)
 }

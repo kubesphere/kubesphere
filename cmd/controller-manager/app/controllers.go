@@ -22,14 +22,19 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
+	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
+	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -37,6 +42,8 @@ func AddControllers(
 	mgr manager.Manager,
 	client k8s.Client,
 	informerFactory informers.InformerFactory,
+	devopsClient devops.Interface,
+	s3Client s3.Interface,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -71,14 +78,31 @@ func AddControllers(
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
-	s2iBinaryController := s2ibinary.NewController(client.KubeSphere(),
-		client.Kubernetes(),
-		kubesphereInformer.Devops().V1alpha1().S2iBinaries())
+	s2iBinaryController := s2ibinary.NewController(client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+		s3Client,
+	)
 
-	s2iRunController := s2irun.NewS2iRunController(client.KubeSphere(),
-		client.Kubernetes(),
+	s2iRunController := s2irun.NewS2iRunController(client.Kubernetes(),
+		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
+	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
+		client.KubeSphere(), devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
+	)
+	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
+		client.KubeSphere(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
+
+	devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
 		client.Kubernetes(),
@@ -102,15 +126,18 @@ func AddControllers(
 		client.KubeSphere().ClusterV1alpha1().Clusters())
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":  vsController,
-		"destinationrule-controller": drController,
-		"application-controller":     apController,
-		"job-controller":             jobController,
-		"s2ibinary-controller":       s2iBinaryController,
-		"s2irun-controller":          s2iRunController,
-		"volumeexpansion-controller": volumeExpansionController,
-		"user-controller":            userController,
-		"cluster-controller":         clusterController,
+		"virtualservice-controller":   vsController,
+		"destinationrule-controller":  drController,
+		"application-controller":      apController,
+		"job-controller":              jobController,
+		"s2ibinary-controller":        s2iBinaryController,
+		"s2irun-controller":           s2iRunController,
+		"volumeexpansion-controller":  volumeExpansionController,
+		"devopsprojects-controller":   devopsProjectController,
+		"pipeline-controller":         devopsPipelineController,
+		"devopscredential-controller": devopsCredentialController,
+		"cluster-controller":          clusterController,
+		"user-controller":             userController,
 	}
 
 	for name, ctrl := range controllers {

@@ -24,6 +24,10 @@ import (
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha1"
 )
 
+/**
+  s2irun-controller used to handle s2irun's delete logic.
+  s2irun creation and operation provided by s2ioperator
+*/
 type Controller struct {
 	client clientset.Interface
 
@@ -43,8 +47,9 @@ type Controller struct {
 	workerLoopPeriod time.Duration
 }
 
-func NewS2iRunController(devopsClientSet devopsclient.Interface,
+func NewS2iRunController(
 	client clientset.Interface,
+	devopsClientSet devopsclient.Interface,
 	s2iBinInformer devopsinformers.S2iBinaryInformer,
 	s2iRunInformer devopsinformers.S2iRunInformer) *Controller {
 
@@ -213,6 +218,11 @@ func (c Controller) syncHandler(key string) error {
 	return nil
 }
 
+/**
+  DeleteS2iBinary mainly cleans up two parts of S2iBinary
+  1. s2ibinary bound to s2irun
+  2. s2ibinary that has been created for more than 24 hours but has not been used
+*/
 func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 	s2iBinName := s2irun.Labels[devopsv1alpha1.S2iBinaryLabelKey]
 	s2iBin, err := c.s2iBinaryLister.S2iBinaries(s2irun.Namespace).Get(s2iBinName)
@@ -242,7 +252,7 @@ func (c Controller) DeleteS2iBinary(s2irun *devopsv1alpha1.S2iRun) error {
 
 // cleanOtherS2iBinary clean up s2ibinary created for more than 24 hours without associated s2irun
 func (c Controller) cleanOtherS2iBinary(namespace string) error {
-	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(nil)
+	s2iBins, err := c.s2iBinaryLister.S2iBinaries(namespace).List(labels.Everything())
 	if err != nil {
 		klog.Error(err, fmt.Sprintf("failed to list s2ibin in %s ", namespace))
 		return err

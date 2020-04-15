@@ -1,0 +1,54 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - crd.projectcalico.org
+  resources:
+  - clusterinformations
+  - felixconfigurations
+  - globalfelixconfigs
+  - globalnetworkpolicies
+  - globalnetworksets
+  - hostendpoints
+  - ipamblocks
+  - ippools
+  - networkpolicies
+  - networksets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - network.kubesphere.io
+  resources:
+  - namespacenetworkpolicies
+  - workspacenetworkpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - tenant.kubesphere.io
+  resources:
+  - workspaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

@@ -11,7 +11,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -58,7 +57,6 @@ const (
 
 // Config defines everything needed for apiserver to deal with external services
 type Config struct {
-	MySQLOptions          *mysql.Options                     `json:"mysql,omitempty" yaml:"mysql,omitempty" mapstructure:"mysql"`
 	DevopsOptions         *jenkins.Options                   `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
 	SonarQubeOptions      *sonarqube.Options                 `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
 	KubernetesOptions     *k8s.KubernetesOptions             `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
@@ -79,7 +77,6 @@ type Config struct {
 // newConfig creates a default non-empty Config
 func New() *Config {
 	return &Config{
-		MySQLOptions:          mysql.NewMySQLOptions(),
 		DevopsOptions:         jenkins.NewDevopsOptions(),
 		SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
 		KubernetesOptions:     k8s.NewKubernetesOptions(),
@@ -152,9 +149,6 @@ func (conf *Config) ToMap() map[string]bool {
 
 // Remove invalid options before serializing to json or yaml
 func (conf *Config) stripEmptyOptions() {
-	if conf.MySQLOptions != nil && conf.MySQLOptions.Host == "" {
-		conf.MySQLOptions = nil
-	}
 
 	if conf.RedisOptions != nil && conf.RedisOptions.Host == "" {
 		conf.RedisOptions = nil

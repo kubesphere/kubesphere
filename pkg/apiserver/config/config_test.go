@@ -14,7 +14,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -28,14 +27,6 @@ import (
 func newTestConfig() (*Config, error) {
 
 	var conf = &Config{
-		MySQLOptions: &mysql.Options{
-			Host:                  "10.68.96.5:3306",
-			Username:              "root",
-			Password:              "admin",
-			MaxIdleConnections:    10,
-			MaxOpenConnections:    20,
-			MaxConnectionLifeTime: time.Duration(10) * time.Second,
-		},
 		DevopsOptions: &jenkins.Options{
 			Host:           "http://ks-devops.kubesphere-devops-system.svc",
 			Username:       "jenkins",

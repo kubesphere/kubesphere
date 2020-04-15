@@ -1,13 +1,13 @@
 package jenkins
 
 import (
-	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"reflect"
 	"testing"
 )
 
 func Test_NoScmPipelineConfig(t *testing.T) {
-	inputs := []*devops.NoScmPipeline{
+	inputs := []*devopsv1alpha3.NoScmPipeline{
 		{
 			Name:        "",
 			Description: "for test",
@@ -42,12 +42,12 @@ func Test_NoScmPipelineConfig(t *testing.T) {
 }
 
 func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
-	inputs := []*devops.NoScmPipeline{
+	inputs := []*devopsv1alpha3.NoScmPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Discarder: &devops.DiscarderProperty{
+			Discarder: &devopsv1alpha3.DiscarderProperty{
 				DaysToKeep: "3", NumToKeep: "5",
 			},
 		},
@@ -55,7 +55,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Discarder: &devops.DiscarderProperty{
+			Discarder: &devopsv1alpha3.DiscarderProperty{
 				DaysToKeep: "3", NumToKeep: "",
 			},
 		},
@@ -63,7 +63,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Discarder: &devops.DiscarderProperty{
+			Discarder: &devopsv1alpha3.DiscarderProperty{
 				DaysToKeep: "", NumToKeep: "21321",
 			},
 		},
@@ -71,7 +71,7 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Discarder: &devops.DiscarderProperty{
+			Discarder: &devopsv1alpha3.DiscarderProperty{
 				DaysToKeep: "", NumToKeep: "",
 			},
 		},
@@ -93,13 +93,13 @@ func Test_NoScmPipelineConfig_Discarder(t *testing.T) {
 }
 
 func Test_NoScmPipelineConfig_Param(t *testing.T) {
-	inputs := []*devops.NoScmPipeline{
+	inputs := []*devopsv1alpha3.NoScmPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Parameters: &devops.Parameters{
-				&devops.Parameter{
+			Parameters: []devopsv1alpha3.Parameter{
+				{
 					Name:         "d",
 					DefaultValue: "a\nb",
 					Type:         "choice",
@@ -111,26 +111,26 @@ func Test_NoScmPipelineConfig_Param(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			Parameters: &devops.Parameters{
-				&devops.Parameter{
+			Parameters: []devopsv1alpha3.Parameter{
+				{
 					Name:         "a",
 					DefaultValue: "abc",
 					Type:         "string",
 					Description:  "fortest",
 				},
-				&devops.Parameter{
+				{
 					Name:         "b",
 					DefaultValue: "false",
 					Type:         "boolean",
 					Description:  "fortest",
 				},
-				&devops.Parameter{
+				{
 					Name:         "c",
 					DefaultValue: "password \n aaa",
 					Type:         "text",
 					Description:  "fortest",
 				},
-				&devops.Parameter{
+				{
 					Name:         "d",
 					DefaultValue: "a\nb",
 					Type:         "choice",
@@ -156,12 +156,12 @@ func Test_NoScmPipelineConfig_Param(t *testing.T) {
 }
 
 func Test_NoScmPipelineConfig_Trigger(t *testing.T) {
-	inputs := []*devops.NoScmPipeline{
+	inputs := []*devopsv1alpha3.NoScmPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Cron: "1 1 1 * * *",
 			},
 		},
@@ -170,7 +170,7 @@ func Test_NoScmPipelineConfig_Trigger(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			RemoteTrigger: &devops.RemoteTrigger{
+			RemoteTrigger: &devopsv1alpha3.RemoteTrigger{
 				Token: "abc",
 			},
 		},
@@ -178,10 +178,10 @@ func Test_NoScmPipelineConfig_Trigger(t *testing.T) {
 			Name:        "",
 			Description: "for test",
 			Jenkinsfile: "node{echo 'hello'}",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Cron: "1 1 1 * * *",
 			},
-			RemoteTrigger: &devops.RemoteTrigger{
+			RemoteTrigger: &devopsv1alpha3.RemoteTrigger{
 				Token: "abc",
 			},
 		},
@@ -205,34 +205,34 @@ func Test_NoScmPipelineConfig_Trigger(t *testing.T) {
 
 func Test_MultiBranchPipelineConfig(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			GitSource:   &devops.GitSource{},
+			GitSource:   &devopsv1alpha3.GitSource{},
 		},
 		{
 			Name:         "",
 			Description:  "for test",
 			ScriptPath:   "Jenkinsfile",
 			SourceType:   "github",
-			GitHubSource: &devops.GithubSource{},
+			GitHubSource: &devopsv1alpha3.GithubSource{},
 		},
 		{
 			Name:            "",
 			Description:     "for test",
 			ScriptPath:      "Jenkinsfile",
 			SourceType:      "single_svn",
-			SingleSvnSource: &devops.SingleSvnSource{},
+			SingleSvnSource: &devopsv1alpha3.SingleSvnSource{},
 		},
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "svn",
-			SvnSource:   &devops.SvnSource{},
+			SvnSource:   &devopsv1alpha3.SvnSource{},
 		},
 	}
 	for _, input := range inputs {
@@ -253,17 +253,17 @@ func Test_MultiBranchPipelineConfig(t *testing.T) {
 
 func Test_MultiBranchPipelineConfig_Discarder(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			Discarder: &devops.DiscarderProperty{
+			Discarder: &devopsv1alpha3.DiscarderProperty{
 				DaysToKeep: "1",
 				NumToKeep:  "2",
 			},
-			GitSource: &devops.GitSource{},
+			GitSource: &devopsv1alpha3.GitSource{},
 		},
 	}
 	for _, input := range inputs {
@@ -283,16 +283,16 @@ func Test_MultiBranchPipelineConfig_Discarder(t *testing.T) {
 }
 
 func Test_MultiBranchPipelineConfig_TimerTrigger(t *testing.T) {
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			GitSource: &devops.GitSource{},
+			GitSource: &devopsv1alpha3.GitSource{},
 		},
 	}
 	for _, input := range inputs {
@@ -313,16 +313,16 @@ func Test_MultiBranchPipelineConfig_TimerTrigger(t *testing.T) {
 
 func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			GitSource: &devops.GitSource{
+			GitSource: &devopsv1alpha3.GitSource{
 				Url:              "https://github.com/kubesphere/devops",
 				CredentialId:     "git",
 				DiscoverBranches: true,
@@ -333,17 +333,17 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
@@ -354,17 +354,17 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "bitbucket_server",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			BitbucketServerSource: &devops.BitbucketServerSource{
+			BitbucketServerSource: &devopsv1alpha3.BitbucketServerSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
@@ -376,10 +376,10 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "svn",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			SvnSource: &devops.SvnSource{
+			SvnSource: &devopsv1alpha3.SvnSource{
 				Remote:       "https://api.svn.com/bcd",
 				CredentialId: "svn",
 				Excludes:     "truck",
@@ -391,10 +391,10 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "single_svn",
-			TimerTrigger: &devops.TimerTrigger{
+			TimerTrigger: &devopsv1alpha3.TimerTrigger{
 				Interval: "12345566",
 			},
-			SingleSvnSource: &devops.SingleSvnSource{
+			SingleSvnSource: &devopsv1alpha3.SingleSvnSource{
 				Remote:       "https://api.svn.com/bcd",
 				CredentialId: "svn",
 			},
@@ -419,17 +419,17 @@ func Test_MultiBranchPipelineConfig_Source(t *testing.T) {
 
 func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			GitSource: &devops.GitSource{
+			GitSource: &devopsv1alpha3.GitSource{
 				Url:              "https://github.com/kubesphere/devops",
 				CredentialId:     "git",
 				DiscoverBranches: true,
-				CloneOption: &devops.GitCloneOption{
+				CloneOption: &devopsv1alpha3.GitCloneOption{
 					Shallow: false,
 					Depth:   3,
 					Timeout: 20,
@@ -441,18 +441,18 @@ func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
-				CloneOption: &devops.GitCloneOption{
+				CloneOption: &devopsv1alpha3.GitCloneOption{
 					Shallow: false,
 					Depth:   3,
 					Timeout: 20,
@@ -480,13 +480,13 @@ func Test_MultiBranchPipelineCloneConfig(t *testing.T) {
 
 func Test_MultiBranchPipelineRegexFilter(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "git",
-			GitSource: &devops.GitSource{
+			GitSource: &devopsv1alpha3.GitSource{
 				Url:              "https://github.com/kubesphere/devops",
 				CredentialId:     "git",
 				DiscoverBranches: true,
@@ -498,14 +498,14 @@ func Test_MultiBranchPipelineRegexFilter(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
@@ -533,26 +533,26 @@ func Test_MultiBranchPipelineRegexFilter(t *testing.T) {
 
 func Test_MultiBranchPipelineMultibranchTrigger(t *testing.T) {
 
-	inputs := []*devops.MultiBranchPipeline{
+	inputs := []*devopsv1alpha3.MultiBranchPipeline{
 		{
 			Name:        "",
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
 				RegexFilter: ".*",
 			},
-			MultiBranchJobTrigger: &devops.MultiBranchJobTrigger{
+			MultiBranchJobTrigger: &devopsv1alpha3.MultiBranchJobTrigger{
 				CreateActionJobsToTrigger: "abc",
 				DeleteActionJobsToTrigger: "ddd",
 			},
@@ -562,20 +562,20 @@ func Test_MultiBranchPipelineMultibranchTrigger(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
 				RegexFilter: ".*",
 			},
-			MultiBranchJobTrigger: &devops.MultiBranchJobTrigger{
+			MultiBranchJobTrigger: &devopsv1alpha3.MultiBranchJobTrigger{
 				CreateActionJobsToTrigger: "abc",
 			},
 		},
@@ -584,20 +584,20 @@ func Test_MultiBranchPipelineMultibranchTrigger(t *testing.T) {
 			Description: "for test",
 			ScriptPath:  "Jenkinsfile",
 			SourceType:  "github",
-			GitHubSource: &devops.GithubSource{
+			GitHubSource: &devopsv1alpha3.GithubSource{
 				Owner:                "kubesphere",
 				Repo:                 "devops",
 				CredentialId:         "github",
 				ApiUri:               "https://api.github.com",
 				DiscoverBranches:     1,
 				DiscoverPRFromOrigin: 2,
-				DiscoverPRFromForks: &devops.DiscoverPRFromForks{
+				DiscoverPRFromForks: &devopsv1alpha3.DiscoverPRFromForks{
 					Strategy: 1,
 					Trust:    1,
 				},
 				RegexFilter: ".*",
 			},
-			MultiBranchJobTrigger: &devops.MultiBranchJobTrigger{
+			MultiBranchJobTrigger: &devopsv1alpha3.MultiBranchJobTrigger{
 				DeleteActionJobsToTrigger: "ddd",
 			},
 		},

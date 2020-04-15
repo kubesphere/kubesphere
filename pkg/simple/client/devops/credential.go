@@ -1,7 +1,7 @@
 package devops
 
 import (
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 type Credential struct {
@@ -21,14 +21,8 @@ type Credential struct {
 			} `json:"ranges,omitempty" description:"The build number of all pipelines that use this credential"`
 		} `json:"usage,omitempty" description:"all usage of Credential"`
 	} `json:"fingerprint,omitempty" description:"usage of the Credential"`
-	Description                string                      `json:"description,omitempty" description:"Credential's description'"`
-	Domain                     string                      `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
-	CreateTime                 *time.Time                  `json:"create_time,omitempty" description:"Credential's create_time'"`
-	Creator                    string                      `json:"creator,omitempty" description:"Creator's username"`
-	UsernamePasswordCredential *UsernamePasswordCredential `json:"username_password,omitempty" description:"username password Credential struct"`
-	SshCredential              *SshCredential              `json:"ssh,omitempty" description:"ssh Credential struct"`
-	SecretTextCredential       *SecretTextCredential       `json:"secret_text,omitempty" description:"secret_text Credential struct"`
-	KubeconfigCredential       *KubeconfigCredential       `json:"kubeconfig,omitempty" description:"kubeconfig Credential struct"`
+	Description string `json:"description,omitempty" description:"Credential's description'"`
+	Domain      string `json:"domain,omitempty" description:"Credential's domain,In ks we only use the default domain, default '_''"`
 }
 
 type UsernamePasswordCredential struct {
@@ -50,28 +44,12 @@ type KubeconfigCredential struct {
 	Content string `json:"content,omitempty" description:"content of kubeconfig"`
 }
 
-const (
-	CredentialTypeUsernamePassword = "username_password"
-	CredentialTypeSsh              = "ssh"
-	CredentialTypeSecretText       = "secret_text"
-	CredentialTypeKubeConfig       = "kubeconfig"
-)
-
-var CredentialTypeMap = map[string]string{
-	"SSH Username with private key":         CredentialTypeSsh,
-	"Username with password":                CredentialTypeUsernamePassword,
-	"Secret text":                           CredentialTypeSecretText,
-	"Kubernetes configuration (kubeconfig)": CredentialTypeKubeConfig,
-}
-
 type CredentialOperator interface {
-	CreateCredentialInProject(projectId string, credential *Credential) (*string, error)
+	CreateCredentialInProject(projectId string, credential *v1.Secret) (string, error)
 
-	UpdateCredentialInProject(projectId string, credential *Credential) (*string, error)
+	UpdateCredentialInProject(projectId string, credential *v1.Secret) (string, error)
 
-	GetCredentialInProject(projectId, id string, content bool) (*Credential, error)
+	GetCredentialInProject(projectId, id string) (*Credential, error)
 
-	GetCredentialsInProject(projectId string) ([]*Credential, error)
-
-	DeleteCredentialInProject(projectId, id string) (*string, error)
+	DeleteCredentialInProject(projectId, id string) (string, error)
 }

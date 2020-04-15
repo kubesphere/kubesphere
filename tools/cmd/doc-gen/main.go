@@ -28,6 +28,8 @@ import (
 	"io/ioutil"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	fakeksClient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
@@ -40,7 +42,12 @@ import (
 	metricsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
+	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
+	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"log"
+	"time"
 )
 
 var output string
@@ -57,8 +64,12 @@ func main() {
 func generateSwaggerJson() {
 
 	container := runtime.Container
-
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, nil, nil, nil, nil, nil, nil))
+	devopsv1alpha2Service := runtime.NewWebService(devopsv1alpha2.GroupVersion)
+	urlruntime.Must(devopsv1alpha2.AddPipelineToWebService(devopsv1alpha2Service, &fake.Devops{}, &mysql.Database{}))
+	urlruntime.Must(devopsv1alpha2.AddS2IToWebService(devopsv1alpha2Service, fakeksClient.NewSimpleClientset(), externalversions.NewSharedInformerFactory(
+		fakeksClient.NewSimpleClientset(), time.Duration(0)), fakes3.NewFakeS3()))
+	urlruntime.Must(devopsv1alpha2.AddSonarToWebService(devopsv1alpha2Service, &fake.Devops{}, &mysql.Database{}, sonarqube.NewSonar(nil)))
+	container.Add(devopsv1alpha2Service)
 	urlruntime.Must(iamv1alpha2.AddToContainer(container, nil, nil, nil, nil, nil))
 	urlruntime.Must(loggingv1alpha2.AddToContainer(container, nil, nil))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, nil, nil))
