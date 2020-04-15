@@ -91,8 +91,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=network.kubesphere.io, Version=v1alpha1
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().NamespaceNetworkPolicies().Informer()}, nil
-	case networkv1alpha1.SchemeGroupVersion.WithResource("workspacenetworkpolicies"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().WorkspaceNetworkPolicies().Informer()}, nil
 
 		// Group=servicemesh.kubesphere.io, Version=v1alpha2
 	case servicemeshv1alpha2.SchemeGroupVersion.WithResource("servicepolicies"):

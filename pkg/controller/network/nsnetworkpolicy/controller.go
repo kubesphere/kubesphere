@@ -5,173 +5,511 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	uruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	v1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"k8s.io/klog/klogr"
-	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
-	networkinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
-	networklister "kubesphere.io/kubesphere/pkg/client/listers/network/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/controller/network/controllerapi"
+	"kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
+	workspacev1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	ksnetclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/network/v1alpha1"
+	nspolicy "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
+	workspace "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
 )
 
-const controllerAgentName = "nsnp-controller"
+const (
+	//use period sync service label in NSNP
+	defaultSleepDuration = 60 * time.Second
 
-type controller struct {
-	kubeClientset       kubernetes.Interface
-	kubesphereClientset kubesphereclient.Interface
+	defaultThread = 5
+	defaultSync   = "5m"
 
-	nsnpInformer networkinformer.NamespaceNetworkPolicyInformer
-	nsnpLister   networklister.NamespaceNetworkPolicyLister
-	nsnpSynced   cache.InformerSynced
-	// workqueue is a rate limited work queue. This is used to queue work to be
-	// processed instead of performing it as soon as a change happens. This
-	// means we can ensure we only process a fixed amount of resources at a
-	// time, and makes it easy to ensure we are never processing the same item
-	// simultaneously in two different workers.
-	workqueue workqueue.RateLimitingInterface
-	// recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	recorder                record.EventRecorder
-	nsNetworkPolicyProvider provider.NsNetworkPolicyProvider
-}
+	//whether network isolate is enable in namespace
+	NamespaceNPAnnotationKey     = "kubesphere.io/network-isolate"
+	NamespaceNPAnnotationEnabled = "enabled"
 
-var (
-	log      = klogr.New().WithName("Controller").WithValues("Component", controllerAgentName)
-	errCount = 0
+	AnnotationNPNAME = "network-isolate"
 )
 
-func NewController(kubeclientset kubernetes.Interface,
-	kubesphereclientset kubesphereclient.Interface,
-	nsnpInformer networkinformer.NamespaceNetworkPolicyInformer,
-	nsNetworkPolicyProvider provider.NsNetworkPolicyProvider) controllerapi.Controller {
-	utilruntime.Must(kubespherescheme.AddToScheme(scheme.Scheme))
-	log.V(4).Info("Creating event broadcaster")
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(klog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
-	ctl := &controller{
-		kubeClientset:           kubeclientset,
-		kubesphereClientset:     kubesphereclientset,
-		nsnpInformer:            nsnpInformer,
-		nsnpLister:              nsnpInformer.Lister(),
-		nsnpSynced:              nsnpInformer.Informer().HasSynced,
-		nsNetworkPolicyProvider: nsNetworkPolicyProvider,
+// namespacenpController implements the Controller interface for managing kubesphere network policies
+// and convery them to k8s NetworkPolicies, then syncing them to the provider.
+type NSNetworkPolicyController struct {
+	client         kubernetes.Interface
+	ksclient       ksnetclient.NetworkV1alpha1Interface
+	informer       nspolicy.NamespaceNetworkPolicyInformer
+	informerSynced cache.InformerSynced
 
-		workqueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "NamespaceNetworkPolicies"),
-		recorder:  recorder,
+	serviceInformer       v1.ServiceInformer
+	serviceInformerSynced cache.InformerSynced
+
+	workspaceInformer       workspace.WorkspaceInformer
+	workspaceInformerSynced cache.InformerSynced
+
+	namespaceInformer       v1.NamespaceInformer
+	namespaceInformerSynced cache.InformerSynced
+
+	provider provider.NsNetworkPolicyProvider
+
+	nsQueue   workqueue.RateLimitingInterface
+	nsnpQueue workqueue.RateLimitingInterface
+}
+
+func (c *NSNetworkPolicyController) convertPeer(peers []v1alpha1.NetworkPolicyPeer) ([]netv1.NetworkPolicyPeer, error) {
+	if len(peers) <= 0 {
+		return nil, nil
 	}
-	log.Info("Setting up event handlers")
-	nsnpInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueNSNP,
-		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueNSNP(new)
+
+	rules := make([]netv1.NetworkPolicyPeer, 0)
+
+	for _, peer := range peers {
+		rule := netv1.NetworkPolicyPeer{}
+
+		if peer.ServiceSelector != nil {
+			rule.PodSelector = new(metav1.LabelSelector)
+			rule.NamespaceSelector = new(metav1.LabelSelector)
+
+			namespace := peer.ServiceSelector.Namespace
+			name := peer.ServiceSelector.Name
+			service, err := c.serviceInformer.Lister().Services(namespace).Get(name)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(service.Spec.Selector) <= 0 {
+				return nil, fmt.Errorf("service %s/%s has no podselect", namespace, name)
+			}
+
+			rule.PodSelector.MatchLabels = make(map[string]string)
+			for key, value := range service.Spec.Selector {
+				rule.PodSelector.MatchLabels[key] = value
+			}
+			rule.NamespaceSelector.MatchLabels = make(map[string]string)
+			rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
+		} else if peer.NamespaceSelector != nil {
+			name := peer.NamespaceSelector.Name
+
+			rule.NamespaceSelector = new(metav1.LabelSelector)
+			rule.NamespaceSelector.MatchLabels = make(map[string]string)
+			rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = name
+		} else if peer.IPBlock != nil {
+			rule.IPBlock = peer.IPBlock
+		} else {
+			klog.Errorf("Invalid nsnp peer %v\n", peer)
+			continue
+		}
+		rules = append(rules, rule)
+	}
+
+	return rules, nil
+}
+
+func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkPolicy) (*netv1.NetworkPolicy, error) {
+	np := &netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      n.Name,
+			Namespace: n.Namespace,
 		},
-		DeleteFunc: ctl.enqueueNSNP,
-	})
-	return ctl
-}
-
-func (c *controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer utilruntime.HandleCrash()
-	defer c.workqueue.ShutDown()
-
-	//init client
-
-	// Start the informer factories to begin populating the informer caches
-	log.V(1).Info("Starting WSNP controller")
-
-	// Wait for the caches to be synced before starting workers
-	log.V(2).Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.nsnpSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
+		Spec: netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			PolicyTypes: make([]netv1.PolicyType, 0),
+		},
 	}
 
-	log.Info("Starting workers")
-	// Launch two workers to process Foo resources
-	for i := 0; i < threadiness; i++ {
-		go wait.Until(c.runWorker, time.Second, stopCh)
+	if n.Spec.Egress != nil {
+		np.Spec.Egress = make([]netv1.NetworkPolicyEgressRule, len(n.Spec.Egress))
+		for indexEgress, egress := range n.Spec.Egress {
+			rules, err := c.convertPeer(egress.To)
+			if err != nil {
+				return nil, err
+			}
+			np.Spec.Egress[indexEgress].To = rules
+			np.Spec.Egress[indexEgress].Ports = egress.Ports
+		}
+		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeEgress)
 	}
 
-	klog.V(2).Info("Started workers")
-	<-stopCh
-	log.V(2).Info("Shutting down workers")
-	return nil
+	if n.Spec.Ingress != nil {
+		np.Spec.Ingress = make([]netv1.NetworkPolicyIngressRule, len(n.Spec.Ingress))
+		for indexIngress, ingress := range n.Spec.Ingress {
+			rules, err := c.convertPeer(ingress.From)
+			if err != nil {
+				return nil, err
+			}
+			np.Spec.Ingress[indexIngress].From = rules
+			np.Spec.Ingress[indexIngress].Ports = ingress.Ports
+		}
+		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeIngress)
+	}
+
+	return np, nil
 }
 
-func (c *controller) enqueueNSNP(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		utilruntime.HandleError(err)
+func generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv1.NetworkPolicy {
+	policy := &netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      AnnotationNPNAME,
+			Namespace: namespace,
+		},
+		Spec: netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{},
+			PolicyTypes: make([]netv1.PolicyType, 0),
+			Ingress: []netv1.NetworkPolicyIngressRule{{
+				From: []netv1.NetworkPolicyPeer{{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}},
+			}},
+			Egress: []netv1.NetworkPolicyEgressRule{{
+				To: []netv1.NetworkPolicyPeer{{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}},
+			}},
+		},
+	}
+
+	policy.Spec.PolicyTypes = append(policy.Spec.PolicyTypes, netv1.PolicyTypeIngress, netv1.PolicyTypeEgress)
+
+	if matchWorkspace {
+		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.WorkspaceLabelKey] = workspace
+		policy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels[constants.WorkspaceLabelKey] = workspace
+	} else {
+		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
+		policy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
+	}
+
+	return policy
+}
+
+func (c *NSNetworkPolicyController) nsEnqueue(ns *corev1.Namespace) {
+	key, err := cache.MetaNamespaceKeyFunc(ns)
+	if err != nil {
+		uruntime.HandleError(fmt.Errorf("Get namespace key %s failed", ns.Name))
 		return
 	}
-	c.workqueue.Add(key)
+
+	klog.V(4).Infof("Enqueue namespace %s", ns.Name)
+	c.nsQueue.Add(key)
 }
 
-func (c *controller) runWorker() {
-	for c.processNextWorkItem() {
-	}
-}
+func (c *NSNetworkPolicyController) addWorkspace(newObj interface{}) {
+	new := newObj.(*workspacev1alpha1.Workspace)
 
-func (c *controller) processNextWorkItem() bool {
-	obj, shutdown := c.workqueue.Get()
+	klog.V(4).Infof("Add workspace %s", new.Name)
 
-	if shutdown {
-		return false
-	}
-
-	// We wrap this block in a func so we can defer c.workqueue.Done.
-	err := func(obj interface{}) error {
-		// We call Done here so the workqueue knows we have finished
-		// processing this item. We also must remember to call Forget if we
-		// do not want this work item being re-queued. For example, we do
-		// not call Forget if a transient error occurs, instead the item is
-		// put back on the workqueue and attempted again after a back-off
-		// period.
-		defer c.workqueue.Done(obj)
-		var key string
-		var ok bool
-		// We expect strings to come off the workqueue. These are of the
-		// form namespace/name. We do this as the delayed nature of the
-		// workqueue means the items in the informer cache may actually be
-		// more up to date that when the item was initially put onto the
-		// workqueue.
-		if key, ok = obj.(string); !ok {
-			// As the item in the workqueue is actually invalid, we call
-			// Forget here else we'd go into a loop of attempting to
-			// process a work item that is invalid.
-			c.workqueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
-			return nil
-		}
-		// Run the reconcile, passing it the namespace/name string of the
-		// Foo resource to be synced.
-		if err := c.reconcile(key); err != nil {
-			// Put the item back on the workqueue to handle any transient errors.
-			c.workqueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
-		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
-		c.workqueue.Forget(obj)
-		log.Info("Successfully synced", "key", key)
-		return nil
-	}(obj)
-
+	label := labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: new.Name})
+	nsList, err := c.namespaceInformer.Lister().List(label)
 	if err != nil {
-		utilruntime.HandleError(err)
+		klog.Errorf("Error while list namespace by label %s", label.String())
+		return
+	}
+
+	for _, ns := range nsList {
+		c.nsEnqueue(ns)
+	}
+}
+
+func (c *NSNetworkPolicyController) addNamespace(obj interface{}) {
+	ns := obj.(*corev1.Namespace)
+
+	workspaceName := ns.Labels[constants.WorkspaceLabelKey]
+	if workspaceName == "" {
+		return
+	}
+
+	klog.V(4).Infof("Add namespace %s", ns.Name)
+
+	c.nsEnqueue(ns)
+}
+
+func isNetworkIsolateEnabled(ns *corev1.Namespace) bool {
+	if ns.Annotations[NamespaceNPAnnotationKey] == NamespaceNPAnnotationEnabled {
 		return true
 	}
 
+	return false
+}
+
+func hadNamespaceLabel(ns *corev1.Namespace) bool {
+	if ns.Annotations[constants.NamespaceLabelKey] == ns.Name {
+		return true
+	}
+
+	return false
+}
+
+func (c *NSNetworkPolicyController) syncNs(key string) error {
+	klog.V(4).Infof("Sync namespace %s", key)
+
+	_, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		klog.Errorf("Not a valid controller key %s, %#v", key, err)
+		return err
+	}
+
+	ns, err := c.namespaceInformer.Lister().Get(name)
+	if err != nil {
+		// not found, possibly been deleted
+		if errors.IsNotFound(err) {
+			klog.V(2).Infof("Namespace %v has been deleted", key)
+			return nil
+		}
+
+		return err
+	}
+
+	workspaceName := ns.Labels[constants.WorkspaceLabelKey]
+	if workspaceName == "" {
+		klog.Error("Workspace name should not be empty")
+		return nil
+	}
+	wksp, err := c.workspaceInformer.Lister().Get(workspaceName)
+	if err != nil {
+		//Should not be here
+		if errors.IsNotFound(err) {
+			klog.V(2).Infof("Workspace %v has been deleted", workspaceName)
+			return nil
+		}
+
+		return err
+	}
+
+	//Maybe some ns not labeled
+	if !hadNamespaceLabel(ns) {
+		ns.Labels[constants.NamespaceLabelKey] = ns.Name
+		_, err := c.client.CoreV1().Namespaces().Update(ns)
+		if err != nil {
+			//Just log, label can also be added by namespace controller
+			klog.Errorf("cannot label namespace %s", ns.Name)
+		}
+	}
+
+	matchWorkspace := false
+	delete := false
+	if isNetworkIsolateEnabled(ns) {
+		matchWorkspace = false
+	} else if wksp.Spec.NetworkIsolation {
+		matchWorkspace = true
+	} else {
+		delete = true
+	}
+
+	policy := generateNSNP(workspaceName, ns.Name, matchWorkspace)
+	if delete {
+		c.provider.Delete(c.provider.GetKey(AnnotationNPNAME, ns.Name))
+		//delete all namespace np when networkisolate not active
+		if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(nil, typev1.ListOptions{}) != nil {
+			klog.Errorf("Error when delete all nsnps in namespace %s", ns.Name)
+		}
+	} else {
+		err = c.provider.Set(policy)
+		if err != nil {
+			klog.Errorf("Error while converting %#v to provider's network policy.", policy)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *NSNetworkPolicyController) nsWorker() {
+	for c.processNsWorkItem() {
+	}
+}
+
+func (c *NSNetworkPolicyController) processNsWorkItem() bool {
+	key, quit := c.nsQueue.Get()
+	if quit {
+		return false
+	}
+	defer c.nsQueue.Done(key)
+
+	if err := c.syncNs(key.(string)); err != nil {
+		klog.Errorf("Error when syncns %s", err)
+	}
+
 	return true
+}
+
+func (c *NSNetworkPolicyController) nsnpEnqueue(obj interface{}) {
+	nsnp := obj.(*v1alpha1.NamespaceNetworkPolicy)
+
+	key, err := cache.MetaNamespaceKeyFunc(nsnp)
+	if err != nil {
+		uruntime.HandleError(fmt.Errorf("get namespace network policy key %s failed", nsnp.Name))
+		return
+	}
+
+	c.nsnpQueue.Add(key)
+}
+
+func (c *NSNetworkPolicyController) syncNSNP(key string) error {
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		klog.Errorf("Not a valid controller key %s, %#v", key, err)
+		return err
+	}
+
+	ns, err := c.namespaceInformer.Lister().Get(namespace)
+	if !isNetworkIsolateEnabled(ns) {
+		klog.Infof("Delete NSNP %s when namespace isolate is inactive", key)
+		c.provider.Delete(c.provider.GetKey(name, namespace))
+		return nil
+	}
+
+	nsnp, err := c.informer.Lister().NamespaceNetworkPolicies(namespace).Get(name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			klog.V(4).Infof("NSNP %v has been deleted", key)
+			c.provider.Delete(c.provider.GetKey(name, namespace))
+			return nil
+		}
+
+		return err
+	}
+
+	np, err := c.convertToK8sNP(nsnp)
+	if err != nil {
+		klog.Errorf("Error while convert nsnp to k8snp: %s", err)
+		return err
+	}
+	err = c.provider.Set(np)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *NSNetworkPolicyController) nsNPWorker() {
+	for c.processNSNPWorkItem() {
+	}
+}
+
+func (c *NSNetworkPolicyController) processNSNPWorkItem() bool {
+	key, quit := c.nsnpQueue.Get()
+	if quit {
+		return false
+	}
+	defer c.nsnpQueue.Done(key)
+
+	c.syncNSNP(key.(string))
+
+	return true
+}
+
+// NewnamespacenpController returns a controller which manages NSNSP objects.
+func NewNSNetworkPolicyController(
+	client kubernetes.Interface,
+	ksclient ksnetclient.NetworkV1alpha1Interface,
+	nsnpInformer nspolicy.NamespaceNetworkPolicyInformer,
+	serviceInformer v1.ServiceInformer,
+	workspaceInformer workspace.WorkspaceInformer,
+	namespaceInformer v1.NamespaceInformer,
+	policyProvider provider.NsNetworkPolicyProvider) *NSNetworkPolicyController {
+
+	controller := &NSNetworkPolicyController{
+		client:                  client,
+		ksclient:                ksclient,
+		informer:                nsnpInformer,
+		informerSynced:          nsnpInformer.Informer().HasSynced,
+		serviceInformer:         serviceInformer,
+		serviceInformerSynced:   serviceInformer.Informer().HasSynced,
+		workspaceInformer:       workspaceInformer,
+		workspaceInformerSynced: workspaceInformer.Informer().HasSynced,
+		namespaceInformer:       namespaceInformer,
+		namespaceInformerSynced: namespaceInformer.Informer().HasSynced,
+		provider:                policyProvider,
+		nsQueue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespace"),
+		nsnpQueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespacenp"),
+	}
+
+	workspaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.addWorkspace,
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			old := oldObj.(*workspacev1alpha1.Workspace)
+			new := oldObj.(*workspacev1alpha1.Workspace)
+			if old.Spec.NetworkIsolation == new.Spec.NetworkIsolation {
+				return
+			}
+			controller.addWorkspace(newObj)
+		},
+	})
+
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.addNamespace,
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			old := oldObj.(*corev1.Namespace)
+			new := oldObj.(*corev1.Namespace)
+			if old.Annotations[NamespaceNPAnnotationKey] == new.Annotations[NamespaceNPAnnotationKey] {
+				return
+			}
+			controller.addNamespace(newObj)
+		},
+	})
+
+	nsnpInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			klog.V(4).Infof("Got ADD event for NSNSP: %#v", obj)
+			controller.nsnpEnqueue(obj)
+		},
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			klog.V(4).Info("Got UPDATE event for NSNSP.")
+			klog.V(4).Infof("Old object: \n%#v\n", oldObj)
+			klog.V(4).Infof("New object: \n%#v\n", newObj)
+			controller.nsnpEnqueue(newObj)
+		},
+		DeleteFunc: func(obj interface{}) {
+			klog.V(4).Infof("Got DELETE event for NSNP: %#v", obj)
+			controller.nsnpEnqueue(obj)
+		},
+	}, defaultSleepDuration)
+
+	return controller
+}
+
+func (c *NSNetworkPolicyController) Start(stopCh <-chan struct{}) error {
+	return c.Run(defaultThread, defaultSync, stopCh)
+}
+
+// Run starts the controller.
+func (c *NSNetworkPolicyController) Run(threadiness int, reconcilerPeriod string, stopCh <-chan struct{}) error {
+	defer uruntime.HandleCrash()
+
+	defer c.nsQueue.ShutDown()
+	defer c.nsnpQueue.ShutDown()
+
+	klog.Info("Waiting to sync with Kubernetes API (NSNP)")
+	if ok := cache.WaitForCacheSync(stopCh, c.informerSynced, c.serviceInformerSynced, c.workspaceInformerSynced, c.namespaceInformerSynced); !ok {
+		return fmt.Errorf("Failed to wait for caches to sync")
+	}
+	klog.Info("Finished syncing with Kubernetes API (NSNP)")
+
+	// Start a number of worker threads to read from the queue. Each worker
+	// will pull keys off the resource cache event queue and sync them to the
+	// K8s datastore.
+	for i := 0; i < threadiness; i++ {
+		go wait.Until(c.nsWorker, time.Second, stopCh)
+		go wait.Until(c.nsNPWorker, time.Second, stopCh)
+	}
+
+	//Work to sync K8s NetworkPolicy
+	go c.provider.Start(stopCh)
+
+	klog.Info("NSNP controller is now running")
+	<-stopCh
+	klog.Info("Stopping NSNP controller")
+
+	return nil
 }
