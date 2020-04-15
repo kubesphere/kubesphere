@@ -36,7 +36,7 @@ func (h *openpitrixHandler) ListApplications(request *restful.Request, response 
 	limit, offset := params.ParsePaging(request)
 	namespace := request.PathParameter("namespace")
 	orderBy := params.GetStringValueWithDefault(request, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(request)
 
 	if err != nil {
@@ -301,7 +301,7 @@ func (h *openpitrixHandler) GetAppVersionFiles(req *restful.Request, resp *restf
 func (h *openpitrixHandler) ListAppVersionAudits(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	appId := req.PathParameter("app")
 	versionId := req.PathParameter("version")
 	conditions, err := params.ParseConditions(req)
@@ -331,7 +331,7 @@ func (h *openpitrixHandler) ListAppVersionAudits(req *restful.Request, resp *res
 func (h *openpitrixHandler) ListReviews(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.StatusTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {
@@ -354,7 +354,7 @@ func (h *openpitrixHandler) ListReviews(req *restful.Request, resp *restful.Resp
 func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	appId := req.PathParameter("app")
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
@@ -394,7 +394,7 @@ func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.
 func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
 
@@ -697,7 +697,7 @@ func (h *openpitrixHandler) DescribeCategory(req *restful.Request, resp *restful
 func (h *openpitrixHandler) ListCategories(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
 
@@ -836,7 +836,7 @@ func (h *openpitrixHandler) DescribeRepo(req *restful.Request, resp *restful.Res
 func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, true)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
 	if err != nil {

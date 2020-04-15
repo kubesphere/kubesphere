@@ -66,18 +66,20 @@ func (r *resourceHandler) handleListNamespaceResources(request *restful.Request,
 	conditions, err := params.ParseConditions(request)
 
 	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusBadRequest, err)
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
 		return
 	}
 
 	result, err := r.resourcesGetter.ListResources(namespace, resource, conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
+		klog.Error(err)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
 
-	response.WriteAsJson(result)
+	response.WriteEntity(result)
 }
 
 func (r *resourceHandler) handleGetSystemHealthStatus(_ *restful.Request, response *restful.Response) {

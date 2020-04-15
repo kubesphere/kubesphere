@@ -48,11 +48,12 @@ func newPagination(limit int, offset int) *Pagination {
 }
 
 func (p *Pagination) GetValidPagination(total int) (startIndex, endIndex int) {
+
 	if p.Limit == NoPagination.Limit {
 		return 0, total
 	}
 
-	if p.Limit < 0 || p.Offset < 0 {
+	if p.Limit < 0 || p.Offset < 0 || total == 0 {
 		return 0, 0
 	}
 

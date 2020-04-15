@@ -113,8 +113,7 @@ func (am *amOperator) GetRoleOfUserInTargetScope(scope iamv1alpha2.Scope, target
 		return nil, err
 	}
 	for _, role := range roles {
-		if role.Target.Name == iamv1alpha2.TargetAll ||
-			role.Target.Name == target {
+		if role.Target.Name == target {
 			return &role, nil
 		}
 	}

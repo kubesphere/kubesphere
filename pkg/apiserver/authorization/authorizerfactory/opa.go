@@ -51,7 +51,7 @@ func (o *opaAuthorizer) Authorize(attr authorizer.Attributes) (authorized author
 		return authorizer.DecisionDeny, "", err
 	}
 
-	// check platform role policy rules
+	// check global role policy rules
 	if authorized, reason, err = o.makeDecision(globalRole, attr); authorized == authorizer.DecisionAllow {
 		return authorized, reason, nil
 	}

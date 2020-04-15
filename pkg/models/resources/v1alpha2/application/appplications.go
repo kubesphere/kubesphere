@@ -22,18 +22,9 @@ import (
 	"github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 	"github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/labels"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-)
-
-const (
-	app     = "app"
-	chart   = "chart"
-	release = "release"
 )
 
 type appSearcher struct {
@@ -48,68 +39,22 @@ func (s *appSearcher) Get(namespace, name string) (interface{}, error) {
 	return s.informer.App().V1beta1().Applications().Lister().Applications(namespace).Get(name)
 }
 
-// exactly Match
 func (s *appSearcher) match(match map[string]string, item *v1beta1.Application) bool {
 	for k, v := range match {
-		switch k {
-		case v1alpha2.Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case v1alpha2.Keyword:
-			if !strings.Contains(item.Name, v) && !v1alpha2.SearchFuzzy(item.Labels, "", v) && !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
-		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// Fuzzy searchInNamespace
-func (*appSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.Application) bool {
-	for k, v := range fuzzy {
-		switch k {
-		case v1alpha2.Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case v1alpha2.Label:
-			if !v1alpha2.SearchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case v1alpha2.Annotation:
-			if !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+		if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
 			return false
-		case app:
-			if !strings.Contains(item.Labels[chart], v) && !strings.Contains(item.Labels[release], v) {
-				return false
-			}
-		default:
-			if !v1alpha2.SearchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
 }
 
-func (*appSearcher) compare(a, b *v1beta1.Application, orderBy string) bool {
-	switch orderBy {
-	case v1alpha2.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case v1alpha2.Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
+func (s *appSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.Application) bool {
+	for k, v := range fuzzy {
+		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
+			return false
+		}
 	}
+	return true
 }
 
 func (s *appSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
@@ -134,7 +79,7 @@ func (s *appSearcher) Search(namespace string, conditions *params.Conditions, or
 		if reverse {
 			i, j = j, i
 		}
-		return s.compare(result[i], result[j], orderBy)
+		return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
 	})
 
 	r := make([]interface{}, 0)

@@ -37,6 +37,7 @@ import (
 	resourcesv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha2"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/kapis/resources/v1alpha3"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
@@ -141,6 +142,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(),
 		s.InformerFactory.KubeSphereSharedInformerFactory()),
@@ -285,7 +287,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "roles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "rolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "policyrules"},
-		{Group: "tower.kubesphere.io", Version: "v1alpha1", Resource: "agents"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

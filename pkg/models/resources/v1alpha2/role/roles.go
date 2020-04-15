@@ -22,13 +22,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
-
 	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/server/params"
+	"sort"
 )
 
 type roleSearcher struct {
@@ -43,19 +40,9 @@ func (s *roleSearcher) Get(namespace, name string) (interface{}, error) {
 	return s.informers.Rbac().V1().Roles().Lister().Roles(namespace).Get(name)
 }
 
-// exactly Match
 func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 	for k, v := range match {
 		switch k {
-		case v1alpha2.Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case v1alpha2.Keyword:
-			if !strings.Contains(item.Name, v) && !v1alpha2.SearchFuzzy(item.Labels, "", v) && !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		case v1alpha2.UserFacing:
 			if v == "true" {
 				if !isUserFacingRole(item) {
@@ -63,8 +50,7 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 				}
 			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -72,41 +58,13 @@ func (*roleSearcher) match(match map[string]string, item *rbac.Role) bool {
 	return true
 }
 
-// Fuzzy searchInNamespace
 func (*roleSearcher) fuzzy(fuzzy map[string]string, item *rbac.Role) bool {
 	for k, v := range fuzzy {
-		switch k {
-		case v1alpha2.Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case v1alpha2.Label:
-			if !v1alpha2.SearchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case v1alpha2.Annotation:
-			if !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
-		default:
-			if !v1alpha2.SearchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
-}
-
-func (*roleSearcher) compare(a, b *rbac.Role, orderBy string) bool {
-	switch orderBy {
-	case v1alpha2.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case v1alpha2.Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
 }
 
 func (s *roleSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
@@ -129,11 +87,9 @@ func (s *roleSearcher) Search(namespace string, conditions *params.Conditions, o
 	}
 	sort.Slice(result, func(i, j int) bool {
 		if reverse {
-			tmp := i
-			i = j
-			j = tmp
+			i, j = j, i
 		}
-		return s.compare(result[i], result[j], orderBy)
+		return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
 	})
 
 	r := make([]interface{}, 0)

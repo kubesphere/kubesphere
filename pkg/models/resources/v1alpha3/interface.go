@@ -17,6 +17,7 @@ type Interface interface {
 	List(namespace string, query *query.Query) (*api.ListResult, error)
 }
 
+// CompareFunc return true is left great than right
 type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
@@ -41,9 +42,9 @@ func DefaultList(objects []runtime.Object, query *query.Query, compareFunc Compa
 	// sort by sortBy field
 	sort.Slice(filtered, func(i, j int) bool {
 		if !query.Ascending {
-			return !compareFunc(filtered[i], filtered[j], query.SortBy)
+			return compareFunc(filtered[i], filtered[j], query.SortBy)
 		}
-		return compareFunc(filtered[i], filtered[j], query.SortBy)
+		return !compareFunc(filtered[i], filtered[j], query.SortBy)
 	})
 
 	total := len(filtered)
@@ -55,6 +56,7 @@ func DefaultList(objects []runtime.Object, query *query.Query, compareFunc Compa
 	}
 }
 
+// DefaultObjectMetaCompare return true is left great than right
 func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field) bool {
 	switch sortBy {
 	// ?sortBy=name
@@ -62,6 +64,10 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 		return strings.Compare(left.Name, right.Name) > 0
 	//	?sortBy=creationTimestamp
 	case query.FieldCreationTimeStamp:
+		// compare by name if creation timestamp is equal
+		if left.CreationTimestamp.Equal(&right.CreationTimestamp) {
+			return strings.Compare(left.Name, right.Name) > 0
+		}
 		return left.CreationTimestamp.After(right.CreationTimestamp.Time)
 	default:
 		return false

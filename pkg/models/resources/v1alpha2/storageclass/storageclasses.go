@@ -19,16 +19,12 @@ package storageclass
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"sort"
-	"strings"
-
 	"k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/server/params"
+	"sort"
 )
 
 type storageClassesSearcher struct {
@@ -43,64 +39,22 @@ func (s *storageClassesSearcher) Get(namespace, name string) (interface{}, error
 	return s.informers.Storage().V1().StorageClasses().Lister().Get(name)
 }
 
-// exactly Match
 func (*storageClassesSearcher) match(match map[string]string, item *v1.StorageClass) bool {
 	for k, v := range match {
-		switch k {
-		case v1alpha2.Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
-		case v1alpha2.Keyword:
-			if !strings.Contains(item.Name, v) && !v1alpha2.SearchFuzzy(item.Labels, "", v) && !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
-		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
-				return false
-			}
+		if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
+			return false
 		}
 	}
 	return true
 }
 
-// Fuzzy searchInNamespace
 func (*storageClassesSearcher) fuzzy(fuzzy map[string]string, item *v1.StorageClass) bool {
 	for k, v := range fuzzy {
-		switch k {
-		case v1alpha2.Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case v1alpha2.Label:
-			if !v1alpha2.SearchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case v1alpha2.Annotation:
-			if !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
-		default:
-			if !v1alpha2.SearchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 	return true
-}
-
-func (*storageClassesSearcher) compare(a, b *v1.StorageClass, orderBy string) bool {
-	switch orderBy {
-	case v1alpha2.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
-	case v1alpha2.Name:
-		fallthrough
-	default:
-		return strings.Compare(a.Name, b.Name) <= 0
-	}
 }
 
 func (s *storageClassesSearcher) Search(namespace string, conditions *params.Conditions, orderBy string, reverse bool) ([]interface{}, error) {
@@ -125,7 +79,7 @@ func (s *storageClassesSearcher) Search(namespace string, conditions *params.Con
 		if reverse {
 			i, j = j, i
 		}
-		return s.compare(result[i], result[j], orderBy)
+		return v1alpha2.ObjectMetaCompare(result[i].ObjectMeta, result[j].ObjectMeta, orderBy)
 	})
 
 	r := make([]interface{}, 0)

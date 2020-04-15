@@ -28,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/configmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/cronjob"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/daemonset"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/hpa"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/ingress"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/job"
@@ -62,11 +63,10 @@ func (r ResourceGetter) Add(resource string, getter v1alpha2.Interface) {
 func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters := make(map[string]v1alpha2.Interface)
 
-	//resourceGetters[v1alpha2.Deployments] = deployments
 	resourceGetters[v1alpha2.ConfigMaps] = configmap.NewConfigmapSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.CronJobs] = cronjob.NewCronJobSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.DaemonSets] = daemonset.NewDaemonSetSearcher(factory.KubernetesSharedInformerFactory())
-	// resourceGetters[Deployments] =
+	resourceGetters[v1alpha2.Deployments] = deployment.NewDeploymentSetSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.Ingresses] = ingress.NewIngressSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.Jobs] = job.NewJobSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.PersistentVolumeClaims] = persistentvolumeclaim.NewPersistentVolumeClaimSearcher(factory.KubernetesSharedInformerFactory())
@@ -75,18 +75,16 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	resourceGetters[v1alpha2.StatefulSets] = statefulset.NewStatefulSetSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.Pods] = pod.NewPodSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.Roles] = role.NewRoleSearcher(factory.KubernetesSharedInformerFactory())
+
 	resourceGetters[v1alpha2.Nodes] = node.NewNodeSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.Namespaces] = namespace.NewNamespaceSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.ClusterRoles] = clusterrole.NewClusterRoleSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.StorageClasses] = storageclass.NewStorageClassesSearcher(factory.KubernetesSharedInformerFactory())
 	resourceGetters[v1alpha2.HorizontalPodAutoscalers] = hpa.NewHpaSearcher(factory.KubernetesSharedInformerFactory())
-
 	resourceGetters[v1alpha2.S2iBuilders] = s2ibuilder.NewS2iBuilderSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.S2iRuns] = s2irun.NewS2iRunSearcher(factory.KubeSphereSharedInformerFactory())
 	resourceGetters[v1alpha2.S2iBuilderTemplates] = s2buildertemplate.NewS2iBuidlerTemplateSearcher(factory.KubeSphereSharedInformerFactory())
-
 	resourceGetters[v1alpha2.Workspaces] = workspace.NewWorkspaceSearcher(factory.KubeSphereSharedInformerFactory())
-
 	resourceGetters[v1alpha2.Applications] = application.NewApplicationSearcher(factory.ApplicationSharedInformerFactory())
 
 	return &ResourceGetter{resourcesGetters: resourceGetters}

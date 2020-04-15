@@ -18,15 +18,11 @@
 package cronjob
 
 import (
+	"k8s.io/api/batch/v1beta1"
 	"k8s.io/client-go/informers"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sort"
-	"strings"
-
-	"k8s.io/api/batch/v1beta1"
 
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -50,26 +46,15 @@ func cronJobStatus(item *v1beta1.CronJob) string {
 	return v1alpha2.StatusRunning
 }
 
-// Exactly Match
 func (*cronJobSearcher) match(match map[string]string, item *v1beta1.CronJob) bool {
 	for k, v := range match {
 		switch k {
-		case v1alpha2.Name:
-			names := strings.Split(v, "|")
-			if !sliceutil.HasString(names, item.Name) {
-				return false
-			}
 		case v1alpha2.Status:
 			if cronJobStatus(item) != v {
 				return false
 			}
-		case v1alpha2.Keyword:
-			if !strings.Contains(item.Name, v) && !v1alpha2.SearchFuzzy(item.Labels, "", v) && !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
 		default:
-			// label not exist or value not equal
-			if val, ok := item.Labels[k]; !ok || val != v {
+			if !v1alpha2.ObjectMetaExactlyMath(k, v, item.ObjectMeta) {
 				return false
 			}
 		}
@@ -80,50 +65,26 @@ func (*cronJobSearcher) match(match map[string]string, item *v1beta1.CronJob) bo
 func (*cronJobSearcher) fuzzy(fuzzy map[string]string, item *v1beta1.CronJob) bool {
 
 	for k, v := range fuzzy {
-		switch k {
-		case v1alpha2.Name:
-			if !strings.Contains(item.Name, v) && !strings.Contains(item.Annotations[constants.DisplayNameAnnotationKey], v) {
-				return false
-			}
-		case v1alpha2.Label:
-			if !v1alpha2.SearchFuzzy(item.Labels, "", v) {
-				return false
-			}
-		case v1alpha2.Annotation:
-			if !v1alpha2.SearchFuzzy(item.Annotations, "", v) {
-				return false
-			}
+		if !v1alpha2.ObjectMetaFuzzyMath(k, v, item.ObjectMeta) {
 			return false
-		case v1alpha2.App:
-			if !strings.Contains(item.Labels[v1alpha2.Chart], v) && !strings.Contains(item.Labels[v1alpha2.Release], v) {
-				return false
-			}
-		default:
-			if !v1alpha2.SearchFuzzy(item.Labels, k, v) {
-				return false
-			}
 		}
 	}
 
 	return true
 }
 
-func (*cronJobSearcher) compare(a, b *v1beta1.CronJob, orderBy string) bool {
+func (*cronJobSearcher) compare(left, right *v1beta1.CronJob, orderBy string) bool {
 	switch orderBy {
 	case v1alpha2.LastScheduleTime:
-		if a.Status.LastScheduleTime == nil {
+		if left.Status.LastScheduleTime == nil {
 			return true
 		}
-		if b.Status.LastScheduleTime == nil {
+		if right.Status.LastScheduleTime == nil {
 			return false
 		}
-		return a.Status.LastScheduleTime.Before(b.Status.LastScheduleTime)
-	case v1alpha2.CreateTime:
-		return a.CreationTimestamp.Time.Before(b.CreationTimestamp.Time)
+		return left.Status.LastScheduleTime.Before(right.Status.LastScheduleTime)
 	default:
-		fallthrough
-	case v1alpha2.Name:
-		return strings.Compare(a.Name, b.Name) <= 0
+		return v1alpha2.ObjectMetaCompare(left.ObjectMeta, right.ObjectMeta, orderBy)
 	}
 }
 
@@ -146,10 +107,7 @@ func (c *cronJobSearcher) Search(namespace string, conditions *params.Conditions
 		}
 	}
 	sort.Slice(result, func(i, j int) bool {
-		if reverse {
-			i, j = j, i
-		}
-		return c.compare(result[i], result[j], orderBy)
+		return c.compare(result[i], result[j], orderBy) && !reverse
 	})
 
 	r := make([]interface{}, 0)
