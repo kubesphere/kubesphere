@@ -399,7 +399,7 @@ func (b *Build) Poll(options ...interface{}) (int, error) {
 func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, status string) (*devops.Build, error) {
 	job, err := j.GetJob(pipelineId, projectId)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil
@@ -407,7 +407,7 @@ func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, st
 func (j *Jenkins) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch string, status string) (*devops.Build, error) {
 	job, err := j.GetJob(pipelineId, projectId, branch)
 	if err != nil {
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	build, err := job.getBuildByType(status)
 	return build.Raw, nil

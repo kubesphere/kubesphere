@@ -18,3 +18,12 @@ const (
 	GLOBAL_ROLE  = "globalRoles"
 	PROJECT_ROLE = "projectRoles"
 )
+
+var ParameterTypeMap = map[string]string{
+	"hudson.model.StringParameterDefinition":   "string",
+	"hudson.model.ChoiceParameterDefinition":   "choice",
+	"hudson.model.TextParameterDefinition":     "text",
+	"hudson.model.BooleanParameterDefinition":  "boolean",
+	"hudson.model.FileParameterDefinition":     "file",
+	"hudson.model.PasswordParameterDefinition": "password",
+}

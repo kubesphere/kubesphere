@@ -4,57 +4,58 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
 
-func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
-	switch pipeline.Type {
-	case devops.NoScmPipelineType:
+func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
+	switch pipeline.Spec.Type {
+	case devopsv1alpha3.NoScmPipelineType:
 
-		config, err := createPipelineConfigXml(pipeline.Pipeline)
+		config, err := createPipelineConfigXml(pipeline.Spec.Pipeline)
 		if err != nil {
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := j.GetJob(pipeline.Pipeline.Name, projectId)
+		job, err := j.GetJob(pipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
-		if err != nil && GetJenkinsStatusCode(err) != http.StatusNotFound {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		if err != nil && devops.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		_, err = j.CreateJobInFolder(config, pipeline.Pipeline.Name, projectId)
+		_, err = j.CreateJobInFolder(config, pipeline.Name, projectId)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		return pipeline.Pipeline.Name, nil
-	case devops.MultiBranchPipelineType:
-		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
+		return pipeline.Name, nil
+	case devopsv1alpha3.MultiBranchPipelineType:
+		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.Spec.MultiBranchPipeline)
 		if err != nil {
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := j.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
+		job, err := j.GetJob(pipeline.Name, projectId)
 		if job != nil {
 			err := fmt.Errorf("job name [%s] has been used", job.GetName())
 			return "", restful.NewError(http.StatusConflict, err.Error())
 		}
 
-		if err != nil && GetJenkinsStatusCode(err) != http.StatusNotFound {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		if err != nil && devops.GetDevOpsStatusCode(err) != http.StatusNotFound {
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		_, err = j.CreateJobInFolder(config, pipeline.MultiBranchPipeline.Name, projectId)
+		_, err = j.CreateJobInFolder(config, pipeline.Name, projectId)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		return pipeline.MultiBranchPipeline.Name, nil
+		return pipeline.Name, nil
 
 	default:
 		err := fmt.Errorf("error unsupport job type")
@@ -66,54 +67,54 @@ func (j *Jenkins) CreateProjectPipeline(projectId string, pipeline *devops.Proje
 func (j *Jenkins) DeleteProjectPipeline(projectId string, pipelineId string) (string, error) {
 	_, err := j.DeleteJob(pipelineId, projectId)
 	if err != nil {
-		return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	return pipelineId, nil
 
 }
-func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devops.ProjectPipeline) (string, error) {
-	switch pipeline.Type {
-	case devops.NoScmPipelineType:
+func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devopsv1alpha3.Pipeline) (string, error) {
+	switch pipeline.Spec.Type {
+	case devopsv1alpha3.NoScmPipelineType:
 
-		config, err := createPipelineConfigXml(pipeline.Pipeline)
+		config, err := createPipelineConfigXml(pipeline.Spec.Pipeline)
 		if err != nil {
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := j.GetJob(pipeline.Pipeline.Name, projectId)
+		job, err := j.GetJob(pipeline.Name, projectId)
 
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		return pipeline.Pipeline.Name, nil
-	case devops.MultiBranchPipelineType:
+		return pipeline.Name, nil
+	case devopsv1alpha3.MultiBranchPipelineType:
 
-		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.MultiBranchPipeline)
+		config, err := createMultiBranchPipelineConfigXml(projectId, pipeline.Spec.MultiBranchPipeline)
 		if err != nil {
 			klog.Errorf("%+v", err)
 
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
 
-		job, err := j.GetJob(pipeline.MultiBranchPipeline.Name, projectId)
+		job, err := j.GetJob(pipeline.Spec.MultiBranchPipeline.Name, projectId)
 
 		if err != nil {
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
 		err = job.UpdateConfig(config)
 		if err != nil {
 			klog.Errorf("%+v", err)
-			return "", restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
-		return pipeline.MultiBranchPipeline.Name, nil
+		return pipeline.Name, nil
 
 	default:
 		err := fmt.Errorf("error unsupport job type")
@@ -122,41 +123,45 @@ func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devops.Proje
 	}
 }
 
-func (j *Jenkins) GetProjectPipelineConfig(projectId, pipelineId string) (*devops.ProjectPipeline, error) {
+func (j *Jenkins) GetProjectPipelineConfig(projectId, pipelineId string) (*devopsv1alpha3.Pipeline, error) {
 	job, err := j.GetJob(pipelineId, projectId)
 	if err != nil {
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
 	switch job.Raw.Class {
 	case "org.jenkinsci.plugins.workflow.job.WorkflowJob":
 		config, err := job.GetConfig()
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline, err := parsePipelineConfigXml(config)
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
-		return &devops.ProjectPipeline{
-			Type:     devops.NoScmPipelineType,
-			Pipeline: pipeline,
+		return &devopsv1alpha3.Pipeline{
+			Spec: devopsv1alpha3.PipelineSpec{
+				Type:     devopsv1alpha3.NoScmPipelineType,
+				Pipeline: pipeline,
+			},
 		}, nil
 
 	case "org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject":
 		config, err := job.GetConfig()
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline, err := parseMultiBranchPipelineConfigXml(config)
 		if err != nil {
-			return nil, restful.NewError(GetJenkinsStatusCode(err), err.Error())
+			return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 		pipeline.Name = pipelineId
-		return &devops.ProjectPipeline{
-			Type:                devops.MultiBranchPipelineType,
-			MultiBranchPipeline: pipeline,
+		return &devopsv1alpha3.Pipeline{
+			Spec: devopsv1alpha3.PipelineSpec{
+				Type:                devopsv1alpha3.MultiBranchPipelineType,
+				MultiBranchPipeline: pipeline,
+			},
 		}, nil
 	default:
 		klog.Errorf("%+v", err)

@@ -14,18 +14,12 @@ limitations under the License.
 package jenkins
 
 import (
-	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
 func NewDevopsClient(options *Options) (devops.Interface, error) {
 
 	jenkins := CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
-	jenkins, err := jenkins.Init()
-	if err != nil {
-		klog.Errorf("failed to connecto to jenkins role, %+v", err)
-		return nil, err
-	}
 
 	return jenkins, nil
 }

@@ -46,6 +46,7 @@ const (
 	WorkspacesManager              = "workspaces-manager"
 	DevopsOwner                    = "owner"
 	DevopsReporter                 = "reporter"
+	DevOpsProjectLabelKey          = "kubesphere.io/devopsproject"
 
 	UserNameHeader = "X-Token-Username"
 

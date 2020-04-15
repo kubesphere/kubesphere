@@ -18,6 +18,7 @@ import (
 	"k8s.io/kube-openapi/pkg/common"
 	devopsinstall "kubesphere.io/kubesphere/pkg/apis/devops/crdinstall"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	networkinstall "kubesphere.io/kubesphere/pkg/apis/network/crdinstall"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	servicemeshinstall "kubesphere.io/kubesphere/pkg/apis/servicemesh/crdinstall"
@@ -79,6 +80,20 @@ func main() {
 	mapper.AddSpecific(networkv1alpha1.SchemeGroupVersion.WithKind(networkv1alpha1.ResourceKindWorkspaceNetworkPolicy),
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
 		networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourceSingularWorkspaceNetworkPolicy), meta.RESTScopeRoot)
+	mapper.AddSpecific(devopsv1alpha3.SchemeGroupVersion.WithKind(devopsv1alpha3.ResourceKindDevOpsProject),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourceSingularDevOpsProject), meta.RESTScopeRoot)
+	mapper.AddSpecific(devopsv1alpha3.SchemeGroupVersion.WithKind(devopsv1alpha3.ResourceKindPipeline),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralPipeline),
+		devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourceSingularPipeline), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularCluster), meta.RESTScopeRoot)
+
+	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
+		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesSingularAgent), meta.RESTScopeRoot)
 
 	mapper.AddSpecific(clusterv1alpha1.SchemeGroupVersion.WithKind(clusterv1alpha1.ResourceKindCluster),
 		clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
@@ -109,6 +124,7 @@ func main() {
 			tenantv1alpha1.GetOpenAPIDefinitions,
 			networkv1alpha1.GetOpenAPIDefinitions,
 			devopsv1alpha1.GetOpenAPIDefinitions,
+			devopsv1alpha3.GetOpenAPIDefinitions,
 			clusterv1alpha1.GetOpenAPIDefinitions,
 		},
 		Resources: []schema.GroupVersionResource{
@@ -123,6 +139,8 @@ func main() {
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilderTemplate),
 			devopsv1alpha1.SchemeGroupVersion.WithResource(devopsv1alpha1.ResourcePluralS2iBuilder),
 			networkv1alpha1.SchemeGroupVersion.WithResource(networkv1alpha1.ResourcePluralWorkspaceNetworkPolicy),
+			devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralDevOpsProject),
+			devopsv1alpha3.SchemeGroupVersion.WithResource(devopsv1alpha3.ResourcePluralPipeline),
 			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralAgent),
 			clusterv1alpha1.SchemeGroupVersion.WithResource(clusterv1alpha1.ResourcesPluralCluster),
 		},

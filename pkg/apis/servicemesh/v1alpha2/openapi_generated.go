@@ -2173,7 +2173,7 @@ func schema_pkg_apis_servicemesh_v1alpha2_DestinationRuleSpecTemplate(ref common
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"ObjectMeta": {
+					"metadata": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Metadata of the virtual services created from this template",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
@@ -2244,40 +2244,40 @@ func schema_pkg_apis_servicemesh_v1alpha2_ServicePolicyCondition(ref common.Refe
 				Description: "StrategyCondition describes current state of a strategy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"Type": {
+					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Type of strategy condition, Complete or Failed.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"Status": {
+					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status of the condition, one of True, False, Unknown",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"LastProbeTime": {
+					"lastProbeTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Last time the condition was checked.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"LastTransitionTime": {
+					"lastTransitionTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Last time the condition transit from one status to another",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"Reason": {
+					"reason": {
 						SchemaProps: spec.SchemaProps{
 							Description: "reason for the condition's last transition",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"Message": {
+					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Human readable message indicating details about last transition.",
 							Type:        []string{"string"},
@@ -2285,7 +2285,6 @@ func schema_pkg_apis_servicemesh_v1alpha2_ServicePolicyCondition(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"Type", "Status", "Reason", "Message"},
 			},
 		},
 		Dependencies: []string{
@@ -2374,7 +2373,7 @@ func schema_pkg_apis_servicemesh_v1alpha2_ServicePolicyStatus(ref common.Referen
 				Description: "ServicePolicyStatus defines the observed state of ServicePolicy",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"Conditions": {
+					"conditions": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The latest available observations of an object's current state.",
 							Type:        []string{"array"},
@@ -2387,13 +2386,13 @@ func schema_pkg_apis_servicemesh_v1alpha2_ServicePolicyStatus(ref common.Referen
 							},
 						},
 					},
-					"StartTime": {
+					"startTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Represents time when the strategy was acknowledged by the controller. It is represented in RFC3339 form and is in UTC.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"CompletionTime": {
+					"completionTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Represents time when the strategy was completed. It is represented in RFC3339 form and is in UTC.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
@@ -2458,40 +2457,40 @@ func schema_pkg_apis_servicemesh_v1alpha2_StrategyCondition(ref common.Reference
 				Description: "StrategyCondition describes current state of a strategy.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"Type": {
+					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Type of strategy condition, Complete or Failed.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"Status": {
+					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status of the condition, one of True, False, Unknown",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"LastProbeTime": {
+					"lastProbeTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Last time the condition was checked.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"LastTransitionTime": {
+					"lastTransitionTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Last time the condition transit from one status to another",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"Reason": {
+					"reason": {
 						SchemaProps: spec.SchemaProps{
 							Description: "reason for the condition's last transition",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"Message": {
+					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Human readable message indicating details about last transition.",
 							Type:        []string{"string"},
@@ -2499,7 +2498,6 @@ func schema_pkg_apis_servicemesh_v1alpha2_StrategyCondition(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"Type", "Status", "Reason", "Message"},
 			},
 		},
 		Dependencies: []string{
@@ -2616,7 +2614,7 @@ func schema_pkg_apis_servicemesh_v1alpha2_StrategyStatus(ref common.ReferenceCal
 				Description: "StrategyStatus defines the observed state of Strategy",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"Conditions": {
+					"conditions": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The latest available observations of an object's current state.",
 							Type:        []string{"array"},
@@ -2629,13 +2627,13 @@ func schema_pkg_apis_servicemesh_v1alpha2_StrategyStatus(ref common.ReferenceCal
 							},
 						},
 					},
-					"StartTime": {
+					"startTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Represents time when the strategy was acknowledged by the controller. It is represented in RFC3339 form and is in UTC.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
-					"CompletionTime": {
+					"completionTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Represents time when the strategy was completed. It is represented in RFC3339 form and is in UTC.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),

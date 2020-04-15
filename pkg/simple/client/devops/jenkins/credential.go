@@ -16,13 +16,13 @@ package jenkins
 import (
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/emicklei/go-restful"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 const SSHCrenditalStaplerClass = "com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey"
@@ -99,10 +99,15 @@ type CredentialResponse struct {
 	Domain      string `json:"domain"`
 }
 
-func NewSshCredential(id, username, passphrase, privateKey, description string) *SshCredential {
+func NewSshCredential(secret *v1.Secret) *SshCredential {
+	id := secret.Name
+	username := string(secret.Data[devopsv1alpha3.SSHAuthUsernameKey])
+	passphrase := string(secret.Data[devopsv1alpha3.SSHAuthPassphraseKey])
+	privatekey := string(secret.Data[devopsv1alpha3.SSHAuthPrivateKey])
+
 	keySource := PrivateKeySource{
 		StaplerClass: DirectSSHCrenditalStaplerClass,
-		PrivateKey:   privateKey,
+		PrivateKey:   privatekey,
 	}
 
 	return &SshCredential{
@@ -111,48 +116,52 @@ func NewSshCredential(id, username, passphrase, privateKey, description string) 
 		Username:     username,
 		Passphrase:   passphrase,
 		KeySource:    keySource,
-		Description:  description,
 		StaplerClass: SSHCrenditalStaplerClass,
 	}
 }
 
-func NewUsernamePasswordCredential(id, username, password, description string) *UsernamePasswordCredential {
+func NewUsernamePasswordCredential(secret *v1.Secret) *UsernamePasswordCredential {
+	id := secret.Name
+	username := string(secret.Data[devopsv1alpha3.BasicAuthUsernameKey])
+	password := string(secret.Data[devopsv1alpha3.BasicAuthPasswordKey])
 	return &UsernamePasswordCredential{
 		Scope:        GLOBALScope,
 		Id:           id,
 		Username:     username,
 		Password:     password,
-		Description:  description,
 		StaplerClass: UsernamePassswordCredentialStaplerClass,
 	}
 }
 
-func NewSecretTextCredential(id, secret, description string) *SecretTextCredential {
+func NewSecretTextCredential(secret *v1.Secret) *SecretTextCredential {
+	id := secret.Name
+	secretContent := string(secret.Data[devopsv1alpha3.SecretTextSecretKey])
 	return &SecretTextCredential{
 		Scope:        GLOBALScope,
 		Id:           id,
-		Secret:       secret,
-		Description:  description,
+		Secret:       secretContent,
 		StaplerClass: SecretTextCredentialStaplerClass,
 	}
 }
 
-func NewKubeconfigCredential(id, content, description string) *KubeconfigCredential {
+func NewKubeconfigCredential(secret *v1.Secret) *KubeconfigCredential {
+	id := secret.Name
+	secretContent := string(secret.Data[devopsv1alpha3.KubeConfigSecretKey])
+
 	credentialSource := KubeconfigSource{
 		StaplerClass: DirectKubeconfigCredentialStaperClass,
-		Content:      content,
+		Content:      secretContent,
 	}
 
 	return &KubeconfigCredential{
 		Scope:            GLOBALScope,
 		Id:               id,
-		Description:      description,
 		KubeconfigSource: credentialSource,
 		StaplerClass:     KubeconfigCredentialStaplerClass,
 	}
 }
 
-func (j *Jenkins) GetCredentialInProject(projectId, id string, content bool) (*devops.Credential, error) {
+func (j *Jenkins) GetCredentialInProject(projectId, id string) (*devops.Credential, error) {
 	responseStruct := &devops.Credential{}
 
 	domain := "_"
@@ -169,54 +178,6 @@ func (j *Jenkins) GetCredentialInProject(projectId, id string, content bool) (*d
 		return nil, errors.New(strconv.Itoa(response.StatusCode))
 	}
 	responseStruct.Domain = domain
-	if content {
-
-	}
-	contentString := ""
-	response, err = j.Requester.GetHtml(
-		fmt.Sprintf("/job/%s/credentials/store/folder/domain/%s/credential/%s/update", projectId, domain, id),
-		&contentString, nil)
-	if err != nil {
-		return nil, err
-	}
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
-	}
-	stringReader := strings.NewReader(contentString)
-	doc, err := goquery.NewDocumentFromReader(stringReader)
-	if err != nil {
-		klog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusInternalServerError, err.Error())
-	}
-	switch responseStruct.Type {
-	case devops.CredentialTypeKubeConfig:
-		content := &devops.KubeconfigCredential{}
-		doc.Find("textarea[name*=content]").Each(func(i int, selection *goquery.Selection) {
-			value := selection.Text()
-			content.Content = value
-		})
-		responseStruct.KubeconfigCredential = content
-	case devops.CredentialTypeUsernamePassword:
-		content := &devops.UsernamePasswordCredential{}
-		doc.Find("input[name*=username]").Each(func(i int, selection *goquery.Selection) {
-			value, _ := selection.Attr("value")
-			content.Username = value
-		})
-
-		responseStruct.UsernamePasswordCredential = content
-	case devops.CredentialTypeSsh:
-		content := &devops.SshCredential{}
-		doc.Find("input[name*=username]").Each(func(i int, selection *goquery.Selection) {
-			value, _ := selection.Attr("value")
-			content.Username = value
-		})
-
-		doc.Find("textarea[name*=privateKey]").Each(func(i int, selection *goquery.Selection) {
-			value := selection.Text()
-			content.PrivateKey = value
-		})
-		responseStruct.SshCredential = content
-	}
 	return responseStruct, nil
 }
 
@@ -243,30 +204,23 @@ func (j *Jenkins) GetCredentialsInProject(projectId string) ([]*devops.Credentia
 
 }
 
-func (j *Jenkins) CreateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
+func (j *Jenkins) CreateCredentialInProject(projectId string, credential *v1.Secret) (string, error) {
 
 	var request interface{}
 	responseString := ""
 	switch credential.Type {
-	case devops.CredentialTypeUsernamePassword:
-		request = NewUsernamePasswordCredential(credential.Id,
-			credential.UsernamePasswordCredential.Username, credential.UsernamePasswordCredential.Password,
-			credential.Description)
-
-	case devops.CredentialTypeSsh:
-		request = NewSshCredential(credential.Id,
-			credential.SshCredential.Username, credential.SshCredential.Passphrase,
-			credential.SshCredential.PrivateKey, credential.Description)
-	case devops.CredentialTypeSecretText:
-		request = NewSecretTextCredential(credential.Id,
-			credential.SecretTextCredential.Secret, credential.Description)
-	case devops.CredentialTypeKubeConfig:
-		request = NewKubeconfigCredential(credential.Id,
-			credential.KubeconfigCredential.Content, credential.Description)
+	case devopsv1alpha3.SecretTypeBasicAuth:
+		request = NewUsernamePasswordCredential(credential)
+	case devopsv1alpha3.SecretTypeSSHAuth:
+		request = NewSshCredential(credential)
+	case devopsv1alpha3.SecretTypeSecretText:
+		request = NewSecretTextCredential(credential)
+	case devopsv1alpha3.SecretTypeKubeConfig:
+		request = NewKubeconfigCredential(credential)
 	default:
 		err := fmt.Errorf("error unsupport credential type")
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusBadRequest, err.Error())
+		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
 
 	response, err := j.Requester.Post(
@@ -277,65 +231,58 @@ func (j *Jenkins) CreateCredentialInProject(projectId string, credential *devops
 			}),
 		})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return "", errors.New(strconv.Itoa(response.StatusCode))
 	}
-	return &credential.Id, nil
+	return credential.Name, nil
 }
 
-func (j *Jenkins) UpdateCredentialInProject(projectId string, credential *devops.Credential) (*string, error) {
+func (j *Jenkins) UpdateCredentialInProject(projectId string, credential *v1.Secret) (string, error) {
 
 	requestContent := ""
 	switch credential.Type {
-	case devops.CredentialTypeUsernamePassword:
-		requestStruct := NewUsernamePasswordCredential(credential.Id,
-			credential.UsernamePasswordCredential.Username, credential.UsernamePasswordCredential.Password,
-			credential.Description)
+	case devopsv1alpha3.SecretTypeBasicAuth:
+		requestStruct := NewUsernamePasswordCredential(credential)
 		requestContent = makeJson(requestStruct)
-
-	case devops.CredentialTypeSsh:
-		requestStruct := NewSshCredential(credential.Id,
-			credential.SshCredential.Username, credential.SshCredential.Passphrase,
-			credential.SshCredential.PrivateKey, credential.Description)
+	case devopsv1alpha3.SecretTypeSSHAuth:
+		requestStruct := NewSshCredential(credential)
 		requestContent = makeJson(requestStruct)
-	case devops.CredentialTypeSecretText:
-		requestStruct := NewSecretTextCredential(credential.Id,
-			credential.SecretTextCredential.Secret, credential.Description)
+	case devopsv1alpha3.SecretTypeSecretText:
+		requestStruct := NewSecretTextCredential(credential)
 		requestContent = makeJson(requestStruct)
-	case devops.CredentialTypeKubeConfig:
-		requestStruct := NewKubeconfigCredential(credential.Id,
-			credential.KubeconfigCredential.Content, credential.Description)
+	case devopsv1alpha3.SecretTypeKubeConfig:
+		requestStruct := NewKubeconfigCredential(credential)
 		requestContent = makeJson(requestStruct)
 	default:
 		err := fmt.Errorf("error unsupport credential type")
 		klog.Errorf("%+v", err)
-		return nil, restful.NewError(http.StatusBadRequest, err.Error())
+		return "", restful.NewError(http.StatusBadRequest, err.Error())
 	}
 	response, err := j.Requester.Post(
-		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s/updateSubmit", projectId, credential.Id),
+		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s/updateSubmit", projectId, credential.Name),
 		nil, nil, map[string]string{
 			"json": requestContent,
 		})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return "", errors.New(strconv.Itoa(response.StatusCode))
 	}
-	return &credential.Id, nil
+	return credential.Name, nil
 }
 
-func (j *Jenkins) DeleteCredentialInProject(projectId, id string) (*string, error) {
+func (j *Jenkins) DeleteCredentialInProject(projectId, id string) (string, error) {
 	response, err := j.Requester.Post(
 		fmt.Sprintf("/job/%s/credentials/store/folder/domain/_/credential/%s/doDelete", projectId, id),
 		nil, nil, nil)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return "", errors.New(strconv.Itoa(response.StatusCode))
 	}
-	return &id, nil
+	return id, nil
 }

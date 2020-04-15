@@ -18,10 +18,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/mysql"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
-	fakeS3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
+	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
@@ -45,7 +44,6 @@ func NewServerRunOptions() *ServerRunOptions {
 			DevopsOptions:         jenkins.NewDevopsOptions(),
 			SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
 			ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
-			MySQLOptions:          mysql.NewMySQLOptions(),
 			MonitoringOptions:     prometheus.NewPrometheusOptions(),
 			S3Options:             s3.NewS3Options(),
 			OpenPitrixOptions:     openpitrix.NewOptions(),
@@ -65,7 +63,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.GenericServerRunOptions.AddFlags(fs, s.GenericServerRunOptions)
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
-	s.MySQLOptions.AddFlags(fss.FlagSet("mysql"), s.MySQLOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
@@ -122,7 +119,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 
 	if s.S3Options.Endpoint != "" {
 		if s.S3Options.Endpoint == fakeInterface && s.DebugMode {
-			apiServer.S3Client = fakeS3.NewFakeS3()
+			apiServer.S3Client = fakes3.NewFakeS3()
 		} else {
 			s3Client, err := s3.NewS3Client(s.S3Options)
 			if err != nil {
@@ -139,6 +136,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 		apiServer.DevopsClient = devopsClient
 		apiServer.DevOpsEventNotifier = v1alpha3.NewEventNotifier()
+	}
+
+	if s.SonarQubeOptions.Host != "" {
+		sonarClient, err := sonarqube.NewSonarQubeClient(s.SonarQubeOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
 	}
 
 	if s.LdapOptions.Host != "" {
@@ -164,14 +169,6 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			}
 			apiServer.CacheClient = cacheClient
 		}
-	}
-
-	if s.MySQLOptions.Host != "" {
-		dbClient, err := mysql.NewMySQLClient(s.MySQLOptions, stopCh)
-		if err != nil {
-			return nil, err
-		}
-		apiServer.DBClient = dbClient
 	}
 
 	server := &http.Server{
