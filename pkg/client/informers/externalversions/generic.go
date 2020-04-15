@@ -23,12 +23,12 @@ import (
 
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	v1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
 	v1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	networkv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	towerv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tower/v1alpha1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -57,17 +57,29 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=devops.kubesphere.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("s2ibinaries"):
+	// Group=cluster.kubesphere.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("agents"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Agents().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("clusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Clusters().Informer()}, nil
+
+		// Group=devops.kubesphere.io, Version=v1alpha1
+	case devopsv1alpha1.SchemeGroupVersion.WithResource("s2ibinaries"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBinaries().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("s2ibuilders"):
+	case devopsv1alpha1.SchemeGroupVersion.WithResource("s2ibuilders"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBuilders().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("s2ibuildertemplates"):
+	case devopsv1alpha1.SchemeGroupVersion.WithResource("s2ibuildertemplates"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iBuilderTemplates().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("s2iruns"):
+	case devopsv1alpha1.SchemeGroupVersion.WithResource("s2iruns"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha1().S2iRuns().Informer()}, nil
 
 		// Group=iam.kubesphere.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("policyrules"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().PolicyRules().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("roles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Roles().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("rolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().RoleBindings().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("users"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Users().Informer()}, nil
 
@@ -86,10 +98,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		// Group=tenant.kubesphere.io, Version=v1alpha1
 	case tenantv1alpha1.SchemeGroupVersion.WithResource("workspaces"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Tenant().V1alpha1().Workspaces().Informer()}, nil
-
-		// Group=tower.kubesphere.io, Version=v1alpha1
-	case towerv1alpha1.SchemeGroupVersion.WithResource("agents"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Tower().V1alpha1().Agents().Informer()}, nil
 
 	}
 

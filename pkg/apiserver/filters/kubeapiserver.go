@@ -1,7 +1,7 @@
 package filters
 
 import (
-	"fmt"
+	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -9,9 +9,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 	"net/url"
-	"strings"
-
-	"k8s.io/apimachinery/pkg/util/proxy"
 )
 
 // WithKubeAPIServer proxy request to kubernetes service if requests path starts with /api
@@ -35,8 +32,9 @@ func WithKubeAPIServer(handler http.Handler, config *rest.Config, failed proxy.E
 			s := *req.URL
 			s.Host = kubernetes.Host
 			s.Scheme = kubernetes.Scheme
-			// remove cluster path
-			s.Path = strings.Replace(s.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
+
+			// Do not cover k8s client authorization header
+			req.Header.Del("Authorization")
 
 			httpProxy := proxy.NewUpgradeAwareHandler(&s, defaultTransport, true, false, failed)
 			httpProxy.ServeHTTP(w, req)

@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	"net/http"
 	"strings"
 
@@ -77,8 +78,8 @@ type RequestInfoFactory struct {
 // /kapis/{api-group}/{version}/namespaces/{namespace}/{resource}
 // /kapis/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
 // With workspaces:
-// /kapis/{api-group}/{version}/clusters/{cluster}/namespaces/{namespace}/{resource}
-// /kapis/{api-group}/{version}/clusters/{cluster}/namespaces/{namespace}/{resource}/{resourceName}
+// /kapis/clusters/{cluster}/{api-group}/{version}/namespaces/{namespace}/{resource}
+// /kapis/clusters/{cluster}/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
 //
 func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, error) {
 
@@ -88,6 +89,8 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			Path: req.URL.Path,
 			Verb: req.Method,
 		},
+		Workspace: api.WorkspaceNone,
+		Cluster:   api.ClusterNone,
 	}
 
 	defer func() {
@@ -108,6 +111,16 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.APIPrefix = currentParts[0]
 	currentParts = currentParts[1:]
 
+	// URL forms: /clusters/{cluster}/*
+	if currentParts[0] == "clusters" {
+		if len(currentParts) > 1 {
+			requestInfo.Cluster = currentParts[1]
+		}
+		if len(currentParts) > 2 {
+			currentParts = currentParts[2:]
+		}
+	}
+
 	if !r.GrouplessAPIPrefixes.Has(requestInfo.APIPrefix) {
 		// one part (APIPrefix) has already been consumed, so this is actually "do we have four parts?"
 		if len(currentParts) < 3 {
@@ -122,16 +135,6 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	requestInfo.IsResourceRequest = true
 	requestInfo.APIVersion = currentParts[0]
 	currentParts = currentParts[1:]
-
-	if currentParts[0] == "clusters" {
-		requestInfo.Cluster = currentParts[1]
-		currentParts = currentParts[2:]
-	}
-
-	if currentParts[0] == "workspaces" {
-		requestInfo.Workspace = currentParts[1]
-		currentParts = currentParts[2:]
-	}
 
 	if specialVerbs.Has(currentParts[0]) {
 		if len(currentParts) < 2 {
@@ -154,6 +157,16 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			requestInfo.Verb = "delete"
 		default:
 			requestInfo.Verb = ""
+		}
+	}
+
+	// URL forms: /workspaces/{workspace}/*
+	if currentParts[0] == "workspaces" {
+		if len(currentParts) > 1 {
+			requestInfo.Workspace = currentParts[1]
+		}
+		if len(currentParts) > 2 {
+			currentParts = currentParts[2:]
 		}
 	}
 

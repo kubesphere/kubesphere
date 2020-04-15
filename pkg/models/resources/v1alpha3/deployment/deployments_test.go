@@ -94,15 +94,15 @@ func TestListDeployments(t *testing.T) {
 			},
 			&query.Query{
 				Pagination: &query.Pagination{
-					Limit: 1,
-					Page:  1,
+					Limit:  1,
+					Offset: 1,
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
 				Filters: []query.Filter{
 					{
 						Field: query.FieldName,
-						Value: query.ComparableString("foo"),
+						Value: query.Value("foo"),
 					},
 				},
 			},

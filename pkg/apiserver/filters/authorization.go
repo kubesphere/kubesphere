@@ -13,23 +13,23 @@ import (
 )
 
 // WithAuthorization passes all authorized requests on to handler, and returns forbidden error otherwise.
-func WithAuthorization(handler http.Handler, a authorizer.Authorizer) http.Handler {
-	if a == nil {
+func WithAuthorization(handler http.Handler, authorizers authorizer.Authorizer) http.Handler {
+	if authorizers == nil {
 		klog.Warningf("Authorization is disabled")
 		return handler
 	}
 
-	serializer := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
+	defaultSerializer := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		attributes, err := GetAuthorizerAttributes(ctx)
+		attributes, err := getAuthorizerAttributes(ctx)
 		if err != nil {
 			responsewriters.InternalError(w, req, err)
 		}
 
-		authorized, reason, err := a.Authorize(attributes)
+		authorized, reason, err := authorizers.Authorize(attributes)
 		if authorized == authorizer.DecisionAllow {
 			handler.ServeHTTP(w, req)
 			return
@@ -41,11 +41,11 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer) http.Handl
 		}
 
 		klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
-		responsewriters.Forbidden(ctx, attributes, w, req, reason, serializer)
+		responsewriters.Forbidden(ctx, attributes, w, req, reason, defaultSerializer)
 	})
 }
 
-func GetAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error) {
+func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error) {
 	attribs := authorizer.AttributesRecord{}
 
 	user, ok := request.UserFrom(ctx)

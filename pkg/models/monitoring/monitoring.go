@@ -19,19 +19,15 @@
 package monitoring
 
 import (
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/api/monitoring/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"time"
 )
 
 type MonitoringOperator interface {
-	GetMetrics(stmts []string, time time.Time) (v1alpha2.APIResponse, error)
-	GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) (v1alpha2.APIResponse, error)
-	GetNamedMetrics(time time.Time, opt monitoring.QueryOption) (v1alpha2.APIResponse, error)
-	GetNamedMetricsOverTime(start, end time.Time, step time.Duration, opt monitoring.QueryOption) (v1alpha2.APIResponse, error)
-	SortMetrics(raw v1alpha2.APIResponse, target, order, identifier string) (v1alpha2.APIResponse, int)
-	PageMetrics(raw v1alpha2.APIResponse, page, limit, rows int) v1alpha2.APIResponse
+	GetMetrics(stmts []string, time time.Time) Metrics
+	GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) Metrics
+	GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics
+	GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics
 }
 
 type monitoringOperator struct {
@@ -43,27 +39,21 @@ func NewMonitoringOperator(client monitoring.Interface) MonitoringOperator {
 }
 
 // TODO(huanggze): reserve for custom monitoring
-func (mo monitoringOperator) GetMetrics(stmts []string, time time.Time) (v1alpha2.APIResponse, error) {
+func (mo monitoringOperator) GetMetrics(stmts []string, time time.Time) Metrics {
 	panic("implement me")
 }
 
 // TODO(huanggze): reserve for custom monitoring
-func (mo monitoringOperator) GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) (v1alpha2.APIResponse, error) {
+func (mo monitoringOperator) GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) Metrics {
 	panic("implement me")
 }
 
-func (mo monitoringOperator) GetNamedMetrics(time time.Time, opt monitoring.QueryOption) (v1alpha2.APIResponse, error) {
-	metrics, err := mo.c.GetNamedMetrics(time, opt)
-	if err != nil {
-		klog.Error(err)
-	}
-	return v1alpha2.APIResponse{Results: metrics}, err
+func (mo monitoringOperator) GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics {
+	ress := mo.c.GetNamedMetrics(metrics, time, opt)
+	return Metrics{Results: ress}
 }
 
-func (mo monitoringOperator) GetNamedMetricsOverTime(start, end time.Time, step time.Duration, opt monitoring.QueryOption) (v1alpha2.APIResponse, error) {
-	metrics, err := mo.c.GetNamedMetricsOverTime(start, end, step, opt)
-	if err != nil {
-		klog.Error(err)
-	}
-	return v1alpha2.APIResponse{Results: metrics}, err
+func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics {
+	ress := mo.c.GetNamedMetricsOverTime(metrics, start, end, step, opt)
+	return Metrics{Results: ress}
 }

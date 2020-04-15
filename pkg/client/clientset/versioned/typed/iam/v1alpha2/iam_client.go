@@ -26,12 +26,27 @@ import (
 
 type IamV1alpha2Interface interface {
 	RESTClient() rest.Interface
+	PolicyRulesGetter
+	RolesGetter
+	RoleBindingsGetter
 	UsersGetter
 }
 
 // IamV1alpha2Client is used to interact with features provided by the iam.kubesphere.io group.
 type IamV1alpha2Client struct {
 	restClient rest.Interface
+}
+
+func (c *IamV1alpha2Client) PolicyRules() PolicyRuleInterface {
+	return newPolicyRules(c)
+}
+
+func (c *IamV1alpha2Client) Roles() RoleInterface {
+	return newRoles(c)
+}
+
+func (c *IamV1alpha2Client) RoleBindings() RoleBindingInterface {
+	return newRoleBindings(c)
 }
 
 func (c *IamV1alpha2Client) Users() UserInterface {

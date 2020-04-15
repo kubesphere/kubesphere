@@ -15,7 +15,6 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/aws/aws-sdk-go v1.22.2
 	github.com/beevik/etree v1.1.0
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
@@ -54,26 +53,22 @@ require (
 	github.com/json-iterator/go v1.1.8
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779
-	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
-	github.com/lucas-clemente/quic-go v0.11.1 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
-	github.com/mholt/caddy v1.0.0
-	github.com/mholt/certmagic v0.5.1 // indirect
-	github.com/miekg/dns v1.1.9 // indirect
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/openshift/api v3.9.0+incompatible // indirect
+	github.com/openshift/api v0.0.0-20180801171038-322a19404e37 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
+	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/common v0.4.0
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -82,12 +77,11 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.23.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect
-	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
 	gopkg.in/yaml.v2 v2.2.4
@@ -301,7 +295,8 @@ replace (
 	github.com/open-policy-agent/opa => github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
-	github.com/openshift/api => github.com/openshift/api v3.9.0+incompatible
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20180801171038-322a19404e37
+	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160
 	github.com/pborman/uuid => github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-buffruneio => github.com/pelletier/go-buffruneio v0.2.0
 	github.com/pelletier/go-toml => github.com/pelletier/go-toml v1.2.0

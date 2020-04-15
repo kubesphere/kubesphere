@@ -16,7 +16,7 @@ func TestParseQueryParameter(t *testing.T) {
 	}{
 		{
 			"test normal case",
-			"name=foo&status=Running&application=book&page=1&limit=10&ascending=true",
+			"label=app.kubernetes.io/name:book&name=foo&status=Running&page=1&limit=10&ascending=true",
 			&Query{
 				Pagination: newPagination(10, 0),
 				SortBy:     FieldCreationTimeStamp,
@@ -24,15 +24,15 @@ func TestParseQueryParameter(t *testing.T) {
 				Filters: []Filter{
 					{
 						FieldName,
-						ComparableString("foo"),
+						Value("foo"),
+					},
+					{
+						FieldLabel,
+						Value("app.kubernetes.io/name:book"),
 					},
 					{
 						FieldStatus,
-						ComparableString("Running"),
-					},
-					{
-						FieldApplication,
-						ComparableString("book"),
+						Value("Running"),
 					},
 				},
 			},
@@ -41,13 +41,10 @@ func TestParseQueryParameter(t *testing.T) {
 			"test bad case",
 			"xxxx=xxxx&dsfsw=xxxx&page=abc&limit=add&ascending=ssss",
 			&Query{
-				Pagination: &Pagination{
-					Limit: -1,
-					Page:  -1,
-				},
-				SortBy:    FieldCreationTimeStamp,
-				Ascending: false,
-				Filters:   []Filter{},
+				Pagination: NoPagination,
+				SortBy:     FieldCreationTimeStamp,
+				Ascending:  false,
+				Filters:    []Filter{},
 			},
 		},
 	}

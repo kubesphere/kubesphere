@@ -1,40 +1,43 @@
 package ldap
 
 import (
-	"kubesphere.io/kubesphere/pkg/api/iam"
-	"time"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 )
 
 // simpleLdap is a implementation of ldap.Interface, you should never use this in production env!
 type simpleLdap struct {
-	store map[string]*iam.User
+	store map[string]*iamv1alpha2.User
 }
 
 func NewSimpleLdap() Interface {
 	sl := &simpleLdap{
-		store: map[string]*iam.User{},
+		store: map[string]*iamv1alpha2.User{},
 	}
 
 	// initialize with a admin user
-	admin := &iam.User{
-		Name:        "admin",
-		Email:       "admin@kubesphere.io",
-		Lang:        "eng",
-		Description: "administrator",
-		CreateTime:  time.Now(),
-		Groups:      nil,
-		Password:    "P@88w0rd",
+	admin := &iamv1alpha2.User{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "admin",
+		},
+		Spec: iamv1alpha2.UserSpec{
+			Email:             "admin@kubesphere.io",
+			Lang:              "eng",
+			Description:       "administrator",
+			Groups:            nil,
+			EncryptedPassword: "P@88w0rd",
+		},
 	}
 	sl.store[admin.Name] = admin
 	return sl
 }
 
-func (s simpleLdap) Create(user *iam.User) error {
+func (s simpleLdap) Create(user *iamv1alpha2.User) error {
 	s.store[user.Name] = user
 	return nil
 }
 
-func (s simpleLdap) Update(user *iam.User) error {
+func (s simpleLdap) Update(user *iamv1alpha2.User) error {
 	_, err := s.Get(user.Name)
 	if err != nil {
 		return err
@@ -52,7 +55,7 @@ func (s simpleLdap) Delete(name string) error {
 	return nil
 }
 
-func (s simpleLdap) Get(name string) (*iam.User, error) {
+func (s simpleLdap) Get(name string) (*iamv1alpha2.User, error) {
 	if user, ok := s.store[name]; !ok {
 		return nil, ErrUserNotExists
 	} else {
@@ -64,7 +67,7 @@ func (s simpleLdap) Authenticate(name string, password string) error {
 	if user, err := s.Get(name); err != nil {
 		return err
 	} else {
-		if user.Password != password {
+		if user.Spec.EncryptedPassword != password {
 			return ErrInvalidCredentials
 		}
 	}
