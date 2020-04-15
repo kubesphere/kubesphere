@@ -136,8 +136,8 @@ func AddControllers(
 		"devopsprojects-controller":   devopsProjectController,
 		"pipeline-controller":         devopsPipelineController,
 		"devopscredential-controller": devopsCredentialController,
-		"cluster-controller":         clusterController,
-		"user-controller":            userController,
+		"cluster-controller":          clusterController,
+		"user-controller":             userController,
 	}
 
 	for name, ctrl := range controllers {
