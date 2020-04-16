@@ -24,7 +24,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	ksruntime "kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/informers"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
@@ -150,11 +149,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
-	devopsv1alpha2Service := ksruntime.NewWebService(devopsv1alpha2.GroupVersion)
-	urlruntime.Must(devopsv1alpha2.AddPipelineToWebService(devopsv1alpha2Service, s.DevopsClient))
-	urlruntime.Must(devopsv1alpha2.AddS2IToWebService(devopsv1alpha2Service, s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory(), s.S3Client))
-	urlruntime.Must(devopsv1alpha2.AddSonarToWebService(devopsv1alpha2Service, s.DevopsClient, s.SonarClient))
-	s.container.Add(devopsv1alpha2Service)
+	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.InformerFactory.KubeSphereSharedInformerFactory(), s.DevopsClient, s.SonarClient, s.KubernetesClient.KubeSphere(), s.S3Client))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
