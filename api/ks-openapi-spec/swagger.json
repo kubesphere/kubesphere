@@ -16718,10 +16718,10 @@
     "v1alpha2.FinalizerName": {},
     "v1alpha2.GraphResponse": {
       "required": [
-        "graphType",
-        "elements",
         "timestamp",
-        "duration"
+        "duration",
+        "graphType",
+        "elements"
       ],
       "properties": {
         "duration": {
