@@ -123,7 +123,7 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container, clientsets, informerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
-	urlruntime.Must(networkv1alpha2.AddToContainer(container))
+	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
 
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(),

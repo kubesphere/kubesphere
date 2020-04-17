@@ -17,6 +17,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
@@ -43,6 +44,7 @@ func NewServerRunOptions() *ServerRunOptions {
 			DevopsOptions:         jenkins.NewDevopsOptions(),
 			SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
 			ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
+			NetworkOptions:        network.NewNetworkOptions(),
 			MonitoringOptions:     prometheus.NewPrometheusOptions(),
 			S3Options:             s3.NewS3Options(),
 			OpenPitrixOptions:     openpitrix.NewOptions(),
@@ -68,6 +70,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.RedisOptions.AddFlags(fss.FlagSet("redis"), s.RedisOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
+	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)

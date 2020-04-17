@@ -30,25 +30,28 @@ const GroupName = "network.kubesphere.io"
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container) error {
+func AddToContainer(c *restful.Container, weaveScopeHost string) error {
 	webservice := runtime.NewWebService(GroupVersion)
+	h := handler{weaveScopeHost: weaveScopeHost}
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/topology").
-		To(getNamespaceTopology).
+		To(h.getNamespaceTopology).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NetworkTopologyTag}).
 		Doc("Get the topology with specifying a namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace").Required(true)).
 		Returns(http.StatusOK, "ok", TopologyResponse{}).
-		Writes(TopologyResponse{})).Produces(restful.MIME_JSON)
+		Writes(TopologyResponse{})).
+		Produces(restful.MIME_JSON)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/topology/{node_id}").
-		To(getNamespaceNodeTopology).
+		To(h.getNamespaceNodeTopology).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NetworkTopologyTag}).
 		Doc("Get the topology with specifying a node id in the whole topology and specifying a namespace").
 		Param(webservice.PathParameter("namespace", "name of the namespace").Required(true)).
 		Param(webservice.PathParameter("node_id", "id of the node in the whole topology").Required(true)).
 		Returns(http.StatusOK, "ok", NodeResponse{}).
-		Writes(NodeResponse{})).Produces(restful.MIME_JSON)
+		Writes(NodeResponse{})).
+		Produces(restful.MIME_JSON)
 
 	c.Add(webservice)
 
