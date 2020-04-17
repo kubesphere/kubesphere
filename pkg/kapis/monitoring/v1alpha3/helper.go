@@ -70,7 +70,7 @@ type queryOptions struct {
 }
 
 func (q queryOptions) isRangeQuery() bool {
-	return !q.time.IsZero()
+	return q.time.IsZero()
 }
 
 func (q queryOptions) shouldSort() bool {

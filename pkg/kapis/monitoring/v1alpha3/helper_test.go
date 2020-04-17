@@ -12,6 +12,36 @@ import (
 	"time"
 )
 
+func TestIsRangeQuery(t *testing.T) {
+	tests := []struct {
+		opt      queryOptions
+		expected bool
+	}{
+		{
+			opt: queryOptions{
+				time: time.Now(),
+			},
+			expected: false,
+		},
+		{
+			opt: queryOptions{
+				start: time.Now().Add(-time.Hour),
+				end:   time.Now(),
+			},
+			expected: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			b := tt.opt.isRangeQuery()
+			if b != tt.expected {
+				t.Fatalf("expected %v, but got %v", tt.expected, b)
+			}
+		})
+	}
+}
+
 func TestParseRequestParams(t *testing.T) {
 	tests := []struct {
 		params      reqParams
