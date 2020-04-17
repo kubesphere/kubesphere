@@ -34,7 +34,7 @@ const (
 	RespOK    = "ok"
 )
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
+var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}
 
 func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface) error {
 	ws := runtime.NewWebService(GroupVersion)
