@@ -40,6 +40,7 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
+          description: Standard object's metadata.
           type: object
         spec:
           description: UserSpec defines the desired state of User
@@ -66,6 +67,7 @@ spec:
               description: The preferred written or spoken language for the user.
               type: string
             password:
+              description: password will be encrypted by mutating admission webhook
               type: string
           required:
           - email

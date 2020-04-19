@@ -17,7 +17,31 @@ limitations under the License.
 package v1alpha2
 
 import (
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	ResourceKindUser                      = "User"
+	ResourcesSingularUser                 = "user"
+	ResourcesPluralUser                   = "users"
+	ResourceKindGlobalRoleBinding         = "GlobalRoleBinding"
+	ResourcesSingularGlobalRoleBinding    = "globalrolebinding"
+	ResourcesPluralGlobalRoleBinding      = "globalrolebindings"
+	ResourceKindGlobalRole                = "GlobalRole"
+	ResourcesSingularGlobalRole           = "globalrole"
+	ResourcesPluralGlobalRole             = "globalroles"
+	ResourceKindWorkspaceRoleBinding      = "WorkspaceRoleBinding"
+	ResourcesSingularWorkspaceRoleBinding = "workspacerolebinding"
+	ResourcesPluralWorkspaceRoleBinding   = "workspacerolebindings"
+	ResourceKindWorkspaceRole             = "WorkspaceRole"
+	ResourcesSingularWorkspaceRole        = "workspacerole"
+	ResourcesPluralWorkspaceRole          = "workspaceroles"
+	RegoOverrideAnnotation                = "iam.kubesphere.io/rego-override"
+	GlobalScope                           = "Global"
+	ClusterScope                          = "Cluster"
+	WorkspaceScope                        = "Workspace"
+	NamespaceScope                        = "Namespace"
 )
 
 // +genclient
@@ -30,7 +54,9 @@ import (
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type User struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec UserSpec `json:"spec"`
@@ -53,9 +79,9 @@ type UserSpec struct {
 	// +optional
 	DisplayName string `json:"displayName,omitempty"`
 	// +optional
-	Groups            []string `json:"groups,omitempty"`
-	EncryptedPassword string   `json:"password"`
-
+	Groups []string `json:"groups,omitempty"`
+	// password will be encrypted by mutating admission webhook
+	EncryptedPassword string `json:"password"`
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage.
 	// +optional
 	Finalizers []FinalizerName `json:"finalizers,omitempty"`
@@ -102,7 +128,7 @@ type UserConditionType string
 // These are valid conditions of a user.
 const (
 	// UserLoginFailure contains information about user login.
-	UserLoginFailure UserConditionType = "UserLoginFailure"
+	LoginFailure UserConditionType = "LoginFailure"
 )
 
 type ConditionStatus string
@@ -121,6 +147,8 @@ const (
 // UserList contains a list of User
 type UserList struct {
 	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []User `json:"items"`
 }
@@ -129,128 +157,131 @@ type UserList struct {
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".target.scope"
-// +kubebuilder:printcolumn:name="Target",type="string",JSONPath=".target.name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
-type Role struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Target Target    `json:"target"`
-	Rules  []RuleRef `json:"rules"`
-}
-
-type Target struct {
-	Scope Scope  `json:"scope"`
-	Name  string `json:"name"`
-}
-
-type Scope string
-
-const (
-	GlobalScope     Scope = "Global"
-	ClusterScope    Scope = "Cluster"
-	WorkspaceScope  Scope = "Workspace"
-	NamespaceScope  Scope = "Namespace"
-	UserKind              = "User"
-	PolicyRuleKind        = "PolicyRule"
-	RoleKind              = "Role"
-	RoleBindingKind       = "RoleBinding"
-)
-
-// RuleRef contains information that points to the role being used
-type RuleRef struct {
-	// APIGroup is the group for the resource being referenced
-	APIGroup string `json:"apiGroup"`
-	// Kind is the type of resource being referenced
-	Kind string `json:"kind"`
-	// Name is the name of resource being referenced
-	Name string `json:"name"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// RoleList contains a list of Role
-type RoleList struct {
+type GlobalRole struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Role `json:"items"`
-}
-
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".scope"
-// +kubebuilder:resource:categories="iam",scope="Cluster"
-type PolicyRule struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Scope Scope  `json:"scope"`
-	Rego  string `json:"rego"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// PolicyRuleList contains a list of PolicyRule
-type PolicyRuleList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PolicyRule `json:"items"`
-}
-
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// RoleBinding is the Schema for the rolebindings API
-// +kubebuilder:printcolumn:name="Scope",type="string",JSONPath=".scope"
-// +kubebuilder:printcolumn:name="RoleRef",type="string",JSONPath=".roleRef.name"
-// +kubebuilder:printcolumn:name="Subjects",type="string",JSONPath=".subjects[*].name"
-// +kubebuilder:resource:categories="iam",scope="Cluster"
-type RoleBinding struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Scope   Scope   `json:"scope"`
-	RoleRef RoleRef `json:"roleRef"`
-	// Subjects holds references to the users the role applies to.
+	// Standard object's metadata.
 	// +optional
-	Subjects []Subject `json:"subjects,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Rules holds all the PolicyRules for this ClusterRole
+	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
+
+	// AggregationRule is an optional field that describes how to build the Rules for this GlobalRole.
+	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
+	// stomped by the controller.
+	AggregationRule *AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
 }
 
-// RoleRef contains information that points to the role being used
-type RoleRef struct {
-	// APIGroup is the group for the resource being referenced
-	APIGroup string `json:"apiGroup"`
-	// Kind is the type of resource being referenced
-	Kind string `json:"kind"`
-	// Name is the name of resource being referenced
-	Name string `json:"name"`
-}
-
-// or a value for non-objects such as user and group names.
-type Subject struct {
-	// Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".
-	// If the Authorizer does not recognized the kind value, the Authorizer should report an error.
-	Kind string `json:"kind"`
-	// APIGroup holds the API group of the referenced subject.
-	APIGroup string `json:"apiGroup"`
-	// Name of the object being referenced.
-	Name string `json:"name"`
+// AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole
+type AggregationRule struct {
+	// ClusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules.
+	// If any of the selectors match, then the ClusterRole's permissions will be added
+	// +optional
+	RoleSelectors []metav1.LabelSelector `json:"roleSelectors,omitempty" protobuf:"bytes,1,rep,name=roleSelectors"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// RoleBindingList contains a list of RoleBinding
-type RoleBindingList struct {
+// GlobalRoleList contains a list of GlobalRole
+type GlobalRoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RoleBinding `json:"items"`
+	Items           []GlobalRole `json:"items"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// GlobalRoleBinding is the Schema for the globalrolebindings API
+// +kubebuilder:resource:categories="iam",scope="Cluster"
+type GlobalRoleBinding struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Subjects holds references to the objects the role applies to.
+	// +optional
+	Subjects []rbacv1.Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
+
+	// RoleRef can only reference a ClusterRole in the global namespace.
+	// If the RoleRef cannot be resolved, the Authorizer must return an error.
+	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// GlobalRoleBindingList contains a list of GlobalRoleBinding
+type GlobalRoleBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// +optional
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []GlobalRoleBinding `json:"items"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
+// +kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.labels.kubesphere\\.io/alias-name"
+// +kubebuilder:resource:categories="iam",scope="Cluster"
+type WorkspaceRole struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Rules holds all the PolicyRules for this ClusterRole
+	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
+	// AggregationRule is an optional field that describes how to build the Rules for this WorkspaceRole.
+	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
+	// stomped by the controller.
+	AggregationRule *AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// WorkspaceRoleList contains a list of WorkspaceRole
+type WorkspaceRoleList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []WorkspaceRole `json:"items"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// WorkspaceRoleBinding is the Schema for the workspacerolebindings API
+// +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
+// +kubebuilder:resource:categories="iam",scope="Cluster"
+type WorkspaceRoleBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Subjects holds references to the objects the role applies to.
+	// +optional
+	Subjects []rbacv1.Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
+
+	// RoleRef can only reference a ClusterRole in the global namespace.
+	// If the RoleRef cannot be resolved, the Authorizer must return an error.
+	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// WorkspaceRoleBindingList contains a list of WorkspaceRoleBinding
+type WorkspaceRoleBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []WorkspaceRoleBinding `json:"items"`
 }
 
 type UserDetail struct {
 	*User
-	GlobalRole *Role `json:"globalRole"`
+	GlobalRole *GlobalRole `json:"globalRole"`
 }

@@ -21,19 +21,10 @@ func TestParseQueryParameter(t *testing.T) {
 				Pagination: newPagination(10, 0),
 				SortBy:     FieldCreationTimeStamp,
 				Ascending:  true,
-				Filters: []Filter{
-					{
-						FieldName,
-						Value("foo"),
-					},
-					{
-						FieldLabel,
-						Value("app.kubernetes.io/name:book"),
-					},
-					{
-						FieldStatus,
-						Value("Running"),
-					},
+				Filters: map[Field]Value{
+					FieldLabel:  Value("app.kubernetes.io/name:book"),
+					FieldName:   Value("foo"),
+					FieldStatus: Value("Running"),
 				},
 			},
 		},
@@ -44,7 +35,10 @@ func TestParseQueryParameter(t *testing.T) {
 				Pagination: NoPagination,
 				SortBy:     FieldCreationTimeStamp,
 				Ascending:  false,
-				Filters:    []Filter{},
+				Filters: map[Field]Value{
+					Field("xxxx"):  Value("xxxx"),
+					Field("dsfsw"): Value("xxxx"),
+				},
 			},
 		},
 	}
@@ -61,6 +55,7 @@ func TestParseQueryParameter(t *testing.T) {
 			got := ParseQueryParameter(request)
 
 			if diff := cmp.Diff(got, test.expected); diff != "" {
+
 				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
 				return
 			}

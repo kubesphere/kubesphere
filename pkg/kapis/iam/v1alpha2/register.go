@@ -29,97 +29,70 @@ import (
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
-	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 
-const groupName = "iam.kubesphere.io"
+const (
+	GroupName = "iam.kubesphere.io"
+)
 
-var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha2"}
+var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
 func AddToContainer(container *restful.Container, im im.IdentityManagementInterface, am am.AccessManagementInterface, options *authoptions.AuthenticationOptions) error {
 	ws := runtime.NewWebService(GroupVersion)
 
 	handler := newIAMHandler(im, am, options)
 
+	// global resource
+	ws.Route(ws.GET("/users").
+		To(handler.ListUsers).
+		Doc("List all users.").
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	// global resource
 	ws.Route(ws.GET("/users/{user}").
 		To(handler.DescribeUser).
 		Doc("Retrieve user details.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.UserDetail{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/users/{user}/workspaceroles").
-		To(handler.ListRolesOfUser).
-		Doc("Retrieve user roles in workspaces.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/users/{user}/clusterroles").
-		To(handler.ListRolesOfUser).
-		Doc("Retrieve user roles in clusters.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/users/{user}/namespaceroles").
-		To(handler.ListRolesOfUser).
-		Doc("Retrieve user roles in namespaces.").
-		Param(ws.PathParameter("user", "username")).
-		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.RoleList{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/namespaces/{namespace}/roles").
-		To(handler.ListRoles).
-		Doc("Retrieve the roles that are assigned to the user in the specified namespace.").
-		Param(ws.PathParameter("namespace", "kubernetes namespace")).
+	// global resource
+	ws.Route(ws.GET("/globalroles").
+		To(handler.ListGlobalRoles).
+		Doc("List all cluster roles.").
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	ws.Route(ws.GET("/clusterroles").
 		To(handler.ListClusterRoles).
-		Doc("List all cluster roles.").
+		Doc("List cluster roles.").
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	// TODO merge
-	//ws.Route(ws.GET("/namespaces/{namespace}/roles/{role}/users"))
-	ws.Route(ws.GET("/namespaces/{namespace}/users").
-		To(handler.ListNamespaceUsers).
-		Doc("List all users in the specified namespace.").
-		Param(ws.PathParameter("namespace", "kubernetes namespace")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/clusterroles/{clusterrole}/users").
-		To(handler.ListClusterRoleUsers).
-		Doc("List all users that are bound to the specified cluster role.").
-		Param(ws.PathParameter("clusterrole", "cluster role name")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/workspaces/{workspace}/roles").
-		To(handler.ListWorkspaceRoles).
-		Doc("List all workspace roles.").
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-
-	ws.Route(ws.GET("/workspaces/{workspace}/members").
+	ws.Route(ws.GET("/workspaces/{workspace}/users").
 		To(handler.ListWorkspaceUsers).
 		Doc("List all members in the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	// TODO re-design
-	ws.Route(ws.POST("/workspaces/{workspace}/members").
-		To(handler.InviteUser).
-		Doc("Invite a member to the specified workspace.").
+	ws.Route(ws.GET("/workspaces/{workspace}/workspaceroles").
+		To(handler.ListWorkspaceRoles).
+		Doc("List all workspace roles.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.DELETE("/workspaces/{workspace}/members/{member}").
-		To(handler.RemoveUser).
-		Doc("Remove the specified member from the workspace.").
-		Param(ws.PathParameter("workspace", "workspace name")).
-		Param(ws.PathParameter("member", "username")).
-		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+
+	ws.Route(ws.GET("/namespaces/{namespace}/users").
+		To(handler.ListNamespaceUsers).
+		Doc("List all users in the specified namespace.").
+		Param(ws.PathParameter("namespace", "kubernetes namespace")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/roles").
+		To(handler.ListRoles).
+		Doc("List all roles in the specified namespace.").
+		Param(ws.PathParameter("namespace", "namespace")).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	container.Add(ws)

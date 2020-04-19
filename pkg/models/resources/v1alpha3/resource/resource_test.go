@@ -55,7 +55,7 @@ func TestResourceGetter(t *testing.T) {
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
-				Filters:   []query.Filter{},
+				Filters:   map[query.Field]query.Value{},
 			},
 			ExpectError: nil,
 			ExpectResponse: &api.ListResult{

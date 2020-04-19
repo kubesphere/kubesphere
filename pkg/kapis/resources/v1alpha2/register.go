@@ -71,7 +71,7 @@ func AddToContainer(c *restful.Container, client kubernetes.Interface, factory i
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
 		Doc("Cluster level resources").
-		Param(webservice.PathParameter("resources", "cluster level resource type, e.g. nodes,workspaces,storageclasses,clusterroles.")).
+		Param(webservice.PathParameter("resources", "cluster level resource type, e.g. nodes,workspaces,storageclasses,clusterrole.")).
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
 			DataFormat("key=value,key~value").

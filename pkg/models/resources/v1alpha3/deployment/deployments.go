@@ -26,8 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	"k8s.io/api/apps/v1"
 )
 
@@ -51,7 +49,7 @@ func (d *deploymentsGetter) Get(namespace, name string) (runtime.Object, error) 
 
 func (d *deploymentsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	// first retrieves all deployments within given namespace
-	all, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(labels.Everything())
+	all, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +75,8 @@ func (d *deploymentsGetter) compare(left runtime.Object, right runtime.Object, f
 	}
 
 	switch field {
+	case query.FieldUpdateTime:
+		fallthrough
 	case query.FieldLastUpdateTimestamp:
 		return lastUpdateTime(leftDeployment).After(lastUpdateTime(rightDeployment))
 	default:

@@ -30,12 +30,7 @@ func TestListDeployments(t *testing.T) {
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
-				Filters: []query.Filter{
-					{
-						Field: query.FieldName,
-						Value: query.Value("foo2"),
-					},
-				},
+				Filters:   map[query.Field]query.Value{query.FieldName: query.Value("foo2")},
 			},
 			&api.ListResult{
 				Items: []interface{}{

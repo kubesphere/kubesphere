@@ -1,15 +1,45 @@
+/*
+ *
+ * Copyright 2020 The KubeSphere Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * /
+ */
+
 package resource
 
 import (
 	"errors"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/application"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterrole"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/configmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspace"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerole"
 )
 
 var ErrResourceNotSupported = errors.New("resource is not supported")
@@ -23,7 +53,15 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 
 	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}] = deployment.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}] = namespace.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}] = configmap.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}] = pod.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"}] = application.New(factory.ApplicationSharedInformerFactory())
+	getters[tenantv1alpha1.SchemeGroupVersion.WithResource(tenantv1alpha1.ResourcePluralWorkspace)] = workspace.New(factory.KubeSphereSharedInformerFactory())
+	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralGlobalRole)] = globalrole.New(factory.KubeSphereSharedInformerFactory())
+	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralWorkspaceRole)] = workspacerole.New(factory.KubeSphereSharedInformerFactory())
+	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser)] = user.New(factory.KubeSphereSharedInformerFactory())
+	getters[rbacv1.SchemeGroupVersion.WithResource("roles")] = role.New(factory.KubernetesSharedInformerFactory())
+	getters[rbacv1.SchemeGroupVersion.WithResource("clusterroles")] = clusterrole.New(factory.KubernetesSharedInformerFactory())
 
 	return &ResourceGetter{
 		getters: getters,
@@ -38,11 +76,10 @@ func (r *ResourceGetter) tryResource(resource string) v1alpha3.Interface {
 			return v
 		}
 	}
-
 	return nil
 }
 
-func (r *ResourceGetter) Get(resource, namespace, name string) (interface{}, error) {
+func (r *ResourceGetter) Get(resource, namespace, name string) (runtime.Object, error) {
 	getter := r.tryResource(resource)
 	if getter == nil {
 		return nil, ErrResourceNotSupported

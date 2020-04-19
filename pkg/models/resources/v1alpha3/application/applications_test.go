@@ -59,12 +59,7 @@ func TestListApplications(t *testing.T) {
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
-				Filters: []query.Filter{
-					{
-						Field: query.FieldNamespace,
-						Value: query.Value("bar2"),
-					},
-				},
+				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("bar2")},
 			},
 			api.ListResult{
 				Items: []interface{}{

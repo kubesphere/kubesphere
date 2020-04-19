@@ -81,6 +81,13 @@ func ObjectMetaExactlyMath(key, value string, item metav1.ObjectMeta) bool {
 		if !strings.Contains(item.Name, value) && !FuzzyMatch(item.Labels, "", value) && !FuzzyMatch(item.Annotations, "", value) {
 			return false
 		}
+	case Owner:
+		for _, ownerReference := range item.OwnerReferences {
+			if strings.Compare(string(ownerReference.UID), value) == 0 {
+				return true
+			}
+		}
+		return false
 	default:
 		// label not exist or value not equal
 		if val, ok := item.Labels[key]; !ok || val != value {
@@ -109,13 +116,6 @@ func ObjectMetaFuzzyMath(key, value string, item metav1.ObjectMeta) bool {
 		if !strings.Contains(item.Labels[Chart], value) && !strings.Contains(item.Labels[Release], value) {
 			return false
 		}
-	case Owner:
-		for _, ownerReference := range item.OwnerReferences {
-			if strings.Compare(string(ownerReference.UID), value) == 0 {
-				return true
-			}
-		}
-		return false
 	default:
 		if !FuzzyMatch(item.Labels, key, value) {
 			return false

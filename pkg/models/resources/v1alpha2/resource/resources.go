@@ -115,7 +115,7 @@ func (r *ResourceGetter) ListResources(namespace, resource string, conditions *p
 
 	// none namespace resource
 	if namespace != "" && sliceutil.HasString(clusterResources, resource) {
-		err = fmt.Errorf("namespaced resource %s not found", resource)
+		err = fmt.Errorf("resource %s is not supported", resource)
 		klog.Errorln(err)
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (r *ResourceGetter) ListResources(namespace, resource string, conditions *p
 	if searcher, ok := r.resourcesGetters[resource]; ok {
 		result, err = searcher.Search(namespace, conditions, orderBy, reverse)
 	} else {
-		err = fmt.Errorf("namespaced resource %s not found", resource)
+		err = fmt.Errorf("resource %s is not supported", resource)
 		klog.Errorln(err)
 		return nil, err
 	}

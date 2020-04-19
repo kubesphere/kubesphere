@@ -30,12 +30,7 @@ func TestListConfigMaps(t *testing.T) {
 				},
 				SortBy:    query.FieldName,
 				Ascending: false,
-				Filters: []query.Filter{
-					{
-						Field: query.FieldNamespace,
-						Value: query.Value("default"),
-					},
-				},
+				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("default")},
 			},
 			&api.ListResult{
 				Items:      []interface{}{foo3, foo2, foo1},

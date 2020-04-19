@@ -2,6 +2,8 @@ package query
 
 import (
 	"github.com/emicklei/go-restful"
+	"k8s.io/apimachinery/pkg/labels"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"strconv"
 )
 
@@ -26,7 +28,9 @@ type Query struct {
 	Ascending bool
 
 	//
-	Filters []Filter
+	Filters map[Field]Value
+
+	LabelSelector string
 }
 
 type Pagination struct {
@@ -47,17 +51,27 @@ func newPagination(limit int, offset int) *Pagination {
 	}
 }
 
+func (q *Query) Selector() labels.Selector {
+	if selector, err := labels.Parse(q.LabelSelector); err != nil {
+		return labels.Everything()
+	} else {
+		return selector
+	}
+}
+
 func (p *Pagination) GetValidPagination(total int) (startIndex, endIndex int) {
 
+	// no pagination
 	if p.Limit == NoPagination.Limit {
 		return 0, total
 	}
 
-	if p.Limit < 0 || p.Offset < 0 || total == 0 {
+	// out of range
+	if p.Limit < 0 || p.Offset < 0 || p.Offset > total {
 		return 0, 0
 	}
 
-	startIndex = p.Limit * p.Offset
+	startIndex = p.Offset
 	endIndex = startIndex + p.Limit
 
 	if endIndex > total {
@@ -72,7 +86,7 @@ func New() *Query {
 		Pagination: NoPagination,
 		SortBy:     "",
 		Ascending:  false,
-		Filters:    []Filter{},
+		Filters:    map[Field]Value{},
 	}
 }
 
@@ -84,35 +98,36 @@ type Filter struct {
 func ParseQueryParameter(request *restful.Request) *Query {
 	query := New()
 
-	limit, err := strconv.Atoi(request.QueryParameter("limit"))
+	limit, err := strconv.Atoi(request.QueryParameter(ParameterLimit))
 	// equivalent to undefined, use the default value
 	if err != nil {
 		limit = -1
 	}
-	page, err := strconv.Atoi(request.QueryParameter("page"))
+	page, err := strconv.Atoi(request.QueryParameter(ParameterPage))
 	// equivalent to undefined, use the default value
 	if err != nil {
 		page = 1
 	}
 
-	query.Pagination = newPagination(limit, page-1)
+	query.Pagination = newPagination(limit, (page-1)*limit)
 
-	query.SortBy = Field(defaultString(request.QueryParameter("sortBy"), FieldCreationTimeStamp))
+	query.SortBy = Field(defaultString(request.QueryParameter(ParameterOrderBy), FieldCreationTimeStamp))
 
-	ascending, err := strconv.ParseBool(defaultString(request.QueryParameter("ascending"), "false"))
+	ascending, err := strconv.ParseBool(defaultString(request.QueryParameter(ParameterAscending), "false"))
 	if err != nil {
 		query.Ascending = false
 	} else {
 		query.Ascending = ascending
 	}
 
-	for _, field := range ComparableFields {
-		f := request.QueryParameter(string(field))
-		if len(f) != 0 {
-			query.Filters = append(query.Filters, Filter{
-				Field: field,
-				Value: Value(f),
-			})
+	query.LabelSelector = request.QueryParameter(ParameterLabelSelector)
+
+	for key, values := range request.Request.URL.Query() {
+		if !sliceutil.HasString([]string{ParameterPage, ParameterLimit, ParameterOrderBy, ParameterAscending, ParameterLabelSelector}, key) {
+			// support multiple query condition
+			for _, value := range values {
+				query.Filters[Field(key)] = Value(value)
+			}
 		}
 	}
 

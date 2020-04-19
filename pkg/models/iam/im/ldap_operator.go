@@ -19,7 +19,9 @@
 package im
 
 import (
+	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 )
 
@@ -31,7 +33,6 @@ func NewLDAPOperator(ldapClient ldap.Interface) IdentityManagementInterface {
 	return &ldapOperator{
 		ldapClient: ldapClient,
 	}
-
 }
 
 func (im *ldapOperator) ModifyUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
@@ -77,4 +78,8 @@ func (im *ldapOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, e
 	}
 
 	return user, nil
+}
+
+func (im *ldapOperator) ListUsers(query *query.Query) (*api.ListResult, error) {
+	panic("not implement")
 }

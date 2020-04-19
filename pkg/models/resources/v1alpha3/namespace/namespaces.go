@@ -2,7 +2,6 @@ package namespace
 
 import (
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -24,7 +23,7 @@ func (n namespaceGetter) Get(_, name string) (runtime.Object, error) {
 }
 
 func (n namespaceGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	ns, err := n.informers.Core().V1().Namespaces().Lister().List(labels.Everything())
+	ns, err := n.informers.Core().V1().Namespaces().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}

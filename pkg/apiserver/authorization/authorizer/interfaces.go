@@ -68,6 +68,9 @@ type Attributes interface {
 	// and false for non-resource endpoints like /api, /healthz
 	IsResourceRequest() bool
 
+	// GetResourceScope returns the scope of the resource requested, if a request is for a REST object.
+	GetResourceScope() string
+
 	// GetPath returns the path of the request
 	GetPath() string
 }
@@ -111,6 +114,7 @@ type AttributesRecord struct {
 	KubernetesRequest bool
 	ResourceRequest   bool
 	Path              string
+	ResourceScope     string
 }
 
 func (a AttributesRecord) GetUser() user.Info {
@@ -167,6 +171,10 @@ func (a AttributesRecord) IsKubernetesRequest() bool {
 
 func (a AttributesRecord) GetPath() string {
 	return a.Path
+}
+
+func (a AttributesRecord) GetResourceScope() string {
+	return a.ResourceScope
 }
 
 type Decision int
