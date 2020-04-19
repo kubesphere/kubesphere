@@ -14,6 +14,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -78,6 +79,9 @@ func newTestConfig() (*Config, error) {
 			AppManagerEndpoint:        "openpitrix-hyperpitrix.openpitrix-system.svc:9102",
 			CategoryManagerEndpoint:   "openpitrix-hyperpitrix.openpitrix-system.svc:9113",
 			AttachmentManagerEndpoint: "openpitrix-hyperpitrix.openpitrix-system.svc:9122",
+		},
+		NetworkOptions: &network.Options{
+			WeaveScopeHost: "weave-scope-app.weave.svc",
 		},
 		MonitoringOptions: &prometheus.Options{
 			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",

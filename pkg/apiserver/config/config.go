@@ -11,6 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -61,6 +62,7 @@ type Config struct {
 	SonarQubeOptions      *sonarqube.Options                 `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
 	KubernetesOptions     *k8s.KubernetesOptions             `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
 	ServiceMeshOptions    *servicemesh.Options               `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
+	NetworkOptions        *network.Options                   `json:"network,omitempty" yaml:"network,omitempty" mapstructure:"network"`
 	LdapOptions           *ldap.Options                      `json:"ldap,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
 	RedisOptions          *cache.Options                     `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
 	S3Options             *s3.Options                        `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
@@ -81,6 +83,7 @@ func New() *Config {
 		SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
 		KubernetesOptions:     k8s.NewKubernetesOptions(),
 		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
+		NetworkOptions:        network.NewNetworkOptions(),
 		LdapOptions:           ldap.NewOptions(),
 		RedisOptions:          cache.NewRedisOptions(),
 		S3Options:             s3.NewS3Options(),
@@ -173,6 +176,10 @@ func (conf *Config) stripEmptyOptions() {
 
 	if conf.OpenPitrixOptions != nil && conf.OpenPitrixOptions.IsEmpty() {
 		conf.OpenPitrixOptions = nil
+	}
+
+	if conf.NetworkOptions != nil && conf.NetworkOptions.WeaveScopeHost == "" {
+		conf.NetworkOptions = nil
 	}
 
 	if conf.ServiceMeshOptions != nil && conf.ServiceMeshOptions.IstioPilotHost == "" &&

@@ -59,6 +59,7 @@ const (
 	OpenpitrixTag              = "Openpitrix Resources"
 	VerificationTag            = "Verification"
 	RegistryTag                = "Docker Registry"
+	NetworkTopologyTag         = "Network Topology"
 	UserResourcesTag           = "User Resources"
 	DevOpsProjectTag           = "DevOps Project"
 	DevOpsProjectCredentialTag = "DevOps Project Credential"
