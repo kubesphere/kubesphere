@@ -1,0 +1,12 @@
+[
+  {
+    "metric": "prometheus_treecache_zookeeper_failures_total",
+    "type": "counter",
+    "help": "The total number of ZooKeeper failures."
+  },
+  {
+    "metric": "prometheus_tsdb_reloads_total",
+    "type": "counter",
+    "help": "Number of times the database reloaded block data from disk."
+  }
+]

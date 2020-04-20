@@ -68,16 +68,19 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v0.0.0-20180801171038-322a19404e37 // indirect
+	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-	github.com/prometheus/client_golang v0.9.3
-	github.com/prometheus/common v0.4.0
+	github.com/prometheus/client_golang v0.9.4
+	github.com/prometheus/common v0.4.1
+	github.com/prometheus/prometheus v1.8.2
 	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
+	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
@@ -212,6 +215,7 @@ replace (
 	github.com/golang/groupcache => github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
 	github.com/golang/mock => github.com/golang/mock v1.2.0
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
+	github.com/golang/snappy => github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/google/btree => github.com/google/btree v1.0.0
 	github.com/google/go-cmp => github.com/google/go-cmp v0.3.0
 	github.com/google/go-querystring => github.com/google/go-querystring v1.0.0
@@ -299,6 +303,7 @@ replace (
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
 	github.com/openshift/api => github.com/openshift/api v0.0.0-20180801171038-322a19404e37
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160
+	github.com/opentracing/opentracing-go => github.com/opentracing/opentracing-go v1.1.0
 	github.com/pborman/uuid => github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-buffruneio => github.com/pelletier/go-buffruneio v0.2.0
 	github.com/pelletier/go-toml => github.com/pelletier/go-toml v1.2.0
@@ -313,10 +318,11 @@ replace (
 	github.com/projectcalico/go-yaml => github.com/projectcalico/go-yaml v0.0.0-20161201183616-955bc3e451ef
 	github.com/projectcalico/go-yaml-wrapper => github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee
 	github.com/projectcalico/libcalico-go => github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.3
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.4
 	github.com/prometheus/client_model => github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common => github.com/prometheus/common v0.4.0
-	github.com/prometheus/procfs => github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084
+	github.com/prometheus/procfs => github.com/prometheus/procfs v0.0.2
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2
 	github.com/prometheus/tsdb => github.com/prometheus/tsdb v0.7.1
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446
@@ -341,6 +347,7 @@ replace (
 	github.com/src-d/gcfg => github.com/src-d/gcfg v1.4.0
 	github.com/stretchr/objx => github.com/stretchr/objx v0.2.0
 	github.com/stretchr/testify => github.com/stretchr/testify v1.4.0
+	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.0
 	github.com/tinylib/msgp => github.com/tinylib/msgp v1.1.0
 	github.com/tmc/grpc-websocket-proxy => github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5
 	github.com/ugorji/go => github.com/ugorji/go v1.1.4

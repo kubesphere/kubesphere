@@ -77,6 +77,7 @@ const (
 	WorkloadMetricsTag         = "Workload Metrics"
 	WorkspaceMetricsTag        = "Workspace Metrics"
 	ComponentMetricsTag        = "Component Metrics"
+	CustomMetricsTag           = "Custom Metrics"
 	LogQueryTag                = "Log Query"
 	TerminalTag                = "Terminal"
 )

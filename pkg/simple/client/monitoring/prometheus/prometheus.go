@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"context"
+	"fmt"
 	"github.com/prometheus/client_golang/api"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -24,14 +25,35 @@ func NewPrometheus(options *Options) (monitoring.Interface, error) {
 	return prometheus{client: apiv1.NewAPI(client)}, err
 }
 
-// TODO(huanggze): reserve for custom monitoring
-func (p prometheus) GetMetrics(stmts []string, time time.Time) []monitoring.Metric {
-	panic("implement me")
+func (p prometheus) GetMetric(expr string, ts time.Time) monitoring.Metric {
+	var parsedResp monitoring.Metric
+
+	value, err := p.client.Query(context.Background(), expr, ts)
+	if err != nil {
+		parsedResp.Error = err.Error()
+	} else {
+		parsedResp.MetricData = parseQueryResp(value)
+	}
+
+	return parsedResp
 }
 
-// TODO(huanggze): reserve for custom monitoring
-func (p prometheus) GetMetricsOverTime(stmts []string, start, end time.Time, step time.Duration) []monitoring.Metric {
-	panic("implement me")
+func (p prometheus) GetMetricOverTime(expr string, start, end time.Time, step time.Duration) monitoring.Metric {
+	timeRange := apiv1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
+	}
+
+	value, err := p.client.QueryRange(context.Background(), expr, timeRange)
+
+	var parsedResp monitoring.Metric
+	if err != nil {
+		parsedResp.Error = err.Error()
+	} else {
+		parsedResp.MetricData = parseQueryRangeResp(value)
+	}
+	return parsedResp
 }
 
 func (p prometheus) GetNamedMetrics(metrics []string, ts time.Time, o monitoring.QueryOption) []monitoring.Metric {
@@ -49,7 +71,7 @@ func (p prometheus) GetNamedMetrics(metrics []string, ts time.Time, o monitoring
 
 			value, err := p.client.Query(context.Background(), makeExpr(metric, *opts), ts)
 			if err != nil {
-				parsedResp.Error = err.(*apiv1.Error).Msg
+				parsedResp.Error = err.Error()
 			} else {
 				parsedResp.MetricData = parseQueryResp(value)
 			}
@@ -88,7 +110,7 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 
 			value, err := p.client.QueryRange(context.Background(), makeExpr(metric, *opts), timeRange)
 			if err != nil {
-				parsedResp.Error = err.(*apiv1.Error).Msg
+				parsedResp.Error = err.Error()
 			} else {
 				parsedResp.MetricData = parseQueryRangeResp(value)
 			}
@@ -104,6 +126,26 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 	wg.Wait()
 
 	return res
+}
+
+func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
+	var meta []monitoring.Metadata
+
+	// Filter metrics available to members of this namespace
+	matchTarget := fmt.Sprintf("{namespace=\"%s\"}", namespace)
+	items, err := p.client.TargetsMetadata(context.Background(), matchTarget, "", "")
+	if err != nil {
+		return meta
+	}
+
+	for _, item := range items {
+		meta = append(meta, monitoring.Metadata{
+			Metric: item.Metric,
+			Type:   string(item.Type),
+			Help:   item.Help,
+		})
+	}
+	return meta
 }
 
 func parseQueryRangeResp(value model.Value) monitoring.MetricData {

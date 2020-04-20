@@ -8,3 +8,7 @@ type Metrics struct {
 	TotalPages  int                 `json:"total_page,omitempty" description:"total number of pages"`
 	TotalItems  int                 `json:"total_item,omitempty" description:"page size"`
 }
+
+type Metadata struct {
+	Data []monitoring.Metadata `json:"data" description:"actual array of results"`
+}
