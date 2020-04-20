@@ -32,8 +32,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/network/ippool"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
-	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
@@ -49,6 +50,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
+	ippoolclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
+	calicoclient "kubesphere.io/kubesphere/pkg/simple/client/network/ippool/calico"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -62,6 +65,7 @@ func addControllers(
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
 	ldapClient ldapclient.Interface,
+	options *k8s.KubernetesOptions,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
@@ -280,6 +284,21 @@ func addControllers(
 			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider, networkOptions.NSNPOptions)
 	}
 
+	var ippoolController manager.Runnable
+	if networkOptions.EnableIPPool {
+		var ippoolProvider ippoolclient.Provider
+		ippoolProvider = ippoolclient.NewProvider(client.KubeSphere(), networkOptions.IPPoolOptions)
+		if networkOptions.IPPoolOptions.Calico != nil {
+			ippoolProvider = calicoclient.NewProvider(client.KubeSphere(), *networkOptions.IPPoolOptions.Calico, options)
+		}
+		ippoolController = ippool.NewIPPoolController(kubesphereInformer.Network().V1alpha1().IPPools(),
+			kubesphereInformer.Network().V1alpha1().IPAMBlocks(),
+			client.Kubernetes(),
+			client.KubeSphere(),
+			networkOptions.IPPoolOptions,
+			ippoolProvider)
+	}
+
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":       vsController,
 		"destinationrule-controller":      drController,
@@ -299,6 +318,7 @@ func addControllers(
 		"workspacetemplate-controller":    workspaceTemplateController,
 		"workspacerole-controller":        workspaceRoleController,
 		"workspacerolebinding-controller": workspaceRoleBindingController,
+		"ippool-controller":               ippoolController,
 	}
 
 	if devopsClient != nil {

@@ -24,6 +24,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// IPAMBlocks returns a IPAMBlockInformer.
+	IPAMBlocks() IPAMBlockInformer
+	// IPAMHandles returns a IPAMHandleInformer.
+	IPAMHandles() IPAMHandleInformer
+	// IPPools returns a IPPoolInformer.
+	IPPools() IPPoolInformer
 	// NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.
 	NamespaceNetworkPolicies() NamespaceNetworkPolicyInformer
 }
@@ -37,6 +43,21 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// IPAMBlocks returns a IPAMBlockInformer.
+func (v *version) IPAMBlocks() IPAMBlockInformer {
+	return &iPAMBlockInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// IPAMHandles returns a IPAMHandleInformer.
+func (v *version) IPAMHandles() IPAMHandleInformer {
+	return &iPAMHandleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// IPPools returns a IPPoolInformer.
+func (v *version) IPPools() IPPoolInformer {
+	return &iPPoolInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2020 The KubeSphere authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,6 +39,13 @@ var (
 	// AddToScheme is required by pkg/client/...
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+func init() {
+	SchemeBuilder.Register(&IPAMHandle{}, &IPAMHandleList{})
+	SchemeBuilder.Register(&IPAMBlock{}, &IPAMBlockList{})
+	SchemeBuilder.Register(&IPPool{}, &IPPoolList{})
+	SchemeBuilder.Register(&NamespaceNetworkPolicy{}, &NamespaceNetworkPolicyList{})
+}
 
 // Resource is required by pkg/client/listers/...
 func Resource(resource string) schema.GroupResource {

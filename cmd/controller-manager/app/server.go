@@ -18,6 +18,8 @@ package app
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -38,7 +40,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
-	"os"
 	application "sigs.k8s.io/application/controllers"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -212,6 +213,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		devopsClient,
 		s3Client,
 		ldapClient,
+		s.KubernetesOptions,
 		s.AuthenticationOptions,
 		openpitrixClient,
 		s.MultiClusterOptions.Enable,

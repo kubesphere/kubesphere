@@ -14,6 +14,8 @@ require (
 	github.com/aws/aws-sdk-go v1.25.21
 	github.com/beevik/etree v1.1.0
 	github.com/container-storage-interface/spec v1.2.0
+	github.com/containernetworking/cni v0.8.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
@@ -94,6 +96,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl v0.17.3
+	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 	sigs.k8s.io/application v1.0.0
 	sigs.k8s.io/controller-runtime v0.5.0

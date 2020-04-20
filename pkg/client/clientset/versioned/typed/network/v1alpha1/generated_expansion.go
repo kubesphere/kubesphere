@@ -18,4 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+type IPAMBlockExpansion interface{}
+
+type IPAMHandleExpansion interface{}
+
+type IPPoolExpansion interface{}
+
 type NamespaceNetworkPolicyExpansion interface{}
