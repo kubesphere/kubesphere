@@ -4,7 +4,7 @@ set -ex
 set -o pipefail
 
 # push to kubespheredev with default latest tag
-REPO=kubespheredev
+REPO=${REPO:-kubespheredev}
 TAG=${TRAVIS_BRANCH:-latest}
 
 # check if build was triggered by a travis cronjob
