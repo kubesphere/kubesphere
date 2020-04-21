@@ -10,9 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The binary to build 
-BIN ?= ks-apiserver
-
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -23,8 +20,6 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-
-IMG ?= kubespheredev/ks-apiserver
 OUTPUT_DIR=bin
 GOFLAGS=-mod=vendor
 define ALL_HELP_INFO
@@ -102,7 +97,7 @@ openapi:
 	go run ./tools/cmd/crd-doc-gen/main.go
 # Build the docker image
 docker-build: all
-	docker build . -t ${IMG}
+	hack/docker_build.sh
 
 # Run tests
 test: fmt vet
