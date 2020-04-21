@@ -18,10 +18,6 @@ limitations under the License.
 
 package v1alpha1
 
-// AgentListerExpansion allows custom methods to be added to
-// AgentLister.
-type AgentListerExpansion interface{}
-
 // ClusterListerExpansion allows custom methods to be added to
 // ClusterLister.
 type ClusterListerExpansion interface{}

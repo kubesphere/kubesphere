@@ -17202,10 +17202,10 @@
     },
     "v1alpha2.Node": {
       "required": [
-        "rank",
+        "labelMinor",
         "id",
         "label",
-        "labelMinor",
+        "rank",
         "controls"
       ],
       "properties": {
@@ -17313,10 +17313,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "labelMinor",
-        "rank",
         "id",
-        "label"
+        "label",
+        "labelMinor",
+        "rank"
       ],
       "properties": {
         "adjacency": {

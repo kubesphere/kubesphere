@@ -11,6 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -20,13 +21,11 @@ type Dispatcher interface {
 }
 
 type clusterDispatch struct {
-	agentLister   v1alpha1.AgentLister
 	clusterLister v1alpha1.ClusterLister
 }
 
-func NewClusterDispatch(agentLister v1alpha1.AgentLister, clusterLister v1alpha1.ClusterLister) Dispatcher {
+func NewClusterDispatch(clusterLister v1alpha1.ClusterLister) Dispatcher {
 	return &clusterDispatch{
-		agentLister:   agentLister,
 		clusterLister: clusterLister,
 	}
 }
@@ -58,23 +57,19 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 		return
 	}
 
-	agent, err := c.agentLister.Get(info.Cluster)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			http.Error(w, fmt.Sprintf("cluster %s not found", info.Cluster), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if !isAgentReady(agent) {
+	if !isClusterReady(cluster) {
 		http.Error(w, fmt.Sprintf("cluster agent is not ready"), http.StatusInternalServerError)
 		return
 	}
 
+	endpoint, err := url.Parse(cluster.Spec.Connection.KubeSphereAPIEndpoint)
+	if err != nil {
+		klog.Error(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
 	u := *req.URL
-	u.Host = agent.Spec.Proxy
+	u.Host = endpoint.Host
 	u.Path = strings.Replace(u.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
 
 	httpProxy := proxy.NewUpgradeAwareHandler(&u, http.DefaultTransport, true, false, c)
@@ -85,9 +80,9 @@ func (c *clusterDispatch) Error(w http.ResponseWriter, req *http.Request, err er
 	responsewriters.InternalError(w, req, err)
 }
 
-func isAgentReady(agent *clusterv1alpha1.Agent) bool {
-	for _, condition := range agent.Status.Conditions {
-		if condition.Type == clusterv1alpha1.AgentConnected && condition.Status == corev1.ConditionTrue {
+func isClusterReady(cluster *clusterv1alpha1.Cluster) bool {
+	for _, condition := range cluster.Status.Conditions {
+		if condition.Type == clusterv1alpha1.ClusterReady && condition.Status == corev1.ConditionTrue {
 			return true
 		}
 	}
@@ -95,7 +90,6 @@ func isAgentReady(agent *clusterv1alpha1.Agent) bool {
 	return false
 }
 
-//
 func isClusterHostCluster(cluster *clusterv1alpha1.Cluster) bool {
 	for key, value := range cluster.Annotations {
 		if key == clusterv1alpha1.IsHostCluster && value == "true" {

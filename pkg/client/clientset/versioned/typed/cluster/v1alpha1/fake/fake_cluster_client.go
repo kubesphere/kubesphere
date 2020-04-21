@@ -28,10 +28,6 @@ type FakeClusterV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeClusterV1alpha1) Agents() v1alpha1.AgentInterface {
-	return &FakeAgents{c}
-}
-
 func (c *FakeClusterV1alpha1) Clusters() v1alpha1.ClusterInterface {
 	return &FakeClusters{c}
 }

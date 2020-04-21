@@ -20,6 +20,7 @@ type KubeSphereControllerManagerOptions struct {
 	DevopsOptions     *jenkins.Options
 	S3Options         *s3.Options
 	OpenPitrixOptions *openpitrix.Options
+	LeaderElect       bool
 	LeaderElection    *leaderelection.LeaderElectionConfig
 }
 
@@ -34,6 +35,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 			RenewDeadline: 15 * time.Second,
 			RetryPeriod:   5 * time.Second,
 		},
+		LeaderElect: false,
 	}
 
 	return s
