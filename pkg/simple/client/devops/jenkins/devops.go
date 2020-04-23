@@ -15,9 +15,13 @@ package jenkins
 
 import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/errors"
 )
 
 func NewDevopsClient(options *Options) (devops.Interface, error) {
+	if options == nil || options.Host == "" {
+		return nil, errors.ErrClientNotEnabled
+	}
 
 	jenkins := CreateJenkins(nil, options.Host, options.MaxConnections, options.Username, options.Password)
 

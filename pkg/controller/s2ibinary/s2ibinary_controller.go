@@ -210,6 +210,9 @@ func (c *Controller) syncHandler(key string) error {
 }
 
 func (c *Controller) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
+	if c.s3Client == nil {
+		return nil
+	}
 
 	key := fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)
 	err := c.s3Client.Delete(key)

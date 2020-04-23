@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	"kubesphere.io/kubesphere/pkg/simple/client/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -103,20 +104,29 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	openpitrixClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
 	if err != nil {
-		klog.Errorf("Failed to create openpitrix client %v", err)
-		return err
+		if !errors.IsClientNotEnabledError(err) {
+			klog.Errorf("Failed to create openpitrix client %v", err)
+			return err
+		}
+		openpitrixClient = nil
 	}
 
 	devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
 	if err != nil {
-		klog.Errorf("Failed to create devops client %v", err)
-		return err
+		if !errors.IsClientNotEnabledError(err) {
+			klog.Errorf("Failed to create devops client %v", err)
+			return err
+		}
+		devopsClient = nil
 	}
 
 	s3Client, err := s3.NewS3Client(s.S3Options)
 	if err != nil {
-		klog.Errorf("Failed to create s3 client %v", err)
-		return err
+		if !errors.IsClientNotEnabledError(err) {
+			klog.Errorf("Failed to create s3 client %v", err)
+			return err
+		}
+		s3Client = nil
 	}
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())

@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/errors"
 	"time"
 )
 
@@ -54,6 +55,10 @@ func (s *Client) Delete(key string) error {
 }
 
 func NewS3Client(options *Options) (Interface, error) {
+	if options == nil || options.Endpoint == "" {
+		return nil, errors.ErrClientNotEnabled
+	}
+
 	cred := credentials.NewStaticCredentials(options.AccessKeyID, options.SecretAccessKey, options.SessionToken)
 
 	config := aws.Config{

@@ -88,21 +88,6 @@ func AddControllers(
 		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
-	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
-		client.KubeSphere(), devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
-	)
-	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
-		client.KubeSphere(),
-		devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
-
-	devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
-		devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
 		client.Kubernetes(),
@@ -126,18 +111,37 @@ func AddControllers(
 		client.KubeSphere().ClusterV1alpha1().Clusters())
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":   vsController,
-		"destinationrule-controller":  drController,
-		"application-controller":      apController,
-		"job-controller":              jobController,
-		"s2ibinary-controller":        s2iBinaryController,
-		"s2irun-controller":           s2iRunController,
-		"volumeexpansion-controller":  volumeExpansionController,
-		"devopsprojects-controller":   devopsProjectController,
-		"pipeline-controller":         devopsPipelineController,
-		"devopscredential-controller": devopsCredentialController,
-		"cluster-controller":          clusterController,
-		"user-controller":             userController,
+		"virtualservice-controller":  vsController,
+		"destinationrule-controller": drController,
+		"application-controller":     apController,
+		"job-controller":             jobController,
+		"s2ibinary-controller":       s2iBinaryController,
+		"s2irun-controller":          s2iRunController,
+		"volumeexpansion-controller": volumeExpansionController,
+		"cluster-controller":         clusterController,
+		"user-controller":            userController,
+	}
+
+	if devopsClient != nil {
+		devopsProjectController := devopsproject.NewController(client.Kubernetes(),
+			client.KubeSphere(), devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
+		)
+		devopsPipelineController := pipeline.NewController(client.Kubernetes(),
+			client.KubeSphere(),
+			devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
+
+		devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
+			devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
+
+		controllers["devopsprojects-controller"] = devopsProjectController
+		controllers["pipeline-controller"] = devopsPipelineController
+		controllers["devopscredential-controller"] = devopsCredentialController
 	}
 
 	for name, ctrl := range controllers {

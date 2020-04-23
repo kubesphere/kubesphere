@@ -172,6 +172,9 @@ func (r *ReconcileNamespace) isControlledByWorkspace(namespace *corev1.Namespace
 
 // Create openpitrix runtime
 func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) error {
+	if r.openpitrixClient == nil {
+		return nil
+	}
 
 	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
 		return nil
@@ -236,6 +239,9 @@ func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) 
 
 // Delete openpitrix runtime
 func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
+	if r.openpitrixClient == nil {
+		return nil
+	}
 
 	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
 		_, err := r.openpitrixClient.DeleteRuntimes(openpitrix.SystemContext(), &pb.DeleteRuntimesRequest{RuntimeId: []string{runtimeId}, Force: &wrappers.BoolValue{Value: true}})

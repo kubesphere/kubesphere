@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/simple/client/errors"
 	"openpitrix.io/openpitrix/pkg/manager"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"openpitrix.io/openpitrix/pkg/sender"
@@ -135,6 +136,16 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 }
 
 func NewClient(options *Options) (Client, error) {
+	if options == nil ||
+		options.RepoManagerEndpoint == "" ||
+		options.RuntimeManagerEndpoint == "" ||
+		options.ClusterManagerEndpoint == "" ||
+		options.AppManagerEndpoint == "" ||
+		options.AttachmentManagerEndpoint == "" ||
+		options.RepoIndexerEndpoint == "" ||
+		options.CategoryManagerEndpoint == "" {
+		return nil, errors.ErrClientNotEnabled
+	}
 
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
 
