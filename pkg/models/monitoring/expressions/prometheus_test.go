@@ -1,4 +1,4 @@
-package prometheus
+package expressions
 
 import (
 	"fmt"

@@ -138,13 +138,20 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 		return meta
 	}
 
+	// Deduplication
+	set := make(map[string]bool)
 	for _, item := range items {
-		meta = append(meta, monitoring.Metadata{
-			Metric: item.Metric,
-			Type:   string(item.Type),
-			Help:   item.Help,
-		})
+		_, ok := set[item.Metric]
+		if !ok {
+			set[item.Metric] = true
+			meta = append(meta, monitoring.Metadata{
+				Metric: item.Metric,
+				Type:   string(item.Type),
+				Help:   item.Help,
+			})
+		}
 	}
+
 	return meta
 }
 
@@ -186,7 +193,7 @@ func parseQueryResp(value model.Value) monitoring.MetricData {
 			mv.Metadata[string(k)] = string(v)
 		}
 
-		mv.Sample = monitoring.Point{float64(v.Timestamp) / 1000, float64(v.Value)}
+		mv.Sample = &monitoring.Point{float64(v.Timestamp) / 1000, float64(v.Value)}
 
 		res.MetricValues = append(res.MetricValues, mv)
 	}

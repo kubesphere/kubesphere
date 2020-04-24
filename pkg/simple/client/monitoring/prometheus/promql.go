@@ -114,8 +114,8 @@ var promQLTemplates = map[string]string{
 	"workspace_cpu_usage":                  `round(sum by (label_kubesphere_io_workspace) (namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}), 0.001)`,
 	"workspace_memory_usage":               `sum by (label_kubesphere_io_workspace) (namespace:container_memory_usage_bytes:sum{namespace!="", $1})`,
 	"workspace_memory_usage_wo_cache":      `sum by (label_kubesphere_io_workspace) (namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", $1})`,
-	"workspace_net_bytes_transmitted":      `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
-	"workspace_net_bytes_received":         `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
+	"workspace_net_bytes_transmitted":      `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
+	"workspace_net_bytes_received":         `sum by (label_kubesphere_io_workspace) (sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"workspace_pod_count":                  `sum by (label_kubesphere_io_workspace) (kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{$1}))`,
 	"workspace_pod_running_count":          `sum by (label_kubesphere_io_workspace) (kube_pod_status_phase{phase="Running", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{$1}))`,
 	"workspace_pod_succeeded_count":        `sum by (label_kubesphere_io_workspace) (kube_pod_status_phase{phase="Succeeded", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace)(kube_namespace_labels{$1}))`,
@@ -138,8 +138,8 @@ var promQLTemplates = map[string]string{
 	"namespace_cpu_usage":                  `round(namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}, 0.001)`,
 	"namespace_memory_usage":               `namespace:container_memory_usage_bytes:sum{namespace!="", $1}`,
 	"namespace_memory_usage_wo_cache":      `namespace:container_memory_usage_bytes_wo_cache:sum{namespace!="", $1}`,
-	"namespace_net_bytes_transmitted":      `sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
-	"namespace_net_bytes_received":         `sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
+	"namespace_net_bytes_transmitted":      `sum by (namespace) (irate(container_network_transmit_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
+	"namespace_net_bytes_received":         `sum by (namespace) (irate(container_network_receive_bytes_total{namespace!="", pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m]) * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_pod_count":                  `sum by (namespace) (kube_pod_status_phase{phase!~"Failed|Succeeded", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_pod_running_count":          `sum by (namespace) (kube_pod_status_phase{phase="Running", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
 	"namespace_pod_succeeded_count":        `sum by (namespace) (kube_pod_status_phase{phase="Succeeded", namespace!=""} * on (namespace) group_left(label_kubesphere_io_workspace) kube_namespace_labels{$1})`,
@@ -181,16 +181,16 @@ var promQLTemplates = map[string]string{
 	"workload_statefulset_unavailable_replicas_ratio": `namespace:statefulset_unavailable_replicas:ratio{$1}`,
 
 	// pod
-	"pod_cpu_usage":             `round(label_join(sum by (namespace, pod_name) (irate(container_cpu_usage_seconds_total{job="kubelet", pod_name!="", image!=""}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}, 0.001)`,
-	"pod_memory_usage":          `label_join(sum by (namespace, pod_name) (container_memory_usage_bytes{job="kubelet", pod_name!="", image!=""}), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
-	"pod_memory_usage_wo_cache": `label_join(sum by (namespace, pod_name) (container_memory_working_set_bytes{job="kubelet", pod_name!="", image!=""}), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
-	"pod_net_bytes_transmitted": `label_join(sum by (namespace, pod_name) (irate(container_network_transmit_bytes_total{pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
-	"pod_net_bytes_received":    `label_join(sum by (namespace, pod_name) (irate(container_network_receive_bytes_total{pod_name!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])), "pod", "", "pod_name") * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
+	"pod_cpu_usage":             `round(sum by (namespace, pod) (irate(container_cpu_usage_seconds_total{job="kubelet", pod!="", image!=""}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}, 0.001)`,
+	"pod_memory_usage":          `sum by (namespace, pod) (container_memory_usage_bytes{job="kubelet", pod!="", image!=""}) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
+	"pod_memory_usage_wo_cache": `sum by (namespace, pod) (container_memory_working_set_bytes{job="kubelet", pod!="", image!=""}) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
+	"pod_net_bytes_transmitted": `sum by (namespace, pod) (irate(container_network_transmit_bytes_total{pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
+	"pod_net_bytes_received":    `sum by (namespace, pod) (irate(container_network_receive_bytes_total{pod!="", interface!~"^(cali.+|tunl.+|dummy.+|kube.+|flannel.+|cni.+|docker.+|veth.+|lo.*)", job="kubelet"}[5m])) * on (namespace, pod) group_left(owner_kind, owner_name) kube_pod_owner{$1} * on (namespace, pod) group_left(node) kube_pod_info{$2}`,
 
 	// container
-	"container_cpu_usage":             `round(sum by (namespace, pod_name, container_name) (irate(container_cpu_usage_seconds_total{job="kubelet", container_name!="POD", container_name!="", image!="", $1}[5m])), 0.001)`,
-	"container_memory_usage":          `sum by (namespace, pod_name, container_name) (container_memory_usage_bytes{job="kubelet", container_name!="POD", container_name!="", image!="", $1})`,
-	"container_memory_usage_wo_cache": `sum by (namespace, pod_name, container_name) (container_memory_working_set_bytes{job="kubelet", container_name!="POD", container_name!="", image!="", $1})`,
+	"container_cpu_usage":             `round(sum by (namespace, pod, container) (irate(container_cpu_usage_seconds_total{job="kubelet", container!="POD", container!="", image!="", $1}[5m])), 0.001)`,
+	"container_memory_usage":          `sum by (namespace, pod, container) (container_memory_usage_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
+	"container_memory_usage_wo_cache": `sum by (namespace, pod, container) (container_memory_working_set_bytes{job="kubelet", container!="POD", container!="", image!="", $1})`,
 
 	// pvc
 	"pvc_inodes_available":   `max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free) * on (namespace, persistentvolumeclaim) group_left (storageclass) kube_persistentvolumeclaim_info{$1}`,
@@ -255,25 +255,25 @@ var promQLTemplates = map[string]string{
 	"prometheus_tsdb_head_samples_appended_rate": `prometheus:prometheus_tsdb_head_samples_appended:sum_rate`,
 }
 
-func makeExpr(metric string, opt monitoring.QueryOptions) string {
+func makeExpr(metric string, opts monitoring.QueryOptions) string {
 	tmpl := promQLTemplates[metric]
-	switch opt.Level {
+	switch opts.Level {
 	case monitoring.LevelCluster:
 		return tmpl
 	case monitoring.LevelNode:
-		return makeNodeMetricExpr(tmpl, opt)
+		return makeNodeMetricExpr(tmpl, opts)
 	case monitoring.LevelWorkspace:
-		return makeWorkspaceMetricExpr(tmpl, opt)
+		return makeWorkspaceMetricExpr(tmpl, opts)
 	case monitoring.LevelNamespace:
-		return makeNamespaceMetricExpr(tmpl, opt)
+		return makeNamespaceMetricExpr(tmpl, opts)
 	case monitoring.LevelWorkload:
-		return makeWorkloadMetricExpr(tmpl, opt)
+		return makeWorkloadMetricExpr(metric, tmpl, opts)
 	case monitoring.LevelPod:
-		return makePodMetricExpr(tmpl, opt)
+		return makePodMetricExpr(tmpl, opts)
 	case monitoring.LevelContainer:
-		return makeContainerMetricExpr(tmpl, opt)
+		return makeContainerMetricExpr(tmpl, opts)
 	case monitoring.LevelPVC:
-		return makePVCMetricExpr(tmpl, opt)
+		return makePVCMetricExpr(tmpl, opts)
 	case monitoring.LevelComponent:
 		return tmpl
 	default:
@@ -322,23 +322,31 @@ func makeNamespaceMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	return strings.Replace(tmpl, "$1", namespaceSelector, -1)
 }
 
-func makeWorkloadMetricExpr(tmpl string, o monitoring.QueryOptions) string {
+func makeWorkloadMetricExpr(metric, tmpl string, o monitoring.QueryOptions) string {
 	var kindSelector, workloadSelector string
+
 	switch o.WorkloadKind {
 	case "deployment":
 		o.WorkloadKind = Deployment
-		kindSelector = fmt.Sprintf(`namespace="%s", deployment!="", deployment=~"%s"`, o.NamespaceName, o.ResourceFilter)
 	case "statefulset":
 		o.WorkloadKind = StatefulSet
-		kindSelector = fmt.Sprintf(`namespace="%s", statefulset!="", statefulset=~"%s"`, o.NamespaceName, o.ResourceFilter)
 	case "daemonset":
 		o.WorkloadKind = DaemonSet
-		kindSelector = fmt.Sprintf(`namespace="%s", daemonset!="", daemonset=~"%s"`, o.NamespaceName, o.ResourceFilter)
 	default:
 		o.WorkloadKind = ".*"
-		kindSelector = fmt.Sprintf(`namespace="%s"`, o.NamespaceName)
 	}
 	workloadSelector = fmt.Sprintf(`namespace="%s", workload=~"%s:%s"`, o.NamespaceName, o.WorkloadKind, o.ResourceFilter)
+
+	if strings.Contains(metric, "deployment") {
+		kindSelector = fmt.Sprintf(`namespace="%s", deployment!="", deployment=~"%s"`, o.NamespaceName, o.ResourceFilter)
+	}
+	if strings.Contains(metric, "statefulset") {
+		kindSelector = fmt.Sprintf(`namespace="%s", statefulset!="", statefulset=~"%s"`, o.NamespaceName, o.ResourceFilter)
+	}
+	if strings.Contains(metric, "daemonset") {
+		kindSelector = fmt.Sprintf(`namespace="%s", daemonset!="", daemonset=~"%s"`, o.NamespaceName, o.ResourceFilter)
+	}
+
 	return strings.NewReplacer("$1", workloadSelector, "$2", kindSelector).Replace(tmpl)
 }
 
@@ -350,11 +358,11 @@ func makePodMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	if o.WorkloadName != "" {
 		switch o.WorkloadKind {
 		case "deployment":
-			workloadSelector = fmt.Sprintf(`owner_kind="ReplicaSet", owner_name=~"^%s-[^-]{1,10}$"`, o.WorkloadKind)
+			workloadSelector = fmt.Sprintf(`owner_kind="ReplicaSet", owner_name=~"^%s-[^-]{1,10}$"`, o.WorkloadName)
 		case "statefulset":
-			workloadSelector = fmt.Sprintf(`owner_kind="StatefulSet", owner_name="%s"`, o.WorkloadKind)
+			workloadSelector = fmt.Sprintf(`owner_kind="StatefulSet", owner_name="%s"`, o.WorkloadName)
 		case "daemonset":
-			workloadSelector = fmt.Sprintf(`owner_kind="DaemonSet", owner_name="%s"`, o.WorkloadKind)
+			workloadSelector = fmt.Sprintf(`owner_kind="DaemonSet", owner_name="%s"`, o.WorkloadName)
 		}
 	}
 
@@ -385,9 +393,9 @@ func makePodMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 func makeContainerMetricExpr(tmpl string, o monitoring.QueryOptions) string {
 	var containerSelector string
 	if o.ContainerName != "" {
-		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name="%s"`, o.PodName, o.NamespaceName, o.ContainerName)
+		containerSelector = fmt.Sprintf(`pod="%s", namespace="%s", container="%s"`, o.PodName, o.NamespaceName, o.ContainerName)
 	} else {
-		containerSelector = fmt.Sprintf(`pod_name="%s", namespace="%s", container_name=~"%s"`, o.PodName, o.NamespaceName, o.ResourceFilter)
+		containerSelector = fmt.Sprintf(`pod="%s", namespace="%s", container=~"%s"`, o.PodName, o.NamespaceName, o.ResourceFilter)
 	}
 	return strings.Replace(tmpl, "$1", containerSelector, -1)
 }

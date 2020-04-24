@@ -26,8 +26,11 @@ type Point [2]float64
 
 type MetricValue struct {
 	Metadata map[string]string `json:"metric,omitempty" description:"time series labels"`
-	Sample   Point             `json:"value,omitempty" description:"time series, values of vector type"`
-	Series   []Point           `json:"values,omitempty" description:"time series, values of matrix type"`
+	// The type of Point is a float64 array with fixed length of 2.
+	// So Point will always be initialized as [0, 0], rather than nil.
+	// To allow empty Sample, we should declare Sample to type *Point
+	Sample *Point  `json:"value,omitempty" description:"time series, values of vector type"`
+	Series []Point `json:"values,omitempty" description:"time series, values of matrix type"`
 }
 
 func (p Point) Timestamp() float64 {
