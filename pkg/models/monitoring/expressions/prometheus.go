@@ -1,15 +1,14 @@
-package prometheus
+package expressions
 
 import (
 	"fmt"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/storage/metric"
-	"kubesphere.io/kubesphere/pkg/models/monitoring/expressions"
 )
 
 func init() {
-	expressions.Register("prometheus", labelReplace)
+	register("prometheus", labelReplace)
 }
 
 func labelReplace(input, ns string) (string, error) {
@@ -18,7 +17,7 @@ func labelReplace(input, ns string) (string, error) {
 		return "", err
 	}
 
-	SetRecursive(root, ns)
+	setRecursive(root, ns)
 	if err != nil {
 		return "", err
 	}
@@ -27,39 +26,39 @@ func labelReplace(input, ns string) (string, error) {
 }
 
 // Inspired by https://github.com/openshift/prom-label-proxy
-func SetRecursive(node promql.Node, namespace string) (err error) {
+func setRecursive(node promql.Node, namespace string) (err error) {
 	switch n := node.(type) {
 	case *promql.EvalStmt:
-		if err := SetRecursive(n.Expr, namespace); err != nil {
+		if err := setRecursive(n.Expr, namespace); err != nil {
 			return err
 		}
 	case promql.Expressions:
 		for _, e := range n {
-			if err := SetRecursive(e, namespace); err != nil {
+			if err := setRecursive(e, namespace); err != nil {
 				return err
 			}
 		}
 	case *promql.AggregateExpr:
-		if err := SetRecursive(n.Expr, namespace); err != nil {
+		if err := setRecursive(n.Expr, namespace); err != nil {
 			return err
 		}
 	case *promql.BinaryExpr:
-		if err := SetRecursive(n.LHS, namespace); err != nil {
+		if err := setRecursive(n.LHS, namespace); err != nil {
 			return err
 		}
-		if err := SetRecursive(n.RHS, namespace); err != nil {
+		if err := setRecursive(n.RHS, namespace); err != nil {
 			return err
 		}
 	case *promql.Call:
-		if err := SetRecursive(n.Args, namespace); err != nil {
+		if err := setRecursive(n.Args, namespace); err != nil {
 			return err
 		}
 	case *promql.ParenExpr:
-		if err := SetRecursive(n.Expr, namespace); err != nil {
+		if err := setRecursive(n.Expr, namespace); err != nil {
 			return err
 		}
 	case *promql.UnaryExpr:
-		if err := SetRecursive(n.Expr, namespace); err != nil {
+		if err := setRecursive(n.Expr, namespace); err != nil {
 			return err
 		}
 	case *promql.NumberLiteral, *promql.StringLiteral:

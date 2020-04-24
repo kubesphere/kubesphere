@@ -14,16 +14,21 @@ import (
 
 func TestGetNamedMetrics(t *testing.T) {
 	tests := []struct {
-		name     string
 		fakeResp string
 		expected string
 	}{
-		{"prom returns good values", "metrics-vector-type-prom.json", "metrics-vector-type-res.json"},
-		{"prom returns error", "metrics-error-prom.json", "metrics-error-res.json"},
+		{
+			fakeResp: "metrics-vector-type-prom.json",
+			expected: "metrics-vector-type-res.json",
+		},
+		{
+			fakeResp: "metrics-error-prom.json",
+			expected: "metrics-error-res.json",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			expected := make([]monitoring.Metric, 0)
 			err := jsonFromFile(tt.expected, &expected)
 			if err != nil {
@@ -44,16 +49,21 @@ func TestGetNamedMetrics(t *testing.T) {
 
 func TestGetNamedMetricsOverTime(t *testing.T) {
 	tests := []struct {
-		name     string
 		fakeResp string
 		expected string
 	}{
-		{"prom returns good values", "metrics-matrix-type-prom.json", "metrics-matrix-type-res.json"},
-		{"prom returns error", "metrics-error-prom.json", "metrics-error-res.json"},
+		{
+			fakeResp: "metrics-matrix-type-prom.json",
+			expected: "metrics-matrix-type-res.json",
+		},
+		{
+			fakeResp: "metrics-error-prom.json",
+			expected: "metrics-error-res.json",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			expected := make([]monitoring.Metric, 0)
 			err := jsonFromFile(tt.expected, &expected)
 			if err != nil {

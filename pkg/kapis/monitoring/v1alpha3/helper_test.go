@@ -2,12 +2,12 @@ package v1alpha3
 
 import (
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -102,6 +102,32 @@ func TestParseRequestParams(t *testing.T) {
 		},
 		{
 			params: reqParams{
+				time:          "1585830000",
+				namespaceName: "default",
+			},
+			lvl: monitoring.LevelNamespace,
+			namespace: corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					CreationTimestamp: metav1.Time{
+						Time: time.Unix(1585836666, 0),
+					},
+				},
+			},
+			expected: queryOptions{
+				time:         time.Unix(1585836666, 0),
+				identifier:   model.IdentifierNamespace,
+				metricFilter: ".*",
+				namedMetrics: model.NamespaceMetrics,
+				option: monitoring.NamespaceOption{
+					ResourceFilter: ".*",
+					NamespaceName:  "default",
+				},
+			},
+			expectedErr: false,
+		},
+		{
+			params: reqParams{
 				start:         "1585830000",
 				end:           "1585839999",
 				step:          "1m",
@@ -151,6 +177,33 @@ func TestParseRequestParams(t *testing.T) {
 			},
 			expectedErr: false,
 		},
+		{
+			params: reqParams{
+				time:          "1585830000",
+				workspaceName: "system-workspace",
+				metricFilter:  "namespace_memory_usage_wo_cache|namespace_memory_limit_hard|namespace_cpu_usage",
+				page:          "1",
+				limit:         "10",
+				order:         "desc",
+				target:        "namespace_cpu_usage",
+			},
+			lvl: monitoring.LevelNamespace,
+			expected: queryOptions{
+				time:         time.Unix(1585830000, 0),
+				metricFilter: "namespace_memory_usage_wo_cache|namespace_memory_limit_hard|namespace_cpu_usage",
+				namedMetrics: model.NamespaceMetrics,
+				option: monitoring.NamespaceOption{
+					ResourceFilter: ".*",
+					WorkspaceName:  "system-workspace",
+				},
+				target:     "namespace_cpu_usage",
+				identifier: "namespace",
+				order:      "desc",
+				page:       1,
+				limit:      10,
+			},
+			expectedErr: false,
+		},
 	}
 
 	for i, tt := range tests {
@@ -170,8 +223,8 @@ func TestParseRequestParams(t *testing.T) {
 				t.Fatalf("failed to catch error.")
 			}
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Fatalf("unexpected return: %v.", result)
+			if diff := cmp.Diff(result, tt.expected, cmp.AllowUnexported(result, tt.expected)); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", tt.expected, diff)
 			}
 		})
 	}
