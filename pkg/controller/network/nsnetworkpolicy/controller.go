@@ -2,6 +2,7 @@ package nsnetworkpolicy
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	uruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	v1 "k8s.io/client-go/informers/core/v1"
@@ -27,6 +29,7 @@ import (
 )
 
 const (
+	//TODO  use set to track service:map
 	//use period sync service label in NSNP
 	defaultSleepDuration = 60 * time.Second
 
@@ -48,6 +51,7 @@ type NSNetworkPolicyController struct {
 	informer       nspolicy.NamespaceNetworkPolicyInformer
 	informerSynced cache.InformerSynced
 
+	//TODO support service in same namespace
 	serviceInformer       v1.ServiceInformer
 	serviceInformerSynced cache.InformerSynced
 
@@ -63,29 +67,23 @@ type NSNetworkPolicyController struct {
 	nsnpQueue workqueue.RateLimitingInterface
 }
 
-func (c *NSNetworkPolicyController) convertPeer(peers []v1alpha1.NetworkPolicyPeer) ([]netv1.NetworkPolicyPeer, error) {
-	if len(peers) <= 0 {
-		return nil, nil
-	}
+func (c *NSNetworkPolicyController) convertPeer(peer v1alpha1.NetworkPolicyPeer, ingress bool) (netv1.NetworkPolicyPeer, []netv1.NetworkPolicyPort, error) {
+	rule := netv1.NetworkPolicyPeer{}
+	var ports []netv1.NetworkPolicyPort
 
-	rules := make([]netv1.NetworkPolicyPeer, 0)
-
-	for _, peer := range peers {
-		rule := netv1.NetworkPolicyPeer{}
-
-		if peer.ServiceSelector != nil {
+	if peer.ServiceSelector != nil {
+		namespace := peer.ServiceSelector.Namespace
+		name := peer.ServiceSelector.Name
+		service, err := c.serviceInformer.Lister().Services(namespace).Get(name)
+		if err != nil {
+			return rule, nil, err
+		}
+		if ingress {
 			rule.PodSelector = new(metav1.LabelSelector)
 			rule.NamespaceSelector = new(metav1.LabelSelector)
 
-			namespace := peer.ServiceSelector.Namespace
-			name := peer.ServiceSelector.Name
-			service, err := c.serviceInformer.Lister().Services(namespace).Get(name)
-			if err != nil {
-				return nil, err
-			}
-
 			if len(service.Spec.Selector) <= 0 {
-				return nil, fmt.Errorf("service %s/%s has no podselect", namespace, name)
+				return rule, nil, fmt.Errorf("service %s/%s has no podselect", namespace, name)
 			}
 
 			rule.PodSelector.MatchLabels = make(map[string]string)
@@ -94,22 +92,45 @@ func (c *NSNetworkPolicyController) convertPeer(peers []v1alpha1.NetworkPolicyPe
 			}
 			rule.NamespaceSelector.MatchLabels = make(map[string]string)
 			rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
-		} else if peer.NamespaceSelector != nil {
-			name := peer.NamespaceSelector.Name
-
-			rule.NamespaceSelector = new(metav1.LabelSelector)
-			rule.NamespaceSelector.MatchLabels = make(map[string]string)
-			rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = name
-		} else if peer.IPBlock != nil {
-			rule.IPBlock = peer.IPBlock
 		} else {
-			klog.Errorf("Invalid nsnp peer %v\n", peer)
-			continue
+			//only allow to service clusterip and service ports
+			cidr := ""
+			if ip := net.ParseIP(service.Spec.ClusterIP); ip != nil {
+				if ip.To4() != nil {
+					cidr = service.Spec.ClusterIP + "/32"
+				} else {
+					cidr = service.Spec.ClusterIP + "/128"
+				}
+			} else {
+				return rule, nil, fmt.Errorf("Service %s/%s ClusterIP  %s parse error\n", service.Namespace, service.Name, service.Spec.ClusterIP)
+			}
+			rule.IPBlock = &netv1.IPBlock{
+				CIDR: cidr,
+			}
+
+			ports = make([]netv1.NetworkPolicyPort, 0)
+			for _, port := range service.Spec.Ports {
+				portIntString := intstr.FromInt(int(port.Port))
+				ports = append(ports, netv1.NetworkPolicyPort{
+					Protocol: &port.Protocol,
+					Port:     &portIntString,
+				})
+			}
 		}
-		rules = append(rules, rule)
+	} else if peer.NamespaceSelector != nil {
+		name := peer.NamespaceSelector.Name
+
+		rule.NamespaceSelector = new(metav1.LabelSelector)
+		rule.NamespaceSelector.MatchLabels = make(map[string]string)
+		rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = name
+	} else if peer.IPBlock != nil {
+		rule.IPBlock = peer.IPBlock
+	} else {
+		klog.Errorf("Invalid nsnp peer %v\n", peer)
+		return rule, nil, fmt.Errorf("Invalid nsnp peer %v\n", peer)
 	}
 
-	return rules, nil
+	return rule, ports, nil
 }
 
 func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkPolicy) (*netv1.NetworkPolicy, error) {
@@ -127,12 +148,15 @@ func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkP
 	if n.Spec.Egress != nil {
 		np.Spec.Egress = make([]netv1.NetworkPolicyEgressRule, len(n.Spec.Egress))
 		for indexEgress, egress := range n.Spec.Egress {
-			rules, err := c.convertPeer(egress.To)
-			if err != nil {
-				return nil, err
+			for _, peer := range egress.To {
+				rule, ports, err := c.convertPeer(peer, false)
+				if err != nil {
+					return nil, err
+				}
+				np.Spec.Egress[indexEgress].To = append(np.Spec.Egress[indexEgress].To, rule)
+				np.Spec.Egress[indexEgress].Ports = append(np.Spec.Egress[indexEgress].Ports, ports...)
 			}
-			np.Spec.Egress[indexEgress].To = rules
-			np.Spec.Egress[indexEgress].Ports = egress.Ports
+			np.Spec.Egress[indexEgress].Ports = append(np.Spec.Egress[indexEgress].Ports, egress.Ports...)
 		}
 		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeEgress)
 	}
@@ -140,12 +164,15 @@ func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkP
 	if n.Spec.Ingress != nil {
 		np.Spec.Ingress = make([]netv1.NetworkPolicyIngressRule, len(n.Spec.Ingress))
 		for indexIngress, ingress := range n.Spec.Ingress {
-			rules, err := c.convertPeer(ingress.From)
-			if err != nil {
-				return nil, err
+			for _, peer := range ingress.From {
+				rule, ports, err := c.convertPeer(peer, true)
+				if err != nil {
+					return nil, err
+				}
+				np.Spec.Ingress[indexIngress].From = append(np.Spec.Ingress[indexIngress].From, rule)
+				np.Spec.Ingress[indexIngress].Ports = append(np.Spec.Ingress[indexIngress].Ports, ports...)
 			}
-			np.Spec.Ingress[indexIngress].From = rules
-			np.Spec.Ingress[indexIngress].Ports = ingress.Ports
+			np.Spec.Ingress[indexIngress].Ports = append(np.Spec.Ingress[indexIngress].Ports, ingress.Ports...)
 		}
 		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeIngress)
 	}

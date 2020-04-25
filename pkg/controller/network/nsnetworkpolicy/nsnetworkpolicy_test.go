@@ -63,6 +63,7 @@ metadata:
   name: myservice
   namespace: testns
 spec:
+  clusterIP:  10.0.0.1
   selector:
     app: mylbapp
   ports:
@@ -238,7 +239,7 @@ spec:
 		Expect(reflect.DeepEqual(np.Spec, obj2.Spec)).To(BeTrue())
 	})
 
-	It("test func convertToK8sNP with service", func() {
+	It("test func convertToK8sNP with service ingress", func() {
 		objSrt := `
 apiVersion: network.kubesphere.io/v1alpha1
 kind: NamespaceNetworkPolicy
@@ -276,6 +277,49 @@ spec:
               kubesphere.io/namespace: testns
   policyTypes:
     - Ingress
+`
+		obj2 := &netv1.NetworkPolicy{}
+		Expect(StringToObject(objSrt, obj2)).ShouldNot(HaveOccurred())
+		Expect(reflect.DeepEqual(np.Spec, obj2.Spec)).To(BeTrue())
+	})
+
+	It("test func convertToK8sNP with service egress", func() {
+		objSrt := `
+apiVersion: network.kubesphere.io/v1alpha1
+kind: NamespaceNetworkPolicy
+metadata:
+  name: testnamespace
+  namespace: testns2
+spec:
+  egress:
+  - To:
+    - service:
+        name: myservice
+        namespace: testns
+`
+		obj := &netv1alpha1.NamespaceNetworkPolicy{}
+		Expect(StringToObject(objSrt, obj)).ShouldNot(HaveOccurred())
+
+		np, err := c.convertToK8sNP(obj)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		objSrt = `
+apiVersion: "networking.k8s.io/v1"
+kind: NetworkPolicy
+metadata:
+  name: networkisolate
+  namespace: testns
+spec:
+  podSelector: {}
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.1/32
+      ports:
+        - protocol: TCP
+          port: 80
+  policyTypes:
+    - Egress
 `
 		obj2 := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj2)).ShouldNot(HaveOccurred())
