@@ -13,6 +13,7 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/klog"
 	netv1alpha1 "kubesphere.io/kubesphere/pkg/apis/network/v1alpha1"
 	wkspv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
@@ -115,10 +116,11 @@ var _ = Describe("Nsnetworkpolicy", func() {
 
 		nsnpInformer := ksInformer.Network().V1alpha1().NamespaceNetworkPolicies()
 		serviceInformer := kubeInformer.Core().V1().Services()
+		nodeInforemer := kubeInformer.Core().V1().Nodes()
 		workspaceInformer := ksInformer.Tenant().V1alpha1().Workspaces()
 		namespaceInformer := kubeInformer.Core().V1().Namespaces()
 
-		c = NewNSNetworkPolicyController(kubeClient, ksClient.NetworkV1alpha1(), nsnpInformer, serviceInformer, workspaceInformer, namespaceInformer, calicoProvider)
+		c = NewNSNetworkPolicyController(kubeClient, ksClient.NetworkV1alpha1(), nsnpInformer, serviceInformer, nodeInforemer, workspaceInformer, namespaceInformer, calicoProvider)
 
 		serviceObj := &corev1.Service{}
 		Expect(StringToObject(serviceTmp, serviceObj)).ShouldNot(HaveOccurred())
@@ -280,6 +282,7 @@ spec:
 `
 		obj2 := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj2)).ShouldNot(HaveOccurred())
+		klog.Errorf("\n%v\n%v\n", np.Spec, obj2.Spec)
 		Expect(reflect.DeepEqual(np.Spec, obj2.Spec)).To(BeTrue())
 	})
 
@@ -313,8 +316,12 @@ spec:
   podSelector: {}
   egress:
     - to:
-        - ipBlock:
-            cidr: 10.0.0.1/32
+        - podSelector:
+            matchLabels:
+             app: mylbapp
+          namespaceSelector:
+            matchLabels:
+              kubesphere.io/namespace: testns
       ports:
         - protocol: TCP
           port: 80
@@ -323,6 +330,7 @@ spec:
 `
 		obj2 := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj2)).ShouldNot(HaveOccurred())
+		klog.Errorf("\n%v\n%v\n", np.Spec, obj2.Spec)
 		Expect(reflect.DeepEqual(np.Spec, obj2.Spec)).To(BeTrue())
 	})
 

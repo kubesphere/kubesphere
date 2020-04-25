@@ -135,7 +135,8 @@ func AddControllers(
 	}
 	nsnpController := nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
 		client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
-		kubernetesInformer.Core().V1().Services(), kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
+		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
 		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
 
 	controllers := map[string]manager.Runnable{

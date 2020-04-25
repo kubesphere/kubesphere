@@ -41,6 +41,13 @@ const (
 	NamespaceNPAnnotationEnabled = "enabled"
 
 	AnnotationNPNAME = "network-isolate"
+
+	//TODO: configure it
+	DNSLocalIP        = "169.254.25.10"
+	DNSPort           = 53
+	DNSNamespace      = "kube-system"
+	DNSServiceName    = "kube-dns"
+	DNSServiceCoreDNS = "coredns"
 )
 
 // namespacenpController implements the Controller interface for managing kubesphere network policies
@@ -55,6 +62,9 @@ type NSNetworkPolicyController struct {
 	serviceInformer       v1.ServiceInformer
 	serviceInformerSynced cache.InformerSynced
 
+	nodeInformer       v1.NodeInformer
+	nodeInformerSynced cache.InformerSynced
+
 	workspaceInformer       workspace.WorkspaceInformer
 	workspaceInformerSynced cache.InformerSynced
 
@@ -67,70 +77,122 @@ type NSNetworkPolicyController struct {
 	nsnpQueue workqueue.RateLimitingInterface
 }
 
+func stringToCIDR(ipStr string) (string, error) {
+	cidr := ""
+	if ip := net.ParseIP(ipStr); ip != nil {
+		if ip.To4() != nil {
+			cidr = ipStr + "/32"
+		} else {
+			cidr = ipStr + "/128"
+		}
+	} else {
+		return cidr, fmt.Errorf("ip string  %s parse error\n", ipStr)
+	}
+
+	return cidr, nil
+}
+
+func generateDNSRule(nameServers []string) (netv1.NetworkPolicyEgressRule, error) {
+	var rule netv1.NetworkPolicyEgressRule
+	for _, nameServer := range nameServers {
+		cidr, err := stringToCIDR(nameServer)
+		if err != nil {
+			return rule, err
+		}
+		rule.To = append(rule.To, netv1.NetworkPolicyPeer{
+			IPBlock: &netv1.IPBlock{
+				CIDR: cidr,
+			},
+		})
+	}
+
+	protocolTCP := corev1.ProtocolTCP
+	protocolUDP := corev1.ProtocolUDP
+	dnsPort := intstr.FromInt(DNSPort)
+	rule.Ports = append(rule.Ports, netv1.NetworkPolicyPort{
+		Protocol: &protocolTCP,
+		Port:     &dnsPort,
+	}, netv1.NetworkPolicyPort{
+		Protocol: &protocolUDP,
+		Port:     &dnsPort,
+	})
+
+	return rule, nil
+}
+
+func (c *NSNetworkPolicyController) generateDNSServiceRule() (netv1.NetworkPolicyEgressRule, error) {
+	peer, ports, err := c.handlerPeerService(DNSNamespace, DNSServiceName, false)
+	if err != nil {
+		peer, ports, err = c.handlerPeerService(DNSNamespace, DNSServiceCoreDNS, false)
+	}
+
+	return netv1.NetworkPolicyEgressRule{
+		Ports: ports,
+		To:    []netv1.NetworkPolicyPeer{peer},
+	}, err
+}
+
+func (c *NSNetworkPolicyController) handlerPeerService(namespace string, name string, ingress bool) (netv1.NetworkPolicyPeer, []netv1.NetworkPolicyPort, error) {
+	peerNP := netv1.NetworkPolicyPeer{}
+	var ports []netv1.NetworkPolicyPort
+
+	service, err := c.serviceInformer.Lister().Services(namespace).Get(name)
+	if err != nil {
+		return peerNP, nil, err
+	}
+
+	peerNP.PodSelector = new(metav1.LabelSelector)
+	peerNP.NamespaceSelector = new(metav1.LabelSelector)
+
+	if len(service.Spec.Selector) <= 0 {
+		return peerNP, nil, fmt.Errorf("service %s/%s has no podselect", namespace, name)
+	}
+
+	peerNP.PodSelector.MatchLabels = make(map[string]string)
+	for key, value := range service.Spec.Selector {
+		peerNP.PodSelector.MatchLabels[key] = value
+	}
+	peerNP.NamespaceSelector.MatchLabels = make(map[string]string)
+	peerNP.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
+
+	//only allow traffic to service exposed ports
+	if !ingress {
+		ports = make([]netv1.NetworkPolicyPort, 0)
+		for _, port := range service.Spec.Ports {
+			portIntString := intstr.FromInt(int(port.Port))
+			ports = append(ports, netv1.NetworkPolicyPort{
+				Protocol: &port.Protocol,
+				Port:     &portIntString,
+			})
+		}
+	}
+
+	return peerNP, ports, err
+}
+
 func (c *NSNetworkPolicyController) convertPeer(peer v1alpha1.NetworkPolicyPeer, ingress bool) (netv1.NetworkPolicyPeer, []netv1.NetworkPolicyPort, error) {
-	rule := netv1.NetworkPolicyPeer{}
+	peerNP := netv1.NetworkPolicyPeer{}
 	var ports []netv1.NetworkPolicyPort
 
 	if peer.ServiceSelector != nil {
 		namespace := peer.ServiceSelector.Namespace
 		name := peer.ServiceSelector.Name
-		service, err := c.serviceInformer.Lister().Services(namespace).Get(name)
-		if err != nil {
-			return rule, nil, err
-		}
-		if ingress {
-			rule.PodSelector = new(metav1.LabelSelector)
-			rule.NamespaceSelector = new(metav1.LabelSelector)
 
-			if len(service.Spec.Selector) <= 0 {
-				return rule, nil, fmt.Errorf("service %s/%s has no podselect", namespace, name)
-			}
-
-			rule.PodSelector.MatchLabels = make(map[string]string)
-			for key, value := range service.Spec.Selector {
-				rule.PodSelector.MatchLabels[key] = value
-			}
-			rule.NamespaceSelector.MatchLabels = make(map[string]string)
-			rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
-		} else {
-			//only allow to service clusterip and service ports
-			cidr := ""
-			if ip := net.ParseIP(service.Spec.ClusterIP); ip != nil {
-				if ip.To4() != nil {
-					cidr = service.Spec.ClusterIP + "/32"
-				} else {
-					cidr = service.Spec.ClusterIP + "/128"
-				}
-			} else {
-				return rule, nil, fmt.Errorf("Service %s/%s ClusterIP  %s parse error\n", service.Namespace, service.Name, service.Spec.ClusterIP)
-			}
-			rule.IPBlock = &netv1.IPBlock{
-				CIDR: cidr,
-			}
-
-			ports = make([]netv1.NetworkPolicyPort, 0)
-			for _, port := range service.Spec.Ports {
-				portIntString := intstr.FromInt(int(port.Port))
-				ports = append(ports, netv1.NetworkPolicyPort{
-					Protocol: &port.Protocol,
-					Port:     &portIntString,
-				})
-			}
-		}
+		return c.handlerPeerService(namespace, name, ingress)
 	} else if peer.NamespaceSelector != nil {
 		name := peer.NamespaceSelector.Name
 
-		rule.NamespaceSelector = new(metav1.LabelSelector)
-		rule.NamespaceSelector.MatchLabels = make(map[string]string)
-		rule.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = name
+		peerNP.NamespaceSelector = new(metav1.LabelSelector)
+		peerNP.NamespaceSelector.MatchLabels = make(map[string]string)
+		peerNP.NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = name
 	} else if peer.IPBlock != nil {
-		rule.IPBlock = peer.IPBlock
+		peerNP.IPBlock = peer.IPBlock
 	} else {
 		klog.Errorf("Invalid nsnp peer %v\n", peer)
-		return rule, nil, fmt.Errorf("Invalid nsnp peer %v\n", peer)
+		return peerNP, nil, fmt.Errorf("Invalid nsnp peer %v\n", peer)
 	}
 
-	return rule, ports, nil
+	return peerNP, ports, nil
 }
 
 func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkPolicy) (*netv1.NetworkPolicy, error) {
@@ -146,38 +208,81 @@ func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkP
 	}
 
 	if n.Spec.Egress != nil {
-		np.Spec.Egress = make([]netv1.NetworkPolicyEgressRule, len(n.Spec.Egress))
-		for indexEgress, egress := range n.Spec.Egress {
+		np.Spec.Egress = make([]netv1.NetworkPolicyEgressRule, 0)
+		for _, egress := range n.Spec.Egress {
+			tmpRule := netv1.NetworkPolicyEgressRule{}
 			for _, peer := range egress.To {
-				rule, ports, err := c.convertPeer(peer, false)
+				peer, ports, err := c.convertPeer(peer, false)
 				if err != nil {
 					return nil, err
 				}
-				np.Spec.Egress[indexEgress].To = append(np.Spec.Egress[indexEgress].To, rule)
-				np.Spec.Egress[indexEgress].Ports = append(np.Spec.Egress[indexEgress].Ports, ports...)
+				if ports != nil {
+					np.Spec.Egress = append(np.Spec.Egress, netv1.NetworkPolicyEgressRule{
+						Ports: ports,
+						To:    []netv1.NetworkPolicyPeer{peer},
+					})
+					continue
+				}
+				tmpRule.To = append(tmpRule.To, peer)
 			}
-			np.Spec.Egress[indexEgress].Ports = append(np.Spec.Egress[indexEgress].Ports, egress.Ports...)
+			tmpRule.Ports = egress.Ports
+			if tmpRule.To == nil {
+				continue
+			}
+			np.Spec.Egress = append(np.Spec.Egress, tmpRule)
 		}
 		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeEgress)
 	}
 
 	if n.Spec.Ingress != nil {
-		np.Spec.Ingress = make([]netv1.NetworkPolicyIngressRule, len(n.Spec.Ingress))
-		for indexIngress, ingress := range n.Spec.Ingress {
+		np.Spec.Ingress = make([]netv1.NetworkPolicyIngressRule, 0)
+		for _, ingress := range n.Spec.Ingress {
+			tmpRule := netv1.NetworkPolicyIngressRule{}
 			for _, peer := range ingress.From {
-				rule, ports, err := c.convertPeer(peer, true)
+				peer, ports, err := c.convertPeer(peer, true)
 				if err != nil {
 					return nil, err
 				}
-				np.Spec.Ingress[indexIngress].From = append(np.Spec.Ingress[indexIngress].From, rule)
-				np.Spec.Ingress[indexIngress].Ports = append(np.Spec.Ingress[indexIngress].Ports, ports...)
+				if ports != nil {
+					np.Spec.Ingress = append(np.Spec.Ingress, netv1.NetworkPolicyIngressRule{
+						Ports: ports,
+						From:  []netv1.NetworkPolicyPeer{peer},
+					})
+				}
+				tmpRule.From = append(tmpRule.From, peer)
 			}
-			np.Spec.Ingress[indexIngress].Ports = append(np.Spec.Ingress[indexIngress].Ports, ingress.Ports...)
+			tmpRule.Ports = ingress.Ports
+			np.Spec.Ingress = append(np.Spec.Ingress, tmpRule)
 		}
 		np.Spec.PolicyTypes = append(np.Spec.PolicyTypes, netv1.PolicyTypeIngress)
 	}
 
 	return np, nil
+}
+
+func (c *NSNetworkPolicyController) generateNodeRule() (netv1.NetworkPolicyIngressRule, error) {
+	var rule netv1.NetworkPolicyIngressRule
+
+	nodes, err := c.nodeInformer.Lister().List(labels.Everything())
+	if err != nil {
+		return rule, err
+	}
+	for _, node := range nodes {
+		for _, address := range node.Status.Addresses {
+			cidr, err := stringToCIDR(address.Address)
+			if err != nil {
+				klog.V(4).Infof("Error when parse address %s", address.Address)
+				continue
+			}
+			rule.From = append(rule.From, netv1.NetworkPolicyPeer{
+				IPBlock: &netv1.IPBlock{
+					CIDR: cidr,
+				},
+			})
+		}
+	}
+
+	return rule, nil
 }
 
 func generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv1.NetworkPolicy {
@@ -333,6 +438,22 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 	}
 
 	policy := generateNSNP(workspaceName, ns.Name, matchWorkspace)
+	ruleDNS, err := generateDNSRule([]string{DNSLocalIP})
+	if err != nil {
+		return err
+	}
+	policy.Spec.Egress = append(policy.Spec.Egress, ruleDNS)
+	ruleDNSService, err := c.generateDNSServiceRule()
+	if err == nil {
+		policy.Spec.Egress = append(policy.Spec.Egress, ruleDNSService)
+	} else {
+		klog.Warningf("Cannot handle service %s or %s", DNSServiceName, DNSServiceCoreDNS)
+	}
+	ruleNode, err := c.generateNodeRule()
+	if err != nil {
+		return err
+	}
+	policy.Spec.Ingress = append(policy.Spec.Ingress, ruleNode)
 	if delete {
 		c.provider.Delete(c.provider.GetKey(AnnotationNPNAME, ns.Name))
 		//delete all namespace np when networkisolate not active
@@ -388,13 +509,6 @@ func (c *NSNetworkPolicyController) syncNSNP(key string) error {
 		return err
 	}
 
-	ns, err := c.namespaceInformer.Lister().Get(namespace)
-	if !isNetworkIsolateEnabled(ns) {
-		klog.Infof("Delete NSNP %s when namespace isolate is inactive", key)
-		c.provider.Delete(c.provider.GetKey(name, namespace))
-		return nil
-	}
-
 	nsnp, err := c.informer.Lister().NamespaceNetworkPolicies(namespace).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -442,6 +556,7 @@ func NewNSNetworkPolicyController(
 	ksclient ksnetclient.NetworkV1alpha1Interface,
 	nsnpInformer nspolicy.NamespaceNetworkPolicyInformer,
 	serviceInformer v1.ServiceInformer,
+	nodeInformer v1.NodeInformer,
 	workspaceInformer workspace.WorkspaceInformer,
 	namespaceInformer v1.NamespaceInformer,
 	policyProvider provider.NsNetworkPolicyProvider) *NSNetworkPolicyController {
@@ -453,6 +568,8 @@ func NewNSNetworkPolicyController(
 		informerSynced:          nsnpInformer.Informer().HasSynced,
 		serviceInformer:         serviceInformer,
 		serviceInformerSynced:   serviceInformer.Informer().HasSynced,
+		nodeInformer:            nodeInformer,
+		nodeInformerSynced:      nodeInformer.Informer().HasSynced,
 		workspaceInformer:       workspaceInformer,
 		workspaceInformerSynced: workspaceInformer.Informer().HasSynced,
 		namespaceInformer:       namespaceInformer,
@@ -518,7 +635,7 @@ func (c *NSNetworkPolicyController) Run(threadiness int, reconcilerPeriod string
 	defer c.nsnpQueue.ShutDown()
 
 	klog.Info("Waiting to sync with Kubernetes API (NSNP)")
-	if ok := cache.WaitForCacheSync(stopCh, c.informerSynced, c.serviceInformerSynced, c.workspaceInformerSynced, c.namespaceInformerSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.informerSynced, c.serviceInformerSynced, c.workspaceInformerSynced, c.namespaceInformerSynced, c.nodeInformerSynced); !ok {
 		return fmt.Errorf("Failed to wait for caches to sync")
 	}
 	klog.Info("Finished syncing with Kubernetes API (NSNP)")
