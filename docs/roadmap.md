@@ -38,4 +38,8 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### Security & Multitenancy
 
+- [ ] Support the OAuth2 SSO plugin.
+- [ ] Workspace resource quota.
+- [ ] Refactor access management framework to adapt to multi-cluster design.
+
 #### Application Lifecycle Management (OpenPitrix)
