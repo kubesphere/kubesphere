@@ -11,20 +11,71 @@ const (
 	ResourcesPluralCluster   = "clusters"
 
 	IsHostCluster = "cluster.kubesphere.io/is-host-cluster"
+	// Description of which region the cluster been placed
+	ClusterRegion = "cluster.kubesphere.io/region"
+	// Name of the cluster group
+	ClusterGroup = "cluster.kubesphere.io/group"
+
+	Finalizer = "finalizer.cluster.kubesphere.io"
 )
 
 type ClusterSpec struct {
 
 	// Join cluster as a kubefed cluster
-	// +optional
-	Federated bool `json:"federated,omitempty"`
+	JoinFederation bool `json:"joinFederation,omitempty"`
 
 	// Desired state of the cluster
-	Active bool `json:"active,omitempty"`
+	Enable bool `json:"enable,omitempty"`
 
 	// Provider of the cluster, this field is just for description
-	// +optional
 	Provider string `json:"provider,omitempty"`
+
+	// Connection holds info to connect to the member cluster
+	Connection Connection `json:"connection,omitempty"`
+}
+
+type ConnectionType string
+
+const (
+	ConnectionTypeDirect ConnectionType = "direct"
+	ConnectionTypeProxy  ConnectionType = "proxy"
+)
+
+type Connection struct {
+
+	// type defines how host cluster will connect to host cluster
+	// ConnectionTypeDirect means direct connection, this requires
+	//   kubeconfig and kubesphere apiserver endpoint provided
+	// ConnectionTypeProxy means using kubesphere proxy, no kubeconfig
+	//   or kubesphere apiserver endpoint required
+	Type ConnectionType `json:"type,omitempty"`
+
+	// KubeSphere API Server endpoint. Example: http://10.10.0.11:8080
+	// Should provide this field explicitly if connection type is direct.
+	// Will be populated by ks-apiserver if connection type is proxy.
+	KubeSphereAPIEndpoint string `json:"kubesphereAPIEndpoint,omitempty"`
+
+	// Kubernetes API Server endpoint. Example: https://10.10.0.1:6443
+	// Should provide this field explicitly if connection type is direct.
+	// Will be populated by ks-apiserver if connection type is proxy.
+	KubernetesAPIEndpoint string `json:"kubernetesAPIEndpoint,omitempty"`
+
+	// KubeConfig content used to connect to cluster api server
+	// Should provide this field explicitly if connection type is direct.
+	// Will be populated by ks-proxy if connection type is proxy.
+	KubeConfig []byte `json:"kubeconfig,omitempty"`
+
+	// Token used by agents of member cluster to connect to host cluster proxy.
+	// This field is populated by apiserver only if connection type is proxy.
+	Token string `json:"token,omitempty"`
+
+	// KubeAPIServerPort is the port which listens for forwarding kube-apiserver traffic
+	// Only applicable when connection type is proxy.
+	KubernetesAPIServerPort uint16 `json:"kubernetesAPIServerPort,omitempty"`
+
+	// KubeSphereAPIServerPort is the port which listens for forwarding kubesphere apigateway traffic
+	// Only applicable when connection type is proxy.
+	KubeSphereAPIServerPort uint16 `json:"kubesphereAPIServerPort,omitempty"`
 }
 
 type ClusterConditionType string
@@ -38,6 +89,9 @@ const (
 
 	// Cluster has been one of federated clusters
 	ClusterFederated ClusterConditionType = "Federated"
+
+	// Cluster is all available for requests
+	ClusterReady ClusterConditionType = "Ready"
 )
 
 type ClusterCondition struct {
@@ -60,22 +114,29 @@ type ClusterStatus struct {
 	// Represents the latest available observations of a cluster's current state.
 	Conditions []ClusterCondition `json:"conditions,omitempty"`
 
-	// GitVersion of the kubernetes cluster, this field is set by cluster controller
-	// +optional
+	// GitVersion of the kubernetes cluster, this field is populated by cluster controller
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 
 	// Count of the kubernetes cluster nodes
-	// +optional
+	// This field may not reflect the instant status of the cluster.
 	NodeCount int `json:"nodeCount,omitempty"`
+
+	// Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.
+	// +optional
+	Zones []string `json:"zones,omitempty"`
+
+	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
+	// +optional
+	Region *string `json:"region,omitempty"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +genclient:nonNamespaced
-// +kubebuilder:printcolumn:name="Federated",type="boolean",JSONPath=".spec.federated"
+// +kubebuilder:printcolumn:name="Federated",type="boolean",JSONPath=".spec.joinFederation"
 // +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
-// +kubebuilder:printcolumn:name="Active",type="boolean",JSONPath=".spec.active"
+// +kubebuilder:printcolumn:name="Active",type="boolean",JSONPath=".spec.enable"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.kubernetesVersion"
 // +kubebuilder:resource:scope=Cluster
 

@@ -15,6 +15,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/notification"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -119,6 +120,9 @@ func newTestConfig() (*Config, error) {
 				AccessTokenMaxAge:            time.Hour * 24,
 				AccessTokenInactivityTimeout: 0,
 			},
+		},
+		MultiClusterOptions: &multicluster.Options{
+			Enable: false,
 		},
 	}
 	return conf, nil

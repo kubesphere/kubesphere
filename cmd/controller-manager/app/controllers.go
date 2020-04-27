@@ -88,11 +88,13 @@ func AddControllers(
 		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
 		kubesphereInformer.Devops().V1alpha1().S2iRuns())
+
 	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
 		client.KubeSphere(), devopsClient,
 		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
 		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
 	)
+
 	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
 		client.KubeSphere(),
 		devopsClient,
@@ -120,9 +122,8 @@ func AddControllers(
 
 	clusterController := cluster.NewClusterController(
 		client.Kubernetes(),
+		client.Config(),
 		kubesphereInformer.Cluster().V1alpha1().Clusters(),
-		kubesphereInformer.Cluster().V1alpha1().Agents(),
-		client.KubeSphere().ClusterV1alpha1().Agents(),
 		client.KubeSphere().ClusterV1alpha1().Clusters())
 
 	controllers := map[string]manager.Runnable{

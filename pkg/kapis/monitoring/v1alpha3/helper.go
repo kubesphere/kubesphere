@@ -235,22 +235,33 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 		if err != nil {
 			return q, err
 		}
-
 		cts := ns.CreationTimestamp.Time
-		if q.start.Before(cts) {
-			q.start = cts
+
+		// Query should happen no earlier than namespace's creation time.
+		// For range query, check and mutate `start`. For instant query, check and mutate `time`.
+		// In range query, if `start` and `end` are both before namespace's creation time, it causes no hit.
+		if !q.isRangeQuery() {
+			if q.time.Before(cts) {
+				q.time = cts
+			}
+		} else {
+			if q.start.Before(cts) {
+				q.start = cts
+			}
+			if q.end.Before(cts) {
+				return q, errors.New(ErrNoHit)
+			}
 		}
-		if q.end.Before(cts) {
-			return q, errors.New(ErrNoHit)
-		}
+
 	}
 
 	// Parse sorting and paging params
 	if r.target != "" {
+		q.target = r.target
 		q.page = DefaultPage
 		q.limit = DefaultLimit
-		if q.order != model.OrderAscending {
-			r.order = DefaultOrder
+		if r.order != model.OrderAscending {
+			q.order = DefaultOrder
 		}
 		if r.page != "" {
 			q.page, err = strconv.Atoi(r.page)

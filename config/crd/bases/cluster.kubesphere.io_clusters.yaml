@@ -9,13 +9,13 @@ metadata:
   name: clusters.cluster.kubesphere.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.federated
+  - JSONPath: .spec.joinFederation
     name: Federated
     type: boolean
   - JSONPath: .spec.provider
     name: Provider
     type: string
-  - JSONPath: .spec.active
+  - JSONPath: .spec.enable
     name: Active
     type: boolean
   - JSONPath: .status.kubernetesVersion
@@ -47,10 +47,54 @@ spec:
           type: object
         spec:
           properties:
-            active:
+            connection:
+              description: Connection holds info to connect to the member cluster
+              properties:
+                kubeconfig:
+                  description: KubeConfig content used to connect to cluster api server
+                    Should provide this field explicitly if connection type is direct.
+                    Will be populated by ks-proxy if connection type is proxy.
+                  format: byte
+                  type: string
+                kubernetesAPIEndpoint:
+                  description: Kubernetes API Server endpoint. This can be a hostname,
+                    hostname:port, IP or IP:port. Should provide this field explicitly
+                    if connection type is direct. Will be populated by ks-apiserver
+                    if connection type is proxy.
+                  type: string
+                kubernetesAPIServerPort:
+                  description: KubeAPIServerPort is the port which listens for forwarding
+                    kube-apiserver traffic Only applicable when connection type is
+                    proxy.
+                  type: integer
+                kubesphereAPIEndpoint:
+                  description: KubeSphere API Server endpoint. This can be a hostname,
+                    hostname:port, IP or IP:port. Should provide this field explicitly
+                    if connection type is direct. Will be populated by ks-apiserver
+                    if connection type is proxy.
+                  type: string
+                kubesphereAPIServerPort:
+                  description: KubeSphereAPIServerPort is the port which listens for
+                    forwarding kubesphere apigateway traffic Only applicable when
+                    connection type is proxy.
+                  type: integer
+                token:
+                  description: Token used by agents of member cluster to connect to
+                    host cluster proxy. This field is populated by apiserver only
+                    if connection type is proxy.
+                  type: string
+                type:
+                  description: type defines how host cluster will connect to host
+                    cluster ConnectionTypeDirect means direct connection, this requires   kubeconfig
+                    and kubesphere apiserver endpoint provided ConnectionTypeProxy
+                    means using kubesphere proxy, no kubeconfig   or kubesphere apiserver
+                    endpoint required
+                  type: string
+              type: object
+            enable:
               description: Desired state of the cluster
               type: boolean
-            federated:
+            joinFederation:
               description: Join cluster as a kubefed cluster
               type: boolean
             provider:
@@ -92,12 +136,23 @@ spec:
                 type: object
               type: array
             kubernetesVersion:
-              description: GitVersion of the kubernetes cluster, this field is set
+              description: GitVersion of the kubernetes cluster, this field is populated
                 by cluster controller
               type: string
             nodeCount:
-              description: Count of the kubernetes cluster nodes
+              description: Count of the kubernetes cluster nodes This field may not
+                reflect the instant status of the cluster.
               type: integer
+            region:
+              description: Region is the name of the region in which all of the nodes
+                in the cluster exist.  e.g. 'us-east1'.
+              type: string
+            zones:
+              description: Zones are the names of availability zones in which the
+                nodes of the cluster exist, e.g. 'us-east1-a'.
+              items:
+                type: string
+              type: array
           type: object
       type: object
   version: v1alpha1

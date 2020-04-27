@@ -37,16 +37,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -60,6 +61,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			S3Options:         conf.S3Options,
 			OpenPitrixOptions: conf.OpenPitrixOptions,
 			LeaderElection:    s.LeaderElection,
+			LeaderElect:       s.LeaderElect,
 		}
 	}
 
@@ -174,6 +176,11 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		<-stopCh
 		cancel()
 	}()
+
+	if !s.LeaderElect {
+		run(ctx)
+		return nil
+	}
 
 	id, err := os.Hostname()
 	if err != nil {

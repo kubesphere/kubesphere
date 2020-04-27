@@ -103,9 +103,11 @@ type PodOption struct {
 func (po PodOption) Apply(o *QueryOptions) {
 	o.Level = LevelPod
 	o.ResourceFilter = po.ResourceFilter
+	o.NodeName = po.NodeName
 	o.NamespaceName = po.NamespaceName
 	o.WorkloadKind = po.WorkloadKind
 	o.WorkloadName = po.WorkloadName
+	o.PodName = po.PodName
 }
 
 type ContainerOption struct {
