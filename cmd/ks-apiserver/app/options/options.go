@@ -17,6 +17,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
@@ -52,6 +53,7 @@ func NewServerRunOptions() *ServerRunOptions {
 			LdapOptions:           ldap.NewOptions(),
 			RedisOptions:          cache.NewRedisOptions(),
 			AuthenticationOptions: authoptions.NewAuthenticateOptions(),
+			MultiClusterOptions:   multicluster.NewOptions(),
 		},
 	}
 
@@ -74,6 +76,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)
+	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 
 	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
