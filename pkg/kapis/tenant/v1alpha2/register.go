@@ -27,7 +27,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"net/http"
 )
 
@@ -37,9 +36,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, k8sClient k8s.Client, factory informers.InformerFactory) error {
+func AddToContainer(c *restful.Container, factory informers.InformerFactory) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newTenantHandler(k8sClient, factory)
+	handler := newTenantHandler(factory)
 
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).

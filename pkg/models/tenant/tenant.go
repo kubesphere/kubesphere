@@ -143,7 +143,7 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 
 	if decision == authorizer.DecisionAllow {
 
-		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s:%s", tenantv1alpha1.WorkspaceLabel, workspace))
+		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
 
 		result, err := t.resourceGetter.List("namespaces", "", queryParam)
 

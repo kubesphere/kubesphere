@@ -19,6 +19,7 @@
 package im
 
 import (
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -81,5 +82,12 @@ func (im *ldapOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, e
 }
 
 func (im *ldapOperator) ListUsers(query *query.Query) (*api.ListResult, error) {
-	panic("not implement")
+	result, err := im.ldapClient.List(query)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	return result, nil
 }

@@ -9,14 +9,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
 type tenantHandler struct {
 	tenant tenant.Interface
 }
 
-func newTenantHandler(_ k8s.Client, factory informers.InformerFactory) *tenantHandler {
+func newTenantHandler(factory informers.InformerFactory) *tenantHandler {
 
 	return &tenantHandler{
 		tenant: tenant.New(factory),

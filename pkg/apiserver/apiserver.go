@@ -11,13 +11,18 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
@@ -27,7 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
+	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
@@ -118,7 +123,6 @@ func (s *APIServer) PrepareRun() error {
 	s.container.Filter(logRequestAndResponse)
 	s.container.Router(restful.CurlyRouter{})
 	s.container.RecoverHandler(func(panicReason interface{}, httpWriter http.ResponseWriter) {
-		klog.Error(panicReason)
 		logStackOnRecover(panicReason, httpWriter)
 	})
 
@@ -144,7 +148,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(iamapi.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
 		am.NewAMOperator(s.InformerFactory),
@@ -189,7 +193,6 @@ func (s *APIServer) buildHandlerChain() {
 			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralGlobalRoleBinding},
 			{Group: tenantv1alpha1.SchemeGroupVersion.Group, Resource: tenantv1alpha1.ResourcePluralWorkspace},
 			{Group: clusterv1alpha1.SchemeGroupVersion.Group, Resource: clusterv1alpha1.ResourcesPluralCluster},
-			{Group: clusterv1alpha1.SchemeGroupVersion.Group, Resource: clusterv1alpha1.ResourcesPluralAgent},
 		},
 	}
 

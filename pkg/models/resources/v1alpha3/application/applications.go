@@ -83,9 +83,9 @@ func (d *applicationsGetter) filter(object runtime.Object, filter query.Filter) 
 	return v1alpha3.DefaultObjectMetaFilter(application.ObjectMeta, filter)
 }
 
-func lastUpdateTime(deployment *appv1beta1.Application) time.Time {
-	lut := deployment.CreationTimestamp.Time
-	for _, condition := range deployment.Status.Conditions {
+func lastUpdateTime(application *appv1beta1.Application) time.Time {
+	lut := application.CreationTimestamp.Time
+	for _, condition := range application.Status.Conditions {
 		if condition.LastUpdateTime.After(lut) {
 			lut = condition.LastUpdateTime.Time
 		}

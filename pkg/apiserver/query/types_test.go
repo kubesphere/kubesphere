@@ -16,13 +16,13 @@ func TestParseQueryParameter(t *testing.T) {
 	}{
 		{
 			"test normal case",
-			"label=app.kubernetes.io/name:book&name=foo&status=Running&page=1&limit=10&ascending=true",
+			"label=app.kubernetes.io/name=book&name=foo&status=Running&page=1&limit=10&ascending=true",
 			&Query{
 				Pagination: newPagination(10, 0),
 				SortBy:     FieldCreationTimeStamp,
 				Ascending:  true,
 				Filters: map[Field]Value{
-					FieldLabel:  Value("app.kubernetes.io/name:book"),
+					FieldLabel:  Value("app.kubernetes.io/name=book"),
 					FieldName:   Value("foo"),
 					FieldStatus: Value("Running"),
 				},

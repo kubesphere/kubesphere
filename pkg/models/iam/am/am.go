@@ -344,14 +344,13 @@ func (am *amOperator) ListGlobalRoles(query *query.Query) (*api.ListResult, erro
 // GetRoleReferenceRules attempts to resolve the RoleBinding or ClusterRoleBinding.
 func (am *amOperator) GetRoleReferenceRules(roleRef rbacv1.RoleRef, bindingNamespace string) ([]rbacv1.PolicyRule, error) {
 	switch roleRef.Kind {
-	case "Role":
+	case iamv1alpha2.ResourceKindRole:
 		role, err := am.k8sinformer.Rbac().V1().Roles().Lister().Roles(bindingNamespace).Get(roleRef.Name)
 		if err != nil {
 			return nil, err
 		}
 		return role.Rules, nil
-
-	case "ClusterRole":
+	case iamv1alpha2.ResourceKindClusterRole:
 		clusterRole, err := am.k8sinformer.Rbac().V1().ClusterRoles().Lister().Get(roleRef.Name)
 		if err != nil {
 			return nil, err

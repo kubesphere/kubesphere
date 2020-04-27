@@ -136,12 +136,11 @@ func (h *iamHandler) ListNamespaceUsers(req *restful.Request, resp *restful.Resp
 			if subject.Kind == iamv1alpha2.ResourceKindUser {
 				user, err := h.im.DescribeUser(subject.Name)
 
-				if errors.IsNotFound(err) {
-					klog.Errorf("orphan subject: %+v", subject)
-					continue
-				}
-
 				if err != nil {
+					if errors.IsNotFound(err) {
+						klog.Errorf("orphan subject: %+v", subject)
+						continue
+					}
 					api.HandleInternalError(resp, req, err)
 					return
 				}
@@ -200,12 +199,11 @@ func (h *iamHandler) ListWorkspaceUsers(request *restful.Request, response *rest
 			if subject.Kind == iamv1alpha2.ResourceKindUser {
 				user, err := h.im.DescribeUser(subject.Name)
 
-				if errors.IsNotFound(err) {
-					klog.Errorf("orphan subject: %+v", subject)
-					continue
-				}
-
 				if err != nil {
+					if errors.IsNotFound(err) {
+						klog.Errorf("orphan subject: %+v", subject)
+						continue
+					}
 					api.HandleInternalError(response, request, err)
 					return
 				}

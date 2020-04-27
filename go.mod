@@ -143,7 +143,6 @@ replace (
 	github.com/bmizerany/assert => github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cespare/xxhash => github.com/cespare/xxhash v1.1.0
 	github.com/chai2010/gettext-go => github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5
-	github.com/cheekybits/genny => github.com/cheekybits/genny v1.0.0
 	github.com/client9/misspell => github.com/client9/misspell v0.3.4
 	github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
@@ -264,14 +263,11 @@ replace (
 	github.com/kr/pty => github.com/kr/pty v1.1.5
 	github.com/kr/text => github.com/kr/text v0.1.0
 	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4
-	github.com/kubernetes-sigs/federation-v2 => github.com/kubernetes-sigs/federation-v2 v0.0.10
-	github.com/kubesphere/s2ioperator => github.com/kubesphere/s2ioperator v0.0.14
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn => github.com/leodido/go-urn v1.1.0
 	github.com/lib/pq => github.com/lib/pq v1.2.0
 	github.com/liggitt/tabwriter => github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 	github.com/lithammer/dedent => github.com/lithammer/dedent v1.1.0
-	github.com/lucas-clemente/quic-go => github.com/lucas-clemente/quic-go v0.11.1
 	github.com/magiconair/properties => github.com/magiconair/properties v1.8.0
 	github.com/mailru/easyjson => github.com/mailru/easyjson v0.7.0
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.1.2
@@ -296,7 +292,6 @@ replace (
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
 	github.com/openshift/api => github.com/openshift/api v0.0.0-20180801171038-322a19404e37
-	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160
 	github.com/openshift/generic-admission-server => github.com/openshift/generic-admission-server v1.14.0
 	github.com/opentracing/opentracing-go => github.com/opentracing/opentracing-go v1.1.0
 	github.com/pborman/uuid => github.com/pborman/uuid v1.2.0
@@ -407,7 +402,6 @@ replace (
 	k8s.io/apiserver => k8s.io/apiserver v0.0.0-20191114103151-9ca1dc586682
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.17.3
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20191114101535-6c5935290e33
-	k8s.io/cluster-registry => k8s.io/cluster-registry v0.0.6
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20191004115455-8e001e5d1894
 	k8s.io/component-base => k8s.io/component-base v0.0.0-20191114102325-35a9586014f7
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20191120174120-e74f70b9b27e

@@ -2,7 +2,9 @@ package ldap
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
 // simpleLdap is a implementation of ldap.Interface, you should never use this in production env!
@@ -73,4 +75,17 @@ func (s simpleLdap) Authenticate(name string, password string) error {
 	}
 
 	return nil
+}
+
+func (l *simpleLdap) List(query *query.Query) (*api.ListResult, error) {
+	items := make([]interface{}, 0)
+
+	for _, user := range l.store {
+		items = append(items, user)
+	}
+
+	return &api.ListResult{
+		Items:      items,
+		TotalItems: len(items),
+	}, nil
 }

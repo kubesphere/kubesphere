@@ -47,7 +47,6 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 	ws.Route(ws.GET("/users").
 		To(handler.ListUsers).
 		Doc("List all users.").
-		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	// global resource
