@@ -94,7 +94,7 @@ type APIServer struct {
 	// monitoring client set
 	MonitoringClient monitoring.Interface
 
-	//
+	// openpitrix client
 	OpenpitrixClient openpitrix.Client
 
 	//
@@ -188,8 +188,10 @@ func (s *APIServer) buildHandlerChain() {
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
-	clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
-	handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
+	if s.Config.MultiClusterOptions.Enable {
+		clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
+		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
+	}
 
 	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
@@ -284,6 +286,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "roles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "rolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "policyrules"},
+		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{
@@ -332,7 +335,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		if !isResourceExists(gvr) {
 			klog.Warningf("resource %s not exists in the cluster", gvr)
 		} else {
-			_, err := appInformerFactory.ForResource(gvr)
+			_, err = appInformerFactory.ForResource(gvr)
 			if err != nil {
 				return err
 			}

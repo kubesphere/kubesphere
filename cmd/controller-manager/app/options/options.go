@@ -9,6 +9,7 @@ import (
 	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"strings"
@@ -16,20 +17,22 @@ import (
 )
 
 type KubeSphereControllerManagerOptions struct {
-	KubernetesOptions *k8s.KubernetesOptions
-	DevopsOptions     *jenkins.Options
-	S3Options         *s3.Options
-	OpenPitrixOptions *openpitrix.Options
-	LeaderElect       bool
-	LeaderElection    *leaderelection.LeaderElectionConfig
+	KubernetesOptions   *k8s.KubernetesOptions
+	DevopsOptions       *jenkins.Options
+	S3Options           *s3.Options
+	OpenPitrixOptions   *openpitrix.Options
+	MultiClusterOptions *multicluster.Options
+	LeaderElect         bool
+	LeaderElection      *leaderelection.LeaderElectionConfig
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
 	s := &KubeSphereControllerManagerOptions{
-		KubernetesOptions: k8s.NewKubernetesOptions(),
-		DevopsOptions:     jenkins.NewDevopsOptions(),
-		S3Options:         s3.NewS3Options(),
-		OpenPitrixOptions: openpitrix.NewOptions(),
+		KubernetesOptions:   k8s.NewKubernetesOptions(),
+		DevopsOptions:       jenkins.NewDevopsOptions(),
+		S3Options:           s3.NewS3Options(),
+		OpenPitrixOptions:   openpitrix.NewOptions(),
+		MultiClusterOptions: multicluster.NewOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
@@ -55,9 +58,14 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
+	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)
+
+	fs.BoolVar(&s.LeaderElect, "leader-elect", s.LeaderElect, ""+
+		"Whether to enable leader election. This field should be enabled when controller manager"+
+		"deployed with multiple replicas.")
 
 	kfs := fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
