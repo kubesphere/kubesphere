@@ -3119,7 +3119,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/cluster": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/cluster": {
       "get": {
         "consumes": [
           "application/json"
@@ -3181,7 +3181,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/components/{component}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/components/{component}": {
       "get": {
         "consumes": [
           "application/json"
@@ -3250,7 +3250,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces": {
       "get": {
         "consumes": [
           "application/json"
@@ -3344,7 +3344,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}": {
       "get": {
         "consumes": [
           "application/json"
@@ -3413,7 +3413,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/persistentvolumeclaims": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/persistentvolumeclaims": {
       "get": {
         "consumes": [
           "application/json"
@@ -3514,7 +3514,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/persistentvolumeclaims/{pvc}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/persistentvolumeclaims/{pvc}": {
       "get": {
         "consumes": [
           "application/json"
@@ -3590,7 +3590,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/pods": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/pods": {
       "get": {
         "consumes": [
           "application/json"
@@ -3691,7 +3691,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/pods/{pod}": {
       "get": {
         "consumes": [
           "application/json"
@@ -3767,7 +3767,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}/containers": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/pods/{pod}/containers": {
       "get": {
         "consumes": [
           "application/json"
@@ -3875,7 +3875,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/pods/{pod}/containers/{container}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/pods/{pod}/containers/{container}": {
       "get": {
         "consumes": [
           "application/json"
@@ -3958,7 +3958,115 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/workloads": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/targets/metadata": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Custom Metrics"
+        ],
+        "summary": "Get metadata of metrics for the specific namespace.",
+        "operationId": "handleMetadataQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metadata"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metadata"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/targets/query": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Custom Metrics"
+        ],
+        "summary": "Make an ad-hoc query in the specific namespace.",
+        "operationId": "handleAdhocQuery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the namespace.",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The expression to be evaluated.",
+            "name": "expr",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ",
+            "name": "start",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ",
+            "name": "end",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "10m",
+            "description": "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).",
+            "name": "step",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.",
+            "name": "time",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metric"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/monitoring.Metric"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/workloads": {
       "get": {
         "consumes": [
           "application/json"
@@ -4059,7 +4167,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/workloads/{kind}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/workloads/{kind}": {
       "get": {
         "consumes": [
           "application/json"
@@ -4167,7 +4275,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/namespaces/{namespace}/workloads/{kind}/{workload}/pods": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/namespaces/{namespace}/workloads/{kind}/{workload}/pods": {
       "get": {
         "consumes": [
           "application/json"
@@ -4282,7 +4390,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/nodes": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/nodes": {
       "get": {
         "consumes": [
           "application/json"
@@ -4376,7 +4484,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/nodes/{node}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/nodes/{node}": {
       "get": {
         "consumes": [
           "application/json"
@@ -4445,7 +4553,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/nodes/{node}/pods": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/nodes/{node}/pods": {
       "get": {
         "consumes": [
           "application/json"
@@ -4546,7 +4654,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/nodes/{node}/pods/{pod}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/nodes/{node}/pods/{pod}": {
       "get": {
         "consumes": [
           "application/json"
@@ -4622,7 +4730,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/storageclasses/{storageclass}/persistentvolumeclaims": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/storageclasses/{storageclass}/persistentvolumeclaims": {
       "get": {
         "consumes": [
           "application/json"
@@ -4723,7 +4831,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/workspaces": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/workspaces": {
       "get": {
         "consumes": [
           "application/json"
@@ -4817,7 +4925,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/workspaces/{workspace}": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/workspaces/{workspace}": {
       "get": {
         "consumes": [
           "application/json"
@@ -4886,7 +4994,7 @@
         }
       }
     },
-    "/kapis/monitoring.kubesphere.io/v1alpha2/workspaces/{workspace}/namespaces": {
+    "/kapis/monitoring.kubesphere.io/v1alpha3/workspaces/{workspace}/namespaces": {
       "get": {
         "consumes": [
           "application/json"
@@ -4982,6 +5090,89 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/monitoring.Metrics"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/network.kubesphere.io/v1alpha2/namespaces/{namespace}/topology": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Network Topology"
+        ],
+        "summary": "Get the topology with specifying a namespace",
+        "operationId": "getNamespaceTopology",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the namespace",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.TopologyResponse"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.TopologyResponse"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/network.kubesphere.io/v1alpha2/namespaces/{namespace}/topology/{node_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Network Topology"
+        ],
+        "summary": "Get the topology with specifying a node id in the whole topology and specifying a namespace",
+        "operationId": "getNamespaceNodeTopology",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the namespace",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the node in the whole topology",
+            "name": "node_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.NodeResponse"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha2.NodeResponse"
             }
           }
         }
@@ -11641,6 +11832,20 @@
         }
       }
     },
+    "monitoring.Metadata": {
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "description": "actual array of results",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/monitoring.Metadata"
+          }
+        }
+      }
+    },
     "monitoring.Metric": {
       "properties": {
         "data": {
@@ -16670,6 +16875,24 @@
         }
       }
     },
+    "v1alpha2.Column": {
+      "required": [
+        "id",
+        "label",
+        "dataType"
+      ],
+      "properties": {
+        "dataType": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
     "v1alpha2.ComponentStatus": {
       "required": [
         "name",
@@ -16715,13 +16938,116 @@
       }
     },
     "v1alpha2.ComponentStatus.label": {},
+    "v1alpha2.Connection": {
+      "required": [
+        "id",
+        "nodeId",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "labelMinor": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.MetadataRow"
+          }
+        },
+        "nodeId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.ConnectionsSummary": {
+      "required": [
+        "id",
+        "topologyId",
+        "label",
+        "columns",
+        "connections"
+      ],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Column"
+          }
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Connection"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "topologyId": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.Control": {
+      "required": [
+        "id",
+        "human",
+        "icon",
+        "rank"
+      ],
+      "properties": {
+        "confirmation": {
+          "type": "string"
+        },
+        "human": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1alpha2.ControlInstance": {
+      "required": [
+        "ProbeID",
+        "NodeID",
+        "Control"
+      ],
+      "properties": {
+        "Control": {
+          "$ref": "#/definitions/v1alpha2.Control"
+        },
+        "NodeID": {
+          "type": "string"
+        },
+        "ProbeID": {
+          "type": "string"
+        }
+      }
+    },
     "v1alpha2.FinalizerName": {},
     "v1alpha2.GraphResponse": {
       "required": [
-        "timestamp",
         "duration",
         "graphType",
-        "elements"
+        "elements",
+        "timestamp"
       ],
       "properties": {
         "duration": {
@@ -16759,6 +17085,101 @@
         }
       }
     },
+    "v1alpha2.MetadataRow": {
+      "required": [
+        "id",
+        "label",
+        "value"
+      ],
+      "properties": {
+        "dataType": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "number",
+          "format": "double"
+        },
+        "truncate": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.Metric": {
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "max": {
+          "type": "number",
+          "format": "double"
+        },
+        "min": {
+          "type": "number",
+          "format": "double"
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Sample"
+          }
+        }
+      }
+    },
+    "v1alpha2.MetricRow": {
+      "required": [
+        "ID",
+        "Label",
+        "Format",
+        "Group",
+        "Value",
+        "ValueEmpty",
+        "Priority",
+        "URL",
+        "Metric"
+      ],
+      "properties": {
+        "Format": {
+          "type": "string"
+        },
+        "Group": {
+          "type": "string"
+        },
+        "ID": {
+          "type": "string"
+        },
+        "Label": {
+          "type": "string"
+        },
+        "Metric": {
+          "$ref": "#/definitions/v1alpha2.Metric"
+        },
+        "Priority": {
+          "type": "number",
+          "format": "double"
+        },
+        "URL": {
+          "type": "string"
+        },
+        "Value": {
+          "type": "number",
+          "format": "double"
+        },
+        "ValueEmpty": {
+          "type": "boolean"
+        }
+      }
+    },
     "v1alpha2.MetricsResponse": {
       "required": [
         "metrics",
@@ -16776,6 +17197,99 @@
           "additionalProperties": {
             "$ref": "#/definitions/prometheus.Metric"
           }
+        }
+      }
+    },
+    "v1alpha2.Node": {
+      "required": [
+        "rank",
+        "id",
+        "label",
+        "labelMinor",
+        "controls"
+      ],
+      "properties": {
+        "adjacency": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.NodeSummaryGroup"
+          }
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.ConnectionsSummary"
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.ControlInstance"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "labelMinor": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.MetadataRow"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.MetricRow"
+          }
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Parent"
+          }
+        },
+        "pseudo": {
+          "type": "boolean"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "stack": {
+          "type": "boolean"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Table"
+          }
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.NodeResponse": {
+      "required": [
+        "node"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/definitions/v1alpha2.Node"
         }
       }
     },
@@ -16797,6 +17311,102 @@
         }
       }
     },
+    "v1alpha2.NodeSummary": {
+      "required": [
+        "labelMinor",
+        "rank",
+        "id",
+        "label"
+      ],
+      "properties": {
+        "adjacency": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "labelMinor": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.MetadataRow"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.MetricRow"
+          }
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Parent"
+          }
+        },
+        "pseudo": {
+          "type": "boolean"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "stack": {
+          "type": "boolean"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Table"
+          }
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha2.NodeSummaryGroup": {
+      "required": [
+        "id",
+        "label",
+        "nodes",
+        "topologyId",
+        "columns"
+      ],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Column"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.NodeSummary"
+          }
+        },
+        "topologyId": {
+          "type": "string"
+        }
+      }
+    },
     "v1alpha2.NotFoundError": {
       "required": [
         "status",
@@ -16809,6 +17419,24 @@
         "status": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "v1alpha2.Parent": {
+      "required": [
+        "id",
+        "label",
+        "topologyId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "topologyId": {
+          "type": "string"
         }
       }
     },
@@ -16864,6 +17492,23 @@
         }
       }
     },
+    "v1alpha2.Row": {
+      "required": [
+        "id",
+        "entries"
+      ],
+      "properties": {
+        "entries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
     "v1alpha2.RuleRef": {
       "required": [
         "apiGroup",
@@ -16882,6 +17527,58 @@
         }
       }
     },
+    "v1alpha2.Sample": {
+      "required": [
+        "date",
+        "value"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "v1alpha2.Table": {
+      "required": [
+        "id",
+        "label",
+        "type",
+        "columns",
+        "rows"
+      ],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Column"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1alpha2.Row"
+          }
+        },
+        "truncationCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
     "v1alpha2.Target": {
       "required": [
         "scope",
@@ -16893,6 +17590,19 @@
         },
         "scope": {
           "type": "string"
+        }
+      }
+    },
+    "v1alpha2.TopologyResponse": {
+      "required": [
+        "nodes"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/v1alpha2.NodeSummary"
+          }
         }
       }
     },
