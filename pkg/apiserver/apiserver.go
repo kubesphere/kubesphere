@@ -282,6 +282,8 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "extensions", Version: "v1beta1", Resource: "ingresses"},
 
 		{Group: "autoscaling", Version: "v2beta2", Resource: "horizontalpodautoscalers"},
+
+		{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"},
 	}
 
 	for _, gvr := range k8sGVRs {
