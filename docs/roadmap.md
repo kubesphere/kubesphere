@@ -42,6 +42,13 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### Storage
 
+- [ ] Snapshot management
+- [ ] Volume cloning
+- [ ] Volume monitoring and alerting
+- [ ] Identify storage system capabilities
+- [ ] Restore volume to available status
+- [ ] Unified integrate third-party storage plugin
+
 #### Security & Multitenancy
 
 #### Application Lifecycle Management (OpenPitrix)
