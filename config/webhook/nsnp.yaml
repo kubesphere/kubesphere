@@ -1,0 +1,24 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: kubesphere-nsnp-validate-service
+webhooks:
+  - clientConfig:
+      caBundle: <caBundle>
+      service:
+        name: kubesphere-controller-manager-service
+        namespace: kubesphere-system
+        path: /validate-service-nsnp-kubesphere-io-v1alpha1-network
+    failurePolicy: Fail
+    name: validate.nsnp.kubesphere.io
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - services

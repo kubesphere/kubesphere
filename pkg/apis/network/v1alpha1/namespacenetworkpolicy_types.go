@@ -17,68 +17,114 @@ limitations under the License.
 package v1alpha1
 
 import (
+	k8snet "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// All types in this file is copy from calicoapi as we use calico to policy
+const (
+	ResourceKindNamespaceNetworkPolicy     = "NamespaceNetworkPolicy"
+	ResourceSingularNamespaceNetworkPolicy = "namespacenetworkpolicy"
+	ResourcePluralNamespaceNetworkPolicy   = "namespacenetworkpolicies"
+)
 
-// NamespaceNetworkPolicySpec defines the desired state of NamespaceNetworkPolicy
+// NamespaceNetworkPolicySpec provides the specification of a NamespaceNetworkPolicy
 type NamespaceNetworkPolicySpec struct {
-	// Order is an optional field that specifies the order in which the policy is applied.
-	// Policies with higher "order" are applied after those with lower
-	// order.  If the order is omitted, it may be considered to be "infinite" - i.e. the
-	// policy will be applied last.  Policies with identical order will be applied in
-	// alphanumerical order based on the Policy "Name".
-	Order *int `json:"order,omitempty"`
-	// The ordered set of ingress rules.  Each rule contains a set of packet match criteria and
-	// a corresponding action to apply.
-	Ingress []Rule `json:"ingress,omitempty" validate:"omitempty,dive"`
-	// The ordered set of egress rules.  Each rule contains a set of packet match criteria and
-	// a corresponding action to apply.
-	Egress []Rule `json:"egress,omitempty" validate:"omitempty,dive"`
-	// The selector is an expression used to pick pick out the endpoints that the policy should
-	// be applied to.
-	//
-	// Selector expressions follow this syntax:
-	//
-	// 	label == "string_literal"  ->  comparison, e.g. my_label == "foo bar"
-	// 	label != "string_literal"   ->  not equal; also matches if label is not present
-	// 	label in { "a", "b", "c", ... }  ->  true if the value of label X is one of "a", "b", "c"
-	// 	label not in { "a", "b", "c", ... }  ->  true if the value of label X is not one of "a", "b", "c"
-	// 	has(label_name)  -> True if that label is present
-	// 	! expr -> negation of expr
-	// 	expr && expr  -> Short-circuit and
-	// 	expr || expr  -> Short-circuit or
-	// 	( expr ) -> parens for grouping
-	// 	all() or the empty selector -> matches all endpoints.
-	//
-	// Label names are allowed to contain alphanumerics, -, _ and /. String literals are more permissive
-	// but they do not support escape characters.
-	//
-	// Examples (with made-up labels):
-	//
-	// 	type == "webserver" && deployment == "prod"
-	// 	type in {"frontend", "backend"}
-	// 	deployment != "dev"
-	// 	! has(label_name)
-	Selector string `json:"selector" validate:"selector"`
-	// Types indicates whether this policy applies to ingress, or to egress, or to both.  When
-	// not explicitly specified (and so the value on creation is empty or nil), Calico defaults
-	// Types according to what Ingress and Egress are present in the policy.  The
-	// default is:
-	//
-	// - [ PolicyTypeIngress ], if there are no Egress rules (including the case where there are
-	//   also no Ingress rules)
-	//
-	// - [ PolicyTypeEgress ], if there are Egress rules but no Ingress rules
-	//
-	// - [ PolicyTypeIngress, PolicyTypeEgress ], if there are both Ingress and Egress rules.
-	//
-	// When the policy is read back again, Types will always be one of these values, never empty
-	// or nil.
-	Types []PolicyType `json:"types,omitempty" validate:"omitempty,dive,policyType"`
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// List of ingress rules to be applied to the selected pods. Traffic is allowed to
+	// a pod if there are no NetworkPolicies selecting the pod
+	// (and cluster policy otherwise allows the traffic), OR if the traffic source is
+	// the pod's local node, OR if the traffic matches at least one ingress rule
+	// across all of the NetworkPolicy objects whose podSelector matches the pod. If
+	// this field is empty then this NetworkPolicy does not allow any traffic (and serves
+	// solely to ensure that the pods it selects are isolated by default)
+	// +optional
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty" protobuf:"bytes,1,rep,name=ingress"`
+
+	// List of egress rules to be applied to the selected pods. Outgoing traffic is
+	// allowed if there are no NetworkPolicies selecting the pod (and cluster policy
+	// otherwise allows the traffic), OR if the traffic matches at least one egress rule
+	// across all of the NetworkPolicy objects whose podSelector matches the pod. If
+	// this field is empty then this NetworkPolicy limits all outgoing traffic (and serves
+	// solely to ensure that the pods it selects are isolated by default).
+	// This field is beta-level in 1.8
+	// +optional
+	Egress []NetworkPolicyEgressRule `json:"egress,omitempty" protobuf:"bytes,2,rep,name=egress"`
+
+	// List of rule types that the NetworkPolicy relates to.
+	// Valid options are "Ingress", "Egress", or "Ingress,Egress".
+	// If this field is not specified, it will default based on the existence of Ingress or Egress rules;
+	// policies that contain an Egress section are assumed to affect Egress, and all policies
+	// (whether or not they contain an Ingress section) are assumed to affect Ingress.
+	// If you want to write an egress-only policy, you must explicitly specify policyTypes [ "Egress" ].
+	// Likewise, if you want to write a policy that specifies that no egress is allowed,
+	// you must specify a policyTypes value that include "Egress" (since such a policy would not include
+	// an Egress section and would otherwise default to just [ "Ingress" ]).
+	// This field is beta-level in 1.8
+	// +optional
+	PolicyTypes []k8snet.PolicyType `json:"policyTypes,omitempty" protobuf:"bytes,3,rep,name=policyTypes,casttype=PolicyType"`
+}
+
+// NetworkPolicyIngressRule describes a particular set of traffic that is allowed to the pods
+// matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and from.
+type NetworkPolicyIngressRule struct {
+	// List of ports which should be made accessible on the pods selected for this
+	// rule. Each item in this list is combined using a logical OR. If this field is
+	// empty or missing, this rule matches all ports (traffic not restricted by port).
+	// If this field is present and contains at least one item, then this rule allows
+	// traffic only if the traffic matches at least one port in the list.
+	// +optional
+	Ports []k8snet.NetworkPolicyPort `json:"ports,omitempty" protobuf:"bytes,1,rep,name=ports"`
+
+	// List of sources which should be able to access the pods selected for this rule.
+	// Items in this list are combined using a logical OR operation. If this field is
+	// empty or missing, this rule matches all sources (traffic not restricted by
+	// source). If this field is present and contains at least one item, this rule
+	// allows traffic only if the traffic matches at least one item in the from list.
+	// +optional
+	From []NetworkPolicyPeer `json:"from,omitempty" protobuf:"bytes,2,rep,name=from"`
+}
+
+// NetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods
+// matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and to.
+// This type is beta-level in 1.8
+type NetworkPolicyEgressRule struct {
+	// List of destination ports for outgoing traffic.
+	// Each item in this list is combined using a logical OR. If this field is
+	// empty or missing, this rule matches all ports (traffic not restricted by port).
+	// If this field is present and contains at least one item, then this rule allows
+	// traffic only if the traffic matches at least one port in the list.
+	// +optional
+	Ports []k8snet.NetworkPolicyPort `json:"ports,omitempty" protobuf:"bytes,1,rep,name=ports"`
+
+	// List of destinations for outgoing traffic of pods selected for this rule.
+	// Items in this list are combined using a logical OR operation. If this field is
+	// empty or missing, this rule matches all destinations (traffic not restricted by
+	// destination). If this field is present and contains at least one item, this rule
+	// allows traffic only if the traffic matches at least one item in the to list.
+	// +optional
+	To []NetworkPolicyPeer `json:"to,omitempty" protobuf:"bytes,2,rep,name=to"`
+}
+
+type NamespaceSelector struct {
+	Name string `json:"name" protobuf:"bytes,1,name=name"`
+}
+
+type ServiceSelector struct {
+	Name      string `json:"name" protobuf:"bytes,1,name=name"`
+	Namespace string `json:"namespace" protobuf:"bytes,2,name=namespace"`
+}
+
+// NetworkPolicyPeer describes a peer to allow traffic from. Only certain combinations of
+// fields are allowed
+type NetworkPolicyPeer struct {
+	// +optional
+	NamespaceSelector *NamespaceSelector `json:"namespace,omitempty" protobuf:"bytes,1,opt,name=namespace"`
+
+	// IPBlock defines policy on a particular IPBlock. If this field is set then
+	// neither of the other fields can be.
+	// +optional
+	IPBlock *k8snet.IPBlock `json:"ipBlock,omitempty" protobuf:"bytes,2,rep,name=ipBlock"`
+
+	ServiceSelector *ServiceSelector `json:"service,omitempty" protobuf:"bytes,3,opt,name=service"`
 }
 
 // +genclient

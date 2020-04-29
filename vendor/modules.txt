@@ -1,21 +1,8 @@
-# cloud.google.com/go v0.38.0 => cloud.google.com/go v0.38.0
-cloud.google.com/go/compute/metadata
 # code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6 => code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 code.cloudfoundry.org/bytefmt
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 => github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/Azure/go-autorest/autorest v0.9.0 => github.com/Azure/go-autorest/autorest v0.9.0
-github.com/Azure/go-autorest/autorest
-# github.com/Azure/go-autorest/autorest/adal v0.5.0 => github.com/Azure/go-autorest/autorest/adal v0.5.0
-github.com/Azure/go-autorest/autorest/adal
-github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/date v0.1.0 => github.com/Azure/go-autorest/autorest/date v0.1.0
-github.com/Azure/go-autorest/autorest/date
-# github.com/Azure/go-autorest/logger v0.1.0 => github.com/Azure/go-autorest/logger v0.1.0
-github.com/Azure/go-autorest/logger
-# github.com/Azure/go-autorest/tracing v0.5.0 => github.com/Azure/go-autorest/tracing v0.5.0
-github.com/Azure/go-autorest/tracing
 # github.com/BurntSushi/toml v0.3.1 => github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/Microsoft/go-winio v0.4.12 => github.com/Microsoft/go-winio v0.4.12
@@ -96,7 +83,6 @@ github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes
 github.com/coreos/etcd/etcdserver/etcdserverpb
 github.com/coreos/etcd/mvcc/mvccpb
 github.com/coreos/etcd/pkg/logutil
-github.com/coreos/etcd/pkg/srv
 github.com/coreos/etcd/pkg/systemd
 github.com/coreos/etcd/pkg/tlsutil
 github.com/coreos/etcd/pkg/transport
@@ -216,11 +202,6 @@ github.com/go-openapi/strfmt
 github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.19.2 => github.com/go-openapi/validate v0.19.2
 github.com/go-openapi/validate
-# github.com/go-playground/locales v0.12.1 => github.com/go-playground/locales v0.12.1
-github.com/go-playground/locales
-github.com/go-playground/locales/currency
-# github.com/go-playground/universal-translator v0.16.0 => github.com/go-playground/universal-translator v0.16.0
-github.com/go-playground/universal-translator
 # github.com/go-redis/redis v6.15.2+incompatible => github.com/go-redis/redis v6.15.2+incompatible
 github.com/go-redis/redis
 github.com/go-redis/redis/internal
@@ -292,14 +273,6 @@ github.com/google/uuid
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
-# github.com/gophercloud/gophercloud v0.3.0 => github.com/gophercloud/gophercloud v0.3.0
-github.com/gophercloud/gophercloud
-github.com/gophercloud/gophercloud/openstack
-github.com/gophercloud/gophercloud/openstack/identity/v2/tenants
-github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
-github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
-github.com/gophercloud/gophercloud/openstack/utils
-github.com/gophercloud/gophercloud/pagination
 # github.com/gorilla/mux v1.7.1 => github.com/gorilla/mux v1.7.1
 github.com/gorilla/mux
 # github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.0
@@ -347,8 +320,6 @@ github.com/jbenet/go-context/io
 github.com/jmespath/go-jmespath
 # github.com/json-iterator/go v1.1.9 => github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
-# github.com/kelseyhightower/envconfig v1.4.0 => github.com/kelseyhightower/envconfig v1.4.0
-github.com/kelseyhightower/envconfig
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
 # github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779 => github.com/kubesphere/kiali v0.15.1-0.20191210080139-edbbad1ef779
@@ -395,8 +366,6 @@ github.com/kubernetes-sigs/application/pkg/finalizer
 github.com/kubernetes-sigs/application/pkg/resource
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 github.com/kubesphere/sonargo/sonar
-# github.com/leodido/go-urn v1.1.0 => github.com/leodido/go-urn v1.1.0
-github.com/leodido/go-urn
 # github.com/magiconair/properties v1.8.0 => github.com/magiconair/properties v1.8.0
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.0 => github.com/mailru/easyjson v0.7.0
@@ -424,7 +393,6 @@ github.com/mxk/go-flowrate/flowrate
 # github.com/onsi/ginkgo v1.12.0 => github.com/onsi/ginkgo v1.8.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
-github.com/onsi/ginkgo/extensions/table
 github.com/onsi/ginkgo/internal/codelocation
 github.com/onsi/ginkgo/internal/containernode
 github.com/onsi/ginkgo/internal/failer
@@ -446,8 +414,6 @@ github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/gbytes
 github.com/onsi/gomega/gexec
-github.com/onsi/gomega/gstruct
-github.com/onsi/gomega/gstruct/errors
 github.com/onsi/gomega/internal/assertion
 github.com/onsi/gomega/internal/asyncassertion
 github.com/onsi/gomega/internal/oraclematcher
@@ -504,6 +470,8 @@ github.com/openshift/api/project/v1
 # github.com/opentracing/opentracing-go v1.1.0 => github.com/opentracing/opentracing-go v1.1.0
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/log
+# github.com/patrickmn/go-cache v2.1.0+incompatible => github.com/patrickmn/go-cache v2.1.0+incompatible
+github.com/patrickmn/go-cache
 # github.com/pborman/uuid v1.2.0 => github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
 # github.com/pelletier/go-buffruneio v0.2.0 => github.com/pelletier/go-buffruneio v0.2.0
@@ -514,41 +482,26 @@ github.com/pelletier/go-toml
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0 => github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/projectcalico/go-json v0.0.0-20161128004156-6219dc7339ba => github.com/projectcalico/go-json v0.0.0-20161128004156-6219dc7339ba
-github.com/projectcalico/go-json/json
-# github.com/projectcalico/go-yaml v0.0.0-20161201183616-955bc3e451ef => github.com/projectcalico/go-yaml v0.0.0-20161201183616-955bc3e451ef
-github.com/projectcalico/go-yaml
-# github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee => github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee
-github.com/projectcalico/go-yaml-wrapper
+# github.com/projectcalico/kube-controllers v3.8.8+incompatible => github.com/projectcalico/kube-controllers v3.8.8+incompatible
+github.com/projectcalico/kube-controllers/pkg/cache
+github.com/projectcalico/kube-controllers/pkg/converter
 # github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce => github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-github.com/projectcalico/libcalico-go/lib/apiconfig
 github.com/projectcalico/libcalico-go/lib/apis/v1
 github.com/projectcalico/libcalico-go/lib/apis/v1/unversioned
 github.com/projectcalico/libcalico-go/lib/apis/v3
-github.com/projectcalico/libcalico-go/lib/backend
-github.com/projectcalico/libcalico-go/lib/backend/api
 github.com/projectcalico/libcalico-go/lib/backend/encap
-github.com/projectcalico/libcalico-go/lib/backend/etcdv3
-github.com/projectcalico/libcalico-go/lib/backend/k8s
 github.com/projectcalico/libcalico-go/lib/backend/k8s/conversion
-github.com/projectcalico/libcalico-go/lib/backend/k8s/resources
 github.com/projectcalico/libcalico-go/lib/backend/model
-github.com/projectcalico/libcalico-go/lib/clientv3
 github.com/projectcalico/libcalico-go/lib/errors
 github.com/projectcalico/libcalico-go/lib/hash
-github.com/projectcalico/libcalico-go/lib/ipam
 github.com/projectcalico/libcalico-go/lib/names
 github.com/projectcalico/libcalico-go/lib/namespace
 github.com/projectcalico/libcalico-go/lib/net
 github.com/projectcalico/libcalico-go/lib/numorstring
-github.com/projectcalico/libcalico-go/lib/options
 github.com/projectcalico/libcalico-go/lib/scope
 github.com/projectcalico/libcalico-go/lib/selector
 github.com/projectcalico/libcalico-go/lib/selector/parser
 github.com/projectcalico/libcalico-go/lib/selector/tokenizer
-github.com/projectcalico/libcalico-go/lib/set
-github.com/projectcalico/libcalico-go/lib/validator/v3
-github.com/projectcalico/libcalico-go/lib/watch
 # github.com/prometheus/client_golang v1.0.0 => github.com/prometheus/client_golang v0.9.4
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1
@@ -579,8 +532,6 @@ github.com/prometheus/prometheus/util/strutil
 github.com/prometheus/prometheus/util/testutil
 # github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 github.com/rcrowley/go-metrics
-# github.com/satori/go.uuid v1.2.0 => github.com/satori/go.uuid v1.2.0
-github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.0.0 => github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/sirupsen/logrus v1.4.2 => github.com/sirupsen/logrus v1.4.2
@@ -681,10 +632,7 @@ golang.org/x/net/trace
 golang.org/x/net/websocket
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
-golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
-golang.org/x/oauth2/jws
-golang.org/x/oauth2/jwt
 # golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
@@ -731,14 +679,11 @@ golang.org/x/xerrors/internal
 # gomodules.xyz/jsonpatch/v2 v2.0.1 => gomodules.xyz/jsonpatch/v2 v2.0.1
 gomodules.xyz/jsonpatch/v2
 # google.golang.org/appengine v1.6.5 => google.golang.org/appengine v1.6.5
-google.golang.org/appengine
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
-google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
-google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
@@ -789,8 +734,6 @@ gopkg.in/alecthomas/kingpin.v2
 gopkg.in/asn1-ber.v1
 # gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
-# gopkg.in/go-playground/validator.v9 v9.29.1 => gopkg.in/go-playground/validator.v9 v9.29.1
-gopkg.in/go-playground/validator.v9
 # gopkg.in/inf.v0 v0.9.1 => gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0 => gopkg.in/natefinch/lumberjack.v2 v2.0.0
@@ -1283,17 +1226,11 @@ k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/pkg/version
-k8s.io/client-go/plugin/pkg/client/auth
-k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/exec
-k8s.io/client-go/plugin/pkg/client/auth/gcp
-k8s.io/client-go/plugin/pkg/client/auth/oidc
-k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
 k8s.io/client-go/restmapper
 k8s.io/client-go/testing
-k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/tools/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/tools/clientcmd
@@ -1315,7 +1252,6 @@ k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/exec
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
-k8s.io/client-go/util/jsonpath
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
@@ -1355,7 +1291,6 @@ k8s.io/gengo/parser
 k8s.io/gengo/types
 # k8s.io/klog v1.0.0 => k8s.io/klog v1.0.0
 k8s.io/klog
-k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a => k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 k8s.io/kube-openapi/cmd/openapi-gen/
 k8s.io/kube-openapi/cmd/openapi-gen/args

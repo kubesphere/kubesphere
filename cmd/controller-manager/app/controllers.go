@@ -25,6 +25,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
+	"kubesphere.io/kubesphere/pkg/controller/network/provider"
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
@@ -126,6 +128,17 @@ func AddControllers(
 		kubesphereInformer.Cluster().V1alpha1().Clusters(),
 		client.KubeSphere().ClusterV1alpha1().Clusters())
 
+	nsnpProvider, err := provider.NewNsNetworkPolicyProvider(client.Kubernetes(),
+		kubernetesInformer.Networking().V1().NetworkPolicies())
+	if err != nil {
+		return err
+	}
+	nsnpController := nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
+		client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
+		kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
+		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
+
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":   vsController,
 		"destinationrule-controller":  drController,
@@ -137,8 +150,9 @@ func AddControllers(
 		"devopsprojects-controller":   devopsProjectController,
 		"pipeline-controller":         devopsPipelineController,
 		"devopscredential-controller": devopsCredentialController,
-		"cluster-controller":          clusterController,
 		"user-controller":             userController,
+		"cluster-controller":          clusterController,
+		"nsnp-controller":             nsnpController,
 	}
 
 	for name, ctrl := range controllers {

@@ -117,6 +117,10 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		// then lets add the finalizer and update the object.
 		if !sliceutil.HasString(instance.ObjectMeta.Finalizers, finalizer) {
 			instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, finalizer)
+			if instance.Labels == nil {
+				instance.Labels = make(map[string]string)
+			}
+			instance.Labels[constants.NamespaceLabelKey] = instance.Name
 			if err := r.Update(context.Background(), instance); err != nil {
 				return reconcile.Result{}, err
 			}

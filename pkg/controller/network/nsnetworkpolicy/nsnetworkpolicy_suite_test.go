@@ -11,8 +11,7 @@ import (
 
 func TestNsnetworkpolicy(t *testing.T) {
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "false")
-	flag.Set("alsologtostderr", "false")
+	flag.Set("logtostderr", "true")
 	flag.Set("v", "4")
 	flag.Parse()
 	klog.SetOutput(GinkgoWriter)

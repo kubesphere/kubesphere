@@ -26,8 +26,6 @@ import (
 type Interface interface {
 	// NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.
 	NamespaceNetworkPolicies() NamespaceNetworkPolicyInformer
-	// WorkspaceNetworkPolicies returns a WorkspaceNetworkPolicyInformer.
-	WorkspaceNetworkPolicies() WorkspaceNetworkPolicyInformer
 }
 
 type version struct {
@@ -44,9 +42,4 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // NamespaceNetworkPolicies returns a NamespaceNetworkPolicyInformer.
 func (v *version) NamespaceNetworkPolicies() NamespaceNetworkPolicyInformer {
 	return &namespaceNetworkPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// WorkspaceNetworkPolicies returns a WorkspaceNetworkPolicyInformer.
-func (v *version) WorkspaceNetworkPolicies() WorkspaceNetworkPolicyInformer {
-	return &workspaceNetworkPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
