@@ -26,6 +26,7 @@ const (
 	ResourceKindWorkspace     = "Workspace"
 	ResourceSingularWorkspace = "workspace"
 	ResourcePluralWorkspace   = "workspaces"
+	WorkspaceLabel            = "kubesphere.io/workspace"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

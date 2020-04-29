@@ -59,6 +59,7 @@ func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error)
 	}
 
 	// Start with common attributes that apply to resource and non-resource requests
+	attribs.ResourceScope = requestInfo.ResourceScope
 	attribs.ResourceRequest = requestInfo.IsResourceRequest
 	attribs.Path = requestInfo.Path
 	attribs.Verb = requestInfo.Verb

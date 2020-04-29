@@ -5,25 +5,26 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
-	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 )
 
 type tenantHandler struct {
 	tenant tenant.Interface
 }
 
-func newTenantHandler(k8sClient k8s.Client, factory informers.InformerFactory) *tenantHandler {
+func newTenantHandler(factory informers.InformerFactory) *tenantHandler {
 
 	return &tenantHandler{
-		tenant: tenant.New(k8sClient, factory),
+		tenant: tenant.New(factory),
 	}
 }
 
 func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Response) {
 	user, ok := request.UserFrom(req.Request.Context())
+	queryParam := query.ParseQueryParameter(req)
 
 	if !ok {
 		err := errors.New("cannot obtain user info")
@@ -32,7 +33,7 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 		return
 	}
 
-	result, err := h.tenant.ListWorkspaces(user)
+	result, err := h.tenant.ListWorkspaces(user, queryParam)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
@@ -44,6 +45,7 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 
 func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Response) {
 	user, ok := request.UserFrom(req.Request.Context())
+	queryParam := query.ParseQueryParameter(req)
 
 	if !ok {
 		err := errors.New("cannot obtain user info")
@@ -54,7 +56,7 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 
 	workspace := req.PathParameter("workspace")
 
-	result, err := h.tenant.ListNamespaces(user, workspace)
+	result, err := h.tenant.ListNamespaces(user, workspace, queryParam)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)

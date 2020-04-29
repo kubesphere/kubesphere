@@ -7,7 +7,9 @@ const (
 	FieldName                = "name"
 	FieldUID                 = "uid"
 	FieldCreationTimeStamp   = "creationTimestamp"
+	FieldCreateTime          = "createTime"
 	FieldLastUpdateTimestamp = "lastUpdateTimestamp"
+	FieldUpdateTime          = "updateTime"
 	FieldLabel               = "label"
 	FieldAnnotation          = "annotation"
 	FieldNamespace           = "namespace"
@@ -18,6 +20,8 @@ const (
 
 var SortableFields = []Field{
 	FieldCreationTimeStamp,
+	FieldCreateTime,
+	FieldUpdateTime,
 	FieldLastUpdateTimestamp,
 	FieldName,
 }

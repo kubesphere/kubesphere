@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -59,19 +60,20 @@ const (
 
 // Config defines everything needed for apiserver to deal with external services
 type Config struct {
-	DevopsOptions         *jenkins.Options                   `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
-	SonarQubeOptions      *sonarqube.Options                 `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
-	KubernetesOptions     *k8s.KubernetesOptions             `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
-	ServiceMeshOptions    *servicemesh.Options               `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
-	NetworkOptions        *network.Options                   `json:"network,omitempty" yaml:"network,omitempty" mapstructure:"network"`
-	LdapOptions           *ldap.Options                      `json:"-" yaml:"ldap,omitempty" mapstructure:"ldap"`
-	RedisOptions          *cache.Options                     `json:"-" yaml:"redis,omitempty" mapstructure:"redis"`
-	S3Options             *s3.Options                        `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
-	OpenPitrixOptions     *openpitrix.Options                `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
-	MonitoringOptions     *prometheus.Options                `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
-	LoggingOptions        *elasticsearch.Options             `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
-	AuthenticationOptions *authoptions.AuthenticationOptions `json:"-" yaml:"authentication,omitempty" mapstructure:"authentication"`
-	MultiClusterOptions   *multicluster.Options              `json:"multicluster,omitempty" yaml:"multicluster,omitempty" mapstructure:"multicluster"`
+	DevopsOptions         *jenkins.Options                           `json:"devops,omitempty" yaml:"devops,omitempty" mapstructure:"devops"`
+	SonarQubeOptions      *sonarqube.Options                         `json:"sonarqube,omitempty" yaml:"sonarQube,omitempty" mapstructure:"sonarqube"`
+	KubernetesOptions     *k8s.KubernetesOptions                     `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty" mapstructure:"kubernetes"`
+	ServiceMeshOptions    *servicemesh.Options                       `json:"servicemesh,omitempty" yaml:"servicemesh,omitempty" mapstructure:"servicemesh"`
+	NetworkOptions        *network.Options                           `json:"network,omitempty" yaml:"network,omitempty" mapstructure:"network"`
+	LdapOptions           *ldap.Options                              `json:"-,omitempty" yaml:"ldap,omitempty" mapstructure:"ldap"`
+	RedisOptions          *cache.Options                             `json:"redis,omitempty" yaml:"redis,omitempty" mapstructure:"redis"`
+	S3Options             *s3.Options                                `json:"s3,omitempty" yaml:"s3,omitempty" mapstructure:"s3"`
+	OpenPitrixOptions     *openpitrix.Options                        `json:"openpitrix,omitempty" yaml:"openpitrix,omitempty" mapstructure:"openpitrix"`
+	MonitoringOptions     *prometheus.Options                        `json:"monitoring,omitempty" yaml:"monitoring,omitempty" mapstructure:"monitoring"`
+	LoggingOptions        *elasticsearch.Options                     `json:"logging,omitempty" yaml:"logging,omitempty" mapstructure:"logging"`
+	AuthenticationOptions *authoptions.AuthenticationOptions         `json:"authentication,omitempty" yaml:"authentication,omitempty" mapstructure:"authentication"`
+	AuthorizationOptions  *authorizationoptions.AuthorizationOptions `json:"authorization,omitempty" yaml:"authorization,omitempty" mapstructure:"authorization"`
+	MultiClusterOptions   *multicluster.Options                      `json:"multicluster,omitempty" yaml:"multicluster,omitempty" mapstructure:"multicluster"`
 	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
 	// we can add these options to kubesphere command lines
 	AlertingOptions     *alerting.Options     `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
@@ -95,6 +97,8 @@ func New() *Config {
 		NotificationOptions:   notification.NewNotificationOptions(),
 		LoggingOptions:        elasticsearch.NewElasticSearchOptions(),
 		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
+		AuthorizationOptions:  authorizationoptions.NewAuthorizationOptions(),
+		MultiClusterOptions:   multicluster.NewOptions(),
 	}
 }
 
@@ -209,5 +213,4 @@ func (conf *Config) stripEmptyOptions() {
 	if conf.MultiClusterOptions != nil && !conf.MultiClusterOptions.Enable {
 		conf.MultiClusterOptions = nil
 	}
-
 }

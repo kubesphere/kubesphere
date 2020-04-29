@@ -11,13 +11,18 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
@@ -27,7 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
+	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
@@ -94,7 +99,7 @@ type APIServer struct {
 	// monitoring client set
 	MonitoringClient monitoring.Interface
 
-	// openpitrix client
+	//
 	OpenpitrixClient openpitrix.Client
 
 	//
@@ -143,11 +148,10 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.KubernetesClient, s.InformerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(),
-		s.InformerFactory.KubeSphereSharedInformerFactory()),
-		am.NewAMOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory()),
+	urlruntime.Must(iamapi.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
+		am.NewAMOperator(s.InformerFactory),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
@@ -183,6 +187,13 @@ func (s *APIServer) buildHandlerChain() {
 	requestInfoResolver := &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+		GlobalResources: []schema.GroupResource{
+			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralUser},
+			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralGlobalRole},
+			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralGlobalRoleBinding},
+			{Group: tenantv1alpha1.SchemeGroupVersion.Group, Resource: tenantv1alpha1.ResourcePluralWorkspace},
+			{Group: clusterv1alpha1.SchemeGroupVersion.Group, Resource: clusterv1alpha1.ResourcesPluralCluster},
+		},
 	}
 
 	handler := s.Server.Handler
@@ -193,16 +204,26 @@ func (s *APIServer) buildHandlerChain() {
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
-	excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
-	pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
+	var authorizers authorizer.Authorizer
 
-	// union authorizers are ordered, don't change the order here
-	authorizers := unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory())))
+	switch s.Config.AuthorizationOptions.Mode {
+	case authorizationoptions.AlwaysAllow:
+		authorizers = authorizerfactory.NewAlwaysAllowAuthorizer()
+	case authorizationoptions.AlwaysDeny:
+		authorizers = authorizerfactory.NewAlwaysDenyAuthorizer()
+	default:
+		fallthrough
+	case authorizationoptions.RBAC:
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
+		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
+		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.InformerFactory)), authorizerfactory.NewRBACAuthorizer(am.NewAMOperator(s.InformerFactory)))
+	}
+
 	handler = filters.WithAuthorization(handler, authorizers)
 
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory()))),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory))),
 		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
@@ -283,9 +304,10 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
-		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "roles"},
-		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "rolebindings"},
-		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "policyrules"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalroles"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 	}
 

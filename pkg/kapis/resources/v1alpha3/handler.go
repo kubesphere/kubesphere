@@ -9,20 +9,20 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
-	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"strings"
 )
 
 type Handler struct {
-	resourceGetterV1alpha3  *resourcev1alpha3.ResourceGetter
+	resourceGetterV1alpha3  *resource.ResourceGetter
 	resourcesGetterV1alpha2 *resourcev1alpha2.ResourceGetter
 	componentsGetter        components.ComponentsGetter
 }
 
 func New(factory informers.InformerFactory) *Handler {
 	return &Handler{
-		resourceGetterV1alpha3:  resourcev1alpha3.NewResourceGetter(factory),
+		resourceGetterV1alpha3:  resource.NewResourceGetter(factory),
 		resourcesGetterV1alpha2: resourcev1alpha2.NewResourceGetter(factory),
 		componentsGetter:        components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
 	}
@@ -41,7 +41,7 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		return
 	}
 
-	if err != resourcev1alpha3.ErrResourceNotSupported {
+	if err != resource.ErrResourceNotSupported {
 		klog.Error(err)
 		api.HandleInternalError(response, nil, err)
 		return
@@ -63,20 +63,20 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 	orderBy := string(q.SortBy)
 	limit, offset := q.Pagination.Limit, q.Pagination.Offset
 	reverse := !q.Ascending
-	conditions := &params.Conditions{}
-	for _, filter := range q.Filters {
-		switch filter.Field {
+	conditions := &params.Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
+	for field, value := range q.Filters {
+		switch field {
 		case query.FieldName:
-			conditions.Match[v1alpha2.Name] = string(filter.Value)
+			conditions.Match[v1alpha2.Name] = string(value)
 			break
 		case query.FieldCreationTimeStamp:
-			conditions.Match[v1alpha2.CreateTime] = string(filter.Value)
+			conditions.Match[v1alpha2.CreateTime] = string(value)
 			break
 		case query.FieldLastUpdateTimestamp:
-			conditions.Match[v1alpha2.UpdateTime] = string(filter.Value)
+			conditions.Match[v1alpha2.UpdateTime] = string(value)
 			break
 		case query.FieldLabel:
-			values := strings.SplitN(string(filter.Value), ":", 2)
+			values := strings.SplitN(string(value), ":", 2)
 			if len(values) == 2 {
 				conditions.Match[values[0]] = values[1]
 			} else {
@@ -84,7 +84,7 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 			}
 			break
 		case query.FieldAnnotation:
-			values := strings.SplitN(string(filter.Value), ":", 2)
+			values := strings.SplitN(string(value), ":", 2)
 			if len(values) == 2 {
 				conditions.Match[v1alpha2.Annotation] = values[1]
 			} else {
@@ -92,13 +92,15 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 			}
 			break
 		case query.FieldStatus:
-			conditions.Match[v1alpha2.Status] = string(filter.Value)
+			conditions.Match[v1alpha2.Status] = string(value)
 			break
 		case query.FieldOwnerReference:
-			conditions.Match[v1alpha2.Owner] = string(filter.Value)
+			conditions.Match[v1alpha2.Owner] = string(value)
+			break
+		default:
+			conditions.Match[string(field)] = string(value)
 			break
 		}
-
 	}
 
 	result, err := h.resourcesGetterV1alpha2.ListResources(namespace, resourceType, conditions, orderBy, reverse, limit, offset)

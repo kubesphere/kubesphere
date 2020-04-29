@@ -664,7 +664,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20191004110552-13f9640d40b9 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20190923162816-aa69164e4478 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -1368,8 +1368,6 @@ k8s.io/kube-openapi/pkg/schemaconv
 k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
-# k8s.io/kubectl v0.17.3 => k8s.io/kubectl v0.17.3
-k8s.io/kubectl/pkg/util/openapi
 # k8s.io/utils v0.0.0-20191114184206-e782cd3c129f => k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 k8s.io/utils/buffer
 k8s.io/utils/integer
@@ -1444,7 +1442,6 @@ sigs.k8s.io/controller-tools/pkg/webhook
 # sigs.k8s.io/kubefed v0.2.0-alpha.1 => sigs.k8s.io/kubefed v0.2.0-alpha.1
 sigs.k8s.io/kubefed/pkg/apis
 sigs.k8s.io/kubefed/pkg/apis/core/common
-sigs.k8s.io/kubefed/pkg/apis/core/typeconfig
 sigs.k8s.io/kubefed/pkg/apis/core/v1alpha1
 sigs.k8s.io/kubefed/pkg/apis/core/v1beta1
 sigs.k8s.io/kubefed/pkg/apis/multiclusterdns/v1alpha1
@@ -1452,13 +1449,8 @@ sigs.k8s.io/kubefed/pkg/apis/scheduling/v1alpha1
 sigs.k8s.io/kubefed/pkg/client/generic
 sigs.k8s.io/kubefed/pkg/client/generic/scheme
 sigs.k8s.io/kubefed/pkg/controller/util
-sigs.k8s.io/kubefed/pkg/kubefedctl
-sigs.k8s.io/kubefed/pkg/kubefedctl/enable
-sigs.k8s.io/kubefed/pkg/kubefedctl/federate
 sigs.k8s.io/kubefed/pkg/kubefedctl/options
-sigs.k8s.io/kubefed/pkg/kubefedctl/orphaning
 sigs.k8s.io/kubefed/pkg/kubefedctl/util
-sigs.k8s.io/kubefed/pkg/version
 # sigs.k8s.io/structured-merge-diff v0.0.0-20190817042607-6149e4549fca => sigs.k8s.io/structured-merge-diff v0.0.0-20190817042607-6149e4549fca
 sigs.k8s.io/structured-merge-diff/fieldpath
 sigs.k8s.io/structured-merge-diff/merge

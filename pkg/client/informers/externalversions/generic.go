@@ -79,14 +79,16 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devops().V1alpha3().Pipelines().Informer()}, nil
 
 		// Group=iam.kubesphere.io, Version=v1alpha2
-	case v1alpha2.SchemeGroupVersion.WithResource("policyrules"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().PolicyRules().Informer()}, nil
-	case v1alpha2.SchemeGroupVersion.WithResource("roles"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Roles().Informer()}, nil
-	case v1alpha2.SchemeGroupVersion.WithResource("rolebindings"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().RoleBindings().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("globalroles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoles().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("globalrolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoleBindings().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("users"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().Users().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("workspaceroles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().WorkspaceRoles().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("workspacerolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().WorkspaceRoleBindings().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):

@@ -19,7 +19,6 @@ package configmap
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -40,7 +39,7 @@ func (d *configmapsGetter) Get(namespace, name string) (runtime.Object, error) {
 }
 
 func (d *configmapsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := d.informer.Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(labels.Everything())
+	all, err := d.informer.Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}

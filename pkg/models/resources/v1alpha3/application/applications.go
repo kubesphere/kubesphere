@@ -20,11 +20,11 @@ package application
 import (
 	appv1beta1 "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
 	"github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"time"
 )
 
 type applicationsGetter struct {
@@ -40,7 +40,7 @@ func (d *applicationsGetter) Get(namespace, name string) (runtime.Object, error)
 }
 
 func (d *applicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := d.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(labels.Everything())
+	all, err := d.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +64,14 @@ func (d *applicationsGetter) compare(left runtime.Object, right runtime.Object, 
 	if !ok {
 		return false
 	}
-
-	return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+	switch field {
+	case query.FieldUpdateTime:
+		fallthrough
+	case query.FieldLastUpdateTimestamp:
+		return lastUpdateTime(leftApplication).After(lastUpdateTime(rightApplication))
+	default:
+		return v1alpha3.DefaultObjectMetaCompare(leftApplication.ObjectMeta, rightApplication.ObjectMeta, field)
+	}
 }
 
 func (d *applicationsGetter) filter(object runtime.Object, filter query.Filter) bool {
@@ -75,4 +81,14 @@ func (d *applicationsGetter) filter(object runtime.Object, filter query.Filter) 
 	}
 
 	return v1alpha3.DefaultObjectMetaFilter(application.ObjectMeta, filter)
+}
+
+func lastUpdateTime(application *appv1beta1.Application) time.Time {
+	lut := application.CreationTimestamp.Time
+	for _, condition := range application.Status.Conditions {
+		if condition.LastUpdateTime.After(lut) {
+			lut = condition.LastUpdateTime.Time
+		}
+	}
+	return lut
 }

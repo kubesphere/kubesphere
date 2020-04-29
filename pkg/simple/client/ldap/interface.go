@@ -1,7 +1,9 @@
 package ldap
 
 import (
+	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
 // Interface defines CRUD behaviors of manipulating users
@@ -20,4 +22,6 @@ type Interface interface {
 
 	// Authenticate checks if (name, password) is valid, return ErrInvalidCredentials if not
 	Authenticate(name string, password string) error
+
+	List(query *query.Query) (*api.ListResult, error)
 }

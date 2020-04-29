@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
@@ -99,6 +100,7 @@ func newTestConfig() (*Config, error) {
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
 		},
+		AuthorizationOptions: authorizationoptions.NewAuthorizationOptions(),
 		AuthenticationOptions: &authoptions.AuthenticationOptions{
 			AuthenticateRateLimiterMaxTries: 5,
 			AuthenticateRateLimiterDuration: 30 * time.Minute,

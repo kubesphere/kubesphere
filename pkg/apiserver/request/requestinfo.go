@@ -6,9 +6,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"net/http"
 	"strings"
 
@@ -46,11 +48,15 @@ type RequestInfo struct {
 
 	// Cluster of requested resource, this is empty in single-cluster environment
 	Cluster string
+
+	// Scope of requested resource.
+	ResourceScope string
 }
 
 type RequestInfoFactory struct {
 	APIPrefixes          sets.String
 	GrouplessAPIPrefixes sets.String
+	GlobalResources      []schema.GroupResource
 }
 
 // NewRequestInfo returns the information from the http request.  If error is not nil, RequestInfo holds the information as best it is known before the failure
@@ -188,6 +194,8 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	// parsing successful, so we now know the proper value for .Parts
 	requestInfo.Parts = currentParts
 
+	requestInfo.ResourceScope = r.resolveResourceScope(requestInfo)
+
 	// parts look like: resource/resourceName/subresource/other/stuff/we/don't/interpret
 	switch {
 	case len(requestInfo.Parts) >= 3 && !specialVerbsNoSubresources.Has(requestInfo.Verb):
@@ -263,4 +271,22 @@ func splitPath(path string) []string {
 		return []string{}
 	}
 	return strings.Split(path, "/")
+}
+
+func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
+	for _, globalResource := range r.GlobalResources {
+		if globalResource.Group == request.APIGroup &&
+			globalResource.Resource == request.Resource {
+			return iamv1alpha2.GlobalScope
+		}
+	}
+	if request.Namespace != "" {
+		return iamv1alpha2.NamespaceScope
+	}
+
+	if request.Workspace != "" {
+		return iamv1alpha2.WorkspaceScope
+	}
+
+	return iamv1alpha2.ClusterScope
 }

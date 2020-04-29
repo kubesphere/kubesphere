@@ -22,13 +22,13 @@ type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
 
-func DefaultList(objects []runtime.Object, query *query.Query, compareFunc CompareFunc, filterFunc FilterFunc) *api.ListResult {
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc) *api.ListResult {
 	// selected matched ones
 	var filtered []runtime.Object
 	for _, object := range objects {
 		selected := true
-		for _, filter := range query.Filters {
-			if !filterFunc(object, filter) {
+		for field, value := range q.Filters {
+			if !filterFunc(object, query.Filter{Field: field, Value: value}) {
 				selected = false
 				break
 			}
@@ -41,14 +41,14 @@ func DefaultList(objects []runtime.Object, query *query.Query, compareFunc Compa
 
 	// sort by sortBy field
 	sort.Slice(filtered, func(i, j int) bool {
-		if !query.Ascending {
-			return compareFunc(filtered[i], filtered[j], query.SortBy)
+		if !q.Ascending {
+			return compareFunc(filtered[i], filtered[j], q.SortBy)
 		}
-		return !compareFunc(filtered[i], filtered[j], query.SortBy)
+		return !compareFunc(filtered[i], filtered[j], q.SortBy)
 	})
 
 	total := len(filtered)
-	start, end := query.Pagination.GetValidPagination(total)
+	start, end := q.Pagination.GetValidPagination(total)
 
 	return &api.ListResult{
 		TotalItems: len(filtered),
@@ -63,6 +63,8 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 	case query.FieldName:
 		return strings.Compare(left.Name, right.Name) > 0
 	//	?sortBy=creationTimestamp
+	case query.FieldCreateTime:
+		fallthrough
 	case query.FieldCreationTimeStamp:
 		// compare by name if creation timestamp is equal
 		if left.CreationTimestamp.Equal(&right.CreationTimestamp) {
@@ -104,29 +106,43 @@ func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 		return false
 		// /namespaces?page=1&limit=10&annotation=openpitrix_runtime
 	case query.FieldAnnotation:
-		return containsAnyValue(item.Annotations, string(filter.Value))
+		return labelMatch(item.Annotations, string(filter.Value))
 		// /namespaces?page=1&limit=10&label=kubesphere.io/workspace:system-workspace
 	case query.FieldLabel:
-		return containsAnyValue(item.Labels, string(filter.Value))
+		return labelMatch(item.Labels, string(filter.Value))
 	default:
 		return false
 	}
 }
 
-// Filter format <key:><value>,if the key is defined, the key must match exactly, value match according to strings.Contains.
-func containsAnyValue(keyValues map[string]string, filter string) bool {
-	fields := strings.SplitN(filter, ":", 2)
-	var keyFilter, valueFilter string
+// Filter format (key!?=)?value,if the key is defined, the key must match exactly, value match according to strings.Contains.
+func labelMatch(labels map[string]string, filter string) bool {
+	fields := strings.SplitN(filter, "=", 2)
+	var key, value string
+	var opposite bool
 	if len(fields) == 2 {
-		keyFilter = fields[0]
-		valueFilter = fields[1]
-	} else {
-		valueFilter = fields[0]
-	}
-	for key, value := range keyValues {
-		if (key == keyFilter || keyFilter == "") && strings.Contains(value, valueFilter) {
-			return true
+		key = fields[0]
+		if strings.HasSuffix(key, "!") {
+			key = strings.TrimSuffix(key, "!")
+			opposite = true
 		}
+		value = fields[1]
+	} else {
+		value = fields[0]
+	}
+	for k, v := range labels {
+		if opposite {
+			if (key == "" || k == key) && !strings.Contains(v, value) {
+				return true
+			}
+		} else {
+			if (key == "" || k == key) && strings.Contains(v, value) {
+				return true
+			}
+		}
+	}
+	if opposite && labels[key] == "" {
+		return true
 	}
 	return false
 }

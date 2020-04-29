@@ -22,8 +22,13 @@ import (
 	"github.com/go-ldap/ldap"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/server/errors"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -109,6 +114,7 @@ func (l *ldapInterfaceImpl) createSearchBase() error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	createIfNotExistsFunc := func(request *ldap.AddRequest) error {
 		searchRequest := &ldap.SearchRequest{
@@ -165,10 +171,10 @@ func (l *ldapInterfaceImpl) newConn() (ldap.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer conn.Close()
 
 	err = conn.Bind(l.managerDN, l.managerPassword)
 	if err != nil {
-		conn.Close()
 		return nil, err
 	}
 	return conn, nil
@@ -357,6 +363,7 @@ func (l *ldapInterfaceImpl) Authenticate(username, password string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	dn := l.dnForUsername(username)
 	err = conn.Bind(dn, password)
@@ -364,4 +371,107 @@ func (l *ldapInterfaceImpl) Authenticate(username, password string) error {
 		return ErrInvalidCredentials
 	}
 	return err
+}
+
+func (l *ldapInterfaceImpl) List(query *query.Query) (*api.ListResult, error) {
+	conn, err := l.newConn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	pageControl := ldap.NewControlPaging(1000)
+
+	users := make([]iamv1alpha2.User, 0)
+
+	filter := "(&(objectClass=inetOrgPerson))"
+
+	if keyword := query.Filters["keyword"]; keyword != "" {
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=*%s*)(mail=*%s*)(description=*%s*)))", keyword, keyword, keyword)
+	}
+
+	if username := query.Filters["username"]; username != "" {
+		uidFilter := ""
+		for _, username := range strings.Split(string(username), "|") {
+			uidFilter += fmt.Sprintf("(uid=%s)", username)
+		}
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", uidFilter)
+	}
+
+	if email := query.Filters["email"]; email != "" {
+		emailFilter := ""
+		for _, username := range strings.Split(string(email), "|") {
+			emailFilter += fmt.Sprintf("(mail=%s)", username)
+		}
+		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", emailFilter)
+	}
+
+	for {
+		userSearchRequest := ldap.NewSearchRequest(
+			l.userSearchBase,
+			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+			filter,
+			[]string{"uid", "mail", "description", "preferredLanguage", "createTimestamp"},
+			[]ldap.Control{pageControl},
+		)
+
+		response, err := conn.Search(userSearchRequest)
+
+		if err != nil {
+			klog.Errorln("search user", err)
+			return nil, err
+		}
+
+		for _, entry := range response.Entries {
+
+			uid := entry.GetAttributeValue("uid")
+			email := entry.GetAttributeValue("mail")
+			description := entry.GetAttributeValue("description")
+			lang := entry.GetAttributeValue("preferredLanguage")
+			createTimestamp, _ := time.Parse("20060102150405Z", entry.GetAttributeValue("createTimestamp"))
+
+			user := iamv1alpha2.User{ObjectMeta: metav1.ObjectMeta{Name: uid, CreationTimestamp: metav1.Time{Time: createTimestamp}}, Spec: iamv1alpha2.UserSpec{
+				Email:       email,
+				Lang:        lang,
+				Description: description,
+			}}
+
+			users = append(users, user)
+		}
+
+		updatedControl := ldap.FindControl(response.Controls, ldap.ControlTypePaging)
+		if ctrl, ok := updatedControl.(*ldap.ControlPaging); ctrl != nil && ok && len(ctrl.Cookie) != 0 {
+			pageControl.SetCookie(ctrl.Cookie)
+			continue
+		}
+
+		break
+	}
+
+	sort.Slice(users, func(i, j int) bool {
+		if !query.Ascending {
+			i, j = j, i
+		}
+		switch query.SortBy {
+		case "username":
+			return strings.Compare(users[i].Name, users[j].Name) <= 0
+		case "createTime":
+			fallthrough
+		default:
+			return users[i].CreationTimestamp.Before(&users[j].CreationTimestamp)
+		}
+	})
+
+	items := make([]interface{}, 0)
+
+	for i, user := range users {
+		if i >= query.Pagination.Offset && len(items) < query.Pagination.Limit {
+			items = append(items, user)
+		}
+	}
+
+	return &api.ListResult{
+		Items:      items,
+		TotalItems: len(users),
+	}, nil
 }

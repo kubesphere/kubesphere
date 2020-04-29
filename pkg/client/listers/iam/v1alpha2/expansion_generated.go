@@ -18,18 +18,22 @@ limitations under the License.
 
 package v1alpha2
 
-// PolicyRuleListerExpansion allows custom methods to be added to
-// PolicyRuleLister.
-type PolicyRuleListerExpansion interface{}
+// GlobalRoleListerExpansion allows custom methods to be added to
+// GlobalRoleLister.
+type GlobalRoleListerExpansion interface{}
 
-// RoleListerExpansion allows custom methods to be added to
-// RoleLister.
-type RoleListerExpansion interface{}
-
-// RoleBindingListerExpansion allows custom methods to be added to
-// RoleBindingLister.
-type RoleBindingListerExpansion interface{}
+// GlobalRoleBindingListerExpansion allows custom methods to be added to
+// GlobalRoleBindingLister.
+type GlobalRoleBindingListerExpansion interface{}
 
 // UserListerExpansion allows custom methods to be added to
 // UserLister.
 type UserListerExpansion interface{}
+
+// WorkspaceRoleListerExpansion allows custom methods to be added to
+// WorkspaceRoleLister.
+type WorkspaceRoleListerExpansion interface{}
+
+// WorkspaceRoleBindingListerExpansion allows custom methods to be added to
+// WorkspaceRoleBindingLister.
+type WorkspaceRoleBindingListerExpansion interface{}

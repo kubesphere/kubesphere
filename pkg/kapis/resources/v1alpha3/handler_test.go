@@ -12,7 +12,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
-	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"testing"
 )
 
@@ -92,7 +92,7 @@ func listResources(namespace, resourceType string, query *query.Query, h *Handle
 		return result, nil
 	}
 
-	if err != resourcev1alpha3.ErrResourceNotSupported {
+	if err != resource.ErrResourceNotSupported {
 		return nil, err
 	}
 
