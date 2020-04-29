@@ -1,0 +1,168 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: clusters.cluster.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.joinFederation
+    name: Federated
+    type: boolean
+  - JSONPath: .spec.provider
+    name: Provider
+    type: string
+  - JSONPath: .spec.enable
+    name: Active
+    type: boolean
+  - JSONPath: .status.kubernetesVersion
+    name: Version
+    type: string
+  group: cluster.kubesphere.io
+  names:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: Cluster is the schema for the clusters API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            connection:
+              description: Connection holds info to connect to the member cluster
+              properties:
+                kubeconfig:
+                  description: KubeConfig content used to connect to cluster api server
+                    Should provide this field explicitly if connection type is direct.
+                    Will be populated by ks-proxy if connection type is proxy.
+                  format: byte
+                  type: string
+                kubernetesAPIEndpoint:
+                  description: Kubernetes API Server endpoint. This can be a hostname,
+                    hostname:port, IP or IP:port. Should provide this field explicitly
+                    if connection type is direct. Will be populated by ks-apiserver
+                    if connection type is proxy.
+                  type: string
+                kubernetesAPIServerPort:
+                  description: KubeAPIServerPort is the port which listens for forwarding
+                    kube-apiserver traffic Only applicable when connection type is
+                    proxy.
+                  type: integer
+                kubesphereAPIEndpoint:
+                  description: KubeSphere API Server endpoint. This can be a hostname,
+                    hostname:port, IP or IP:port. Should provide this field explicitly
+                    if connection type is direct. Will be populated by ks-apiserver
+                    if connection type is proxy.
+                  type: string
+                kubesphereAPIServerPort:
+                  description: KubeSphereAPIServerPort is the port which listens for
+                    forwarding kubesphere apigateway traffic Only applicable when
+                    connection type is proxy.
+                  type: integer
+                token:
+                  description: Token used by agents of member cluster to connect to
+                    host cluster proxy. This field is populated by apiserver only
+                    if connection type is proxy.
+                  type: string
+                type:
+                  description: type defines how host cluster will connect to host
+                    cluster ConnectionTypeDirect means direct connection, this requires   kubeconfig
+                    and kubesphere apiserver endpoint provided ConnectionTypeProxy
+                    means using kubesphere proxy, no kubeconfig   or kubesphere apiserver
+                    endpoint required
+                  type: string
+              type: object
+            enable:
+              description: Desired state of the cluster
+              type: boolean
+            joinFederation:
+              description: Join cluster as a kubefed cluster
+              type: boolean
+            provider:
+              description: Provider of the cluster, this field is just for description
+              type: string
+          type: object
+        status:
+          properties:
+            conditions:
+              description: Represents the latest available observations of a cluster's
+                current state.
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    description: The last time this condition was updated.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      the transition.
+                    type: string
+                  reason:
+                    description: The reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of the condition
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            kubernetesVersion:
+              description: GitVersion of the kubernetes cluster, this field is populated
+                by cluster controller
+              type: string
+            nodeCount:
+              description: Count of the kubernetes cluster nodes This field may not
+                reflect the instant status of the cluster.
+              type: integer
+            region:
+              description: Region is the name of the region in which all of the nodes
+                in the cluster exist.  e.g. 'us-east1'.
+              type: string
+            zones:
+              description: Zones are the names of availability zones in which the
+                nodes of the cluster exist, e.g. 'us-east1-a'.
+              items:
+                type: string
+              type: array
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

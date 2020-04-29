@@ -18,6 +18,7 @@
 package errors
 
 import (
+	"fmt"
 	"github.com/emicklei/go-restful"
 	"net/http"
 )
@@ -28,22 +29,22 @@ type Error struct {
 
 var None = Error{Message: "success"}
 
-func (e *Error) Error() string {
+func (e Error) Error() string {
 	return e.Message
 }
 
-func Wrap(err error) Error {
+func Wrap(err error) error {
 	return Error{Message: err.Error()}
 }
 
-func New(message string) Error {
-	return Error{Message: message}
+func New(format string, args ...interface{}) error {
+	return Error{Message: fmt.Sprintf(format, args...)}
 }
 
-func ParseSvcErr(err error, resp *restful.Response) {
+func GetServiceErrorCode(err error) int {
 	if svcErr, ok := err.(restful.ServiceError); ok {
-		resp.WriteServiceError(svcErr.Code, svcErr)
+		return svcErr.Code
 	} else {
-		resp.WriteHeaderAndEntity(http.StatusInternalServerError, Wrap(err))
+		return http.StatusInternalServerError
 	}
 }

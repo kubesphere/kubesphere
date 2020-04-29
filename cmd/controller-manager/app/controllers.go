@@ -18,137 +18,146 @@
 package app
 
 import (
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
+	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
+	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
+	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
-
-	//"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
+	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"time"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-
-	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
-	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
-	s2iclientset "github.com/kubesphere/s2ioperator/pkg/client/clientset/versioned"
-	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
-	istioclientset "istio.io/client-go/pkg/clientset/versioned"
-	istioinformers "istio.io/client-go/pkg/informers/externalversions"
-	kubesphereclientset "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	kubesphereinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 )
 
-const defaultResync = 600 * time.Second
+func AddControllers(
+	mgr manager.Manager,
+	client k8s.Client,
+	informerFactory informers.InformerFactory,
+	devopsClient devops.Interface,
+	s3Client s3.Interface,
+	stopCh <-chan struct{}) error {
 
-var log = logf.Log.WithName("controller-manager")
+	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
+	istioInformer := informerFactory.IstioSharedInformerFactory()
+	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
+	applicationInformer := informerFactory.ApplicationSharedInformerFactory()
 
-func AddControllers(mgr manager.Manager, cfg *rest.Config, stopCh <-chan struct{}) error {
-
-	kubeClient, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "building kubernetes client failed")
-	}
-
-	istioclient, err := istioclientset.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "create istio client failed")
-		return err
-	}
-
-	applicationClient, err := applicationclientset.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "create application client failed")
-		return err
-	}
-	s2iclient, err := s2iclientset.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "create s2i client failed")
-		return err
-	}
-	kubesphereclient, err := kubesphereclientset.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "create kubesphere client failed")
-		return err
-	}
-
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, defaultResync)
-	istioInformer := istioinformers.NewSharedInformerFactory(istioclient, defaultResync)
-	applicationInformer := applicationinformers.NewSharedInformerFactory(applicationClient, defaultResync)
-	s2iInformer := s2iinformers.NewSharedInformerFactory(s2iclient, defaultResync)
-
-	kubesphereInformer := kubesphereinformers.NewSharedInformerFactory(kubesphereclient, defaultResync)
-
-	vsController := virtualservice.NewVirtualServiceController(informerFactory.Core().V1().Services(),
+	vsController := virtualservice.NewVirtualServiceController(kubernetesInformer.Core().V1().Services(),
 		istioInformer.Networking().V1alpha3().VirtualServices(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
 		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
-		kubeClient,
-		istioclient,
-		kubesphereclient)
+		client.Kubernetes(),
+		client.Istio(),
+		client.KubeSphere())
 
-	drController := destinationrule.NewDestinationRuleController(informerFactory.Apps().V1().Deployments(),
+	drController := destinationrule.NewDestinationRuleController(kubernetesInformer.Apps().V1().Deployments(),
 		istioInformer.Networking().V1alpha3().DestinationRules(),
-		informerFactory.Core().V1().Services(),
+		kubernetesInformer.Core().V1().Services(),
 		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
-		kubeClient,
-		istioclient,
-		kubesphereclient)
+		client.Kubernetes(),
+		client.Istio(),
+		client.KubeSphere())
 
-	apController := application.NewApplicationController(informerFactory.Core().V1().Services(),
-		informerFactory.Apps().V1().Deployments(),
-		informerFactory.Apps().V1().StatefulSets(),
+	apController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
+		kubernetesInformer.Apps().V1().Deployments(),
+		kubernetesInformer.Apps().V1().StatefulSets(),
 		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
 		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
 		applicationInformer.App().V1beta1().Applications(),
-		kubeClient,
-		applicationClient)
+		client.Kubernetes(),
+		client.Application())
 
-	jobController := job.NewJobController(informerFactory.Batch().V1().Jobs(), kubeClient)
+	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
-	s2iBinaryController := s2ibinary.NewController(kubesphereclient,
-		kubeClient,
-		kubesphereInformer.Devops().V1alpha1().S2iBinaries())
-
-	s2iRunController := s2irun.NewController(kubesphereclient, s2iclient, kubeClient,
+	s2iBinaryController := s2ibinary.NewController(client.Kubernetes(),
+		client.KubeSphere(),
 		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-		s2iInformer.Devops().V1alpha1().S2iRuns())
+		s3Client,
+	)
+
+	s2iRunController := s2irun.NewS2iRunController(client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+		kubesphereInformer.Devops().V1alpha1().S2iRuns())
+
+	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
+		client.KubeSphere(), devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
+	)
+
+	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
+		client.KubeSphere(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
+
+	devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
+		devopsClient,
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
-		kubeClient,
-		informerFactory.Core().V1().PersistentVolumeClaims(),
-		informerFactory.Storage().V1().StorageClasses(),
-		informerFactory.Core().V1().Pods(),
-		informerFactory.Apps().V1().Deployments(),
-		informerFactory.Apps().V1().ReplicaSets(),
-		informerFactory.Apps().V1().StatefulSets())
+		client.Kubernetes(),
+		kubernetesInformer.Core().V1().PersistentVolumeClaims(),
+		kubernetesInformer.Storage().V1().StorageClasses(),
+		kubernetesInformer.Core().V1().Pods(),
+		kubernetesInformer.Apps().V1().Deployments(),
+		kubernetesInformer.Apps().V1().ReplicaSets(),
+		kubernetesInformer.Apps().V1().StatefulSets())
 
-	kubesphereInformer.Start(stopCh)
-	istioInformer.Start(stopCh)
-	informerFactory.Start(stopCh)
-	applicationInformer.Start(stopCh)
-	s2iInformer.Start(stopCh)
+	userController := user.NewController(
+		client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().Users())
+
+	clusterController := cluster.NewClusterController(
+		client.Kubernetes(),
+		client.Config(),
+		kubesphereInformer.Cluster().V1alpha1().Clusters(),
+		client.KubeSphere().ClusterV1alpha1().Clusters())
+
+	nsnpProvider, err := provider.NewNsNetworkPolicyProvider(client.Kubernetes(),
+		kubernetesInformer.Networking().V1().NetworkPolicies())
+	if err != nil {
+		return err
+	}
+	nsnpController := nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
+		client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
+		kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
+		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":  vsController,
-		"destinationrule-controller": drController,
-		"application-controller":     apController,
-		"job-controller":             jobController,
-		"s2ibinary-controller":       s2iBinaryController,
-		"s2irun-controller":          s2iRunController,
-		"volumeexpansion-controller": volumeExpansionController,
+		"virtualservice-controller":   vsController,
+		"destinationrule-controller":  drController,
+		"application-controller":      apController,
+		"job-controller":              jobController,
+		"s2ibinary-controller":        s2iBinaryController,
+		"s2irun-controller":           s2iRunController,
+		"volumeexpansion-controller":  volumeExpansionController,
+		"devopsprojects-controller":   devopsProjectController,
+		"pipeline-controller":         devopsPipelineController,
+		"devopscredential-controller": devopsCredentialController,
+		"user-controller":             userController,
+		"cluster-controller":          clusterController,
+		"nsnp-controller":             nsnpController,
 	}
 
 	for name, ctrl := range controllers {
-		err = mgr.Add(ctrl)
-		if err != nil {
-			log.Error(err, "add controller to manager failed", "name", name)
+		if err := mgr.Add(ctrl); err != nil {
+			klog.Error(err, "add controller to manager failed", "name", name)
 			return err
 		}
 	}

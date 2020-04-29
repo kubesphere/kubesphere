@@ -20,9 +20,10 @@ package kubectl
 
 import (
 	"fmt"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"math/rand"
 	"os"
 
@@ -40,6 +41,21 @@ const (
 	namespace = constants.KubeSphereControlNamespace
 )
 
+type Interface interface {
+	GetKubectlPod(username string) (models.PodInfo, error)
+	CreateKubectlDeploy(username string) error
+	DelKubectlDeploy(username string) error
+}
+
+type operator struct {
+	k8sClient kubernetes.Interface
+	informers informers.SharedInformerFactory
+}
+
+func NewKubectlOperator(k8sClient kubernetes.Interface, informers informers.SharedInformerFactory) Interface {
+	return &operator{k8sClient: k8sClient, informers: informers}
+}
+
 var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
 
 func init() {
@@ -48,24 +64,23 @@ func init() {
 	}
 }
 
-func GetKubectlPod(username string) (models.PodInfo, error) {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
+func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
 	deployName := fmt.Sprintf("kubectl-%s", username)
-	deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
+	deploy, err := o.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(deployName)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
 	selectors := deploy.Spec.Selector.MatchLabels
-	labelSelector := labels.Set(selectors).AsSelector().String()
-	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+	labelSelector := labels.Set(selectors).AsSelector()
+	pods, err := o.informers.Core().V1().Pods().Lister().Pods(namespace).List(labelSelector)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
-	pod, err := selectCorrectPod(namespace, podList.Items)
+	pod, err := selectCorrectPod(namespace, pods)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -77,9 +92,9 @@ func GetKubectlPod(username string) (models.PodInfo, error) {
 
 }
 
-func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err error) {
+func selectCorrectPod(namespace string, pods []*v1.Pod) (kubectlPod *v1.Pod, err error) {
 
-	var kubectlPodList []v1.Pod
+	var kubectlPodList []*v1.Pod
 	for _, pod := range pods {
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
@@ -89,15 +104,16 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 	}
 	if len(kubectlPodList) < 1 {
 		err = fmt.Errorf("cannot find valid kubectl pod in namespace:%s", namespace)
-		return v1.Pod{}, err
+		return &v1.Pod{}, err
 	}
 
 	random := rand.Intn(len(kubectlPodList))
+
 	return kubectlPodList[random], nil
 }
 
-func CreateKubectlDeploy(username string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
+func (o *operator) CreateKubectlDeploy(username string) error {
+	k8sClient := o.k8sClient
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if err == nil {
@@ -136,8 +152,8 @@ func CreateKubectlDeploy(username string) error {
 	return err
 }
 
-func DelKubectlDeploy(username string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
+func (o *operator) DelKubectlDeploy(username string) error {
+	k8sClient := o.k8sClient
 	deployName := fmt.Sprintf("kubectl-%s", username)
 	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {

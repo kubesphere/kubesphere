@@ -1,0 +1,14 @@
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: GlobalRoleBinding
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: admin
+roleRef:
+  apiGroup: iam.kubesphere.io/v1alpha2
+  kind: GlobalRole
+  name: global-admin
+subjects:
+  - apiGroup: iam.kubesphere.io/v1alpha2
+    kind: User
+    name: admin

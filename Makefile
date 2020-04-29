@@ -1,14 +1,6 @@
 # Copyright 2018 The KubeSphere Authors. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License").
-# You may not use this file except in compliance with the License 
-# described in the file LICENSE.
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Use of this source code is governed by a Apache license
+# that can be found in the LICENSE file.
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -42,19 +34,11 @@ define ALL_HELP_INFO
 #           debugging tools like delve.
 endef
 .PHONY: all
-all: test hypersphere ks-apiserver ks-apigateway ks-iam controller-manager
+all: test hypersphere ks-apiserver controller-manager
 
 # Build ks-apiserver binary
 ks-apiserver: fmt vet
 	hack/gobuild.sh cmd/ks-apiserver
-
-# Build ks-apigateway binary
-ks-apigateway: fmt vet
-	hack/gobuild.sh cmd/ks-apigateway
-
-# Build ks-iam binary
-ks-iam: fmt vet
-	hack/gobuild.sh cmd/ks-iam
 
 # Build controller-manager binary
 controller-manager: fmt vet
@@ -74,7 +58,7 @@ vet: generate
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	go run ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go object:headerFile=./hack/boilerplate.go.txt paths=./pkg/apis/... rbac:roleName=controller-perms ${CRD_OPTIONS} output:crd:artifacts:config=config/crd/bases
 
 deploy: manifests
 	kubectl apply -f config/crds
@@ -92,8 +76,10 @@ deepcopy:
 openapi:
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/tenant/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
 	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/servicemesh/v1alpha2 -p kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
-	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/api/networking/v1,./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/network/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/network/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
-	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/devops/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/api/networking/v1,./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./vendor/k8s.io/apimachinery/pkg/util/intstr,./pkg/apis/network/v1alpha1 -p kubesphere.io/kubesphere/pkg/apis/network/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/devops/v1alpha1,./vendor/k8s.io/apimachinery/pkg/runtime,./vendor/k8s.io/api/core/v1 -p kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/cluster/v1alpha1,./vendor/k8s.io/apimachinery/pkg/runtime,./vendor/k8s.io/api/core/v1 -p kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
+	go run ./vendor/k8s.io/kube-openapi/cmd/openapi-gen/openapi-gen.go -O openapi_generated -i ./vendor/k8s.io/apimachinery/pkg/apis/meta/v1,./pkg/apis/devops/v1alpha3,./vendor/k8s.io/apimachinery/pkg/runtime -p kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3 -h ./hack/boilerplate.go.txt --report-filename ./api/api-rules/violation_exceptions.list
 	go run ./tools/cmd/crd-doc-gen/main.go
 # Build the docker image
 docker-build: all

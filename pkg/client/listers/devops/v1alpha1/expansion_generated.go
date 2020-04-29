@@ -25,3 +25,23 @@ type S2iBinaryListerExpansion interface{}
 // S2iBinaryNamespaceListerExpansion allows custom methods to be added to
 // S2iBinaryNamespaceLister.
 type S2iBinaryNamespaceListerExpansion interface{}
+
+// S2iBuilderListerExpansion allows custom methods to be added to
+// S2iBuilderLister.
+type S2iBuilderListerExpansion interface{}
+
+// S2iBuilderNamespaceListerExpansion allows custom methods to be added to
+// S2iBuilderNamespaceLister.
+type S2iBuilderNamespaceListerExpansion interface{}
+
+// S2iBuilderTemplateListerExpansion allows custom methods to be added to
+// S2iBuilderTemplateLister.
+type S2iBuilderTemplateListerExpansion interface{}
+
+// S2iRunListerExpansion allows custom methods to be added to
+// S2iRunLister.
+type S2iRunListerExpansion interface{}
+
+// S2iRunNamespaceListerExpansion allows custom methods to be added to
+// S2iRunNamespaceLister.
+type S2iRunNamespaceListerExpansion interface{}

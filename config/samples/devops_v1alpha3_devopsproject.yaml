@@ -1,0 +1,9 @@
+apiVersion: devops.kubesphere.io/v1alpha3
+kind: DevOpsProject
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: devopsproject-sample
+spec:
+  # Add fields here
+  foo: bar

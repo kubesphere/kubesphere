@@ -18,56 +18,91 @@
 package informers
 
 import (
+	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
-	s2iinformers "github.com/kubesphere/s2ioperator/pkg/client/informers/externalversions"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	k8sinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-	"sync"
 	"time"
 )
 
+// default re-sync period for all informer factories
 const defaultResync = 600 * time.Second
 
-var (
-	k8sOnce            sync.Once
-	s2iOnce            sync.Once
-	ksOnce             sync.Once
-	appOnce            sync.Once
-	informerFactory    k8sinformers.SharedInformerFactory
-	s2iInformerFactory s2iinformers.SharedInformerFactory
-	ksInformerFactory  ksinformers.SharedInformerFactory
-	appInformerFactory applicationinformers.SharedInformerFactory
-)
+// InformerFactory is a group all shared informer factories which kubesphere needed
+// callers should check if the return value is nil
+type InformerFactory interface {
+	KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory
+	KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory
+	IstioSharedInformerFactory() istioinformers.SharedInformerFactory
+	ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory
 
-func SharedInformerFactory() k8sinformers.SharedInformerFactory {
-	k8sOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().Kubernetes()
-		informerFactory = k8sinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return informerFactory
+	// Start shared informer factory one by one if they are not nil
+	Start(stopCh <-chan struct{})
 }
 
-func S2iSharedInformerFactory() s2iinformers.SharedInformerFactory {
-	s2iOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().S2i()
-		s2iInformerFactory = s2iinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return s2iInformerFactory
+type informerFactories struct {
+	informerFactory      k8sinformers.SharedInformerFactory
+	ksInformerFactory    ksinformers.SharedInformerFactory
+	istioInformerFactory istioinformers.SharedInformerFactory
+	appInformerFactory   applicationinformers.SharedInformerFactory
 }
 
-func KsSharedInformerFactory() ksinformers.SharedInformerFactory {
-	ksOnce.Do(func() {
-		k8sClient := client.ClientSets().K8s().KubeSphere()
-		ksInformerFactory = ksinformers.NewSharedInformerFactory(k8sClient, defaultResync)
-	})
-	return ksInformerFactory
+func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface, appClient applicationclient.Interface) InformerFactory {
+	factory := &informerFactories{}
+
+	if client != nil {
+		factory.informerFactory = k8sinformers.NewSharedInformerFactory(client, defaultResync)
+	}
+
+	if ksClient != nil {
+		factory.ksInformerFactory = ksinformers.NewSharedInformerFactory(ksClient, defaultResync)
+	}
+
+	if appClient != nil {
+		factory.appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
+	}
+
+	if istioClient != nil {
+		factory.istioInformerFactory = istioinformers.NewSharedInformerFactory(istioClient, defaultResync)
+	}
+
+	return factory
 }
 
-func AppSharedInformerFactory() applicationinformers.SharedInformerFactory {
-	appOnce.Do(func() {
-		appClient := client.ClientSets().K8s().Application()
-		appInformerFactory = applicationinformers.NewSharedInformerFactory(appClient, defaultResync)
-	})
-	return appInformerFactory
+func (f *informerFactories) KubernetesSharedInformerFactory() k8sinformers.SharedInformerFactory {
+	return f.informerFactory
+}
+
+func (f *informerFactories) KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory {
+	return f.ksInformerFactory
+}
+
+func (f *informerFactories) ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory {
+	return f.appInformerFactory
+}
+
+func (f *informerFactories) IstioSharedInformerFactory() istioinformers.SharedInformerFactory {
+	return f.istioInformerFactory
+}
+
+func (f *informerFactories) Start(stopCh <-chan struct{}) {
+	if f.informerFactory != nil {
+		f.informerFactory.Start(stopCh)
+	}
+
+	if f.ksInformerFactory != nil {
+		f.ksInformerFactory.Start(stopCh)
+	}
+
+	if f.istioInformerFactory != nil {
+		f.istioInformerFactory.Start(stopCh)
+	}
+
+	if f.appInformerFactory != nil {
+		f.appInformerFactory.Start(stopCh)
+	}
 }
