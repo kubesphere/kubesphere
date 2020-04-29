@@ -18,102 +18,189 @@
 package tenant
 
 import (
-	"k8s.io/api/core/v1"
-	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
-	"kubesphere.io/kubesphere/pkg/constants"
+	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/api"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models"
-	ws "kubesphere.io/kubesphere/pkg/models/workspaces"
-	"kubesphere.io/kubesphere/pkg/server/params"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-	"strconv"
+	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 )
 
-var (
-	workspaces = workspaceSearcher{}
-	namespaces = namespaceSearcher{}
-)
-
-func CreateNamespace(workspaceName string, namespace *v1.Namespace, username string) (*v1.Namespace, error) {
-	if namespace.Labels == nil {
-		namespace.Labels = make(map[string]string, 0)
-	}
-	if username != "" {
-		namespace.Annotations[constants.CreatorAnnotationKey] = username
-	}
-
-	namespace.Labels[constants.WorkspaceLabelKey] = workspaceName
-
-	return client.ClientSets().K8s().Kubernetes().CoreV1().Namespaces().Create(namespace)
+type Interface interface {
+	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
+	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
 }
 
-func DescribeWorkspace(username, workspaceName string) (*v1alpha1.Workspace, error) {
-	workspace, err := informers.KsSharedInformerFactory().Tenant().V1alpha1().Workspaces().Lister().Get(workspaceName)
+type tenantOperator struct {
+	am             am.AccessManagementInterface
+	authorizer     authorizer.Authorizer
+	resourceGetter *resourcesv1alpha3.ResourceGetter
+}
+
+func New(informers informers.InformerFactory) Interface {
+	amOperator := am.NewAMOperator(informers)
+	opaAuthorizer := authorizerfactory.NewOPAAuthorizer(amOperator)
+	return &tenantOperator{
+		am:             amOperator,
+		authorizer:     opaAuthorizer,
+		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
+	}
+}
+
+func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query) (*api.ListResult, error) {
+
+	listWS := authorizer.AttributesRecord{
+		User:       user,
+		Verb:       "list",
+		APIGroup:   "tenant.kubesphere.io",
+		APIVersion: "v1alpha2",
+		Resource:   "workspaces",
+	}
+
+	decision, _, err := t.authorizer.Authorize(listWS)
 
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
 
-	workspace = appendAnnotations(username, workspace)
+	if decision == authorizer.DecisionAllow {
 
-	return workspace, nil
-}
+		result, err := t.resourceGetter.List(tenantv1alpha1.ResourcePluralWorkspace, "", queryParam)
 
-func ListWorkspaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
 
-	workspaces, err := workspaces.search(username, conditions, orderBy, reverse)
+		return result, nil
+	}
+
+	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), "")
 
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
 
-	// limit offset
-	result := make([]interface{}, 0)
-	for i, workspace := range workspaces {
-		if len(result) < limit && i >= offset {
-			workspace := appendAnnotations(username, workspace)
-			result = append(result, workspace)
+	workspaces := make([]runtime.Object, 0)
+
+	for _, roleBinding := range workspaceRoleBindings {
+
+		workspaceName := roleBinding.Labels[tenantv1alpha1.WorkspaceLabel]
+		workspace, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspaceName)
+
+		if errors.IsNotFound(err) {
+			klog.Warningf("workspace role: %+v found but workspace not exist", roleBinding.ObjectMeta)
+			continue
+		}
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		if !contains(workspaces, workspace) {
+			workspaces = append(workspaces, workspace)
 		}
 	}
 
-	return &models.PageableResponse{Items: result, TotalCount: len(workspaces)}, nil
+	result := resources.DefaultList(workspaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
+		return resources.DefaultObjectMetaCompare(left.(*tenantv1alpha1.Workspace).ObjectMeta, right.(*tenantv1alpha1.Workspace).ObjectMeta, field)
+	}, func(workspace runtime.Object, filter query.Filter) bool {
+		return resources.DefaultObjectMetaFilter(workspace.(*tenantv1alpha1.Workspace).ObjectMeta, filter)
+	})
+
+	return result, nil
 }
 
-func appendAnnotations(username string, workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
-	workspace = workspace.DeepCopy()
-	if workspace.Annotations == nil {
-		workspace.Annotations = make(map[string]string)
-	}
-	ns, err := ListNamespaces(username, &params.Conditions{Match: map[string]string{constants.WorkspaceLabelKey: workspace.Name}}, "", false, 1, 0)
-	if err == nil {
-		workspace.Annotations["kubesphere.io/namespace-count"] = strconv.Itoa(ns.TotalCount)
-	}
-	devops, err := ListDevopsProjects(workspace.Name, username, &params.Conditions{}, "", false, 1, 0)
-	if err == nil {
-		workspace.Annotations["kubesphere.io/devops-count"] = strconv.Itoa(devops.TotalCount)
-	}
-	userCount, err := ws.WorkspaceUserCount(workspace.Name)
-	if err == nil {
-		workspace.Annotations["kubesphere.io/member-count"] = strconv.Itoa(userCount)
-	}
-	return workspace
-}
+func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryParam *query.Query) (*api.ListResult, error) {
 
-func ListNamespaces(username string, conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+	listNSInWS := authorizer.AttributesRecord{
+		User:       user,
+		Verb:       "list",
+		APIGroup:   "",
+		APIVersion: "v1",
+		Workspace:  workspace,
+		Resource:   "namespaces",
+	}
 
-	namespaces, err := namespaces.search(username, conditions, orderBy, reverse)
+	decision, _, err := t.authorizer.Authorize(listNSInWS)
 
 	if err != nil {
+		klog.Error(err)
 		return nil, err
 	}
 
-	// limit offset
-	result := make([]interface{}, 0)
-	for i, v := range namespaces {
-		if len(result) < limit && i >= offset {
-			result = append(result, v)
+	if decision == authorizer.DecisionAllow {
+
+		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+
+		result, err := t.resourceGetter.List("namespaces", "", queryParam)
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		return result, nil
+	}
+
+	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	namespaces := make([]runtime.Object, 0)
+
+	for _, roleBinding := range roleBindings {
+		namespaceName := roleBinding.Namespace
+		namespace, err := t.resourceGetter.Get("namespaces", "", namespaceName)
+
+		if errors.IsNotFound(err) {
+			klog.Warningf("workspace role: %+v found but workspace not exist", roleBinding.ObjectMeta)
+			continue
+		}
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		if !contains(namespaces, namespace) {
+			namespaces = append(namespaces, namespace)
 		}
 	}
 
-	return &models.PageableResponse{Items: result, TotalCount: len(namespaces)}, nil
+	result := resources.DefaultList(namespaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
+		return resources.DefaultObjectMetaCompare(left.(*corev1.Namespace).ObjectMeta, right.(*corev1.Namespace).ObjectMeta, field)
+	}, func(object runtime.Object, filter query.Filter) bool {
+		namespace := object.(*corev1.Namespace).ObjectMeta
+		if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
+			return false
+		}
+		return resources.DefaultObjectMetaFilter(namespace, filter)
+	})
+
+	return result, nil
+}
+
+func contains(objects []runtime.Object, object runtime.Object) bool {
+	for _, item := range objects {
+		if item == object {
+			return true
+		}
+	}
+	return false
 }

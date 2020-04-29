@@ -34,8 +34,10 @@ func TestGitReadVerifyWithBasicAuth(t *testing.T) {
 			"remote":   "git@fdsfs41342`@@@2414!!!!github.com:kubesphere/kubesphere.git",
 		},
 	}
+	verifier := gitVerifier{informers: nil}
+
 	for _, item := range shouldSuccess {
-		err := gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])
+		err := verifier.gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])
 		if err != nil {
 
 			t.Errorf("should could access repo [%s] with %s:%s, %v", item["username"], item["password"], item["remote"], err)
@@ -43,7 +45,7 @@ func TestGitReadVerifyWithBasicAuth(t *testing.T) {
 	}
 
 	for _, item := range shouldFailed {
-		err := gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])
+		err := verifier.gitReadVerifyWithBasicAuth(item["username"], item["password"], item["remote"])
 		if err == nil {
 			t.Errorf("should could access repo [%s] with %s:%s ", item["username"], item["password"], item["remote"])
 		}

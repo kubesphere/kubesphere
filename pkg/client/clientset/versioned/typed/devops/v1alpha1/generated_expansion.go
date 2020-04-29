@@ -19,3 +19,9 @@ limitations under the License.
 package v1alpha1
 
 type S2iBinaryExpansion interface{}
+
+type S2iBuilderExpansion interface{}
+
+type S2iBuilderTemplateExpansion interface{}
+
+type S2iRunExpansion interface{}

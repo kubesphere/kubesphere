@@ -213,7 +213,7 @@ func (v *VirtualServiceController) syncService(key string) error {
 	appName := name
 
 	defer func() {
-		log.V(4).Info("Finished syncing service virtualservice.", "namespace", namespace, "name", name, "duration", time.Since(startTime))
+		log.V(4).Infof("Finished syncing service virtualservice %s/%s in %s.", namespace, name, time.Since(startTime))
 	}()
 
 	service, err := v.serviceLister.Services(namespace).Get(name)

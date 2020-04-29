@@ -24,10 +24,11 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/klog"
-	log "k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/api"
 )
 
 const (
@@ -52,8 +53,21 @@ type DockerConfigEntry struct {
 	ServerAddress string `json:"serverAddress,omitempty"`
 }
 
-func RegistryVerify(authInfo AuthInfo) error {
-	auth := base64.StdEncoding.EncodeToString([]byte(authInfo.Username + ":" + authInfo.Password))
+type RegistryGetter interface {
+	VerifyRegistryCredential(credential api.RegistryCredential) error
+	GetEntry(namespace, secretName, imageName string) (ImageDetails, error)
+}
+
+type registryGetter struct {
+	informers informers.SharedInformerFactory
+}
+
+func NewRegistryGetter(informers informers.SharedInformerFactory) RegistryGetter {
+	return &registryGetter{informers: informers}
+}
+
+func (c *registryGetter) VerifyRegistryCredential(credential api.RegistryCredential) error {
+	auth := base64.StdEncoding.EncodeToString([]byte(credential.Username + ":" + credential.Password))
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 
@@ -62,10 +76,10 @@ func RegistryVerify(authInfo AuthInfo) error {
 	}
 
 	config := types.AuthConfig{
-		Username:      authInfo.Username,
-		Password:      authInfo.Password,
+		Username:      credential.Username,
+		Password:      credential.Password,
 		Auth:          auth,
-		ServerAddress: authInfo.ServerHost,
+		ServerAddress: credential.ServerHost,
 	}
 
 	resp, err := cli.RegistryLogin(ctx, config)
@@ -82,21 +96,77 @@ func RegistryVerify(authInfo AuthInfo) error {
 	}
 }
 
-func GetEntryBySecret(namespace, secretName string) (dockerConfigEntry *DockerConfigEntry, err error) {
-	if namespace == "" || secretName == "" {
-		return &DockerConfigEntry{}, nil
+func (c *registryGetter) GetEntry(namespace, secretName, imageName string) (ImageDetails, error) {
+	imageDetails, err := c.getEntryBySecret(namespace, secretName, imageName)
+	if imageDetails.Status == StatusFailed {
+		imageDetails.Message = err.Error()
 	}
-	secret, err := informers.SharedInformerFactory().Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
+
+	return imageDetails, err
+}
+
+func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName string) (imageDetails ImageDetails, err error) {
+	failedImageDetails := ImageDetails{
+		Status:  StatusFailed,
+		Message: "",
+	}
+
+	if namespace == "" || secretName == "" {
+		return failedImageDetails, fmt.Errorf("namespace or secret name not provided")
+	}
+	secret, err := c.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
 	if err != nil {
-		log.Errorf("%+v", err)
-		return nil, err
+		return failedImageDetails, err
 	}
 	entry, err := getDockerEntryFromDockerSecret(secret)
 	if err != nil {
-		log.Errorf("%+v", err)
-		return nil, err
+		return failedImageDetails, err
 	}
-	return entry, nil
+
+	// parse image
+	image, err := ParseImage(imageName)
+	if err != nil {
+		return failedImageDetails, err
+	}
+
+	// Create the registry client.
+	r, err := CreateRegistryClient(entry.Username, entry.Password, image.Domain)
+	if err != nil {
+		return failedImageDetails, err
+	}
+
+	digestUrl := r.GetDigestUrl(image)
+
+	// Get token.
+	token, err := r.Token(digestUrl)
+	if err != nil {
+		return failedImageDetails, err
+	}
+
+	// Get digest.
+	imageManifest, err := r.ImageManifest(image, token)
+	if err != nil {
+		if serviceError, ok := err.(restful.ServiceError); ok {
+			return failedImageDetails, serviceError
+		}
+		return failedImageDetails, err
+	}
+
+	image.Digest = imageManifest.ManifestConfig.Digest
+
+	// Get blob.
+	imageBlob, err := r.ImageBlob(image, token)
+	if err != nil {
+		return failedImageDetails, err
+	}
+
+	return ImageDetails{
+		Status:        StatusSuccess,
+		ImageManifest: imageManifest,
+		ImageBlob:     imageBlob,
+		ImageTag:      image.Tag,
+		Registry:      image.Domain,
+	}, nil
 }
 
 func getDockerEntryFromDockerSecret(instance *corev1.Secret) (dockerConfigEntry *DockerConfigEntry, err error) {
@@ -117,9 +187,9 @@ func getDockerEntryFromDockerSecret(instance *corev1.Secret) (dockerConfigEntry 
 	if len(dockerConfig.Auths) == 0 {
 		return nil, fmt.Errorf("docker config auth len should not be 0")
 	}
-	for registryAddress, dockerConfigEntry := range dockerConfig.Auths {
-		dockerConfigEntry.ServerAddress = registryAddress
-		return &dockerConfigEntry, nil
+	for registryAddress, dce := range dockerConfig.Auths {
+		dce.ServerAddress = registryAddress
+		return &dce, nil
 	}
 	return nil, nil
 }

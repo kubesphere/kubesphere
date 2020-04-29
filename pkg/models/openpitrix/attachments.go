@@ -22,18 +22,26 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 )
 
-func DescribeAttachment(id string) (*Attachment, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+type AttachmentInterface interface {
+	DescribeAttachment(id string) (*Attachment, error)
+}
+
+type attachmentOperator struct {
+	opClient openpitrix.Client
+}
+
+func newAttachmentOperator(opClient openpitrix.Client) AttachmentInterface {
+	return &attachmentOperator{
+		opClient: opClient,
 	}
-	resp, err := op.Attachment().GetAttachments(openpitrix.SystemContext(), &pb.GetAttachmentsRequest{
+}
+
+func (c *attachmentOperator) DescribeAttachment(id string) (*Attachment, error) {
+	resp, err := c.opClient.GetAttachments(openpitrix.SystemContext(), &pb.GetAttachmentsRequest{
 		AttachmentId: []string{id},
 	})
 	if err != nil {

@@ -2263,6 +2263,12 @@ func schema_pkg_apis_tenant_v1alpha1_WorkspaceSpec(ref common.ReferenceCallback)
 							Format: "",
 						},
 					},
+					"networkIsolation": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
 				},
 			},
 		},

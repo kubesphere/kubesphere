@@ -22,9 +22,11 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	devopsv1alpha1 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha1"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 )
 
 func Install(scheme *k8sruntime.Scheme) {
 	urlruntime.Must(devopsv1alpha1.AddToScheme(scheme))
-	urlruntime.Must(scheme.SetVersionPriority(devopsv1alpha1.SchemeGroupVersion))
+	urlruntime.Must(devopsv1alpha3.AddToScheme(scheme))
+	urlruntime.Must(scheme.SetVersionPriority(devopsv1alpha3.SchemeGroupVersion, devopsv1alpha1.SchemeGroupVersion))
 }
