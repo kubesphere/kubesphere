@@ -57,12 +57,13 @@ func NewControllerManagerCommand() *cobra.Command {
 	if err == nil {
 		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
-			KubernetesOptions: conf.KubernetesOptions,
-			DevopsOptions:     conf.DevopsOptions,
-			S3Options:         conf.S3Options,
-			OpenPitrixOptions: conf.OpenPitrixOptions,
-			LeaderElection:    s.LeaderElection,
-			LeaderElect:       s.LeaderElect,
+			KubernetesOptions:   conf.KubernetesOptions,
+			DevopsOptions:       conf.DevopsOptions,
+			S3Options:           conf.S3Options,
+			OpenPitrixOptions:   conf.OpenPitrixOptions,
+			MultiClusterOptions: conf.MultiClusterOptions,
+			LeaderElection:      s.LeaderElection,
+			LeaderElect:         s.LeaderElect,
 		}
 	}
 
