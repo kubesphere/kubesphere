@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"strings"
 )
 
 const (
@@ -105,7 +106,7 @@ func (c *registryGetter) GetEntry(namespace, secretName, imageName string) (Imag
 	return imageDetails, err
 }
 
-func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName string) (imageDetails ImageDetails, err error) {
+func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName string) (ImageDetails, error) {
 	failedImageDetails := ImageDetails{
 		Status:  StatusFailed,
 		Message: "",
@@ -123,14 +124,33 @@ func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName strin
 		return failedImageDetails, err
 	}
 
+	// default use ssl
+	checkSSl := func(serverAddress string) bool {
+		if strings.HasPrefix(serverAddress, "http://") {
+			return false
+		} else {
+			return true
+		}
+	}
+
+	if strings.HasPrefix(imageName, "http") {
+		dockerurl, err := ParseDockerURL(imageName)
+		if err != nil {
+			return failedImageDetails, err
+		}
+		imageName = dockerurl.StringWithoutScheme()
+	}
+
 	// parse image
 	image, err := ParseImage(imageName)
 	if err != nil {
 		return failedImageDetails, err
 	}
 
+	useSSL := checkSSl(entry.ServerAddress)
+
 	// Create the registry client.
-	r, err := CreateRegistryClient(entry.Username, entry.Password, image.Domain)
+	r, err := CreateRegistryClient(entry.Username, entry.Password, image.Domain, useSSL)
 	if err != nil {
 		return failedImageDetails, err
 	}
