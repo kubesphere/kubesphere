@@ -41,6 +41,9 @@ jobs:
       - name: Build
         run: make all
 
+      - name: Make OpenAPI Spec
+        run: make openapi
+
       - name: Uploading code coverage
         uses: codecov/codecov-action@v1
         with:
@@ -61,8 +64,3 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         if: github.event_name == 'push'
         run: bash hack/docker_build.sh ${{ steps.extract_branch.outputs.branch }}
-
-      - name: Slack notify
-        uses: rtCamp/action-slack-notify@v2.0.0
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

@@ -2605,7 +2605,7 @@ func schema_pkg_apis_network_v1alpha1_NamespaceNetworkPolicySpec(ref common.Refe
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "NetworkPolicySpec provides the specification of a NetworkPolicy",
+				Description: "NamespaceNetworkPolicySpec provides the specification of a NamespaceNetworkPolicy",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"ingress": {
@@ -2766,8 +2766,7 @@ func schema_pkg_apis_network_v1alpha1_NetworkPolicyPeer(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Selects Namespaces using cluster-scoped labels. This field follows standard label selector semantics; if present but empty, it selects all namespaces.\n\nIf PodSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects all Pods in the Namespaces selected by NamespaceSelector.",
-							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NamespaceSelector"),
+							Ref: ref("kubesphere.io/kubesphere/pkg/apis/network/v1alpha1.NamespaceSelector"),
 						},
 					},
 					"ipBlock": {

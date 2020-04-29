@@ -104,735 +104,6 @@
         }
       }
     },
-    "/apis/cluster.kubesphere.io/v1alpha1/agents": {
-      "get": {
-        "description": "list or watch objects of kind Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf",
-          "application/json;stream=watch",
-          "application/vnd.kubernetes.protobuf;stream=watch"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "listClusterKubesphereIoV1alpha1Agent",
-        "parameters": [
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-            "name": "allowWatchBookmarks",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-            "name": "continue",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-            "name": "fieldSelector",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-            "name": "labelSelector",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-            "name": "resourceVersion",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-            "name": "timeoutSeconds",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-            "name": "watch",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentList"
-            }
-          }
-        },
-        "x-kubernetes-action": "list",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "post": {
-        "description": "create an Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "createClusterKubesphereIoV1alpha1Agent",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint.",
-            "name": "fieldManager",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          "202": {
-            "description": "Accepted",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "post",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "delete": {
-        "description": "delete collection of Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "deleteClusterKubesphereIoV1alpha1CollectionAgent",
-        "parameters": [
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-            "name": "allowWatchBookmarks",
-            "in": "query"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-            "name": "continue",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-            "name": "fieldSelector",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
-            "name": "gracePeriodSeconds",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-            "name": "labelSelector",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
-            "name": "orphanDependents",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy. Acceptable values are: 'Orphan' - orphan the dependents; 'Background' - allow the garbage collector to delete the dependents in the background; 'Foreground' - a cascading policy that deletes all dependents in the foreground.",
-            "name": "propagationPolicy",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-            "name": "resourceVersion",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-            "name": "timeoutSeconds",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-            "name": "watch",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
-            }
-          }
-        },
-        "x-kubernetes-action": "deletecollection",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/cluster.kubesphere.io/v1alpha1/agents/{name}": {
-      "get": {
-        "description": "read the specified Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "readClusterKubesphereIoV1alpha1Agent",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "get",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "put": {
-        "description": "replace the specified Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "replaceClusterKubesphereIoV1alpha1Agent",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint.",
-            "name": "fieldManager",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "put",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "delete": {
-        "description": "delete an Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "deleteClusterKubesphereIoV1alpha1Agent",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "integer",
-            "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
-            "name": "gracePeriodSeconds",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
-            "name": "orphanDependents",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy. Acceptable values are: 'Orphan' - orphan the dependents; 'Background' - allow the garbage collector to delete the dependents in the background; 'Foreground' - a cascading policy that deletes all dependents in the foreground.",
-            "name": "propagationPolicy",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
-            }
-          },
-          "202": {
-            "description": "Accepted",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Status"
-            }
-          }
-        },
-        "x-kubernetes-action": "delete",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "patch": {
-        "description": "partially update the specified Agent",
-        "consumes": [
-          "application/json-patch+json",
-          "application/merge-patch+json",
-          "application/strategic-merge-patch+json",
-          "application/apply-patch+yaml"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "patchClusterKubesphereIoV1alpha1Agent",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Patch"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint. This field is required for apply requests (application/apply-patch) but optional for non-apply patch types (JsonPatch, MergePatch, StrategicMergePatch).",
-            "name": "fieldManager",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Force is going to \"force\" Apply requests. It means user will re-acquire conflicting fields owned by other people. Force flag must be unset for non-apply patch requests.",
-            "name": "force",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "patch",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "name of the Agent",
-          "name": "name",
-          "in": "path",
-          "required": true
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/cluster.kubesphere.io/v1alpha1/agents/{name}/status": {
-      "get": {
-        "description": "read status of the specified Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "readClusterKubesphereIoV1alpha1AgentStatus",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "get",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "put": {
-        "description": "replace status of the specified Agent",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "replaceClusterKubesphereIoV1alpha1AgentStatus",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint.",
-            "name": "fieldManager",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          },
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "put",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "patch": {
-        "description": "partially update status of the specified Agent",
-        "consumes": [
-          "application/json-patch+json",
-          "application/merge-patch+json",
-          "application/strategic-merge-patch+json",
-          "application/apply-patch+yaml"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "patchClusterKubesphereIoV1alpha1AgentStatus",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Patch"
-            }
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
-            "name": "dryRun",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "string",
-            "description": "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint. This field is required for apply requests (application/apply-patch) but optional for non-apply patch types (JsonPatch, MergePatch, StrategicMergePatch).",
-            "name": "fieldManager",
-            "in": "query"
-          },
-          {
-            "uniqueItems": true,
-            "type": "boolean",
-            "description": "Force is going to \"force\" Apply requests. It means user will re-acquire conflicting fields owned by other people. Force flag must be unset for non-apply patch requests.",
-            "name": "force",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-            }
-          }
-        },
-        "x-kubernetes-action": "patch",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "name of the Agent",
-          "name": "name",
-          "in": "path",
-          "required": true
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        }
-      ]
-    },
     "/apis/cluster.kubesphere.io/v1alpha1/clusters": {
       "get": {
         "description": "list or watch objects of kind Cluster",
@@ -1558,216 +829,6 @@
           "type": "string",
           "description": "If 'true', then the output is pretty printed.",
           "name": "pretty",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/cluster.kubesphere.io/v1alpha1/watch/agents": {
-      "get": {
-        "description": "watch individual changes to a list of Agent. deprecated: use the 'watch' parameter with a list operation instead.",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf",
-          "application/json;stream=watch",
-          "application/vnd.kubernetes.protobuf;stream=watch"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "watchClusterKubesphereIoV1alpha1AgentList",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
-            }
-          }
-        },
-        "x-kubernetes-action": "watchlist",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-          "name": "allowWatchBookmarks",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-          "name": "continue",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-          "name": "fieldSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-          "name": "labelSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-          "name": "limit",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-          "name": "resourceVersion",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-          "name": "timeoutSeconds",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-          "name": "watch",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/cluster.kubesphere.io/v1alpha1/watch/agents/{name}": {
-      "get": {
-        "description": "watch changes to an object of kind Agent. deprecated: use the 'watch' parameter with a list operation instead, filtered to a single item with the 'fieldSelector' parameter.",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf",
-          "application/json;stream=watch",
-          "application/vnd.kubernetes.protobuf;stream=watch"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "clusterKubesphereIo_v1alpha1"
-        ],
-        "operationId": "watchClusterKubesphereIoV1alpha1Agent",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
-            }
-          }
-        },
-        "x-kubernetes-action": "watch",
-        "x-kubernetes-group-version-kind": {
-          "group": "cluster.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "Agent"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-          "name": "allowWatchBookmarks",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-          "name": "continue",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-          "name": "fieldSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-          "name": "labelSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-          "name": "limit",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "name of the Agent",
-          "name": "name",
-          "in": "path",
-          "required": true
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-          "name": "resourceVersion",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-          "name": "timeoutSeconds",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-          "name": "watch",
           "in": "query"
         }
       ]
@@ -7766,9 +6827,9 @@
         }
       }
     },
-    "/apis/network.kubesphere.io/v1alpha1/watch/workspacenetworkpolicies": {
+    "/apis/network.kubesphere.io/v1alpha1/namespacenetworkpolicies": {
       "get": {
-        "description": "watch individual changes to a list of WorkspaceNetworkPolicy. deprecated: use the 'watch' parameter with a list operation instead.",
+        "description": "list or watch objects of kind NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -7785,217 +6846,7 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "watchNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicyList",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
-            }
-          }
-        },
-        "x-kubernetes-action": "watchlist",
-        "x-kubernetes-group-version-kind": {
-          "group": "network.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-          "name": "allowWatchBookmarks",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-          "name": "continue",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-          "name": "fieldSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-          "name": "labelSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-          "name": "limit",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-          "name": "resourceVersion",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-          "name": "timeoutSeconds",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-          "name": "watch",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/network.kubesphere.io/v1alpha1/watch/workspacenetworkpolicies/{name}": {
-      "get": {
-        "description": "watch changes to an object of kind WorkspaceNetworkPolicy. deprecated: use the 'watch' parameter with a list operation instead, filtered to a single item with the 'fieldSelector' parameter.",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf",
-          "application/json;stream=watch",
-          "application/vnd.kubernetes.protobuf;stream=watch"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "networkKubesphereIo_v1alpha1"
-        ],
-        "operationId": "watchNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
-            }
-          }
-        },
-        "x-kubernetes-action": "watch",
-        "x-kubernetes-group-version-kind": {
-          "group": "network.kubesphere.io",
-          "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
-        }
-      },
-      "parameters": [
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
-          "name": "allowWatchBookmarks",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
-          "name": "continue",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-          "name": "fieldSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-          "name": "labelSelector",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
-          "name": "limit",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "name of the WorkspaceNetworkPolicy",
-          "name": "name",
-          "in": "path",
-          "required": true
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "If 'true', then the output is pretty printed.",
-          "name": "pretty",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "string",
-          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-          "name": "resourceVersion",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "integer",
-          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
-          "name": "timeoutSeconds",
-          "in": "query"
-        },
-        {
-          "uniqueItems": true,
-          "type": "boolean",
-          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-          "name": "watch",
-          "in": "query"
-        }
-      ]
-    },
-    "/apis/network.kubesphere.io/v1alpha1/workspacenetworkpolicies": {
-      "get": {
-        "description": "list or watch objects of kind WorkspaceNetworkPolicy",
-        "consumes": [
-          "*/*"
-        ],
-        "produces": [
-          "application/json",
-          "application/yaml",
-          "application/vnd.kubernetes.protobuf",
-          "application/json;stream=watch",
-          "application/vnd.kubernetes.protobuf;stream=watch"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "networkKubesphereIo_v1alpha1"
-        ],
-        "operationId": "listNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "listNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "parameters": [
           {
             "uniqueItems": true,
@@ -8058,7 +6909,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyList"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicyList"
             }
           }
         },
@@ -8066,11 +6917,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "post": {
-        "description": "create a WorkspaceNetworkPolicy",
+        "description": "create a NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8085,14 +6936,14 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "createNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "createNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           {
@@ -8114,19 +6965,19 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           "202": {
             "description": "Accepted",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8134,11 +6985,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "delete": {
-        "description": "delete collection of WorkspaceNetworkPolicy",
+        "description": "delete collection of NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8153,7 +7004,7 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "deleteNetworkKubesphereIoV1alpha1CollectionWorkspaceNetworkPolicy",
+        "operationId": "deleteNetworkKubesphereIoV1alpha1CollectionNamespaceNetworkPolicy",
         "parameters": [
           {
             "uniqueItems": true,
@@ -8259,7 +7110,7 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "parameters": [
@@ -8272,9 +7123,9 @@
         }
       ]
     },
-    "/apis/network.kubesphere.io/v1alpha1/workspacenetworkpolicies/{name}": {
+    "/apis/network.kubesphere.io/v1alpha1/namespacenetworkpolicies/{name}": {
       "get": {
-        "description": "read the specified WorkspaceNetworkPolicy",
+        "description": "read the specified NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8289,12 +7140,12 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "readNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "readNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8302,11 +7153,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "put": {
-        "description": "replace the specified WorkspaceNetworkPolicy",
+        "description": "replace the specified NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8321,14 +7172,14 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "replaceNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "replaceNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           {
@@ -8350,13 +7201,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8364,11 +7215,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "delete": {
-        "description": "delete a WorkspaceNetworkPolicy",
+        "description": "delete a NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8383,7 +7234,7 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "deleteNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "deleteNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "parameters": [
           {
             "name": "body",
@@ -8439,11 +7290,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "patch": {
-        "description": "partially update the specified WorkspaceNetworkPolicy",
+        "description": "partially update the specified NamespaceNetworkPolicy",
         "consumes": [
           "application/json-patch+json",
           "application/merge-patch+json",
@@ -8461,7 +7312,7 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "patchNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicy",
+        "operationId": "patchNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
         "parameters": [
           {
             "name": "body",
@@ -8497,7 +7348,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8505,14 +7356,14 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "parameters": [
         {
           "uniqueItems": true,
           "type": "string",
-          "description": "name of the WorkspaceNetworkPolicy",
+          "description": "name of the NamespaceNetworkPolicy",
           "name": "name",
           "in": "path",
           "required": true
@@ -8526,9 +7377,9 @@
         }
       ]
     },
-    "/apis/network.kubesphere.io/v1alpha1/workspacenetworkpolicies/{name}/status": {
+    "/apis/network.kubesphere.io/v1alpha1/namespacenetworkpolicies/{name}/status": {
       "get": {
-        "description": "read status of the specified WorkspaceNetworkPolicy",
+        "description": "read status of the specified NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8543,12 +7394,12 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "readNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicyStatus",
+        "operationId": "readNetworkKubesphereIoV1alpha1NamespaceNetworkPolicyStatus",
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8556,11 +7407,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "put": {
-        "description": "replace status of the specified WorkspaceNetworkPolicy",
+        "description": "replace status of the specified NamespaceNetworkPolicy",
         "consumes": [
           "*/*"
         ],
@@ -8575,14 +7426,14 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "replaceNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicyStatus",
+        "operationId": "replaceNetworkKubesphereIoV1alpha1NamespaceNetworkPolicyStatus",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           {
@@ -8604,13 +7455,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8618,11 +7469,11 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "patch": {
-        "description": "partially update status of the specified WorkspaceNetworkPolicy",
+        "description": "partially update status of the specified NamespaceNetworkPolicy",
         "consumes": [
           "application/json-patch+json",
           "application/merge-patch+json",
@@ -8640,7 +7491,7 @@
         "tags": [
           "networkKubesphereIo_v1alpha1"
         ],
-        "operationId": "patchNetworkKubesphereIoV1alpha1WorkspaceNetworkPolicyStatus",
+        "operationId": "patchNetworkKubesphereIoV1alpha1NamespaceNetworkPolicyStatus",
         "parameters": [
           {
             "name": "body",
@@ -8676,7 +7527,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+              "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
             }
           }
         },
@@ -8684,14 +7535,14 @@
         "x-kubernetes-group-version-kind": {
           "group": "network.kubesphere.io",
           "version": "v1alpha1",
-          "kind": "WorkspaceNetworkPolicy"
+          "kind": "NamespaceNetworkPolicy"
         }
       },
       "parameters": [
         {
           "uniqueItems": true,
           "type": "string",
-          "description": "name of the WorkspaceNetworkPolicy",
+          "description": "name of the NamespaceNetworkPolicy",
           "name": "name",
           "in": "path",
           "required": true
@@ -8701,6 +7552,216 @@
           "type": "string",
           "description": "If 'true', then the output is pretty printed.",
           "name": "pretty",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/network.kubesphere.io/v1alpha1/watch/namespacenetworkpolicies": {
+      "get": {
+        "description": "watch individual changes to a list of NamespaceNetworkPolicy. deprecated: use the 'watch' parameter with a list operation instead.",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf",
+          "application/json;stream=watch",
+          "application/vnd.kubernetes.protobuf;stream=watch"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "networkKubesphereIo_v1alpha1"
+        ],
+        "operationId": "watchNetworkKubesphereIoV1alpha1NamespaceNetworkPolicyList",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
+            }
+          }
+        },
+        "x-kubernetes-action": "watchlist",
+        "x-kubernetes-group-version-kind": {
+          "group": "network.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "NamespaceNetworkPolicy"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
+          "name": "allowWatchBookmarks",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+          "name": "continue",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+          "name": "fieldSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+          "name": "labelSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+          "name": "limit",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+          "name": "resourceVersion",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+          "name": "timeoutSeconds",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+          "name": "watch",
+          "in": "query"
+        }
+      ]
+    },
+    "/apis/network.kubesphere.io/v1alpha1/watch/namespacenetworkpolicies/{name}": {
+      "get": {
+        "description": "watch changes to an object of kind NamespaceNetworkPolicy. deprecated: use the 'watch' parameter with a list operation instead, filtered to a single item with the 'fieldSelector' parameter.",
+        "consumes": [
+          "*/*"
+        ],
+        "produces": [
+          "application/json",
+          "application/yaml",
+          "application/vnd.kubernetes.protobuf",
+          "application/json;stream=watch",
+          "application/vnd.kubernetes.protobuf;stream=watch"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "networkKubesphereIo_v1alpha1"
+        ],
+        "operationId": "watchNetworkKubesphereIoV1alpha1NamespaceNetworkPolicy",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent"
+            }
+          }
+        },
+        "x-kubernetes-action": "watch",
+        "x-kubernetes-group-version-kind": {
+          "group": "network.kubesphere.io",
+          "version": "v1alpha1",
+          "kind": "NamespaceNetworkPolicy"
+        }
+      },
+      "parameters": [
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "allowWatchBookmarks requests watch events with type \"BOOKMARK\". Servers that do not implement bookmarks may ignore this flag and bookmarks are sent at the server's discretion. Clients should not assume bookmarks are returned at any specific interval, nor may they assume the server will send any BOOKMARK event during a session. If this is not a watch, this field is ignored. If the feature gate WatchBookmarks is not enabled in apiserver, this field is ignored.\n\nThis field is beta.",
+          "name": "allowWatchBookmarks",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".\n\nThis field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.",
+          "name": "continue",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+          "name": "fieldSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+          "name": "labelSelector",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "limit is a maximum number of responses to return for a list call. If more items exist, the server will set the `continue` field on the list metadata to a value that can be used with the same initial query to retrieve the next set of results. Setting a limit may return fewer than the requested amount of items (up to zero items) in the event all requested objects are filtered out and clients should only use the presence of the continue field to determine whether more results are available. Servers may choose not to support the limit argument and will return all of the available results. If limit is specified and the continue field is empty, clients may assume that no more results are available. This field is not supported if watch is true.\n\nThe server guarantees that the objects returned when using continue will be identical to issuing a single list call without a limit - that is, no objects created, modified, or deleted after the first request is issued will be included in any subsequent continued requests. This is sometimes referred to as a consistent snapshot, and ensures that a client that is using limit to receive smaller chunks of a very large result can ensure they see all possible objects. If objects are updated during a chunked list the version of the object that was present at the time the first list result was calculated is returned.",
+          "name": "limit",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "name of the NamespaceNetworkPolicy",
+          "name": "name",
+          "in": "path",
+          "required": true
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "If 'true', then the output is pretty printed.",
+          "name": "pretty",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "string",
+          "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+          "name": "resourceVersion",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "integer",
+          "description": "Timeout for the list/watch call. This limits the duration of the call, regardless of any activity or inactivity.",
+          "name": "timeoutSeconds",
+          "in": "query"
+        },
+        {
+          "uniqueItems": true,
+          "type": "boolean",
+          "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+          "name": "watch",
           "in": "query"
         }
       ]
@@ -10023,53 +9084,6 @@
         }
       }
     },
-    "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector": {
-      "description": "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
-      "type": "object",
-      "properties": {
-        "matchExpressions": {
-          "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement"
-          }
-        },
-        "matchLabels": {
-          "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement": {
-      "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
-      "type": "object",
-      "required": [
-        "key",
-        "operator"
-      ],
-      "properties": {
-        "key": {
-          "description": "key is the label key that the selector applies to.",
-          "type": "string",
-          "x-kubernetes-patch-merge-key": "key",
-          "x-kubernetes-patch-strategy": "merge"
-        },
-        "operator": {
-          "description": "operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.",
-          "type": "string"
-        },
-        "values": {
-          "description": "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta": {
       "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
       "type": "object",
@@ -10451,152 +9465,6 @@
       "type": "string",
       "format": "int-or-string"
     },
-    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent": {
-      "description": "Agent is the Schema for the agents API",
-      "type": "object",
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-        },
-        "spec": {
-          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentSpec"
-        },
-        "status": {
-          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentStatus"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "cluster.kubesphere.io",
-          "kind": "Agent",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentCondition": {
-      "type": "object",
-      "required": [
-        "status"
-      ],
-      "properties": {
-        "lastTransitionTime": {
-          "description": "Last time the condition transitioned from one status to another.",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-        },
-        "lastUpdateTime": {
-          "description": "The last time this condition was updated.",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-        },
-        "message": {
-          "description": "A human readable message indicating details about the transition.",
-          "type": "string"
-        },
-        "reason": {
-          "description": "The reason for the condition's last transition.",
-          "type": "string"
-        },
-        "status": {
-          "description": "Status of the condition, one of True, False, Unknown.",
-          "type": "string"
-        },
-        "type": {
-          "description": "Type of AgentCondition",
-          "type": "string"
-        }
-      }
-    },
-    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentList": {
-      "description": "AgentList contains a list of Agent",
-      "type": "object",
-      "required": [
-        "items"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Agent"
-          }
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-        }
-      },
-      "x-kubernetes-group-version-kind": [
-        {
-          "group": "cluster.kubesphere.io",
-          "kind": "AgentList",
-          "version": "v1alpha1"
-        }
-      ]
-    },
-    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentSpec": {
-      "description": "AgentSpec defines the desired state of Agent",
-      "type": "object",
-      "properties": {
-        "kubernetesAPIServerPort": {
-          "description": "KubeAPIServerPort is the port which listens for forwarding kube-apiserver traffic",
-          "type": "integer",
-          "format": "int32"
-        },
-        "kubesphereAPIServerPort": {
-          "description": "KubeSphereAPIServerPort is the port which listens for forwarding kubesphere apigateway traffic",
-          "type": "integer",
-          "format": "int32"
-        },
-        "paused": {
-          "description": "Indicates that the agent is paused.",
-          "type": "boolean"
-        },
-        "proxy": {
-          "description": "Proxy address",
-          "type": "string"
-        },
-        "token": {
-          "description": "Token used by agents to connect to proxy.",
-          "type": "string"
-        }
-      }
-    },
-    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentStatus": {
-      "description": "AgentStatus defines the observed state of Agent",
-      "type": "object",
-      "properties": {
-        "conditions": {
-          "description": "Represents the latest available observations of a agent's current state.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.AgentCondition"
-          }
-        },
-        "kubeconfig": {
-          "description": "Issued new kubeconfig by proxy server",
-          "type": "string",
-          "format": "byte"
-        },
-        "ping": {
-          "description": "Represents the connection quality, in ms",
-          "type": "integer",
-          "format": "int64"
-        }
-      }
-    },
     "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Cluster": {
       "description": "Cluster is the schema for the clusters API",
       "type": "object",
@@ -10695,11 +9563,15 @@
     "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.ClusterSpec": {
       "type": "object",
       "properties": {
-        "active": {
+        "connection": {
+          "description": "Connection holds info to connect to the member cluster",
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Connection"
+        },
+        "enable": {
           "description": "Desired state of the cluster",
           "type": "boolean"
         },
-        "federated": {
+        "joinFederation": {
           "description": "Join cluster as a kubefed cluster",
           "type": "boolean"
         },
@@ -10720,13 +9592,60 @@
           }
         },
         "kubernetesVersion": {
-          "description": "GitVersion of the kubernetes cluster, this field is set by cluster controller",
+          "description": "GitVersion of the kubernetes cluster, this field is populated by cluster controller",
           "type": "string"
         },
         "nodeCount": {
-          "description": "Count of the kubernetes cluster nodes",
+          "description": "Count of the kubernetes cluster nodes This field may not reflect the instant status of the cluster.",
           "type": "integer",
           "format": "int32"
+        },
+        "region": {
+          "description": "Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.",
+          "type": "string"
+        },
+        "zones": {
+          "description": "Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.cluster.v1alpha1.Connection": {
+      "type": "object",
+      "properties": {
+        "kubeconfig": {
+          "description": "KubeConfig content used to connect to cluster api server Should provide this field explicitly if connection type is direct. Will be populated by ks-proxy if connection type is proxy.",
+          "type": "string",
+          "format": "byte"
+        },
+        "kubernetesAPIEndpoint": {
+          "description": "Kubernetes API Server endpoint. Example: https://10.10.0.1:6443 Should provide this field explicitly if connection type is direct. Will be populated by ks-apiserver if connection type is proxy.",
+          "type": "string"
+        },
+        "kubernetesAPIServerPort": {
+          "description": "KubeAPIServerPort is the port which listens for forwarding kube-apiserver traffic Only applicable when connection type is proxy.",
+          "type": "integer",
+          "format": "int32"
+        },
+        "kubesphereAPIEndpoint": {
+          "description": "KubeSphere API Server endpoint. Example: http://10.10.0.11:8080 Should provide this field explicitly if connection type is direct. Will be populated by ks-apiserver if connection type is proxy.",
+          "type": "string"
+        },
+        "kubesphereAPIServerPort": {
+          "description": "KubeSphereAPIServerPort is the port which listens for forwarding kubesphere apigateway traffic Only applicable when connection type is proxy.",
+          "type": "integer",
+          "format": "int32"
+        },
+        "token": {
+          "description": "Token used by agents of member cluster to connect to host cluster proxy. This field is populated by apiserver only if connection type is proxy.",
+          "type": "string"
+        },
+        "type": {
+          "description": "type defines how host cluster will connect to host cluster ConnectionTypeDirect means direct connection, this requires\n  kubeconfig and kubesphere apiserver endpoint provided\nConnectionTypeProxy means using kubesphere proxy, no kubeconfig\n  or kubesphere apiserver endpoint required",
+          "type": "string"
         }
       }
     },
@@ -12210,8 +11129,8 @@
         }
       }
     },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy": {
-      "description": "WorkspaceNetworkPolicy is a set of network policies applied to the scope to workspace",
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy": {
+      "description": "NamespaceNetworkPolicy is the Schema for the namespacenetworkpolicies API",
       "type": "object",
       "properties": {
         "apiVersion": {
@@ -12226,62 +11145,19 @@
           "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
         },
         "spec": {
-          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicySpec"
-        },
-        "status": {
-          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyStatus"
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicySpec"
         }
       },
       "x-kubernetes-group-version-kind": [
         {
           "group": "network.kubesphere.io",
-          "kind": "WorkspaceNetworkPolicy",
+          "kind": "NamespaceNetworkPolicy",
           "version": "v1alpha1"
         }
       ]
     },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyEgressRule": {
-      "description": "WorkspaceNetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods matched by a WorkspaceNetworkPolicySpec's podSelector. The traffic must match both ports and to.",
-      "type": "object",
-      "properties": {
-        "from": {
-          "description": "List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least on item, this rule allows traffic only if the traffic matches at least one item in the from list.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyPeer"
-          }
-        },
-        "ports": {
-          "description": "List of ports which should be made accessible on the pods selected for this rule. Each item in this list is combined using a logical OR. If this field is empty or missing, this rule matches all ports (traffic not restricted by port). If this field is present and contains at least one item, then this rule allows traffic only if the traffic matches at least one port in the list.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.k8s.api.networking.v1.NetworkPolicyPort"
-          }
-        }
-      }
-    },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyIngressRule": {
-      "description": "WorkspaceNetworkPolicyIngressRule describes a particular set of traffic that is allowed to the pods matched by a WorkspaceNetworkPolicySpec's podSelector. The traffic must match both ports and from.",
-      "type": "object",
-      "properties": {
-        "from": {
-          "description": "List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least on item, this rule allows traffic only if the traffic matches at least one item in the from list.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyPeer"
-          }
-        },
-        "ports": {
-          "description": "List of ports which should be made accessible on the pods selected for this rule. Each item in this list is combined using a logical OR. If this field is empty or missing, this rule matches all ports (traffic not restricted by port). If this field is present and contains at least one item, then this rule allows traffic only if the traffic matches at least one port in the list.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/io.k8s.api.networking.v1.NetworkPolicyPort"
-          }
-        }
-      }
-    },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyList": {
-      "description": "WorkspaceNetworkPolicyList contains a list of WorkspaceNetworkPolicy",
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicyList": {
+      "description": "NamespaceNetworkPolicyList contains a list of NamespaceNetworkPolicy",
       "type": "object",
       "required": [
         "items"
@@ -12294,7 +11170,7 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicy"
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicy"
           }
         },
         "kind": {
@@ -12308,66 +11184,119 @@
       "x-kubernetes-group-version-kind": [
         {
           "group": "network.kubesphere.io",
-          "kind": "WorkspaceNetworkPolicyList",
+          "kind": "NamespaceNetworkPolicyList",
           "version": "v1alpha1"
         }
       ]
     },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyPeer": {
-      "description": "WorkspaceNetworkPolicyPeer describes a peer to allow traffic from. Only certain combinations of fields are allowed. It is same as 'NetworkPolicyPeer' in k8s but with an additional field 'WorkspaceSelector'",
-      "type": "object",
-      "properties": {
-        "ipBlock": {
-          "description": "IPBlock defines policy on a particular IPBlock. If this field is set then neither of the other fields can be.",
-          "$ref": "#/definitions/io.k8s.api.networking.v1.IPBlock"
-        },
-        "namespaceSelector": {
-          "description": "Selects Namespaces using cluster-scoped labels. This field follows standard label selector semantics; if present but empty, it selects all namespaces.\n\nIf PodSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects all Pods in the Namespaces selected by NamespaceSelector.",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector"
-        },
-        "podSelector": {
-          "description": "This is a label selector which selects Pods. This field follows standard label selector semantics; if present but empty, it selects all pods.\n\nIf NamespaceSelector is also set, then the NetworkPolicyPeer as a whole selects the Pods matching PodSelector in the Namespaces selected by NamespaceSelector. Otherwise it selects the Pods matching PodSelector in the policy's own Namespace.",
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector"
-        },
-        "workspaceSelector": {
-          "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector"
-        }
-      }
-    },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicySpec": {
-      "description": "WorkspaceNetworkPolicySpec defines the desired state of WorkspaceNetworkPolicy",
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceNetworkPolicySpec": {
+      "description": "NamespaceNetworkPolicySpec provides the specification of a NamespaceNetworkPolicy",
       "type": "object",
       "properties": {
         "egress": {
           "description": "List of egress rules to be applied to the selected pods. Outgoing traffic is allowed if there are no NetworkPolicies selecting the pod (and cluster policy otherwise allows the traffic), OR if the traffic matches at least one egress rule across all of the NetworkPolicy objects whose podSelector matches the pod. If this field is empty then this NetworkPolicy limits all outgoing traffic (and serves solely to ensure that the pods it selects are isolated by default). This field is beta-level in 1.8",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyEgressRule"
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyEgressRule"
           }
         },
         "ingress": {
           "description": "List of ingress rules to be applied to the selected pods. Traffic is allowed to a pod if there are no NetworkPolicies selecting the pod (and cluster policy otherwise allows the traffic), OR if the traffic source is the pod's local node, OR if the traffic matches at least one ingress rule across all of the NetworkPolicy objects whose podSelector matches the pod. If this field is empty then this NetworkPolicy does not allow any traffic (and serves solely to ensure that the pods it selects are isolated by default)",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyIngressRule"
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyIngressRule"
           }
         },
         "policyTypes": {
-          "description": "List of rule types that the WorkspaceNetworkPolicy relates to. Valid options are Ingress, Egress, or Ingress,Egress. If this field is not specified, it will default based on the existence of Ingress or Egress rules; policies that contain an Egress section are assumed to affect Egress, and all policies (whether or not they contain an Ingress section) are assumed to affect Ingress. If you want to write an egress-only policy, you must explicitly specify policyTypes [ \"Egress\" ]. Likewise, if you want to write a policy that specifies that no egress is allowed, you must specify a policyTypes value that include \"Egress\" (since such a policy would not include an Egress section and would otherwise default to just [ \"Ingress\" ]).",
+          "description": "List of rule types that the NetworkPolicy relates to. Valid options are \"Ingress\", \"Egress\", or \"Ingress,Egress\". If this field is not specified, it will default based on the existence of Ingress or Egress rules; policies that contain an Egress section are assumed to affect Egress, and all policies (whether or not they contain an Ingress section) are assumed to affect Ingress. If you want to write an egress-only policy, you must explicitly specify policyTypes [ \"Egress\" ]. Likewise, if you want to write a policy that specifies that no egress is allowed, you must specify a policyTypes value that include \"Egress\" (since such a policy would not include an Egress section and would otherwise default to just [ \"Ingress\" ]). This field is beta-level in 1.8",
           "type": "array",
           "items": {
             "type": "string"
           }
-        },
-        "workspace": {
-          "description": "Workspace specify the name of ws to apply this workspace network policy",
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceSelector": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
           "type": "string"
         }
       }
     },
-    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.WorkspaceNetworkPolicyStatus": {
-      "description": "WorkspaceNetworkPolicyStatus defines the observed state of WorkspaceNetworkPolicy",
-      "type": "object"
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyEgressRule": {
+      "description": "NetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and to. This type is beta-level in 1.8",
+      "type": "object",
+      "properties": {
+        "ports": {
+          "description": "List of destination ports for outgoing traffic. Each item in this list is combined using a logical OR. If this field is empty or missing, this rule matches all ports (traffic not restricted by port). If this field is present and contains at least one item, then this rule allows traffic only if the traffic matches at least one port in the list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.k8s.api.networking.v1.NetworkPolicyPort"
+          }
+        },
+        "to": {
+          "description": "List of destinations for outgoing traffic of pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all destinations (traffic not restricted by destination). If this field is present and contains at least one item, this rule allows traffic only if the traffic matches at least one item in the to list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyPeer"
+          }
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyIngressRule": {
+      "description": "NetworkPolicyIngressRule describes a particular set of traffic that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and from.",
+      "type": "object",
+      "properties": {
+        "from": {
+          "description": "List of sources which should be able to access the pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all sources (traffic not restricted by source). If this field is present and contains at least one item, this rule allows traffic only if the traffic matches at least one item in the from list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyPeer"
+          }
+        },
+        "ports": {
+          "description": "List of ports which should be made accessible on the pods selected for this rule. Each item in this list is combined using a logical OR. If this field is empty or missing, this rule matches all ports (traffic not restricted by port). If this field is present and contains at least one item, then this rule allows traffic only if the traffic matches at least one port in the list.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/io.k8s.api.networking.v1.NetworkPolicyPort"
+          }
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NetworkPolicyPeer": {
+      "description": "NetworkPolicyPeer describes a peer to allow traffic from. Only certain combinations of fields are allowed",
+      "type": "object",
+      "properties": {
+        "ipBlock": {
+          "description": "IPBlock defines policy on a particular IPBlock. If this field is set then neither of the other fields can be.",
+          "$ref": "#/definitions/io.k8s.api.networking.v1.IPBlock"
+        },
+        "namespace": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.NamespaceSelector"
+        },
+        "service": {
+          "$ref": "#/definitions/io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.ServiceSelector"
+        }
+      }
+    },
+    "io.kubesphere.kubesphere.pkg.apis.network.v1alpha1.ServiceSelector": {
+      "type": "object",
+      "required": [
+        "name",
+        "namespace"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      }
     },
     "io.kubesphere.kubesphere.pkg.apis.tenant.v1alpha1.Workspace": {
       "description": "Workspace is the Schema for the workspaces API",
@@ -12438,6 +11367,9 @@
       "properties": {
         "manager": {
           "type": "string"
+        },
+        "networkIsolation": {
+          "type": "boolean"
         }
       }
     },

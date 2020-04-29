@@ -283,16 +283,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apimachinery/pkg/runtime.RawExtension":                        schema_k8sio_apimachinery_pkg_runtime_RawExtension(ref),
 		"k8s.io/apimachinery/pkg/runtime.TypeMeta":                            schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
 		"k8s.io/apimachinery/pkg/runtime.Unknown":                             schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
-		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Agent":            schema_pkg_apis_cluster_v1alpha1_Agent(ref),
-		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentCondition":   schema_pkg_apis_cluster_v1alpha1_AgentCondition(ref),
-		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentList":        schema_pkg_apis_cluster_v1alpha1_AgentList(ref),
-		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentSpec":        schema_pkg_apis_cluster_v1alpha1_AgentSpec(ref),
-		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentStatus":      schema_pkg_apis_cluster_v1alpha1_AgentStatus(ref),
 		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Cluster":          schema_pkg_apis_cluster_v1alpha1_Cluster(ref),
 		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.ClusterCondition": schema_pkg_apis_cluster_v1alpha1_ClusterCondition(ref),
 		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.ClusterList":      schema_pkg_apis_cluster_v1alpha1_ClusterList(ref),
 		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.ClusterSpec":      schema_pkg_apis_cluster_v1alpha1_ClusterSpec(ref),
 		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.ClusterStatus":    schema_pkg_apis_cluster_v1alpha1_ClusterStatus(ref),
+		"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Connection":       schema_pkg_apis_cluster_v1alpha1_Connection(ref),
 	}
 }
 
@@ -13289,242 +13285,6 @@ func schema_k8sio_apimachinery_pkg_runtime_Unknown(ref common.ReferenceCallback)
 	}
 }
 
-func schema_pkg_apis_cluster_v1alpha1_Agent(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Agent is the Schema for the agents API",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentSpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentStatus"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentSpec", "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentStatus"},
-	}
-}
-
-func schema_pkg_apis_cluster_v1alpha1_AgentCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Type of AgentCondition",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Status of the condition, one of True, False, Unknown.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"lastUpdateTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "The last time this condition was updated.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"lastTransitionTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Last time the condition transitioned from one status to another.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"reason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "The reason for the condition's last transition.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"message": {
-						SchemaProps: spec.SchemaProps{
-							Description: "A human readable message indicating details about the transition.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"status"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_pkg_apis_cluster_v1alpha1_AgentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AgentList contains a list of Agent",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Agent"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Agent"},
-	}
-}
-
-func schema_pkg_apis_cluster_v1alpha1_AgentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AgentSpec defines the desired state of Agent",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"token": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Token used by agents to connect to proxy.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"proxy": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Proxy address",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"kubernetesAPIServerPort": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KubeAPIServerPort is the port which listens for forwarding kube-apiserver traffic",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"kubesphereAPIServerPort": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KubeSphereAPIServerPort is the port which listens for forwarding kubesphere apigateway traffic",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"paused": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Indicates that the agent is paused.",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func schema_pkg_apis_cluster_v1alpha1_AgentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AgentStatus defines the observed state of Agent",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Represents the latest available observations of a agent's current state.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentCondition"),
-									},
-								},
-							},
-						},
-					},
-					"ping": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Represents the connection quality, in ms",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"kubeconfig": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Issued new kubeconfig by proxy server",
-							Type:        []string{"string"},
-							Format:      "byte",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.AgentCondition"},
-	}
-}
-
 func schema_pkg_apis_cluster_v1alpha1_Cluster(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -13676,14 +13436,14 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterSpec(ref common.ReferenceCallback) 
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"federated": {
+					"joinFederation": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Join cluster as a kubefed cluster",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
-					"active": {
+					"enable": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Desired state of the cluster",
 							Type:        []string{"boolean"},
@@ -13697,9 +13457,17 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterSpec(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
+					"connection": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Connection holds info to connect to the member cluster",
+							Ref:         ref("kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Connection"),
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.Connection"},
 	}
 }
 
@@ -13724,16 +13492,37 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterStatus(ref common.ReferenceCallback
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "GitVersion of the kubernetes cluster, this field is set by cluster controller",
+							Description: "GitVersion of the kubernetes cluster, this field is populated by cluster controller",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"nodeCount": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Count of the kubernetes cluster nodes",
+							Description: "Count of the kubernetes cluster nodes This field may not reflect the instant status of the cluster.",
 							Type:        []string{"integer"},
 							Format:      "int32",
+						},
+					},
+					"zones": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Zones are the names of availability zones in which the nodes of the cluster exist, e.g. 'us-east1-a'.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"region": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -13741,5 +13530,66 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterStatus(ref common.ReferenceCallback
 		},
 		Dependencies: []string{
 			"kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1.ClusterCondition"},
+	}
+}
+
+func schema_pkg_apis_cluster_v1alpha1_Connection(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type defines how host cluster will connect to host cluster ConnectionTypeDirect means direct connection, this requires\n  kubeconfig and kubesphere apiserver endpoint provided\nConnectionTypeProxy means using kubesphere proxy, no kubeconfig\n  or kubesphere apiserver endpoint required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubesphereAPIEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeSphere API Server endpoint. Example: http://10.10.0.11:8080 Should provide this field explicitly if connection type is direct. Will be populated by ks-apiserver if connection type is proxy.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubernetesAPIEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kubernetes API Server endpoint. Example: https://10.10.0.1:6443 Should provide this field explicitly if connection type is direct. Will be populated by ks-apiserver if connection type is proxy.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubeconfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeConfig content used to connect to cluster api server Should provide this field explicitly if connection type is direct. Will be populated by ks-proxy if connection type is proxy.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+					"token": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Token used by agents of member cluster to connect to host cluster proxy. This field is populated by apiserver only if connection type is proxy.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kubernetesAPIServerPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeAPIServerPort is the port which listens for forwarding kube-apiserver traffic Only applicable when connection type is proxy.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"kubesphereAPIServerPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeSphereAPIServerPort is the port which listens for forwarding kubesphere apigateway traffic Only applicable when connection type is proxy.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
 	}
 }
