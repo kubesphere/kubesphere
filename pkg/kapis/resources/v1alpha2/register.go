@@ -58,6 +58,7 @@ func addWebService(c *restful.Container) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	ok := "ok"
+	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(resources.ListNamespacedResources).
@@ -259,6 +260,7 @@ func addWebService(c *restful.Container) error {
 		To(workloadstatuses.GetNamespacedAbnormalWorkloads))
 
 	webservice.Route(webservice.PATCH("/storageclasses/{storageclass}").
+		Consumes(mimePatch...).
 		To(resources.PatchStorageClass).
 		Doc("patch storage class").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterResourcesTag}).
