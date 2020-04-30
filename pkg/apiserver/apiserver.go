@@ -30,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/informers"
+	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
@@ -139,6 +140,9 @@ func (s *APIServer) PrepareRun() error {
 	return nil
 }
 
+// Install all kubesphere api groups
+// Installation happens before all informers start to cache objects, so
+//   any attempt to list objects using listers will get empty results.
 func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
 	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
@@ -150,12 +154,26 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
-	urlruntime.Must(iamapi.AddToContainer(s.container, im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
+	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
+		s.InformerFactory.KubernetesSharedInformerFactory(),
+		s.InformerFactory.KubeSphereSharedInformerFactory(),
+		s.Config.MultiClusterOptions.ProxyPublishService,
+		s.Config.MultiClusterOptions.ProxyPublishAddress,
+		s.Config.MultiClusterOptions.AgentImage))
+	urlruntime.Must(iamapi.AddToContainer(s.container,
+		im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
 		am.NewAMOperator(s.InformerFactory),
 		s.Config.AuthenticationOptions))
-	urlruntime.Must(oauth.AddToContainer(s.container, token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient), s.Config.AuthenticationOptions))
+	urlruntime.Must(oauth.AddToContainer(s.container,
+		token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient),
+		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
-	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container, s.InformerFactory.KubeSphereSharedInformerFactory(), s.DevopsClient, s.SonarClient, s.KubernetesClient.KubeSphere(), s.S3Client))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
+		s.InformerFactory.KubeSphereSharedInformerFactory(),
+		s.DevopsClient,
+		s.SonarClient,
+		s.KubernetesClient.KubeSphere(),
+		s.S3Client))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {

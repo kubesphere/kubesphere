@@ -21,7 +21,7 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 )
 
@@ -31,7 +31,7 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, config *apiserverconfig.Config) error {
+func AddToContainer(c *restful.Container, config *kubesphereconfig.Config) error {
 	webservice := runtime.NewWebService(GroupVersion)
 
 	webservice.Route(webservice.GET("/configs/oauth").
