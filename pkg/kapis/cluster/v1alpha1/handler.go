@@ -23,6 +23,8 @@ const (
 	defaultAgentImage = "kubesphere/tower:v1.0"
 )
 
+var ErrClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
+
 type handler struct {
 	serviceLister v1.ServiceLister
 	clusterLister clusterlister.ClusterLister
@@ -60,6 +62,11 @@ func (h *handler) GenerateAgentDeployment(request *restful.Request, response *re
 			api.HandleInternalError(response, request, err)
 			return
 		}
+	}
+
+	if cluster.Spec.Connection.Type != v1alpha1.ConnectionTypeProxy {
+		api.HandleNotFound(response, request, fmt.Errorf("cluster %s is not using proxy connection", cluster.Name))
+		return
 	}
 
 	// use service ingress address
@@ -125,6 +132,10 @@ func (h *handler) populateProxyAddress() error {
 }
 
 func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writer) error {
+
+	if cluster.Spec.Connection.Type == v1alpha1.ConnectionTypeDirect {
+		return ErrClusterConnectionIsNotProxy
+	}
 
 	agent := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
