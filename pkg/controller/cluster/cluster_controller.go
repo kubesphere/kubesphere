@@ -309,6 +309,16 @@ func (c *ClusterController) syncCluster(key string) error {
 		cluster.Spec.Connection.KubernetesAPIEndpoint = fmt.Sprintf("https://%s:%d", service.Spec.ClusterIP, kubernetesPort)
 		cluster.Spec.Connection.KubeSphereAPIEndpoint = fmt.Sprintf("http://%s:%d", service.Spec.ClusterIP, kubespherePort)
 
+		initializedCondition := clusterv1alpha1.ClusterCondition{
+			Type:               clusterv1alpha1.ClusterInitialized,
+			Status:             v1.ConditionTrue,
+			Reason:             string(clusterv1alpha1.ClusterInitialized),
+			Message:            "Cluster has been initialized",
+			LastUpdateTime:     metav1.Now(),
+			LastTransitionTime: metav1.Now(),
+		}
+		c.updateClusterCondition(cluster, initializedCondition)
+
 		if !reflect.DeepEqual(oldCluster.Spec, cluster.Spec) {
 			cluster, err = c.clusterClient.Update(cluster)
 			if err != nil {

@@ -98,23 +98,57 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)
 
-	h := NewHandler(informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Lister(),
-		informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister(),
-		proxyService,
-		"",
-		agentImage)
+	directConnectionCluster := cluster.DeepCopy()
+	directConnectionCluster.Spec.Connection.Type = v1alpha1.ConnectionTypeDirect
 
-	var buf bytes.Buffer
-
-	err := h.populateProxyAddress()
-	if err != nil {
-		t.Error(err)
+	var testCases = []struct {
+		description    string
+		expectingError bool
+		expectedError  error
+		cluster        *v1alpha1.Cluster
+		expected       string
+	}{
+		{
+			description:    "test normal case",
+			expectingError: false,
+			expected:       expected,
+			cluster:        cluster,
+		},
+		{
+			description:    "test direct connection cluster",
+			expectingError: true,
+			expectedError:  ErrClusterConnectionIsNotProxy,
+			cluster:        directConnectionCluster,
+		},
 	}
 
-	err = h.generateDefaultDeployment(cluster, &buf)
-	if diff := cmp.Diff(buf.String(), expected); len(diff) != 0 {
-		t.Error(diff)
+	for _, testCase := range testCases {
+
+		t.Run(testCase.description, func(t *testing.T) {
+			h := NewHandler(informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Lister(),
+				informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister(),
+				proxyService,
+				"",
+				agentImage)
+
+			var buf bytes.Buffer
+
+			err := h.populateProxyAddress()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = h.generateDefaultDeployment(testCase.cluster, &buf)
+			if testCase.expectingError {
+				if err == nil {
+					t.Fatalf("expecting error %v, got nil", testCase.expectedError)
+				} else if err != testCase.expectedError {
+					t.Fatalf("expecting error %v, got %v", testCase.expectedError, err)
+				}
+			}
+		})
 	}
+
 }
 
 func TestInnerGenerateAgentDeployment(t *testing.T) {
