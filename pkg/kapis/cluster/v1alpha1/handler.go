@@ -131,6 +131,10 @@ func (h *handler) populateProxyAddress() error {
 	return nil
 }
 
+// Currently, this method works because of serviceaccount/clusterrole/clusterrolebinding already
+// created by kubesphere, we don't need to create them again. And it's a little bit inconvenient
+// if we want to change the template.
+// TODO(jeff): load template from configmap
 func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writer) error {
 
 	if cluster.Spec.Connection.Type == v1alpha1.ConnectionTypeDirect {
@@ -143,12 +147,24 @@ func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writ
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "cluster-agent",
+			Name:      "cluster-agent",
+			Namespace: "kubesphere-system",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":                       "agent",
+					"app.kubernetes.io/part-of": "tower",
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app":                       "agent",
+						"app.kubernetes.io/part-of": "tower",
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{

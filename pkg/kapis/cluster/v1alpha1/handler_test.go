@@ -61,12 +61,19 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   name: cluster-agent
+  namespace: kubesphere-system
 spec:
-  selector: {}
+  selector:
+    matchLabels:
+      app: agent
+      app.kubernetes.io/part-of: tower
   strategy: {}
   template:
     metadata:
       creationTimestamp: null
+      labels:
+        app: agent
+        app.kubernetes.io/part-of: tower
     spec:
       containers:
       - command:
@@ -145,6 +152,10 @@ func TestGeranteAgentDeployment(t *testing.T) {
 				} else if err != testCase.expectedError {
 					t.Fatalf("expecting error %v, got %v", testCase.expectedError, err)
 				}
+			}
+
+			if diff := cmp.Diff(testCase.expected, buf.String()); len(diff) != 0 {
+				t.Errorf("%T, got +, expected -, %s", testCase.expected, diff)
 			}
 		})
 	}
