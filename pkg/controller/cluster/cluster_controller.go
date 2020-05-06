@@ -319,7 +319,7 @@ func (c *ClusterController) syncCluster(key string) error {
 		}
 		c.updateClusterCondition(cluster, initializedCondition)
 
-		if !reflect.DeepEqual(oldCluster.Spec, cluster.Spec) {
+		if !reflect.DeepEqual(oldCluster, cluster) {
 			cluster, err = c.clusterClient.Update(cluster)
 			if err != nil {
 				klog.Errorf("Error updating cluster %s, error %s", cluster.Name, err)
