@@ -47,8 +47,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet, s *Options) {
 
 	fs.StringVar(&o.ProxyPublishAddress, "proxy-publish-address", s.ProxyPublishAddress, ""+
 		"Public address of tower, APIServer will use this field as proxy publish address. This field "+
-		"takes precedence over field proxy-publish-service. For example, 139.198.121.121:8080.")
+		"takes precedence over field proxy-publish-service. For example, http://139.198.121.121:8080.")
 
-	fs.StringVar(&o.ProxyPublishAddress, "agent-image", s.AgentImage, ""+
+	fs.StringVar(&o.AgentImage, "agent-image", s.AgentImage, ""+
 		"This field is used when generating deployment yaml for agent.")
 }
