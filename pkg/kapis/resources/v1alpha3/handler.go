@@ -67,7 +67,7 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 	for field, value := range q.Filters {
 		switch field {
 		case query.FieldName:
-			conditions.Match[v1alpha2.Name] = string(value)
+			conditions.Fuzzy[v1alpha2.Name] = string(value)
 			break
 		case query.FieldCreationTimeStamp:
 			conditions.Match[v1alpha2.CreateTime] = string(value)
