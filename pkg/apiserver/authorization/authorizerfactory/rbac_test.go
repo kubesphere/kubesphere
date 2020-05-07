@@ -19,6 +19,7 @@ package authorizerfactory
 import (
 	"errors"
 	"github.com/google/go-cmp/cmp"
+	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
 	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	"hash/fnv"
 	"io"
@@ -240,7 +241,9 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 	k8sClient := fakek8s.NewSimpleClientset()
 	istioClient := fakeistio.NewSimpleClientset()
 	appClient := fakeapp.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient)
+	snapshotClient := fakesnapshot.NewSimpleClientset()
+
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 

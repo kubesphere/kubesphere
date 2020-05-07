@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
 	application "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	istio "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/discovery"
@@ -29,6 +30,10 @@ func (n nullClient) Istio() istio.Interface {
 }
 
 func (n nullClient) Application() application.Interface {
+	return nil
+}
+
+func (n nullClient) Snapshot() snapshotclient.Interface {
 	return nil
 }
 

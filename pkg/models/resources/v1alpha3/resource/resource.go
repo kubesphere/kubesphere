@@ -20,6 +20,7 @@ package resource
 
 import (
 	"errors"
+	snapshotv1beta1 "github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,6 +40,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/volumesnapshot"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspace"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspacerole"
 )
@@ -64,7 +66,7 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser)] = user.New(factory.KubeSphereSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource("roles")] = role.New(factory.KubernetesSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource("clusterroles")] = clusterrole.New(factory.KubernetesSharedInformerFactory())
-
+	getters[snapshotv1beta1.SchemeGroupVersion.WithResource("volumesnapshots")] = volumesnapshot.New(factory.SnapshotSharedInformerFactory())
 	return &ResourceGetter{
 		getters: getters,
 	}

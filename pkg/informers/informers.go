@@ -18,6 +18,8 @@
 package informers
 
 import (
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
 	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -39,19 +41,22 @@ type InformerFactory interface {
 	KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory
 	IstioSharedInformerFactory() istioinformers.SharedInformerFactory
 	ApplicationSharedInformerFactory() applicationinformers.SharedInformerFactory
+	SnapshotSharedInformerFactory() snapshotinformer.SharedInformerFactory
 
 	// Start shared informer factory one by one if they are not nil
 	Start(stopCh <-chan struct{})
 }
 
 type informerFactories struct {
-	informerFactory      k8sinformers.SharedInformerFactory
-	ksInformerFactory    ksinformers.SharedInformerFactory
-	istioInformerFactory istioinformers.SharedInformerFactory
-	appInformerFactory   applicationinformers.SharedInformerFactory
+	informerFactory         k8sinformers.SharedInformerFactory
+	ksInformerFactory       ksinformers.SharedInformerFactory
+	istioInformerFactory    istioinformers.SharedInformerFactory
+	appInformerFactory      applicationinformers.SharedInformerFactory
+	snapshotInformerFactory snapshotinformer.SharedInformerFactory
 }
 
-func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface, appClient applicationclient.Interface) InformerFactory {
+func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interface, istioClient istioclient.Interface,
+	appClient applicationclient.Interface, snapshotClient snapshotclient.Interface) InformerFactory {
 	factory := &informerFactories{}
 
 	if client != nil {
@@ -68,6 +73,10 @@ func NewInformerFactories(client kubernetes.Interface, ksClient versioned.Interf
 
 	if istioClient != nil {
 		factory.istioInformerFactory = istioinformers.NewSharedInformerFactory(istioClient, defaultResync)
+	}
+
+	if snapshotClient != nil {
+		factory.snapshotInformerFactory = snapshotinformer.NewSharedInformerFactory(snapshotClient, defaultResync)
 	}
 
 	return factory
@@ -87,6 +96,10 @@ func (f *informerFactories) ApplicationSharedInformerFactory() applicationinform
 
 func (f *informerFactories) IstioSharedInformerFactory() istioinformers.SharedInformerFactory {
 	return f.istioInformerFactory
+}
+
+func (f *informerFactories) SnapshotSharedInformerFactory() snapshotinformer.SharedInformerFactory {
+	return f.snapshotInformerFactory
 }
 
 func (f *informerFactories) Start(stopCh <-chan struct{}) {

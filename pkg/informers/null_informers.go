@@ -1,6 +1,7 @@
 package informers
 
 import (
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
 	appinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	"k8s.io/client-go/informers"
@@ -27,6 +28,10 @@ func (n nullInformerFactory) IstioSharedInformerFactory() istioinformers.SharedI
 }
 
 func (n nullInformerFactory) ApplicationSharedInformerFactory() appinformers.SharedInformerFactory {
+	return nil
+}
+
+func (n nullInformerFactory) SnapshotSharedInformerFactory() snapshotinformer.SharedInformerFactory {
 	return nil
 }
 

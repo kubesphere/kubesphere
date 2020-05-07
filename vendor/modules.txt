@@ -257,7 +257,7 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db => github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
-# github.com/google/go-cmp v0.3.0 => github.com/google/go-cmp v0.3.0
+# github.com/google/go-cmp v0.3.1 => github.com/google/go-cmp v0.3.0
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -348,6 +348,18 @@ github.com/kiali/kiali/util/intutil
 github.com/koding/multiconfig
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2 => github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0 => github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/scheme
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/typed/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/typed/volumesnapshot/v1beta1/fake
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions/internalinterfaces
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions/volumesnapshot
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions/volumesnapshot/v1beta1
+github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/listers/volumesnapshot/v1beta1
 # github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4 => github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4
 github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1
 github.com/kubernetes-sigs/application/pkg/client/clientset/versioned
@@ -617,7 +629,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190923162816-aa69164e4478 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -635,7 +647,7 @@ golang.org/x/net/websocket
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+# golang.org/x/sys v0.0.0-20191220220014-0732a990476f => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -689,12 +701,12 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 => google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
+# google.golang.org/genproto v0.0.0-20191220175831-5c49e3ecc1c1 => google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.23.1 => google.golang.org/grpc v1.23.1
+# google.golang.org/grpc v1.26.0 => google.golang.org/grpc v1.23.1
 google.golang.org/grpc
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base

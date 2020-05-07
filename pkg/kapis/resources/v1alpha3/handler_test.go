@@ -2,6 +2,7 @@ package v1alpha3
 
 import (
 	"github.com/google/go-cmp/cmp"
+	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
 	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
@@ -164,7 +165,9 @@ func prepare() (informers.InformerFactory, error) {
 	k8sClient := fakek8s.NewSimpleClientset()
 	istioClient := fakeistio.NewSimpleClientset()
 	appClient := fakeapp.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient)
+	snapshotClient := fakesnapshot.NewSimpleClientset()
+
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 
