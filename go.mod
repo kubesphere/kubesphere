@@ -41,16 +41,16 @@ require (
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/mock v1.2.0
 	github.com/golang/protobuf v1.3.2
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.3.1
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/go-version v1.2.0 // indirect
-	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779
+	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
@@ -79,8 +79,8 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
-	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
-	google.golang.org/grpc v1.23.1
+	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+	google.golang.org/grpc v1.26.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
@@ -142,6 +142,7 @@ replace (
 	github.com/cespare/xxhash => github.com/cespare/xxhash v1.1.0
 	github.com/chai2010/gettext-go => github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5
 	github.com/client9/misspell => github.com/client9/misspell v0.3.4
+	github.com/container-storage-interface/spec => github.com/container-storage-interface/spec v1.2.0
 	github.com/coreos/bbolt => github.com/coreos/bbolt v1.3.3
 	github.com/coreos/etcd => github.com/coreos/etcd v3.3.17+incompatible
 	github.com/coreos/go-oidc => github.com/coreos/go-oidc v2.1.0+incompatible
@@ -260,6 +261,9 @@ replace (
 	github.com/kr/pretty => github.com/kr/pretty v0.1.0
 	github.com/kr/pty => github.com/kr/pty v1.1.5
 	github.com/kr/text => github.com/kr/text v0.1.0
+	github.com/kubernetes-csi/csi-lib-utils => github.com/kubernetes-csi/csi-lib-utils v0.7.0
+	github.com/kubernetes-csi/csi-test => github.com/kubernetes-csi/csi-test v2.0.0+incompatible
+	github.com/kubernetes-csi/external-snapshotter/v2 => github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn => github.com/leodido/go-urn v1.1.0
@@ -408,6 +412,7 @@ replace (
 	k8s.io/klog => k8s.io/klog v1.0.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl => k8s.io/kubectl v0.17.3
+	k8s.io/kubernetes => k8s.io/kubernetes v1.14.0
 	k8s.io/metrics => k8s.io/metrics v0.17.3
 	k8s.io/utils => k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	kubesphere.io/application => kubesphere.io/application v0.0.0-20190404151855-67ae7f915d4e

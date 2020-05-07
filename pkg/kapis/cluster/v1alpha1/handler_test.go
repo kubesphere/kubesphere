@@ -100,7 +100,7 @@ func TestGeranteAgentDeployment(t *testing.T) {
 	k8sclient := fake2.NewSimpleClientset(service)
 	ksclient := fake.NewSimpleClientset(cluster)
 
-	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil)
+	informersFactory := informers.NewInformerFactories(k8sclient, ksclient, nil, nil, nil)
 
 	informersFactory.KubernetesSharedInformerFactory().Core().V1().Services().Informer().GetIndexer().Add(service)
 	informersFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Informer().GetIndexer().Add(cluster)

@@ -123,7 +123,8 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		return err
 	}
 
-	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(), kubernetesClient.Istio(), kubernetesClient.Application())
+	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
+		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot())
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")

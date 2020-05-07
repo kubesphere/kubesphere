@@ -18,6 +18,7 @@
 package storageclass
 
 import (
+	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -25,14 +26,19 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"sort"
+	"strconv"
 )
 
 type storageClassesSearcher struct {
-	informers informers.SharedInformerFactory
+	informers         informers.SharedInformerFactory
+	snapshotInformers snapshotinformer.SharedInformerFactory
 }
 
-func NewStorageClassesSearcher(informers informers.SharedInformerFactory) v1alpha2.Interface {
-	return &storageClassesSearcher{informers: informers}
+func NewStorageClassesSearcher(informers informers.SharedInformerFactory, snapshotInformer snapshotinformer.SharedInformerFactory) v1alpha2.Interface {
+	return &storageClassesSearcher{
+		informers:         informers,
+		snapshotInformers: snapshotInformer,
+	}
 }
 
 func (s *storageClassesSearcher) Get(namespace, name string) (interface{}, error) {
@@ -85,9 +91,11 @@ func (s *storageClassesSearcher) Search(namespace string, conditions *params.Con
 	r := make([]interface{}, 0)
 	for _, i := range result {
 		count := s.countPersistentVolumeClaims(i.Name)
+		isSnapshotAllow := s.isSnapshotAllowed(i.Provisioner)
 		if i.Annotations == nil {
 			i.Annotations = make(map[string]string)
 			i.Annotations["kubesphere.io/pvc-count"] = string(count)
+			i.Annotations["kubesphere.io/allow-snapshot"] = strconv.FormatBool(isSnapshotAllow)
 		}
 
 		r = append(r, i)
@@ -109,4 +117,21 @@ func (s *storageClassesSearcher) countPersistentVolumeClaims(name string) int {
 	}
 
 	return count
+}
+
+func (s *storageClassesSearcher) isSnapshotAllowed(provisioner string) bool {
+	if len(provisioner) == 0 {
+		return false
+	}
+
+	volumeSnapshotClasses, err := s.snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Lister().List(labels.Everything())
+	if err != nil {
+		return false
+	}
+	for _, volumeSnapshotClass := range volumeSnapshotClasses {
+		if volumeSnapshotClass.Driver == provisioner {
+			return true
+		}
+	}
+	return false
 }
