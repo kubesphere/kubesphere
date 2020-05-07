@@ -90,7 +90,7 @@ func (am *amOperator) GetGlobalRoleOfUser(username string) (*iamv1alpha2.GlobalR
 			klog.Error(err)
 			return nil, err
 		}
-		if len(roleBindings) > 1 {
+		if len(userRoleBindings) > 1 {
 			klog.Warningf("conflict global role binding, username: %s", username)
 		}
 		return role, nil
@@ -135,7 +135,7 @@ func (am *amOperator) GetWorkspaceRoleOfUser(username, workspace string) (*iamv1
 			return nil, err
 		}
 
-		if len(roleBindings) > 1 {
+		if len(userRoleBindings) > 1 {
 			klog.Warningf("conflict workspace role binding, username: %s", username)
 		}
 
@@ -178,7 +178,7 @@ func (am *amOperator) GetNamespaceRoleOfUser(username, namespace string) (*rbacv
 			klog.Error(err)
 			return nil, err
 		}
-		if len(roleBindings) > 1 {
+		if len(userRoleBindings) > 1 {
 			klog.Warningf("conflict role binding, username: %s", username)
 		}
 		return role, nil
@@ -221,7 +221,7 @@ func (am *amOperator) GetClusterRoleOfUser(username, cluster string) (*rbacv1.Cl
 			klog.Error(err)
 			return nil, err
 		}
-		if len(roleBindings) > 1 {
+		if len(userRoleBindings) > 1 {
 			klog.Warningf("conflict cluster role binding, username: %s", username)
 		}
 		return role, nil

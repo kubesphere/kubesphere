@@ -28,6 +28,7 @@ import (
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
+	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -48,10 +49,12 @@ type tenantOperator struct {
 
 func New(informers informers.InformerFactory) Interface {
 	amOperator := am.NewAMOperator(informers)
+	rbacAuthorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
 	opaAuthorizer := authorizerfactory.NewOPAAuthorizer(amOperator)
+	authorizers := unionauthorizer.New(opaAuthorizer, rbacAuthorizer)
 	return &tenantOperator{
 		am:             amOperator,
-		authorizer:     opaAuthorizer,
+		authorizer:     authorizers,
 		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
 	}
 }
@@ -59,11 +62,12 @@ func New(informers informers.InformerFactory) Interface {
 func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query) (*api.ListResult, error) {
 
 	listWS := authorizer.AttributesRecord{
-		User:       user,
-		Verb:       "list",
-		APIGroup:   "tenant.kubesphere.io",
-		APIVersion: "v1alpha2",
-		Resource:   "workspaces",
+		User:            user,
+		Verb:            "list",
+		APIGroup:        "tenant.kubesphere.io",
+		APIVersion:      "v1alpha2",
+		Resource:        "workspaces",
+		ResourceRequest: true,
 	}
 
 	decision, _, err := t.authorizer.Authorize(listWS)
@@ -100,7 +104,7 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 		workspace, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspaceName)
 
 		if errors.IsNotFound(err) {
-			klog.Warningf("workspace role: %+v found but workspace not exist", roleBinding.ObjectMeta)
+			klog.Warningf("workspace role binding: %+v found but workspace not exist", roleBinding.ObjectMeta)
 			continue
 		}
 
@@ -126,12 +130,13 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryParam *query.Query) (*api.ListResult, error) {
 
 	listNSInWS := authorizer.AttributesRecord{
-		User:       user,
-		Verb:       "list",
-		APIGroup:   "",
-		APIVersion: "v1",
-		Workspace:  workspace,
-		Resource:   "namespaces",
+		User:            user,
+		Verb:            "list",
+		APIGroup:        "",
+		APIVersion:      "v1",
+		Workspace:       workspace,
+		Resource:        "namespaces",
+		ResourceRequest: true,
 	}
 
 	decision, _, err := t.authorizer.Authorize(listNSInWS)
@@ -165,17 +170,16 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	namespaces := make([]runtime.Object, 0)
 
 	for _, roleBinding := range roleBindings {
-		namespaceName := roleBinding.Namespace
-		namespace, err := t.resourceGetter.Get("namespaces", "", namespaceName)
-
-		if errors.IsNotFound(err) {
-			klog.Warningf("workspace role: %+v found but workspace not exist", roleBinding.ObjectMeta)
-			continue
-		}
+		namespace, err := t.resourceGetter.Get("namespaces", "", roleBinding.Namespace)
 
 		if err != nil {
 			klog.Error(err)
 			return nil, err
+		}
+
+		// skip if not controlled by the specified workspace
+		if ns := namespace.(*corev1.Namespace); ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
+			continue
 		}
 
 		if !contains(namespaces, namespace) {
