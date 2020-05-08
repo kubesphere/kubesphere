@@ -105,7 +105,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	apiServer.KubernetesClient = kubernetesClient
 
 	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot())
+		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
 	apiServer.InformerFactory = informerFactory
 
 	if s.MonitoringOptions.Endpoint != "" {

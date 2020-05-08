@@ -231,7 +231,7 @@ resources_in_cluster1 {
 
 	ksClient := fake.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	factory := factory.NewInformerFactories(k8sClient, ksClient, nil, nil, nil)
+	factory := factory.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 	for _, role := range globalRoles {
 		err := factory.KubeSphereSharedInformerFactory().Iam().V1alpha2().GlobalRoles().Informer().GetIndexer().Add(role)
 		if err != nil {

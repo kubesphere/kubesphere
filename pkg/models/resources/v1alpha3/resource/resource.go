@@ -31,8 +31,10 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/application"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/cluster"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/configmap"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/customresourcedefinition"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
@@ -67,6 +69,8 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[rbacv1.SchemeGroupVersion.WithResource("roles")] = role.New(factory.KubernetesSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource("clusterroles")] = clusterrole.New(factory.KubernetesSharedInformerFactory())
 	getters[snapshotv1beta1.SchemeGroupVersion.WithResource("volumesnapshots")] = volumesnapshot.New(factory.SnapshotSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"}] = cluster.New(factory.KubeSphereSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"}] = customresourcedefinition.New(factory.ApiExtensionSharedInformerFactory())
 	return &ResourceGetter{
 		getters: getters,
 	}

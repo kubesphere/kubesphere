@@ -48,6 +48,11 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 	})
 
 	total := len(filtered)
+
+	if q.Pagination == nil {
+		q.Pagination = query.NoPagination
+	}
+
 	start, end := q.Pagination.GetValidPagination(total)
 
 	return &api.ListResult{
