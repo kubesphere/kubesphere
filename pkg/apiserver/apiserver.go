@@ -406,6 +406,24 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	snapshotInformerFactory.Start(stopCh)
 	snapshotInformerFactory.WaitForCacheSync(stopCh)
 
+	apiextensionsInformerFactory := s.InformerFactory.ApiExtensionSharedInformerFactory()
+	apiextensionsGVRs := []schema.GroupVersionResource{
+		{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"},
+	}
+
+	for _, gvr := range apiextensionsGVRs {
+		if !isResourceExists(gvr) {
+			klog.Warningf("resource %s not exists in the cluster", gvr)
+		} else {
+			_, err = apiextensionsInformerFactory.ForResource(gvr)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	apiextensionsInformerFactory.Start(stopCh)
+	apiextensionsInformerFactory.WaitForCacheSync(stopCh)
+
 	klog.V(0).Info("Finished caching objects")
 
 	return nil

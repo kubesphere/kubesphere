@@ -4,6 +4,7 @@ import (
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
 	applicationclientset "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -18,6 +19,7 @@ type Client interface {
 	Istio() istioclient.Interface
 	Application() applicationclientset.Interface
 	Snapshot() snapshotclient.Interface
+	ApiExtensions() apiextensionsclient.Interface
 	Discovery() discovery.DiscoveryInterface
 	Master() string
 	Config() *rest.Config
@@ -38,6 +40,8 @@ type kubernetesClient struct {
 	istio istioclient.Interface
 
 	snapshot snapshotclient.Interface
+
+	apiextensions apiextensionsclient.Interface
 
 	master string
 
@@ -61,6 +65,7 @@ func NewKubernetesClientOrDie(options *KubernetesOptions) Client {
 		istio:           istioclient.NewForConfigOrDie(config),
 		application:     applicationclientset.NewForConfigOrDie(config),
 		snapshot:        snapshotclient.NewForConfigOrDie(config),
+		apiextensions:   apiextensionsclient.NewForConfigOrDie(config),
 		master:          config.Host,
 		config:          config,
 	}
@@ -114,6 +119,11 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
+	k.apiextensions, err = apiextensionsclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	k.master = options.Master
 	k.config = config
 
@@ -142,6 +152,10 @@ func (k *kubernetesClient) Istio() istioclient.Interface {
 
 func (k *kubernetesClient) Snapshot() snapshotclient.Interface {
 	return k.snapshot
+}
+
+func (k *kubernetesClient) ApiExtensions() apiextensionsclient.Interface {
+	return k.apiextensions
 }
 
 // master address used to generate kubeconfig for downloading

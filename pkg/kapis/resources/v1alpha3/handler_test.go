@@ -7,6 +7,7 @@ import (
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -166,8 +167,9 @@ func prepare() (informers.InformerFactory, error) {
 	istioClient := fakeistio.NewSimpleClientset()
 	appClient := fakeapp.NewSimpleClientset()
 	snapshotClient := fakesnapshot.NewSimpleClientset()
+	apiextensionsClient := fakeapiextensions.NewSimpleClientset()
 
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient, apiextensionsClient)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
 
