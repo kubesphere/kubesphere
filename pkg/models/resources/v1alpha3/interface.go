@@ -68,6 +68,8 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 	case query.FieldName:
 		return strings.Compare(left.Name, right.Name) > 0
 	//	?sortBy=creationTimestamp
+	default:
+		fallthrough
 	case query.FieldCreateTime:
 		fallthrough
 	case query.FieldCreationTimeStamp:
@@ -76,8 +78,6 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 			return strings.Compare(left.Name, right.Name) > 0
 		}
 		return left.CreationTimestamp.After(right.CreationTimestamp.Time)
-	default:
-		return false
 	}
 }
 

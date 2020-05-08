@@ -35,8 +35,8 @@ func WithKubeAPIServer(handler http.Handler, config *rest.Config, failed proxy.E
 
 			// Do not cover k8s client authorization header
 			req.Header.Del("Authorization")
-
 			httpProxy := proxy.NewUpgradeAwareHandler(&s, defaultTransport, true, false, failed)
+			httpProxy.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(defaultTransport, defaultTransport)
 			httpProxy.ServeHTTP(w, req)
 			return
 		}
