@@ -13,6 +13,7 @@ import (
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
@@ -54,6 +55,7 @@ func NewServerRunOptions() *ServerRunOptions {
 			RedisOptions:          cache.NewRedisOptions(),
 			AuthenticationOptions: authoptions.NewAuthenticateOptions(),
 			MultiClusterOptions:   multicluster.NewOptions(),
+			EventsOptions:         eventsclient.NewElasticSearchOptions(),
 		},
 	}
 
@@ -78,6 +80,7 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.MonitoringOptions.AddFlags(fss.FlagSet("monitoring"), s.MonitoringOptions)
 	s.LoggingOptions.AddFlags(fss.FlagSet("logging"), s.LoggingOptions)
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
+	s.EventsOptions.AddFlags(fss.FlagSet("events"), s.EventsOptions)
 
 	fs = fss.FlagSet("klog")
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
@@ -175,6 +178,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			}
 			apiServer.CacheClient = cacheClient
 		}
+	}
+
+	if s.EventsOptions.Host != "" {
+		eventsClient, err := eventsclient.NewClient(s.EventsOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.EventsClient = eventsClient
 	}
 
 	if s.OpenPitrixOptions != nil {

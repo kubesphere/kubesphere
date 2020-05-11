@@ -51,6 +51,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
@@ -118,6 +119,8 @@ type APIServer struct {
 	LdapClient ldap.Interface
 
 	SonarClient sonarqube.SonarInterface
+
+	EventsClient events.Client
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -154,7 +157,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.EventsClient))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.InformerFactory.KubernetesSharedInformerFactory(),

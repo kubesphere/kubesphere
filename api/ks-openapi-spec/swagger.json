@@ -2472,7 +2472,7 @@
         "tags": [
           "Access Management"
         ],
-        "summary": "List all cluster roles.",
+        "summary": "List cluster roles.",
         "operationId": "ListClusterRoles",
         "responses": {
           "200": {
@@ -2490,7 +2490,7 @@
         }
       }
     },
-    "/kapis/iam.kubesphere.io/v1alpha2/clusterroles/{clusterrole}/users": {
+    "/kapis/iam.kubesphere.io/v1alpha2/globalroles": {
       "get": {
         "consumes": [
           "application/json"
@@ -2501,20 +2501,20 @@
         "tags": [
           "Access Management"
         ],
-        "summary": "List all users that are bound to the specified cluster role.",
-        "operationId": "ListClusterRoleUsers",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "cluster role name",
-            "name": "clusterrole",
-            "in": "path",
-            "required": true
-          }
-        ],
+        "summary": "List all cluster roles.",
+        "operationId": "ListGlobalRoles",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/models.PageableResponse"
+            }
           }
         }
       }
@@ -2530,12 +2530,12 @@
         "tags": [
           "Access Management"
         ],
-        "summary": "Retrieve the roles that are assigned to the user in the specified namespace.",
+        "summary": "List all roles in the specified namespace.",
         "operationId": "ListRoles",
         "parameters": [
           {
             "type": "string",
-            "description": "kubernetes namespace",
+            "description": "namespace",
             "name": "namespace",
             "in": "path",
             "required": true
@@ -2586,6 +2586,35 @@
         }
       }
     },
+    "/kapis/iam.kubesphere.io/v1alpha2/users": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Access Management"
+        ],
+        "summary": "List all users.",
+        "operationId": "ListUsers",
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
     "/kapis/iam.kubesphere.io/v1alpha2/users/{user}": {
       "get": {
         "consumes": [
@@ -2624,121 +2653,7 @@
         }
       }
     },
-    "/kapis/iam.kubesphere.io/v1alpha2/users/{user}/clusterroles": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Access Management"
-        ],
-        "summary": "Retrieve user roles in clusters.",
-        "operationId": "ListRolesOfUser",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username",
-            "name": "user",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          },
-          "default": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          }
-        }
-      }
-    },
-    "/kapis/iam.kubesphere.io/v1alpha2/users/{user}/namespaceroles": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Access Management"
-        ],
-        "summary": "Retrieve user roles in namespaces.",
-        "operationId": "ListRolesOfUser",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username",
-            "name": "user",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          },
-          "default": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          }
-        }
-      }
-    },
-    "/kapis/iam.kubesphere.io/v1alpha2/users/{user}/workspaceroles": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Access Management"
-        ],
-        "summary": "Retrieve user roles in workspaces.",
-        "operationId": "ListRolesOfUser",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username",
-            "name": "user",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          },
-          "default": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/v1alpha2.RoleList"
-            }
-          }
-        }
-      }
-    },
-    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/members": {
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/users": {
       "get": {
         "consumes": [
           "application/json"
@@ -2765,81 +2680,9 @@
             "description": "OK"
           }
         }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Access Management"
-        ],
-        "summary": "Invite a member to the specified workspace.",
-        "operationId": "InviteUser",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "workspace name",
-            "name": "workspace",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
       }
     },
-    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/members/{member}": {
-      "delete": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Access Management"
-        ],
-        "summary": "Remove the specified member from the workspace.",
-        "operationId": "RemoveUser",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "workspace name",
-            "name": "workspace",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "username",
-            "name": "member",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/errors.Error"
-            }
-          },
-          "default": {
-            "description": "ok",
-            "schema": {
-              "$ref": "#/definitions/errors.Error"
-            }
-          }
-        }
-      }
-    },
-    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/roles": {
+    "/kapis/iam.kubesphere.io/v1alpha2/workspaces/{workspace}/workspaceroles": {
       "get": {
         "consumes": [
           "application/json"
@@ -7671,7 +7514,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "cluster level resource type, e.g. nodes,workspaces,storageclasses,clusterroles.",
+            "description": "cluster level resource type, e.g. nodes,workspaces,storageclasses,clusterrole.",
             "name": "resources",
             "in": "path",
             "required": true
@@ -7882,6 +7725,58 @@
             "description": "sort parameters, e.g. orderBy=createTime",
             "name": "sortBy",
             "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/api.ListResult"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/resources.kubesphere.io/v1alpha3/namespaces/{namespace}/{resources}/{name}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Namespaced Resource"
+        ],
+        "summary": "Namespace level get resource query",
+        "operationId": "handleGetResources",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "the name of the project",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "namespace level resource type, e.g. pods,jobs,configmaps,services.",
+            "name": "resources",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the name of resource",
+            "name": "name",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
@@ -8912,6 +8807,150 @@
             "description": "ok",
             "schema": {
               "$ref": "#/definitions/v1alpha2.MetricsResponse"
+            }
+          }
+        }
+      }
+    },
+    "/kapis/tenant.kubesphere.io/v1alpha2/events": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Events Query"
+        ],
+        "summary": "Query events against the cluster",
+        "operationId": "Events",
+        "parameters": [
+          {
+            "type": "string",
+            "default": "query",
+            "description": "Operation type. This can be one of four types: `query` (for querying events), `statistics` (for retrieving statistical data), `histogram` (for displaying events count by time interval). Defaults to query.",
+            "name": "operation",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of workspaces. This field restricts the query to specified workspaces. For example, the following filter matches the workspace my-ws and demo-ws: `my-ws,demo-ws`.",
+            "name": "workspace_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of keywords. Differing from **workspace_filter**, this field performs fuzzy matching on workspaces. For example, the following value limits the query to workspaces whose name contains the word my(My,MY,...) *OR* demo(Demo,DemO,...): `my,demo`.",
+            "name": "workspace_search",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of namespaces. This field restricts the query to specified `involvedObject.namespace`.",
+            "name": "involved_object_namespace_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of keywords. Differing from **involved_object_namespace_filter**, this field performs fuzzy matching on `involvedObject.namespace`",
+            "name": "involved_object_namespace_search",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of names. This field restricts the query to specified `involvedObject.name`.",
+            "name": "involved_object_name_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of keywords. Differing from **involved_object_name_filter**, this field performs fuzzy matching on `involvedObject.name`.",
+            "name": "involved_object_name_search",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of kinds. This field restricts the query to specified `involvedObject.kind`.",
+            "name": "involved_object_kind_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of reasons. This field restricts the query to specified `reason`.",
+            "name": "reason_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of keywords. Differing from **reason_filter**, this field performs fuzzy matching on `reason`.",
+            "name": "reason_search",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "A comma-separated list of keywords. This field performs fuzzy matching on `message`.",
+            "name": "message_search",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Type of event matching on `type`. This can be one of two types: `Warning`, `Normal`",
+            "name": "type_filter",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Start time of query (limits `lastTimestamp`). The format is a string representing seconds since the epoch, eg. 1136214245.",
+            "name": "start_time",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "End time of query (limits `lastTimestamp`). The format is a string representing seconds since the epoch, eg. 1136214245.",
+            "name": "end_time",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "15m",
+            "description": "Time interval. It requires **operation** is set to `histogram`. The format is [0-9]+[smhdwMqy]. Defaults to 15m (i.e. 15 min).",
+            "name": "interval",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "default": "desc",
+            "description": "Sort order. One of asc, desc. This field sorts events by `lastTimestamp`.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 0,
+            "description": "The offset from the result set. This field returns query results from the specified offset. It requires **operation** is set to `query`. Defaults to 0 (i.e. from the beginning of the result set).",
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "default": 10,
+            "description": "Size of result set to return. It requires **operation** is set to `query`. Defaults to 10 (i.e. 10 event records).",
+            "name": "size",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1.APIResponse"
+            }
+          },
+          "default": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1.APIResponse"
             }
           }
         }
@@ -11546,6 +11585,82 @@
         "message": {
           "description": "error message",
           "type": "string"
+        }
+      }
+    },
+    "events.Bucket": {
+      "required": [
+        "time",
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "description": "total number of events at intervals",
+          "type": "integer",
+          "format": "int64"
+        },
+        "time": {
+          "description": "timestamp",
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "events.Events": {
+      "required": [
+        "total",
+        "records"
+      ],
+      "properties": {
+        "records": {
+          "description": "actual array of results",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.Event"
+          }
+        },
+        "total": {
+          "description": "total number of matched results",
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "events.Histogram": {
+      "required": [
+        "total",
+        "buckets"
+      ],
+      "properties": {
+        "buckets": {
+          "description": "actual array of histogram results",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/events.Bucket"
+          }
+        },
+        "total": {
+          "description": "total number of events",
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "events.Statistics": {
+      "required": [
+        "resources",
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "description": "total number of events",
+          "type": "integer",
+          "format": "int64"
+        },
+        "resources": {
+          "description": "total number of resources",
+          "type": "integer",
+          "format": "int64"
         }
       }
     },
@@ -14232,6 +14347,117 @@
         }
       }
     },
+    "v1.Event": {
+      "description": "Event is a report of an event somewhere in the cluster.",
+      "required": [
+        "metadata",
+        "involvedObject",
+        "reportingComponent",
+        "reportingInstance"
+      ],
+      "properties": {
+        "action": {
+          "description": "What action was taken/failed regarding to the Regarding object.",
+          "type": "string"
+        },
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "count": {
+          "description": "The number of times this event has occurred.",
+          "type": "integer",
+          "format": "int32"
+        },
+        "eventTime": {
+          "description": "Time when this Event was first observed.",
+          "type": "string"
+        },
+        "firstTimestamp": {
+          "description": "The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)",
+          "type": "string"
+        },
+        "involvedObject": {
+          "description": "The object that this event is about.",
+          "$ref": "#/definitions/v1.ObjectReference"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "lastTimestamp": {
+          "description": "The time at which the most recent occurrence of this event was recorded.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A human-readable description of the status of this operation.",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "reason": {
+          "description": "This should be a short, machine understandable string that gives the reason for the transition into the object's current status.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Optional secondary object for more complex actions.",
+          "$ref": "#/definitions/v1.ObjectReference"
+        },
+        "reportingComponent": {
+          "description": "Name of the controller that emitted this Event, e.g. `kubernetes.io/kubelet`.",
+          "type": "string"
+        },
+        "reportingInstance": {
+          "description": "ID of the controller instance, e.g. `kubelet-xyzf`.",
+          "type": "string"
+        },
+        "series": {
+          "description": "Data about the Event series this event represents or nil if it's a singleton Event.",
+          "$ref": "#/definitions/v1.EventSeries"
+        },
+        "source": {
+          "description": "The component reporting this event. Should be a short machine understandable string.",
+          "$ref": "#/definitions/v1.EventSource"
+        },
+        "type": {
+          "description": "Type of this event (Normal, Warning), new types could be added in the future",
+          "type": "string"
+        }
+      }
+    },
+    "v1.EventSeries": {
+      "description": "EventSeries contain information on series of events, i.e. thing that was/is happening continuously for some time.",
+      "properties": {
+        "count": {
+          "description": "Number of occurrences in this series up to the last heartbeat time",
+          "type": "integer",
+          "format": "int32"
+        },
+        "lastObservedTime": {
+          "description": "Time of the last occurrence observed",
+          "type": "string"
+        },
+        "state": {
+          "description": "State of this Series: Ongoing or Finished Deprecated. Planned removal for 1.18",
+          "type": "string"
+        }
+      }
+    },
+    "v1.EventSource": {
+      "description": "EventSource contains information for an event.",
+      "properties": {
+        "component": {
+          "description": "Component from which the event is generated.",
+          "type": "string"
+        },
+        "host": {
+          "description": "Node name on which the event is generated.",
+          "type": "string"
+        }
+      }
+    },
     "v1.ExecAction": {
       "description": "ExecAction describes a \"run in container\" action.",
       "properties": {
@@ -14622,28 +14848,6 @@
         }
       }
     },
-    "v1.ListMeta": {
-      "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
-      "properties": {
-        "continue": {
-          "description": "continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a consistent list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response, unless you have received this token from an error message.",
-          "type": "string"
-        },
-        "remainingItemCount": {
-          "description": "remainingItemCount is the number of subsequent items in the list which are not included in this list response. If the list request contained label or field selectors, then the number of remaining items is unknown and the field will be left unset and omitted during serialization. If the list is complete (either because it is not chunking or because this is the last chunk), then there are no more remaining items and this field will be left unset and omitted during serialization. Servers older than v1.15 do not set this field. The intended use of the remainingItemCount is *estimating* the size of a collection. Clients should not rely on the remainingItemCount to be set or to be exact.",
-          "type": "integer",
-          "format": "int64"
-        },
-        "resourceVersion": {
-          "description": "String that identifies the server's internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency",
-          "type": "string"
-        },
-        "selfLink": {
-          "description": "selfLink is a URL representing this object. Populated by the system. Read-only.\n\nDEPRECATED Kubernetes will stop propagating this field in 1.20 release and the field is planned to be removed in 1.21 release.",
-          "type": "string"
-        }
-      }
-    },
     "v1.LoadBalancerIngress": {
       "description": "LoadBalancerIngress represents the status of a load-balancer ingress point: traffic intended for the service should be sent to an ingress point.",
       "properties": {
@@ -14980,6 +15184,39 @@
         },
         "uid": {
           "description": "UID is the unique in time and space value for this object. It is typically generated by the server on successful creation of a resource and is not allowed to change on PUT operations.\n\nPopulated by the system. Read-only. More info: http://kubernetes.io/docs/user-guide/identifiers#uids",
+          "type": "string"
+        }
+      }
+    },
+    "v1.ObjectReference": {
+      "description": "ObjectReference contains enough information to let you inspect or modify the referred object.",
+      "properties": {
+        "apiVersion": {
+          "description": "API version of the referent.",
+          "type": "string"
+        },
+        "fieldPath": {
+          "description": "If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: \"spec.containers{name}\" (where \"name\" refers to the name of the container that triggered the event) or if no container name is specified \"spec.containers[2]\" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
+          "type": "string"
+        },
+        "namespace": {
+          "description": "Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+          "type": "string"
+        },
+        "resourceVersion": {
+          "description": "Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency",
+          "type": "string"
+        },
+        "uid": {
+          "description": "UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids",
           "type": "string"
         }
       }
@@ -15522,6 +15759,49 @@
         "spec": {
           "description": "Specification of the desired behavior of the pod. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
           "$ref": "#/definitions/v1.PodSpec"
+        }
+      }
+    },
+    "v1.PolicyRule": {
+      "description": "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.",
+      "required": [
+        "verbs"
+      ],
+      "properties": {
+        "apiGroups": {
+          "description": "APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nonResourceURLs": {
+          "description": "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resourceNames": {
+          "description": "ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resources": {
+          "description": "Resources is a list of resources this rule applies to.  ResourceAll represents all resources.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verbs": {
+          "description": "Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -16844,6 +17124,22 @@
         }
       }
     },
+    "v1alpha1.APIResponse": {
+      "properties": {
+        "histogram": {
+          "description": "histogram results",
+          "$ref": "#/definitions/events.Histogram"
+        },
+        "query": {
+          "description": "query results",
+          "$ref": "#/definitions/events.Events"
+        },
+        "statistics": {
+          "description": "statistics results",
+          "$ref": "#/definitions/events.Statistics"
+        }
+      }
+    },
     "v1alpha2.APIResponse": {
       "properties": {
         "histogram": {
@@ -16857,6 +17153,16 @@
         "statistics": {
           "description": "statistics results",
           "$ref": "#/definitions/logging.Statistics"
+        }
+      }
+    },
+    "v1alpha2.AggregationRule": {
+      "properties": {
+        "roleSelectors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.LabelSelector"
+          }
         }
       }
     },
@@ -17042,6 +17348,33 @@
       }
     },
     "v1alpha2.FinalizerName": {},
+    "v1alpha2.GlobalRole": {
+      "required": [
+        "rules"
+      ],
+      "properties": {
+        "aggregationRule": {
+          "$ref": "#/definitions/v1alpha2.AggregationRule"
+        },
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/v1.ObjectMeta"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.PolicyRule"
+          }
+        }
+      }
+    },
     "v1alpha2.GraphResponse": {
       "required": [
         "duration",
@@ -17182,8 +17515,8 @@
     },
     "v1alpha2.MetricsResponse": {
       "required": [
-        "metrics",
-        "histograms"
+        "histograms",
+        "metrics"
       ],
       "properties": {
         "histograms": {
@@ -17203,9 +17536,9 @@
     "v1alpha2.Node": {
       "required": [
         "labelMinor",
+        "rank",
         "id",
         "label",
-        "rank",
         "controls"
       ],
       "properties": {
@@ -17313,10 +17646,10 @@
     },
     "v1alpha2.NodeSummary": {
       "required": [
-        "id",
-        "label",
         "labelMinor",
-        "rank"
+        "rank",
+        "id",
+        "label"
       ],
       "properties": {
         "adjacency": {
@@ -17440,58 +17773,6 @@
         }
       }
     },
-    "v1alpha2.Role": {
-      "required": [
-        "target",
-        "rules"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/v1.ObjectMeta"
-        },
-        "rules": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1alpha2.RuleRef"
-          }
-        },
-        "target": {
-          "$ref": "#/definitions/v1alpha2.Target"
-        }
-      }
-    },
-    "v1alpha2.RoleList": {
-      "required": [
-        "items"
-      ],
-      "properties": {
-        "apiVersion": {
-          "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1alpha2.Role"
-          }
-        },
-        "kind": {
-          "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "#/definitions/v1.ListMeta"
-        }
-      }
-    },
     "v1alpha2.Row": {
       "required": [
         "id",
@@ -17505,24 +17786,6 @@
           }
         },
         "id": {
-          "type": "string"
-        }
-      }
-    },
-    "v1alpha2.RuleRef": {
-      "required": [
-        "apiGroup",
-        "kind",
-        "name"
-      ],
-      "properties": {
-        "apiGroup": {
-          "type": "string"
-        },
-        "kind": {
-          "type": "string"
-        },
-        "name": {
           "type": "string"
         }
       }
@@ -17575,20 +17838,6 @@
           "format": "int32"
         },
         "type": {
-          "type": "string"
-        }
-      }
-    },
-    "v1alpha2.Target": {
-      "required": [
-        "scope",
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "scope": {
           "type": "string"
         }
       }
@@ -17663,7 +17912,7 @@
           "$ref": "#/definitions/v1alpha2.User"
         },
         "globalRole": {
-          "$ref": "#/definitions/v1alpha2.Role"
+          "$ref": "#/definitions/v1alpha2.GlobalRole"
         }
       }
     },
