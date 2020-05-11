@@ -37,6 +37,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/events/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
@@ -120,10 +121,11 @@ func generateSwaggerJson() []byte {
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, clientsets.Kubernetes(), informerFactory))
 	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(container, clientsets, informerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil))
 	urlruntime.Must(metricsv1alpha2.AddToContainer(container))
 	urlruntime.Must(networkv1alpha2.AddToContainer(container, ""))
+	urlruntime.Must(eventsv1alpha1.AddToContainer(container, informerFactory, nil))
 
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(),

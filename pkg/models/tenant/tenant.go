@@ -25,29 +25,34 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/events"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 )
 
 type Interface interface {
 	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
+	Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error)
 }
 
 type tenantOperator struct {
 	am             am.AccessManagementInterface
 	authorizer     authorizer.Authorizer
 	resourceGetter *resourcesv1alpha3.ResourceGetter
+	events         events.Interface
 }
 
-func New(informers informers.InformerFactory) Interface {
+func New(informers informers.InformerFactory, evtsClient eventsclient.Client) Interface {
 	amOperator := am.NewAMOperator(informers)
 	rbacAuthorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
 	opaAuthorizer := authorizerfactory.NewOPAAuthorizer(amOperator)
@@ -56,6 +61,7 @@ func New(informers informers.InformerFactory) Interface {
 		am:             amOperator,
 		authorizer:     authorizers,
 		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
+		events:         events.NewEventsOperator(evtsClient),
 	}
 }
 
@@ -198,6 +204,48 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	})
 
 	return result, nil
+}
+
+func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error) {
+	listEvts := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "list",
+		APIGroup:        "",
+		APIVersion:      "v1",
+		Resource:        "events",
+		ResourceRequest: true,
+	}
+	decision, _, err := t.authorizer.Authorize(listEvts)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	var workspaces []*tenantv1alpha1.Workspace
+	lw, err := t.ListWorkspaces(user, query.New())
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range lw.Items {
+		if ws, ok := r.(*tenantv1alpha1.Workspace); ok {
+			workspaces = append(workspaces, ws)
+		}
+	}
+	var namespaces []*corev1.Namespace
+	ln, err := t.ListNamespaces(user, "", query.New())
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range ln.Items {
+		if ns, ok := r.(*corev1.Namespace); ok {
+			namespaces = append(namespaces, ns)
+		}
+	}
+
+	return t.events.Events(queryParam, func(filter *eventsclient.Filter) {
+		filter.InvolvedObjectNamespaceMap =
+			events.IntersectedNamespaces(queryParam, workspaces, namespaces, decision == authorizer.DecisionAllow)
+	})
 }
 
 func contains(objects []runtime.Object, object runtime.Object) bool {

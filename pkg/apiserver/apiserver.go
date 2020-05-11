@@ -33,6 +33,7 @@ import (
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/events/v1alpha1"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
@@ -49,6 +50,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
+	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
@@ -116,6 +118,8 @@ type APIServer struct {
 	LdapClient ldap.Interface
 
 	SonarClient sonarqube.SonarInterface
+
+	EventsClient events.Client
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -152,7 +156,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.EventsClient))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.InformerFactory.KubernetesSharedInformerFactory(),
@@ -174,6 +178,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.SonarClient,
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client))
+	urlruntime.Must(eventsv1alpha1.AddToContainer(s.container, s.InformerFactory, s.EventsClient))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
