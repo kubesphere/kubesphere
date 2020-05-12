@@ -177,6 +177,14 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		}
 	}
 
+	if s.OpenPitrixOptions != nil {
+		opClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
+		if err != nil {
+			return nil, err
+		}
+		apiServer.OpenpitrixClient = opClient
+	}
+
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", s.GenericServerRunOptions.InsecurePort),
 	}
