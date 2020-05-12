@@ -290,7 +290,7 @@ func prepare() Interface {
 	k8sClient := fakek8s.NewSimpleClientset()
 	istioClient := fakeistio.NewSimpleClientset()
 	appClient := fakeapp.NewSimpleClientset()
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, nil, nil)
 
 	for _, workspace := range workspaces {
 		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().
