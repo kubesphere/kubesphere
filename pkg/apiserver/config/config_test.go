@@ -95,7 +95,7 @@ func newTestConfig() (*Config, error) {
 			Version:     "6",
 		},
 		AlertingOptions: &alerting.Options{
-			Endpoint: "http://alerting.kubesphere-alerting-system.svc:9200",
+			Endpoint: "http://alerting-client-server.kubesphere-alerting-system.svc:9200/api",
 		},
 		NotificationOptions: &notification.Options{
 			Endpoint: "http://notification.kubesphere-alerting-system.svc:9200",
