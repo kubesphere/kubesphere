@@ -283,15 +283,15 @@ func (c *Controller) syncHandler(key string) error {
 		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(copyProject.Status.AdminNamespace)
 		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
-			return err
-		} else {
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
 				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
 				return err
 			}
-		}
+		} else {
+			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
+	       	return err
+     	} 
 
 	} else {
 		// Finalizers processing logic
