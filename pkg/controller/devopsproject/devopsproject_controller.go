@@ -186,7 +186,7 @@ func (c *Controller) syncHandler(key string) error {
 			klog.Info(fmt.Sprintf("devops->devopsproject '%s' in work queue no longer exists ", key))
 			return nil
 		}
-		klog.Error(err, fmt.Sprintf("devops->could not get devopsproject %s ", key))
+		klog.Errorf("devops->could not get devopsproject %s, %v", key, err)
 		return err
 	}
 	copyProject := project.DeepCopy()
@@ -239,7 +239,7 @@ func (c *Controller) syncHandler(key string) error {
 			namespaces, err := c.namespaceLister.List(
 				labels.SelectorFromSet(labels.Set{constants.DevOpsProjectLabelKey: project.Name}))
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("devops->failed to list ns %s ", key))
+				klog.Errorf("devops->failed to list ns %s, %v", key, err)
 				return err
 			}
 			// if there is no ns, generate new one
@@ -247,7 +247,7 @@ func (c *Controller) syncHandler(key string) error {
 				ns := c.generateNewNamespace(project)
 				ns, err := c.client.CoreV1().Namespaces().Create(ns)
 				if err != nil {
-					klog.Error(err, fmt.Sprintf("devops->failed to create ns %s ", key))
+					klog.Errorf("devops->failed to create ns %s, %v", key, err)
 					return err
 				}
 				copyProject.Status.AdminNamespace = ns.Name
@@ -259,13 +259,13 @@ func (c *Controller) syncHandler(key string) error {
 					copyNs := ns.DeepCopy()
 					err := controllerutil.SetControllerReference(copyProject, copyNs, scheme.Scheme)
 					if err != nil {
-						klog.Error(err, fmt.Sprintf("devops->failed to set ownerreference %s ", key))
+						klog.Errorf("devops->failed to set ownerreference %s, %v", key, err)
 						return err
 					}
 					copyNs.Labels[constants.DevOpsProjectLabelKey] = project.Name
 					_, err = c.client.CoreV1().Namespaces().Update(copyNs)
 					if err != nil {
-						klog.Error(err, fmt.Sprintf("devops->failed to update ns %s ", key))
+						klog.Errorf("devops->failed to update ns %s, %v ", key, err)
 						return err
 					}
 				}
@@ -276,19 +276,19 @@ func (c *Controller) syncHandler(key string) error {
 		if !reflect.DeepEqual(copyProject, project) {
 			_, err := c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(copyProject)
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("devops->failed to update ns %s ", key))
+				klog.Errorf("devops->failed to update ns %s, %v", key, err)
 				return err
 			}
 		}
 		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(copyProject.Status.AdminNamespace)
 		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("devops->failed to get project %s ", copyProject.Status.AdminNamespace))
+			klog.Errorf("devops->failed to get project %s, %v ", copyProject.Status.AdminNamespace, err)
 			return err
 		} else {
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("devops->failed to get project %s ", copyProject.Status.AdminNamespace))
+				klog.Errorf("devops->failed to get project %s, %v ", copyProject.Status.AdminNamespace, err)
 				return err
 			}
 		}
@@ -298,12 +298,12 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			_, err := c.devopsClient.GetDevOpsProject(key)
 			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-				klog.Error(err, fmt.Sprintf("devops->failed to get project %s ", copyProject.Status.AdminNamespace))
+				klog.Errorf("devops->failed to get project %s, %v ", copyProject.Status.AdminNamespace, err)
 				return err
 			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
 			} else {
 				if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
-					klog.Error(err, fmt.Sprintf("devops->failed to delete resource %s in devops", key))
+					klog.Errorf("devops->failed to delete resource %s in devops, %v", key, err)
 					return err
 				}
 			}
@@ -313,7 +313,7 @@ func (c *Controller) syncHandler(key string) error {
 
 			_, err = c.kubesphereClient.DevopsV1alpha3().DevOpsProjects().Update(project)
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("devops->failed to update project %s ", key))
+				klog.Errorf("devops->failed to update project %s , %v", key, err)
 				return err
 			}
 		}
