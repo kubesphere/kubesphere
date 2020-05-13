@@ -290,7 +290,7 @@ func (c *Controller) syncHandler(key string) error {
 			}
 		} else {
 			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
-	       	return err
+			return err
      	} 
 
 	} else {
