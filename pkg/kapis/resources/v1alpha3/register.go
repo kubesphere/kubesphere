@@ -70,6 +70,15 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Param(webservice.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
 		Returns(http.StatusOK, ok, api.ListResult{}))
 
+	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}/{name}").
+		To(handler.handleGetResources).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Doc("Namespace level get resource query").
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("resources", "namespace level resource type, e.g. pods,jobs,configmaps,services.")).
+		Param(webservice.PathParameter("name", "the name of resource")).
+		Returns(http.StatusOK, ok, api.ListResult{}))
+
 	webservice.Route(webservice.GET("/components").
 		To(handler.handleGetComponents).
 		Metadata(restfulspec.KeyOpenAPITags, []string{tagComponentStatus}).

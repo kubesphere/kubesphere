@@ -39,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/networkpolicy"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/persistentvolumeclaim"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
@@ -68,6 +69,7 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[iamv1alpha2.SchemeGroupVersion.WithResource(iamv1alpha2.ResourcesPluralUser)] = user.New(factory.KubeSphereSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource("roles")] = role.New(factory.KubernetesSharedInformerFactory())
 	getters[rbacv1.SchemeGroupVersion.WithResource("clusterroles")] = clusterrole.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "persistentvolumeclaims"}] = persistentvolumeclaim.New(factory.KubernetesSharedInformerFactory(), factory.SnapshotSharedInformerFactory())
 	getters[snapshotv1beta1.SchemeGroupVersion.WithResource("volumesnapshots")] = volumesnapshot.New(factory.SnapshotSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"}] = cluster.New(factory.KubeSphereSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"}] = customresourcedefinition.New(factory.ApiExtensionSharedInformerFactory())

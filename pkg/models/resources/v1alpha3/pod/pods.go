@@ -27,6 +27,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
 
+const (
+	filedNameName    = "nodeName"
+	filedPVCName     = "pvcName"
+	filedServiceName = "serviceName"
+)
+
 type podsGetter struct {
 	informer informers.SharedInformerFactory
 }
@@ -35,13 +41,13 @@ func New(sharedInformers informers.SharedInformerFactory) v1alpha3.Interface {
 	return &podsGetter{informer: sharedInformers}
 }
 
-func (d *podsGetter) Get(namespace, name string) (runtime.Object, error) {
-	return d.informer.Core().V1().Pods().Lister().Pods(namespace).Get(name)
+func (p *podsGetter) Get(namespace, name string) (runtime.Object, error) {
+	return p.informer.Core().V1().Pods().Lister().Pods(namespace).Get(name)
 }
 
-func (d *podsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
+func (p *podsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 
-	all, err := d.informer.Core().V1().Pods().Lister().Pods(namespace).List(query.Selector())
+	all, err := p.informer.Core().V1().Pods().Lister().Pods(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +57,10 @@ func (d *podsGetter) List(namespace string, query *query.Query) (*api.ListResult
 		result = append(result, app)
 	}
 
-	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
+	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil
 }
 
-func (d *podsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func (p *podsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
 	leftPod, ok := left.(*corev1.Pod)
 	if !ok {
@@ -69,30 +75,25 @@ func (d *podsGetter) compare(left runtime.Object, right runtime.Object, field qu
 	return v1alpha3.DefaultObjectMetaCompare(leftPod.ObjectMeta, rightPod.ObjectMeta, field)
 }
 
-func (d *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
+func (p *podsGetter) filter(object runtime.Object, filter query.Filter) bool {
 	pod, ok := object.(*corev1.Pod)
 
 	if !ok {
 		return false
 	}
 	switch filter.Field {
-	case "nodeName":
-		if pod.Spec.NodeName != string(filter.Value) {
-			return false
-		}
-	case "pvcName":
-		if !d.podBindPVC(pod, string(filter.Value)) {
-			return false
-		}
-	case "serviceName":
-		if !d.podBelongToService(pod, string(filter.Value)) {
-			return false
-		}
+	case filedNameName:
+		return pod.Spec.NodeName == string(filter.Value)
+	case filedPVCName:
+		return p.podBindPVC(pod, string(filter.Value))
+	case filedServiceName:
+		return p.podBelongToService(pod, string(filter.Value))
+	default:
+		return v1alpha3.DefaultObjectMetaFilter(pod.ObjectMeta, filter)
 	}
-	return v1alpha3.DefaultObjectMetaFilter(pod.ObjectMeta, filter)
 }
 
-func (s *podsGetter) podBindPVC(item *corev1.Pod, pvcName string) bool {
+func (p *podsGetter) podBindPVC(item *corev1.Pod, pvcName string) bool {
 	for _, v := range item.Spec.Volumes {
 		if v.VolumeSource.PersistentVolumeClaim != nil &&
 			v.VolumeSource.PersistentVolumeClaim.ClaimName == pvcName {
@@ -102,8 +103,8 @@ func (s *podsGetter) podBindPVC(item *corev1.Pod, pvcName string) bool {
 	return false
 }
 
-func (s *podsGetter) podBelongToService(item *corev1.Pod, serviceName string) bool {
-	service, err := s.informer.Core().V1().Services().Lister().Services(item.Namespace).Get(serviceName)
+func (p *podsGetter) podBelongToService(item *corev1.Pod, serviceName string) bool {
+	service, err := p.informer.Core().V1().Services().Lister().Services(item.Namespace).Get(serviceName)
 	if err != nil {
 		return false
 	}
