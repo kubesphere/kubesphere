@@ -28,6 +28,36 @@ func New(factory informers.InformerFactory) *Handler {
 	}
 }
 
+func (h *Handler) handleGetResources(request *restful.Request, response *restful.Response) {
+	namespace := request.PathParameter("namespace")
+	resourceType := request.PathParameter("resources")
+	name := request.PathParameter("name")
+
+	result, err := h.resourceGetterV1alpha3.Get(resourceType, namespace, name)
+	if err == nil {
+		response.WriteEntity(result)
+		return
+	}
+
+	if err != resource.ErrResourceNotSupported {
+		klog.Error(err)
+		api.HandleInternalError(response, nil, err)
+		return
+	}
+
+	// fallback to v1alpha2
+	resultV1alpha2, err := h.resourcesGetterV1alpha2.GetResource(namespace, resourceType, name)
+
+	if err != nil {
+		klog.Error(err)
+		api.HandleInternalError(response, nil, err)
+		return
+	}
+
+	response.WriteEntity(resultV1alpha2)
+
+}
+
 // handleListResources retrieves resources
 func (h *Handler) handleListResources(request *restful.Request, response *restful.Response) {
 	query := query.ParseQueryParameter(request)

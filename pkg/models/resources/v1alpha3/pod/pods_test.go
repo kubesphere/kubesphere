@@ -33,8 +33,29 @@ func TestListPods(t *testing.T) {
 				Filters:   map[query.Field]query.Value{query.FieldNamespace: query.Value("default")},
 			},
 			&api.ListResult{
-				Items:      []interface{}{foo3, foo2, foo1},
+				Items:      []interface{}{foo4, foo3, foo2, foo1},
 				TotalItems: len(pods),
+			},
+			nil,
+		},
+		{
+			"test pvcName filter",
+			"default",
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  10,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters: map[query.Field]query.Value{
+					query.FieldNamespace: query.Value("default"),
+					filedPVCName:         query.Value(foo4.Spec.Volumes[0].PersistentVolumeClaim.ClaimName),
+				},
+			},
+			&api.ListResult{
+				Items:      []interface{}{foo4},
+				TotalItems: 1,
 			},
 			nil,
 		},
@@ -75,7 +96,26 @@ var (
 			Namespace: "default",
 		},
 	}
-	pods = []interface{}{foo1, foo2, foo3}
+	foo4 = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo4",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					Name: "data",
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "pvc-1",
+							ReadOnly:  false,
+						},
+					},
+				},
+			},
+		},
+	}
+	pods = []interface{}{foo1, foo2, foo3, foo4}
 )
 
 func prepare() v1alpha3.Interface {
@@ -84,7 +124,7 @@ func prepare() v1alpha3.Interface {
 	informer := informers.NewSharedInformerFactory(client, 0)
 
 	for _, pod := range pods {
-		informer.Core().V1().Pods().Informer().GetIndexer().Add(pod)
+		_ = informer.Core().V1().Pods().Informer().GetIndexer().Add(pod)
 	}
 
 	return New(informer)

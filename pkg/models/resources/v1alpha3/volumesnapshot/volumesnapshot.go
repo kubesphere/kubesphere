@@ -20,7 +20,6 @@ package volumesnapshot
 import (
 	"github.com/kubernetes-csi/external-snapshotter/v2/pkg/apis/volumesnapshot/v1beta1"
 	"github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -36,26 +35,26 @@ const (
 )
 
 type volumeSnapshotGetter struct {
-	informer externalversions.SharedInformerFactory
+	informers externalversions.SharedInformerFactory
 }
 
 func New(informer externalversions.SharedInformerFactory) v1alpha3.Interface {
-	return &volumeSnapshotGetter{informer: informer}
+	return &volumeSnapshotGetter{informers: informer}
 }
 
 func (v *volumeSnapshotGetter) Get(namespace, name string) (runtime.Object, error) {
-	return v.informer.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).Get(name)
+	return v.informers.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).Get(name)
 }
 
 func (v *volumeSnapshotGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := v.listVolumeSnapshots(namespace, query.Selector())
+	all, err := v.informers.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, app := range all {
-		result = append(result, app)
+	for _, snapshot := range all {
+		result = append(result, snapshot)
 	}
 
 	return v1alpha3.DefaultList(result, query, v.compare, v.filter), nil
@@ -91,10 +90,6 @@ func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter
 	default:
 		return v1alpha3.DefaultObjectMetaFilter(snapshot.ObjectMeta, filter)
 	}
-}
-
-func (v *volumeSnapshotGetter) listVolumeSnapshots(namespace string, selector labels.Selector) (ret []*v1beta1.VolumeSnapshot, err error) {
-	return v.informer.Snapshot().V1beta1().VolumeSnapshots().Lister().VolumeSnapshots(namespace).List(selector)
 }
 
 func snapshotStatus(item *v1beta1.VolumeSnapshot) string {
