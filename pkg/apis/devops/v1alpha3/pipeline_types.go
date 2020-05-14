@@ -190,3 +190,7 @@ type TimerTrigger struct {
 type RemoteTrigger struct {
 	Token string `json:"token,omitempty" description:"remote trigger token"`
 }
+
+func init() {
+	SchemeBuilder.Register(&Pipeline{}, &PipelineList{})
+}
