@@ -41,6 +41,8 @@ func NewGenericProxy(endpoint string, groupName string, version string) (*generi
 	}, nil
 }
 
+// currently, we only support proxy GET/PUT/POST/DELETE/PATCH.
+// Maybe we can try another way to implement proxy.
 func (g *genericProxy) AddToContainer(container *restful.Container) error {
 	webservice := runtime.NewWebService(schema.GroupVersion{
 		Group:   g.GroupName,
@@ -60,6 +62,10 @@ func (g *genericProxy) AddToContainer(container *restful.Container) error {
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	webservice.Route(webservice.DELETE("/{path:*}").
+		To(g.handler).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
+	webservice.Route(webservice.PATCH("/{path:*}").
 		To(g.handler).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
