@@ -407,7 +407,7 @@ func (j *Jenkins) ListPipelineRuns(projectName, pipelineName string, httpParamet
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
-		Path:           ListPipelineRunUrl + httpParameters.Url.RawQuery,
+		Path:           fmt.Sprintf(ListPipelineRunUrl, projectName, pipelineName) + httpParameters.Url.RawQuery,
 	}
 	res, err := PipelineOjb.ListPipelineRuns()
 	return res, err

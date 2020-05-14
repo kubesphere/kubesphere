@@ -80,86 +80,7 @@ type Pipeline struct {
 
 // GetPipeBranchRun & SearchPipelineRuns
 type PipelineRunList struct {
-	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-	Links struct {
-		PrevRun struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"prevRun,omitempty"`
-		Parent struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"parent,omitempty"`
-		Tests struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"tests,omitempty"`
-		Nodes struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"nodes,omitempty"`
-		Log struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"log,omitempty"`
-		Self struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"self,omitempty"`
-		BlueTestSummary struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"blueTestSummary,omitempty"`
-		Actions struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"actions,omitempty"`
-		Steps struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"steps,omitempty"`
-		Artifacts struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"artifacts,omitempty"`
-		NextRun struct {
-			Class string `json:"_class,omitempty"`
-			Href  string `json:"href,omitempty"`
-		} `json:"nextRun,omitempty"`
-	} `json:"_links,omitempty" description:"references the reachable path to this resource"`
-	Actions          []interface{} `json:"actions,omitempty" description:"the list of all actions"`
-	ArtifactsZipFile interface{}   `json:"artifactsZipFile,omitempty" description:"the artifacts zip file"`
-	CauseOfBlockage  interface{}   `json:"causeOfBlockage,omitempty" description:"the cause of blockage"`
-	Causes           []struct {
-		Class            string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-		ShortDescription string `json:"shortDescription,omitempty" description:"short description"`
-		UserID           string `json:"userId,omitempty" description:"user id"`
-		UserName         string `json:"userName,omitempty" description:"user name"`
-	} `json:"causes,omitempty"`
-	ChangeSet                 []interface{} `json:"changeSet,omitempty" description:"changeset information"`
-	Description               interface{}   `json:"description,omitempty" description:"description of resource"`
-	DurationInMillis          int           `json:"durationInMillis,omitempty" description:"duration time in millis"`
-	EnQueueTime               string        `json:"enQueueTime,omitempty" description:"the time of enter the queue"`
-	EndTime                   string        `json:"endTime,omitempty" description:"the time of end"`
-	EstimatedDurationInMillis int           `json:"estimatedDurationInMillis,omitempty" description:"estimated duration time, unit is millis"`
-	ID                        string        `json:"id,omitempty" description:"id"`
-	Name                      interface{}   `json:"name,omitempty" description:"name"`
-	Organization              string        `json:"organization,omitempty" description:"the name of organization"`
-	Pipeline                  string        `json:"pipeline,omitempty" description:"pipeline name"`
-	Replayable                bool          `json:"replayable,omitempty" description:"replayable or not"`
-	Result                    string        `json:"result,omitempty" description:"the result of pipeline run. e.g. SUCCESS"`
-	RunSummary                string        `json:"runSummary,omitempty" description:"pipeline run summary"`
-	StartTime                 string        `json:"startTime,omitempty" description:"the time of start"`
-	State                     string        `json:"state,omitempty" description:"run state. e.g. RUNNING"`
-	Type                      string        `json:"type,omitempty" description:"source type, such as \"WorkflowRun\""`
-	Branch                    struct {
-		IsPrimary bool          `json:"isPrimary,omitempty" description:"primary or not"`
-		Issues    []interface{} `json:"issues,omitempty" description:"issues"`
-		URL       string        `json:"url,omitempty" description:"url"`
-	} `json:"branch,omitempty"`
-	CommitID    string      `json:"commitId,omitempty" description:"commit id"`
-	CommitURL   interface{} `json:"commitUrl,omitempty" description:"commit url "`
-	PullRequest interface{} `json:"pullRequest,omitempty" description:"pull request"`
+	Items []PipelineRun `json:"items"`
 }
 
 // GetBranchPipeRunNodes
@@ -462,7 +383,9 @@ type Artifacts struct {
 }
 
 // GetPipeBranch
-type PipelineBranch struct {
+type PipelineBranch []PipelineBranchItem
+
+type PipelineBranchItem struct {
 	Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 	Links struct {
 		Self struct {

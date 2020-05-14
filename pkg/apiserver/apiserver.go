@@ -34,6 +34,7 @@ import (
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
 	configv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/config/v1alpha2"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/logging/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
@@ -179,6 +180,12 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.SonarClient,
 		s.KubernetesClient.KubeSphere(),
 		s.S3Client))
+	urlruntime.Must(devopsv1alpha3.AddToContainer(s.container,
+		s.DevopsClient,
+		s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere(),
+		s.InformerFactory.KubeSphereSharedInformerFactory(),
+		s.InformerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
 }

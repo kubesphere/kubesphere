@@ -23,7 +23,6 @@ import (
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"net/http"
 	"reflect"
 	"time"
 )
@@ -225,13 +224,10 @@ func (c *Controller) syncHandler(key string) error {
 					return err
 				}
 			}
-		} else if devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("failed to get copyPipeline %s ", key))
-			return err
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to get copyPipeline %s ", key))
+				klog.Error(err, fmt.Sprintf("failed to create copyPipeline %s ", key))
 				return err
 			}
 		}
@@ -239,16 +235,8 @@ func (c *Controller) syncHandler(key string) error {
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
-			_, err := c.devopsClient.GetProjectPipelineConfig(nsName, pipeline.Name)
-			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-				klog.Error(err, fmt.Sprintf("failed to get pipeline %s ", key))
-				return err
-			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
-			} else {
-				if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
-					klog.Error(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
-					return err
-				}
+			if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
+				klog.Error(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
 			}
 			copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.PipelineFinalizerName

@@ -20,7 +20,7 @@ type PipelineSonarHandler struct {
 
 func NewProjectPipelineHandler(devopsClient devopsClient.Interface) ProjectPipelineHandler {
 	return ProjectPipelineHandler{
-		devopsOperator:          devops.NewDevopsOperator(devopsClient),
+		devopsOperator:          devops.NewDevopsOperator(devopsClient, nil, nil, nil, nil),
 		projectCredentialGetter: devops.NewProjectCredentialOperator(devopsClient),
 	}
 }

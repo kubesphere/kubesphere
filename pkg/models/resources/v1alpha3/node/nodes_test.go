@@ -44,7 +44,7 @@ var node = &corev1.Node{
 }
 
 var pods = []*corev1.Pod{
-	&corev1.Pod{
+	{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "pod-with-resources",
@@ -69,7 +69,7 @@ var pods = []*corev1.Pod{
 			Phase: corev1.PodRunning,
 		},
 	},
-	&corev1.Pod{
+	{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo2",
 			Name:      "pod-with-resources",

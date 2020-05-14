@@ -145,7 +145,7 @@ func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
 	}
 
 	var pipelineRunList devops.PipelineRunList
-	err = json.Unmarshal(res, &pipelineRunList)
+	err = json.Unmarshal(res, &pipelineRunList.Items)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
