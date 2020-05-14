@@ -22,7 +22,6 @@ import (
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"net/http"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -282,10 +281,8 @@ func (c *Controller) syncHandler(key string) error {
 		}
 		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(copyProject.Status.AdminNamespace)
-		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
+		if err != nil {
 			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
-			return err
-		} else {
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
 				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
@@ -296,16 +293,9 @@ func (c *Controller) syncHandler(key string) error {
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
-			_, err := c.devopsClient.GetDevOpsProject(key)
-			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-				klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
+			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
+				klog.Error(err, fmt.Sprintf("failed to delete resource %s in devops", key))
 				return err
-			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
-			} else {
-				if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
-					klog.Error(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-					return err
-				}
 			}
 			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.DevOpsProjectFinalizerName
@@ -324,7 +314,7 @@ func (c *Controller) syncHandler(key string) error {
 
 func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsProject) error {
 
-	err := c.devopsClient.DeleteDevOpsProject(project.Name)
+	err := c.devopsClient.DeleteDevOpsProject(project.Status.AdminNamespace)
 	if err != nil {
 		klog.Errorf("error happened while deleting %s, %v", project.Name, err)
 	}

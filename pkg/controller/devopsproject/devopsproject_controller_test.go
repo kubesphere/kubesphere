@@ -385,7 +385,7 @@ func TestDeleteDevOpsProjects(t *testing.T) {
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
 	f.objects = append(f.objects, project)
 	f.initDevOpsProject = []string{project.Name}
-	f.expectDevOpsProject = []string{}
+	f.expectDevOpsProject = []string{project.Name}
 	expectProject := project.DeepCopy()
 	expectProject.Finalizers = []string{}
 	f.expectUpdateDevOpsProjectAction(expectProject)
