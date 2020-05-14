@@ -40,7 +40,9 @@ const (
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
 func AddToContainer(c *restful.Container, factory informers.InformerFactory, op op.Client) error {
-
+	if op == nil {
+		return nil
+	}
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
 	handler := newOpenpitrixHandler(factory, op)
