@@ -120,6 +120,41 @@ func TestGetMetadata(t *testing.T) {
 	}
 }
 
+func TestGetMetricLabelSet(t *testing.T) {
+	tests := []struct {
+		fakeResp string
+		expected string
+	}{
+		{
+			fakeResp: "labels-prom.json",
+			expected: "labels-res.json",
+		},
+		{
+			fakeResp: "labels-error-prom.json",
+			expected: "labels-error-res.json",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			var expected []map[string]string
+			err := jsonFromFile(tt.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			srv := mockPrometheusService("/api/v1/series", tt.fakeResp)
+			defer srv.Close()
+
+			client, _ := NewPrometheus(&Options{Endpoint: srv.URL})
+			result := client.GetMetricLabelSet("default", time.Now(), time.Now())
+			if diff := cmp.Diff(result, expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
 func mockPrometheusService(pattern, fakeResp string) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {

@@ -409,12 +409,24 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Returns(http.StatusOK, RespOK, model.Metadata{})).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.GET("/namespaces/{namespace}/targets/labelsets").
+		To(h.handleMetricLabelSetQuery).
+		Doc("List all available labels and values of a metric within a specific time span.").
+		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
+		Param(ws.QueryParameter("metric", "The name of the metric").DataType("string").Required(true)).
+		Param(ws.QueryParameter("start", "Start time of query. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(true)).
+		Param(ws.QueryParameter("end", "End time of query. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(true)).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMetricsTag}).
+		Writes(model.MetricLabelSet{}).
+		Returns(http.StatusOK, RespOK, model.MetricLabelSet{})).
+		Produces(restful.MIME_JSON)
+
 	ws.Route(ws.GET("/namespaces/{namespace}/targets/query").
 		To(h.handleAdhocQuery).
 		Doc("Make an ad-hoc query in the specific namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("expr", "The expression to be evaluated.").DataType("string").Required(false)).
-		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(true)).
+		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).

@@ -19,6 +19,7 @@
 package v1alpha3
 
 import (
+	"errors"
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -195,6 +196,30 @@ func (h handler) handleNamedMetricsQuery(resp *restful.Response, q queryOptions)
 
 func (h handler) handleMetadataQuery(req *restful.Request, resp *restful.Response) {
 	res := h.mo.GetMetadata(req.PathParameter("namespace"))
+	resp.WriteAsJson(res)
+}
+
+func (h handler) handleMetricLabelSetQuery(req *restful.Request, resp *restful.Response) {
+	var res model.MetricLabelSet
+
+	params := parseRequestParams(req)
+	if params.metric == "" || params.start == "" || params.end == "" {
+		api.HandleBadRequest(resp, nil, errors.New("required fields are missing: [metric, start, end]"))
+		return
+	}
+
+	opt, err := h.makeQueryOptions(params, 0)
+	if err != nil {
+		if err.Error() == ErrNoHit {
+			resp.WriteAsJson(res)
+			return
+		}
+
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	res = h.mo.GetMetricLabelSet(params.metric, params.namespaceName, opt.start, opt.end)
 	resp.WriteAsJson(res)
 }
 
