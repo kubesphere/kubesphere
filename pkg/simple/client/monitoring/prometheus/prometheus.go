@@ -6,7 +6,10 @@ import (
 	"github.com/prometheus/client_golang/api"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/utils/stringutils"
+	"sort"
 	"sync"
 	"time"
 )
@@ -135,6 +138,7 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 	matchTarget := fmt.Sprintf("{namespace=\"%s\"}", namespace)
 	items, err := p.client.TargetsMetadata(context.Background(), matchTarget, "", "")
 	if err != nil {
+		klog.Error(err)
 		return meta
 	}
 
@@ -153,6 +157,34 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 	}
 
 	return meta
+}
+
+func (p prometheus) GetMetricLabels(expr string, start, end time.Time) monitoring.MetricLabels {
+	var res = make(map[string][]string)
+
+	labelSet, err := p.client.Series(context.Background(), []string{expr}, start, end)
+	if err != nil {
+		klog.Error(err)
+		return res
+	}
+
+	for _, label := range labelSet {
+		for key, value := range label {
+			if key == "__name__" {
+				continue
+			}
+
+			res[string(key)] = append(res[string(key)], string(value))
+		}
+	}
+
+	// Deduplicate and Sort
+	for label, values := range res {
+		res[label] = stringutils.Unique(values)
+		sort.StringSlice(res[label]).Sort()
+	}
+
+	return res
 }
 
 func parseQueryRangeResp(value model.Value) monitoring.MetricData {

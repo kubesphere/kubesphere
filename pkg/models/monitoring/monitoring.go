@@ -19,6 +19,7 @@
 package monitoring
 
 import (
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models/monitoring/expressions"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"time"
@@ -30,6 +31,7 @@ type MonitoringOperator interface {
 	GetNamedMetrics(metrics []string, time time.Time, opt monitoring.QueryOption) Metrics
 	GetNamedMetricsOverTime(metrics []string, start, end time.Time, step time.Duration, opt monitoring.QueryOption) Metrics
 	GetMetadata(namespace string) Metadata
+	GetMetricLabels(metric, namespace string, start, end time.Time) monitoring.MetricLabels
 }
 
 type monitoringOperator struct {
@@ -77,4 +79,31 @@ func (mo monitoringOperator) GetNamedMetricsOverTime(metrics []string, start, en
 func (mo monitoringOperator) GetMetadata(namespace string) Metadata {
 	data := mo.c.GetMetadata(namespace)
 	return Metadata{Data: data}
+}
+
+func (mo monitoringOperator) GetMetricLabels(metric, namespace string, start, end time.Time) monitoring.MetricLabels {
+	var permit bool
+
+	availMetrics := mo.c.GetMetadata(namespace)
+	for _, item := range availMetrics {
+		if item.Metric == metric {
+			permit = true
+			break
+		}
+	}
+
+	if !permit {
+		return monitoring.MetricLabels{}
+	}
+
+	// Different monitoring backend implementations have different ways to enforce namespace isolation.
+	// Each implementation should register itself to `ReplaceNamespaceFns` during init().
+	// We hard code "prometheus" here because we only support this datasource so far.
+	// In the future, maybe the value should be returned from a method like `mo.c.GetMonitoringServiceName()`.
+	expr, err := expressions.ReplaceNamespaceFns["prometheus"](metric, namespace)
+	if err != nil {
+		klog.Error(err)
+		return monitoring.MetricLabels{}
+	}
+	return mo.c.GetMetricLabels(expr, start, end)
 }

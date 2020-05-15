@@ -11,6 +11,8 @@ type Metadata struct {
 	Help   string `json:"help,omitempty" description:"metric description"`
 }
 
+type MetricLabels map[string][]string
+
 type Metric struct {
 	MetricName string `json:"metric_name,omitempty" description:"metric name, eg. scheduler_up_sum"`
 	MetricData `json:"data,omitempty" description:"actual metric result"`

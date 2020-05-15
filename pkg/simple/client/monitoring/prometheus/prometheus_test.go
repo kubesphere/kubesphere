@@ -8,6 +8,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -115,6 +116,44 @@ func TestGetMetadata(t *testing.T) {
 			result := client.GetMetadata("default")
 			if diff := cmp.Diff(result, expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
+func TestGetMetricLabels(t *testing.T) {
+	tests := []struct {
+		fakeResp string
+		expected string
+	}{
+		{
+			fakeResp: "labels-prom.json",
+			expected: "labels-res.json",
+		},
+		{
+			fakeResp: "labels-error-prom.json",
+			expected: "labels-error-res.json",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			var expected monitoring.MetricLabels
+			err := jsonFromFile(tt.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(expected) == 0 {
+				expected = monitoring.MetricLabels{}
+			}
+
+			srv := mockPrometheusService("/api/v1/series", tt.fakeResp)
+			defer srv.Close()
+
+			client, _ := NewPrometheus(&Options{Endpoint: srv.URL})
+			result := client.GetMetricLabels("default", time.Now(), time.Now())
+			if ok := reflect.DeepEqual(result, expected); !ok {
+				t.Fatalf("expect %v, but got %v", expected, result)
 			}
 		})
 	}

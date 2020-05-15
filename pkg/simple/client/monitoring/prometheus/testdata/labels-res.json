@@ -1,0 +1,32 @@
+{
+  "configmap":[
+    "grafana-dashboard-cluster-total",
+    "grafana-dashboard-k8s-resources-workload",
+    "grafana-dashboard-namespace-by-pod",
+    "grafana-dashboard-persistentvolumesusage",
+    "grafana-dashboard-proxy",
+    "grafana-dashboard-scheduler"
+  ],
+  "endpoint":[
+    "https-main"
+  ],
+  "instance":[
+    "10.233.99.140:8443",
+    "10.233.99.172:8443",
+    "10.233.99.173:8443"
+  ],
+  "job":[
+    "kube-state-metrics"
+  ],
+  "namespace":[
+    "kubesphere-monitoring-system"
+  ],
+  "pod":[
+    "kube-state-metrics-6646f8489d-2l482",
+    "kube-state-metrics-869dc86c5b-6x2gr",
+    "kube-state-metrics-869dc86c5b-prwbc"
+  ],
+  "service":[
+    "kube-state-metrics"
+  ]
+}
