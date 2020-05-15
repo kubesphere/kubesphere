@@ -389,7 +389,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 	ws.Route(ws.GET("/components/{component}").
 		To(h.handleComponentMetricsQuery).
 		Doc("Get component-level metric data of the specific system component.").
-		Param(ws.PathParameter("component", "system component to monitor. One of etcd, apiserver, scheduler, controller_manager, coredns, prometheus.").DataType("string").Required(true)).
+		Param(ws.PathParameter("component", "system component to monitor. One of etcd, apiserver, scheduler.").DataType("string").Required(true)).
 		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both etcd server list and total size of the underlying database: `etcd_server_list|etcd_mvcc_db_size`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
