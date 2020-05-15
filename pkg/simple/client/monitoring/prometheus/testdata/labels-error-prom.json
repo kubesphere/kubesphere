@@ -1,0 +1,5 @@
+{
+  "status":"error",
+  "errorType":"bad_data",
+  "error":"1:6: parse error: unexpected left brace '{'"
+}

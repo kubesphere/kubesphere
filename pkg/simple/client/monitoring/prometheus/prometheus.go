@@ -6,6 +6,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"sync"
 	"time"
@@ -135,6 +136,7 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 	matchTarget := fmt.Sprintf("{namespace=\"%s\"}", namespace)
 	items, err := p.client.TargetsMetadata(context.Background(), matchTarget, "", "")
 	if err != nil {
+		klog.Error(err)
 		return meta
 	}
 
@@ -153,6 +155,30 @@ func (p prometheus) GetMetadata(namespace string) []monitoring.Metadata {
 	}
 
 	return meta
+}
+
+func (p prometheus) GetMetricLabelSet(expr string, start, end time.Time) []map[string]string {
+	var res []map[string]string
+
+	labelSet, err := p.client.Series(context.Background(), []string{expr}, start, end)
+	if err != nil {
+		klog.Error(err)
+		return []map[string]string{}
+	}
+
+	for _, item := range labelSet {
+		var tmp = map[string]string{}
+		for key, val := range item {
+			if key == "__name__" {
+				continue
+			}
+			tmp[string(key)] = string(val)
+		}
+
+		res = append(res, tmp)
+	}
+
+	return res
 }
 
 func parseQueryRangeResp(value model.Value) monitoring.MetricData {

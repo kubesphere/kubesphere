@@ -50,6 +50,7 @@ type reqParams struct {
 	storageClassName string
 	componentType    string
 	expression       string
+	metric           string
 }
 
 type queryOptions struct {
@@ -101,6 +102,7 @@ func parseRequestParams(req *restful.Request) reqParams {
 	r.storageClassName = req.PathParameter("storageclass")
 	r.componentType = req.PathParameter("component")
 	r.expression = req.QueryParameter("expr")
+	r.metric = req.QueryParameter("metric")
 	return r
 }
 

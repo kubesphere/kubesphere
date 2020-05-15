@@ -12,3 +12,7 @@ type Metrics struct {
 type Metadata struct {
 	Data []monitoring.Metadata `json:"data" description:"actual array of results"`
 }
+
+type MetricLabelSet struct {
+	Data []map[string]string `json:"data" description:"actual array of results"`
+}
