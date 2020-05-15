@@ -32,6 +32,7 @@ import (
 const (
 	GroupName = "resources.kubesphere.io"
 
+	tagClusteredResource  = "Clustered Resource"
 	tagComponentStatus    = "Component Status"
 	tagNamespacedResource = "Namespaced Resource"
 
@@ -47,7 +48,7 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 
 	webservice.Route(webservice.GET("/{resources}").
 		To(handler.handleListResources).
-		Metadata(restfulspec.KeyOpenAPITags, []string{tagNamespacedResource}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagClusteredResource}).
 		Doc("Cluster level resources").
 		Param(webservice.PathParameter("resources", "cluster level resource type, e.g. pods,jobs,configmaps,services.")).
 		Param(webservice.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
@@ -56,6 +57,14 @@ func AddToContainer(c *restful.Container, informerFactory informers.InformerFact
 		Param(webservice.QueryParameter(query.ParameterAscending, "sort parameters, e.g. reverse=true").Required(false).DefaultValue("ascending=false")).
 		Param(webservice.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
 		Returns(http.StatusOK, ok, api.ListResult{}))
+
+	webservice.Route(webservice.GET("/{resources}/{name}").
+		To(handler.handleGetResources).
+		Metadata(restfulspec.KeyOpenAPITags, []string{tagClusteredResource}).
+		Doc("Cluster level resource").
+		Param(webservice.PathParameter("resources", "cluster level resource type, e.g. pods,jobs,configmaps,services.")).
+		Param(webservice.PathParameter("name", "the name of the clustered resources")).
+		Returns(http.StatusOK, api.StatusOK, nil))
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(handler.handleListResources).
