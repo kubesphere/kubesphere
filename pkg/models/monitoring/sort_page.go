@@ -24,10 +24,9 @@ import (
 	"sort"
 )
 
-// TODO(huanggze): the id value is dependent of Prometheus label-value pair (i.e. label_kubesphere_io_workspace). We should regulate the naming convention.
 const (
 	IdentifierNode      = "node"
-	IdentifierWorkspace = "label_kubesphere_io_workspace"
+	IdentifierWorkspace = "workspace"
 	IdentifierNamespace = "namespace"
 	IdentifierWorkload  = "workload"
 	IdentifierPod       = "pod"
