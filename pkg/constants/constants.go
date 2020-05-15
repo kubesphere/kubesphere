@@ -81,6 +81,7 @@ const (
 	CustomMetricsTag           = "Custom Metrics"
 	LogQueryTag                = "Log Query"
 	TerminalTag                = "Terminal"
+	EventsQueryTag             = "Events Query"
 )
 
 var (

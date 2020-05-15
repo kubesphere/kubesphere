@@ -11,6 +11,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
+	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
@@ -123,6 +124,11 @@ func newTestConfig() (*Config, error) {
 		},
 		MultiClusterOptions: &multicluster.Options{
 			Enable: false,
+		},
+		EventsOptions: &eventsclient.Options{
+			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
+			IndexPrefix: "ks-logstash-events",
+			Version:     "6",
 		},
 	}
 	return conf, nil
