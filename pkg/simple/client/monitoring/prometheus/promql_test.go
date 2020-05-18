@@ -26,6 +26,13 @@ func TestMakeExpr(t *testing.T) {
 			},
 		},
 		{
+			name: "node_pod_quota",
+			opts: monitoring.QueryOptions{
+				Level:          monitoring.LevelNode,
+				ResourceFilter: "i-2dazc1d6|i-ezjb7gsk",
+			},
+		},
+		{
 			name: "node_cpu_total",
 			opts: monitoring.QueryOptions{
 				Level:          monitoring.LevelNode,
