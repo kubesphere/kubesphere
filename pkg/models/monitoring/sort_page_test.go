@@ -5,6 +5,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/json-iterator/go"
 	"io/ioutil"
+	"math"
 	"testing"
 )
 
@@ -34,8 +35,22 @@ func TestSort(t *testing.T) {
 			target:     "node_memory_utilisation",
 			order:      "desc",
 			identifier: "node",
-			raw:        "faulty-node-metrics.json",
-			expected:   "faulty-node-metrics-sorted.json",
+			raw:        "faulty-node-metrics-1.json",
+			expected:   "faulty-node-metrics-sorted-1.json",
+		},
+		{
+			target:     "node_cpu_utilisation",
+			order:      "asc",
+			identifier: "node",
+			raw:        "faulty-node-metrics-2.json",
+			expected:   "faulty-node-metrics-sorted-2.json",
+		},
+		{
+			target:     "node_cpu_utilisation",
+			order:      "asc",
+			identifier: "node",
+			raw:        "faulty-node-metrics-3.json",
+			expected:   "faulty-node-metrics-sorted-3.json",
 		},
 		{
 			target:     "node_memory_utilisation",
@@ -61,7 +76,10 @@ func TestSort(t *testing.T) {
 			}
 
 			result := source.Sort(tt.target, tt.order, tt.identifier)
-			if diff := cmp.Diff(*result, *expected); diff != "" {
+			opt := cmp.Comparer(func(x, y float64) bool {
+				return (math.IsNaN(x) && math.IsNaN(y)) || x == y
+			})
+			if diff := cmp.Diff(*result, *expected, opt); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
 			}
 		})
@@ -102,7 +120,7 @@ func TestPage(t *testing.T) {
 		{
 			page:     1,
 			limit:    2,
-			raw:      "faulty-node-metrics-sorted.json",
+			raw:      "faulty-node-metrics-sorted-1.json",
 			expected: "faulty-node-metrics-paged.json",
 		},
 	}
