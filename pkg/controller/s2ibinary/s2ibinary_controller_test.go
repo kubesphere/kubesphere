@@ -53,7 +53,7 @@ func newS2iBinary(name string, spec s2i.S2iBinarySpec) *s2i.S2iBinary {
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: s2i.S2iBinarySpec{},
+		Spec: spec,
 	}
 }
 func newDeletingS2iBinary(name string) *s2i.S2iBinary {
