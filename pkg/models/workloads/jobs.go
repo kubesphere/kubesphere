@@ -23,17 +23,28 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"strings"
 	"time"
 )
 
 const retryTimes = 3
 
-func JobReRun(namespace, jobName, resourceVersion string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-	job, err := k8sClient.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
+type JobRunner interface {
+	JobReRun(namespace, name, resourceVersion string) error
+}
+
+type jobRunner struct {
+	client kubernetes.Interface
+}
+
+func NewJobRunner(client kubernetes.Interface) JobRunner {
+	return &jobRunner{client: client}
+}
+
+func (r *jobRunner) JobReRun(namespace, jobName, resourceVersion string) error {
+	job, err := r.client.BatchV1().Jobs(namespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -55,7 +66,7 @@ func JobReRun(namespace, jobName, resourceVersion string) error {
 	delete(newJob.Spec.Selector.MatchLabels, "controller-uid")
 	delete(newJob.Spec.Template.ObjectMeta.Labels, "controller-uid")
 
-	err = deleteJob(namespace, jobName)
+	err = r.deleteJob(namespace, jobName)
 
 	if err != nil {
 		klog.Errorf("failed to rerun job %s, reason: %s", jobName, err)
@@ -63,7 +74,7 @@ func JobReRun(namespace, jobName, resourceVersion string) error {
 	}
 
 	for i := 0; i < retryTimes; i++ {
-		_, err = k8sClient.BatchV1().Jobs(namespace).Create(&newJob)
+		_, err = r.client.BatchV1().Jobs(namespace).Create(&newJob)
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -79,9 +90,8 @@ func JobReRun(namespace, jobName, resourceVersion string) error {
 	return nil
 }
 
-func deleteJob(namespace, job string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
+func (r *jobRunner) deleteJob(namespace, job string) error {
 	deletePolicy := metav1.DeletePropagationBackground
-	err := k8sClient.BatchV1().Jobs(namespace).Delete(job, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	err := r.client.BatchV1().Jobs(namespace).Delete(job, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	return err
 }

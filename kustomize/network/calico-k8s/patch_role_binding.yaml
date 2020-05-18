@@ -1,8 +1,0 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: net-role-binding
-subjects:
-- kind: ServiceAccount
-  name: network-manager
-  namespace: network-test-f22e8ea9

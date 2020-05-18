@@ -1,0 +1,91 @@
+package s3
+
+import (
+	"code.cloudfoundry.org/bytefmt"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"io"
+	"k8s.io/klog"
+	"time"
+)
+
+type Client struct {
+	s3Client  *s3.S3
+	s3Session *session.Session
+	bucket    string
+}
+
+func (s *Client) Upload(key, fileName string, body io.Reader) error {
+	uploader := s3manager.NewUploader(s.s3Session, func(uploader *s3manager.Uploader) {
+		uploader.PartSize = 5 * bytefmt.MEGABYTE
+		uploader.LeavePartsOnError = true
+	})
+	_, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket:             aws.String(s.bucket),
+		Key:                aws.String(key),
+		Body:               body,
+		ContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", fileName)),
+	})
+	return err
+}
+
+func (s *Client) GetDownloadURL(key string, fileName string) (string, error) {
+	req, _ := s.s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket:                     aws.String(s.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", fileName)),
+	})
+	return req.Presign(5 * time.Minute)
+}
+
+func (s *Client) Delete(key string) error {
+	_, err := s.s3Client.DeleteObject(
+		&s3.DeleteObjectInput{Bucket: aws.String(s.bucket),
+			Key: aws.String(key),
+		})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewS3Client(options *Options) (Interface, error) {
+	cred := credentials.NewStaticCredentials(options.AccessKeyID, options.SecretAccessKey, options.SessionToken)
+
+	config := aws.Config{
+		Region:           aws.String(options.Region),
+		Endpoint:         aws.String(options.Endpoint),
+		DisableSSL:       aws.Bool(options.DisableSSL),
+		S3ForcePathStyle: aws.Bool(options.ForcePathStyle),
+		Credentials:      cred,
+	}
+
+	s, err := session.NewSession(&config)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	var c Client
+
+	c.s3Client = s3.New(s)
+	c.s3Session = s
+	c.bucket = options.Bucket
+
+	return &c, nil
+}
+
+func (s *Client) Client() *s3.S3 {
+	return s.s3Client
+}
+func (s *Client) Session() *session.Session {
+	return s.s3Session
+}
+
+func (s *Client) Bucket() *string {
+	return aws.String(s.bucket)
+}

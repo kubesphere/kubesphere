@@ -20,42 +20,34 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kubesphere.io/kubesphere/pkg/apiserver/operations"
+	"k8s.io/client-go/kubernetes"
+	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/server/errors"
 	"net/http"
 )
 
-const GroupName = "operations.kubesphere.io"
+const (
+	GroupName = "operations.kubesphere.io"
+)
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-var (
-	WebServiceBuilder = runtime.NewContainerBuilder(addWebService)
-	AddToContainer    = WebServiceBuilder.AddToContainer
-)
+func AddToContainer(c *restful.Container, client kubernetes.Interface) error {
 
-func addWebService(c *restful.Container) error {
-
-	ok := "ok"
 	webservice := runtime.NewWebService(GroupVersion)
 
-	webservice.Route(webservice.POST("/nodes/{node}/drainage").
-		To(operations.DrainNode).
-		Deprecate().
-		Doc("remove a node from service, safely evict all of your pods from a node and you can power down the node. More info: https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/").
-		Param(webservice.PathParameter("node", "node name")).
-		Returns(http.StatusOK, ok, errors.Error{}))
+	handler := newOperationHandler(client)
 
 	webservice.Route(webservice.POST("/namespaces/{namespace}/jobs/{job}").
-		To(operations.RerunJob).
+		To(handler.handleJobReRun).
 		Doc("Rerun job whether the job is complete or not").
 		Deprecate().
 		Param(webservice.PathParameter("job", "job name")).
 		Param(webservice.PathParameter("namespace", "the name of the namespace where the job runs in")).
 		Param(webservice.QueryParameter("action", "action must be \"rerun\"")).
 		Param(webservice.QueryParameter("resourceVersion", "version of job, rerun when the version matches").Required(true)).
-		Returns(http.StatusOK, ok, errors.Error{}))
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}))
 
 	c.Add(webservice)
 

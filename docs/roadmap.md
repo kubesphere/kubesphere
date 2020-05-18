@@ -23,6 +23,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] Most of the work will be bugfix
 - [ ] Refactor RBAC in order to support future versions regarding third-party plugins with custom access control.
 - [ ] Refactor installer
+- [ ] FluentBit Operator upgrade
 
 ### v3.0.0
 
@@ -30,12 +31,37 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 
 #### DevOps
 
+- [ ] Create / Edit Pipeline Process Optimization.
+- [ ] S2I/B2I supports webhook.
+- [ ] Image registry optimization.
+- [ ] Pipeline support integration with JIRA.
+- [ ] Pipeline integrates the notification of kubesphere.
+- [ ] Pipeline integrates kubesphere custom monitoring.
 #### Observability
+
+- [ ] Logging console enhancement
+- [ ] Monitoring stack upgrade including Prometheus, Prometheus Operator, Node exporter, kube-state-metrics etc.
+- [ ] Custom metrics support including application custom metrics dashboard, custom metrics HPA
+- [ ] Integration with Alertmanager
+- [ ] K8s Event management
+- [ ] K8s Audit Support
+- [ ] Notification Enhancement
 
 #### Network
 
 #### Storage
 
+- [ ] Snapshot management
+- [ ] Volume cloning
+- [ ] Volume monitoring and alerting
+- [ ] Identify storage system capabilities
+- [ ] Restore volume to available status
+- [ ] Unified integrate third-party storage plugin
+
 #### Security & Multitenancy
+
+- [ ] Support the OAuth2 SSO plugin.
+- [ ] Workspace resource quota.
+- [ ] Refactor access management framework to adapt to multi-cluster design.
 
 #### Application Lifecycle Management (OpenPitrix)

@@ -31,11 +31,10 @@ const (
 	PorterNamespace               = "porter-system"
 	IngressControllerNamespace    = KubeSphereControlNamespace
 	AdminUserName                 = "admin"
-	DataHome                      = "/etc/kubesphere"
-	IngressControllerFolder       = DataHome + "/ingress-controller"
 	IngressControllerPrefix       = "kubesphere-router-"
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
+	NamespaceLabelKey              = "kubesphere.io/namespace"
 	DisplayNameAnnotationKey       = "kubesphere.io/alias-name"
 	DescriptionAnnotationKey       = "kubesphere.io/description"
 	CreatorAnnotationKey           = "kubesphere.io/creator"
@@ -48,6 +47,7 @@ const (
 	WorkspacesManager              = "workspaces-manager"
 	DevopsOwner                    = "owner"
 	DevopsReporter                 = "reporter"
+	DevOpsProjectLabelKey          = "kubesphere.io/devopsproject"
 
 	UserNameHeader = "X-Token-Username"
 
@@ -60,6 +60,7 @@ const (
 	OpenpitrixTag              = "Openpitrix Resources"
 	VerificationTag            = "Verification"
 	RegistryTag                = "Docker Registry"
+	NetworkTopologyTag         = "Network Topology"
 	UserResourcesTag           = "User Resources"
 	DevOpsProjectTag           = "DevOps Project"
 	DevOpsProjectCredentialTag = "DevOps Project Credential"
@@ -77,8 +78,10 @@ const (
 	WorkloadMetricsTag         = "Workload Metrics"
 	WorkspaceMetricsTag        = "Workspace Metrics"
 	ComponentMetricsTag        = "Component Metrics"
+	CustomMetricsTag           = "Custom Metrics"
 	LogQueryTag                = "Log Query"
-	FluentBitSetting           = "Fluent Bit Setting"
+	TerminalTag                = "Terminal"
+	EventsQueryTag             = "Events Query"
 )
 
 var (

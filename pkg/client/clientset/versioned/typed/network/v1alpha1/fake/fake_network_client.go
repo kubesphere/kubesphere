@@ -32,10 +32,6 @@ func (c *FakeNetworkV1alpha1) NamespaceNetworkPolicies(namespace string) v1alpha
 	return &FakeNamespaceNetworkPolicies{c, namespace}
 }
 
-func (c *FakeNetworkV1alpha1) WorkspaceNetworkPolicies() v1alpha1.WorkspaceNetworkPolicyInterface {
-	return &FakeWorkspaceNetworkPolicies{c}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeNetworkV1alpha1) RESTClient() rest.Interface {

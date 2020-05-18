@@ -1,0 +1,25 @@
+{
+  "results":[
+    {
+      "metric_name":"node_cpu_utilisation",
+      "data":{
+        "resultType":"vector"
+      }
+    },
+    {
+      "metric_name":"node_disk_size_utilisation",
+      "data":{
+        "resultType":"vector"
+      }
+    },
+    {
+      "metric_name":"node_memory_utilisation",
+      "data":{
+        "resultType":"vector"
+      }
+    }
+  ],
+  "page":3,
+  "total_page":2,
+  "total_item":8
+}

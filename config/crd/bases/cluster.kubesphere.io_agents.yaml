@@ -1,0 +1,114 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: agents.cluster.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.Paused
+    name: Paused
+    type: bool
+  group: cluster.kubesphere.io
+  names:
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    singular: agent
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: Agent is the Schema for the agents API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: AgentSpec defines the desired state of Agent
+          properties:
+            kubernetesAPIServerPort:
+              description: KubeAPIServerPort is the port which listens for forwarding
+                kube-apiserver traffic
+              type: integer
+            kubesphereAPIServerPort:
+              description: KubeSphereAPIServerPort is the port which listens for forwarding
+                kubesphere apigateway traffic
+              type: integer
+            paused:
+              description: Indicates that the agent is paused.
+              type: boolean
+            proxy:
+              description: Proxy address
+              type: string
+            token:
+              description: Token used by agents to connect to proxy.
+              type: string
+          type: object
+        status:
+          description: AgentStatus defines the observed state of Agent
+          properties:
+            conditions:
+              description: Represents the latest available observations of a agent's
+                current state.
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    description: The last time this condition was updated.
+                    format: date-time
+                    type: string
+                  message:
+                    description: A human readable message indicating details about
+                      the transition.
+                    type: string
+                  reason:
+                    description: The reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of AgentCondition
+                    type: string
+                required:
+                - status
+                type: object
+              type: array
+            kubeconfig:
+              description: Issued new kubeconfig by proxy server
+              format: byte
+              type: string
+            ping:
+              description: Represents the connection quality, in ms
+              format: int64
+              type: integer
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

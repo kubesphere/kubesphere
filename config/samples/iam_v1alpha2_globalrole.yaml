@@ -1,0 +1,14 @@
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: GlobalRole
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: global-admin
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - '*'
+

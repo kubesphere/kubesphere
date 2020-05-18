@@ -7,7 +7,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	corev1 "k8s.io/api/core/v1"
-	"kubesphere.io/kubesphere/pkg/informers"
+	"k8s.io/client-go/informers"
 )
 
 type AuthInfo struct {
@@ -15,12 +15,23 @@ type AuthInfo struct {
 	SecretRef *corev1.SecretReference `json:"secretRef,omitempty" description:"auth secret reference"`
 }
 
-func GitReadVerify(namespace string, authInfo AuthInfo) error {
-	username := ""
-	password := ""
-	if authInfo.SecretRef != nil {
-		secret, err := informers.SharedInformerFactory().Core().V1().Secrets().Lister().
-			Secrets(authInfo.SecretRef.Namespace).Get(authInfo.SecretRef.Name)
+type GitVerifier interface {
+	VerifyGitCredential(remoteUrl, namespace, secretName string) error
+}
+
+type gitVerifier struct {
+	informers informers.SharedInformerFactory
+}
+
+func NewGitVerifier(informers informers.SharedInformerFactory) GitVerifier {
+	return &gitVerifier{informers: informers}
+}
+
+func (c *gitVerifier) VerifyGitCredential(remoteUrl, namespace, secretName string) error {
+	var username, password string
+
+	if len(secretName) > 0 {
+		secret, err := c.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
 		if err != nil {
 			return err
 		}
@@ -36,10 +47,10 @@ func GitReadVerify(namespace string, authInfo AuthInfo) error {
 		password = string(passwordBytes)
 	}
 
-	return gitReadVerifyWithBasicAuth(string(username), string(password), authInfo.RemoteUrl)
+	return c.gitReadVerifyWithBasicAuth(username, password, remoteUrl)
 }
 
-func gitReadVerifyWithBasicAuth(username string, password string, remote string) error {
+func (c *gitVerifier) gitReadVerifyWithBasicAuth(username string, password string, remote string) error {
 	r, _ := git.Init(memory.NewStorage(), nil)
 
 	// Add a new remote, with the default fetch refspec
