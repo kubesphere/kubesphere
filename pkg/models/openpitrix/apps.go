@@ -515,7 +515,7 @@ func (c *appTemplateOperator) ListAppVersionAudits(conditions *params.Conditions
 	if keyword := conditions.Match["keyword"]; keyword != "" {
 		describeAppVersionAudits.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionAudits.AppId = []string{appId}
 	}
 	if versionId := conditions.Match["version"]; versionId != "" {
@@ -586,7 +586,7 @@ func (c *appTemplateOperator) ListAppVersions(conditions *params.Conditions, ord
 	if keyword := conditions.Match["keyword"]; keyword != "" {
 		describeAppVersionsRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if appId := conditions.Match["app"]; appId != "" {
+	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionsRequest.AppId = []string{appId}
 	}
 	if status := conditions.Match["status"]; status != "" {
