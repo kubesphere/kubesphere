@@ -48,14 +48,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               %s: %s
-  Egress:
-    - To:
-        - namespaceSelector:
-            matchLabels:
-              %s: %s
   policyTypes:
-    - Ingress
-    - Egress`
+    - Ingress`
 
 	serviceTmp = `
 apiVersion: v1
@@ -141,7 +135,7 @@ var _ = Describe("Nsnetworkpolicy", func() {
 	})
 
 	It("Should create ns networkisolate np correctly in workspace", func() {
-		objSrt := fmt.Sprintf(workspaceNP, "testns", constants.WorkspaceLabelKey, "testworkspace", constants.WorkspaceLabelKey, "testworkspace")
+		objSrt := fmt.Sprintf(workspaceNP, "testns", constants.WorkspaceLabelKey, "testworkspace")
 		obj := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj)).ShouldNot(HaveOccurred())
 
@@ -150,7 +144,7 @@ var _ = Describe("Nsnetworkpolicy", func() {
 	})
 
 	It("Should create ns networkisolate np correctly in ns", func() {
-		objSrt := fmt.Sprintf(workspaceNP, "testns", constants.NamespaceLabelKey, "testns", constants.NamespaceLabelKey, "testns")
+		objSrt := fmt.Sprintf(workspaceNP, "testns", constants.NamespaceLabelKey, "testns")
 		obj := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj)).ShouldNot(HaveOccurred())
 

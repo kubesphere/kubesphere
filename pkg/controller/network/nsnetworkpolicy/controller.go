@@ -3,6 +3,7 @@ package nsnetworkpolicy
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ import (
 	nspolicy "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
 	workspace "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/controller/network"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
 )
 
@@ -40,7 +42,9 @@ const (
 	NamespaceNPAnnotationKey     = "kubesphere.io/network-isolate"
 	NamespaceNPAnnotationEnabled = "enabled"
 
-	AnnotationNPNAME = "network-isolate"
+	NodeNSNPAnnotationKey = "kubesphere.io/snat-node-ips"
+
+	AnnotationNPNAME = network.NSNPPrefix + "network-isolate"
 
 	//TODO: configure it
 	DNSLocalIP        = "169.254.25.10"
@@ -159,9 +163,10 @@ func (c *NSNetworkPolicyController) handlerPeerService(namespace string, name st
 	if !ingress {
 		ports = make([]netv1.NetworkPolicyPort, 0)
 		for _, port := range service.Spec.Ports {
+			protocol := port.Protocol
 			portIntString := intstr.FromInt(int(port.Port))
 			ports = append(ports, netv1.NetworkPolicyPort{
-				Protocol: &port.Protocol,
+				Protocol: &protocol,
 				Port:     &portIntString,
 			})
 		}
@@ -198,7 +203,7 @@ func (c *NSNetworkPolicyController) convertPeer(peer v1alpha1.NetworkPolicyPeer,
 func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkPolicy) (*netv1.NetworkPolicy, error) {
 	np := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      n.Name,
+			Name:      network.NSNPPrefix + n.Name,
 			Namespace: n.Namespace,
 		},
 		Spec: netv1.NetworkPolicySpec{
@@ -261,25 +266,37 @@ func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkP
 }
 
 func (c *NSNetworkPolicyController) generateNodeRule() (netv1.NetworkPolicyIngressRule, error) {
-	var rule netv1.NetworkPolicyIngressRule
+	var (
+		rule netv1.NetworkPolicyIngressRule
+		ips  []string
+	)
 
 	nodes, err := c.nodeInformer.Lister().List(labels.Everything())
 	if err != nil {
 		return rule, err
 	}
 	for _, node := range nodes {
-		for _, address := range node.Status.Addresses {
-			cidr, err := stringToCIDR(address.Address)
-			if err != nil {
-				klog.V(4).Infof("Error when parse address %s", address.Address)
-				continue
-			}
-			rule.From = append(rule.From, netv1.NetworkPolicyPeer{
-				IPBlock: &netv1.IPBlock{
-					CIDR: cidr,
-				},
-			})
+		snatIPs := node.Annotations[NodeNSNPAnnotationKey]
+		if snatIPs != "" {
+			ips = append(ips, strings.Split(snatIPs, ";")...)
 		}
+
+		for _, address := range node.Status.Addresses {
+			ips = append(ips, address.Address)
+		}
+	}
+
+	for _, ip := range ips {
+		cidr, err := stringToCIDR(ip)
+		if err != nil {
+			continue
+		}
+
+		rule.From = append(rule.From, netv1.NetworkPolicyPeer{
+			IPBlock: &netv1.IPBlock{
+				CIDR: cidr,
+			},
+		})
 	}
 
 	return rule, nil
@@ -301,24 +318,15 @@ func generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv
 					},
 				}},
 			}},
-			Egress: []netv1.NetworkPolicyEgressRule{{
-				To: []netv1.NetworkPolicyPeer{{
-					NamespaceSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{},
-					},
-				}},
-			}},
 		},
 	}
 
-	policy.Spec.PolicyTypes = append(policy.Spec.PolicyTypes, netv1.PolicyTypeIngress, netv1.PolicyTypeEgress)
+	policy.Spec.PolicyTypes = append(policy.Spec.PolicyTypes, netv1.PolicyTypeIngress)
 
 	if matchWorkspace {
 		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.WorkspaceLabelKey] = workspace
-		policy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels[constants.WorkspaceLabelKey] = workspace
 	} else {
 		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
-		policy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
 	}
 
 	return policy
@@ -429,37 +437,44 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 
 	matchWorkspace := false
 	delete := false
+	nsnpList, _ := c.informer.Lister().NamespaceNetworkPolicies(ns.Name).List(labels.Everything())
 	if isNetworkIsolateEnabled(ns) {
 		matchWorkspace = false
 	} else if wksp.Spec.NetworkIsolation {
 		matchWorkspace = true
+		//delete all namespace np when networkisolate not active
+		if err != nil && len(nsnpList) > 0 {
+			if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(nil, typev1.ListOptions{}) != nil {
+				klog.Errorf("Error when delete all nsnps in namespace %s", ns.Name)
+			}
+		}
 	} else {
 		delete = true
 	}
 
 	policy := generateNSNP(workspaceName, ns.Name, matchWorkspace)
-	ruleDNS, err := generateDNSRule([]string{DNSLocalIP})
-	if err != nil {
-		return err
-	}
-	policy.Spec.Egress = append(policy.Spec.Egress, ruleDNS)
-	ruleDNSService, err := c.generateDNSServiceRule()
-	if err == nil {
-		policy.Spec.Egress = append(policy.Spec.Egress, ruleDNSService)
-	} else {
-		klog.Warningf("Cannot handle service %s or %s", DNSServiceName, DNSServiceCoreDNS)
+	if shouldAddDNSRule(nsnpList) {
+		ruleDNS, err := generateDNSRule([]string{DNSLocalIP})
+		if err != nil {
+			return err
+		}
+		policy.Spec.Egress = append(policy.Spec.Egress, ruleDNS)
+		ruleDNSService, err := c.generateDNSServiceRule()
+		if err == nil {
+			policy.Spec.Egress = append(policy.Spec.Egress, ruleDNSService)
+		} else {
+			klog.Warningf("Cannot handle service %s or %s", DNSServiceName, DNSServiceCoreDNS)
+		}
+		policy.Spec.PolicyTypes = append(policy.Spec.PolicyTypes, netv1.PolicyTypeEgress)
 	}
 	ruleNode, err := c.generateNodeRule()
 	if err != nil {
 		return err
 	}
+
 	policy.Spec.Ingress = append(policy.Spec.Ingress, ruleNode)
 	if delete {
 		c.provider.Delete(c.provider.GetKey(AnnotationNPNAME, ns.Name))
-		//delete all namespace np when networkisolate not active
-		if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(nil, typev1.ListOptions{}) != nil {
-			klog.Errorf("Error when delete all nsnps in namespace %s", ns.Name)
-		}
 	} else {
 		err = c.provider.Set(policy)
 		if err != nil {
@@ -469,6 +484,16 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 	}
 
 	return nil
+}
+
+func shouldAddDNSRule(nsnpList []*v1alpha1.NamespaceNetworkPolicy) bool {
+	for _, nsnp := range nsnpList {
+		if len(nsnp.Spec.Egress) > 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *NSNetworkPolicyController) nsWorker() {
@@ -509,6 +534,8 @@ func (c *NSNetworkPolicyController) syncNSNP(key string) error {
 		return err
 	}
 
+	c.nsQueue.Add(namespace)
+
 	nsnp, err := c.informer.Lister().NamespaceNetworkPolicies(namespace).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -527,6 +554,7 @@ func (c *NSNetworkPolicyController) syncNSNP(key string) error {
 	}
 	err = c.provider.Set(np)
 	if err != nil {
+		klog.Errorf("Error while set provider: %s", err)
 		return err
 	}
 
@@ -591,31 +619,21 @@ func NewNSNetworkPolicyController(
 		},
 	})
 
-	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	namespaceInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.addNamespace,
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-			old := oldObj.(*corev1.Namespace)
-			new := oldObj.(*corev1.Namespace)
-			if old.Annotations[NamespaceNPAnnotationKey] == new.Annotations[NamespaceNPAnnotationKey] {
-				return
-			}
 			controller.addNamespace(newObj)
 		},
-	})
+	}, defaultSleepDuration)
 
 	nsnpInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			klog.V(4).Infof("Got ADD event for NSNSP: %#v", obj)
 			controller.nsnpEnqueue(obj)
 		},
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
-			klog.V(4).Info("Got UPDATE event for NSNSP.")
-			klog.V(4).Infof("Old object: \n%#v\n", oldObj)
-			klog.V(4).Infof("New object: \n%#v\n", newObj)
 			controller.nsnpEnqueue(newObj)
 		},
 		DeleteFunc: func(obj interface{}) {
-			klog.V(4).Infof("Got DELETE event for NSNP: %#v", obj)
 			controller.nsnpEnqueue(obj)
 		},
 	}, defaultSleepDuration)
