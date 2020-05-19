@@ -50,8 +50,21 @@ func (w wrapper) Less(i, j int) bool {
 	p := w.MetricValues[i]
 	q := w.MetricValues[j]
 
-	if p.Sample.Value() == q.Sample.Value() {
+	// Place Nil to the tail.
+	if p.Sample == nil && q.Sample != nil {
+		return false
+	}
+	if p.Sample != nil && q.Sample == nil {
+		return true
+	}
+
+	// If both Samples are Nil or have the same metric value, sort by resource name
+	if p.Sample == q.Sample || p.Sample[1] == q.Sample[1] {
 		return p.Metadata[w.identifier] < q.Metadata[w.identifier]
+	}
+	// Place NaN to the tail (NaN takes precedence over Nil).
+	if math.IsNaN(p.Sample[1]) != math.IsNaN(q.Sample[1]) {
+		return !math.IsNaN(p.Sample[1])
 	}
 
 	switch w.order {
