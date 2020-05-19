@@ -51,7 +51,7 @@ KubeSphere 采用了前后端分离的架构设计，后端的各个功能组件
 | --- | ---|
 | Kubernetes 集群搭建与运维 | 支持在线 & 离线安装、升级与扩容 K8s 集群，支持安装 “云原生全家桶” |
 | Kubernetes 资源可视化管理 | 可视化纳管原生 Kubernetes 资源，支持向导式创建与管理 K8s 资源 |
-| 基于 Jenkins 的 DevOps 系统 | 支持图形化与脚本两种方式构建 CI/CD 流水线，内置 Source to Image（B2I）和 Binary to Image（B2I）等 CD 工具 |
+| 基于 Jenkins 的 DevOps 系统 | 支持图形化与脚本两种方式构建 CI/CD 流水线，内置 Source to Image（S2I）和 Binary to Image（B2I）等 CD 工具 |
 | 应用商店与应用生命周期管理 | 提供应用商店，内置 Redis、MySQL 等九个常用应用，支持应用的生命周期管理 |
 | 基于 Istio 的微服务治理 (Service Mesh) | 提供可视化无代码侵入的 **灰度发布、熔断、流量治理与流量拓扑、分布式 Tracing** |
 | 多租户管理 | 提供基于角色的细粒度多租户统一认证，支持 **对接企业 LDAP/AD**，提供多层级的权限管理 |
