@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 GV="network:v1alpha1 servicemesh:v1alpha2 tenant:v1alpha1 devops:v1alpha1 iam:v1alpha2 devops:v1alpha3 cluster:v1alpha1"
