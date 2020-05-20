@@ -49,7 +49,7 @@ require (
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779
+	github.com/kiali/kiali v0.15.1-0.20200520152915-769a61d75460
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo v0.0.2
@@ -253,7 +253,7 @@ replace (
 	github.com/kelseyhightower/envconfig => github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kevinburke/ssh_config => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 	github.com/keybase/go-ps => github.com/keybase/go-ps v0.0.0-20161005175911-668c8856d999
-	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20191210080139-edbbad1ef779
+	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20200520152915-769a61d75460
 	github.com/kisielk/errcheck => github.com/kisielk/errcheck v1.2.0
 	github.com/kisielk/gotool => github.com/kisielk/gotool v1.0.0
 	github.com/koding/multiconfig => github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7

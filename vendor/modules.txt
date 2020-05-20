@@ -322,7 +322,7 @@ github.com/jmespath/go-jmespath
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
-# github.com/kiali/kiali v0.15.1-0.20191210080139-edbbad1ef779 => github.com/kubesphere/kiali v0.15.1-0.20191210080139-edbbad1ef779
+# github.com/kiali/kiali v0.15.1-0.20200520152915-769a61d75460 => github.com/kubesphere/kiali v0.15.1-0.20200520152915-769a61d75460
 github.com/kiali/kiali/business
 github.com/kiali/kiali/business/checkers
 github.com/kiali/kiali/business/checkers/destinationrules

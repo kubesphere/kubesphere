@@ -1,8 +1,7 @@
 package kubernetes
 
 import (
-	"k8s.io/api/apps/v1beta1"
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	auth_v1 "k8s.io/api/authorization/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	batch_v1beta1 "k8s.io/api/batch/v1beta1"
@@ -109,23 +108,23 @@ func (in *IstioClient) GetServices(namespace string, selectorLabels map[string]s
 
 // GetDeployment returns the definition of a specific deployment.
 // It returns an error on any problem.
-func (in *IstioClient) GetDeployment(namespace, deploymentName string) (*v1beta1.Deployment, error) {
+func (in *IstioClient) GetDeployment(namespace, deploymentName string) (*appsv1.Deployment, error) {
 	if in.k8sCache != nil {
 		return in.k8sCache.GetDeployment(namespace, deploymentName)
 	}
-	return in.k8s.AppsV1beta1().Deployments(namespace).Get(deploymentName, emptyGetOptions)
+	return in.k8s.AppsV1().Deployments(namespace).Get(deploymentName, emptyGetOptions)
 }
 
 // GetDeployments returns an array of deployments for a given namespace and a set of labels.
 // It returns an error on any problem.
-func (in *IstioClient) GetDeployments(namespace string) ([]v1beta1.Deployment, error) {
+func (in *IstioClient) GetDeployments(namespace string) ([]appsv1.Deployment, error) {
 	if in.k8sCache != nil {
 		return in.k8sCache.GetDeployments(namespace)
 	}
-	if depList, err := in.k8s.AppsV1beta1().Deployments(namespace).List(emptyListOptions); err == nil {
+	if depList, err := in.k8s.AppsV1().Deployments(namespace).List(emptyListOptions); err == nil {
 		return depList.Items, nil
 	} else {
-		return []v1beta1.Deployment{}, err
+		return []appsv1.Deployment{}, err
 	}
 }
 
@@ -152,32 +151,32 @@ func (in *IstioClient) GetDeploymentConfigs(namespace string) ([]osappsv1.Deploy
 	return result.Items, nil
 }
 
-func (in *IstioClient) GetReplicaSets(namespace string) ([]v1beta2.ReplicaSet, error) {
+func (in *IstioClient) GetReplicaSets(namespace string) ([]appsv1.ReplicaSet, error) {
 	if in.k8sCache != nil {
 		return in.k8sCache.GetReplicaSets(namespace)
 	}
-	if rsList, err := in.k8s.AppsV1beta2().ReplicaSets(namespace).List(emptyListOptions); err == nil {
+	if rsList, err := in.k8s.AppsV1().ReplicaSets(namespace).List(emptyListOptions); err == nil {
 		return rsList.Items, nil
 	} else {
-		return []v1beta2.ReplicaSet{}, err
+		return []appsv1.ReplicaSet{}, err
 	}
 }
 
-func (in *IstioClient) GetStatefulSet(namespace string, statefulsetName string) (*v1beta2.StatefulSet, error) {
+func (in *IstioClient) GetStatefulSet(namespace string, statefulsetName string) (*appsv1.StatefulSet, error) {
 	if in.k8sCache != nil {
 		return in.k8sCache.GetStatefulSet(namespace, statefulsetName)
 	}
-	return in.k8s.AppsV1beta2().StatefulSets(namespace).Get(statefulsetName, emptyGetOptions)
+	return in.k8s.AppsV1().StatefulSets(namespace).Get(statefulsetName, emptyGetOptions)
 }
 
-func (in *IstioClient) GetStatefulSets(namespace string) ([]v1beta2.StatefulSet, error) {
+func (in *IstioClient) GetStatefulSets(namespace string) ([]appsv1.StatefulSet, error) {
 	if in.k8sCache != nil {
 		return in.k8sCache.GetStatefulSets(namespace)
 	}
-	if ssList, err := in.k8s.AppsV1beta2().StatefulSets(namespace).List(emptyListOptions); err == nil {
+	if ssList, err := in.k8s.AppsV1().StatefulSets(namespace).List(emptyListOptions); err == nil {
 		return ssList.Items, nil
 	} else {
-		return []v1beta2.StatefulSet{}, err
+		return []appsv1.StatefulSet{}, err
 	}
 }
 
