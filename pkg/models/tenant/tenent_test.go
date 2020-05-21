@@ -330,5 +330,5 @@ func prepare() Interface {
 			RoleBindings().Informer().GetIndexer().Add(roleBinding)
 	}
 
-	return New(fakeInformerFactory, nil, nil, nil)
+	return New(fakeInformerFactory, nil, nil, nil, nil)
 }

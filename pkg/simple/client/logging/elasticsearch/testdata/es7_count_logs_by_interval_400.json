@@ -1,0 +1,47 @@
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "illegal_argument_exception",
+        "reason": "Unable to parse interval [30m0s]"
+      },
+      {
+        "type": "illegal_argument_exception",
+        "reason": "Unable to parse interval [30m0s]"
+      }
+    ],
+    "type": "search_phase_execution_exception",
+    "reason": "all shards failed",
+    "phase": "query",
+    "grouped": true,
+    "failed_shards": [
+      {
+        "shard": 0,
+        "index": "ks-logstash-log-2020.05.16",
+        "node": "Zr2OFlfeSJmK_W3Re4UBlg",
+        "reason": {
+          "type": "illegal_argument_exception",
+          "reason": "Unable to parse interval [30m0s]"
+        }
+      },
+      {
+        "shard": 0,
+        "index": "ks-logstash-log-2020.05.20",
+        "node": "pbGNYbV3QUuV5yJAgxbp3g",
+        "reason": {
+          "type": "illegal_argument_exception",
+          "reason": "Unable to parse interval [30m0s]"
+        }
+      }
+    ],
+    "caused_by": {
+      "type": "illegal_argument_exception",
+      "reason": "Unable to parse interval [30m0s]",
+      "caused_by": {
+        "type": "illegal_argument_exception",
+        "reason": "Unable to parse interval [30m0s]"
+      }
+    }
+  },
+  "status": 400
+}

@@ -1,0 +1,214 @@
+{
+  "took": 1455,
+  "timed_out": false,
+  "_shards": {
+    "total": 2,
+    "successful": 2,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 9726,
+      "relation": "eq"
+    },
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "tRt2MXIBlcWZ594bqIUO",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:42.608Z",
+          "log": "10.233.30.76    redis-ha-announce-0.kubesphere-system.svc.cluster.local\n",
+          "time": "2020-05-16T16:00:42.608962452Z",
+          "kubernetes": {
+            "pod_name": "redis-ha-haproxy-ffb8d889d-8x9kj",
+            "namespace_name": "kubesphere-system",
+            "host": "master0",
+            "container_name": "config-init",
+            "docker_id": "a673327e5e3dfefca3e773273e69eca64baaa4499fdc04e6eb9d621ad8688ad0",
+            "container_hash": "cd4b3d4d27ae5931dc96b9632188590b7a6880469bcf07f478a3280dd0955336"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "tht2MXIBlcWZ594bqIUO",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:42.670Z",
+          "log": "10.233.30.204   redis-ha-announce-1.kubesphere-system.svc.cluster.local\n",
+          "time": "2020-05-16T16:00:42.670430525Z",
+          "kubernetes": {
+            "pod_name": "redis-ha-haproxy-ffb8d889d-8x9kj",
+            "namespace_name": "kubesphere-system",
+            "host": "master0",
+            "container_name": "config-init",
+            "docker_id": "a673327e5e3dfefca3e773273e69eca64baaa4499fdc04e6eb9d621ad8688ad0",
+            "container_hash": "cd4b3d4d27ae5931dc96b9632188590b7a6880469bcf07f478a3280dd0955336"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "txt2MXIBlcWZ594bqIUO",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:42.731Z",
+          "log": "10.233.56.100   redis-ha-announce-2.kubesphere-system.svc.cluster.local\n",
+          "time": "2020-05-16T16:00:42.731865428Z",
+          "kubernetes": {
+            "pod_name": "redis-ha-haproxy-ffb8d889d-8x9kj",
+            "namespace_name": "kubesphere-system",
+            "host": "master0",
+            "container_name": "config-init",
+            "docker_id": "a673327e5e3dfefca3e773273e69eca64baaa4499fdc04e6eb9d621ad8688ad0",
+            "container_hash": "cd4b3d4d27ae5931dc96b9632188590b7a6880469bcf07f478a3280dd0955336"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "jxt2MXIBlcWZ594bpIVN",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:07.648Z",
+          "log": "ls: cannot access '/calico-secrets': No such file or directory\n",
+          "time": "2020-05-16T16:00:07.64848716Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "kBt2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.164Z",
+          "log": "Wrote Calico CNI binaries to /host/opt/cni/bin\n",
+          "time": "2020-05-16T16:00:08.164003996Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "kRt2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.350Z",
+          "log": "CNI plugin version: v3.7.3\n",
+          "time": "2020-05-16T16:00:08.350585959Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "kht2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.350Z",
+          "log": "/host/secondary-bin-dir is non-writeable, skipping\n",
+          "time": "2020-05-16T16:00:08.350625112Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "kxt2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.350Z",
+          "log": "Using CNI config template from /host/etc/cni/net.d/calico.conflist.template.\n",
+          "time": "2020-05-16T16:00:08.350692011Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "lBt2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.454Z",
+          "log": "CNI config: {\n",
+          "time": "2020-05-16T16:00:08.454417144Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.05.16",
+        "_type": "flb_type",
+        "_id": "lRt2MXIBlcWZ594bpIV0",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-05-16T16:00:08.454Z",
+          "log": "  \"name\": \"cni0\",\n",
+          "time": "2020-05-16T16:00:08.454452649Z",
+          "kubernetes": {
+            "pod_name": "calico-node-gc7pp",
+            "namespace_name": "kube-system",
+            "host": "master0",
+            "container_name": "install-cni",
+            "docker_id": "c00abd0a7fe3d37c1328be560480239bb314fe78d31f7785e260ccdc0260cd7a",
+            "container_hash": "258a0cb3c25022e44ebda3606112c40865adb67b8fb7be3d119f960957301ad6"
+          }
+        }
+      }
+    ]
+  },
+  "aggregations": {
+    "container_count": {
+      "value": 48
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "index_not_found_exception",
+        "reason": "no such index [ks-logstash-log-2020.05.2]",
+        "resource.type": "index_or_alias",
+        "resource.id": "ks-logstash-log-2020.05.2",
+        "index_uuid": "_na_",
+        "index": "ks-logstash-log-2020.05.2"
+      }
+    ],
+    "type": "index_not_found_exception",
+    "reason": "no such index [ks-logstash-log-2020.05.2]",
+    "resource.type": "index_or_alias",
+    "resource.id": "ks-logstash-log-2020.05.2",
+    "index_uuid": "_na_",
+    "index": "ks-logstash-log-2020.05.2"
+  },
+  "status": 404
+}

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 	"io"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
-	v5 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
-	v6 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
-	v7 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"strings"
 )
@@ -20,8 +20,6 @@ const (
 	ElasticV7 = "7"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 // Elasticsearch implement logging interface
 type Elasticsearch struct {
 	c client
@@ -29,8 +27,7 @@ type Elasticsearch struct {
 
 // versioned es client interface
 type client interface {
-	// Perform Search API
-	Search(body []byte) ([]byte, error)
+	Search(body []byte, scroll bool) ([]byte, error)
 	Scroll(id string) ([]byte, error)
 	ClearScroll(id string)
 	GetTotalHitCount(v interface{}) int64
@@ -83,11 +80,10 @@ func detectVersionMajor(host string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer res.Body.Close()
 
 	var b map[string]interface{}
-	if err = json.NewDecoder(res.Body).Decode(&b); err != nil {
+	if err = jsoniter.NewDecoder(res.Body).Decode(&b); err != nil {
 		return "", err
 	}
 	if res.IsError() {
@@ -116,7 +112,7 @@ func (es Elasticsearch) GetCurrentStats(sf logging.SearchFilter) (logging.Statis
 		return logging.Statistics{}, err
 	}
 
-	b, err := es.c.Search(body)
+	b, err := es.c.Search(body, true)
 	if err != nil {
 		return logging.Statistics{}, err
 	}
@@ -142,7 +138,7 @@ func (es Elasticsearch) CountLogsByInterval(sf logging.SearchFilter, interval st
 		return logging.Histogram{}, err
 	}
 
-	b, err := es.c.Search(body)
+	b, err := es.c.Search(body, false)
 	if err != nil {
 		return logging.Histogram{}, err
 	}
@@ -174,7 +170,7 @@ func (es Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o string
 		return logging.Logs{}, err
 	}
 
-	b, err := es.c.Search(body)
+	b, err := es.c.Search(body, false)
 	if err != nil {
 		return logging.Logs{}, err
 	}
@@ -200,33 +196,50 @@ func (es Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o string
 
 func (es Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
 	var id string
-	var from int64 = 0
-	var size int64 = 1000
+	var data []string
 
-	res, err := es.SearchLogs(sf, from, size, "desc")
-	defer es.ClearScroll(id)
+	// Initial Search
+	body, err := newBodyBuilder().
+		mainBool(sf).
+		from(0).
+		size(1000).
+		sort("desc").
+		bytes()
 	if err != nil {
 		return err
 	}
 
-	if res.Records == nil || len(res.Records) == 0 {
+	b, err := es.c.Search(body, true)
+	defer es.ClearScroll(id)
+	if err != nil {
+		return err
+	}
+	res, err := parseResponse(b)
+	if err != nil {
+		return err
+	}
+
+	id = res.ScrollId
+	for _, hit := range res.AllHits {
+		data = append(data, hit.Log)
+	}
+	if len(data) == 0 {
 		return nil
 	}
 
 	// limit to retrieve max 100k records
 	for i := 0; i < 100; i++ {
-		res, id, err = es.scroll(id)
+		data, id, err = es.scroll(id)
 		if err != nil {
 			return err
 		}
-
-		if res.Records == nil || len(res.Records) == 0 {
+		if len(data) == 0 {
 			return nil
 		}
 
 		output := new(bytes.Buffer)
-		for _, r := range res.Records {
-			output.WriteString(fmt.Sprintf(`%s`, stringutils.StripAnsi(r.Log)))
+		for _, l := range data {
+			output.WriteString(fmt.Sprintf(`%s`, stringutils.StripAnsi(l)))
 		}
 		_, err = io.Copy(w, output)
 		if err != nil {
@@ -236,24 +249,22 @@ func (es Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
 	return nil
 }
 
-func (es *Elasticsearch) scroll(id string) (logging.Logs, string, error) {
+func (es *Elasticsearch) scroll(id string) ([]string, string, error) {
 	b, err := es.c.Scroll(id)
 	if err != nil {
-		return logging.Logs{}, id, err
+		return nil, id, err
 	}
 
 	res, err := parseResponse(b)
 	if err != nil {
-		return logging.Logs{}, id, err
+		return nil, id, err
 	}
 
-	var l logging.Logs
+	var data []string
 	for _, hit := range res.AllHits {
-		l.Records = append(l.Records, logging.Record{
-			Log: hit.Log,
-		})
+		data = append(data, hit.Log)
 	}
-	return l, res.ScrollId, nil
+	return data, res.ScrollId, nil
 }
 
 func (es *Elasticsearch) ClearScroll(id string) {
