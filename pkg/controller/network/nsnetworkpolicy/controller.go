@@ -3,6 +3,7 @@ package nsnetworkpolicy
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -280,11 +281,9 @@ func (c *NSNetworkPolicyController) generateNodeRule() (netv1.NetworkPolicyIngre
 		if snatIPs != "" {
 			ips = append(ips, strings.Split(snatIPs, ";")...)
 		}
-
-		for _, address := range node.Status.Addresses {
-			ips = append(ips, address.Address)
-		}
 	}
+
+	sort.Strings(ips)
 
 	for _, ip := range ips {
 		cidr, err := stringToCIDR(ip)
@@ -339,19 +338,33 @@ func (c *NSNetworkPolicyController) nsEnqueue(ns *corev1.Namespace) {
 		return
 	}
 
-	klog.V(4).Infof("Enqueue namespace %s", ns.Name)
+	workspaceName := ns.Labels[constants.WorkspaceLabelKey]
+	if workspaceName == "" {
+		return
+	}
+
 	c.nsQueue.Add(key)
 }
 
 func (c *NSNetworkPolicyController) addWorkspace(newObj interface{}) {
 	new := newObj.(*workspacev1alpha1.Workspace)
 
-	klog.V(4).Infof("Add workspace %s", new.Name)
-
 	label := labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: new.Name})
 	nsList, err := c.namespaceInformer.Lister().List(label)
 	if err != nil {
 		klog.Errorf("Error while list namespace by label %s", label.String())
+		return
+	}
+
+	for _, ns := range nsList {
+		c.nsEnqueue(ns)
+	}
+}
+
+func (c *NSNetworkPolicyController) addNode(newObj interface{}) {
+	nsList, err := c.namespaceInformer.Lister().List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Error while list namespace by label")
 		return
 	}
 
@@ -368,8 +381,6 @@ func (c *NSNetworkPolicyController) addNamespace(obj interface{}) {
 		return
 	}
 
-	klog.V(4).Infof("Add namespace %s", ns.Name)
-
 	c.nsEnqueue(ns)
 }
 
@@ -381,17 +392,7 @@ func isNetworkIsolateEnabled(ns *corev1.Namespace) bool {
 	return false
 }
 
-func hadNamespaceLabel(ns *corev1.Namespace) bool {
-	if ns.Annotations[constants.NamespaceLabelKey] == ns.Name {
-		return true
-	}
-
-	return false
-}
-
 func (c *NSNetworkPolicyController) syncNs(key string) error {
-	klog.V(4).Infof("Sync namespace %s", key)
-
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		klog.Errorf("Not a valid controller key %s, %#v", key, err)
@@ -411,9 +412,9 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 
 	workspaceName := ns.Labels[constants.WorkspaceLabelKey]
 	if workspaceName == "" {
-		klog.Error("Workspace name should not be empty")
 		return nil
 	}
+
 	wksp, err := c.workspaceInformer.Lister().Get(workspaceName)
 	if err != nil {
 		//Should not be here
@@ -423,16 +424,6 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 		}
 
 		return err
-	}
-
-	//Maybe some ns not labeled
-	if !hadNamespaceLabel(ns) {
-		ns.Labels[constants.NamespaceLabelKey] = ns.Name
-		_, err := c.client.CoreV1().Namespaces().Update(ns)
-		if err != nil {
-			//Just log, label can also be added by namespace controller
-			klog.Errorf("cannot label namespace %s", ns.Name)
-		}
 	}
 
 	matchWorkspace := false
@@ -611,7 +602,7 @@ func NewNSNetworkPolicyController(
 		AddFunc: controller.addWorkspace,
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			old := oldObj.(*workspacev1alpha1.Workspace)
-			new := oldObj.(*workspacev1alpha1.Workspace)
+			new := newObj.(*workspacev1alpha1.Workspace)
 			if old.Spec.NetworkIsolation == new.Spec.NetworkIsolation {
 				return
 			}
@@ -619,12 +610,29 @@ func NewNSNetworkPolicyController(
 		},
 	})
 
-	namespaceInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.addNode,
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			old := oldObj.(*corev1.Node)
+			new := newObj.(*corev1.Node)
+			if old.Annotations[NodeNSNPAnnotationKey] == new.Annotations[NodeNSNPAnnotationKey] {
+				return
+			}
+			controller.addNode(newObj)
+		},
+	})
+
+	namespaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.addNamespace,
 		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			old := oldObj.(*corev1.Namespace)
+			new := newObj.(*corev1.Namespace)
+			if old.Annotations[NamespaceNPAnnotationKey] == new.Annotations[NamespaceNPAnnotationKey] {
+				return
+			}
 			controller.addNamespace(newObj)
 		},
-	}, defaultSleepDuration)
+	})
 
 	nsnpInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {

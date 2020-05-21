@@ -50,7 +50,6 @@ func (c *k8sPolicyController) Start(stopCh <-chan struct{}) {
 }
 
 func (c *k8sPolicyController) Set(np *netv1.NetworkPolicy) error {
-	klog.V(4).Infof("Set NetworkPolicy %s/%s  %+v", np.Namespace, np.Name, np)
 	// Add to cache.
 	k := c.GetKey(np.Name, np.Namespace)
 	c.resourceCache.Set(k, *np)
@@ -59,7 +58,6 @@ func (c *k8sPolicyController) Set(np *netv1.NetworkPolicy) error {
 }
 
 func (c *k8sPolicyController) Delete(key string) {
-	klog.V(4).Infof("Delete NetworkPolicy %s", key)
 	c.resourceCache.Delete(key)
 }
 
