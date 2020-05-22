@@ -27,6 +27,7 @@ import (
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
 
@@ -36,13 +37,13 @@ import (
 // Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
 // to validate credentials against a backing identity provider.
 // Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
-func AddToContainer(c *restful.Container, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newOAUTHHandler(issuer, options)
+	handler := newOAUTHHandler(im, issuer, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication

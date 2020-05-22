@@ -51,14 +51,8 @@ spec:
             displayName:
               type: string
             email:
-              description: Unique email address.
+              description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
               type: string
-            finalizers:
-              description: Finalizers is an opaque list of values that must be empty
-                to permanently remove object from storage.
-              items:
-                type: string
-              type: array
             groups:
               items:
                 type: string
@@ -71,13 +65,12 @@ spec:
               type: string
           required:
           - email
-          - password
           type: object
         status:
           description: UserStatus defines the observed state of User
           properties:
             conditions:
-              description: Represents the latest available observations of a namespace's
+              description: Represents the latest available observations of a user's
                 current state.
               items:
                 properties:
@@ -92,7 +85,7 @@ spec:
                     description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
-                    description: Type of namespace controller condition.
+                    description: Type of user controller condition.
                     type: string
                 required:
                 - status

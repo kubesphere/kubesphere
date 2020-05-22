@@ -10,19 +10,19 @@ import (
 	"strings"
 )
 
-type namespaceGetter struct {
+type namespacesGetter struct {
 	informers informers.SharedInformerFactory
 }
 
 func New(informers informers.SharedInformerFactory) v1alpha3.Interface {
-	return &namespaceGetter{informers: informers}
+	return &namespacesGetter{informers: informers}
 }
 
-func (n namespaceGetter) Get(_, name string) (runtime.Object, error) {
+func (n namespacesGetter) Get(_, name string) (runtime.Object, error) {
 	return n.informers.Core().V1().Namespaces().Lister().Get(name)
 }
 
-func (n namespaceGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
+func (n namespacesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
 	ns, err := n.informers.Core().V1().Namespaces().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (n namespaceGetter) List(_ string, query *query.Query) (*api.ListResult, er
 	return v1alpha3.DefaultList(result, query, n.compare, n.filter), nil
 }
 
-func (n namespaceGetter) filter(item runtime.Object, filter query.Filter) bool {
+func (n namespacesGetter) filter(item runtime.Object, filter query.Filter) bool {
 	namespace, ok := item.(*v1.Namespace)
 	if !ok {
 		return false
@@ -49,7 +49,7 @@ func (n namespaceGetter) filter(item runtime.Object, filter query.Filter) bool {
 	}
 }
 
-func (n namespaceGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
+func (n namespacesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 	leftNs, ok := left.(*v1.Namespace)
 	if !ok {
 		return false

@@ -43,9 +43,9 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, client kubernetes.Interface, factory informers.InformerFactory) error {
+func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factory informers.InformerFactory, masterURL string) error {
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := newResourceHandler(client, factory)
+	handler := newResourceHandler(k8sClient, factory, masterURL)
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/{resources}").
 		To(handler.handleListNamespaceResources).

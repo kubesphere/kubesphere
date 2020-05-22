@@ -24,7 +24,8 @@ spec:
   subresources: {}
   validation:
     openAPIV3Schema:
-      description: RoleBinding is the Schema for the rolebindings API
+      description: WorkspaceRoleBinding is the Schema for the workspacerolebindings
+        API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -39,8 +40,8 @@ spec:
         metadata:
           type: object
         roleRef:
-          description: RoleRef can only reference a ClusterRole in the global namespace.
-            If the RoleRef cannot be resolved, the Authorizer must return an error.
+          description: RoleRef can only reference a WorkspaceRole. If the RoleRef
+            cannot be resolved, the Authorizer must return an error.
           properties:
             apiGroup:
               description: APIGroup is the group for the resource being referenced

@@ -22,24 +22,29 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	authuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/api/auth"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
 
 type oauthHandler struct {
 	issuer  token.Issuer
+	im      im.IdentityManagementInterface
 	options *authoptions.AuthenticationOptions
 }
 
-func newOAUTHHandler(issuer token.Issuer, options *authoptions.AuthenticationOptions) *oauthHandler {
-	return &oauthHandler{issuer: issuer, options: options}
+func newOAUTHHandler(im im.IdentityManagementInterface, issuer token.Issuer, options *authoptions.AuthenticationOptions) *oauthHandler {
+	return &oauthHandler{im: im, issuer: issuer, options: options}
 }
 
 // Implement webhook authentication interface
@@ -148,18 +153,19 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 		resp.WriteError(http.StatusUnauthorized, err)
 	}
 
-	idP, err := h.options.OAuthOptions.IdentityProviderOptions(name)
+	providerOptions, err := h.options.OAuthOptions.IdentityProviderOptions(name)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
 	}
 
-	oauthIdentityProvider, err := identityprovider.ResolveOAuthProvider(idP.Type, idP.Provider)
+	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Type, providerOptions.Provider)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
+		return
 	}
 
 	user, err := oauthIdentityProvider.IdentityExchange(code)
@@ -167,11 +173,52 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	existed, err := h.im.DescribeUser(user.GetName())
+	if err != nil {
+		// create user if not exist
+		if apierrors.IsNotFound(err) && oauth.MappingMethodAuto == providerOptions.MappingMethod {
+			create := &iamv1alpha2.User{
+				ObjectMeta: v1.ObjectMeta{Name: user.GetName(),
+					Annotations: map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}},
+				Spec: iamv1alpha2.UserSpec{Email: user.GetEmail()},
+			}
+			if existed, err = h.im.CreateUser(create); err != nil {
+				klog.Error(err)
+				api.HandleInternalError(resp, req, err)
+				return
+			}
+		} else {
+			klog.Error(err)
+			api.HandleInternalError(resp, req, err)
+			return
+		}
+	}
+
+	// oauth.MappingMethodLookup
+	if existed == nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s cannot bound to this identify provider", user.GetName()))
+		klog.Error(err)
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	// oauth.MappingMethodAuto
+	// Fails if a user with that user name is already mapped to another identity.
+	if providerOptions.MappingMethod == oauth.MappingMethodMixed || existed.Annotations[iamv1alpha2.IdentifyProviderLabel] != providerOptions.Name {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s is already bound to other identify provider", user.GetName()))
+		klog.Error(err)
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
 	}
 
 	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
 
-	accessToken, err := h.issuer.IssueTo(user, expiresIn)
+	accessToken, err := h.issuer.IssueTo(&authuser.DefaultInfo{
+		Name: user.GetName(),
+	}, expiresIn)
 
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
@@ -186,5 +233,4 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 	}
 
 	resp.WriteEntity(result)
-	return
 }

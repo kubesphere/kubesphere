@@ -49,14 +49,14 @@ func (d *deploymentsGetter) Get(namespace, name string) (runtime.Object, error) 
 
 func (d *deploymentsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 	// first retrieves all deployments within given namespace
-	all, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(query.Selector())
+	deployments, err := d.sharedInformers.Apps().V1().Deployments().Lister().Deployments(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, deploy := range all {
-		result = append(result, deploy)
+	for _, deployment := range deployments {
+		result = append(result, deployment)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil

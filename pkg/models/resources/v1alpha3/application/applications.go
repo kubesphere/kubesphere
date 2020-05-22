@@ -40,13 +40,13 @@ func (d *applicationsGetter) Get(namespace, name string) (runtime.Object, error)
 }
 
 func (d *applicationsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := d.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(query.Selector())
+	applications, err := d.informer.App().V1beta1().Applications().Lister().Applications(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, app := range all {
+	for _, app := range applications {
 		result = append(result, app)
 	}
 

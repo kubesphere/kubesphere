@@ -28,7 +28,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"reflect"
 	"testing"
 	"time"
@@ -44,8 +44,8 @@ var (
 type fixture struct {
 	t *testing.T
 
-	client     *fake.Clientset
-	kubeclient *k8sfake.Clientset
+	ksclient  *fake.Clientset
+	k8sclient *k8sfake.Clientset
 	// Objects to put in the store.
 	userLister []*iamv1alpha2.User
 	// Actions expected to happen on the client.
@@ -78,25 +78,25 @@ func newUser(name string) *iamv1alpha2.User {
 	}
 }
 
-func (f *fixture) newController() (*Controller, informers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
-	f.client = fake.NewSimpleClientset(f.objects...)
-	f.kubeclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
+func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
+	f.ksclient = fake.NewSimpleClientset(f.objects...)
+	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
 
-	i := informers.NewSharedInformerFactory(f.client, noResyncPeriodFunc())
-	k8sI := kubeinformers.NewSharedInformerFactory(f.kubeclient, noResyncPeriodFunc())
+	ksinformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
+	k8sinformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
 
 	for _, user := range f.userLister {
-		err := i.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
+		err := ksinformers.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
 		if err != nil {
 			f.t.Errorf("add user:%s", err)
 		}
 	}
 
-	c := NewController(f.kubeclient, f.client, i.Iam().V1alpha2().Users())
+	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users())
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
-	return c, i, k8sI
+	return c, ksinformers, k8sinformers
 }
 
 func (f *fixture) run(userName string) {
@@ -123,7 +123,7 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 		f.t.Error("expected error syncing user, got nil")
 	}
 
-	actions := filterInformerActions(f.client.Actions())
+	actions := filterInformerActions(f.ksclient.Actions())
 	for i, action := range actions {
 		if len(f.actions) < i+1 {
 			f.t.Errorf("%d unexpected actions: %+v", len(actions)-len(f.actions), actions[i:])
@@ -138,7 +138,7 @@ func (f *fixture) runController(user string, startInformers bool, expectError bo
 		f.t.Errorf("%d additional expected actions:%+v", len(f.actions)-len(actions), f.actions[len(actions):])
 	}
 
-	k8sActions := filterInformerActions(f.kubeclient.Actions())
+	k8sActions := filterInformerActions(f.k8sclient.Actions())
 	for i, action := range k8sActions {
 		if len(f.kubeactions) < i+1 {
 			f.t.Errorf("%d unexpected actions: %+v", len(k8sActions)-len(f.kubeactions), k8sActions[i:])
@@ -220,6 +220,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
 	expect := user.DeepCopy()
 	expect.Status.State = iamv1alpha2.UserActive
+	expect.Annotations = map[string]string{iamv1alpha2.PasswordEncryptedAnnotation: "true"}
 	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
 	f.actions = append(f.actions, action)
 }

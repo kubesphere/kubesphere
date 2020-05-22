@@ -30,8 +30,8 @@ func (c crdGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
 	}
 
 	var result []runtime.Object
-	for _, deploy := range crds {
-		result = append(result, deploy)
+	for _, crd := range crds {
+		result = append(result, crd)
 	}
 
 	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil

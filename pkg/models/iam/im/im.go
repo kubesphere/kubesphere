@@ -28,13 +28,14 @@ import (
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"net/mail"
 )
 
 type IdentityManagementInterface interface {
 	CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error)
 	ListUsers(query *query.Query) (*api.ListResult, error)
 	DeleteUser(username string) error
-	ModifyUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error)
+	UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error)
 	DescribeUser(username string) (*iamv1alpha2.User, error)
 	Authenticate(username, password string) (*iamv1alpha2.User, error)
 }
@@ -60,32 +61,84 @@ type defaultIMOperator struct {
 	resourceGetter *resourcev1alpha3.ResourceGetter
 }
 
-func (im *defaultIMOperator) ModifyUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+func (im *defaultIMOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", user.Name)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	old := obj.(*iamv1alpha2.User).DeepCopy()
+	user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = old.Annotations[iamv1alpha2.PasswordEncryptedAnnotation]
+	user.Spec.EncryptedPassword = old.Spec.EncryptedPassword
+
 	return im.ksClient.IamV1alpha2().Users().Update(user)
 }
 
 func (im *defaultIMOperator) Authenticate(username, password string) (*iamv1alpha2.User, error) {
 
-	user, err := im.DescribeUser(username)
+	var user *iamv1alpha2.User
 
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+	if _, err := mail.ParseAddress(username); err != nil {
+
+		obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		user = obj.(*iamv1alpha2.User)
+	} else {
+		objs, err := im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", &query.Query{
+			Pagination: query.NoPagination,
+			Filters:    map[query.Field]query.Value{iamv1alpha2.FieldEmail: query.Value(username)},
+		})
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		if len(objs.Items) != 1 {
+			if len(objs.Items) == 0 {
+				klog.Warningf("username or email: %s not exist", username)
+			} else {
+				klog.Errorf("duplicate user entries: %+v", objs)
+			}
+			return nil, AuthFailedIncorrectPassword
+		}
+
+		user = objs.Items[0].(*iamv1alpha2.User)
 	}
+
 	if checkPasswordHash(password, user.Spec.EncryptedPassword) {
 		return user, nil
 	}
+
 	return nil, AuthFailedIncorrectPassword
 }
 
-func (im *defaultIMOperator) ListUsers(query *query.Query) (*api.ListResult, error) {
-
-	result, err := im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", query)
+func (im *defaultIMOperator) ListUsers(query *query.Query) (result *api.ListResult, err error) {
+	result, err = im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", query)
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
+
+	items := make([]interface{}, 0)
+
+	for _, item := range result.Items {
+		user := item.(*iamv1alpha2.User)
+		out := user.DeepCopy()
+		// ensure encrypted password will not be output
+		out.Spec.EncryptedPassword = ""
+		items = append(items, out)
+	}
+
+	result.Items = items
 
 	return result, nil
 }
@@ -96,13 +149,19 @@ func checkPasswordHash(password, hash string) bool {
 }
 
 func (im *defaultIMOperator) DescribeUser(username string) (*iamv1alpha2.User, error) {
-	user, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
 
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
-	return user.(*iamv1alpha2.User), nil
+
+	user := obj.(*iamv1alpha2.User)
+	out := user.DeepCopy()
+	// ensure encrypted password will not be output
+	out.Spec.EncryptedPassword = ""
+
+	return out, nil
 }
 
 func (im *defaultIMOperator) DeleteUser(username string) error {

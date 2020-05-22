@@ -18,6 +18,7 @@ package user
 
 import (
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -25,15 +26,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	userinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	userlister "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"strconv"
 	"time"
 )
 
@@ -46,9 +50,9 @@ const (
 )
 
 type Controller struct {
-	kubeClientset       kubernetes.Interface
-	kubesphereClientset kubesphereclient.Interface
-
+	k8sClient    kubernetes.Interface
+	ksClient     kubesphere.Interface
+	kubeconfig   kubeconfig.Interface
 	userInformer userinformer.UserInformer
 	userLister   userlister.UserLister
 	userSynced   cache.InformerSynced
@@ -63,9 +67,8 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
-func NewController(kubeclientset kubernetes.Interface,
-	kubesphereklientset kubesphereclient.Interface,
-	userInformer userinformer.UserInformer) *Controller {
+func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
+	config *rest.Config, userInformer userinformer.UserInformer) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -74,16 +77,21 @@ func NewController(kubeclientset kubernetes.Interface,
 	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
+	var kubeconfigOperator kubeconfig.Interface
+	if config != nil {
+		kubeconfigOperator = kubeconfig.NewOperator(k8sClient, config, "")
+	}
 	ctl := &Controller{
-		kubeClientset:       kubeclientset,
-		kubesphereClientset: kubesphereklientset,
-		userInformer:        userInformer,
-		userLister:          userInformer.Lister(),
-		userSynced:          userInformer.Informer().HasSynced,
-		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
-		recorder:            recorder,
+		k8sClient:    k8sClient,
+		ksClient:     ksClient,
+		kubeconfig:   kubeconfigOperator,
+		userInformer: userInformer,
+		userLister:   userInformer.Lister(),
+		userSynced:   userInformer.Informer().HasSynced,
+		workqueue:    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
+		recorder:     recorder,
 	}
 	klog.Info("Setting up event handlers")
 	userInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -205,26 +213,64 @@ func (c *Controller) reconcile(key string) error {
 			utilruntime.HandleError(fmt.Errorf("user '%s' in work queue no longer exists", key))
 			return nil
 		}
+		klog.Error(err)
 		return err
 	}
 
-	err = c.updateUserStatus(user)
+	user, err = c.encryptPassword(user.DeepCopy())
 
 	if err != nil {
+		klog.Error(err)
 		return err
+	}
+
+	if c.kubeconfig != nil {
+		err = c.kubeconfig.CreateKubeConfig(user)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
 	}
 
 	c.recorder.Event(user, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 	return nil
 }
 
-func (c *Controller) updateUserStatus(user *iamv1alpha2.User) error {
-	userCopy := user.DeepCopy()
-	userCopy.Status.State = iamv1alpha2.UserActive
-	_, err := c.kubesphereClientset.IamV1alpha2().Users().Update(userCopy)
-	return err
-}
-
 func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(4, stopCh)
+}
+
+func (c *Controller) encryptPassword(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+	encrypted, err := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
+
+	// password is not encrypted
+	if err != nil || !encrypted {
+		password, err := encrypt(user.Spec.EncryptedPassword)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		user.Spec.EncryptedPassword = password
+		if user.Annotations == nil {
+			user.Annotations = make(map[string]string, 0)
+		}
+		user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = "true"
+		user.Status.State = iamv1alpha2.UserActive
+
+		updated, err := c.ksClient.IamV1alpha2().Users().Update(user)
+
+		return updated, err
+	}
+
+	return user, nil
+}
+
+func encrypt(password string) (string, error) {
+	// when user is already mapped to another identity, password is empty by default
+	// unable to log in directly until password reset
+	if password == "" {
+		return "", nil
+	}
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
 }

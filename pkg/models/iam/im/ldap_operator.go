@@ -36,7 +36,7 @@ func NewLDAPOperator(ldapClient ldap.Interface) IdentityManagementInterface {
 	}
 }
 
-func (im *ldapOperator) ModifyUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+func (im *ldapOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
 
 	err := im.ldapClient.Update(user)
 

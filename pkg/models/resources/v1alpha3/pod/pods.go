@@ -47,14 +47,14 @@ func (p *podsGetter) Get(namespace, name string) (runtime.Object, error) {
 
 func (p *podsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
 
-	all, err := p.informer.Core().V1().Pods().Lister().Pods(namespace).List(query.Selector())
+	pods, err := p.informer.Core().V1().Pods().Lister().Pods(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, app := range all {
-		result = append(result, app)
+	for _, pod := range pods {
+		result = append(result, pod)
 	}
 
 	return v1alpha3.DefaultList(result, query, p.compare, p.filter), nil

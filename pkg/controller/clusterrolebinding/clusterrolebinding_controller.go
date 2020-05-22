@@ -1,219 +1,240 @@
 /*
+Copyright 2019 The KubeSphere authors.
 
- Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package clusterrolebinding
 
 import (
-	"context"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	log "k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
-	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
+	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/models/kubectl"
+	"time"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+const (
+	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
+	successSynced = "Synced"
+	// is synced successfully
+	messageResourceSynced = "ClusterRoleBinding synced successfully"
+	controllerName        = "clusterrolebinding-controller"
+)
 
-// Add creates a new Namespace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+type Controller struct {
+	k8sClient kubernetes.Interface
+	informer  rbacv1informers.ClusterRoleBindingInformer
+	lister    rbacv1listers.ClusterRoleBindingLister
+	synced    cache.InformerSynced
+	// workqueue is a rate limited work queue. This is used to queue work to be
+	// processed instead of performing it as soon as a change happens. This
+	// means we can ensure we only process a fixed amount of resources at a
+	// time, and makes it easy to ensure we are never processing the same item
+	// simultaneously in two different workers.
+	workqueue workqueue.RateLimitingInterface
+	// recorder is an event recorder for recording Event resources to the
+	// Kubernetes API.
+	recorder        record.EventRecorder
+	kubectlOperator kubectl.Interface
 }
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileClusterRoleBinding{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func NewController(k8sClient kubernetes.Interface, informerFactory informers.SharedInformerFactory) *Controller {
+	// Create event broadcaster
+	// Add sample-controller types to the default Kubernetes Scheme so Events can be
+	// logged for sample-controller types.
+
+	klog.V(4).Info("Creating event broadcaster")
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(klog.Infof)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
+	informer := informerFactory.Rbac().V1().ClusterRoleBindings()
+	ctl := &Controller{
+		k8sClient:       k8sClient,
+		informer:        informer,
+		lister:          informer.Lister(),
+		synced:          informer.Informer().HasSynced,
+		kubectlOperator: kubectl.NewOperator(k8sClient, informerFactory),
+		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
+		recorder:        recorder,
+	}
+	klog.Info("Setting up event handlers")
+	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: ctl.enqueueClusterRoleBinding,
+		UpdateFunc: func(old, new interface{}) {
+			ctl.enqueueClusterRoleBinding(new)
+		},
+		DeleteFunc: ctl.enqueueClusterRoleBinding,
+	})
+	return ctl
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("clusterrolebinding-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
+func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
+	defer utilruntime.HandleCrash()
+	defer c.workqueue.ShutDown()
+
+	//init client
+
+	// Start the informer factories to begin populating the informer caches
+	klog.Info("Starting User controller")
+
+	// Wait for the caches to be synced before starting workers
+	klog.Info("Waiting for informer caches to sync")
+	if ok := cache.WaitForCacheSync(stopCh, c.synced); !ok {
+		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	// Watch for changes to Namespace
-	err = c.Watch(&source.Kind{Type: &rbac.ClusterRoleBinding{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
+	klog.Info("Starting workers")
+	// Launch two workers to process Foo resources
+	for i := 0; i < threadiness; i++ {
+		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
+	klog.Info("Started workers")
+	<-stopCh
+	klog.Info("Shutting down workers")
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileClusterRoleBinding{}
-
-// ReconcileClusterRoleBinding reconciles a Namespace object
-type ReconcileClusterRoleBinding struct {
-	client.Client
-	scheme *runtime.Scheme
+func (c *Controller) enqueueClusterRoleBinding(obj interface{}) {
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	c.workqueue.Add(key)
 }
 
-// Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
-// and what is in the Namespace.Spec
-// +kubebuilder:rbac:groups=core.kubesphere.io,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core.kubesphere.io,resources=namespaces/status,verbs=get;update;patch
-func (r *ReconcileClusterRoleBinding) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Fetch the Namespace instance
-	instance := &rbac.ClusterRoleBinding{}
-	if err := r.Get(context.TODO(), request.NamespacedName, instance); err != nil {
-		if errors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+func (c *Controller) runWorker() {
+	for c.processNextWorkItem() {
 	}
-	workspaceName := instance.Labels[constants.WorkspaceLabelKey]
-
-	if workspaceName != "" && k8sutil.IsControlledBy(instance.OwnerReferences, "Workspace", workspaceName) {
-		if instance.Name == getWorkspaceAdminRoleBindingName(workspaceName) ||
-			instance.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
-			nsList := &corev1.NamespaceList{}
-			options := client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{constants.WorkspaceLabelKey: workspaceName})}
-
-			if err := r.List(context.TODO(), nsList, &options); err != nil {
-				return reconcile.Result{}, err
-			}
-			for _, ns := range nsList.Items {
-				if !ns.DeletionTimestamp.IsZero() {
-					// skip if the namespace is being deleted
-					continue
-				}
-				if err := r.updateRoleBindings(instance, &ns); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-		}
-	}
-	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileClusterRoleBinding) updateRoleBindings(clusterRoleBinding *rbac.ClusterRoleBinding, namespace *corev1.Namespace) error {
+func (c *Controller) processNextWorkItem() bool {
+	obj, shutdown := c.workqueue.Get()
 
-	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
+	if shutdown {
+		return false
+	}
 
-	if clusterRoleBinding.Name == getWorkspaceAdminRoleBindingName(workspaceName) {
-		adminBinding := &rbac.RoleBinding{}
-		adminBinding.Name = "admin"
-		adminBinding.Namespace = namespace.Name
-		adminBinding.RoleRef = rbac.RoleRef{Name: "admin", APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-		adminBinding.Subjects = clusterRoleBinding.Subjects
+	// We wrap this block in a func so we can defer c.workqueue.Done.
+	err := func(obj interface{}) error {
+		// We call Done here so the workqueue knows we have finished
+		// processing this item. We also must remember to call Forget if we
+		// do not want this work item being re-queued. For example, we do
+		// not call Forget if a transient error occurs, instead the item is
+		// put back on the workqueue and attempted again after a back-off
+		// period.
+		defer c.workqueue.Done(obj)
+		var key string
+		var ok bool
+		// We expect strings to come off the workqueue. These are of the
+		// form namespace/name. We do this as the delayed nature of the
+		// workqueue means the items in the informer cache may actually be
+		// more up to date that when the item was initially put onto the
+		// workqueue.
+		if key, ok = obj.(string); !ok {
+			// As the item in the workqueue is actually invalid, we call
+			// Forget here else we'd go into a loop of attempting to
+			// process a work item that is invalid.
+			c.workqueue.Forget(obj)
+			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			return nil
+		}
+		// Run the reconcile, passing it the namespace/name string of the
+		// Foo resource to be synced.
+		if err := c.reconcile(key); err != nil {
+			// Put the item back on the workqueue to handle any transient errors.
+			c.workqueue.AddRateLimited(key)
+			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+		}
+		// Finally, if no error occurs we Forget this item so it does not
+		// get queued again until another change happens.
+		c.workqueue.Forget(obj)
+		klog.Infof("Successfully synced %s:%s", "key", key)
+		return nil
+	}(obj)
 
-		found := &rbac.RoleBinding{}
+	if err != nil {
+		utilruntime.HandleError(err)
+		return true
+	}
 
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: adminBinding.Name}, found)
+	return true
+}
 
+// syncHandler compares the actual state with the desired, and attempts to
+// converge the two. It then updates the Status block of the Foo resource
+// with the current status of the resource.
+func (c *Controller) reconcile(key string) error {
+
+	// Get the clusterRoleBinding with this name
+	clusterRoleBinding, err := c.lister.Get(key)
+	if err != nil {
+		// The user may no longer exist, in which case we stop
+		// processing.
 		if errors.IsNotFound(err) {
-			err = r.Create(context.TODO(), adminBinding)
-			if err != nil {
-				log.Error(err)
-			}
-			return err
-		} else if err != nil {
-			log.Error(err)
-			return err
+			utilruntime.HandleError(fmt.Errorf("clusterrolebinding '%s' in work queue no longer exists", key))
+			return nil
 		}
+		klog.Error(err)
+		return err
+	}
 
-		if !reflect.DeepEqual(found.RoleRef, adminBinding.RoleRef) {
-			err = r.Delete(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, adminBinding.Name)
-		}
+	isClusterAdmin := clusterRoleBinding.RoleRef.Name == iamv1alpha2.ClusterAdmin
 
-		if !reflect.DeepEqual(found.Subjects, adminBinding.Subjects) {
-			found.Subjects = adminBinding.Subjects
-			err = r.Update(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
+	if isClusterAdmin {
+		for _, subject := range clusterRoleBinding.Subjects {
+			if subject.Kind == iamv1alpha2.ResourceKindUser {
+				err = c.kubectlOperator.CreateKubectlDeploy(subject.Name)
+				if err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
 		}
 	}
 
-	if clusterRoleBinding.Name == getWorkspaceViewerRoleBindingName(workspaceName) {
-
-		found := &rbac.RoleBinding{}
-		viewerBinding := &rbac.RoleBinding{}
-		viewerBinding.Name = "viewer"
-		viewerBinding.Namespace = namespace.Name
-		viewerBinding.RoleRef = rbac.RoleRef{Name: "viewer", APIGroup: "rbac.authorization.k8s.io", Kind: "Role"}
-		viewerBinding.Subjects = clusterRoleBinding.Subjects
-
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: namespace.Name, Name: viewerBinding.Name}, found)
-
-		if errors.IsNotFound(err) {
-			err = r.Create(context.TODO(), viewerBinding)
-			if err != nil {
-				log.Error(err)
-			}
-			return err
-		} else if err != nil {
-			log.Error(err)
-			return err
-		}
-
-		if !reflect.DeepEqual(found.RoleRef, viewerBinding.RoleRef) {
-			err = r.Delete(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-			return fmt.Errorf("conflict role binding %s.%s, waiting for recreate", namespace.Name, viewerBinding.Name)
-		}
-
-		if !reflect.DeepEqual(found.Subjects, viewerBinding.Subjects) {
-			found.Subjects = viewerBinding.Subjects
-			err = r.Update(context.TODO(), found)
-			if err != nil {
-				log.Error(err)
-				return err
-			}
-		}
-	}
-
+	c.recorder.Event(clusterRoleBinding, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 	return nil
 }
 
-func getWorkspaceAdminRoleBindingName(workspaceName string) string {
-	return fmt.Sprintf("workspace:%s:admin", workspaceName)
+func (c *Controller) Start(stopCh <-chan struct{}) error {
+	return c.Run(4, stopCh)
 }
 
-func getWorkspaceViewerRoleBindingName(workspaceName string) string {
-	return fmt.Sprintf("workspace:%s:viewer", workspaceName)
+func encrypt(password string) (string, error) {
+	// when user is already mapped to another identity, password is empty by default
+	// unable to log in directly until password reset
+	if password == "" {
+		return "", nil
+	}
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
 }

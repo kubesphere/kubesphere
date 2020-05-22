@@ -25,8 +25,8 @@ import (
 	"io"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -208,10 +208,10 @@ func TestRBACAuthorizer(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		scope := iamv1alpha2.ClusterScope
+		scope := request.ClusterScope
 
 		if tc.namespace != "" {
-			scope = iamv1alpha2.NamespaceScope
+			scope = request.NamespaceScope
 		}
 
 		rules, err := ruleResolver.rulesFor(authorizer.AttributesRecord{
@@ -274,7 +274,7 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 			return nil, err
 		}
 	}
-	return NewRBACAuthorizer(am.NewAMOperator(fakeInformerFactory)), nil
+	return NewRBACAuthorizer(am.NewReadOnlyOperator(fakeInformerFactory)), nil
 }
 
 func TestAppliesTo(t *testing.T) {

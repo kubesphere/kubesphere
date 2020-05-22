@@ -11,9 +11,6 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
-	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
@@ -156,8 +153,10 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
-	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory))
-	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.EventsClient))
+	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory,
+		s.KubernetesClient.Master()))
+	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
+		s.KubernetesClient.KubeSphere(), s.EventsClient))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.InformerFactory.KubernetesSharedInformerFactory(),
@@ -167,9 +166,10 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.MultiClusterOptions.AgentImage))
 	urlruntime.Must(iamapi.AddToContainer(s.container,
 		im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
-		am.NewAMOperator(s.InformerFactory),
+		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(oauth.AddToContainer(s.container,
+		im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
 		token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
@@ -212,13 +212,6 @@ func (s *APIServer) buildHandlerChain() {
 	requestInfoResolver := &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
-		GlobalResources: []schema.GroupResource{
-			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralUser},
-			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralGlobalRole},
-			{Group: iamv1alpha2.SchemeGroupVersion.Group, Resource: iamv1alpha2.ResourcesPluralGlobalRoleBinding},
-			{Group: tenantv1alpha1.SchemeGroupVersion.Group, Resource: tenantv1alpha1.ResourcePluralWorkspace},
-			{Group: clusterv1alpha1.SchemeGroupVersion.Group, Resource: clusterv1alpha1.ResourcesPluralCluster},
-		},
 	}
 
 	handler := s.Server.Handler
@@ -241,7 +234,8 @@ func (s *APIServer) buildHandlerChain() {
 	case authorizationoptions.RBAC:
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
-		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewOPAAuthorizer(am.NewAMOperator(s.InformerFactory)), authorizerfactory.NewRBACAuthorizer(am.NewAMOperator(s.InformerFactory)))
+		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
+		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewRBACAuthorizer(amOperator))
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)
@@ -330,12 +324,14 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 
 	ksGVRs := []schema.GroupVersionResource{
 		{Group: "tenant.kubesphere.io", Version: "v1alpha1", Resource: "workspaces"},
+		{Group: "tenant.kubesphere.io", Version: "v1alpha2", Resource: "workspacetemplates"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "users"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
+		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 	}
 
 	devopsGVRs := []schema.GroupVersionResource{

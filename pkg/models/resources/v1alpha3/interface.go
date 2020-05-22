@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"sort"
 	"strings"
 )
@@ -22,7 +23,9 @@ type CompareFunc func(runtime.Object, runtime.Object, query.Field) bool
 
 type FilterFunc func(runtime.Object, query.Filter) bool
 
-func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc) *api.ListResult {
+type TransformFunc func(runtime.Object) runtime.Object
+
+func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFunc, filterFunc FilterFunc, transformFuncs ...TransformFunc) *api.ListResult {
 	// selected matched ones
 	var filtered []runtime.Object
 	for _, object := range objects {
@@ -35,6 +38,9 @@ func DefaultList(objects []runtime.Object, q *query.Query, compareFunc CompareFu
 		}
 
 		if selected {
+			for _, transform := range transformFuncs {
+				object = transform(object)
+			}
 			filtered = append(filtered, object)
 		}
 	}
@@ -84,6 +90,13 @@ func DefaultObjectMetaCompare(left, right metav1.ObjectMeta, sortBy query.Field)
 //  Default metadata filter
 func DefaultObjectMetaFilter(item metav1.ObjectMeta, filter query.Filter) bool {
 	switch filter.Field {
+	case query.FieldNames:
+		for _, name := range strings.Split(string(filter.Value), ",") {
+			if item.Name == name || item.Annotations[constants.DisplayNameAnnotationKey] == name {
+				return true
+			}
+		}
+		return false
 	// /namespaces?page=1&limit=10&name=default
 	case query.FieldName:
 		return strings.Contains(item.Name, string(filter.Value))

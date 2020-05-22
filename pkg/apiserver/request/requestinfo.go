@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"net/http"
 	"strings"
 
@@ -56,7 +55,6 @@ type RequestInfo struct {
 type RequestInfoFactory struct {
 	APIPrefixes          sets.String
 	GrouplessAPIPrefixes sets.String
-	GlobalResources      []schema.GroupResource
 }
 
 // NewRequestInfo returns the information from the http request.  If error is not nil, RequestInfo holds the information as best it is known before the failure
@@ -211,7 +209,7 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list or a watch
 	if len(requestInfo.Name) == 0 && requestInfo.Verb == "get" {
 		opts := metainternalversion.ListOptions{}
-		if err := metainternalversion.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts); err != nil {
+		if err := metainternalversionscheme.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts); err != nil {
 			// An error in parsing request will result in default to "list" and not setting "name" field.
 			klog.Errorf("Couldn't parse request %#v: %v", req.URL.Query(), err)
 			// Reset opts to not rely on partial results from parsing.
@@ -273,20 +271,26 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
+const (
+	GlobalScope    = "Global"
+	ClusterScope   = "Cluster"
+	WorkspaceScope = "Workspace"
+	NamespaceScope = "Namespace"
+)
+
 func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
-	for _, globalResource := range r.GlobalResources {
-		if globalResource.Group == request.APIGroup &&
-			globalResource.Resource == request.Resource {
-			return iamv1alpha2.GlobalScope
-		}
+
+	if request.Cluster != "" {
+		return ClusterScope
 	}
+
 	if request.Namespace != "" {
-		return iamv1alpha2.NamespaceScope
+		return NamespaceScope
 	}
 
 	if request.Workspace != "" {
-		return iamv1alpha2.WorkspaceScope
+		return WorkspaceScope
 	}
 
-	return iamv1alpha2.ClusterScope
+	return GlobalScope
 }

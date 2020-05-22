@@ -20,7 +20,11 @@ func New(informers externalversions.SharedInformerFactory) v1alpha3.Interface {
 }
 
 func (c clustersGetter) Get(_, name string) (runtime.Object, error) {
-	return c.informers.Cluster().V1alpha1().Clusters().Lister().Get(name)
+	cluster, err := c.informers.Cluster().V1alpha1().Clusters().Lister().Get(name)
+	if err != nil {
+		return nil, err
+	}
+	return c.transform(cluster), nil
 }
 
 func (c clustersGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
@@ -30,11 +34,18 @@ func (c clustersGetter) List(_ string, query *query.Query) (*api.ListResult, err
 	}
 
 	var result []runtime.Object
-	for _, deploy := range clusters {
-		result = append(result, deploy)
+	for _, cluster := range clusters {
+		result = append(result, cluster)
 	}
 
-	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil
+	return v1alpha3.DefaultList(result, query, c.compare, c.filter, c.transform), nil
+}
+
+func (c clustersGetter) transform(obj runtime.Object) runtime.Object {
+	in := obj.(*clusterv1alpha1.Cluster)
+	out := in.DeepCopy()
+	out.Spec.Connection.KubeConfig = nil
+	return out
 }
 
 func (c clustersGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {

@@ -19,7 +19,7 @@ spec:
   scope: Cluster
   validation:
     openAPIV3Schema:
-      description: RoleBinding is the Schema for the rolebindings API
+      description: GlobalRoleBinding is the Schema for the globalrolebindings API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -35,8 +35,8 @@ spec:
           description: Standard object's metadata.
           type: object
         roleRef:
-          description: RoleRef can only reference a ClusterRole in the global namespace.
-            If the RoleRef cannot be resolved, the Authorizer must return an error.
+          description: RoleRef can only reference a GlobalRole. If the RoleRef cannot
+            be resolved, the Authorizer must return an error.
           properties:
             apiGroup:
               description: APIGroup is the group for the resource being referenced
