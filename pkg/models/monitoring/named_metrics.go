@@ -1,5 +1,17 @@
 package monitoring
 
+const (
+	KubeSphereWorkspaceCount = "kubesphere_workspace_count"
+	KubeSphereUserCount      = "kubesphere_user_count"
+	KubeSphereClusterCount   = "kubesphere_cluser_count"
+	KubeSphereAppTmplCount   = "kubesphere_app_template_count"
+
+	WorkspaceNamespaceCount = "workspace_namespace_count"
+	WorkspaceDevopsCount    = "workspace_devops_project_count"
+	WorkspaceMemberCount    = "workspace_member_count"
+	WorkspaceRoleCount      = "workspace_role_count"
+)
+
 var ClusterMetrics = []string{
 	"cluster_cpu_utilisation",
 	"cluster_cpu_usage",

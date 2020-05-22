@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"testing"
@@ -209,7 +210,8 @@ func TestParseRequestParams(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			client := fake.NewSimpleClientset(&tt.namespace)
-			handler := newHandler(client, nil)
+			fakeInformerFactory := informers.NewInformerFactories(client, nil, nil, nil, nil, nil)
+			handler := newHandler(client, nil, fakeInformerFactory, nil)
 
 			result, err := handler.makeQueryOptions(tt.params, tt.lvl)
 			if err != nil {
