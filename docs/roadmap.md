@@ -1,6 +1,6 @@
 # KubeSphere Roadmap
 
-KubeSphere Roadmap demonstrates a list of open source product development plans and features being split by the edition and modules, as well as KubeSphere community's anticipation. Obviously, it details the future's direction of KubeSphere, but may change over time. We hope that can help you to get familiar with the project plans and vision through the Roadmap. Of course, if you have any better ideas, welcome to [Issues](https://github.com/kubesphere/kubesphere/issues).
+KubeSphere Roadmap demonstrates a list of open source product development plans and features being split by the edition and modules, as well as KubeSphere community's anticipation. Obviously, it details the future's direction of KubeSphere, but may change over time. We hope that can help you to get familiar with the project plans and vision through the Roadmap. Of course, if you have any better ideas, welcome to filing [Issues](https://github.com/kubesphere/kubesphere/issues).
 
 ## Release Goals
 
@@ -14,7 +14,7 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 | Release v2.0.2| Jul, 2019 |
 | Release v2.1.0| Nov, 2019 |
 | Release v2.1.1| Feb, 2020 |
-| Release v3.0.0| Mar, 2020 |
+| Release v3.0.0| June, 2020 |
 
 ## Features
 
@@ -35,8 +35,9 @@ KubeSphere Roadmap demonstrates a list of open source product development plans 
 - [ ] S2I/B2I supports webhook.
 - [ ] Image registry optimization.
 - [ ] Pipeline support integration with JIRA.
-- [ ] Pipeline integrates the notification of kubesphere.
-- [ ] Pipeline integrates kubesphere custom monitoring.
+- [ ] Pipeline integrates the notification of KubeSphere.
+- [ ] Pipeline integrates KubeSphere custom monitoring.
+
 #### Observability
 
 - [ ] Logging console enhancement

@@ -19,7 +19,6 @@ docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
 docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .
 
 # Push image to dockerhub, need to support multiple push
-
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker push $REPO/ks-apiserver:$TAG
 docker push $REPO/ks-controller-manager:$TAG

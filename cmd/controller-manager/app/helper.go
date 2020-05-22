@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// WaitForAPIServer waits for the API Server's /healthz endpoint to report "ok" with timeout.
+// WaitForAPIServer waits for the API Server's /healthz endpoint to report "ok" before timeout.
 func WaitForAPIServer(client clientset.Interface, timeout time.Duration) error {
 	var lastErr error
 
