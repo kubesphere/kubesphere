@@ -21,7 +21,6 @@ import (
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -217,24 +216,15 @@ func (c *Controller) syncHandler(key string) error {
 
 	copySecret := secret.DeepCopy()
 	// DeletionTimestamp.IsZero() means copySecret has not been deleted.
-	if copySecret.ObjectMeta.DeletionTimestamp.IsZero() {
+	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
 		// https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers
-		if !sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
+		if !sliceutil.HasString(secret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
 			copySecret.ObjectMeta.Finalizers = append(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName)
 		}
 		// Check secret config exists, otherwise we will create it.
 		// if secret exists, update config
-		_, err := c.devopsClient.GetCredentialInProject(nsName, secret.Name)
-		if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-			klog.Error(err, fmt.Sprintf("failed to get secret %s ", key))
-			return err
-		} else if err != nil {
-			_, err := c.devopsClient.CreateCredentialInProject(nsName, copySecret)
-			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to create secret %s ", key))
-				return err
-			}
-		} else {
+		_, err := c.devopsClient.CreateCredentialInProject(nsName, copySecret)
+		if err != nil {
 			if _, ok := copySecret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey]; ok {
 				_, err := c.devopsClient.UpdateCredentialInProject(nsName, copySecret)
 				if err != nil {
@@ -247,16 +237,9 @@ func (c *Controller) syncHandler(key string) error {
 	} else {
 		// Finalizers processing logic
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
-			_, err := c.devopsClient.GetCredentialInProject(nsName, secret.Name)
-			if err != nil && devopsClient.GetDevOpsStatusCode(err) != http.StatusNotFound {
-				klog.Error(err, fmt.Sprintf("failed to get secret %s ", key))
+			if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
+				klog.Error(err, fmt.Sprintf("failed to delete secret %s in devops", key))
 				return err
-			} else if err != nil && devopsClient.GetDevOpsStatusCode(err) == http.StatusNotFound {
-			} else {
-				if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
-					klog.Error(err, fmt.Sprintf("failed to delete secret %s in devops", key))
-					return err
-				}
 			}
 			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.CredentialFinalizerName

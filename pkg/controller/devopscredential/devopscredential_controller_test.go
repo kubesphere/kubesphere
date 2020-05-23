@@ -1,12 +1,13 @@
 package devopscredential
 
 import (
-	v1 "k8s.io/api/core/v1"
-	"kubesphere.io/kubesphere/pkg/constants"
-	fakeDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"reflect"
 	"testing"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
+	"kubesphere.io/kubesphere/pkg/constants"
+	fakeDevOps "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -346,27 +347,6 @@ func TestDeleteCredential(t *testing.T) {
 	f.kubeobjects = append(f.kubeobjects, secret)
 	f.initDevOpsProject = nsName
 	f.initCredential = []*v1.Secret{secret}
-	f.expectCredential = []*v1.Secret{}
-	f.expectUpdateSecretAction(expectSecret)
-	f.run(getKey(secret, t))
-}
-
-func TestDeleteNotExistCredential(t *testing.T) {
-	f := newFixture(t)
-	nsName := "test-123"
-	pipelineName := "test"
-	projectName := "test_project"
-
-	ns := newNamespace(nsName, projectName)
-	secret := newDeletingSecret(nsName, pipelineName)
-
-	expectSecret := secret.DeepCopy()
-	expectSecret.Finalizers = []string{}
-	f.secretLister = append(f.secretLister, secret)
-	f.namespaceLister = append(f.namespaceLister, ns)
-	f.kubeobjects = append(f.kubeobjects, secret)
-	f.initDevOpsProject = nsName
-	f.initCredential = []*v1.Secret{}
 	f.expectCredential = []*v1.Secret{}
 	f.expectUpdateSecretAction(expectSecret)
 	f.run(getKey(secret, t))

@@ -233,6 +233,7 @@ func (j *Jenkins) CreateCredentialInProject(projectId string, credential *v1.Sec
 	if err != nil {
 		return "", err
 	}
+
 	if response.StatusCode != http.StatusOK {
 		return "", errors.New(strconv.Itoa(response.StatusCode))
 	}

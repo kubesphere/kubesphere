@@ -225,7 +225,7 @@ func TestDeleteS3Object(t *testing.T) {
 
 	f.s2ibinaryLister = append(f.s2ibinaryLister, s2iBinary)
 	f.objects = append(f.objects, s2iBinary)
-	f.initS3Objects = []*fakes3.Object{&fakes3.Object{
+	f.initS3Objects = []*fakes3.Object{{
 		Key: "default-test",
 	}}
 	f.expectS3Objects = []*fakes3.Object{}
