@@ -124,7 +124,7 @@ func AddControllers(
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer, client.Config())
 
-	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(), kubernetesInformer)
+	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(), kubernetesInformer, kubesphereInformer)
 
 	clusterController := cluster.NewClusterController(
 		client.Kubernetes(),

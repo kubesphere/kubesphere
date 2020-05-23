@@ -221,7 +221,7 @@ func (c *Controller) reconcile(key string) error {
 	}
 
 	// csr create by kubesphere auto approve
-	if username := csr.Annotations[constants.UsernameAnnotationKey]; username != "" {
+	if username := csr.Labels[constants.UsernameLabelKey]; username != "" {
 		err = c.Approve(csr)
 		if err != nil {
 			klog.Error(err)
@@ -280,7 +280,7 @@ func (c *Controller) Approve(csr *certificatesv1beta1.CertificateSigningRequest)
 }
 
 func (c *Controller) UpdateKubeconfig(csr *certificatesv1beta1.CertificateSigningRequest) error {
-	username := csr.Annotations[constants.UsernameAnnotationKey]
+	username := csr.Labels[constants.UsernameLabelKey]
 
 	err := c.kubeconfigOperator.UpdateKubeconfig(username, csr.Status.Certificate)
 

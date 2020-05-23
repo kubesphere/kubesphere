@@ -20,18 +20,20 @@ package kubectl
 
 import (
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/informers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models"
 	"math/rand"
 	"os"
-
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
@@ -44,16 +46,16 @@ const (
 type Interface interface {
 	GetKubectlPod(username string) (models.PodInfo, error)
 	CreateKubectlDeploy(username string) error
-	DeleteKubectlDeploy(username string) error
 }
 
 type operator struct {
-	k8sClient kubernetes.Interface
-	informers informers.SharedInformerFactory
+	k8sClient   kubernetes.Interface
+	k8sInformer k8sinformers.SharedInformerFactory
+	ksInformer  ksinformers.SharedInformerFactory
 }
 
-func NewOperator(k8sClient kubernetes.Interface, informers informers.SharedInformerFactory) Interface {
-	return &operator{k8sClient: k8sClient, informers: informers}
+func NewOperator(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory) Interface {
+	return &operator{k8sClient: k8sClient, k8sInformer: k8sInformer, ksInformer: ksInformer}
 }
 
 var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
@@ -66,7 +68,7 @@ func init() {
 
 func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
 	deployName := fmt.Sprintf(deployNameFormat, username)
-	deploy, err := o.informers.Apps().V1().Deployments().Lister().Deployments(namespace).Get(deployName)
+	deploy, err := o.k8sInformer.Apps().V1().Deployments().Lister().Deployments(namespace).Get(deployName)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -74,7 +76,7 @@ func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
 
 	selectors := deploy.Spec.Selector.MatchLabels
 	labelSelector := labels.Set(selectors).AsSelector()
-	pods, err := o.informers.Core().V1().Pods().Lister().Pods(namespace).List(labelSelector)
+	pods, err := o.k8sInformer.Core().V1().Pods().Lister().Pods(namespace).List(labelSelector)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -115,9 +117,20 @@ func selectCorrectPod(namespace string, pods []*v1.Pod) (kubectlPod *v1.Pod, err
 func (o *operator) CreateKubectlDeploy(username string) error {
 	deployName := fmt.Sprintf(deployNameFormat, username)
 
+	user, err := o.ksInformer.Iam().V1alpha2().Users().Lister().Get(username)
+
+	if err != nil {
+		klog.Error(err)
+		// ignore if user not exist
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
 	replica := int32(1)
-	selector := metav1.LabelSelector{MatchLabels: map[string]string{"username": username}}
-	deployment := appsv1.Deployment{
+	selector := metav1.LabelSelector{MatchLabels: map[string]string{constants.UsernameLabelKey: username}}
+	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deployName,
 		},
@@ -127,7 +140,7 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"username": username,
+						constants.UsernameLabelKey: username,
 					},
 				},
 				Spec: v1.PodSpec{
@@ -142,25 +155,17 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 		},
 	}
 
-	_, err := o.k8sClient.AppsV1().Deployments(namespace).Create(&deployment)
+	err = controllerutil.SetControllerReference(user, deployment, scheme.Scheme)
 
 	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			return nil
-		}
-		klog.Error(err)
+		klog.Errorln(err)
 		return err
 	}
 
-	return nil
-}
+	_, err = o.k8sClient.AppsV1().Deployments(namespace).Create(deployment)
 
-func (o *operator) DeleteKubectlDeploy(username string) error {
-	deployName := fmt.Sprintf(deployNameFormat, username)
-
-	err := o.k8sClient.AppsV1().Deployments(namespace).Delete(deployName, metav1.NewDeleteOptions(0))
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if errors.IsAlreadyExists(err) {
 			return nil
 		}
 		klog.Error(err)
