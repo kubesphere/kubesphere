@@ -30,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
@@ -163,7 +164,6 @@ var (
 				Resources: []string{"*"},
 			},
 		},
-		AggregationRule: nil,
 	}
 	regularGlobalRole = &iamv1alpha2.GlobalRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -176,7 +176,6 @@ var (
 				Resources: []string{},
 			},
 		},
-		AggregationRule: nil,
 	}
 	reguarWorksapceRole = &iamv1alpha2.WorkspaceRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -190,7 +189,6 @@ var (
 				Resources: []string{},
 			},
 		},
-		AggregationRule: nil,
 	}
 	adminGlobalRoleBinding = &iamv1alpha2.GlobalRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -264,12 +262,12 @@ var (
 			Name:     "admin",
 		},
 	}
-	workspaceFoo = &tenantv1alpha1.Workspace{
+	workspaceFoo = &tenantv1alpha2.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 	}
-	workspaceBar = &tenantv1alpha1.Workspace{
+	workspaceBar = &tenantv1alpha2.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "bar",
 		},
@@ -293,8 +291,8 @@ func prepare() Interface {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, nil, nil)
 
 	for _, workspace := range workspaces {
-		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().
-			Workspaces().Informer().GetIndexer().Add(workspace)
+		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha2().
+			WorkspaceTemplates().Informer().GetIndexer().Add(workspace)
 	}
 
 	for _, namespace := range namespaces {
@@ -332,5 +330,5 @@ func prepare() Interface {
 			RoleBindings().Informer().GetIndexer().Add(roleBinding)
 	}
 
-	return New(fakeInformerFactory, nil)
+	return New(fakeInformerFactory, nil, nil, nil)
 }

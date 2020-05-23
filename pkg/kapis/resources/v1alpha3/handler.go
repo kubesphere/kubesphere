@@ -40,7 +40,7 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 	}
 
 	if err != resource.ErrResourceNotSupported {
-		klog.Error(err)
+		klog.Error(err, resourceType)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
@@ -72,7 +72,7 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 	}
 
 	if err != resource.ErrResourceNotSupported {
-		klog.Error(err)
+		klog.Error(err, resourceType)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
@@ -98,6 +98,9 @@ func (h *Handler) fallback(resourceType string, namespace string, q *query.Query
 		switch field {
 		case query.FieldName:
 			conditions.Fuzzy[v1alpha2.Name] = string(value)
+			break
+		case query.FieldNames:
+			conditions.Match[v1alpha2.Name] = string(value)
 			break
 		case query.FieldCreationTimeStamp:
 			conditions.Match[v1alpha2.CreateTime] = string(value)

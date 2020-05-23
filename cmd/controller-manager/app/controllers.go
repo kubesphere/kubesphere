@@ -20,7 +20,9 @@ package app
 import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
+	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
@@ -117,10 +119,12 @@ func AddControllers(
 		kubernetesInformer.Apps().V1().ReplicaSets(),
 		kubernetesInformer.Apps().V1().StatefulSets())
 
-	userController := user.NewController(
-		client.Kubernetes(),
-		client.KubeSphere(),
+	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
 		kubesphereInformer.Iam().V1alpha2().Users())
+
+	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer, client.Config())
+
+	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(), kubernetesInformer)
 
 	clusterController := cluster.NewClusterController(
 		client.Kubernetes(),
@@ -140,19 +144,21 @@ func AddControllers(
 		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":   vsController,
-		"destinationrule-controller":  drController,
-		"application-controller":      apController,
-		"job-controller":              jobController,
-		"s2ibinary-controller":        s2iBinaryController,
-		"s2irun-controller":           s2iRunController,
-		"volumeexpansion-controller":  volumeExpansionController,
-		"devopsprojects-controller":   devopsProjectController,
-		"pipeline-controller":         devopsPipelineController,
-		"devopscredential-controller": devopsCredentialController,
-		"user-controller":             userController,
-		"cluster-controller":          clusterController,
-		"nsnp-controller":             nsnpController,
+		"virtualservice-controller":     vsController,
+		"destinationrule-controller":    drController,
+		"application-controller":        apController,
+		"job-controller":                jobController,
+		"s2ibinary-controller":          s2iBinaryController,
+		"s2irun-controller":             s2iRunController,
+		"volumeexpansion-controller":    volumeExpansionController,
+		"devopsprojects-controller":     devopsProjectController,
+		"pipeline-controller":           devopsPipelineController,
+		"devopscredential-controller":   devopsCredentialController,
+		"user-controller":               userController,
+		"cluster-controller":            clusterController,
+		"nsnp-controller":               nsnpController,
+		"csr-controller":                csrController,
+		"clusterrolebinding-controller": clusterRoleBindingController,
 	}
 
 	for name, ctrl := range controllers {

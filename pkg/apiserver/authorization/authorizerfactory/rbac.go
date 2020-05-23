@@ -20,10 +20,13 @@ package authorizerfactory
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/open-policy-agent/opa/rego"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 
@@ -33,6 +36,11 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
 	rbacv1helpers "kubesphere.io/kubesphere/pkg/apis/rbac/v1"
+)
+
+const (
+	defaultRegoQuery    = "data.authz.allow"
+	defaultRegoFileName = "authz.rego"
 )
 
 type RBACAuthorizer struct {
@@ -48,7 +56,12 @@ type authorizingVisitor struct {
 	errors  []error
 }
 
-func (v *authorizingVisitor) visit(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool {
+func (v *authorizingVisitor) visit(source fmt.Stringer, regoPolicy string, rule *rbacv1.PolicyRule, err error) bool {
+	if regoPolicy != "" && regoPolicyAllows(v.requestAttributes, regoPolicy) {
+		v.allowed = true
+		v.reason = fmt.Sprintf("RBAC: allowed by %s", source.String())
+		return false
+	}
 	if rule != nil && ruleAllows(v.requestAttributes, rule) {
 		v.allowed = true
 		v.reason = fmt.Sprintf("RBAC: allowed by %s", source.String())
@@ -65,7 +78,7 @@ type ruleAccumulator struct {
 	errors []error
 }
 
-func (r *ruleAccumulator) visit(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool {
+func (r *ruleAccumulator) visit(source fmt.Stringer, _ string, rule *rbacv1.PolicyRule, err error) bool {
 	if rule != nil {
 		r.rules = append(r.rules, *rule)
 	}
@@ -155,15 +168,40 @@ func ruleAllows(requestAttributes authorizer.Attributes, rule *rbacv1.PolicyRule
 		rbacv1helpers.NonResourceURLMatches(rule, requestAttributes.GetPath())
 }
 
+func regoPolicyAllows(requestAttributes authorizer.Attributes, regoPolicy string) bool {
+	// Call the rego.New function to create an object that can be prepared or evaluated
+	//  After constructing a new rego.Rego object you can call PrepareForEval() to obtain an executable query
+	query, err := rego.New(rego.Query(defaultRegoQuery), rego.Module(defaultRegoFileName, regoPolicy)).PrepareForEval(context.Background())
+
+	if err != nil {
+		klog.Warningf("syntax error:%s, content: %s", err, regoPolicy)
+		return false
+	}
+
+	// The policy decision is contained in the results returned by the Eval() call. You can inspect the decision and handle it accordingly.
+	results, err := query.Eval(context.Background(), rego.EvalInput(requestAttributes))
+
+	if err != nil {
+		klog.Warningf("syntax error:%s, content: %s", err, regoPolicy)
+		return false
+	}
+
+	if len(results) > 0 && results[0].Expressions[0].Value == true {
+		return true
+	}
+
+	return false
+}
+
 func (r *RBACAuthorizer) rulesFor(requestAttributes authorizer.Attributes) ([]rbacv1.PolicyRule, error) {
 	visitor := &ruleAccumulator{}
 	r.visitRulesFor(requestAttributes, visitor.visit)
 	return visitor.rules, utilerrors.NewAggregate(visitor.errors)
 }
 
-func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) {
+func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, visitor func(source fmt.Stringer, regoPolicy string, rule *rbacv1.PolicyRule, err error) bool) {
 	if globalRoleBindings, err := r.am.ListGlobalRoleBindings(""); err != nil {
-		if !visitor(nil, nil, err) {
+		if !visitor(nil, "", nil, err) {
 			return
 		}
 	} else {
@@ -173,26 +211,27 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			if !applies {
 				continue
 			}
-			rules, err := r.am.GetRoleReferenceRules(globalRoleBinding.RoleRef, "")
+			regoPolicy, rules, err := r.am.GetRoleReferenceRules(globalRoleBinding.RoleRef, "")
 			if err != nil {
-				if !visitor(nil, nil, err) {
-					return
-				}
+				visitor(nil, "", nil, err)
 				continue
 			}
 			sourceDescriber.binding = globalRoleBinding
 			sourceDescriber.subject = &globalRoleBinding.Subjects[subjectIndex]
+			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+				return
+			}
 			for i := range rules {
-				if !visitor(sourceDescriber, &rules[i], nil) {
+				if !visitor(sourceDescriber, "", &rules[i], nil) {
 					return
 				}
 			}
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == iamv1alpha2.WorkspaceScope {
+	if requestAttributes.GetResourceScope() == request.WorkspaceScope {
 		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", requestAttributes.GetWorkspace()); err != nil {
-			if !visitor(nil, nil, err) {
+			if !visitor(nil, "", nil, err) {
 				return
 			}
 		} else {
@@ -202,17 +241,18 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				if !applies {
 					continue
 				}
-				rules, err := r.am.GetRoleReferenceRules(workspaceRoleBinding.RoleRef, "")
+				regoPolicy, rules, err := r.am.GetRoleReferenceRules(workspaceRoleBinding.RoleRef, "")
 				if err != nil {
-					if !visitor(nil, nil, err) {
-						return
-					}
+					visitor(nil, "", nil, err)
 					continue
 				}
 				sourceDescriber.binding = workspaceRoleBinding
 				sourceDescriber.subject = &workspaceRoleBinding.Subjects[subjectIndex]
+				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+					return
+				}
 				for i := range rules {
-					if !visitor(sourceDescriber, &rules[i], nil) {
+					if !visitor(sourceDescriber, "", &rules[i], nil) {
 						return
 					}
 				}
@@ -220,9 +260,9 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == iamv1alpha2.NamespaceScope {
+	if requestAttributes.GetResourceScope() == request.NamespaceScope {
 		if roleBindings, err := r.am.ListRoleBindings("", requestAttributes.GetNamespace()); err != nil {
-			if !visitor(nil, nil, err) {
+			if !visitor(nil, "", nil, err) {
 				return
 			}
 		} else {
@@ -232,17 +272,18 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				if !applies {
 					continue
 				}
-				rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, requestAttributes.GetNamespace())
+				regoPolicy, rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, requestAttributes.GetNamespace())
 				if err != nil {
-					if !visitor(nil, nil, err) {
-						return
-					}
+					visitor(nil, "", nil, err)
 					continue
 				}
 				sourceDescriber.binding = roleBinding
 				sourceDescriber.subject = &roleBinding.Subjects[subjectIndex]
+				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+					return
+				}
 				for i := range rules {
-					if !visitor(sourceDescriber, &rules[i], nil) {
+					if !visitor(sourceDescriber, "", &rules[i], nil) {
 						return
 					}
 				}
@@ -251,7 +292,7 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 	}
 
 	if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
-		if !visitor(nil, nil, err) {
+		if !visitor(nil, "", nil, err) {
 			return
 		}
 	} else {
@@ -261,17 +302,18 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			if !applies {
 				continue
 			}
-			rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
+			regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
 			if err != nil {
-				if !visitor(nil, nil, err) {
-					return
-				}
+				visitor(nil, "", nil, err)
 				continue
 			}
 			sourceDescriber.binding = clusterRoleBinding
 			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
+			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+				return
+			}
 			for i := range rules {
-				if !visitor(sourceDescriber, &rules[i], nil) {
+				if !visitor(sourceDescriber, "", &rules[i], nil) {
 					return
 				}
 			}

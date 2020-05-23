@@ -21,9 +21,12 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 )
 
 func Install(scheme *k8sruntime.Scheme) {
 	urlruntime.Must(tenantv1alpha1.AddToScheme(scheme))
+	urlruntime.Must(tenantv1alpha2.AddToScheme(scheme))
 	urlruntime.Must(scheme.SetVersionPriority(tenantv1alpha1.SchemeGroupVersion))
+	urlruntime.Must(scheme.SetVersionPriority(tenantv1alpha2.SchemeGroupVersion))
 }

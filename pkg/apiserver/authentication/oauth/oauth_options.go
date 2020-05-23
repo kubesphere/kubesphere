@@ -52,7 +52,7 @@ var (
 )
 
 type Options struct {
-	// LDAPPasswordIdentityProvider provider is used by default.
+	// Register identity providers.
 	IdentityProviders []IdentityProviderOptions `json:"identityProviders,omitempty" yaml:"identityProviders,omitempty"`
 
 	// Register additional OAuth clients.
@@ -89,15 +89,12 @@ type IdentityProviderOptions struct {
 	//  - mixed:  A user entity can be mapped with multiple identifyProvider.
 	MappingMethod MappingMethod `json:"mappingMethod" yaml:"mappingMethod"`
 
-	// When true, unauthenticated token requests from web clients (like the web console)
-	// are redirected to a login page (with WWW-Authenticate challenge header) backed by this provider.
-	LoginRedirect bool `json:"loginRedirect" yaml:"loginRedirect"`
-
 	// The type of identify provider
+	// OpenIDIdentityProvider LDAPIdentityProvider GitHubIdentityProvider
 	Type string `json:"type" yaml:"type"`
 
 	// The options of identify provider
-	Provider *DynamicOptions `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Provider *DynamicOptions `json:"provider,omitempty" yaml:"provider"`
 }
 
 type Token struct {

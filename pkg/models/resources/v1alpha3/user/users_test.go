@@ -90,5 +90,5 @@ func prepare() v1alpha3.Interface {
 	for _, user := range users {
 		informer.Iam().V1alpha2().Users().Informer().GetIndexer().Add(user)
 	}
-	return New(informer)
+	return New(informer, nil)
 }

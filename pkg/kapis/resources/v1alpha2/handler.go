@@ -38,18 +38,18 @@ type resourceHandler struct {
 	kubectlOperator     kubectl.Interface
 }
 
-func newResourceHandler(client kubernetes.Interface, factory informers.InformerFactory) *resourceHandler {
+func newResourceHandler(k8sClient kubernetes.Interface, factory informers.InformerFactory, masterURL string) *resourceHandler {
 
 	return &resourceHandler{
 		resourcesGetter:     resource.NewResourceGetter(factory),
 		componentsGetter:    components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()),
 		resourceQuotaGetter: quotas.NewResourceQuotaGetter(factory.KubernetesSharedInformerFactory()),
 		revisionGetter:      revisions.NewRevisionGetter(factory.KubernetesSharedInformerFactory()),
-		routerOperator:      routers.NewRouterOperator(client, factory.KubernetesSharedInformerFactory()),
+		routerOperator:      routers.NewRouterOperator(k8sClient, factory.KubernetesSharedInformerFactory()),
 		gitVerifier:         git.NewGitVerifier(factory.KubernetesSharedInformerFactory()),
 		registryGetter:      registries.NewRegistryGetter(factory.KubernetesSharedInformerFactory()),
-		kubeconfigOperator:  kubeconfig.NewKubeconfigOperator(),
-		kubectlOperator:     kubectl.NewKubectlOperator(client, factory.KubernetesSharedInformerFactory()),
+		kubeconfigOperator:  kubeconfig.NewOperator(k8sClient, nil, masterURL),
+		kubectlOperator:     kubectl.NewOperator(k8sClient, factory.KubernetesSharedInformerFactory()),
 	}
 }
 

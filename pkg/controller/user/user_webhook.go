@@ -20,25 +20,15 @@ package user
 
 import (
 	"context"
-	"encoding/json"
-	"golang.org/x/crypto/bcrypt"
+	"fmt"
 	"kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"net/http"
+	"net/mail"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"strconv"
-)
-
-const (
-	encryptedAnnotation = "iam.kubesphere.io/password-encrypted"
 )
 
 type EmailValidator struct {
-	Client  client.Client
-	decoder *admission.Decoder
-}
-
-type PasswordCipher struct {
 	Client  client.Client
 	decoder *admission.Decoder
 }
@@ -57,11 +47,14 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
+	if _, err := mail.ParseAddress(user.Spec.Email); err != nil {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("invalid email address:%s", user.Spec.Email))
+	}
 
 	alreadyExist := emailAlreadyExist(allUsers, user)
 
 	if alreadyExist {
-		return admission.Denied("user email already exists")
+		return admission.Errored(http.StatusConflict, fmt.Errorf("user email: %s already exists", user.Spec.Email))
 	}
 
 	return admission.Allowed("")
@@ -74,43 +67,6 @@ func emailAlreadyExist(users v1alpha2.UserList, user *v1alpha2.User) bool {
 		}
 	}
 	return false
-}
-
-func (a *PasswordCipher) Handle(ctx context.Context, req admission.Request) admission.Response {
-	user := &v1alpha2.User{}
-	err := a.decoder.Decode(req, user)
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
-	}
-
-	encrypted, err := strconv.ParseBool(user.Annotations[encryptedAnnotation])
-
-	if err != nil || !encrypted {
-		password, err := hashPassword(user.Spec.EncryptedPassword)
-		if err != nil {
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
-		user.Spec.EncryptedPassword = password
-		user.Annotations[encryptedAnnotation] = "true"
-	}
-
-	marshaledUser, err := json.Marshal(user)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledUser)
-}
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	return string(bytes), err
-}
-
-// InjectDecoder injects the decoder.
-func (a *PasswordCipher) InjectDecoder(d *admission.Decoder) error {
-	a.decoder = d
-	return nil
 }
 
 // InjectDecoder injects the decoder.

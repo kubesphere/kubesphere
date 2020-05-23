@@ -21,6 +21,7 @@ package options
 import (
 	"fmt"
 	"github.com/spf13/pflag"
+	_ "kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider/github"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	"time"
 )
@@ -55,7 +56,6 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 
 func (options *AuthenticationOptions) Validate() []error {
 	var errs []error
-
 	if len(options.JwtSecret) == 0 {
 		errs = append(errs, fmt.Errorf("jwt secret is empty"))
 	}

@@ -40,14 +40,14 @@ func (d *workspaceGetter) Get(_, name string) (runtime.Object, error) {
 
 func (d *workspaceGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
 
-	all, err := d.sharedInformers.Tenant().V1alpha1().Workspaces().Lister().List(query.Selector())
+	workspaces, err := d.sharedInformers.Tenant().V1alpha1().Workspaces().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, deploy := range all {
-		result = append(result, deploy)
+	for _, workspace := range workspaces {
+		result = append(result, workspace)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
@@ -55,17 +55,17 @@ func (d *workspaceGetter) List(_ string, query *query.Query) (*api.ListResult, e
 
 func (d *workspaceGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
-	leftRole, ok := left.(*tenantv1alpha1.Workspace)
+	leftWorkspace, ok := left.(*tenantv1alpha1.Workspace)
 	if !ok {
 		return false
 	}
 
-	rightRole, ok := right.(*tenantv1alpha1.Workspace)
+	rightWorkspace, ok := right.(*tenantv1alpha1.Workspace)
 	if !ok {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaCompare(leftRole.ObjectMeta, rightRole.ObjectMeta, field)
+	return v1alpha3.DefaultObjectMetaCompare(leftWorkspace.ObjectMeta, rightWorkspace.ObjectMeta, field)
 }
 
 func (d *workspaceGetter) filter(object runtime.Object, filter query.Filter) bool {

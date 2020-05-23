@@ -5,6 +5,7 @@ type Value string
 
 const (
 	FieldName                = "name"
+	FieldNames               = "names"
 	FieldUID                 = "uid"
 	FieldCreationTimeStamp   = "creationTimestamp"
 	FieldCreateTime          = "createTime"

@@ -73,7 +73,7 @@ type Interface interface {
 func ObjectMetaExactlyMath(key, value string, item metav1.ObjectMeta) bool {
 	switch key {
 	case Name:
-		names := strings.Split(value, "|")
+		names := strings.Split(value, ",")
 		if !sliceutil.HasString(names, item.Name) {
 			return false
 		}

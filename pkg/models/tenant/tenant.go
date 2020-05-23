@@ -21,16 +21,21 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
-	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/events"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
@@ -45,25 +50,34 @@ import (
 type Interface interface {
 	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
+	CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
+	CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	DeleteWorkspace(workspace string) error
+	UpdateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	DescribeWorkspace(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error)
+	ListWorkspaceClusters(workspace string) (*api.ListResult, error)
+
 	Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error)
 }
 
 type tenantOperator struct {
 	am             am.AccessManagementInterface
 	authorizer     authorizer.Authorizer
+	k8sclient      kubernetes.Interface
+	ksclient       kubesphere.Interface
 	resourceGetter *resourcesv1alpha3.ResourceGetter
 	events         events.Interface
 }
 
-func New(informers informers.InformerFactory, evtsClient eventsclient.Client) Interface {
-	amOperator := am.NewAMOperator(informers)
-	rbacAuthorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
-	opaAuthorizer := authorizerfactory.NewOPAAuthorizer(amOperator)
-	authorizers := unionauthorizer.New(opaAuthorizer, rbacAuthorizer)
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client) Interface {
+	amOperator := am.NewReadOnlyOperator(informers)
+	authorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
 	return &tenantOperator{
 		am:             amOperator,
-		authorizer:     authorizers,
+		authorizer:     authorizer,
 		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
+		k8sclient:      k8sclient,
+		ksclient:       ksclient,
 		events:         events.NewEventsOperator(evtsClient),
 	}
 }
@@ -88,7 +102,7 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 
 	if decision == authorizer.DecisionAllow {
 
-		result, err := t.resourceGetter.List(tenantv1alpha1.ResourcePluralWorkspace, "", queryParam)
+		result, err := t.resourceGetter.List(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", queryParam)
 
 		if err != nil {
 			klog.Error(err)
@@ -110,10 +124,10 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	for _, roleBinding := range workspaceRoleBindings {
 
 		workspaceName := roleBinding.Labels[tenantv1alpha1.WorkspaceLabel]
-		workspace, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspaceName)
+		workspace, err := t.resourceGetter.Get(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", workspaceName)
 
 		if errors.IsNotFound(err) {
-			klog.Warningf("workspace role binding: %+v found but workspace not exist", roleBinding.ObjectMeta)
+			klog.Warningf("workspace role binding: %+v found but workspace not exist", roleBinding.ObjectMeta.String())
 			continue
 		}
 
@@ -207,6 +221,65 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	})
 
 	return result, nil
+}
+
+func (t *tenantOperator) CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
+
+	_, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspace)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if namespace.Annotations == nil {
+		namespace.Annotations = make(map[string]string, 0)
+	}
+
+	namespace.Annotations[tenantv1alpha1.WorkspaceLabel] = workspace
+
+	return t.k8sclient.CoreV1().Namespaces().Create(namespace)
+}
+
+func (t *tenantOperator) CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Create(workspace)
+}
+
+func (t *tenantOperator) UpdateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Update(workspace)
+}
+
+func (t *tenantOperator) DescribeWorkspace(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	obj, err := t.resourceGetter.Get(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", workspace)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return obj.(*tenantv1alpha2.WorkspaceTemplate), nil
+}
+func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListResult, error) {
+	workspace, err := t.DescribeWorkspace(workspaceName)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	clusters := make([]interface{}, 0)
+	for _, cluster := range workspace.Spec.Clusters {
+		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster)
+		if err != nil {
+			klog.Error(err)
+			if errors.IsNotFound(err) {
+				continue
+			}
+			return nil, err
+		}
+		cluster := obj.(*clusterv1alpha1.Cluster)
+		clusters = append(clusters, cluster)
+	}
+	return &api.ListResult{Items: clusters, TotalItems: len(clusters)}, nil
+}
+
+func (t *tenantOperator) DeleteWorkspace(workspace string) error {
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(workspace, metav1.NewDeleteOptions(0))
 }
 
 // listIntersectedNamespaces lists the namespaces which meet all the following conditions at the same time

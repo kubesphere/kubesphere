@@ -20,14 +20,18 @@ package v1alpha2
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
+	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models"
+	"kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"net/http"
 )
@@ -38,20 +42,55 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
-func AddToContainer(c *restful.Container, factory informers.InformerFactory, evtsClient events.Client) error {
+func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
-	handler := newTenantHandler(factory, evtsClient)
+	handler := newTenantHandler(factory, k8sclient, ksclient, evtsClient)
 
+	ws.Route(ws.POST("/workspaces").
+		To(handler.CreateWorkspace).
+		Reads(tenantv1alpha2.WorkspaceTemplate{}).
+		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
+		Doc("Create workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.DELETE("/workspaces/{workspace}").
+		To(handler.DeleteWorkspace).
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Doc("Delete workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.PUT("/workspaces/{workspace}").
+		To(handler.UpdateWorkspace).
+		Reads(tenantv1alpha2.WorkspaceTemplate{}).
+		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
+		Doc("Update workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Doc("List all workspaces that belongs to the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}").
+		To(handler.DescribeWorkspace).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Doc("Describe workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}/clusters").
+		To(handler.ListWorkspaceClusters).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Doc("List clusters authorized to the specified workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
 		To(handler.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces of the specified workspace for the current user").
-		Returns(http.StatusOK, api.StatusOK, []v1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
+		To(handler.CreateNamespace).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("List the namespaces of the specified workspace for the current user").
+		Reads(corev1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	ws.Route(ws.GET("/events").
@@ -80,6 +119,5 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, evt
 		Returns(http.StatusOK, api.StatusOK, eventsv1alpha1.APIResponse{}))
 
 	c.Add(ws)
-
 	return nil
 }

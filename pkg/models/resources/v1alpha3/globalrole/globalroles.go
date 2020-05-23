@@ -18,7 +18,10 @@
 package globalrole
 
 import (
+	"encoding/json"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -40,14 +43,23 @@ func (d *globalrolesGetter) Get(_, name string) (runtime.Object, error) {
 
 func (d *globalrolesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
 
-	all, err := d.sharedInformers.Iam().V1alpha2().GlobalRoles().Lister().List(query.Selector())
+	var roles []*iamv1alpha2.GlobalRole
+	var err error
+
+	if aggregateTo := query.Filters[iamv1alpha2.AggregateTo]; aggregateTo != "" {
+		roles, err = d.fetchAggregationRoles(string(aggregateTo))
+		delete(query.Filters, iamv1alpha2.AggregateTo)
+	} else {
+		roles, err = d.sharedInformers.Iam().V1alpha2().GlobalRoles().Lister().List(query.Selector())
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, deploy := range all {
-		result = append(result, deploy)
+	for _, role := range roles {
+		result = append(result, role)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
@@ -76,4 +88,39 @@ func (d *globalrolesGetter) filter(object runtime.Object, filter query.Filter) b
 	}
 
 	return v1alpha3.DefaultObjectMetaFilter(role.ObjectMeta, filter)
+}
+
+func (d *globalrolesGetter) fetchAggregationRoles(name string) ([]*iamv1alpha2.GlobalRole, error) {
+	roles := make([]*iamv1alpha2.GlobalRole, 0)
+
+	obj, err := d.Get("", name)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return roles, nil
+		}
+		return nil, err
+	}
+
+	if annotation := obj.(*iamv1alpha2.GlobalRole).Annotations[iamv1alpha2.AggregationRolesAnnotation]; annotation != "" {
+		var roleNames []string
+		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
+
+			for _, roleName := range roleNames {
+				role, err := d.Get("", roleName)
+
+				if err != nil {
+					if errors.IsNotFound(err) {
+						klog.Warningf("invalid aggregation role found: %s, %s", name, roleName)
+						continue
+					}
+					return nil, err
+				}
+
+				roles = append(roles, role.(*iamv1alpha2.GlobalRole))
+			}
+		}
+	}
+
+	return roles, nil
 }

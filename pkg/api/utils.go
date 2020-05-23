@@ -21,3 +21,7 @@ func HandleNotFound(response *restful.Response, req *restful.Request, err error)
 func HandleForbidden(response *restful.Response, req *restful.Request, err error) {
 	response.WriteError(http.StatusForbidden, err)
 }
+
+func HandleConflict(response *restful.Response, req *restful.Request, err error) {
+	response.WriteError(http.StatusConflict, err)
+}

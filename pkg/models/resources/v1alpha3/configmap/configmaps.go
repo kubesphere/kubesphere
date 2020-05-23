@@ -39,14 +39,14 @@ func (d *configmapsGetter) Get(namespace, name string) (runtime.Object, error) {
 }
 
 func (d *configmapsGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	all, err := d.informer.Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(query.Selector())
+	configmaps, err := d.informer.Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
 
 	var result []runtime.Object
-	for _, app := range all {
-		result = append(result, app)
+	for _, configmap := range configmaps {
+		result = append(result, configmap)
 	}
 
 	return v1alpha3.DefaultList(result, query, d.compare, d.filter), nil
@@ -54,17 +54,17 @@ func (d *configmapsGetter) List(namespace string, query *query.Query) (*api.List
 
 func (d *configmapsGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
 
-	leftConfigMap, ok := left.(*corev1.ConfigMap)
+	leftCM, ok := left.(*corev1.ConfigMap)
 	if !ok {
 		return false
 	}
 
-	rightConfigMap, ok := right.(*corev1.ConfigMap)
+	rightCM, ok := right.(*corev1.ConfigMap)
 	if !ok {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaCompare(leftConfigMap.ObjectMeta, rightConfigMap.ObjectMeta, field)
+	return v1alpha3.DefaultObjectMetaCompare(leftCM.ObjectMeta, rightCM.ObjectMeta, field)
 }
 
 func (d *configmapsGetter) filter(object runtime.Object, filter query.Filter) bool {

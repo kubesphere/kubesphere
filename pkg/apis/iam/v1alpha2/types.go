@@ -28,6 +28,12 @@ const (
 	ResourceKindGlobalRoleBinding         = "GlobalRoleBinding"
 	ResourcesSingularGlobalRoleBinding    = "globalrolebinding"
 	ResourcesPluralGlobalRoleBinding      = "globalrolebindings"
+	ResourceKindClusterRoleBinding        = "ClusterRoleBinding"
+	ResourcesSingularClusterRoleBinding   = "clusterrolebinding"
+	ResourcesPluralClusterRoleBinding     = "clusterrolebindings"
+	ResourceKindRoleBinding               = "RoleBinding"
+	ResourcesSingularRoleBinding          = "rolebinding"
+	ResourcesPluralRoleBinding            = "rolebindings"
 	ResourceKindGlobalRole                = "GlobalRole"
 	ResourcesSingularGlobalRole           = "globalrole"
 	ResourcesPluralGlobalRole             = "globalroles"
@@ -44,10 +50,23 @@ const (
 	ResourcesSingularRole                 = "role"
 	ResourcesPluralRole                   = "roles"
 	RegoOverrideAnnotation                = "iam.kubesphere.io/rego-override"
-	GlobalScope                           = "Global"
-	ClusterScope                          = "Cluster"
-	WorkspaceScope                        = "Workspace"
-	NamespaceScope                        = "Namespace"
+	AggregationRolesAnnotation            = "iam.kubesphere.io/aggregation-roles"
+	GlobalRoleAnnotation                  = "iam.kubesphere.io/globalrole"
+	WorkspaceRoleAnnotation               = "iam.kubesphere.io/workspacerole"
+	ClusterRoleAnnotation                 = "iam.kubesphere.io/clusterrole"
+	RoleAnnotation                        = "iam.kubesphere.io/role"
+	RoleTemplateLabel                     = "iam.kubesphere.io/role-template"
+	UserReferenceLabel                    = "iam.kubesphere.io/user-ref"
+	IdentifyProviderLabel                 = "iam.kubesphere.io/identify-provider"
+	PasswordEncryptedAnnotation           = "iam.kubesphere.io/password-encrypted"
+	FieldEmail                            = "email"
+	AggregateTo                           = "aggregateTo"
+	ScopeWorkspace                        = "workspace"
+	ScopeCluster                          = "cluster"
+	ScopeNamespace                        = "namespace"
+	LocalCluster                          = "local"
+	GlobalAdmin                           = "global-admin"
+	ClusterAdmin                          = "cluster-admin"
 )
 
 // +genclient
@@ -74,7 +93,7 @@ type FinalizerName string
 
 // UserSpec defines the desired state of User
 type UserSpec struct {
-	// Unique email address.
+	// Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
 	Email string `json:"email"`
 	// The preferred written or spoken language for the user.
 	// +optional
@@ -87,10 +106,7 @@ type UserSpec struct {
 	// +optional
 	Groups []string `json:"groups,omitempty"`
 	// password will be encrypted by mutating admission webhook
-	EncryptedPassword string `json:"password"`
-	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage.
-	// +optional
-	Finalizers []FinalizerName `json:"finalizers,omitempty"`
+	EncryptedPassword string `json:"password,omitempty"`
 }
 
 type UserState string
@@ -108,16 +124,13 @@ type UserStatus struct {
 	// The user status
 	// +optional
 	State UserState `json:"state,omitempty"`
-
-	// Represents the latest available observations of a namespace's current state.
+	// Represents the latest available observations of a user's current state.
 	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	Conditions []UserCondition `json:"conditions,omitempty"`
 }
 
 type UserCondition struct {
-	// Type of namespace controller condition.
+	// Type of user controller condition.
 	Type UserConditionType `json:"type"`
 	// Status of the condition, one of True, False, Unknown.
 	Status ConditionStatus `json:"status"`
@@ -170,21 +183,9 @@ type GlobalRole struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Rules holds all the PolicyRules for this ClusterRole
-	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
-
-	// AggregationRule is an optional field that describes how to build the Rules for this GlobalRole.
-	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
-	// stomped by the controller.
-	AggregationRule *AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
-}
-
-// AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole
-type AggregationRule struct {
-	// ClusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules.
-	// If any of the selectors match, then the ClusterRole's permissions will be added
+	// Rules holds all the PolicyRules for this GlobalRole
 	// +optional
-	RoleSelectors []metav1.LabelSelector `json:"roleSelectors,omitempty" protobuf:"bytes,1,rep,name=roleSelectors"`
+	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -212,7 +213,7 @@ type GlobalRoleBinding struct {
 	// +optional
 	Subjects []rbacv1.Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
 
-	// RoleRef can only reference a ClusterRole in the global namespace.
+	// RoleRef can only reference a GlobalRole.
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
 	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
@@ -233,7 +234,7 @@ type GlobalRoleBindingList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // +kubebuilder:printcolumn:name="Workspace",type="string",JSONPath=".metadata.labels.kubesphere\\.io/workspace"
-// +kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.labels.kubesphere\\.io/alias-name"
+// +kubebuilder:printcolumn:name="Alias",type="string",JSONPath=".metadata.annotations.kubesphere\\.io/alias-name"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type WorkspaceRole struct {
 	metav1.TypeMeta `json:",inline"`
@@ -241,12 +242,9 @@ type WorkspaceRole struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Rules holds all the PolicyRules for this ClusterRole
+	// Rules holds all the PolicyRules for this WorkspaceRole
+	// +optional
 	Rules []rbacv1.PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
-	// AggregationRule is an optional field that describes how to build the Rules for this WorkspaceRole.
-	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
-	// stomped by the controller.
-	AggregationRule *AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -273,7 +271,7 @@ type WorkspaceRoleBinding struct {
 	// +optional
 	Subjects []rbacv1.Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
 
-	// RoleRef can only reference a ClusterRole in the global namespace.
+	// RoleRef can only reference a WorkspaceRole.
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
 	RoleRef rbacv1.RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
@@ -285,9 +283,4 @@ type WorkspaceRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []WorkspaceRoleBinding `json:"items"`
-}
-
-type UserDetail struct {
-	*User
-	GlobalRole *GlobalRole `json:"globalRole"`
 }
