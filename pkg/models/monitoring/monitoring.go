@@ -142,7 +142,7 @@ func (mo monitoringOperator) GetKubeSphereStats() Metrics {
 		})
 	}
 
-	wkList, err := mo.ks.Tenant().V1alpha1().Workspaces().Lister().List(labels.Everything())
+	wkList, err := mo.ks.Tenant().V1alpha2().WorkspaceTemplates().Lister().List(labels.Everything())
 	if err != nil {
 		res.Results = append(res.Results, monitoring.Metric{
 			MetricName: KubeSphereWorkspaceCount,
@@ -182,7 +182,13 @@ func (mo monitoringOperator) GetKubeSphereStats() Metrics {
 		})
 	}
 
-	tmpls, err := mo.op.ListApps(&params.Conditions{}, "", false, 0, 0)
+	cond := &params.Conditions{
+		Match: map[string]string{
+			openpitrix.Status: openpitrix.StatusActive,
+			openpitrix.RepoId: openpitrix.BuiltinRepoId,
+		},
+	}
+	tmpls, err := mo.op.ListApps(cond, "", false, 0, 0)
 	if err != nil {
 		res.Results = append(res.Results, monitoring.Metric{
 			MetricName: KubeSphereAppTmplCount,
