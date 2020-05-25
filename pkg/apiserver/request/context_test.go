@@ -23,6 +23,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
+// Following code copied from k8s.io/apiserver/pkg/endpoints/request to avoid import collision
+
 // TestNamespaceContext validates that a namespace can be get/set on a context object
 func TestNamespaceContext(t *testing.T) {
 	ctx := NewDefaultContext()
