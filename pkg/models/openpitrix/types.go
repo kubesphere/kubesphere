@@ -840,6 +840,7 @@ const (
 	CreateTime      = "create_time"
 	StatusTime      = "status_time"
 	RuntimeId       = "runtime_id"
+	Zone            = "zone"
 	VersionId       = "version_id"
 	RepoId          = "repo_id"
 	CategoryId      = "category_id"

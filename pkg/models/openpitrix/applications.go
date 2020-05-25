@@ -16,7 +16,7 @@ limitations under the License.
 package openpitrix
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,18 +27,18 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
+	"openpitrix.io/openpitrix/pkg/util/pbutil"
 	"strings"
 )
 
 type ApplicationInterface interface {
 	ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
-	DescribeApplication(namespace, clusterId string) (*Application, error)
-	CreateApplication(namespace string, request CreateClusterRequest) error
+	DescribeApplication(namespace, clusterId, runtimeId string) (*Application, error)
+	CreateApplication(runtimeId, namespace string, request CreateClusterRequest) error
 	ModifyApplication(request ModifyClusterAttributesRequest) error
 	DeleteApplication(id string) error
 }
@@ -66,6 +66,14 @@ type workLoads struct {
 	Deployments  []appsv1.Deployment  `json:"deployments,omitempty" description:"deployment list"`
 	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty" description:"statefulset list"`
 	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
+}
+
+type resourceInfo struct {
+	Deployments  []appsv1.Deployment  `json:"deployments,omitempty" description:"deployment list"`
+	Statefulsets []appsv1.StatefulSet `json:"statefulsets,omitempty" description:"statefulset list"`
+	Daemonsets   []appsv1.DaemonSet   `json:"daemonsets,omitempty" description:"daemonset list"`
+	Services     []v1.Service         `json:"services,omitempty" description:"application services"`
+	Ingresses    []v1beta1.Ingress    `json:"ingresses,omitempty" description:"application ingresses"`
 }
 
 func (c *applicationOperator) ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error) {
@@ -133,9 +141,15 @@ func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Applica
 	return &app, nil
 }
 
-func (c *applicationOperator) DescribeApplication(namespace string, clusterId string) (*Application, error) {
-
-	clusters, err := c.opClient.DescribeClusters(openpitrix.SystemContext(), &pb.DescribeClustersRequest{ClusterId: []string{clusterId}, Limit: 1})
+func (c *applicationOperator) DescribeApplication(namespace string, clusterId string, runtimeId string) (*Application, error) {
+	describeClusterRequest := &pb.DescribeClustersRequest{
+		ClusterId:  []string{clusterId},
+		RuntimeId:  []string{runtimeId},
+		Zone:       []string{namespace},
+		WithDetail: pbutil.ToProtoBool(true),
+		Limit:      1,
+	}
+	clusters, err := c.opClient.DescribeClusters(openpitrix.SystemContext(), describeClusterRequest)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -156,16 +170,26 @@ func (c *applicationOperator) DescribeApplication(namespace string, clusterId st
 		return nil, err
 	}
 
-	workloads, err := c.getWorkLoads(namespace, cluster.ClusterRoleSet)
-
+	resource := new(resourceInfo)
+	workloads := cluster.AdditionalInfo.GetValue()
+	if workloads == "" {
+		err := status.New(codes.NotFound, "cannot get workload").Err()
+		klog.Errorln(err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(workloads), resource)
 	if err != nil {
 		klog.Errorln(err)
 		return nil, err
 	}
-	app.WorkLoads = workloads
-	workloadLabels := c.getLabels(namespace, app.WorkLoads)
-	app.Services = c.getSvcs(namespace, workloadLabels)
-	app.Ingresses = c.getIng(namespace, app.Services)
+
+	app.WorkLoads = &workLoads{
+		Deployments:  resource.Deployments,
+		Statefulsets: resource.Statefulsets,
+		Daemonsets:   resource.Daemonsets,
+	}
+	app.Services = resource.Services
+	app.Ingresses = resource.Ingresses
 	return app, nil
 }
 
@@ -332,23 +356,12 @@ func (c *applicationOperator) getIng(namespace string, services []v1.Service) []
 	return ings
 }
 
-func (c *applicationOperator) CreateApplication(namespace string, request CreateClusterRequest) error {
-	ns, err := c.informers.Core().V1().Namespaces().Lister().Get(namespace)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	if runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
-		request.RuntimeId = runtimeId
-	} else {
-		return fmt.Errorf("runtime not init: namespace %s", namespace)
-	}
-
-	_, err = c.opClient.CreateCluster(openpitrix.ContextWithUsername(request.Username), &pb.CreateClusterRequest{
+func (c *applicationOperator) CreateApplication(runtimeId, namespace string, request CreateClusterRequest) error {
+	_, err := c.opClient.CreateCluster(openpitrix.ContextWithUsername(request.Username), &pb.CreateClusterRequest{
 		AppId:     &wrappers.StringValue{Value: request.AppId},
 		VersionId: &wrappers.StringValue{Value: request.VersionId},
 		RuntimeId: &wrappers.StringValue{Value: request.RuntimeId},
+		Namespace: &wrappers.StringValue{Value: namespace},
 		Conf:      &wrappers.StringValue{Value: request.Conf},
 	})
 

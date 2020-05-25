@@ -168,6 +168,8 @@ func (g *GrpcServer) unaryServerLogInterceptor() grpc.UnaryServerInterceptor {
 		requestId := ctxutil.GetRequestId(ctx)
 		ctx = ctxutil.SetRequestId(ctx, requestId)
 		ctx = ctxutil.ContextWithSender(ctx, s)
+		locale := ctxutil.GetLocale(ctx)
+		ctx = ctxutil.SetLocale(ctx, locale)
 
 		method := strings.Split(info.FullMethod, "/")
 		action := method[len(method)-1]

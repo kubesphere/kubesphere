@@ -83,7 +83,8 @@ func (r *RuntimeProviderConfig) GetPort() int {
 	if r.Port > 0 {
 		return r.Port
 	} else {
-		return constants.RuntimeProviderManagerPort
+		//todo attention
+		return constants.KubernetesProviderPort
 	}
 }
 

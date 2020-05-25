@@ -4,6 +4,7 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
@@ -11,9 +12,10 @@ import (
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type DescribeVendorVerifyInfosRequest struct {
 	// query key, support these fields(user_id, status)
@@ -1110,6 +1112,29 @@ type IsvManagerServer interface {
 	RejectVendorVerifyInfo(context.Context, *RejectVendorVerifyInfoRequest) (*RejectVendorVerifyInfoResponse, error)
 	// Get vendor verify info
 	GetVendorVerifyInfo(context.Context, *GetVendorVerifyInfoRequest) (*GetVendorVerifyInfoResponse, error)
+}
+
+// UnimplementedIsvManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedIsvManagerServer struct {
+}
+
+func (*UnimplementedIsvManagerServer) SubmitVendorVerifyInfo(ctx context.Context, req *SubmitVendorVerifyInfoRequest) (*SubmitVendorVerifyInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitVendorVerifyInfo not implemented")
+}
+func (*UnimplementedIsvManagerServer) DescribeVendorVerifyInfos(ctx context.Context, req *DescribeVendorVerifyInfosRequest) (*DescribeVendorVerifyInfosResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeVendorVerifyInfos not implemented")
+}
+func (*UnimplementedIsvManagerServer) DescribeAppVendorStatistics(ctx context.Context, req *DescribeVendorVerifyInfosRequest) (*DescribeVendorStatisticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeAppVendorStatistics not implemented")
+}
+func (*UnimplementedIsvManagerServer) PassVendorVerifyInfo(ctx context.Context, req *PassVendorVerifyInfoRequest) (*PassVendorVerifyInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PassVendorVerifyInfo not implemented")
+}
+func (*UnimplementedIsvManagerServer) RejectVendorVerifyInfo(ctx context.Context, req *RejectVendorVerifyInfoRequest) (*RejectVendorVerifyInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RejectVendorVerifyInfo not implemented")
+}
+func (*UnimplementedIsvManagerServer) GetVendorVerifyInfo(ctx context.Context, req *GetVendorVerifyInfoRequest) (*GetVendorVerifyInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVendorVerifyInfo not implemented")
 }
 
 func RegisterIsvManagerServer(s *grpc.Server, srv IsvManagerServer) {

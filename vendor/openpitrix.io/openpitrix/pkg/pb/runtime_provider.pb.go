@@ -4,6 +4,7 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
@@ -11,9 +12,10 @@ import (
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type RegisterRuntimeProviderRequest struct {
 	// required, runtime provider.eg:[qingcloud|aliyun|aws|kubernetes]
@@ -1361,6 +1363,44 @@ type RuntimeProviderManagerServer interface {
 	// runtime
 	ValidateRuntime(context.Context, *ValidateRuntimeRequest) (*ValidateRuntimeResponse, error)
 	DescribeZones(context.Context, *DescribeZonesRequest) (*DescribeZonesResponse, error)
+}
+
+// UnimplementedRuntimeProviderManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedRuntimeProviderManagerServer struct {
+}
+
+func (*UnimplementedRuntimeProviderManagerServer) RegisterRuntimeProvider(ctx context.Context, req *RegisterRuntimeProviderRequest) (*RegisterRuntimeProviderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterRuntimeProvider not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) ParseClusterConf(ctx context.Context, req *ParseClusterConfRequest) (*ParseClusterConfResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParseClusterConf not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) SplitJobIntoTasks(ctx context.Context, req *SplitJobIntoTasksRequest) (*SplitJobIntoTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SplitJobIntoTasks not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) HandleSubtask(ctx context.Context, req *HandleSubtaskRequest) (*HandleSubtaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandleSubtask not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) WaitSubtask(ctx context.Context, req *WaitSubtaskRequest) (*WaitSubtaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WaitSubtask not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) DescribeSubnets(ctx context.Context, req *DescribeSubnetsRequest) (*DescribeSubnetsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeSubnets not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) CheckResource(ctx context.Context, req *CheckResourceRequest) (*CheckResourceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckResource not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) DescribeVpc(ctx context.Context, req *DescribeVpcRequest) (*DescribeVpcResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeVpc not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) DescribeClusterDetails(ctx context.Context, req *DescribeClusterDetailsRequest) (*DescribeClusterDetailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeClusterDetails not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) ValidateRuntime(ctx context.Context, req *ValidateRuntimeRequest) (*ValidateRuntimeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateRuntime not implemented")
+}
+func (*UnimplementedRuntimeProviderManagerServer) DescribeZones(ctx context.Context, req *DescribeZonesRequest) (*DescribeZonesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeZones not implemented")
 }
 
 func RegisterRuntimeProviderManagerServer(s *grpc.Server, srv RuntimeProviderManagerServer) {
