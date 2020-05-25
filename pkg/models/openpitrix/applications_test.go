@@ -101,7 +101,7 @@ func TestApplicationOperator_CreateApplication(t *testing.T) {
 
 		t.Run(test.description, func(t *testing.T) {
 
-			err := applicationOperator.CreateApplication(test.targetNamespace, test.createClusterRequest)
+			err := applicationOperator.CreateApplication(test.createClusterRequest.RuntimeId, test.targetNamespace, test.createClusterRequest)
 
 			if err != nil && err.Error() != test.expected.Error() {
 				t.Error(err)

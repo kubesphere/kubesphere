@@ -230,7 +230,7 @@ replace (
 	github.com/gregjones/httpcache => github.com/gregjones/httpcache v0.0.0-20170728041850-787624de3eb7
 	github.com/grpc-ecosystem/go-grpc-middleware => github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.9.6
+	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.11.3
 	github.com/hashicorp/go-version => github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.3
 	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.0
