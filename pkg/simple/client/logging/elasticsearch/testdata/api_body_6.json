@@ -1,0 +1,10 @@
+{
+  "aggs":{
+    "log_count_over_time":{
+      "date_histogram":{
+        "field":"time",
+        "interval":"15m"
+      }
+    }
+  }
+}

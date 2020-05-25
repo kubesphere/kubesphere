@@ -1,0 +1,21 @@
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "index_not_found_exception",
+        "reason": "no such index",
+        "resource.type": "index_or_alias",
+        "resource.id": "ks-lsdfsdfsdfs",
+        "index_uuid": "_na_",
+        "index": "ks-lsdfsdfsdfs"
+      }
+    ],
+    "type": "index_not_found_exception",
+    "reason": "no such index",
+    "resource.type": "index_or_alias",
+    "resource.id": "ks-lsdfsdfsdfs",
+    "index_uuid": "_na_",
+    "index": "ks-lsdfsdfsdfs"
+  },
+  "status": 404
+}

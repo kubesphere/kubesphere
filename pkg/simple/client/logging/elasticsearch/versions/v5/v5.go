@@ -29,12 +29,17 @@ func New(address string, index string) *Elastic {
 	return &Elastic{client: client, index: index}
 }
 
-func (e *Elastic) Search(body []byte) ([]byte, error) {
-	response, err := e.client.Search(
+func (e *Elastic) Search(body []byte, scroll bool) ([]byte, error) {
+	opts := []func(*esapi.SearchRequest){
 		e.client.Search.WithContext(context.Background()),
 		e.client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
 		e.client.Search.WithBody(bytes.NewBuffer(body)),
-		e.client.Search.WithScroll(time.Minute))
+	}
+	if scroll {
+		opts = append(opts, e.client.Search.WithScroll(time.Minute))
+	}
+
+	response, err := e.client.Search(opts...)
 	if err != nil {
 		return nil, err
 	}

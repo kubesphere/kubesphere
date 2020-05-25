@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"fmt"
+	"github.com/json-iterator/go"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"time"
@@ -13,6 +14,9 @@ const (
 	replicaSetSuffixMaxLength = 11 // max 10 characters + 1 hyphen
 )
 
+// TODO: elastic/go-elasticsearch is working on Query DSL support.
+//  See https://github.com/elastic/go-elasticsearch/issues/42.
+//  We need refactor our query body builder when that is ready.
 type bodyBuilder struct {
 	Body
 }
@@ -22,75 +26,9 @@ func newBodyBuilder() *bodyBuilder {
 }
 
 func (bb *bodyBuilder) bytes() ([]byte, error) {
-	return json.Marshal(bb.Body)
+	return jsoniter.Marshal(bb.Body)
 }
 
-// The mainBody func builds api body for query.
-// TODO: Should use an elegant pakcage for building query body, but `elastic/go-elasticsearch` doesn't provide it currently.
-//
-// Example:
-// GET kapis/logging.kubesphere.io/v1alpha2/cluster?start_time=0&end_time=156576063993&namespaces=kubesphere-system&pod_query=ks-apiserver
-// -----
-//{
-//    "from":0,
-//    "size":10,
-//    "sort":[
-//        {
-//            "time": "desc"
-//        }
-//    ],
-//    "query":{
-//        "bool":{
-//            "filter":[
-//                {
-//                    "bool":{
-//                        "should":[
-//                            {
-//                                "bool":{
-//                                    "filter":[
-//                                        {
-//                                            "match_phrase":{
-//                                                "kubernetes.namespace_name.keyword":"kubesphere-system"
-//                                            }
-//                                        },
-//                                        {
-//                                            "range":{
-//                                                "time":{
-//                                                    "gte":"1572315987000"
-//                                                }
-//                                            }
-//                                        }
-//                                    ]
-//                                }
-//                            }
-//                        ],
-//                        "minimum_should_match":1
-//                    }
-//                },
-//                {
-//                    "bool":{
-//                        "should":[
-//                            {
-//                                "match_phrase_prefix":{
-//                                    "kubernetes.pod_name":"ks-apiserver"
-//                                }
-//                            }
-//                        ],
-//                        "minimum_should_match":1
-//                    }
-//                },
-//                {
-//                    "range":{
-//                        "time":{
-//                            "gte":"0",
-//                            "lte":"156576063993"
-//                        }
-//                    }
-//                }
-//            ]
-//        }
-//    }
-//}
 func (bb *bodyBuilder) mainBool(sf logging.SearchFilter) *bodyBuilder {
 	var ms []Match
 
@@ -207,10 +145,6 @@ func (bb *bodyBuilder) cardinalityAggregation() *bodyBuilder {
 }
 
 func (bb *bodyBuilder) dateHistogramAggregation(interval string) *bodyBuilder {
-	if interval == "" {
-		interval = "15m"
-	}
-
 	bb.Body.Aggs = &Aggs{
 		DateHistogramAggregation: &DateHistogramAggregation{
 			&DateHistogram{
@@ -232,12 +166,8 @@ func (bb *bodyBuilder) size(n int64) *bodyBuilder {
 	return bb
 }
 
-func (bb *bodyBuilder) sort(o string) *bodyBuilder {
-	if o != "asc" {
-		o = "desc"
-	}
-
-	bb.Sorts = []map[string]string{{"time": o}}
+func (bb *bodyBuilder) sort(order string) *bodyBuilder {
+	bb.Sorts = []map[string]string{{"time": order}}
 	return bb
 }
 
@@ -268,7 +198,7 @@ func podNameRegexp(workloadName string) string {
 
 func parseResponse(body []byte) (Response, error) {
 	var res Response
-	err := json.Unmarshal(body, &res)
+	err := jsoniter.Unmarshal(body, &res)
 	if err != nil {
 		klog.Error(err)
 		return Response{}, err

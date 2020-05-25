@@ -6,13 +6,9 @@ import (
 )
 
 type Interface interface {
-	// Current stats about log store, eg. total number of logs and containers
 	GetCurrentStats(sf SearchFilter) (Statistics, error)
-
 	CountLogsByInterval(sf SearchFilter, interval string) (Histogram, error)
-
 	SearchLogs(sf SearchFilter, from, size int64, order string) (Logs, error)
-
 	ExportLogs(sf SearchFilter, w io.Writer) error
 }
 

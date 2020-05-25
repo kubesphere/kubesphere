@@ -1,70 +1,46 @@
 package elasticsearch
 
 import (
+	"fmt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/json-iterator/go"
+	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
-	v5 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
-	v6 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
-	v7 "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
-
-func MockElasticsearchService(pattern string, fakeResp string) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
-		res.Write([]byte(fakeResp))
-	})
-	return httptest.NewServer(mux)
-}
 
 func TestDetectVersionMajor(t *testing.T) {
 	var tests = []struct {
-		description   string
-		fakeResp      string
-		expected      string
-		expectedError bool
+		fakeResp string
+		expected string
 	}{
 		{
-			description: "detect es 6.x version number",
-			fakeResp: `{
-  "name" : "elasticsearch-logging-data-0",
-  "cluster_name" : "elasticsearch",
-  "cluster_uuid" : "uLm0838MSd60T1XEh5P2Qg",
-  "version" : {
-    "number" : "6.7.0",
-    "build_flavor" : "oss",
-    "build_type" : "docker",
-    "build_hash" : "8453f77",
-    "build_date" : "2019-03-21T15:32:29.844721Z",
-    "build_snapshot" : false,
-    "lucene_version" : "7.7.0",
-    "minimum_wire_compatibility_version" : "5.6.0",
-    "minimum_index_compatibility_version" : "5.0.0"
-  },
-  "tagline" : "You Know, for Search"
-}`,
-			expected:      ElasticV6,
-			expectedError: false,
+			fakeResp: "es6_detect_version_major_200.json",
+			expected: ElasticV6,
+		},
+		{
+			fakeResp: "es7_detect_version_major_200.json",
+			expected: ElasticV7,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			es := MockElasticsearchService("/", test.fakeResp)
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			es := mockElasticsearchService("/", test.fakeResp, http.StatusOK)
 			defer es.Close()
 
-			v, err := detectVersionMajor(es.URL)
-			if err == nil && test.expectedError {
-				t.Fatalf("expected error while got nothing")
-			} else if err != nil && !test.expectedError {
+			result, err := detectVersionMajor(es.URL)
+			if err != nil {
 				t.Fatal(err)
 			}
 
-			if v != test.expected {
-				t.Fatalf("expected get version %s, but got %s", test.expected, v)
+			if diff := cmp.Diff(result, test.expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", test.expected, diff)
 			}
 		})
 	}
@@ -72,297 +48,202 @@ func TestDetectVersionMajor(t *testing.T) {
 
 func TestGetCurrentStats(t *testing.T) {
 	var tests = []struct {
-		description   string
-		searchFilter  logging.SearchFilter
-		fakeVersion   string
-		fakeResp      string
-		expected      logging.Statistics
-		expectedError bool
+		fakeVersion string
+		fakeResp    string
+		fakeCode    int
+		expected    logging.Statistics
+		expectedErr string
 	}{
 		{
-			description:  "[es 6.x] run as admin",
-			searchFilter: logging.SearchFilter{},
-			fakeVersion:  ElasticV6,
-			fakeResp: `{
-    "took": 171,
-    "timed_out": false,
-    "_shards": {
-        "total": 10,
-        "successful": 10,
-        "skipped": 0,
-        "failed": 0
-    },
-    "hits": {
-        "total": 241222,
-        "max_score": 1.0,
-        "hits": [
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "Hn1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:29.015Z",
-                    "log": "  value: \"hostpath\"\n",
-                    "time": "2020-02-28T19:25:29.015492329Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "I31GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:33.103Z",
-                    "log": "I0228 19:25:33.102631       1 controller.go:1040] provision \"kubesphere-system/redis-pvc\" class \"local\": trying to save persistentvolume \"pvc-be6d127d-9366-4ea8-b1ce-f30c1b3a447b\"\n",
-                    "time": "2020-02-28T19:25:33.103075891Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "JX1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:33.113Z",
-                    "log": "I0228 19:25:33.112200       1 controller.go:1088] provision \"kubesphere-system/redis-pvc\" class \"local\": succeeded\n",
-                    "time": "2020-02-28T19:25:33.113110332Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "Kn1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:34.168Z",
-                    "log": "  value: \"hostpath\"\n",
-                    "time": "2020-02-28T19:25:34.168983384Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "LH1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:34.168Z",
-                    "log": "  value: \"/var/openebs/local/\"\n",
-                    "time": "2020-02-28T19:25:34.168997393Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "NX1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:25:42.868Z",
-                    "log": "I0228 19:25:42.868413       1 config.go:83] SC local has config:- name: StorageType\n",
-                    "time": "2020-02-28T19:25:42.868578188Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "Q31GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:26:13.881Z",
-                    "log": "- name: BasePath\n",
-                    "time": "2020-02-28T19:26:13.881180681Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "S31GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:26:14.597Z",
-                    "log": "  value: \"/var/openebs/local/\"\n",
-                    "time": "2020-02-28T19:26:14.597702238Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "TH1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:26:14.597Z",
-                    "log": "I0228 19:26:14.597007       1 provisioner_hostpath.go:42] Creating volume pvc-c3b1e67f-00d2-407d-8c45-690bb273c16a at ks-allinone:/var/openebs/local/pvc-c3b1e67f-00d2-407d-8c45-690bb273c16a\n",
-                    "time": "2020-02-28T19:26:14.597708432Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            },
-            {
-                "_index": "ks-logstash-log-2020.02.28",
-                "_type": "flb_type",
-                "_id": "UX1GjXABMO5aQxyNsyxy",
-                "_score": 1.0,
-                "_source": {
-                    "@timestamp": "2020-02-28T19:26:15.920Z",
-                    "log": "I0228 19:26:15.915071       1 event.go:221] Event(v1.ObjectReference{Kind:\"PersistentVolumeClaim\", Namespace:\"kubesphere-system\", Name:\"mysql-pvc\", UID:\"1e87deb5-eaec-475f-8eb6-8613b3be80a4\", APIVersion:\"v1\", ResourceVersion:\"2397\", FieldPath:\"\"}): type: 'Normal' reason: 'ProvisioningSucceeded' Successfully provisioned volume pvc-1e87deb5-eaec-475f-8eb6-8613b3be80a4\n",
-                    "time": "2020-02-28T19:26:15.920650572Z",
-                    "kubernetes": {
-                        "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
-                        "namespace_name": "kube-system",
-                        "host": "ks-allinone",
-                        "container_name": "openebs-localpv-provisioner",
-                        "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
-                        "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
-                    }
-                }
-            }
-        ]
-    },
-    "aggregations": {
-        "container_count": {
-            "value": 93
-        }
-    }
-}`,
+			fakeVersion: ElasticV6,
+			fakeResp:    "es6_get_current_stats_200.json",
+			fakeCode:    http.StatusOK,
 			expected: logging.Statistics{
 				Containers: 93,
 				Logs:       241222,
 			},
-			expectedError: false,
 		},
 		{
-			description: "[es 6.x] index not found",
-			searchFilter: logging.SearchFilter{
-				NamespaceFilter: map[string]time.Time{
-					"workspace-1-project-a": time.Unix(1582000000, 0),
-					"workspace-1-project-b": time.Unix(1582333333, 0),
-				},
-			},
 			fakeVersion: ElasticV6,
-			fakeResp: `{
-   "error": {
-       "root_cause": [
-           {
-               "type": "index_not_found_exception",
-               "reason": "no such index",
-               "resource.type": "index_or_alias",
-               "resource.id": "ks-lsdfsdfsdfs",
-               "index_uuid": "_na_",
-               "index": "ks-lsdfsdfsdfs"
-           }
-       ],
-       "type": "index_not_found_exception",
-       "reason": "no such index",
-       "resource.type": "index_or_alias",
-       "resource.id": "ks-lsdfsdfsdfs",
-       "index_uuid": "_na_",
-       "index": "ks-lsdfsdfsdfs"
-   },
-   "status": 404
-}`,
+			fakeResp:    "es6_get_current_stats_404.json",
+			fakeCode:    http.StatusNotFound,
+			expectedErr: "type: index_not_found_exception, reason: no such index",
+		},
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_get_current_stats_200.json",
+			fakeCode:    http.StatusOK,
 			expected: logging.Statistics{
-				Containers: 0,
-				Logs:       0,
+				Containers: 48,
+				Logs:       9726,
 			},
-			expectedError: true,
+		},
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_get_current_stats_404.json",
+			fakeCode:    http.StatusNotFound,
+			expectedErr: "type: index_not_found_exception, reason: no such index [ks-logstash-log-2020.05.2]",
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.description, func(t *testing.T) {
-			es := MockElasticsearchService("/", test.fakeResp)
-			defer es.Close()
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
+			defer srv.Close()
 
-			clientv5 := Elasticsearch{c: v5.New(es.URL, "ks-logstash-log")}
-			clientv6 := Elasticsearch{c: v6.New(es.URL, "ks-logstash-log")}
-			clientv7 := Elasticsearch{c: v7.New(es.URL, "ks-logstash-log")}
+			es := newElasticsearchClient(srv, test.fakeVersion)
 
-			var stats logging.Statistics
-			var err error
-			switch test.fakeVersion {
-			case ElasticV5:
-				stats, err = clientv5.GetCurrentStats(test.searchFilter)
-			case ElasticV6:
-				stats, err = clientv6.GetCurrentStats(test.searchFilter)
-			case ElasticV7:
-				stats, err = clientv7.GetCurrentStats(test.searchFilter)
+			result, err := es.GetCurrentStats(logging.SearchFilter{})
+			if test.expectedErr != "" {
+				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
+					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
+				}
 			}
-
-			if err != nil && !test.expectedError {
-				t.Fatal(err)
-			} else if diff := cmp.Diff(stats, test.expected); diff != "" {
+			if diff := cmp.Diff(result, test.expected); diff != "" {
 				t.Fatalf("%T differ (-got, +want): %s", test.expected, diff)
 			}
 		})
 	}
+}
+
+func TestCountLogsByInterval(t *testing.T) {
+	var tests = []struct {
+		fakeVersion string
+		fakeResp    string
+		fakeCode    int
+		expected    logging.Histogram
+		expectedErr string
+	}{
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_count_logs_by_interval_200.json",
+			fakeCode:    http.StatusOK,
+			expected: logging.Histogram{
+				Total: 10000,
+				Buckets: []logging.Bucket{
+					{
+						Time:  1589644800000,
+						Count: 410,
+					},
+					{
+						Time:  1589646600000,
+						Count: 7465,
+					},
+					{
+						Time:  1589648400000,
+						Count: 12790,
+					},
+				},
+			},
+		},
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_count_logs_by_interval_400.json",
+			fakeCode:    http.StatusBadRequest,
+			expectedErr: "type: search_phase_execution_exception, reason: all shards failed",
+		},
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_count_logs_by_interval_404.json",
+			fakeCode:    http.StatusNotFound,
+			expectedErr: "type: index_not_found_exception, reason: no such index [ks-logstash-log-20]",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
+			defer srv.Close()
+
+			es := newElasticsearchClient(srv, test.fakeVersion)
+
+			result, err := es.CountLogsByInterval(logging.SearchFilter{}, "15m")
+			if test.expectedErr != "" {
+				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
+					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
+				}
+			}
+			if diff := cmp.Diff(result, test.expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", test.expected, diff)
+			}
+		})
+	}
+}
+
+func TestSearchLogs(t *testing.T) {
+	var tests = []struct {
+		fakeVersion string
+		fakeResp    string
+		fakeCode    int
+		expected    string
+		expectedErr string
+	}{
+		{
+			fakeVersion: ElasticV7,
+			fakeResp:    "es7_search_logs_200.json",
+			fakeCode:    http.StatusOK,
+			expected:    "es7_search_logs_200_result.json",
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			var expected logging.Logs
+			err := JsonFromFile(test.expected, &expected)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			srv := mockElasticsearchService("/ks-logstash-log*/_search", test.fakeResp, test.fakeCode)
+			defer srv.Close()
+
+			es := newElasticsearchClient(srv, test.fakeVersion)
+
+			result, err := es.SearchLogs(logging.SearchFilter{}, 0, 10, "asc")
+			if test.expectedErr != "" {
+				if diff := cmp.Diff(fmt.Sprint(err), test.expectedErr); diff != "" {
+					t.Fatalf("%T differ (-got, +want): %s", test.expectedErr, diff)
+				}
+			}
+			if diff := cmp.Diff(result, expected); diff != "" {
+				t.Fatalf("%T differ (-got, +want): %s", expected, diff)
+			}
+		})
+	}
+}
+
+func mockElasticsearchService(pattern, fakeResp string, fakeCode int) *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc(pattern, func(res http.ResponseWriter, req *http.Request) {
+		b, _ := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", fakeResp))
+		res.WriteHeader(fakeCode)
+		res.Write(b)
+	})
+	return httptest.NewServer(mux)
+}
+
+func newElasticsearchClient(srv *httptest.Server, version string) Elasticsearch {
+	var es Elasticsearch
+	switch version {
+	case ElasticV5:
+		es = Elasticsearch{c: v5.New(srv.URL, "ks-logstash-log")}
+	case ElasticV6:
+		es = Elasticsearch{c: v6.New(srv.URL, "ks-logstash-log")}
+	case ElasticV7:
+		es = Elasticsearch{c: v7.New(srv.URL, "ks-logstash-log")}
+	}
+	return es
+}
+
+func JsonFromFile(expectedFile string, expectedJsonPtr interface{}) error {
+	json, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", expectedFile))
+	if err != nil {
+		return err
+	}
+	err = jsoniter.Unmarshal(json, expectedJsonPtr)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
