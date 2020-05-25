@@ -182,7 +182,13 @@ func (mo monitoringOperator) GetKubeSphereStats() Metrics {
 		})
 	}
 
-	tmpls, err := mo.op.ListApps(&params.Conditions{}, "", false, 0, 0)
+	cond := &params.Conditions{
+		Match: map[string]string{
+			"status":  "active",
+			"repo_id": "repo-helm",
+		},
+	}
+	tmpls, err := mo.op.ListApps(cond, "", false, 0, 0)
 	if err != nil {
 		res.Results = append(res.Results, monitoring.Metric{
 			MetricName: KubeSphereAppTmplCount,
