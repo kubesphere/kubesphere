@@ -48,17 +48,17 @@ type DevopsOperator interface {
 	UpdateDevOpsProject(workspace string, project *v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error)
 	ListDevOpsProject(workspace string) (*v1alpha3.DevOpsProjectList, error)
 
-	CreatePipelineObj(workspace string, projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
-	GetPipelineObj(workspace string, projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
-	DeletePipelineObj(workspace string, projectName string, pipelineName string) error
-	UpdatePipelineObj(workspace string, projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
-	ListPipelineObj(workspace string, projectName string) (*v1alpha3.PipelineList, error)
+	CreatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
+	GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
+	DeletePipelineObj(projectName string, pipelineName string) error
+	UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
+	ListPipelineObj(projectName string) (*v1alpha3.PipelineList, error)
 
-	CreateCredentialObj(workspace string, projectName string, s *v1.Secret) (*v1.Secret, error)
-	GetCredentialObj(workspace string, projectName string, secretName string) (*v1.Secret, error)
-	DeleteCredentialObj(workspace string, projectName string, secretName string) error
-	UpdateCredentialObj(workspace string, projectName string, secret *v1.Secret) (*v1.Secret, error)
-	ListCredentialObj(workspace string, projectName string) (*v1.SecretList, error)
+	CreateCredentialObj(projectName string, s *v1.Secret) (*v1.Secret, error)
+	GetCredentialObj(projectName string, secretName string) (*v1.Secret, error)
+	DeleteCredentialObj(projectName string, secretName string) error
+	UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error)
+	ListCredentialObj(projectName string) (*v1.SecretList, error)
 
 	GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error)
 	ListPipelines(req *http.Request) (*devops.PipelineList, error)
@@ -164,7 +164,7 @@ func (d devopsOperator) ListDevOpsProject(workspace string) (*v1alpha3.DevOpsPro
 }
 
 // pipelineobj in crd
-func (d devopsOperator) CreatePipelineObj(workspace string, projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
+func (d devopsOperator) CreatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (d devopsOperator) CreatePipelineObj(workspace string, projectName string, 
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Create(pipeline)
 }
 
-func (d devopsOperator) GetPipelineObj(workspace string, projectName string, pipelineName string) (*v1alpha3.Pipeline, error) {
+func (d devopsOperator) GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (d devopsOperator) GetPipelineObj(workspace string, projectName string, pip
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Get(pipelineName, metav1.GetOptions{})
 }
 
-func (d devopsOperator) DeletePipelineObj(workspace string, projectName string, pipelineName string) error {
+func (d devopsOperator) DeletePipelineObj(projectName string, pipelineName string) error {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -188,7 +188,7 @@ func (d devopsOperator) DeletePipelineObj(workspace string, projectName string, 
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Delete(pipelineName, metav1.NewDeleteOptions(0))
 }
 
-func (d devopsOperator) UpdatePipelineObj(workspace string, projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
+func (d devopsOperator) UpdatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (d devopsOperator) UpdatePipelineObj(workspace string, projectName string, 
 	return d.ksclient.DevopsV1alpha3().Pipelines(projectObj.Status.AdminNamespace).Update(pipeline)
 }
 
-func (d devopsOperator) ListPipelineObj(workspace string, projectName string) (*v1alpha3.PipelineList, error) {
+func (d devopsOperator) ListPipelineObj(projectName string) (*v1alpha3.PipelineList, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -205,7 +205,7 @@ func (d devopsOperator) ListPipelineObj(workspace string, projectName string) (*
 }
 
 //credentialobj in crd
-func (d devopsOperator) CreateCredentialObj(workspace string, projectName string, secret *v1.Secret) (*v1.Secret, error) {
+func (d devopsOperator) CreateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func (d devopsOperator) CreateCredentialObj(workspace string, projectName string
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Create(secret)
 }
 
-func (d devopsOperator) GetCredentialObj(workspace string, projectName string, secretName string) (*v1.Secret, error) {
+func (d devopsOperator) GetCredentialObj(projectName string, secretName string) (*v1.Secret, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -221,7 +221,7 @@ func (d devopsOperator) GetCredentialObj(workspace string, projectName string, s
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Get(secretName, metav1.GetOptions{})
 }
 
-func (d devopsOperator) DeleteCredentialObj(workspace string, projectName string, secret string) error {
+func (d devopsOperator) DeleteCredentialObj(projectName string, secret string) error {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -229,7 +229,7 @@ func (d devopsOperator) DeleteCredentialObj(workspace string, projectName string
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Delete(secret, metav1.NewDeleteOptions(0))
 }
 
-func (d devopsOperator) UpdateCredentialObj(workspace string, projectName string, secret *v1.Secret) (*v1.Secret, error) {
+func (d devopsOperator) UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (d devopsOperator) UpdateCredentialObj(workspace string, projectName string
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Update(secret)
 }
 
-func (d devopsOperator) ListCredentialObj(workspace string, projectName string) (*v1.SecretList, error) {
+func (d devopsOperator) ListCredentialObj(projectName string) (*v1.SecretList, error) {
 	projectObj, err := d.ksclient.DevopsV1alpha3().DevOpsProjects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

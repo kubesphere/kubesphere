@@ -51,128 +51,120 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws := runtime.NewWebService(GroupVersion)
 		handler := newDevOpsHandler(devopsClient, k8sclient, ksclient, ksInformers, k8sInformers)
 		// credential
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/{projectName}/credential/").
+		ws.Route(ws.GET("/devops/{devops}/credentials").
 			To(handler.ListCredential).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "devops name")).
-			Doc("list the credential of the specified devops for the current user").
+			Param(ws.PathParameter("devops", "devops name")).
+			Doc("list the credentials of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.PipelineList{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.POST("/workspaces/{workspace}/devopsprojects/{projectName}/credential/").
+		ws.Route(ws.POST("/devops/{devops}/credentials").
 			To(handler.CreateCredential).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "devops name")).
+			Param(ws.PathParameter("devops", "devops name")).
 			Doc("create the credential of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.Pipeline{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/{projectName}/credential/{credentialName}/").
+		ws.Route(ws.GET("/devops/{devops}/credentials/{credential}").
 			To(handler.GetCredential).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
+			Param(ws.PathParameter("devops", "project name")).
 			Param(ws.PathParameter("credential", "pipeline name")).
 			Doc("get the credential of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1.Secret{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.PUT("/workspaces/{workspace}/devopsprojects/{projectName}/credential/{credentialName}/").
+		ws.Route(ws.PUT("/devops/{devops}/credentials/{credential}").
 			To(handler.UpdateCredential).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
-			Param(ws.PathParameter("credentialName", "credential name")).
+			Param(ws.PathParameter("devops", "project name")).
+			Param(ws.PathParameter("credential", "credential name")).
 			Doc("put the credential of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1.Secret{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.DELETE("/workspaces/{workspace}/devopsprojects/{projectName}/credential/{credentialName}/").
+		ws.Route(ws.DELETE("/devops/{devops}/credentials/{credential}").
 			To(handler.DeleteCredential).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
-			Param(ws.PathParameter("credentialName", "credential name")).
+			Param(ws.PathParameter("devops", "project name")).
+			Param(ws.PathParameter("credential", "credential name")).
 			Doc("delete the credential of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1.Secret{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}))
 
 		// pipeline
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/{projectName}/pipelines/").
+		ws.Route(ws.GET("/devops/{devops}/pipelines").
 			To(handler.ListPipeline).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "devops name")).
-			Doc("list the pipeline of the specified devops for the current user").
+			Param(ws.PathParameter("devops", "devops name")).
+			Doc("list the pipelines of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.PipelineList{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.POST("/workspaces/{workspace}/devopsprojects/{projectName}/pipelines/").
+		ws.Route(ws.POST("/devops/{devops}/pipelines").
 			To(handler.CreatePipeline).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "devops name")).
+			Param(ws.PathParameter("devops", "devops name")).
 			Doc("create the pipeline of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.Pipeline{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/{projectName}/pipelines/{pipelineName}/").
+		ws.Route(ws.GET("/devops/{devops}/pipelines/{pipeline}").
 			To(handler.GetPipeline).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
-			Param(ws.PathParameter("pipelineName", "pipeline name")).
+			Param(ws.PathParameter("devops", "project name")).
+			Param(ws.PathParameter("pipeline", "pipeline name")).
 			Doc("get the pipeline of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.Pipeline{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.PUT("/workspaces/{workspace}/devopsprojects/{projectName}/pipelines/{pipelineName}/").
+		ws.Route(ws.PUT("/devops/{devops}/pipelines/{pipeline}").
 			To(handler.UpdatePipeline).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
-			Param(ws.PathParameter("pipelineName", "pipeline name")).
+			Param(ws.PathParameter("devops", "project name")).
+			Param(ws.PathParameter("pipeline", "pipeline name")).
 			Doc("put the pipeline of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.Pipeline{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.DELETE("/workspaces/{workspace}/devopsprojects/{projectName}/pipelines/{pipelineName}/").
+		ws.Route(ws.DELETE("/devops/{devops}/pipelines/{pipeline}").
 			To(handler.DeletePipeline).
-			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
-			Param(ws.PathParameter("pipelineName", "pipeline name")).
+			Param(ws.PathParameter("devops", "project name")).
+			Param(ws.PathParameter("pipeline", "pipeline name")).
 			Doc("delete the pipeline of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.Pipeline{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}))
 
 		// devops
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/").
+		ws.Route(ws.GET("/workspaces/{workspace}/devops").
 			To(handler.ListDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
 			Doc("List the devopsproject of the specified workspace for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProjectList{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.POST("/workspaces/{workspace}/devopsprojects/").
+		ws.Route(ws.POST("/workspaces/{workspace}/devops").
 			To(handler.CreateDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
 			Doc("Create the devopsproject of the specified workspace for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProject{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.GET("/workspaces/{workspace}/devopsprojects/{projectName}/").
+		ws.Route(ws.GET("/workspaces/{workspace}/devops/{devops}").
 			To(handler.GetDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
+			Param(ws.PathParameter("devops", "project name")).
 			Doc("Get the devopsproject of the specified workspace for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProject{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.PUT("/workspaces/{workspace}/devopsprojects/{projectName}/").
+		ws.Route(ws.PUT("/workspaces/{workspace}/devops/{devops}").
 			To(handler.UpdateDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
+			Param(ws.PathParameter("devops", "project name")).
 			Doc("Put the devopsproject of the specified workspace for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProject{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
-		ws.Route(ws.DELETE("/workspaces/{workspace}/devopsprojects/{projectName}/").
+		ws.Route(ws.DELETE("/workspaces/{workspace}/devops/{devops}").
 			To(handler.DeleteDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Param(ws.PathParameter("projectName", "project name")).
+			Param(ws.PathParameter("devops", "project name")).
 			Doc("Get the devopsproject of the specified workspace for the current user").
 			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProject{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
