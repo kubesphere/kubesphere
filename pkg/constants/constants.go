@@ -38,7 +38,7 @@ const (
 	DisplayNameAnnotationKey       = "kubesphere.io/alias-name"
 	DescriptionAnnotationKey       = "kubesphere.io/description"
 	CreatorAnnotationKey           = "kubesphere.io/creator"
-	UsernameAnnotationKey          = "kubesphere.io/username"
+	UsernameLabelKey               = "kubesphere.io/username"
 	System                         = "system"
 	OpenPitrixRuntimeAnnotationKey = "openpitrix_runtime"
 	WorkspaceAdmin                 = "workspace-admin"

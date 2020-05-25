@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
+	k8sinformers "k8s.io/client-go/informers"
 	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"time"
 )
@@ -63,7 +64,7 @@ type Controller struct {
 	kubectlOperator kubectl.Interface
 }
 
-func NewController(k8sClient kubernetes.Interface, informerFactory informers.SharedInformerFactory) *Controller {
+func NewController(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -73,13 +74,13 @@ func NewController(k8sClient kubernetes.Interface, informerFactory informers.Sha
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	informer := informerFactory.Rbac().V1().ClusterRoleBindings()
+	informer := k8sInformer.Rbac().V1().ClusterRoleBindings()
 	ctl := &Controller{
 		k8sClient:       k8sClient,
 		informer:        informer,
 		lister:          informer.Lister(),
 		synced:          informer.Informer().HasSynced,
-		kubectlOperator: kubectl.NewOperator(k8sClient, informerFactory),
+		kubectlOperator: kubectl.NewOperator(k8sClient, k8sInformer, ksInformer),
 		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
 		recorder:        recorder,
 	}
