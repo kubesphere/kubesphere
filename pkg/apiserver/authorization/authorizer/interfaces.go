@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors.
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/user"
 )
+
+// NOTE: This file is copied from k8s.io/kubernetes/apiserver/pkg/authorization/authorizer.
+// We have expanded some attributes, such as workspace and cluster.
 
 // Attributes is an interface used by an Authorizer to get information about a request
 // that is used to make an authorization decision.

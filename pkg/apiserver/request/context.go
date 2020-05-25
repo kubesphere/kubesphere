@@ -24,6 +24,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
+// Following code copied from k8s.io/apiserver/pkg/endpoints/request to avoid import collision
+
 // The key type is unexported to prevent collisions
 type key int
 

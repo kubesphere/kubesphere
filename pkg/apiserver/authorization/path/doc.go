@@ -14,5 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Following code copied from k8s.io/apiserver/pkg/authorization/authorizer/path to avoid import collision
+
 // Package path contains an authorizer that allows certain paths and path prefixes.
 package path
