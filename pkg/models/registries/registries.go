@@ -112,16 +112,19 @@ func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName strin
 		Message: "",
 	}
 
+	var config *DockerConfigEntry
+
 	if namespace == "" || secretName == "" {
-		return failedImageDetails, fmt.Errorf("namespace or secret name not provided")
-	}
-	secret, err := c.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
-	if err != nil {
-		return failedImageDetails, err
-	}
-	entry, err := getDockerEntryFromDockerSecret(secret)
-	if err != nil {
-		return failedImageDetails, err
+		config = &DockerConfigEntry{}
+	} else {
+		secret, err := c.informers.Core().V1().Secrets().Lister().Secrets(namespace).Get(secretName)
+		if err != nil {
+			return failedImageDetails, err
+		}
+		config, err = getDockerEntryFromDockerSecret(secret)
+		if err != nil {
+			return failedImageDetails, err
+		}
 	}
 
 	// default use ssl
@@ -147,10 +150,10 @@ func (c *registryGetter) getEntryBySecret(namespace, secretName, imageName strin
 		return failedImageDetails, err
 	}
 
-	useSSL := checkSSl(entry.ServerAddress)
+	useSSL := checkSSl(config.ServerAddress)
 
 	// Create the registry client.
-	r, err := CreateRegistryClient(entry.Username, entry.Password, image.Domain, useSSL)
+	r, err := CreateRegistryClient(config.Username, config.Password, image.Domain, useSSL)
 	if err != nil {
 		return failedImageDetails, err
 	}
