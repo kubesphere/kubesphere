@@ -274,8 +274,12 @@ func (r *resourceHandler) handleVerifyGitCredential(request *restful.Request, re
 		api.HandleBadRequest(response, nil, err)
 		return
 	}
-
-	err = r.gitVerifier.VerifyGitCredential(credential.RemoteUrl, credential.SecretRef.Namespace, credential.SecretRef.Name)
+	var namespace, secretName string
+	if credential.SecretRef != nil {
+		namespace = credential.SecretRef.Namespace
+		secretName = credential.SecretRef.Name
+	}
+	err = r.gitVerifier.VerifyGitCredential(credential.RemoteUrl, namespace, secretName)
 	if err != nil {
 		api.HandleBadRequest(response, nil, err)
 		return
