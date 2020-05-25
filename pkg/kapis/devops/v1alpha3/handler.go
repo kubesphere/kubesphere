@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 )
 
@@ -67,8 +68,9 @@ func (h *devopsHandler) GetDevOpsProject(request *restful.Request, response *res
 
 func (h *devopsHandler) ListDevOpsProject(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
+	limit, offset := params.ParsePaging(request)
 
-	projectList, err := h.devops.ListDevOpsProject(workspace)
+	projectList, err := h.devops.ListDevOpsProject(workspace, limit, offset)
 
 	if err != nil {
 		klog.Error(err)
@@ -176,8 +178,9 @@ func (h *devopsHandler) GetPipeline(request *restful.Request, response *restful.
 
 func (h *devopsHandler) ListPipeline(request *restful.Request, response *restful.Response) {
 	devops := request.PathParameter("devops")
-	objs, err := h.devops.ListPipelineObj(devops)
+	limit, offset := params.ParsePaging(request)
 
+	objs, err := h.devops.ListPipelineObj(devops, limit, offset)
 	if err != nil {
 		klog.Error(err)
 		if errors.IsNotFound(err) {
@@ -285,8 +288,9 @@ func (h *devopsHandler) GetCredential(request *restful.Request, response *restfu
 
 func (h *devopsHandler) ListCredential(request *restful.Request, response *restful.Response) {
 	devops := request.PathParameter("devops")
+	limit, offset := params.ParsePaging(request)
 
-	objs, err := h.devops.ListCredentialObj(devops)
+	objs, err := h.devops.ListCredentialObj(devops, limit, offset)
 
 	if err != nil {
 		klog.Error(err)

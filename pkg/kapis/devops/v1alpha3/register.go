@@ -31,6 +31,7 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/server/params"
 	devopsClient "kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 )
@@ -54,8 +55,12 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws.Route(ws.GET("/devops/{devops}/credentials").
 			To(handler.ListCredential).
 			Param(ws.PathParameter("devops", "devops name")).
+			Param(ws.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+				Required(false).
+				DataFormat("limit=%d,page=%d").
+				DefaultValue("limit=10,page=1")).
 			Doc("list the credentials of the specified devops for the current user").
-			Returns(http.StatusOK, api.StatusOK, []v1alpha3.PipelineList{}).
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/devops/{devops}/credentials").
@@ -95,8 +100,12 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws.Route(ws.GET("/devops/{devops}/pipelines").
 			To(handler.ListPipeline).
 			Param(ws.PathParameter("devops", "devops name")).
+			Param(ws.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+				Required(false).
+				DataFormat("limit=%d,page=%d").
+				DefaultValue("limit=10,page=1")).
 			Doc("list the pipelines of the specified devops for the current user").
-			Returns(http.StatusOK, api.StatusOK, []v1alpha3.PipelineList{}).
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/devops/{devops}/pipelines").
@@ -134,8 +143,11 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws.Route(ws.GET("/workspaces/{workspace}/devops").
 			To(handler.ListDevOpsProject).
 			Param(ws.PathParameter("workspace", "workspace name")).
-			Doc("List the devopsproject of the specified workspace for the current user").
-			Returns(http.StatusOK, api.StatusOK, []v1alpha3.DevOpsProjectList{}).
+			Param(ws.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+				Required(false).
+				DataFormat("limit=%d,page=%d").
+				DefaultValue("limit=10,page=1")).Doc("List the devopsproject of the specified workspace for the current user").
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/workspaces/{workspace}/devops").
