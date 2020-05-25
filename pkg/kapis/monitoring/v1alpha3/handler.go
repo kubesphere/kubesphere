@@ -23,8 +23,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/informers"
 	model "kubesphere.io/kubesphere/pkg/models/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"regexp"
 )
 
@@ -33,8 +35,13 @@ type handler struct {
 	mo model.MonitoringOperator
 }
 
-func newHandler(k kubernetes.Interface, m monitoring.Interface) *handler {
-	return &handler{k, model.NewMonitoringOperator(m)}
+func newHandler(k kubernetes.Interface, m monitoring.Interface, f informers.InformerFactory, o openpitrix.Client) *handler {
+	return &handler{k, model.NewMonitoringOperator(m, k, f, o)}
+}
+
+func (h handler) handleKubeSphereMetricsQuery(req *restful.Request, resp *restful.Response) {
+	res := h.mo.GetKubeSphereStats()
+	resp.WriteAsJson(res)
 }
 
 func (h handler) handleClusterMetricsQuery(req *restful.Request, resp *restful.Response) {
@@ -64,7 +71,13 @@ func (h handler) handleWorkspaceMetricsQuery(req *restful.Request, resp *restful
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
-	h.handleNamedMetricsQuery(resp, opt)
+
+	if req.QueryParameter("type") == "statistics" {
+		res := h.mo.GetWorkspaceStats(params.workspaceName)
+		resp.WriteAsJson(res)
+	} else {
+		h.handleNamedMetricsQuery(resp, opt)
+	}
 }
 
 func (h handler) handleNamespaceMetricsQuery(req *restful.Request, resp *restful.Response) {

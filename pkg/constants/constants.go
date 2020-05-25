@@ -70,6 +70,7 @@ const (
 	DevOpsWebhookTag           = "DevOps Webhook"
 	DevOpsJenkinsfileTag       = "DevOps Jenkinsfile"
 	DevOpsScmTag               = "DevOps Scm"
+	KubeSphereMetricsTag       = "KubeSphere Metrics"
 	ClusterMetricsTag          = "Cluster Metrics"
 	NodeMetricsTag             = "Node Metrics"
 	NamespaceMetricsTag        = "Namespace Metrics"
