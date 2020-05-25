@@ -98,6 +98,11 @@ func NewKubernetesClient(options *KubernetesOptions) (Client, error) {
 		return nil, err
 	}
 
+	k.discoveryClient, err = discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	k.ks, err = kubesphere.NewForConfig(config)
 	if err != nil {
 		return nil, err

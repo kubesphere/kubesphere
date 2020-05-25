@@ -352,7 +352,7 @@ func (c *ClusterController) syncCluster(key string) error {
 	clientSet, err = kubernetes.NewForConfig(clusterConfig)
 	if err != nil {
 		klog.Errorf("Failed to create ClientSet from config, %#v", err)
-		return nil
+		return err
 	}
 
 	if !cluster.Spec.JoinFederation { // trying to unJoin federation
