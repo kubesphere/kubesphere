@@ -1,18 +1,16 @@
 /*
-Copyright 2019 The KubeSphere Authors.
-
+Copyright 2020 The KubeSphere Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1
 
 import (
@@ -45,22 +43,22 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice := runtime.NewWebService(GroupVersion)
 	handler := newOpenpitrixHandler(factory, op)
 
-	webservice.Route(webservice.GET("/applications").
+	webservice.Route(webservice.GET("/clusters/{cluster}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
-		Doc("List all applications").
+		Doc("List all applications in special cluster").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
 			DataFormat("key=value,key~value").
 			DefaultValue("")).
-		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
+	webservice.Route(webservice.GET("/clusters/{cluster}/namespaces/{namespace}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -69,43 +67,59 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			Required(false).
 			DataFormat("key=value,key~value").
 			DefaultValue("")).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.GET("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
 		To(handler.DescribeApplication).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Describe the specified application of the namespace").
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "application ID")))
 
-	webservice.Route(webservice.POST("/namespaces/{namespace}/applications").
+	webservice.Route(webservice.POST("/clusters/{cluster}/namespaces/{namespace}/applications").
 		To(handler.CreateApplication).
 		Doc("Deploy a new application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix2.CreateClusterRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
-	webservice.Route(webservice.PATCH("/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.PATCH("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
 		Consumes(mimePatch...).
 		To(handler.ModifyApplication).
 		Doc("Modify application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix2.ModifyClusterAttributesRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
-	webservice.Route(webservice.DELETE("/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.DELETE("/clusters/cluster/namespaces/{namespace}/applications/{application}").
 		To(handler.DeleteApplication).
 		Doc("Delete the specified application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("application", "the id of the application cluster")))
+
+	webservice.Route(webservice.POST("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
+		Consumes(mimePatch...).
+		To(handler.UpgradeApplication).
+		Doc("Upgrade application").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Reads(openpitrix2.UpgradeClusterRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 

@@ -4,6 +4,7 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
@@ -11,9 +12,10 @@ import (
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type User struct {
 	// user id, user belong to different group and role, has different permissions
@@ -3659,11 +3661,11 @@ type TokenResponse struct {
 	TokenType string `protobuf:"bytes,1,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
 	// default 2h
 	ExpiresIn int32 `protobuf:"varint,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
-	// access token, generator by jwt(key=secrete key)
+	//access token, generator by jwt(key=secrete key)
 	AccessToken string `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	// refresh token, timeliness,default expired after 2 weeks
+	//refresh token, timeliness,default expired after 2 weeks
 	RefreshToken string `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	// id token, generator by jwt(key="")
+	//id token, generator by jwt(key="")
 	IdToken              string   `protobuf:"bytes,5,opt,name=id_token,json=idToken,proto3" json:"id_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -4064,7 +4066,7 @@ type AccountManagerClient interface {
 	DescribeGroups(ctx context.Context, in *DescribeGroupsRequest, opts ...grpc.CallOption) (*DescribeGroupsResponse, error)
 	// Get groups, include all user in this group, can filter with these fields(group_id, parent_group_id, group_path, status), default return all groups
 	DescribeGroupsDetail(ctx context.Context, in *DescribeGroupsRequest, opts ...grpc.CallOption) (*DescribeGroupsDetailResponse, error)
-	// Modify group info
+	//Modify group info
 	ModifyGroup(ctx context.Context, in *ModifyGroupRequest, opts ...grpc.CallOption) (*ModifyGroupResponse, error)
 	// Delete groups
 	DeleteGroups(ctx context.Context, in *DeleteGroupsRequest, opts ...grpc.CallOption) (*DeleteGroupsResponse, error)
@@ -4263,7 +4265,7 @@ type AccountManagerServer interface {
 	DescribeGroups(context.Context, *DescribeGroupsRequest) (*DescribeGroupsResponse, error)
 	// Get groups, include all user in this group, can filter with these fields(group_id, parent_group_id, group_path, status), default return all groups
 	DescribeGroupsDetail(context.Context, *DescribeGroupsRequest) (*DescribeGroupsDetailResponse, error)
-	// Modify group info
+	//Modify group info
 	ModifyGroup(context.Context, *ModifyGroupRequest) (*ModifyGroupResponse, error)
 	// Delete groups
 	DeleteGroups(context.Context, *DeleteGroupsRequest) (*DeleteGroupsResponse, error)
@@ -4271,6 +4273,62 @@ type AccountManagerServer interface {
 	JoinGroup(context.Context, *JoinGroupRequest) (*JoinGroupResponse, error)
 	// Leave groups, user can leave from groups
 	LeaveGroup(context.Context, *LeaveGroupRequest) (*LeaveGroupResponse, error)
+}
+
+// UnimplementedAccountManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedAccountManagerServer struct {
+}
+
+func (*UnimplementedAccountManagerServer) DescribeUsers(ctx context.Context, req *DescribeUsersRequest) (*DescribeUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeUsers not implemented")
+}
+func (*UnimplementedAccountManagerServer) DescribeUsersDetail(ctx context.Context, req *DescribeUsersRequest) (*DescribeUsersDetailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeUsersDetail not implemented")
+}
+func (*UnimplementedAccountManagerServer) ModifyUser(ctx context.Context, req *ModifyUserRequest) (*ModifyUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyUser not implemented")
+}
+func (*UnimplementedAccountManagerServer) DeleteUsers(ctx context.Context, req *DeleteUsersRequest) (*DeleteUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteUsers not implemented")
+}
+func (*UnimplementedAccountManagerServer) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
+}
+func (*UnimplementedAccountManagerServer) CreatePasswordReset(ctx context.Context, req *CreatePasswordResetRequest) (*CreatePasswordResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePasswordReset not implemented")
+}
+func (*UnimplementedAccountManagerServer) IsvCreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsvCreateUser not implemented")
+}
+func (*UnimplementedAccountManagerServer) CreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
+}
+func (*UnimplementedAccountManagerServer) GetPasswordReset(ctx context.Context, req *GetPasswordResetRequest) (*GetPasswordResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPasswordReset not implemented")
+}
+func (*UnimplementedAccountManagerServer) ValidateUserPassword(ctx context.Context, req *ValidateUserPasswordRequest) (*ValidateUserPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateUserPassword not implemented")
+}
+func (*UnimplementedAccountManagerServer) CreateGroup(ctx context.Context, req *CreateGroupRequest) (*CreateGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGroup not implemented")
+}
+func (*UnimplementedAccountManagerServer) DescribeGroups(ctx context.Context, req *DescribeGroupsRequest) (*DescribeGroupsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeGroups not implemented")
+}
+func (*UnimplementedAccountManagerServer) DescribeGroupsDetail(ctx context.Context, req *DescribeGroupsRequest) (*DescribeGroupsDetailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeGroupsDetail not implemented")
+}
+func (*UnimplementedAccountManagerServer) ModifyGroup(ctx context.Context, req *ModifyGroupRequest) (*ModifyGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyGroup not implemented")
+}
+func (*UnimplementedAccountManagerServer) DeleteGroups(ctx context.Context, req *DeleteGroupsRequest) (*DeleteGroupsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteGroups not implemented")
+}
+func (*UnimplementedAccountManagerServer) JoinGroup(ctx context.Context, req *JoinGroupRequest) (*JoinGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinGroup not implemented")
+}
+func (*UnimplementedAccountManagerServer) LeaveGroup(ctx context.Context, req *LeaveGroupRequest) (*LeaveGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LeaveGroup not implemented")
 }
 
 func RegisterAccountManagerServer(s *grpc.Server, srv AccountManagerServer) {
@@ -4808,6 +4866,41 @@ type AccessManagerServer interface {
 	UnbindUserRole(context.Context, *UnbindUserRoleRequest) (*UnbindUserRoleResponse, error)
 }
 
+// UnimplementedAccessManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedAccessManagerServer struct {
+}
+
+func (*UnimplementedAccessManagerServer) CanDo(ctx context.Context, req *CanDoRequest) (*CanDoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CanDo not implemented")
+}
+func (*UnimplementedAccessManagerServer) GetRoleModule(ctx context.Context, req *GetRoleModuleRequest) (*GetRoleModuleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoleModule not implemented")
+}
+func (*UnimplementedAccessManagerServer) ModifyRoleModule(ctx context.Context, req *ModifyRoleModuleRequest) (*ModifyRoleModuleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyRoleModule not implemented")
+}
+func (*UnimplementedAccessManagerServer) CreateRole(ctx context.Context, req *CreateRoleRequest) (*CreateRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRole not implemented")
+}
+func (*UnimplementedAccessManagerServer) DeleteRoles(ctx context.Context, req *DeleteRolesRequest) (*DeleteRolesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoles not implemented")
+}
+func (*UnimplementedAccessManagerServer) ModifyRole(ctx context.Context, req *ModifyRoleRequest) (*ModifyRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModifyRole not implemented")
+}
+func (*UnimplementedAccessManagerServer) GetRole(ctx context.Context, req *GetRoleRequest) (*GetRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRole not implemented")
+}
+func (*UnimplementedAccessManagerServer) DescribeRoles(ctx context.Context, req *DescribeRolesRequest) (*DescribeRolesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeRoles not implemented")
+}
+func (*UnimplementedAccessManagerServer) BindUserRole(ctx context.Context, req *BindUserRoleRequest) (*BindUserRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BindUserRole not implemented")
+}
+func (*UnimplementedAccessManagerServer) UnbindUserRole(ctx context.Context, req *UnbindUserRoleRequest) (*UnbindUserRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnbindUserRole not implemented")
+}
+
 func RegisterAccessManagerServer(s *grpc.Server, srv AccessManagerServer) {
 	s.RegisterService(&_AccessManager_serviceDesc, srv)
 }
@@ -5105,6 +5198,17 @@ type TokenManagerServer interface {
 	//
 	// Get token
 	Token(context.Context, *TokenRequest) (*TokenResponse, error)
+}
+
+// UnimplementedTokenManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedTokenManagerServer struct {
+}
+
+func (*UnimplementedTokenManagerServer) CreateClient(ctx context.Context, req *CreateClientRequest) (*CreateClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateClient not implemented")
+}
+func (*UnimplementedTokenManagerServer) Token(ctx context.Context, req *TokenRequest) (*TokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Token not implemented")
 }
 
 func RegisterTokenManagerServer(s *grpc.Server, srv TokenManagerServer) {

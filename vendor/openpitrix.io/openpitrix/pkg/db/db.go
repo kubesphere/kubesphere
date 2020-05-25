@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gocraft/dbr"
@@ -91,6 +90,14 @@ func (b *SelectQuery) Join(table, on interface{}) *SelectQuery {
 	b.SelectBuilder.Join(table, on)
 	return b
 }
+func (b *SelectQuery) RightJoin(table, on interface{}) *SelectQuery {
+	b.SelectBuilder.RightJoin(table, on)
+	return b
+}
+func (b *SelectQuery) LeftJoin(table, on interface{}) *SelectQuery {
+	b.SelectBuilder.LeftJoin(table, on)
+	return b
+}
 
 func (b *SelectQuery) JoinAs(table string, alias string, on interface{}) *SelectQuery {
 	b.SelectBuilder.Join(dbr.I(table).As(alias), on)
@@ -143,13 +150,12 @@ func (b *SelectQuery) LoadOne(value interface{}) error {
 }
 
 func getColumns(dbrColumns []interface{}) string {
-	var columns []string
 	for _, column := range dbrColumns {
 		if c, ok := column.(string); ok {
-			columns = append(columns, c)
+			return c
 		}
 	}
-	return strings.Join(columns, ", ")
+	return "*"
 }
 
 func (b *SelectQuery) Count() (count uint32, err error) {

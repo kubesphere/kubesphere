@@ -2,9 +2,9 @@
 # Use of this source code is governed by a Apache license
 # that can be found in the LICENSE file.
 
-FROM dhoer/flyway:5.1.4-mysql-8.0.11-alpine
+FROM openpitrix/flyway:alpine
 
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+USER root
 RUN apk add --no-cache mysql-client
 
 COPY ./schema /flyway/sql

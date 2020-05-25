@@ -26,7 +26,7 @@ github.com/alecthomas/units
 github.com/andybalholm/cascadia
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a => github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.22.2 => github.com/aws/aws-sdk-go v1.22.2
+# github.com/aws/aws-sdk-go v1.25.21 => github.com/aws/aws-sdk-go v1.22.2
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -110,11 +110,11 @@ github.com/docker/docker/client
 github.com/docker/docker/errdefs
 github.com/docker/docker/pkg/term
 github.com/docker/docker/pkg/term/windows
-# github.com/docker/go-connections v0.3.0 => github.com/docker/go-connections v0.3.0
+# github.com/docker/go-connections v0.4.0 => github.com/docker/go-connections v0.3.0
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
-# github.com/docker/go-units v0.3.3 => github.com/docker/go-units v0.3.3
+# github.com/docker/go-units v0.4.0 => github.com/docker/go-units v0.3.3
 github.com/docker/go-units
 # github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c => github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c
 github.com/docker/spdystream
@@ -134,11 +134,11 @@ github.com/elastic/go-elasticsearch/v7
 github.com/elastic/go-elasticsearch/v7/esapi
 github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
-# github.com/emicklei/go-restful v2.9.5+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
+# github.com/emicklei/go-restful v2.11.1+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
+github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0 => github.com/emicklei/go-restful-openapi v1.0.0
 github.com/emicklei/go-restful-openapi
-github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -176,9 +176,9 @@ github.com/go-openapi/jsonpointer
 github.com/go-openapi/jsonreference
 # github.com/go-openapi/loads v0.19.2 => github.com/go-openapi/loads v0.19.2
 github.com/go-openapi/loads
-# github.com/go-openapi/runtime v0.19.0 => github.com/go-openapi/runtime v0.19.0
+# github.com/go-openapi/runtime v0.19.7 => github.com/go-openapi/runtime v0.19.0
 github.com/go-openapi/runtime
-# github.com/go-openapi/spec v0.19.3 => github.com/go-openapi/spec v0.19.3
+# github.com/go-openapi/spec v0.19.4 => github.com/go-openapi/spec v0.19.3
 github.com/go-openapi/spec
 # github.com/go-openapi/strfmt v0.19.3 => github.com/go-openapi/strfmt v0.19.0
 github.com/go-openapi/strfmt
@@ -210,7 +210,7 @@ github.com/gobwas/glob/util/strings
 # github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6 => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 github.com/gocraft/dbr
 github.com/gocraft/dbr/dialect
-# github.com/gogo/protobuf v1.3.0 => github.com/gogo/protobuf v1.3.0
+# github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.0
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
@@ -221,17 +221,15 @@ github.com/gogo/protobuf/types
 github.com/golang/example/stringutil
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b => github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
-# github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 => github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
+# github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 => github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
 github.com/golang/groupcache/lru
 # github.com/golang/mock v1.2.0 => github.com/golang/mock v1.2.0
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.3.2 => github.com/golang/protobuf v1.3.2
+github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
-github.com/golang/protobuf/protoc-gen-go/generator
-github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
-github.com/golang/protobuf/protoc-gen-go/plugin
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
@@ -259,15 +257,15 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 # github.com/gorilla/mux v1.7.1 => github.com/gorilla/mux v1.7.1
 github.com/gorilla/mux
-# github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.0
+# github.com/gorilla/websocket v1.4.1 => github.com/gorilla/websocket v1.4.0
 github.com/gorilla/websocket
-# github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4 => github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+# github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 => github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 github.com/grpc-ecosystem/go-grpc-middleware
 github.com/grpc-ecosystem/go-grpc-middleware/recovery
 github.com/grpc-ecosystem/go-grpc-middleware/validator
 # github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 github.com/grpc-ecosystem/go-grpc-prometheus
-# github.com/grpc-ecosystem/grpc-gateway v1.9.6 => github.com/grpc-ecosystem/grpc-gateway v1.9.6
+# github.com/grpc-ecosystem/grpc-gateway v1.11.3 => github.com/grpc-ecosystem/grpc-gateway v1.11.3
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options
 github.com/grpc-ecosystem/grpc-gateway/runtime
@@ -294,7 +292,7 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/imdario/mergo v0.3.7 => github.com/imdario/mergo v0.3.7
+# github.com/imdario/mergo v0.3.8 => github.com/imdario/mergo v0.3.7
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0 => github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -498,7 +496,7 @@ github.com/projectcalico/libcalico-go/lib/scope
 github.com/projectcalico/libcalico-go/lib/selector
 github.com/projectcalico/libcalico-go/lib/selector/parser
 github.com/projectcalico/libcalico-go/lib/selector/tokenizer
-# github.com/prometheus/client_golang v1.0.0 => github.com/prometheus/client_golang v0.9.4
+# github.com/prometheus/client_golang v1.2.1 => github.com/prometheus/client_golang v0.9.4
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1
 github.com/prometheus/client_golang/prometheus
@@ -532,7 +530,7 @@ github.com/rcrowley/go-metrics
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/sirupsen/logrus v1.4.2 => github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
-# github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009 => github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
+# github.com/sony/sonyflake v1.0.0 => github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
 github.com/sony/sonyflake
 # github.com/speps/go-hashids v2.0.0+incompatible => github.com/speps/go-hashids v2.0.0+incompatible
 github.com/speps/go-hashids
@@ -576,7 +574,7 @@ github.com/syndtr/goleveldb/leveldb/util
 github.com/xanzy/ssh-agent
 # github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b => github.com/yashtewari/glob-intersection v0.0.0-20180916065949-5c77d914dd0b
 github.com/yashtewari/glob-intersection
-# go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 => go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
+# go.etcd.io/etcd v3.3.17+incompatible => go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
 go.etcd.io/etcd/auth/authpb
 go.etcd.io/etcd/clientv3
 go.etcd.io/etcd/clientv3/balancer
@@ -608,7 +606,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392 => golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+# golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 => golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -676,9 +674,9 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+# golang.org/x/time v0.0.0-20191024005414-555d28b269f0 => golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20190920225731-5eefd052ad72 => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
+# golang.org/x/tools v0.0.0-20191029041327-9cc4af7d6b2c => golang.org/x/tools v0.0.0-20190710153321-831012c29e42
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
@@ -1361,7 +1359,7 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
+# openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

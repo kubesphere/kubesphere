@@ -8,32 +8,27 @@ go 1.12
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
-	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
-	github.com/aws/aws-sdk-go v1.22.2
+	github.com/aws/aws-sdk-go v1.25.21
 	github.com/beevik/etree v1.1.0
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
-	github.com/docker/go-connections v0.3.0 // indirect
-	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/elastic/go-elasticsearch/v5 v5.6.1
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
 	github.com/elastic/go-elasticsearch/v7 v7.3.0
-	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
-	github.com/emicklei/go-restful v2.9.5+incompatible
+	github.com/emicklei/go-restful v2.11.1+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/loads v0.19.2
-	github.com/go-openapi/spec v0.19.3
+	github.com/go-openapi/spec v0.19.4
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/validate v0.19.5
 	github.com/go-redis/redis v6.15.2+incompatible
@@ -46,7 +41,7 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.1 // indirect
-	github.com/gorilla/websocket v1.4.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
@@ -56,22 +51,20 @@ require (
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
-	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/open-policy-agent/opa v0.18.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/openshift/api v0.0.0-20180801171038-322a19404e37 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectcalico/kube-controllers v3.8.8+incompatible
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.2.1
 	github.com/prometheus/common v0.4.1
 	github.com/prometheus/prometheus v1.8.2
-	github.com/sony/sonyflake v0.0.0-20181109022403-6d5bd6181009
+	github.com/sony/sonyflake v1.0.0
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -79,7 +72,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.26.0
@@ -102,8 +95,6 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl v0.17.3
-	kubesphere.io/im v0.1.0 // indirect
-	openpitrix.io/iam v0.1.0 // indirect
 	openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
 	sigs.k8s.io/controller-runtime v0.5.0
 	sigs.k8s.io/controller-tools v0.2.4
@@ -240,7 +231,7 @@ replace (
 	github.com/gregjones/httpcache => github.com/gregjones/httpcache v0.0.0-20170728041850-787624de3eb7
 	github.com/grpc-ecosystem/go-grpc-middleware => github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus => github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.9.6
+	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.11.3
 	github.com/hashicorp/go-version => github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.3
 	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.0
@@ -435,7 +426,7 @@ replace (
 	modernc.org/xc => modernc.org/xc v1.0.0
 	openpitrix.io/iam => openpitrix.io/iam v0.1.0
 	openpitrix.io/logger => openpitrix.io/logger v0.1.0
-	openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c
+	openpitrix.io/openpitrix => github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348
 	rsc.io/goversion => rsc.io/goversion v1.0.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.4
