@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Following code copied from k8s.io/apiserver/pkg/authentication/request/bearertoken to avoid import collision
+
 package bearertoken
 
 import (

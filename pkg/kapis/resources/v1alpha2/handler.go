@@ -49,7 +49,8 @@ func newResourceHandler(k8sClient kubernetes.Interface, factory informers.Inform
 		gitVerifier:         git.NewGitVerifier(factory.KubernetesSharedInformerFactory()),
 		registryGetter:      registries.NewRegistryGetter(factory.KubernetesSharedInformerFactory()),
 		kubeconfigOperator:  kubeconfig.NewOperator(k8sClient, nil, masterURL),
-		kubectlOperator:     kubectl.NewOperator(k8sClient, factory.KubernetesSharedInformerFactory()),
+		kubectlOperator: kubectl.NewOperator(k8sClient, factory.KubernetesSharedInformerFactory(),
+			factory.KubeSphereSharedInformerFactory()),
 	}
 }
 

@@ -32,6 +32,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
+// Following code copied from k8s.io/apiserver/pkg/authorization/union to avoid import collision
+
 // unionAuthzHandler authorizer against a chain of authorizer.Authorizer
 type unionAuthzHandler []authorizer.Authorizer
 

@@ -9,6 +9,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
+	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
@@ -17,16 +18,17 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
+	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 )
 
 type tenantHandler struct {
 	tenant tenant.Interface
 }
 
-func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client) *tenantHandler {
+func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Interface) *tenantHandler {
 
 	return &tenantHandler{
-		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient),
+		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient),
 	}
 }
 
@@ -244,4 +246,39 @@ func (h *tenantHandler) Events(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteEntity(result)
 
+}
+
+func (h *tenantHandler) QueryLogs(req *restful.Request, resp *restful.Response) {
+	user, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+		return
+	}
+	queryParam, err := loggingv1alpha2.ParseQueryParameter(req)
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, req, err)
+		return
+	}
+
+	if queryParam.Operation == loggingv1alpha2.OperationExport {
+		resp.Header().Set(restful.HEADER_ContentType, "text/plain")
+		resp.Header().Set("Content-Disposition", "attachment")
+		err := h.tenant.ExportLogs(user, queryParam, resp)
+		if err != nil {
+			klog.Errorln(err)
+			api.HandleInternalError(resp, req, err)
+			return
+		}
+	} else {
+		result, err := h.tenant.QueryLogs(user, queryParam)
+		if err != nil {
+			klog.Errorln(err)
+			api.HandleInternalError(resp, req, err)
+			return
+		}
+		resp.WriteAsJson(result)
+	}
 }

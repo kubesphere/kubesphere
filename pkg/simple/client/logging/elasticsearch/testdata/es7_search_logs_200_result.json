@@ -1,0 +1,29 @@
+{
+  "total": 10000,
+  "records": [
+    {
+      "time": "2020-05-16T16:00:42.608962452Z",
+      "log": "10.233.30.76    redis-ha-announce-0.kubesphere-system.svc.cluster.local\n",
+      "namespace": "kubesphere-system",
+      "pod": "redis-ha-haproxy-ffb8d889d-8x9kj",
+      "container": "config-init",
+      "host": "master0"
+    },
+    {
+      "time": "2020-05-16T16:00:42.670430525Z",
+      "log": "10.233.30.204   redis-ha-announce-1.kubesphere-system.svc.cluster.local\n",
+      "namespace": "kubesphere-system",
+      "pod": "redis-ha-haproxy-ffb8d889d-8x9kj",
+      "container": "config-init",
+      "host": "master0"
+    },
+    {
+      "time": "2020-05-16T16:00:42.731865428Z",
+      "log": "scvg14005: inuse: 16, idle: 42, sys: 58, released: 40, consumed: 17 (MB)\n",
+      "namespace": "istio-system",
+      "pod": "redis-ha-haproxy-ffb8d889d-8x9kj",
+      "container": "mixer",
+      "host": "node0"
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+{
+  "took": 171,
+  "timed_out": false,
+  "_shards": {
+    "total": 10,
+    "successful": 10,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": 241222,
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "Hn1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:29.015Z",
+          "log": "  value: \"hostpath\"\n",
+          "time": "2020-02-28T19:25:29.015492329Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "I31GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:33.103Z",
+          "log": "I0228 19:25:33.102631       1 controller.go:1040] provision \"kubesphere-system/redis-pvc\" class \"local\": trying to save persistentvolume \"pvc-be6d127d-9366-4ea8-b1ce-f30c1b3a447b\"\n",
+          "time": "2020-02-28T19:25:33.103075891Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "JX1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:33.113Z",
+          "log": "I0228 19:25:33.112200       1 controller.go:1088] provision \"kubesphere-system/redis-pvc\" class \"local\": succeeded\n",
+          "time": "2020-02-28T19:25:33.113110332Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "Kn1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:34.168Z",
+          "log": "  value: \"hostpath\"\n",
+          "time": "2020-02-28T19:25:34.168983384Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "LH1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:34.168Z",
+          "log": "  value: \"/var/openebs/local/\"\n",
+          "time": "2020-02-28T19:25:34.168997393Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "NX1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:25:42.868Z",
+          "log": "I0228 19:25:42.868413       1 config.go:83] SC local has config:- name: StorageType\n",
+          "time": "2020-02-28T19:25:42.868578188Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "Q31GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:26:13.881Z",
+          "log": "- name: BasePath\n",
+          "time": "2020-02-28T19:26:13.881180681Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "S31GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:26:14.597Z",
+          "log": "  value: \"/var/openebs/local/\"\n",
+          "time": "2020-02-28T19:26:14.597702238Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "TH1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:26:14.597Z",
+          "log": "I0228 19:26:14.597007       1 provisioner_hostpath.go:42] Creating volume pvc-c3b1e67f-00d2-407d-8c45-690bb273c16a at ks-allinone:/var/openebs/local/pvc-c3b1e67f-00d2-407d-8c45-690bb273c16a\n",
+          "time": "2020-02-28T19:26:14.597708432Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      },
+      {
+        "_index": "ks-logstash-log-2020.02.28",
+        "_type": "flb_type",
+        "_id": "UX1GjXABMO5aQxyNsyxy",
+        "_score": 1.0,
+        "_source": {
+          "@timestamp": "2020-02-28T19:26:15.920Z",
+          "log": "I0228 19:26:15.915071       1 event.go:221] Event(v1.ObjectReference{Kind:\"PersistentVolumeClaim\", Namespace:\"kubesphere-system\", Name:\"mysql-pvc\", UID:\"1e87deb5-eaec-475f-8eb6-8613b3be80a4\", APIVersion:\"v1\", ResourceVersion:\"2397\", FieldPath:\"\"}): type: 'Normal' reason: 'ProvisioningSucceeded' Successfully provisioned volume pvc-1e87deb5-eaec-475f-8eb6-8613b3be80a4\n",
+          "time": "2020-02-28T19:26:15.920650572Z",
+          "kubernetes": {
+            "pod_name": "openebs-localpv-provisioner-55c66b57b4-jgtjc",
+            "namespace_name": "kube-system",
+            "host": "ks-allinone",
+            "container_name": "openebs-localpv-provisioner",
+            "docker_id": "cac01cd01cc79d8a8903ddbe6fbde9ac7497919a3f33c61861443703a9e08b39",
+            "container_hash": "25d789bcd3d12a4ba50bbb56eed1de33279d04352adbba8fd7e3b7b938aec806"
+          }
+        }
+      }
+    ]
+  },
+  "aggregations": {
+    "container_count": {
+      "value": 93
+    }
+  }
+}

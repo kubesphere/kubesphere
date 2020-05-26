@@ -1,19 +1,17 @@
 /*
+Copyright 2019 The KubeSphere Authors.
 
- Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package kubeconfig
@@ -58,7 +56,6 @@ const (
 type Interface interface {
 	GetKubeConfig(username string) (string, error)
 	CreateKubeConfig(user *iamv1alpha2.User) error
-	DelKubeConfig(username string) error
 	UpdateKubeconfig(username string, certificate []byte) error
 }
 
@@ -135,7 +132,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 	}
 
 	cm := &corev1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: configMapKind, APIVersion: configMapAPIVersion},
-		ObjectMeta: metav1.ObjectMeta{Name: configName, Annotations: map[string]string{constants.UsernameAnnotationKey: user.Name}},
+		ObjectMeta: metav1.ObjectMeta{Name: configName, Labels: map[string]string{constants.UsernameLabelKey: user.Name}},
 		Data:       map[string]string{kubeconfigFileName: string(kubeconfig)}}
 
 	err = controllerutil.SetControllerReference(user, cm, scheme.Scheme)
@@ -188,18 +185,6 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 	return string(data), nil
 }
 
-func (o *operator) DelKubeConfig(username string) error {
-	configName := fmt.Sprintf(kubeconfigNameFormat, username)
-
-	deletePolicy := metav1.DeletePropagationBackground
-	err := o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(configName, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
-	if err != nil {
-		klog.Errorln(err)
-		return err
-	}
-	return nil
-}
-
 func (o *operator) createCSR(username string) ([]byte, error) {
 	csrConfig := &certutil.Config{
 		CommonName:   username,
@@ -247,8 +232,8 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 			APIVersion: "certificates.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        csrName,
-			Annotations: map[string]string{constants.UsernameAnnotationKey: username},
+			Name:   csrName,
+			Labels: map[string]string{constants.UsernameLabelKey: username},
 		},
 		Spec: certificatesv1beta1.CertificateSigningRequestSpec{
 			Request:  csr,
