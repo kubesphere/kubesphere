@@ -40,7 +40,8 @@ func init() {
 
 func NewWebService(gv schema.GroupVersion) *restful.WebService {
 	webservice := restful.WebService{}
-	webservice.Path(ApiRootPath + "/" + gv.String())
+	webservice.Path(ApiRootPath + "/" + gv.String()).
+		Produces(restful.MIME_JSON)
 
 	return &webservice
 }
