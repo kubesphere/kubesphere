@@ -60,6 +60,7 @@ import (
 	servicemeshv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/kapis/version"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
@@ -202,6 +203,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.InformerFactory.KubernetesSharedInformerFactory()))
 	urlruntime.Must(notificationv1.AddToContainer(s.container, s.Config.NotificationOptions.Endpoint))
 	urlruntime.Must(alertingv1.AddToContainer(s.container, s.Config.AlertingOptions.Endpoint))
+	urlruntime.Must(version.AddToContainer(s.container, s.KubernetesClient.Discovery()))
 }
 
 func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
@@ -253,7 +255,7 @@ func (s *APIServer) buildHandlerChain() {
 	default:
 		fallthrough
 	case authorizationoptions.RBAC:
-		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*"}
+		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
 		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewRBACAuthorizer(amOperator))

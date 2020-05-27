@@ -33,6 +33,12 @@ func AddToContainer(container *restful.Container,
 		To(h.GenerateAgentDeployment).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
+	webservice.Route(webservice.POST("/clusters/validation").
+		Doc("").
+		Param(webservice.BodyParameter("cluster", "cluster specification")).
+		To(h.ValidateCluster).
+		Returns(http.StatusOK, api.StatusOK, nil))
+
 	container.Add(webservice)
 
 	return nil
