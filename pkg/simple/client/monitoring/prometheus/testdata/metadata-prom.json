@@ -1,0 +1,35 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "target": {
+        "instance": "127.0.0.1:9090",
+        "job": "prometheus"
+      },
+      "metric": "prometheus_treecache_zookeeper_failures_total",
+      "type": "counter",
+      "help": "The total number of ZooKeeper failures.",
+      "unit": ""
+    },
+    {
+      "target": {
+        "instance": "127.0.0.1:9090",
+        "job": "prometheus"
+      },
+      "metric": "prometheus_tsdb_reloads_total",
+      "type": "counter",
+      "help": "Number of times the database reloaded block data from disk.",
+      "unit": ""
+    },
+    {
+      "target": {
+        "instance": "127.0.0.1:9090",
+        "job": "prometheus"
+      },
+      "metric": "prometheus_tsdb_reloads_total",
+      "type": "counter",
+      "help": "Number of times the database reloaded block data from disk.",
+      "unit": ""
+    }
+  ]
+}

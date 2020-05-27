@@ -1,0 +1,32 @@
+{
+  "query":{
+    "bool":{
+      "filter":[
+        {
+          "bool":{
+            "should":[
+              {
+                "match_phrase":{
+                  "kubernetes.container_name.keyword":"mysql-1"
+                }
+              }
+            ],
+            "minimum_should_match":1
+          }
+        },
+        {
+          "bool":{
+            "should":[
+              {
+                "match_phrase_prefix":{
+                  "kubernetes.container_name":"mysql-3"
+                }
+              }
+            ],
+            "minimum_should_match":1
+          }
+        }
+      ]
+    }
+  }
+}

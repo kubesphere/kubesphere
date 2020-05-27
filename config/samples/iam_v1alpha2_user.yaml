@@ -1,0 +1,9 @@
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: User
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: admin
+spec:
+  email: admin@kubesphere.io
+  password: P@88w0rd

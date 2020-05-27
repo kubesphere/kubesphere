@@ -1,20 +1,19 @@
 /*
+Copyright 2019 The KubeSphere Authors.
 
- Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 package params
 
 import (
@@ -30,11 +29,10 @@ const (
 	OrderByParam    = "orderBy"
 	ConditionsParam = "conditions"
 	ReverseParam    = "reverse"
-	NameParam       = "name"
 )
 
-func ParsePaging(paging string) (limit, offset int) {
-
+func ParsePaging(req *restful.Request) (limit, offset int) {
+	paging := req.QueryParameter(PagingParam)
 	limit = 10
 	offset = 0
 	if groups := regexp.MustCompile(`^limit=(-?\d+),page=(\d+)$`).FindStringSubmatch(paging); len(groups) == 3 {
@@ -45,7 +43,9 @@ func ParsePaging(paging string) (limit, offset int) {
 	return
 }
 
-func ParseConditions(conditionsStr string) (*Conditions, error) {
+func ParseConditions(req *restful.Request) (*Conditions, error) {
+
+	conditionsStr := req.QueryParameter(ConditionsParam)
 
 	conditions := &Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
 
@@ -76,18 +76,17 @@ func ParseConditions(conditionsStr string) (*Conditions, error) {
 	return conditions, nil
 }
 
-func ParseReverse(req *restful.Request) bool {
-	reverse := req.QueryParameter(ReverseParam)
-	b, err := strconv.ParseBool(reverse)
-	if err != nil {
-		return false
-	}
-	return b
-}
-
 type Conditions struct {
 	Match map[string]string
 	Fuzzy map[string]string
+}
+
+func GetBoolValueWithDefault(req *restful.Request, name string, dv bool) bool {
+	reverse := req.QueryParameter(name)
+	if v, err := strconv.ParseBool(reverse); err == nil {
+		return v
+	}
+	return dv
 }
 
 func GetStringValueWithDefault(req *restful.Request, name string, dv string) string {

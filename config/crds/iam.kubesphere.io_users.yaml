@@ -1,0 +1,112 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: users.iam.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.email
+    name: Email
+    type: string
+  - JSONPath: .status.state
+    name: Status
+    type: string
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - iam
+    kind: User
+    listKind: UserList
+    plural: users
+    singular: user
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: User is the Schema for the users API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          description: Standard object's metadata.
+          type: object
+        spec:
+          description: UserSpec defines the desired state of User
+          properties:
+            description:
+              description: Description of the user.
+              type: string
+            displayName:
+              type: string
+            email:
+              description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
+              type: string
+            groups:
+              items:
+                type: string
+              type: array
+            lang:
+              description: The preferred written or spoken language for the user.
+              type: string
+            password:
+              description: password will be encrypted by mutating admission webhook
+              type: string
+          required:
+          - email
+          type: object
+        status:
+          description: UserStatus defines the observed state of User
+          properties:
+            conditions:
+              description: Represents the latest available observations of a user's
+                current state.
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of user controller condition.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
+            state:
+              description: The user status
+              type: string
+          type: object
+      required:
+      - spec
+      type: object
+  version: v1alpha2
+  versions:
+  - name: v1alpha2
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

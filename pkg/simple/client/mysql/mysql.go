@@ -19,12 +19,12 @@ import (
 	"k8s.io/klog"
 )
 
-type MySQLClient struct {
+type Client struct {
 	database *Database
 }
 
-func NewMySQLClient(options *MySQLOptions, stopCh <-chan struct{}) (*MySQLClient, error) {
-	var m MySQLClient
+func NewMySQLClient(options *Options, stopCh <-chan struct{}) (*Client, error) {
+	var m Client
 
 	conn, err := dbr.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/devops?parseTime=1&multiStatements=1&charset=utf8mb4&collation=utf8mb4_unicode_ci", options.Username, options.Password, options.Host), nil)
 	if err != nil {
@@ -50,8 +50,8 @@ func NewMySQLClient(options *MySQLOptions, stopCh <-chan struct{}) (*MySQLClient
 	return &m, nil
 }
 
-func NewMySQLClientOrDie(options *MySQLOptions, stopCh <-chan struct{}) *MySQLClient {
-	var m MySQLClient
+func NewMySQLClientOrDie(options *Options, stopCh <-chan struct{}) *Client {
+	var m Client
 
 	conn, err := dbr.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/devops?parseTime=1&multiStatements=1&charset=utf8mb4&collation=utf8mb4_unicode_ci", options.Username, options.Password, options.Host), nil)
 	if err != nil {
@@ -77,6 +77,6 @@ func NewMySQLClientOrDie(options *MySQLOptions, stopCh <-chan struct{}) *MySQLCl
 	return &m
 }
 
-func (m *MySQLClient) Database() *Database {
+func (m *Client) Database() *Database {
 	return m.database
 }

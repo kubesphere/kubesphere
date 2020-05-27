@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-type SonarQubeClient struct {
+type Client struct {
 	client *sonargo.Client
 }
 
-func NewSonarQubeClient(options *SonarQubeOptions) (*SonarQubeClient, error) {
+func NewSonarQubeClient(options *Options) (*Client, error) {
 	var endpoint string
 
 	if strings.HasSuffix(options.Host, "/") {
@@ -26,10 +26,10 @@ func NewSonarQubeClient(options *SonarQubeOptions) (*SonarQubeClient, error) {
 		return nil, err
 	}
 
-	return &SonarQubeClient{client: sonar}, err
+	return &Client{client: sonar}, err
 }
 
-func NewSonarQubeClientOrDie(options *SonarQubeOptions) *SonarQubeClient {
+func NewSonarQubeClientOrDie(options *Options) *Client {
 	var endpoint string
 
 	if strings.HasSuffix(options.Host, "/") {
@@ -44,11 +44,11 @@ func NewSonarQubeClientOrDie(options *SonarQubeOptions) *SonarQubeClient {
 		panic(err)
 	}
 
-	return &SonarQubeClient{client: sonar}
+	return &Client{client: sonar}
 }
 
 // return sonarqube client
 // Also we can wrap some methods to avoid direct use sonar client
-func (s *SonarQubeClient) SonarQube() *sonargo.Client {
+func (s *Client) SonarQube() *sonargo.Client {
 	return s.client
 }

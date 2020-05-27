@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,12 @@ import (
 type Interface interface {
 	// S2iBinaries returns a S2iBinaryInformer.
 	S2iBinaries() S2iBinaryInformer
+	// S2iBuilders returns a S2iBuilderInformer.
+	S2iBuilders() S2iBuilderInformer
+	// S2iBuilderTemplates returns a S2iBuilderTemplateInformer.
+	S2iBuilderTemplates() S2iBuilderTemplateInformer
+	// S2iRuns returns a S2iRunInformer.
+	S2iRuns() S2iRunInformer
 }
 
 type version struct {
@@ -42,4 +48,19 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // S2iBinaries returns a S2iBinaryInformer.
 func (v *version) S2iBinaries() S2iBinaryInformer {
 	return &s2iBinaryInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// S2iBuilders returns a S2iBuilderInformer.
+func (v *version) S2iBuilders() S2iBuilderInformer {
+	return &s2iBuilderInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// S2iBuilderTemplates returns a S2iBuilderTemplateInformer.
+func (v *version) S2iBuilderTemplates() S2iBuilderTemplateInformer {
+	return &s2iBuilderTemplateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// S2iRuns returns a S2iRunInformer.
+func (v *version) S2iRuns() S2iRunInformer {
+	return &s2iRunInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

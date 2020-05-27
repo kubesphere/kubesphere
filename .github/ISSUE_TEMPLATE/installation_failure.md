@@ -1,16 +1,23 @@
 ---
-name: 安装问题
-about: Create a report to help us improve
+name: Installation Issue
+about: Create an issue to help us improve installation
 ---
 
-[备注]: <> (请补全下面信息，帮助我们更快地定位问题。提交问题前预览下issue，看下是否有格式错误)
+## English only!
 
-**问题描述**
+**注意！GitHub Issue 仅支持英文，中文 Issue 请在 [论坛](https://kubesphere.com.cn/forum/) 提交。**
 
-**安装环境的硬件配置**
+**What's your question**
 
-[备注]: <> (请说明节点的运行环境，是否是物理机，云主机，VMware虚拟机)
 
-**错误信息或截图**
+**Environment: OS & Hardware Information**
 
-**Installer版本**
+> Important: You must describe your environment clearly, e.g. VMware or Bare Metal, CentOS 7.5, 8 C / 16 G (If you install on Linux), Or Kubernetes v1.16 (If you install on K8s).
+
+
+**Error logs or message (Attach logs or screenshot)**
+
+
+**Installer Version**
+
+> e.g. v2.1.0, v2.1.1

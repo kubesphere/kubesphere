@@ -2,9 +2,6 @@ package s2ibinary
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -16,7 +13,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client"
+	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"time"
 
@@ -26,7 +23,11 @@ import (
 	devopslisters "kubesphere.io/kubesphere/pkg/client/listers/devops/v1alpha1"
 )
 
-type S2iBinaryController struct {
+/**
+s2ibinary-controller used to handle s2ibinary's delete logic.
+s2ibinary creation and file upload provided by kubesphere/kapis
+*/
+type Controller struct {
 	client       clientset.Interface
 	devopsClient devopsclient.Interface
 
@@ -39,11 +40,14 @@ type S2iBinaryController struct {
 	workqueue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
+
+	s3Client s3.Interface
 }
 
-func NewController(devopsclientset devopsclient.Interface,
-	client clientset.Interface,
-	s2ibinInformer devopsinformers.S2iBinaryInformer) *S2iBinaryController {
+func NewController(client clientset.Interface,
+	devopsclientset devopsclient.Interface,
+	s2ibinInformer devopsinformers.S2iBinaryInformer,
+	s3Client s3.Interface) *Controller {
 
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(func(format string, args ...interface{}) {
@@ -52,13 +56,14 @@ func NewController(devopsclientset devopsclient.Interface,
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: client.CoreV1().Events("")})
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "s2ibinary-controller"})
 
-	v := &S2iBinaryController{
+	v := &Controller{
 		client:           client,
 		devopsClient:     devopsclientset,
 		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "s2ibinary"),
 		s2iBinaryLister:  s2ibinInformer.Lister(),
 		s2iBinarySynced:  s2ibinInformer.Informer().HasSynced,
 		workerLoopPeriod: time.Second,
+		s3Client:         s3Client,
 	}
 
 	v.eventBroadcaster = broadcaster
@@ -82,7 +87,7 @@ func NewController(devopsclientset devopsclient.Interface,
 // enqueueS2iBinary takes a Foo resource and converts it into a namespace/name
 // string which is then put onto the work workqueue. This method should *not* be
 // passed resources of any type other than S2iBinary.
-func (c *S2iBinaryController) enqueueS2iBinary(obj interface{}) {
+func (c *Controller) enqueueS2iBinary(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -92,7 +97,7 @@ func (c *S2iBinaryController) enqueueS2iBinary(obj interface{}) {
 	c.workqueue.Add(key)
 }
 
-func (c *S2iBinaryController) processNextWorkItem() bool {
+func (c *Controller) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -127,17 +132,17 @@ func (c *S2iBinaryController) processNextWorkItem() bool {
 	return true
 }
 
-func (c *S2iBinaryController) worker() {
+func (c *Controller) worker() {
 
 	for c.processNextWorkItem() {
 	}
 }
 
-func (c *S2iBinaryController) Start(stopCh <-chan struct{}) error {
+func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(1, stopCh)
 }
 
-func (c *S2iBinaryController) Run(workers int, stopCh <-chan struct{}) error {
+func (c *Controller) Run(workers int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
@@ -159,7 +164,7 @@ func (c *S2iBinaryController) Run(workers int, stopCh <-chan struct{}) error {
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Foo resource
 // with the current status of the resource.
-func (c *S2iBinaryController) syncHandler(key string) error {
+func (c *Controller) syncHandler(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		klog.Error(err, fmt.Sprintf("could not split s2ibin meta %s ", key))
@@ -204,30 +209,13 @@ func (c *S2iBinaryController) syncHandler(key string) error {
 	return nil
 }
 
-func (c *S2iBinaryController) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
-	s3Client, err := client.ClientSets().S3()
+func (c *Controller) deleteBinaryInS3(s2ibin *devopsv1alpha1.S2iBinary) error {
+
+	key := fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)
+	err := c.s3Client.Delete(key)
 	if err != nil {
-		return err
+		klog.Errorf("error happened while deleting %s, %v", key, err)
 	}
 
-	input := &s3.DeleteObjectInput{
-		Bucket: s3Client.Bucket(),
-		Key:    aws.String(fmt.Sprintf("%s-%s", s2ibin.Namespace, s2ibin.Name)),
-	}
-	_, err = s3Client.Client().DeleteObject(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeNoSuchKey:
-				return nil
-			default:
-				klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s in s3", s2ibin.Namespace, s2ibin.Name))
-				return err
-			}
-		} else {
-			klog.Error(err, fmt.Sprintf("failed to delete s2ibin %s/%s in s3", s2ibin.Namespace, s2ibin.Name))
-			return err
-		}
-	}
 	return nil
 }

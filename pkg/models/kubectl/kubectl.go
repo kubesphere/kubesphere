@@ -1,44 +1,60 @@
 /*
+Copyright 2019 The KubeSphere Authors.
 
- Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package kubectl
 
 import (
 	"fmt"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/models"
-	"kubesphere.io/kubesphere/pkg/simple/client"
-	"math/rand"
-	"os"
-
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
+	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/models"
+	"math/rand"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
 const (
-	namespace = constants.KubeSphereControlNamespace
+	namespace        = constants.KubeSphereControlNamespace
+	deployNameFormat = "kubectl-%s"
 )
+
+type Interface interface {
+	GetKubectlPod(username string) (models.PodInfo, error)
+	CreateKubectlDeploy(username string) error
+}
+
+type operator struct {
+	k8sClient   kubernetes.Interface
+	k8sInformer k8sinformers.SharedInformerFactory
+	ksInformer  ksinformers.SharedInformerFactory
+}
+
+func NewOperator(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory) Interface {
+	return &operator{k8sClient: k8sClient, k8sInformer: k8sInformer, ksInformer: ksInformer}
+}
 
 var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
 
@@ -48,24 +64,23 @@ func init() {
 	}
 }
 
-func GetKubectlPod(username string) (models.PodInfo, error) {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-	deployName := fmt.Sprintf("kubectl-%s", username)
-	deploy, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
+func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
+	deployName := fmt.Sprintf(deployNameFormat, username)
+	deploy, err := o.k8sInformer.Apps().V1().Deployments().Lister().Deployments(namespace).Get(deployName)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
 	selectors := deploy.Spec.Selector.MatchLabels
-	labelSelector := labels.Set(selectors).AsSelector().String()
-	podList, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+	labelSelector := labels.Set(selectors).AsSelector()
+	pods, err := o.k8sInformer.Core().V1().Pods().Lister().Pods(namespace).List(labelSelector)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
 	}
 
-	pod, err := selectCorrectPod(namespace, podList.Items)
+	pod, err := selectCorrectPod(namespace, pods)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -77,9 +92,9 @@ func GetKubectlPod(username string) (models.PodInfo, error) {
 
 }
 
-func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err error) {
+func selectCorrectPod(namespace string, pods []*v1.Pod) (kubectlPod *v1.Pod, err error) {
 
-	var kubectlPodList []v1.Pod
+	var kubectlPodList []*v1.Pod
 	for _, pod := range pods {
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status == "True" {
@@ -89,24 +104,31 @@ func selectCorrectPod(namespace string, pods []v1.Pod) (kubectlPod v1.Pod, err e
 	}
 	if len(kubectlPodList) < 1 {
 		err = fmt.Errorf("cannot find valid kubectl pod in namespace:%s", namespace)
-		return v1.Pod{}, err
+		return &v1.Pod{}, err
 	}
 
 	random := rand.Intn(len(kubectlPodList))
+
 	return kubectlPodList[random], nil
 }
 
-func CreateKubectlDeploy(username string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-	deployName := fmt.Sprintf("kubectl-%s", username)
-	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
-	if err == nil {
-		return nil
+func (o *operator) CreateKubectlDeploy(username string) error {
+	deployName := fmt.Sprintf(deployNameFormat, username)
+
+	user, err := o.ksInformer.Iam().V1alpha2().Users().Lister().Get(username)
+
+	if err != nil {
+		klog.Error(err)
+		// ignore if user not exist
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	replica := int32(1)
-	selector := metav1.LabelSelector{MatchLabels: map[string]string{"username": username}}
-	deployment := appsv1.Deployment{
+	selector := metav1.LabelSelector{MatchLabels: map[string]string{constants.UsernameLabelKey: username}}
+	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deployName,
 		},
@@ -116,7 +138,7 @@ func CreateKubectlDeploy(username string) error {
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"username": username,
+						constants.UsernameLabelKey: username,
 					},
 				},
 				Spec: v1.PodSpec{
@@ -131,29 +153,20 @@ func CreateKubectlDeploy(username string) error {
 		},
 	}
 
-	_, err = k8sClient.AppsV1().Deployments(namespace).Create(&deployment)
-
-	return err
-}
-
-func DelKubectlDeploy(username string) error {
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-	deployName := fmt.Sprintf("kubectl-%s", username)
-	_, err := k8sClient.AppsV1().Deployments(namespace).Get(deployName, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		return nil
-	}
+	err = controllerutil.SetControllerReference(user, deployment, scheme.Scheme)
 
 	if err != nil {
-		err := fmt.Errorf("delete username %s failed, reason:%v", username, err)
+		klog.Errorln(err)
 		return err
 	}
 
-	deletePolicy := metav1.DeletePropagationBackground
+	_, err = o.k8sClient.AppsV1().Deployments(namespace).Create(deployment)
 
-	err = k8sClient.AppsV1().Deployments(namespace).Delete(deployName, &metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		err := fmt.Errorf("delete username %s failed, reason:%v", username, err)
+		if errors.IsAlreadyExists(err) {
+			return nil
+		}
+		klog.Error(err)
 		return err
 	}
 
