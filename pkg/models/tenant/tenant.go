@@ -303,20 +303,7 @@ func (t *tenantOperator) listIntersectedNamespaces(user user.Info,
 		iNamespaces []*corev1.Namespace
 	)
 
-	// When user can list all namespaces, the namespaces which do not belong to any workspace should be considered
-	listNs := authorizer.AttributesRecord{
-		User:            user,
-		Verb:            "list",
-		APIGroup:        "",
-		APIVersion:      "v1",
-		Resource:        "namespaces",
-		ResourceRequest: true,
-	}
-	decision, _, err := t.authorizer.Authorize(listNs)
-	if err != nil {
-		return nil, err
-	}
-	includeNsWithoutWs := len(workspaceSet) == 0 && len(workspaceSubstrs) == 0 && decision == authorizer.DecisionAllow
+	includeNsWithoutWs := len(workspaceSet) == 0 && len(workspaceSubstrs) == 0
 
 	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
 	if err != nil {

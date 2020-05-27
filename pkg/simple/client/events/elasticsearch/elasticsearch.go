@@ -226,6 +226,7 @@ func parseToQueryPart(f *events.Filter) interface{} {
 		Filter             []map[string]interface{} `json:"filter,omitempty"`
 		Should             []map[string]interface{} `json:"should,omitempty"`
 		MinimumShouldMatch *int                     `json:"minimum_should_match,omitempty"`
+		MustNot            []map[string]interface{} `json:"must_not,omitempty"`
 	}
 	var mini = 1
 	b := BoolBody{}
@@ -236,19 +237,29 @@ func parseToQueryPart(f *events.Filter) interface{} {
 	if len(f.InvolvedObjectNamespaceMap) > 0 {
 		bi := BoolBody{MinimumShouldMatch: &mini}
 		for k, v := range f.InvolvedObjectNamespaceMap {
-			bi.Should = append(bi.Should, map[string]interface{}{
-				"bool": &BoolBody{
-					Filter: []map[string]interface{}{{
-						"match_phrase": map[string]string{"involvedObject.namespace.keyword": k},
-					}, {
-						"range": map[string]interface{}{
-							"lastTimestamp": map[string]interface{}{
-								"gte": v,
+			if k == "" {
+				bi.Should = append(bi.Should, map[string]interface{}{
+					"bool": &BoolBody{
+						MustNot: []map[string]interface{}{{
+							"exists": map[string]string{"field": "involvedObject.namespace"},
+						}},
+					},
+				})
+			} else {
+				bi.Should = append(bi.Should, map[string]interface{}{
+					"bool": &BoolBody{
+						Filter: []map[string]interface{}{{
+							"match_phrase": map[string]string{"involvedObject.namespace.keyword": k},
+						}, {
+							"range": map[string]interface{}{
+								"lastTimestamp": map[string]interface{}{
+									"gte": v,
+								},
 							},
-						},
-					}},
-				},
-			})
+						}},
+					},
+				})
+			}
 		}
 		if len(bi.Should) > 0 {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": &bi})
