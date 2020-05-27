@@ -378,8 +378,8 @@ github.com/pelletier/go-buffruneio v0.2.0 h1:U4t4R6YkofJ5xHm3dJzuRpPZ0mr5MMCoAWo
 github.com/pelletier/go-buffruneio v0.2.0/go.mod h1:JkE26KsDizTr40EUHkXVtNPvgGtbSNq5BcowyYOWdKo=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
-github.com/pengcong06/openpitrix v0.4.1-0.20200525134834-60559f9a58f0 h1:009KRsTlBcWUdjl8no8hZ9piA4BdmDZcVJL56c1cGVs=
-github.com/pengcong06/openpitrix v0.4.1-0.20200525134834-60559f9a58f0/go.mod h1:sLaDrxic8mrYWWJop4GkBSRwQ0AqVIy7TZzbCOynr8o=
+github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348 h1:xZAxtVEzs5646suGdnLdZ9mkX+ZOLlpH4hjI0Fx94JY=
+github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348/go.mod h1:sLaDrxic8mrYWWJop4GkBSRwQ0AqVIy7TZzbCOynr8o=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/peterh/liner v0.0.0-20170211195444-bf27d3ba8e1d/go.mod h1:xIteQHvHuaLYG9IFj6mSxM0fCKrs34IrEQUhOYuGPHc=
 github.com/phayes/freeport v0.0.0-20171002181615-b8543db493a5/go.mod h1:iIss55rKnNBTvrwdmkUpLnDpZoAHvWaiq5+iMmen4AE=

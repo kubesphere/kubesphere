@@ -1,18 +1,16 @@
 /*
 Copyright 2020 The KubeSphere Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package openpitrix
 
 import (
@@ -41,6 +39,7 @@ type ApplicationInterface interface {
 	CreateApplication(runtimeId, namespace string, request CreateClusterRequest) error
 	ModifyApplication(request ModifyClusterAttributesRequest) error
 	DeleteApplication(id string) error
+	UpgradeApplication(request UpgradeClusterRequest) error
 }
 
 type applicationOperator struct {
@@ -395,6 +394,21 @@ func (c *applicationOperator) ModifyApplication(request ModifyClusterAttributesR
 
 func (c *applicationOperator) DeleteApplication(clusterId string) error {
 	_, err := c.opClient.DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
+
+	if err != nil {
+		klog.Errorln(err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *applicationOperator) UpgradeApplication(request UpgradeClusterRequest) error {
+	_, err := c.opClient.UpgradeCluster(openpitrix.ContextWithUsername(request.Username), &pb.UpgradeClusterRequest{
+		ClusterId: &wrappers.StringValue{Value: request.ClusterId},
+		VersionId: &wrappers.StringValue{Value: request.VersionId},
+		Conf:      &wrappers.StringValue{Value: request.Conf},
+	})
 
 	if err != nil {
 		klog.Errorln(err)

@@ -1,3 +1,16 @@
+/*
+Copyright 2020 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v1
 
 import (
@@ -178,6 +191,46 @@ func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restfu
 	if err != nil {
 		klog.Errorln(err)
 		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+}
+
+func (h *openpitrixHandler) UpgradeApplication(req *restful.Request, resp *restful.Response) {
+	runtimeId := req.PathParameter("cluster")
+	namespace := req.PathParameter("namespace")
+	clusterId := req.PathParameter("application")
+	var upgradeClusterRequest openpitrix.UpgradeClusterRequest
+	err := req.ReadEntity(&upgradeClusterRequest)
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	upgradeClusterRequest.Username = req.HeaderParameter(constants.UserNameHeader)
+
+	app, err := h.openpitrix.DescribeApplication(namespace, clusterId, runtimeId)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	if runtimeId != app.Cluster.RuntimeId {
+		err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
+		klog.V(4).Infoln(err)
+		api.HandleForbidden(resp, nil, err)
+		return
+	}
+
+	err = h.openpitrix.UpgradeApplication(upgradeClusterRequest)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
 		return
 	}
 

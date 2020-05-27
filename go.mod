@@ -425,7 +425,7 @@ replace (
 	modernc.org/xc => modernc.org/xc v1.0.0
 	openpitrix.io/iam => openpitrix.io/iam v0.1.0
 	openpitrix.io/logger => openpitrix.io/logger v0.1.0
-	openpitrix.io/openpitrix => github.com/pengcong06/openpitrix v0.4.1-0.20200525134834-60559f9a58f0
+	openpitrix.io/openpitrix => github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348
 	rsc.io/goversion => rsc.io/goversion v1.0.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.4
