@@ -79,7 +79,7 @@ type tenantOperator struct {
 	auditing       auditing.Interface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface,auditingclient auditingclient.Client) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface, auditingclient auditingclient.Client) Interface {
 	amOperator := am.NewReadOnlyOperator(informers)
 	authorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
 	return &tenantOperator{
