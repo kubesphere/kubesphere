@@ -63,6 +63,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/kapis/version"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
+	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
@@ -135,6 +136,8 @@ type APIServer struct {
 	SonarClient sonarqube.SonarInterface
 
 	EventsClient events.Client
+
+	AuditingClient auditing.Client
 }
 
 func (s *APIServer) PrepareRun() error {
@@ -172,7 +175,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(resourcesv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.InformerFactory,
 		s.KubernetesClient.Master()))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(s.container, s.InformerFactory, s.KubernetesClient.Kubernetes(),
-		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient))
+		s.KubernetesClient.KubeSphere(), s.EventsClient, s.LoggingClient, s.AuditingClient))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.KubernetesClient.Config()))
 	urlruntime.Must(clusterkapisv1alpha1.AddToContainer(s.container,
 		s.InformerFactory.KubernetesSharedInformerFactory(),
