@@ -103,8 +103,7 @@ func newTestConfig() (*Config, error) {
 			WeaveScopeHost: "weave-scope-app.weave.svc",
 		},
 		MonitoringOptions: &prometheus.Options{
-			Endpoint:          "http://prometheus.kubesphere-monitoring-system.svc",
-			SecondaryEndpoint: "http://prometheus.kubesphere-monitoring-system.svc",
+			Endpoint: "http://prometheus.kubesphere-monitoring-system.svc",
 		},
 		LoggingOptions: &elasticsearch.Options{
 			Host:        "http://elasticsearch-logging.kubesphere-logging-system.svc:9200",
