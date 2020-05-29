@@ -1,10 +1,7 @@
 # Copyright 2018 The KubeSphere Authors. All rights reserved.
-# Use of this source code is governed by a Apache license
+# Use of this source code is governed by an Apache license
 # that can be found in the LICENSE file.
 
-# Copyright 2018 The KubeSphere Authors. All rights reserved.
-# Use of this source code is governed by a Apache license
-# that can be found in the LICENSE file.
 FROM golang:1.12 as controller-manager-builder
 
 COPY / /go/src/kubesphere.io/kubesphere

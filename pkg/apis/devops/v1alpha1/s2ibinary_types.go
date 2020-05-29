@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2020 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	ResourceKindS2iBinary         = "S2iBinary"
-	ResourceSingularServicePolicy = "s2ibinary"
-	ResourcePluralServicePolicy   = "s2ibinaries"
+	ResourceKindS2iBinary     = "S2iBinary"
+	ResourceSingularS2iBinary = "s2ibinary"
+	ResourcePluralS2iBinary   = "s2ibinaries"
 )
 
 const (

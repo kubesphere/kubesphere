@@ -1,4 +1,4 @@
-# Adds namespace to all resources.
+# Add namespace to all resources.
 namespace: t-system
 
 # Value of this field is prepended to the
@@ -13,7 +13,7 @@ namePrefix: t-
 #  someName: someValue
 
 # Each entry in this list must resolve to an existing
-# resource definition in YAML.  These are the resource
+# resource definition in YAML. These are the resource
 # files that kustomize reads, modifies and emits as a
 # YAML string, with resources separated by document
 # markers ("---").

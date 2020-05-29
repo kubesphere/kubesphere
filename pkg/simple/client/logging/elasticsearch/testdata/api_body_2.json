@@ -1,0 +1,28 @@
+{
+  "query":{
+    "bool":{
+      "filter":[
+        {
+          "bool":{
+            "should":[
+              {
+                "regexp":{
+                  "kubernetes.pod_name.keyword":"mysql-[bcdfghjklmnpqrstvwxz2456789]{1,10}-[a-z0-9]{5}|mysql-[0-9]+|mysql-[a-z0-9]{5}"
+                }
+              }
+            ],
+            "minimum_should_match":1
+          }
+        },
+        {
+          "range":{
+            "time":{
+              "gte":"2020-05-20T21:22:14+08:00",
+              "lte":"2020-05-20T21:38:54+08:00"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

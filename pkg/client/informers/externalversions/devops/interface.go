@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package devops
 
 import (
 	v1alpha1 "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha1"
+	v1alpha3 "kubesphere.io/kubesphere/pkg/client/informers/externalversions/devops/v1alpha3"
 	internalinterfaces "kubesphere.io/kubesphere/pkg/client/informers/externalversions/internalinterfaces"
 )
 
@@ -27,6 +28,8 @@ import (
 type Interface interface {
 	// V1alpha1 provides access to shared informers for resources in V1alpha1.
 	V1alpha1() v1alpha1.Interface
+	// V1alpha3 provides access to shared informers for resources in V1alpha3.
+	V1alpha3() v1alpha3.Interface
 }
 
 type group struct {
@@ -43,4 +46,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // V1alpha1 returns a new v1alpha1.Interface.
 func (g *group) V1alpha1() v1alpha1.Interface {
 	return v1alpha1.New(g.factory, g.namespace, g.tweakListOptions)
+}
+
+// V1alpha3 returns a new v1alpha3.Interface.
+func (g *group) V1alpha3() v1alpha3.Interface {
+	return v1alpha3.New(g.factory, g.namespace, g.tweakListOptions)
 }

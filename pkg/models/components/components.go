@@ -1,65 +1,73 @@
 /*
+Copyright 2019 The KubeSphere Authors.
 
- Copyright 2019 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 package components
 
 import (
 	"fmt"
-	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/informers"
-	"kubesphere.io/kubesphere/pkg/models"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/informers"
+	"k8s.io/klog"
 
+	"kubesphere.io/kubesphere/pkg/api/resource/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 )
 
-func GetComponentStatus(name string) (interface{}, error) {
+type ComponentsGetter interface {
+	GetComponentStatus(name string) (v1alpha2.ComponentStatus, error)
+	GetSystemHealthStatus() (v1alpha2.HealthStatus, error)
+	GetAllComponentsStatus() ([]v1alpha2.ComponentStatus, error)
+}
+
+type componentsGetter struct {
+	informers informers.SharedInformerFactory
+}
+
+func NewComponentsGetter(informers informers.SharedInformerFactory) ComponentsGetter {
+	return &componentsGetter{informers: informers}
+}
+
+func (c *componentsGetter) GetComponentStatus(name string) (v1alpha2.ComponentStatus, error) {
 
 	var service *corev1.Service
 	var err error
 
-	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
-
 	for _, ns := range constants.SystemNamespaces {
-		service, err = serviceLister.Services(ns).Get(name)
+		service, err = c.informers.Core().V1().Services().Lister().Services(ns).Get(name)
 		if err == nil {
 			break
 		}
 	}
 
 	if err != nil {
-		return nil, err
+		return v1alpha2.ComponentStatus{}, err
 	}
 
 	if len(service.Spec.Selector) == 0 {
-		return nil, fmt.Errorf("component %s has no selector", name)
+		return v1alpha2.ComponentStatus{}, fmt.Errorf("component %s has no selector", name)
 	}
 
-	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
-
-	pods, err := podLister.Pods(service.Namespace).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
+	pods, err := c.informers.Core().V1().Pods().Lister().Pods(service.Namespace).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
 
 	if err != nil {
-		return nil, err
+		return v1alpha2.ComponentStatus{}, err
 	}
 
-	component := models.ComponentStatus{
+	component := v1alpha2.ComponentStatus{
 		Name:            service.Name,
 		Namespace:       service.Namespace,
 		SelfLink:        service.SelfLink,
@@ -86,21 +94,20 @@ func isAllContainersReady(pod *corev1.Pod) bool {
 	return true
 }
 
-func GetSystemHealthStatus() (*models.HealthStatus, error) {
+func (c *componentsGetter) GetSystemHealthStatus() (v1alpha2.HealthStatus, error) {
 
-	status := &models.HealthStatus{}
+	status := v1alpha2.HealthStatus{}
 
 	// get kubesphere-system components
-	components, err := GetAllComponentsStatus()
+	components, err := c.GetAllComponentsStatus()
 	if err != nil {
 		klog.Errorln(err)
 	}
 
 	status.KubeSphereComponents = components
 
-	nodeLister := informers.SharedInformerFactory().Core().V1().Nodes().Lister()
 	// get node status
-	nodes, err := nodeLister.List(labels.Everything())
+	nodes, err := c.informers.Core().V1().Nodes().Lister().List(labels.Everything())
 	if err != nil {
 		klog.Errorln(err)
 		return status, nil
@@ -116,7 +123,7 @@ func GetSystemHealthStatus() (*models.HealthStatus, error) {
 			}
 		}
 	}
-	nodeStatus := models.NodeStatus{TotalNodes: totalNodes, HealthyNodes: healthyNodes}
+	nodeStatus := v1alpha2.NodeStatus{TotalNodes: totalNodes, HealthyNodes: healthyNodes}
 
 	status.NodeStatus = nodeStatus
 
@@ -124,16 +131,14 @@ func GetSystemHealthStatus() (*models.HealthStatus, error) {
 
 }
 
-func GetAllComponentsStatus() ([]models.ComponentStatus, error) {
-	serviceLister := informers.SharedInformerFactory().Core().V1().Services().Lister()
-	podLister := informers.SharedInformerFactory().Core().V1().Pods().Lister()
+func (c *componentsGetter) GetAllComponentsStatus() ([]v1alpha2.ComponentStatus, error) {
 
-	components := make([]models.ComponentStatus, 0)
+	components := make([]v1alpha2.ComponentStatus, 0)
 
 	var err error
 	for _, ns := range constants.SystemNamespaces {
 
-		services, err := serviceLister.Services(ns).List(labels.Everything())
+		services, err := c.informers.Core().V1().Services().Lister().Services(ns).List(labels.Everything())
 
 		if err != nil {
 			klog.Error(err)
@@ -147,7 +152,7 @@ func GetAllComponentsStatus() ([]models.ComponentStatus, error) {
 				continue
 			}
 
-			component := models.ComponentStatus{
+			component := v1alpha2.ComponentStatus{
 				Name:            service.Name,
 				Namespace:       service.Namespace,
 				SelfLink:        service.SelfLink,
@@ -157,7 +162,7 @@ func GetAllComponentsStatus() ([]models.ComponentStatus, error) {
 				TotalBackends:   0,
 			}
 
-			pods, err := podLister.Pods(ns).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
+			pods, err := c.informers.Core().V1().Pods().Lister().Pods(ns).List(labels.SelectorFromValidatedSet(service.Spec.Selector))
 
 			if err != nil {
 				klog.Errorln(err)

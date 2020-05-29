@@ -1,17 +1,19 @@
-// Copyright 2018 The Kubesphere Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+Copyright 2018 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 // the code is mainly from:
 // 	   https://github.com/kubernetes/dashboard/blob/master/src/app/backend/handler/terminal.go
 // thanks to the related developer
@@ -24,10 +26,11 @@ import (
 	"github.com/gorilla/websocket"
 	"io"
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/simple/client"
 	"time"
 )
 
@@ -134,15 +137,23 @@ func (t TerminalSession) Close(status uint32, reason string) {
 	t.conn.Close()
 }
 
+type Interface interface {
+	HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn)
+}
+
+type terminaler struct {
+	client kubernetes.Interface
+	config *rest.Config
+}
+
+func NewTerminaler(client kubernetes.Interface, config *rest.Config) Interface {
+	return &terminaler{client: client, config: config}
+}
+
 // startProcess is called by handleAttach
 // Executed cmd in the container specified in request and connects it up with the ptyHandler (a session)
-func startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
-
-	k8sClient := client.ClientSets().K8s().Kubernetes()
-
-	cfg := client.ClientSets().K8s().Config()
-
-	req := k8sClient.CoreV1().RESTClient().Post().
+func (t *terminaler) startProcess(namespace, podName, containerName string, cmd []string, ptyHandler PtyHandler) error {
+	req := t.client.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
@@ -156,7 +167,7 @@ func startProcess(namespace, podName, containerName string, cmd []string, ptyHan
 		TTY:       true,
 	}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", req.URL())
+	exec, err := remotecommand.NewSPDYExecutor(t.config, "POST", req.URL())
 	if err != nil {
 		return err
 	}
@@ -185,8 +196,7 @@ func isValidShell(validShells []string, shell string) bool {
 	return false
 }
 
-func HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
-
+func (t *terminaler) HandleSession(shell, namespace, podName, containerName string, conn *websocket.Conn) {
 	var err error
 	validShells := []string{"sh", "bash"}
 
@@ -194,13 +204,13 @@ func HandleSession(shell, namespace, podName, containerName string, conn *websoc
 
 	if isValidShell(validShells, shell) {
 		cmd := []string{shell}
-		err = startProcess(namespace, podName, containerName, cmd, session)
+		err = t.startProcess(namespace, podName, containerName, cmd, session)
 	} else {
 		// No shell given or it was not valid: try some shells until one succeeds or all fail
 		// FIXME: if the first shell fails then the first keyboard event is lost
 		for _, testShell := range validShells {
 			cmd := []string{testShell}
-			if err = startProcess(namespace, podName, containerName, cmd, session); err == nil {
+			if err = t.startProcess(namespace, podName, containerName, cmd, session); err == nil {
 				break
 			}
 		}
