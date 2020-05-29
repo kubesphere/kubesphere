@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	k8sinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -34,7 +33,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -69,7 +67,7 @@ type Controller struct {
 	multiClusterEnabled bool
 }
 
-func NewController(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory, multiClusterEnabled bool) *Controller {
+func NewController(k8sClient kubernetes.Interface, globalRoleBindingInformer iamv1alpha2informers.GlobalRoleBindingInformer, multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -79,18 +77,17 @@ func NewController(k8sClient kubernetes.Interface, k8sInformer k8sinformers.Shar
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	informer := ksInformer.Iam().V1alpha2().GlobalRoleBindings()
 	ctl := &Controller{
 		k8sClient:           k8sClient,
-		informer:            informer,
-		lister:              informer.Lister(),
-		synced:              informer.Informer().HasSynced,
+		informer:            globalRoleBindingInformer,
+		lister:              globalRoleBindingInformer.Lister(),
+		synced:              globalRoleBindingInformer.Informer().HasSynced,
 		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
 		recorder:            recorder,
 		multiClusterEnabled: multiClusterEnabled,
 	}
 	klog.Info("Setting up event handlers")
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	globalRoleBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: ctl.enqueueClusterRoleBinding,
 		UpdateFunc: func(old, new interface{}) {
 			ctl.enqueueClusterRoleBinding(new)
@@ -200,7 +197,6 @@ func (c *Controller) processNextWorkItem() bool {
 // with the current status of the resource.
 func (c *Controller) reconcile(key string) error {
 
-	// Get the clusterRoleBinding with this name
 	globalRoleBinding, err := c.lister.Get(key)
 	if err != nil {
 		// The user may no longer exist, in which case we stop
@@ -213,9 +209,7 @@ func (c *Controller) reconcile(key string) error {
 		return err
 	}
 
-	isPlatformAdmin := globalRoleBinding.RoleRef.Name == iamv1alpha2.PlatformAdmin
-
-	if isPlatformAdmin {
+	if globalRoleBinding.RoleRef.Name == iamv1alpha2.PlatformAdmin {
 		if err := c.relateToClusterAdmin(globalRoleBinding); err != nil {
 			klog.Error(err)
 			return err
@@ -256,8 +250,6 @@ func (c *Controller) relateToClusterAdmin(globalRoleBinding *iamv1alpha2.GlobalR
 				},
 			},
 		}
-
-		// rbac.authorization.k8s.io
 
 		err := controllerutil.SetControllerReference(globalRoleBinding, federatedClusterRoleBinding, scheme.Scheme)
 

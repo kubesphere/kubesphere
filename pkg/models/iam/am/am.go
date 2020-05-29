@@ -334,8 +334,12 @@ func (am *amOperator) ListRoleBindings(username, namespace string) ([]*rbacv1.Ro
 }
 
 func contains(subjects []rbacv1.Subject, username string) bool {
+	// if username is nil means list all role bindings
+	if username == "" {
+		return true
+	}
 	for _, subject := range subjects {
-		if subject.Kind == rbacv1.UserKind && (username == "" || subject.Name == username) {
+		if subject.Kind == rbacv1.UserKind && subject.Name == username {
 			return true
 		}
 	}
