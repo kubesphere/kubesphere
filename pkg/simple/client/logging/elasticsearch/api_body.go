@@ -119,14 +119,15 @@ func (bb *bodyBuilder) mainBool(sf logging.SearchFilter) *bodyBuilder {
 		ms = append(ms, Match{Bool: &b})
 	}
 
-	if !sf.Starttime.IsZero() || !sf.Endtime.IsZero() {
-		fromTo := Match{
-			Range: &Range{&Time{
-				Gte: &sf.Starttime,
-				Lte: &sf.Endtime,
-			}},
-		}
-		ms = append(ms, fromTo)
+	r := &Range{Time: &Time{}}
+	if !sf.Starttime.IsZero() {
+		r.Gte = &sf.Starttime
+	}
+	if !sf.Endtime.IsZero() {
+		r.Lte = &sf.Endtime
+	}
+	if r.Lte != nil || r.Gte != nil {
+		ms = append(ms, Match{Range: r})
 	}
 
 	bb.Body.Query = &Query{Bool{Filter: ms}}
