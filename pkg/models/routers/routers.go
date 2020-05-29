@@ -44,6 +44,7 @@ const (
 	ingressControllerFolder    = "/etc/kubesphere/ingress-controller"
 	ingressControllerPrefix    = "kubesphere-router-"
 	ingressControllerNamespace = "kubesphere-controls-system"
+	configMapSuffix            = "-nginx"
 )
 
 type RouterOperator interface {
@@ -356,7 +357,7 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 	}
 
 	if publishService {
-		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+ingressControllerNamespace+"/"+ingressControllerPrefix+namespace)
+		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--publish-service="+ingressControllerNamespace+"/"+ingressControllerPrefix+namespace+configMapSuffix)
 	} else {
 		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--report-node-internal-ip-address")
 	}
