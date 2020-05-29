@@ -48,9 +48,9 @@ func newDevOpsHandler(devopsClient devopsClient.Interface, k8sclient kubernetes.
 // devopsproject handler about get/list/post/put/delete
 func (h *devopsHandler) GetDevOpsProject(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 
-	project, err := h.devops.GetDevOpsProject(workspace, projectName)
+	project, err := h.devops.GetDevOpsProject(workspace, devops)
 
 	if err != nil {
 		klog.Error(err)
@@ -137,9 +137,9 @@ func (h *devopsHandler) UpdateDevOpsProject(request *restful.Request, response *
 
 func (h *devopsHandler) DeleteDevOpsProject(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 
-	err := h.devops.DeleteDevOpsProject(workspace, projectName)
+	err := h.devops.DeleteDevOpsProject(workspace, devops)
 
 	if err != nil {
 		klog.Error(err)
@@ -156,11 +156,10 @@ func (h *devopsHandler) DeleteDevOpsProject(request *restful.Request, response *
 
 // pipeline handler about get/list/post/put/delete
 func (h *devopsHandler) GetPipeline(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
-	pipelineName := request.PathParameter("pipelineName")
+	devops := request.PathParameter("devops")
+	pipeline := request.PathParameter("pipeline")
 
-	obj, err := h.devops.GetPipelineObj(workspace, projectName, pipelineName)
+	obj, err := h.devops.GetPipelineObj(devops, pipeline)
 
 	if err != nil {
 		klog.Error(err)
@@ -176,9 +175,8 @@ func (h *devopsHandler) GetPipeline(request *restful.Request, response *restful.
 }
 
 func (h *devopsHandler) ListPipeline(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
-	objs, err := h.devops.ListPipelineObj(workspace, projectName)
+	devops := request.PathParameter("devops")
+	objs, err := h.devops.ListPipelineObj(devops)
 
 	if err != nil {
 		klog.Error(err)
@@ -194,8 +192,7 @@ func (h *devopsHandler) ListPipeline(request *restful.Request, response *restful
 }
 
 func (h *devopsHandler) CreatePipeline(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 	var pipeline v1alpha3.Pipeline
 	err := request.ReadEntity(&pipeline)
 
@@ -205,7 +202,7 @@ func (h *devopsHandler) CreatePipeline(request *restful.Request, response *restf
 		return
 	}
 
-	created, err := h.devops.CreatePipelineObj(workspace, projectName, &pipeline)
+	created, err := h.devops.CreatePipelineObj(devops, &pipeline)
 
 	if err != nil {
 		klog.Error(err)
@@ -221,8 +218,7 @@ func (h *devopsHandler) CreatePipeline(request *restful.Request, response *restf
 }
 
 func (h *devopsHandler) UpdatePipeline(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 
 	var pipeline v1alpha3.Pipeline
 	err := request.ReadEntity(&pipeline)
@@ -233,7 +229,7 @@ func (h *devopsHandler) UpdatePipeline(request *restful.Request, response *restf
 		return
 	}
 
-	obj, err := h.devops.UpdatePipelineObj(workspace, projectName, &pipeline)
+	obj, err := h.devops.UpdatePipelineObj(devops, &pipeline)
 
 	if err != nil {
 		klog.Error(err)
@@ -249,11 +245,10 @@ func (h *devopsHandler) UpdatePipeline(request *restful.Request, response *restf
 }
 
 func (h *devopsHandler) DeletePipeline(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
-	pipelineName := request.PathParameter("pipelineName")
+	devops := request.PathParameter("devops")
+	pipeline := request.PathParameter("pipeline")
 
-	err := h.devops.DeletePipelineObj(workspace, projectName, pipelineName)
+	err := h.devops.DeletePipelineObj(devops, pipeline)
 
 	if err != nil {
 		klog.Error(err)
@@ -270,11 +265,10 @@ func (h *devopsHandler) DeletePipeline(request *restful.Request, response *restf
 
 //credential handler about get/list/post/put/delete
 func (h *devopsHandler) GetCredential(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
-	credentialName := request.PathParameter("credentialName")
+	devops := request.PathParameter("devops")
+	credential := request.PathParameter("credential")
 
-	obj, err := h.devops.GetCredentialObj(workspace, projectName, credentialName)
+	obj, err := h.devops.GetCredentialObj(devops, credential)
 
 	if err != nil {
 		klog.Error(err)
@@ -290,10 +284,9 @@ func (h *devopsHandler) GetCredential(request *restful.Request, response *restfu
 }
 
 func (h *devopsHandler) ListCredential(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 
-	objs, err := h.devops.ListCredentialObj(workspace, projectName)
+	objs, err := h.devops.ListCredentialObj(devops)
 
 	if err != nil {
 		klog.Error(err)
@@ -309,8 +302,7 @@ func (h *devopsHandler) ListCredential(request *restful.Request, response *restf
 }
 
 func (h *devopsHandler) CreateCredential(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 	var obj v1.Secret
 	err := request.ReadEntity(&obj)
 
@@ -320,7 +312,7 @@ func (h *devopsHandler) CreateCredential(request *restful.Request, response *res
 		return
 	}
 
-	created, err := h.devops.CreateCredentialObj(workspace, projectName, &obj)
+	created, err := h.devops.CreateCredentialObj(devops, &obj)
 
 	if err != nil {
 		klog.Error(err)
@@ -336,8 +328,7 @@ func (h *devopsHandler) CreateCredential(request *restful.Request, response *res
 }
 
 func (h *devopsHandler) UpdateCredential(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
+	devops := request.PathParameter("devops")
 	var obj v1.Secret
 	err := request.ReadEntity(&obj)
 
@@ -347,7 +338,7 @@ func (h *devopsHandler) UpdateCredential(request *restful.Request, response *res
 		return
 	}
 
-	updated, err := h.devops.UpdateCredentialObj(workspace, projectName, &obj)
+	updated, err := h.devops.UpdateCredentialObj(devops, &obj)
 
 	if err != nil {
 		klog.Error(err)
@@ -363,11 +354,10 @@ func (h *devopsHandler) UpdateCredential(request *restful.Request, response *res
 }
 
 func (h *devopsHandler) DeleteCredential(request *restful.Request, response *restful.Response) {
-	workspace := request.PathParameter("workspace")
-	projectName := request.PathParameter("projectName")
-	credentialName := request.PathParameter("credentialName")
+	devops := request.PathParameter("devops")
+	credential := request.PathParameter("credential")
 
-	err := h.devops.DeleteCredentialObj(workspace, projectName, credentialName)
+	err := h.devops.DeleteCredentialObj(devops, credential)
 
 	if err != nil {
 		klog.Error(err)
