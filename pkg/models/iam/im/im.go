@@ -70,6 +70,7 @@ func (im *defaultIMOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.Us
 	old := obj.(*iamv1alpha2.User).DeepCopy()
 	user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = old.Annotations[iamv1alpha2.PasswordEncryptedAnnotation]
 	user.Spec.EncryptedPassword = old.Spec.EncryptedPassword
+	user.Status = old.Status
 
 	return im.ksClient.IamV1alpha2().Users().Update(user)
 }

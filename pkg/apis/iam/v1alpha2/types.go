@@ -64,8 +64,7 @@ const (
 	ScopeWorkspace                        = "workspace"
 	ScopeCluster                          = "cluster"
 	ScopeNamespace                        = "namespace"
-	LocalCluster                          = "local"
-	GlobalAdmin                           = "global-admin"
+	PlatformAdmin                         = "platform-admin"
 	ClusterAdmin                          = "cluster-admin"
 )
 
@@ -283,4 +282,33 @@ type WorkspaceRoleBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []WorkspaceRoleBinding `json:"items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type FederatedClusterRoleBinding struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              FederatedClusterRoleBindingSpec `json:"spec"`
+}
+
+type FederatedClusterRoleBindingSpec struct {
+	Template  Template  `json:"template"`
+	Placement Placement `json:"placement"`
+}
+type Template struct {
+	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
+	RoleRef  rbacv1.RoleRef   `json:"roleRef"`
+}
+
+type Placement struct {
+	Clusters        []Cluster       `json:"clusters,omitempty"`
+	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
+}
+
+type ClusterSelector struct {
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
+}
+
+type Cluster struct {
+	Name string `json:"name"`
 }

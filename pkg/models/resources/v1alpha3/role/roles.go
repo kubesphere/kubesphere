@@ -107,7 +107,7 @@ func (d *rolesGetter) fetchAggregationRoles(namespace, name string) ([]*rbacv1.R
 		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
 
 			for _, roleName := range roleNames {
-				role, err := d.Get("", roleName)
+				role, err := d.Get(namespace, roleName)
 
 				if err != nil {
 					if errors.IsNotFound(err) {

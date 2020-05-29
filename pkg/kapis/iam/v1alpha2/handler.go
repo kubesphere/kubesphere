@@ -10,7 +10,6 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	apirequeset "kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
@@ -34,14 +33,7 @@ type Member struct {
 	RoleRef  string `json:"roleRef"`
 }
 
-func (h *iamHandler) DescribeUserOrClusterMember(request *restful.Request, response *restful.Response) {
-	requestInfo, ok := apirequeset.RequestInfoFrom(request.Request.Context())
-
-	if ok && requestInfo.ResourceScope == apirequeset.ClusterScope {
-		h.DescribeClusterMember(request, response)
-		return
-	}
-
+func (h *iamHandler) DescribeUser(request *restful.Request, response *restful.Response) {
 	username := request.PathParameter("user")
 
 	user, err := h.im.DescribeUser(username)
@@ -68,67 +60,121 @@ func (h *iamHandler) DescribeUserOrClusterMember(request *restful.Request, respo
 	response.WriteEntity(user)
 }
 
-func (h *iamHandler) RetrieveMemberRole(req *restful.Request, resp *restful.Response) {
-	username := req.PathParameter("user")
+func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, response *restful.Response) {
+	username := request.PathParameter("user")
 
-	if strings.HasSuffix(req.Request.URL.Path, iamv1alpha2.ResourcesSingularGlobalRole) {
+	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralGlobalRole) {
 		globalRole, err := h.am.GetGlobalRoleOfUser(username)
 
 		if err != nil {
-			api.HandleInternalError(resp, req, err)
+			api.HandleInternalError(response, request, err)
 			return
 		}
-		resp.WriteEntity(globalRole)
+
+		result, err := h.am.ListGlobalRoles(&query.Query{
+			Pagination: query.NoPagination,
+			SortBy:     "",
+			Ascending:  false,
+			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(globalRole.Name)},
+		})
+
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		response.WriteEntity(result.Items)
 		return
 	}
 
-	if strings.HasSuffix(req.Request.URL.Path, iamv1alpha2.ResourcesSingularClusterRole) {
+	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralClusterRole) {
 		clusterRole, err := h.am.GetClusterRoleOfUser(username)
 
 		if err != nil {
-			api.HandleInternalError(resp, req, err)
+			api.HandleInternalError(response, request, err)
 			return
 		}
-		resp.WriteEntity(clusterRole)
+
+		result, err := h.am.ListClusterRoles(&query.Query{
+			Pagination: query.NoPagination,
+			SortBy:     "",
+			Ascending:  false,
+			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(clusterRole.Name)},
+		})
+
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		response.WriteEntity(result.Items)
 		return
 	}
 
-	if strings.HasSuffix(req.Request.URL.Path, iamv1alpha2.ResourcesSingularWorkspaceRole) {
-		workspace := req.PathParameter("workspace")
+	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralWorkspaceRole) {
+		workspace := request.PathParameter("workspace")
 
 		workspaceRole, err := h.am.GetWorkspaceRoleOfUser(username, workspace)
 
 		if err != nil {
-			api.HandleInternalError(resp, req, err)
+			api.HandleInternalError(response, request, err)
 			return
 		}
 
-		resp.WriteEntity(workspaceRole)
+		result, err := h.am.ListWorkspaceRoles(&query.Query{
+			Pagination: query.NoPagination,
+			SortBy:     "",
+			Ascending:  false,
+			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(workspaceRole.Name)},
+		})
+
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		response.WriteEntity(result.Items)
 		return
 	}
 
-	if strings.HasSuffix(req.Request.URL.Path, iamv1alpha2.ResourcesSingularRole) {
-		namespace := req.PathParameter("namespace")
+	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralRole) {
+		namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
+
+		if err != nil {
+			klog.Error(err)
+			if errors.IsNotFound(err) {
+				api.HandleNotFound(response, request, err)
+				return
+			}
+			api.HandleInternalError(response, request, err)
+			return
+		}
 
 		role, err := h.am.GetNamespaceRoleOfUser(username, namespace)
 
 		if err != nil {
-			api.HandleInternalError(resp, req, err)
+			api.HandleInternalError(response, request, err)
 			return
 		}
-		resp.WriteEntity(role)
+
+		result, err := h.am.ListRoles(namespace, &query.Query{
+			Pagination: query.NoPagination,
+			SortBy:     "",
+			Ascending:  false,
+			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
+		})
+
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		response.WriteEntity(result.Items)
 		return
 	}
 }
 
-func (h *iamHandler) ListUsersOrClusterMembers(request *restful.Request, response *restful.Response) {
-	requestInfo, ok := apirequeset.RequestInfoFrom(request.Request.Context())
-
-	if ok && requestInfo.ResourceScope == apirequeset.ClusterScope {
-		h.ListClusterMembers(request, response)
-		return
-	}
-
+func (h *iamHandler) ListUsers(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 	result, err := h.im.ListUsers(queryParam)
 	if err != nil {
@@ -409,15 +455,7 @@ func (h *iamHandler) DeleteWorkspaceRole(request *restful.Request, response *res
 	response.WriteEntity(servererr.None)
 }
 
-func (h *iamHandler) CreateUserOrClusterMembers(request *restful.Request, response *restful.Response) {
-
-	requestInfo, ok := apirequeset.RequestInfoFrom(request.Request.Context())
-
-	if ok && requestInfo.ResourceScope == apirequeset.ClusterScope {
-		h.CreateClusterMembers(request, response)
-		return
-	}
-
+func (h *iamHandler) CreateUser(request *restful.Request, response *restful.Response) {
 	var user iamv1alpha2.User
 	err := request.ReadEntity(&user)
 
@@ -477,14 +515,7 @@ func (h *iamHandler) CreateUserOrClusterMembers(request *restful.Request, respon
 	response.WriteEntity(created)
 }
 
-func (h *iamHandler) UpdateUserOrClusterMember(request *restful.Request, response *restful.Response) {
-	requestInfo, ok := apirequeset.RequestInfoFrom(request.Request.Context())
-
-	if ok && requestInfo.ResourceScope == apirequeset.ClusterScope {
-		h.UpdateClusterMember(request, response)
-		return
-	}
-
+func (h *iamHandler) UpdateUser(request *restful.Request, response *restful.Response) {
 	username := request.PathParameter("user")
 
 	var user iamv1alpha2.User
@@ -538,14 +569,7 @@ func (h *iamHandler) UpdateUserOrClusterMember(request *restful.Request, respons
 	response.WriteEntity(updated)
 }
 
-func (h *iamHandler) DeleteUserOrClusterMember(request *restful.Request, response *restful.Response) {
-	requestInfo, ok := apirequeset.RequestInfoFrom(request.Request.Context())
-
-	if ok && requestInfo.ResourceScope == apirequeset.ClusterScope {
-		h.RemoveClusterMember(request, response)
-		return
-	}
-
+func (h *iamHandler) DeleteUser(request *restful.Request, response *restful.Response) {
 	username := request.PathParameter("user")
 
 	err := h.im.DeleteUser(username)
@@ -1127,7 +1151,7 @@ func (h *iamHandler) CreateClusterMembers(request *restful.Request, response *re
 }
 
 func (h *iamHandler) RemoveClusterMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("clustermember")
 
 	err := h.am.RemoveUserFromCluster(username)
 
@@ -1145,7 +1169,7 @@ func (h *iamHandler) RemoveClusterMember(request *restful.Request, response *res
 }
 
 func (h *iamHandler) UpdateClusterMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("clustermember")
 
 	var member Member
 
@@ -1183,11 +1207,11 @@ func (h *iamHandler) UpdateClusterMember(request *restful.Request, response *res
 }
 
 func (h *iamHandler) DescribeClusterMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("clustermember")
 
 	queryParam := query.New()
 	queryParam.Filters[query.FieldName] = query.Value(username)
-	queryParam.Filters[iamv1alpha2.ScopeCluster] = iamv1alpha2.LocalCluster
+	queryParam.Filters[iamv1alpha2.ScopeCluster] = "true"
 
 	result, err := h.im.ListUsers(queryParam)
 
@@ -1208,7 +1232,7 @@ func (h *iamHandler) DescribeClusterMember(request *restful.Request, response *r
 func (h *iamHandler) ListClusterMembers(request *restful.Request, response *restful.Response) {
 	queryParam := query.ParseQueryParameter(request)
 
-	queryParam.Filters[iamv1alpha2.ScopeCluster] = iamv1alpha2.LocalCluster
+	queryParam.Filters[iamv1alpha2.ScopeCluster] = "true"
 
 	result, err := h.im.ListUsers(queryParam)
 

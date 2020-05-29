@@ -19,12 +19,12 @@ package authorizerfactory
 import (
 	"errors"
 	"github.com/google/go-cmp/cmp"
-	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
-	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	"hash/fnv"
 	"io"
-	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
+	corev1 "k8s.io/api/core/v1"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
@@ -40,10 +40,15 @@ import (
 
 // StaticRoles is a rule resolver that resolves from lists of role objects.
 type StaticRoles struct {
-	roles               []*rbacv1.Role
-	roleBindings        []*rbacv1.RoleBinding
-	clusterRoles        []*rbacv1.ClusterRole
-	clusterRoleBindings []*rbacv1.ClusterRoleBinding
+	roles                 []*rbacv1.Role
+	roleBindings          []*rbacv1.RoleBinding
+	clusterRoles          []*rbacv1.ClusterRole
+	clusterRoleBindings   []*rbacv1.ClusterRoleBinding
+	workspaceRoles        []*iamv1alpha2.WorkspaceRole
+	workspaceRoleBindings []*iamv1alpha2.WorkspaceRoleBinding
+	globalRoles           []*iamv1alpha2.GlobalRole
+	globalRoleBindings    []*iamv1alpha2.GlobalRoleBinding
+	namespaces            []*corev1.Namespace
 }
 
 func (r *StaticRoles) GetRole(namespace, name string) (*rbacv1.Role, error) {
@@ -72,12 +77,11 @@ func (r *StaticRoles) ListRoleBindings(namespace string) ([]*rbacv1.RoleBinding,
 		return nil, errors.New("must provide namespace when listing role bindings")
 	}
 
-	roleBindingList := []*rbacv1.RoleBinding{}
+	var roleBindingList []*rbacv1.RoleBinding
 	for _, roleBinding := range r.roleBindings {
 		if roleBinding.Namespace != namespace {
 			continue
 		}
-		// TODO(ericchiang): need to implement label selectors?
 		roleBindingList = append(roleBindingList, roleBinding)
 	}
 	return roleBindingList, nil
@@ -130,7 +134,7 @@ func TestRBACAuthorizer(t *testing.T) {
 		Resources: []string{"*"},
 	}
 
-	staticRoles1 := StaticRoles{
+	staticRoles := StaticRoles{
 		roles: []*rbacv1.Role{
 			{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "namespace1", Name: "readthings"},
@@ -147,6 +151,24 @@ func TestRBACAuthorizer(t *testing.T) {
 				Rules:      []rbacv1.PolicyRule{ruleWriteNodes},
 			},
 		},
+		workspaceRoles: []*iamv1alpha2.WorkspaceRole{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-workspace-manager",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+				Rules: []rbacv1.PolicyRule{ruleAdmin},
+			},
+		},
+		globalRoles: []*iamv1alpha2.GlobalRole{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "global-admin",
+				},
+				Rules: []rbacv1.PolicyRule{ruleAdmin},
+			},
+		},
+
 		roleBindings: []*rbacv1.RoleBinding{
 			{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "namespace1"},
@@ -157,13 +179,40 @@ func TestRBACAuthorizer(t *testing.T) {
 				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: "readthings"},
 			},
 		},
-		clusterRoleBindings: []*rbacv1.ClusterRoleBinding{
+		workspaceRoleBindings: []*iamv1alpha2.WorkspaceRoleBinding{
 			{
-				Subjects: []rbacv1.Subject{
-					{Kind: rbacv1.UserKind, Name: "admin"},
-					{Kind: rbacv1.GroupKind, Name: "admin"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-workspace-manager-tester",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
 				},
-				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "cluster-admin"},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
+					Name:     "system-workspace-workspace-manager",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     iamv1alpha2.ResourceKindUser,
+						APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+						Name:     "tester",
+					},
+				},
+			},
+		},
+		globalRoleBindings: []*iamv1alpha2.GlobalRoleBinding{
+			{
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindGlobalRole,
+					Name:     "global-admin",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     iamv1alpha2.ResourceKindUser,
+						APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+						Name:     "admin",
+					},
+				},
 			},
 		},
 	}
@@ -174,28 +223,48 @@ func TestRBACAuthorizer(t *testing.T) {
 		// For a given context, what are the rules that apply?
 		user           user.Info
 		namespace      string
+		workspace      string
 		effectiveRules []rbacv1.PolicyRule
 	}{
 		{
-			StaticRoles:    staticRoles1,
+			StaticRoles:    staticRoles,
+			user:           &user.DefaultInfo{Name: "admin"},
+			workspace:      "system-workspace",
+			effectiveRules: []rbacv1.PolicyRule{ruleAdmin},
+		},
+		{
+			StaticRoles:    staticRoles,
+			user:           &user.DefaultInfo{Name: "admin"},
+			namespace:      "namespace1",
+			effectiveRules: []rbacv1.PolicyRule{ruleAdmin},
+		},
+		{
+			StaticRoles:    staticRoles,
+			user:           &user.DefaultInfo{Name: "tester"},
+			workspace:      "system-workspace",
+			effectiveRules: []rbacv1.PolicyRule{ruleAdmin},
+		},
+		{
+			StaticRoles:    staticRoles,
 			user:           &user.DefaultInfo{Name: "foobar"},
 			namespace:      "namespace1",
 			effectiveRules: []rbacv1.PolicyRule{ruleReadPods, ruleReadServices},
 		},
 		{
-			StaticRoles:    staticRoles1,
+			StaticRoles:    staticRoles,
 			user:           &user.DefaultInfo{Name: "foobar"},
 			namespace:      "namespace2",
 			effectiveRules: nil,
 		},
+
 		{
-			StaticRoles: staticRoles1,
-			// Same as above but without a namespace. Only cluster rules should apply.
-			user:           &user.DefaultInfo{Name: "foobar", Groups: []string{"admin"}},
-			effectiveRules: []rbacv1.PolicyRule{ruleAdmin},
+			StaticRoles: staticRoles,
+			// Same as above but without a namespace. Only global rules should apply.
+			user:           &user.DefaultInfo{Name: "foobar"},
+			effectiveRules: nil,
 		},
 		{
-			StaticRoles:    staticRoles1,
+			StaticRoles:    staticRoles,
 			user:           &user.DefaultInfo{},
 			effectiveRules: nil,
 		},
@@ -203,21 +272,26 @@ func TestRBACAuthorizer(t *testing.T) {
 
 	for i, tc := range tests {
 		ruleResolver, err := newMockRBACAuthorizer(&tc.StaticRoles)
-
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		scope := request.ClusterScope
 
+		if tc.workspace != "" {
+			scope = request.WorkspaceScope
+		}
+
 		if tc.namespace != "" {
 			scope = request.NamespaceScope
 		}
 
 		rules, err := ruleResolver.rulesFor(authorizer.AttributesRecord{
-			User:          tc.user,
-			Namespace:     tc.namespace,
-			ResourceScope: scope,
+			User:            tc.user,
+			Namespace:       tc.namespace,
+			Workspace:       tc.workspace,
+			ResourceScope:   scope,
+			ResourceRequest: true,
 		})
 
 		if err != nil {
@@ -235,17 +309,556 @@ func TestRBACAuthorizer(t *testing.T) {
 	}
 }
 
+func TestRBACAuthorizerMakeDecision(t *testing.T) {
+
+	staticRoles := StaticRoles{
+		roles: []*rbacv1.Role{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kubesphere-system",
+					Name:      "kubesphere-system-admin",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"*"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kubesphere-system",
+					Name:      "kubesphere-system-viewer",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "watch"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+		},
+		clusterRoles: []*rbacv1.ClusterRole{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster-viewer",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "watch"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster-admin",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"*"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+		},
+		workspaceRoles: []*iamv1alpha2.WorkspaceRole{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-admin",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"*"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-viewer",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "watch"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+		},
+		globalRoles: []*iamv1alpha2.GlobalRole{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "global-admin",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:           []string{"*"},
+						APIGroups:       []string{"*"},
+						Resources:       []string{"*"},
+						NonResourceURLs: []string{"*"},
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "global-viewer",
+				},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get", "list", "watch"},
+						APIGroups: []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+			},
+		},
+
+		roleBindings: []*rbacv1.RoleBinding{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kubesphere-system",
+					Name:      "kubesphere-system-admin",
+				},
+				Subjects: []rbacv1.Subject{
+					{Kind: rbacv1.UserKind, Name: "kubesphere-system-admin"},
+				},
+				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: "kubesphere-system-admin"},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kubesphere-system",
+					Name:      "kubesphere-system-viewer",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: rbacv1.UserKind,
+						Name: "kubesphere-system-viewer",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: "kubesphere-system-viewer"},
+			},
+		},
+		workspaceRoleBindings: []*iamv1alpha2.WorkspaceRoleBinding{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-admin",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
+					Name:     "system-workspace-admin",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: iamv1alpha2.ResourceKindUser,
+						Name: "system-workspace-admin",
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "system-workspace-viewer",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
+					Name:     "system-workspace-viewer",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: iamv1alpha2.ResourceKindUser,
+						Name: "system-workspace-viewer",
+					},
+				},
+			},
+		},
+		clusterRoleBindings: []*rbacv1.ClusterRoleBinding{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster-admin",
+				},
+				Subjects: []rbacv1.Subject{
+					{Kind: rbacv1.UserKind, Name: "cluster-admin"},
+				},
+				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: "cluster-admin"},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster-viewer",
+				},
+				Subjects: []rbacv1.Subject{
+					{Kind: rbacv1.UserKind, Name: "cluster-viewer"},
+				},
+				RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "cluster-viewer"},
+			},
+		},
+		globalRoleBindings: []*iamv1alpha2.GlobalRoleBinding{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "admin",
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindGlobalRole,
+					Name:     "global-admin",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     iamv1alpha2.ResourceKindUser,
+						APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+						Name:     "admin",
+					},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "viewer",
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+					Kind:     iamv1alpha2.ResourceKindGlobalRole,
+					Name:     "global-viewer",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     iamv1alpha2.ResourceKindUser,
+						APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+						Name:     "viewer",
+					},
+				},
+			},
+		},
+
+		namespaces: []*corev1.Namespace{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "kubesphere-system",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "kube-system",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "system-workspace"},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		StaticRoles
+		Request          authorizer.AttributesRecord
+		ExpectedDecision authorizer.Decision
+	}{
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "admin",
+				},
+				Verb:            "create",
+				APIGroup:        "",
+				APIVersion:      "v1",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.ClusterScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "viewer",
+				},
+				Verb:            "create",
+				APIGroup:        "",
+				APIVersion:      "v1",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.ClusterScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "viewer",
+				},
+				Verb:            "list",
+				APIGroup:        "",
+				APIVersion:      "v1",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.ClusterScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "admin",
+				},
+				Verb:            "list",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.WorkspaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-admin",
+				},
+				Verb:            "list",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.WorkspaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-viewer",
+				},
+				Verb:            "list",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.WorkspaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "admin",
+				},
+				Verb:            "create",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   iamv1alpha2.ScopeWorkspace,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-admin",
+				},
+				Verb:            "create",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.WorkspaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-viewer",
+				},
+				Verb:            "create",
+				Workspace:       "system-workspace",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				Resource:        "namespaces",
+				ResourceRequest: true,
+				ResourceScope:   request.WorkspaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "admin",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "viewer",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-admin",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-viewer",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "kubesphere-system-admin",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "kubesphere-system-viewer",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kubesphere-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "system-workspace-admin",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kube-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionAllow,
+		},
+		{
+			StaticRoles: staticRoles,
+			Request: authorizer.AttributesRecord{
+				User: &user.DefaultInfo{
+					Name: "kubesphere-system-admin",
+				},
+				Verb:            "create",
+				APIGroup:        "apps",
+				APIVersion:      "v1",
+				Resource:        "deployments",
+				Namespace:       "kube-system",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			},
+			ExpectedDecision: authorizer.DecisionNoOpinion,
+		},
+	}
+
+	for i, tc := range tests {
+		ruleResolver, err := newMockRBACAuthorizer(&tc.StaticRoles)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		decision, message, err := ruleResolver.Authorize(&tc.Request)
+
+		if err != nil {
+			t.Errorf("case %d: %v: %s", i, err, message)
+			continue
+		}
+
+		if decision != tc.ExpectedDecision {
+			t.Errorf("case %d: %d != %d", i, decision, tc.ExpectedDecision)
+		}
+	}
+}
+
 func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 
 	ksClient := fakeks.NewSimpleClientset()
 	k8sClient := fakek8s.NewSimpleClientset()
-	istioClient := fakeistio.NewSimpleClientset()
-	appClient := fakeapp.NewSimpleClientset()
-	snapshotClient := fakesnapshot.NewSimpleClientset()
-
-	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, snapshotClient, nil)
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	k8sInformerFactory := fakeInformerFactory.KubernetesSharedInformerFactory()
+	ksInformerFactory := fakeInformerFactory.KubeSphereSharedInformerFactory()
 
 	for _, role := range staticRoles.roles {
 		err := k8sInformerFactory.Rbac().V1().Roles().Informer().GetIndexer().Add(role)
@@ -270,6 +883,34 @@ func newMockRBACAuthorizer(staticRoles *StaticRoles) (*RBACAuthorizer, error) {
 
 	for _, clusterRoleBinding := range staticRoles.clusterRoleBindings {
 		err := k8sInformerFactory.Rbac().V1().ClusterRoleBindings().Informer().GetIndexer().Add(clusterRoleBinding)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, workspaceRole := range staticRoles.workspaceRoles {
+		err := ksInformerFactory.Iam().V1alpha2().WorkspaceRoles().Informer().GetIndexer().Add(workspaceRole)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, workspaceRoleBinding := range staticRoles.workspaceRoleBindings {
+		err := ksInformerFactory.Iam().V1alpha2().WorkspaceRoleBindings().Informer().GetIndexer().Add(workspaceRoleBinding)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, globalRole := range staticRoles.globalRoles {
+		err := ksInformerFactory.Iam().V1alpha2().GlobalRoles().Informer().GetIndexer().Add(globalRole)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, globalRoleBinding := range staticRoles.globalRoleBindings {
+		err := ksInformerFactory.Iam().V1alpha2().GlobalRoleBindings().Informer().GetIndexer().Add(globalRoleBinding)
 		if err != nil {
 			return nil, err
 		}

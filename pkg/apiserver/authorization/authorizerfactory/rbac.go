@@ -78,7 +78,7 @@ type ruleAccumulator struct {
 	errors []error
 }
 
-func (r *ruleAccumulator) visit(source fmt.Stringer, _ string, rule *rbacv1.PolicyRule, err error) bool {
+func (r *ruleAccumulator) visit(_ fmt.Stringer, _ string, rule *rbacv1.PolicyRule, err error) bool {
 	if rule != nil {
 		r.rules = append(r.rules, *rule)
 	}
@@ -200,6 +200,7 @@ func (r *RBACAuthorizer) rulesFor(requestAttributes authorizer.Attributes) ([]rb
 }
 
 func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, visitor func(source fmt.Stringer, regoPolicy string, rule *rbacv1.PolicyRule, err error) bool) {
+
 	if globalRoleBindings, err := r.am.ListGlobalRoleBindings(""); err != nil {
 		if !visitor(nil, "", nil, err) {
 			return
@@ -229,7 +230,54 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.WorkspaceScope {
+	if requestAttributes.GetResourceScope() == request.ClusterScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
+		if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
+			if !visitor(nil, "", nil, err) {
+				return
+			}
+		} else {
+			sourceDescriber := &clusterRoleBindingDescriber{}
+			for _, clusterRoleBinding := range clusterRoleBindings {
+				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), clusterRoleBinding.Subjects, "")
+				if !applies {
+					continue
+				}
+				regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
+				if err != nil {
+					visitor(nil, "", nil, err)
+					continue
+				}
+				sourceDescriber.binding = clusterRoleBinding
+				sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
+				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+					return
+				}
+				for i := range rules {
+					if !visitor(sourceDescriber, "", &rules[i], nil) {
+						return
+					}
+				}
+			}
+		}
+	}
+
+	if requestAttributes.GetResourceScope() == request.WorkspaceScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
+
+		var workspace string
+		var err error
+
+		if requestAttributes.GetResourceScope() == request.NamespaceScope {
+			if workspace, err = r.am.GetControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
+				if !visitor(nil, "", nil, err) {
+					return
+				}
+			}
+		}
+
+		if workspace == "" {
+			workspace = requestAttributes.GetWorkspace()
+		}
+
 		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", requestAttributes.GetWorkspace()); err != nil {
 			if !visitor(nil, "", nil, err) {
 				return
@@ -286,35 +334,6 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 					if !visitor(sourceDescriber, "", &rules[i], nil) {
 						return
 					}
-				}
-			}
-		}
-	}
-
-	if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
-		if !visitor(nil, "", nil, err) {
-			return
-		}
-	} else {
-		sourceDescriber := &clusterRoleBindingDescriber{}
-		for _, clusterRoleBinding := range clusterRoleBindings {
-			subjectIndex, applies := appliesTo(requestAttributes.GetUser(), clusterRoleBinding.Subjects, "")
-			if !applies {
-				continue
-			}
-			regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
-			if err != nil {
-				visitor(nil, "", nil, err)
-				continue
-			}
-			sourceDescriber.binding = clusterRoleBinding
-			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
-			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
-				return
-			}
-			for i := range rules {
-				if !visitor(sourceDescriber, "", &rules[i], nil) {
-					return
 				}
 			}
 		}
