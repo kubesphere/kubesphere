@@ -1,20 +1,18 @@
 /*
- *
- * Copyright 2019 The KubeSphere Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * /
- */
+Copyright 2020 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package openpitrix
 
@@ -26,18 +24,33 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"strings"
 )
 
-func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+type RepoInterface interface {
+	CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error)
+	DeleteRepo(id string) error
+	ModifyRepo(id string, request *ModifyRepoRequest) error
+	DescribeRepo(id string) (*Repo, error)
+	ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error)
+	DoRepoAction(repoId string, request *RepoActionRequest) error
+	ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error)
+}
+
+type repoOperator struct {
+	opClient openpitrix.Client
+}
+
+func newRepoOperator(opClient openpitrix.Client) RepoInterface {
+	return &repoOperator{
+		opClient: opClient,
 	}
+}
+
+func (c *repoOperator) CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
 	createRepoRequest := &pb.CreateRepoRequest{
 		Name:             &wrappers.StringValue{Value: request.Name},
 		Description:      &wrappers.StringValue{Value: request.Description},
@@ -56,7 +69,7 @@ func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
 		createRepoRequest.Labels = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", *request.Workspace)}
 	}
 
-	resp, err := op.Repo().CreateRepo(openpitrix.SystemContext(), createRepoRequest)
+	resp, err := c.opClient.CreateRepo(openpitrix.SystemContext(), createRepoRequest)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -66,13 +79,8 @@ func CreateRepo(request *CreateRepoRequest) (*CreateRepoResponse, error) {
 	}, nil
 }
 
-func DeleteRepo(id string) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	_, err = op.Repo().DeleteRepos(openpitrix.SystemContext(), &pb.DeleteReposRequest{
+func (c *repoOperator) DeleteRepo(id string) error {
+	_, err := c.opClient.DeleteRepos(openpitrix.SystemContext(), &pb.DeleteReposRequest{
 		RepoId: []string{id},
 	})
 	if err != nil {
@@ -82,12 +90,7 @@ func DeleteRepo(id string) error {
 	return nil
 }
 
-func PatchRepo(id string, request *ModifyRepoRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
+func (c *repoOperator) ModifyRepo(id string, request *ModifyRepoRequest) error {
 	modifyRepoRequest := &pb.ModifyRepoRequest{
 		RepoId: &wrappers.StringValue{Value: id},
 	}
@@ -124,7 +127,7 @@ func PatchRepo(id string, request *ModifyRepoRequest) error {
 		modifyRepoRequest.Labels = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", *request.Workspace)}
 	}
 
-	_, err = op.Repo().ModifyRepo(openpitrix.SystemContext(), modifyRepoRequest)
+	_, err := c.opClient.ModifyRepo(openpitrix.SystemContext(), modifyRepoRequest)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -132,13 +135,8 @@ func PatchRepo(id string, request *ModifyRepoRequest) error {
 	return nil
 }
 
-func DescribeRepo(id string) (*Repo, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.Repo().DescribeRepos(openpitrix.SystemContext(), &pb.DescribeReposRequest{
+func (c *repoOperator) DescribeRepo(id string) (*Repo, error) {
+	resp, err := c.opClient.DescribeRepos(openpitrix.SystemContext(), &pb.DescribeReposRequest{
 		RepoId: []string{id},
 		Limit:  1,
 	})
@@ -159,41 +157,34 @@ func DescribeRepo(id string) (*Repo, error) {
 	}
 }
 
-func ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *repoOperator) ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	req := &pb.DescribeReposRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		req.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		req.Status = strings.Split(status, "|")
 	}
-	if typeStr := conditions.Match["type"]; typeStr != "" {
+	if typeStr := conditions.Match[Type]; typeStr != "" {
 		req.Type = strings.Split(typeStr, "|")
 	}
-	if visibility := conditions.Match["visibility"]; visibility != "" {
+	if visibility := conditions.Match[Visibility]; visibility != "" {
 		req.Visibility = strings.Split(visibility, "|")
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		req.Status = strings.Split(status, "|")
 	}
-	if workspace := conditions.Match["workspace"]; workspace != "" {
+	if workspace := conditions.Match[WorkspaceLabel]; workspace != "" {
 		req.Label = &wrappers.StringValue{Value: fmt.Sprintf("workspace=%s", workspace)}
 	}
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: !reverse}
+	req.Reverse = &wrappers.BoolValue{Value: reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
-	resp, err := client.Repo().DescribeRepos(openpitrix.SystemContext(), req)
+	resp, err := c.opClient.DescribeRepos(openpitrix.SystemContext(), req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -208,15 +199,8 @@ func ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limi
 	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
 }
 
-func ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
-	resp, err := client.Repo().ValidateRepo(openpitrix.SystemContext(), &pb.ValidateRepoRequest{
+func (c *repoOperator) ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
+	resp, err := c.opClient.ValidateRepo(openpitrix.SystemContext(), &pb.ValidateRepoRequest{
 		Type:       &wrappers.StringValue{Value: request.Type},
 		Credential: &wrappers.StringValue{Value: request.Credential},
 		Url:        &wrappers.StringValue{Value: request.Url},
@@ -233,19 +217,14 @@ func ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error) {
 	}, nil
 }
 
-func DoRepoAction(repoId string, request *RepoActionRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
+func (c *repoOperator) DoRepoAction(repoId string, request *RepoActionRequest) error {
+	var err error
 	switch request.Action {
-	case "index":
+	case ActionIndex:
 		indexRepoRequest := &pb.IndexRepoRequest{
 			RepoId: &wrappers.StringValue{Value: repoId},
 		}
-		_, err := op.RepoIndexer().IndexRepo(openpitrix.SystemContext(), indexRepoRequest)
+		_, err := c.opClient.IndexRepo(openpitrix.SystemContext(), indexRepoRequest)
 
 		if err != nil {
 			klog.Error(err)
@@ -260,13 +239,7 @@ func DoRepoAction(repoId string, request *RepoActionRequest) error {
 	}
 }
 
-func ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *repoOperator) ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {
 	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{
 		RepoId: []string{repoId},
 	}
@@ -279,7 +252,7 @@ func ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset 
 	describeRepoEventsRequest.Limit = uint32(limit)
 	describeRepoEventsRequest.Offset = uint32(offset)
 
-	resp, err := op.RepoIndexer().DescribeRepoEvents(openpitrix.SystemContext(), describeRepoEventsRequest)
+	resp, err := c.opClient.DescribeRepoEvents(openpitrix.SystemContext(), describeRepoEventsRequest)
 
 	if err != nil {
 		klog.Error(err)

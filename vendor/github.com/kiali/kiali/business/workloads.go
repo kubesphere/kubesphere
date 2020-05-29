@@ -6,8 +6,7 @@ import (
 	"time"
 
 	osappsv1 "github.com/openshift/api/apps/v1"
-	"k8s.io/api/apps/v1beta1"
-	"k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	batch_v1 "k8s.io/api/batch/v1"
 	batch_v1beta1 "k8s.io/api/batch/v1beta1"
 	"k8s.io/api/core/v1"
@@ -123,10 +122,10 @@ func (in *WorkloadService) GetPods(namespace string, labelSelector string) (mode
 func fetchWorkloads(k8s kubernetes.IstioClientInterface, namespace string, labelSelector string) (models.Workloads, error) {
 	var pods []v1.Pod
 	var repcon []v1.ReplicationController
-	var dep []v1beta1.Deployment
-	var repset []v1beta2.ReplicaSet
+	var dep []appsv1.Deployment
+	var repset []appsv1.ReplicaSet
 	var depcon []osappsv1.DeploymentConfig
-	var fulset []v1beta2.StatefulSet
+	var fulset []appsv1.StatefulSet
 	var jbs []batch_v1.Job
 	var conjbs []batch_v1beta1.CronJob
 
@@ -572,10 +571,10 @@ func fetchWorkloads(k8s kubernetes.IstioClientInterface, namespace string, label
 func fetchWorkload(k8s kubernetes.IstioClientInterface, namespace string, workloadName string) (*models.Workload, error) {
 	var pods []v1.Pod
 	var repcon []v1.ReplicationController
-	var dep *v1beta1.Deployment
-	var repset []v1beta2.ReplicaSet
+	var dep *appsv1.Deployment
+	var repset []appsv1.ReplicaSet
 	var depcon *osappsv1.DeploymentConfig
-	var fulset *v1beta2.StatefulSet
+	var fulset *appsv1.StatefulSet
 	var jbs []batch_v1.Job
 	var conjbs []batch_v1beta1.CronJob
 

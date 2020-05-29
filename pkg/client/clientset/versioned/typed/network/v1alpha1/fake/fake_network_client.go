@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,10 +30,6 @@ type FakeNetworkV1alpha1 struct {
 
 func (c *FakeNetworkV1alpha1) NamespaceNetworkPolicies(namespace string) v1alpha1.NamespaceNetworkPolicyInterface {
 	return &FakeNamespaceNetworkPolicies{c, namespace}
-}
-
-func (c *FakeNetworkV1alpha1) WorkspaceNetworkPolicies() v1alpha1.WorkspaceNetworkPolicyInterface {
-	return &FakeWorkspaceNetworkPolicies{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

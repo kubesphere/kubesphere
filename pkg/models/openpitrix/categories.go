@@ -1,20 +1,18 @@
 /*
- *
- * Copyright 2019 The KubeSphere Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * /
- */
+Copyright 2020 The KubeSphere Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package openpitrix
 
@@ -25,17 +23,29 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/models"
 	"kubesphere.io/kubesphere/pkg/server/params"
-	cs "kubesphere.io/kubesphere/pkg/simple/client"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"openpitrix.io/openpitrix/pkg/pb"
 )
 
-func CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
+type CategoryInterface interface {
+	CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error)
+	DeleteCategory(id string) error
+	ModifyCategory(id string, request *ModifyCategoryRequest) error
+	ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
+	DescribeCategory(id string) (*Category, error)
+}
+
+type categoryOperator struct {
+	opClient openpitrix.Client
+}
+
+func newCategoryOperator(opClient openpitrix.Client) CategoryInterface {
+	return &categoryOperator{
+		opClient: opClient,
 	}
+}
+
+func (c *categoryOperator) CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, error) {
 	r := &pb.CreateCategoryRequest{
 		Name:        &wrappers.StringValue{Value: request.Name},
 		Locale:      &wrappers.StringValue{Value: request.Locale},
@@ -45,7 +55,7 @@ func CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, er
 		r.Icon = &wrappers.BytesValue{Value: request.Icon}
 	}
 
-	resp, err := op.Category().CreateCategory(openpitrix.SystemContext(), r)
+	resp, err := c.opClient.CreateCategory(openpitrix.SystemContext(), r)
 	if err != nil {
 		klog.Error(err)
 		return nil, err
@@ -55,13 +65,8 @@ func CreateCategory(request *CreateCategoryRequest) (*CreateCategoryResponse, er
 	}, nil
 }
 
-func DeleteCategory(id string) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-	_, err = op.Category().DeleteCategories(openpitrix.SystemContext(), &pb.DeleteCategoriesRequest{
+func (c *categoryOperator) DeleteCategory(id string) error {
+	_, err := c.opClient.DeleteCategories(openpitrix.SystemContext(), &pb.DeleteCategoriesRequest{
 		CategoryId: []string{id},
 	})
 	if err != nil {
@@ -71,12 +76,7 @@ func DeleteCategory(id string) error {
 	return nil
 }
 
-func PatchCategory(id string, request *ModifyCategoryRequest) error {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
+func (c *categoryOperator) ModifyCategory(id string, request *ModifyCategoryRequest) error {
 	modifyCategoryRequest := &pb.ModifyCategoryRequest{
 		CategoryId: &wrappers.StringValue{Value: id},
 	}
@@ -93,7 +93,7 @@ func PatchCategory(id string, request *ModifyCategoryRequest) error {
 		modifyCategoryRequest.Icon = &wrappers.BytesValue{Value: request.Icon}
 	}
 
-	_, err = op.Category().ModifyCategory(openpitrix.SystemContext(), modifyCategoryRequest)
+	_, err := c.opClient.ModifyCategory(openpitrix.SystemContext(), modifyCategoryRequest)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -101,13 +101,8 @@ func PatchCategory(id string, request *ModifyCategoryRequest) error {
 	return nil
 }
 
-func DescribeCategory(id string) (*Category, error) {
-	op, err := cs.ClientSets().OpenPitrix()
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-	resp, err := op.Category().DescribeCategories(openpitrix.SystemContext(), &pb.DescribeCategoriesRequest{
+func (c *categoryOperator) DescribeCategory(id string) (*Category, error) {
+	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), &pb.DescribeCategoriesRequest{
 		CategoryId: []string{id},
 		Limit:      1,
 	})
@@ -128,26 +123,19 @@ func DescribeCategory(id string) (*Category, error) {
 	}
 }
 
-func ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
-	client, err := cs.ClientSets().OpenPitrix()
-
-	if err != nil {
-		klog.Error(err)
-		return nil, err
-	}
-
+func (c *categoryOperator) ListCategories(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	req := &pb.DescribeCategoriesRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		req.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
 	if orderBy != "" {
 		req.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
-	req.Reverse = &wrappers.BoolValue{Value: !reverse}
+	req.Reverse = &wrappers.BoolValue{Value: reverse}
 	req.Limit = uint32(limit)
 	req.Offset = uint32(offset)
-	resp, err := client.Category().DescribeCategories(openpitrix.SystemContext(), req)
+	resp, err := c.opClient.DescribeCategories(openpitrix.SystemContext(), req)
 	if err != nil {
 		klog.Error(err)
 		return nil, err

@@ -1,0 +1,6 @@
+[
+  {
+    "metric_name": "cluster_cpu_utilisation",
+    "error": "bad_response: inconsistent body for response code"
+  }
+]

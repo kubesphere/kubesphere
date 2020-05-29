@@ -1,8 +1,0 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: manager-rolebinding
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: network-test-f22e8ea9

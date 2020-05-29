@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeSphere authors.
+Copyright 2019 The KubeSphere Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import (
 type NetworkV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	NamespaceNetworkPoliciesGetter
-	WorkspaceNetworkPoliciesGetter
 }
 
 // NetworkV1alpha1Client is used to interact with features provided by the network.kubesphere.io group.
@@ -37,10 +36,6 @@ type NetworkV1alpha1Client struct {
 
 func (c *NetworkV1alpha1Client) NamespaceNetworkPolicies(namespace string) NamespaceNetworkPolicyInterface {
 	return newNamespaceNetworkPolicies(c, namespace)
-}
-
-func (c *NetworkV1alpha1Client) WorkspaceNetworkPolicies() WorkspaceNetworkPolicyInterface {
-	return newWorkspaceNetworkPolicies(c)
 }
 
 // NewForConfig creates a new NetworkV1alpha1Client for the given config.

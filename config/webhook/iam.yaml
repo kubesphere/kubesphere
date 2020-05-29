@@ -1,0 +1,40 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: kubesphere-iam-validator
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      caBundle: <caBundle>
+      service:
+        name: webhook-service
+        namespace: kubesphere-system
+        path: /validate-email-iam-kubesphere-io-v1alpha2-user
+    failurePolicy: Fail
+    name: vemail.iam.kubesphere.io
+    rules:
+      - apiGroups:
+          - iam.kubesphere.io
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - users
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-service
+  namespace: kubesphere-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 443
+  selector:
+    app: ks-controller-manager
+    tier: backend
