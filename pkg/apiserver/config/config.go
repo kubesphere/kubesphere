@@ -186,8 +186,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.DevopsOptions = nil
 	}
 
-	if conf.MonitoringOptions != nil && conf.MonitoringOptions.Endpoint == "" &&
-		conf.MonitoringOptions.SecondaryEndpoint == "" {
+	if conf.MonitoringOptions != nil && conf.MonitoringOptions.Endpoint == "" {
 		conf.MonitoringOptions = nil
 	}
 
