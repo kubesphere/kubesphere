@@ -10,7 +10,8 @@ import (
 	"net/http"
 )
 
-var JaegerQueryUrl = "http://jaeger-query.istio-system.svc:16686/jaeger"
+// default jaeger query api endpoint address
+var JaegerQueryUrl = "http://jaeger-query.istio-system.svc:16686"
 
 // Get app metrics
 func getAppMetrics(request *restful.Request, response *restful.Response) {
@@ -84,9 +85,10 @@ func getServiceTracing(request *restful.Request, response *restful.Response) {
 	url := fmt.Sprintf("%s/api/traces?%s&service=%s", JaegerQueryUrl, request.Request.URL.RawQuery, serviceName)
 
 	resp, err := http.Get(url)
+	klog.V(4).Infof("Proxy trace request to %s", url)
 
 	if err != nil {
-		klog.Errorf("query jaeger faile with err %v", err)
+		klog.Errorf("query jaeger failed with err %v", err)
 		api.HandleInternalError(response, nil, err)
 		return
 	}
