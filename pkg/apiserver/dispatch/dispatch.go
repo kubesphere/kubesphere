@@ -88,7 +88,7 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	u.Host = endpoint.Host
 	u.Path = strings.Replace(u.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
 
-	httpProxy := proxy.NewUpgradeAwareHandler(&u, http.DefaultTransport, true, false, c)
+	httpProxy := proxy.NewUpgradeAwareHandler(&u, http.DefaultTransport, false, false, c)
 	httpProxy.ServeHTTP(w, req)
 }
 
