@@ -26,6 +26,8 @@ import (
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+
+	tracing "kubesphere.io/kubesphere/pkg/kapis/servicemesh/metrics/v1alpha2"
 )
 
 func NewAPIServerCommand() *cobra.Command {
@@ -90,7 +92,10 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	// Initialize kiali config
 	config := kconfig.NewConfig()
 
-	//tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
+	// Config jaeger query endpoint address
+	if s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.JaegerQueryHost) != 0 {
+		tracing.JaegerQueryUrl = s.ServiceMeshOptions.JaegerQueryHost
+	}
 
 	// Exclude system namespaces
 	config.API.Namespaces.Exclude = []string{"istio-system", "kubesphere*", "kube*"}
