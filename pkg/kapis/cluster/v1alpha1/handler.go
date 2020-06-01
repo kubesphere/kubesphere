@@ -236,6 +236,13 @@ func (h *handler) ValidateCluster(request *restful.Request, response *restful.Re
 		return
 	}
 
+	// kubesphere apiserver endpoint not provided, that's allowed
+	// Cluster dispatcher will use kube-apiserver proxy instead
+	if len(cluster.Spec.Connection.KubeSphereAPIEndpoint) == 0 {
+		response.WriteHeader(http.StatusOK)
+		return
+	}
+
 	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint)
 	if err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("unable validate kubesphere endpoint, %v", err))
