@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
@@ -37,11 +38,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"kubesphere.io/kubesphere/pkg/models/auditing"
 	"kubesphere.io/kubesphere/pkg/models/events"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/logging"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
@@ -62,6 +65,7 @@ type Interface interface {
 	Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error)
 	QueryLogs(user user.Info, query *loggingv1alpha2.Query) (*loggingv1alpha2.APIResponse, error)
 	ExportLogs(user user.Info, query *loggingv1alpha2.Query, writer io.Writer) error
+	Auditing(user user.Info, queryParam *auditingv1alpha1.Query) (*auditingv1alpha1.APIResponse, error)
 }
 
 type tenantOperator struct {
@@ -72,9 +76,10 @@ type tenantOperator struct {
 	resourceGetter *resourcesv1alpha3.ResourceGetter
 	events         events.Interface
 	lo             logging.LoggingOperator
+	auditing       auditing.Interface
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Interface, auditingclient auditingclient.Client) Interface {
 	amOperator := am.NewReadOnlyOperator(informers)
 	authorizer := authorizerfactory.NewRBACAuthorizer(amOperator)
 	return &tenantOperator{
@@ -85,6 +90,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		ksclient:       ksclient,
 		events:         events.NewEventsOperator(evtsClient),
 		lo:             logging.NewLoggingOperator(loggingClient),
+		auditing:       auditing.NewEventsOperator(auditingclient),
 	}
 }
 
@@ -521,6 +527,48 @@ func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query
 	} else {
 		return t.lo.ExportLogs(sf, writer)
 	}
+}
+
+func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Query) (*auditingv1alpha1.APIResponse, error) {
+	iNamespaces, err := t.listIntersectedNamespaces(user,
+		stringutils.Split(queryParam.WorkspaceFilter, ","),
+		stringutils.Split(queryParam.WorkspaceSearch, ","),
+		stringutils.Split(queryParam.ObjectRefNamespaceFilter, ","),
+		stringutils.Split(queryParam.ObjectRefNamespaceSearch, ","))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	namespaceCreateTimeMap := make(map[string]time.Time)
+	for _, ns := range iNamespaces {
+		namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
+	}
+	// If there are no ns and ws query conditions,
+	// those events with empty `ObjectRef.Namespace` will also be listed when user can list all namespaces
+	if len(queryParam.WorkspaceFilter) == 0 && len(queryParam.ObjectRefNamespaceFilter) == 0 &&
+		len(queryParam.WorkspaceSearch) == 0 && len(queryParam.ObjectRefNamespaceSearch) == 0 {
+		listEvts := authorizer.AttributesRecord{
+			User:            user,
+			Verb:            "list",
+			APIGroup:        "",
+			APIVersion:      "v1",
+			Resource:        "namespaces",
+			ResourceRequest: true,
+		}
+		decision, _, err := t.authorizer.Authorize(listEvts)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		if decision == authorizer.DecisionAllow {
+			namespaceCreateTimeMap[""] = time.Time{}
+		}
+	}
+
+	return t.auditing.Events(queryParam, func(filter *auditingclient.Filter) {
+		filter.ObjectRefNamespaceMap = namespaceCreateTimeMap
+	})
 }
 
 func contains(objects []runtime.Object, object runtime.Object) bool {

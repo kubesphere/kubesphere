@@ -25,6 +25,7 @@ import (
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/alerting"
+	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
@@ -143,6 +144,11 @@ func newTestConfig() (*Config, error) {
 		EventsOptions: &eventsclient.Options{
 			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
 			IndexPrefix: "ks-logstash-events",
+			Version:     "6",
+		},
+		AuditingOptions: &auditingclient.Options{
+			Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
+			IndexPrefix: "ks-logstash-auditing",
 			Version:     "6",
 		},
 	}

@@ -83,6 +83,7 @@ const (
 	LogQueryTag                = "Log Query"
 	TerminalTag                = "Terminal"
 	EventsQueryTag             = "Events Query"
+	AuditingQueryTag           = "Auditing Query"
 )
 
 var (

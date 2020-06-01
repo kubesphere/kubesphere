@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
@@ -17,6 +18,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/tenant"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 )
@@ -25,10 +27,10 @@ type tenantHandler struct {
 	tenant tenant.Interface
 }
 
-func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Interface) *tenantHandler {
+func newTenantHandler(factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Interface, auditingclient auditing.Client) *tenantHandler {
 
 	return &tenantHandler{
-		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient),
+		tenant: tenant.New(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient),
 	}
 }
 
@@ -281,4 +283,30 @@ func (h *tenantHandler) QueryLogs(req *restful.Request, resp *restful.Response) 
 		}
 		resp.WriteAsJson(result)
 	}
+}
+
+func (h *tenantHandler) Auditing(req *restful.Request, resp *restful.Response) {
+	user, ok := request.UserFrom(req.Request.Context())
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, req, err)
+		return
+	}
+	queryParam, err := auditingv1alpha1.ParseQueryParameter(req)
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, req, err)
+		return
+	}
+
+	result, err := h.tenant.Auditing(user, queryParam)
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, req, err)
+		return
+	}
+
+	_ = resp.WriteEntity(result)
+
 }
