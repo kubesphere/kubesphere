@@ -244,7 +244,8 @@ func (s *APIServer) buildHandlerChain() {
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
 	if s.Config.MultiClusterOptions.Enable {
-		clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
+		clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters().Lister())
 		handler = filters.WithMultipleClusterDispatcher(handler, clusterDispatcher)
 	}
 
@@ -483,10 +484,17 @@ func logStackOnRecover(panicReason interface{}, w http.ResponseWriter) {
 func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	start := time.Now()
 	chain.ProcessFilter(req, resp)
-	klog.V(4).Infof("%s - \"%s %s %s\" %d %d %dms",
+
+	// Always log error response
+	logWithVerbose := klog.V(4)
+	if resp.StatusCode() > http.StatusBadRequest {
+		logWithVerbose = klog.V(0)
+	}
+
+	logWithVerbose.Infof("%s - \"%s %s %s\" %d %d %dms",
 		getRequestIP(req),
 		req.Request.Method,
-		req.Request.RequestURI,
+		req.Request.URL,
 		req.Request.Proto,
 		resp.StatusCode(),
 		resp.ContentLength(),

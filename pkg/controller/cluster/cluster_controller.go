@@ -388,6 +388,11 @@ func (c *ClusterController) syncCluster(key string) error {
 	// is safe.
 	if isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) ||
 		cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeDirect {
+
+		if len(cluster.Spec.Connection.KubernetesAPIEndpoint) == 0 {
+			cluster.Spec.Connection.KubernetesAPIEndpoint = clusterConfig.Host
+		}
+
 		version, err := clientSet.Discovery().ServerVersion()
 		if err != nil {
 			klog.Errorf("Failed to get kubernetes version, %#v", err)
