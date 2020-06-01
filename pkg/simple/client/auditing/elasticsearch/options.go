@@ -29,7 +29,7 @@ type Options struct {
 
 func NewElasticSearchOptions() *Options {
 	return &Options{
-		Host:        "http://elasticsearch-logging-data.kubesphere-logging-system.svc:9200",
+		Host:        "",
 		IndexPrefix: "ks-logstash-auditing",
 		Version:     "",
 	}
