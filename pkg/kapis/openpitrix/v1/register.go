@@ -43,7 +43,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice := runtime.NewWebService(GroupVersion)
 	handler := newOpenpitrixHandler(factory, op)
 
-	webservice.Route(webservice.GET("/clusters/{cluster}/applications").
+	webservice.Route(webservice.GET("/runtimes/{runtime}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -52,13 +52,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			Required(false).
 			DataFormat("key=value,key~value").
 			DefaultValue("")).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/clusters/{cluster}/namespaces/{namespace}/applications").
+	webservice.Route(webservice.GET("/runtimes/{runtime}/namespaces/{namespace}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
@@ -67,59 +67,59 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			Required(false).
 			DataFormat("key=value,key~value").
 			DefaultValue("")).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
-	webservice.Route(webservice.GET("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.GET("/runtimes/{runtime}/namespaces/{namespace}/applications/{application}").
 		To(handler.DescribeApplication).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Doc("Describe the specified application of the namespace").
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "application ID")))
 
-	webservice.Route(webservice.POST("/clusters/{cluster}/namespaces/{namespace}/applications").
+	webservice.Route(webservice.POST("/runtimes/{runtime}/namespaces/{namespace}/applications").
 		To(handler.CreateApplication).
 		Doc("Deploy a new application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix2.CreateClusterRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")))
 
-	webservice.Route(webservice.PATCH("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.PATCH("/runtimes/{runtime}/namespaces/{namespace}/applications/{application}").
 		Consumes(mimePatch...).
 		To(handler.ModifyApplication).
 		Doc("Modify application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix2.ModifyClusterAttributesRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
-	webservice.Route(webservice.DELETE("/clusters/cluster/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.DELETE("/runtimes/{runtime}/namespaces/{namespace}/applications/{application}").
 		To(handler.DeleteApplication).
 		Doc("Delete the specified application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
-	webservice.Route(webservice.POST("/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
+	webservice.Route(webservice.POST("/runtimes/{runtime}/namespaces/{namespace}/applications/{application}").
 		Consumes(mimePatch...).
 		To(handler.UpgradeApplication).
 		Doc("Upgrade application").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
 		Reads(openpitrix2.UpgradeClusterRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
-		Param(webservice.PathParameter("cluster", "the id of cluster(runtime)")).
+		Param(webservice.PathParameter("runtime", "the id of runtime")).
 		Param(webservice.PathParameter("namespace", "the name of the project")).
 		Param(webservice.PathParameter("application", "the id of the application cluster")))
 
@@ -347,6 +347,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Reads(openpitrix2.RepoActionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("repo", "repo id")))
+	webservice.Route(webservice.GET("/events").
+		To(handler.ListEvents).
+		Doc("Get events").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/repos/{repo}/events").
 		To(handler.ListRepoEvents).
 		Doc("Get repository events").

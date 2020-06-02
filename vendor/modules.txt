@@ -1359,7 +1359,7 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => github.com/pengcong06/openpitrix v0.4.1-0.20200527062040-411ab8612348
+# openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.9-0.20200610105301-68151bb90d21
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

@@ -64,39 +64,6 @@ func local_request_ReleaseManager_ListReleases_0(ctx context.Context, marshaler 
 
 }
 
-var (
-	filter_ReleaseManager_DescribeRelease_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
-)
-
-func request_ReleaseManager_DescribeRelease_0(ctx context.Context, marshaler runtime.Marshaler, client ReleaseManagerClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq DescribeReleaseRequest
-	var metadata runtime.ServerMetadata
-
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_ReleaseManager_DescribeRelease_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
-	msg, err := client.DescribeRelease(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
-	return msg, metadata, err
-
-}
-
-func local_request_ReleaseManager_DescribeRelease_0(ctx context.Context, marshaler runtime.Marshaler, server ReleaseManagerServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq DescribeReleaseRequest
-	var metadata runtime.ServerMetadata
-
-	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_ReleaseManager_DescribeRelease_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
-	msg, err := server.DescribeRelease(ctx, &protoReq)
-	return msg, metadata, err
-
-}
-
 func request_ReleaseManager_CreateRelease_0(ctx context.Context, marshaler runtime.Marshaler, client ReleaseManagerClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq CreateReleaseRequest
 	var metadata runtime.ServerMetadata
@@ -258,26 +225,6 @@ func RegisterReleaseManagerHandlerServer(ctx context.Context, mux *runtime.Serve
 
 	})
 
-	mux.Handle("GET", pattern_ReleaseManager_DescribeRelease_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
-		defer cancel()
-		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req)
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		resp, md, err := local_request_ReleaseManager_DescribeRelease_0(rctx, inboundMarshaler, server, req, pathParams)
-		ctx = runtime.NewServerMetadataContext(ctx, md)
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-
-		forward_ReleaseManager_DescribeRelease_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
-	})
-
 	mux.Handle("PUT", pattern_ReleaseManager_CreateRelease_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -419,26 +366,6 @@ func RegisterReleaseManagerHandlerClient(ctx context.Context, mux *runtime.Serve
 
 	})
 
-	mux.Handle("GET", pattern_ReleaseManager_DescribeRelease_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		ctx, cancel := context.WithCancel(req.Context())
-		defer cancel()
-		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req)
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-		resp, md, err := request_ReleaseManager_DescribeRelease_0(rctx, inboundMarshaler, client, req, pathParams)
-		ctx = runtime.NewServerMetadataContext(ctx, md)
-		if err != nil {
-			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-			return
-		}
-
-		forward_ReleaseManager_DescribeRelease_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
-	})
-
 	mux.Handle("PUT", pattern_ReleaseManager_CreateRelease_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -525,8 +452,6 @@ func RegisterReleaseManagerHandlerClient(ctx context.Context, mux *runtime.Serve
 var (
 	pattern_ReleaseManager_ListReleases_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "releases"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_ReleaseManager_DescribeRelease_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "release"}, "", runtime.AssumeColonVerbOpt(true)))
-
 	pattern_ReleaseManager_CreateRelease_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "releases"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_ReleaseManager_UpgradeRelease_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "releases"}, "", runtime.AssumeColonVerbOpt(true)))
@@ -538,8 +463,6 @@ var (
 
 var (
 	forward_ReleaseManager_ListReleases_0 = runtime.ForwardResponseMessage
-
-	forward_ReleaseManager_DescribeRelease_0 = runtime.ForwardResponseMessage
 
 	forward_ReleaseManager_CreateRelease_0 = runtime.ForwardResponseMessage
 

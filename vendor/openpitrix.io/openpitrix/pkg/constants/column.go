@@ -262,7 +262,7 @@ var IndexedColumns = map[string][]string{
 	},
 	TableCluster: {
 		ColumnClusterId, ColumnAppId, ColumnVersionId, ColumnStatus,
-		ColumnRuntimeId, ColumnFrontgateId, ColumnOwner, ColumnClusterType,
+		ColumnRuntimeId, ColumnFrontgateId, ColumnOwner, ColumnClusterType, ColumnZone,
 	},
 	TableKeyPair: {
 		ColumnKeyPairId, ColumnName, ColumnOwner,
