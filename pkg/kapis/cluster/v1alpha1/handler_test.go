@@ -263,7 +263,7 @@ func TestValidateKubeSphereEndpoint(t *testing.T) {
 	svr := httptest.NewServer(http.HandlerFunc(endpoint))
 	defer svr.Close()
 
-	got, err := validateKubeSphereAPIServer(svr.URL)
+	got, err := validateKubeSphereAPIServer(svr.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
