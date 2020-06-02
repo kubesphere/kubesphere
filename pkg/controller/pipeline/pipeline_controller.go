@@ -186,7 +186,7 @@ func (c *Controller) syncHandler(key string) error {
 			klog.Info(fmt.Sprintf("namespace '%s' in work queue no longer exists ", key))
 			return nil
 		}
-		klog.Error(err, fmt.Sprintf("could not get namespace %s ", key))
+		klog.V(8).Info(err, fmt.Sprintf("could not get namespace %s ", key))
 		return err
 	}
 	if !isDevOpsProjectAdminNamespace(namespace) {
@@ -198,7 +198,7 @@ func (c *Controller) syncHandler(key string) error {
 	pipeline, err := c.devOpsProjectLister.Pipelines(nsName).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.Info(fmt.Sprintf("copyPipeline '%s' in work queue no longer exists ", key))
+			klog.V(8).Info(fmt.Sprintf("copyPipeline '%s' in work queue no longer exists ", key))
 			return nil
 		}
 		klog.Error(err, fmt.Sprintf("could not get copyPipeline %s ", key))
@@ -220,14 +220,14 @@ func (c *Controller) syncHandler(key string) error {
 			if !reflect.DeepEqual(jenkinsPipeline.Spec, copyPipeline.Spec) {
 				_, err := c.devopsClient.UpdateProjectPipeline(nsName, copyPipeline)
 				if err != nil {
-					klog.Error(err, fmt.Sprintf("failed to update pipeline config %s ", key))
+					klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline config %s ", key))
 					return err
 				}
 			}
 		} else {
 			_, err := c.devopsClient.CreateProjectPipeline(nsName, copyPipeline)
 			if err != nil {
-				klog.Error(err, fmt.Sprintf("failed to create copyPipeline %s ", key))
+				klog.V(8).Info(err, fmt.Sprintf("failed to create copyPipeline %s ", key))
 				return err
 			}
 		}
@@ -236,7 +236,7 @@ func (c *Controller) syncHandler(key string) error {
 		// Finalizers processing logic
 		if sliceutil.HasString(copyPipeline.ObjectMeta.Finalizers, devopsv1alpha3.PipelineFinalizerName) {
 			if _, err := c.devopsClient.DeleteProjectPipeline(nsName, pipeline.Name); err != nil {
-				klog.Error(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
+				klog.V(8).Info(err, fmt.Sprintf("failed to delete pipeline %s in devops", key))
 			}
 			copyPipeline.ObjectMeta.Finalizers = sliceutil.RemoveString(copyPipeline.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.PipelineFinalizerName
@@ -247,7 +247,7 @@ func (c *Controller) syncHandler(key string) error {
 	if !reflect.DeepEqual(pipeline, copyPipeline) {
 		_, err = c.kubesphereClient.DevopsV1alpha3().Pipelines(nsName).Update(copyPipeline)
 		if err != nil {
-			klog.Error(err, fmt.Sprintf("failed to update pipeline %s ", key))
+			klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline %s ", key))
 			return err
 		}
 	}
