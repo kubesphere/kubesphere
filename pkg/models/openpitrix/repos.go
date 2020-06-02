@@ -44,6 +44,7 @@ type RepoInterface interface {
 	ListRepos(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ValidateRepo(request *ValidateRepoRequest) (*ValidateRepoResponse, error)
 	DoRepoAction(repoId string, request *RepoActionRequest) error
+	ListEvents(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error)
 	ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error)
 }
 
@@ -249,6 +250,36 @@ func (c *repoOperator) DoRepoAction(repoId string, request *RepoActionRequest) e
 func (c *repoOperator) ListRepoEvents(repoId string, conditions *params.Conditions, limit, offset int) (*models.PageableResponse, error) {
 	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{
 		RepoId: []string{repoId},
+	}
+	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
+		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")
+	}
+	if status := conditions.Match["status"]; status != "" {
+		describeRepoEventsRequest.Status = strings.Split(status, "|")
+	}
+	describeRepoEventsRequest.Limit = uint32(limit)
+	describeRepoEventsRequest.Offset = uint32(offset)
+
+	resp, err := c.opClient.DescribeRepoEvents(openpitrix.SystemContext(), describeRepoEventsRequest)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	items := make([]interface{}, 0)
+
+	for _, item := range resp.RepoEventSet {
+		items = append(items, convertRepoEvent(item))
+	}
+
+	return &models.PageableResponse{Items: items, TotalCount: int(resp.TotalCount)}, nil
+}
+
+func (c *repoOperator) ListEvents(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
+	describeRepoEventsRequest := &pb.DescribeRepoEventsRequest{}
+	if repoId := conditions.Match["repo_id"]; repoId != "" {
+		describeRepoEventsRequest.RepoId = strings.Split(repoId, "|")
 	}
 	if eventId := conditions.Match["repo_event_id"]; eventId != "" {
 		describeRepoEventsRequest.RepoEventId = strings.Split(eventId, "|")

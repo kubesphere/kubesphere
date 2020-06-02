@@ -347,6 +347,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Reads(openpitrix2.RepoActionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("repo", "repo id")))
+	webservice.Route(webservice.GET("/events").
+		To(handler.ListEvents).
+		Doc("Get events").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/repos/{repo}/events").
 		To(handler.ListRepoEvents).
 		Doc("Get repository events").

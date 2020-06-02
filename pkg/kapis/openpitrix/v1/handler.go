@@ -84,23 +84,6 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 		return
 	}
 
-	//ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
-	//
-	//if err != nil {
-	//	klog.Errorln(err)
-	//	api.HandleInternalError(resp, nil, err)
-	//	return
-	//}
-	//
-	//runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
-	//
-	//if runtimeId != app.Cluster.RuntimeId {
-	//	err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
-	//	klog.V(4).Infoln(err)
-	//	api.HandleForbidden(resp, nil, err)
-	//	return
-	//}
-
 	resp.WriteEntity(app)
 	return
 }
@@ -850,6 +833,7 @@ func (h *openpitrixHandler) DescribeRepo(req *restful.Request, resp *restful.Res
 
 	resp.WriteEntity(result)
 }
+
 func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
@@ -863,6 +847,29 @@ func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Respon
 	}
 
 	result, err := h.openpitrix.ListRepos(conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(result)
+}
+
+func (h *openpitrixHandler) ListEvents(req *restful.Request, resp *restful.Response) {
+	limit, offset := params.ParsePaging(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
+	conditions, err := params.ParseConditions(req)
+
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	result, err := h.openpitrix.ListEvents(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		klog.Errorln(err)
