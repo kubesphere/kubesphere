@@ -130,14 +130,16 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	u := *req.URL
 	u.Path = strings.Replace(u.Path, fmt.Sprintf("/clusters/%s", info.Cluster), "", 1)
 
+	// change request host to actually cluster hosts
 	if info.IsKubernetesRequest {
 		u.Host = innCluster.kubernetesURL.Host
 		u.Scheme = innCluster.kubernetesURL.Scheme
 	} else {
 		u.Host = innCluster.kubesphereURL.Host
+		u.Scheme = innCluster.kubesphereURL.Scheme
 
 		// if cluster connection is direct and kubesphere apiserver endpoint is empty
-		// we use kube-apiserver proxy
+		// we use kube-apiserver proxy way
 		if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeDirect &&
 			len(cluster.Spec.Connection.KubeSphereAPIEndpoint) == 0 {
 
@@ -145,6 +147,14 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 			u.Host = innCluster.kubernetesURL.Host
 			u.Path = fmt.Sprintf(proxyURLFormat, u.Path)
 			transport = innCluster.transport
+
+			// The reason we need this is kube-apiserver doesn't behave like a standard proxy, it will strip
+			// authorization header of proxy requests. Use custom header to avoid stripping by kube-apiserver.
+			// https://github.com/kubernetes/kubernetes/issues/38775#issuecomment-277915961
+			// We first copy req.Header['Authorization'] to req.Header['X-KubeSphere-Authorization'] before sending
+			// designated cluster kube-apiserver, then copy req.Header['X-KubeSphere-Authorization'] to
+			// req.Header['Authorization'] before authentication.
+			req.Header.Set("X-KubeSphere-Authorization", req.Header.Get("Authorization"))
 		}
 	}
 
