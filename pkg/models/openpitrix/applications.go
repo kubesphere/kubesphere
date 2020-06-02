@@ -94,6 +94,9 @@ func (c *applicationOperator) ListApplications(conditions *params.Conditions, li
 	if status := conditions.Match[Status]; status != "" {
 		describeClustersRequest.Status = strings.Split(status, "|")
 	}
+	if zone := conditions.Match[Zone]; zone != "" {
+		describeClustersRequest.Zone = []string{zone}
+	}
 	if orderBy != "" {
 		describeClustersRequest.SortKey = &wrappers.StringValue{Value: orderBy}
 	}
@@ -360,8 +363,8 @@ func (c *applicationOperator) CreateApplication(runtimeId, namespace string, req
 		AppId:     &wrappers.StringValue{Value: request.AppId},
 		VersionId: &wrappers.StringValue{Value: request.VersionId},
 		RuntimeId: &wrappers.StringValue{Value: request.RuntimeId},
-		Namespace: &wrappers.StringValue{Value: namespace},
 		Conf:      &wrappers.StringValue{Value: request.Conf},
+		Zone:      &wrappers.StringValue{Value: namespace},
 	})
 
 	if err != nil {
@@ -407,7 +410,6 @@ func (c *applicationOperator) UpgradeApplication(request UpgradeClusterRequest) 
 	_, err := c.opClient.UpgradeCluster(openpitrix.ContextWithUsername(request.Username), &pb.UpgradeClusterRequest{
 		ClusterId: &wrappers.StringValue{Value: request.ClusterId},
 		VersionId: &wrappers.StringValue{Value: request.VersionId},
-		Conf:      &wrappers.StringValue{Value: request.Conf},
 	})
 
 	if err != nil {

@@ -46,7 +46,7 @@ func newOpenpitrixHandler(factory informers.InformerFactory, opClient op.Client)
 
 func (h *openpitrixHandler) ListApplications(request *restful.Request, response *restful.Response) {
 	limit, offset := params.ParsePaging(request)
-	runtimeId := request.PathParameter("cluster")
+	runtimeId := request.PathParameter("runtime")
 	namespace := request.PathParameter("namespace")
 	orderBy := params.GetStringValueWithDefault(request, params.OrderByParam, openpitrix.CreateTime)
 	reverse := params.GetBoolValueWithDefault(request, params.ReverseParam, false)
@@ -72,9 +72,9 @@ func (h *openpitrixHandler) ListApplications(request *restful.Request, response 
 }
 
 func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *restful.Response) {
-	clusterId := req.PathParameter("application")
+	runtimeId := req.PathParameter("runtime")
 	namespace := req.PathParameter("namespace")
-	runtimeId := req.PathParameter("cluster")
+	clusterId := req.PathParameter("application")
 
 	app, err := h.openpitrix.DescribeApplication(namespace, clusterId, runtimeId)
 
@@ -84,29 +84,12 @@ func (h *openpitrixHandler) DescribeApplication(req *restful.Request, resp *rest
 		return
 	}
 
-	//ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
-	//
-	//if err != nil {
-	//	klog.Errorln(err)
-	//	api.HandleInternalError(resp, nil, err)
-	//	return
-	//}
-	//
-	//runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
-	//
-	//if runtimeId != app.Cluster.RuntimeId {
-	//	err = fmt.Errorf("rumtime not match %s,%s", app.Cluster.RuntimeId, runtimeId)
-	//	klog.V(4).Infoln(err)
-	//	api.HandleForbidden(resp, nil, err)
-	//	return
-	//}
-
 	resp.WriteEntity(app)
 	return
 }
 
 func (h *openpitrixHandler) CreateApplication(req *restful.Request, resp *restful.Response) {
-	runtimeId := req.PathParameter("cluster")
+	runtimeId := req.PathParameter("runtime")
 	namespace := req.PathParameter("namespace")
 	var createClusterRequest openpitrix.CreateClusterRequest
 	err := req.ReadEntity(&createClusterRequest)
@@ -131,7 +114,7 @@ func (h *openpitrixHandler) CreateApplication(req *restful.Request, resp *restfu
 
 func (h *openpitrixHandler) ModifyApplication(req *restful.Request, resp *restful.Response) {
 	var modifyClusterAttributesRequest openpitrix.ModifyClusterAttributesRequest
-	runtimeId := req.PathParameter("cluster")
+	runtimeId := req.PathParameter("runtime")
 	clusterId := req.PathParameter("application")
 	namespace := req.PathParameter("namespace")
 	err := req.ReadEntity(&modifyClusterAttributesRequest)
@@ -168,7 +151,7 @@ func (h *openpitrixHandler) ModifyApplication(req *restful.Request, resp *restfu
 }
 
 func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restful.Response) {
-	runtimeId := req.PathParameter("cluster")
+	runtimeId := req.PathParameter("runtime")
 	clusterId := req.PathParameter("application")
 	namespace := req.PathParameter("namespace")
 	app, err := h.openpitrix.DescribeApplication(namespace, clusterId, runtimeId)
@@ -198,7 +181,7 @@ func (h *openpitrixHandler) DeleteApplication(req *restful.Request, resp *restfu
 }
 
 func (h *openpitrixHandler) UpgradeApplication(req *restful.Request, resp *restful.Response) {
-	runtimeId := req.PathParameter("cluster")
+	runtimeId := req.PathParameter("runtime")
 	namespace := req.PathParameter("namespace")
 	clusterId := req.PathParameter("application")
 	var upgradeClusterRequest openpitrix.UpgradeClusterRequest
@@ -850,6 +833,7 @@ func (h *openpitrixHandler) DescribeRepo(req *restful.Request, resp *restful.Res
 
 	resp.WriteEntity(result)
 }
+
 func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Response) {
 	limit, offset := params.ParsePaging(req)
 	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
@@ -863,6 +847,29 @@ func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Respon
 	}
 
 	result, err := h.openpitrix.ListRepos(conditions, orderBy, reverse, limit, offset)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(result)
+}
+
+func (h *openpitrixHandler) ListEvents(req *restful.Request, resp *restful.Response) {
+	limit, offset := params.ParsePaging(req)
+	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
+	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
+	conditions, err := params.ParseConditions(req)
+
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	result, err := h.openpitrix.ListEvents(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		klog.Errorln(err)

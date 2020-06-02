@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/leaderelection"
