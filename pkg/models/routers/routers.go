@@ -44,6 +44,7 @@ const (
 	ingressControllerFolder    = "/etc/kubesphere/ingress-controller"
 	ingressControllerPrefix    = "kubesphere-router-"
 	ingressControllerNamespace = "kubesphere-controls-system"
+	configMapSuffix            = "-nginx"
 )
 
 type RouterOperator interface {
@@ -317,7 +318,7 @@ func (c *routerOperator) createOrUpdateRouterWorkload(namespace string, publishS
 			deployment.Spec.Template.Labels["project"] = namespace
 
 			// Add configmap
-			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name)
+			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--configmap=$(POD_NAMESPACE)/"+deployment.Name+configMapSuffix)
 
 			// Isolate namespace
 			deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--watch-namespace="+namespace)

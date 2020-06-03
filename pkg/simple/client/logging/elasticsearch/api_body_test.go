@@ -45,6 +45,12 @@ func TestMainBool(t *testing.T) {
 			},
 			expected: "api_body_4.json",
 		},
+		{
+			filter: logging.SearchFilter{
+				Starttime: time.Unix(1590744676, 0),
+			},
+			expected: "api_body_7.json",
+		},
 	}
 
 	for i, test := range tests {

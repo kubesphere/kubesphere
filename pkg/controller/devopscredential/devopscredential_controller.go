@@ -228,7 +228,7 @@ func (c *Controller) syncHandler(key string) error {
 			if _, ok := copySecret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey]; ok {
 				_, err := c.devopsClient.UpdateCredentialInProject(nsName, copySecret)
 				if err != nil {
-					klog.Error(err, fmt.Sprintf("failed to update secret %s ", key))
+					klog.V(8).Info(err, fmt.Sprintf("failed to update secret %s ", key))
 					return err
 				}
 			}
@@ -238,7 +238,7 @@ func (c *Controller) syncHandler(key string) error {
 		// Finalizers processing logic
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
 			if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
-				klog.Error(err, fmt.Sprintf("failed to delete secret %s in devops", key))
+				klog.V(8).Info(err, fmt.Sprintf("failed to delete secret %s in devops", key))
 				return err
 			}
 			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
@@ -250,7 +250,7 @@ func (c *Controller) syncHandler(key string) error {
 	if !reflect.DeepEqual(secret, copySecret) {
 		_, err = c.client.CoreV1().Secrets(nsName).Update(copySecret)
 		if err != nil {
-			klog.Error(err, fmt.Sprintf("failed to update secret %s ", key))
+			klog.V(8).Info(err, fmt.Sprintf("failed to update secret %s ", key))
 			return err
 		}
 	}

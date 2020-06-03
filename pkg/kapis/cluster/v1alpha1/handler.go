@@ -236,7 +236,14 @@ func (h *handler) ValidateCluster(request *restful.Request, response *restful.Re
 		return
 	}
 
-	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint)
+	// kubesphere apiserver endpoint not provided, that's allowed
+	// Cluster dispatcher will use kube-apiserver proxy instead
+	if len(cluster.Spec.Connection.KubeSphereAPIEndpoint) == 0 {
+		response.WriteHeader(http.StatusOK)
+		return
+	}
+
+	_, err = validateKubeSphereAPIServer(cluster.Spec.Connection.KubeSphereAPIEndpoint, cluster.Spec.Connection.KubeConfig)
 	if err != nil {
 		api.HandleBadRequest(response, request, fmt.Errorf("unable validate kubesphere endpoint, %v", err))
 		return
@@ -279,16 +286,36 @@ func loadKubeConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
 }
 
 // validateKubeSphereAPIServer uses version api to check the accessibility
-func validateKubeSphereAPIServer(ksEndpoint string) (*version.Info, error) {
-	_, err := url.Parse(ksEndpoint)
-	if err != nil {
-		return nil, err
+// If ksEndpoint is empty, use
+func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version.Info, error) {
+	if len(ksEndpoint) == 0 && len(kubeconfig) == 0 {
+		return nil, fmt.Errorf("neither kubesphere api endpoint nor kubeconfig was provided")
+	}
+
+	client := http.Client{
+		Timeout: defaultTimeout,
 	}
 
 	path := fmt.Sprintf("%s/kapis/version", ksEndpoint)
 
-	client := http.Client{
-		Timeout: defaultTimeout,
+	if len(ksEndpoint) != 0 {
+		_, err := url.Parse(ksEndpoint)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		config, err := loadKubeConfigFromBytes(kubeconfig)
+		if err != nil {
+			return nil, err
+		}
+
+		transport, err := rest.TransportFor(config)
+		if err != nil {
+			return nil, err
+		}
+
+		client.Transport = transport
+		path = fmt.Sprintf("%s/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:/proxy/kapis/version", config.Host)
 	}
 
 	response, err := client.Get(path)
