@@ -7,7 +7,6 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/informers"
 	genericoptions "kubesphere.io/kubesphere/pkg/server/options"
@@ -19,12 +18,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
-	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
-	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
-	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	"net/http"
 	"strings"
@@ -42,23 +38,7 @@ type ServerRunOptions struct {
 func NewServerRunOptions() *ServerRunOptions {
 	s := &ServerRunOptions{
 		GenericServerRunOptions: genericoptions.NewServerRunOptions(),
-		Config: &apiserverconfig.Config{
-			KubernetesOptions:     k8s.NewKubernetesOptions(),
-			DevopsOptions:         jenkins.NewDevopsOptions(),
-			SonarQubeOptions:      sonarqube.NewSonarQubeOptions(),
-			ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
-			NetworkOptions:        network.NewNetworkOptions(),
-			MonitoringOptions:     prometheus.NewPrometheusOptions(),
-			S3Options:             s3.NewS3Options(),
-			OpenPitrixOptions:     openpitrix.NewOptions(),
-			LoggingOptions:        esclient.NewElasticSearchOptions(),
-			LdapOptions:           ldap.NewOptions(),
-			RedisOptions:          cache.NewRedisOptions(),
-			AuthenticationOptions: authoptions.NewAuthenticateOptions(),
-			MultiClusterOptions:   multicluster.NewOptions(),
-			EventsOptions:         eventsclient.NewElasticSearchOptions(),
-			AuditingOptions:       auditingclient.NewElasticSearchOptions(),
-		},
+		Config:                  apiserverconfig.New(),
 	}
 
 	return s
