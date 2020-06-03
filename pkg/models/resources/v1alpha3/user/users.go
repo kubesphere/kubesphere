@@ -58,7 +58,7 @@ func (d *usersGetter) List(_ string, query *query.Query) (*api.ListResult, error
 		users, err = d.listAllUsersInWorkspace(string(workspace), string(workspaceRole))
 		delete(query.Filters, iamv1alpha2.ScopeWorkspace)
 		delete(query.Filters, iamv1alpha2.ResourcesSingularWorkspaceRole)
-	} else if cluster := query.Filters[iamv1alpha2.ScopeCluster]; cluster == iamv1alpha2.LocalCluster {
+	} else if cluster := query.Filters[iamv1alpha2.ScopeCluster]; cluster == "true" {
 		clusterRole := query.Filters[iamv1alpha2.ResourcesSingularClusterRole]
 		users, err = d.listAllUsersInCluster(string(clusterRole))
 		delete(query.Filters, iamv1alpha2.ScopeCluster)
