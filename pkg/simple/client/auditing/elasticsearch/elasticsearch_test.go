@@ -175,6 +175,18 @@ func TestParseToQueryPart(t *testing.T) {
 				"bool": {
 					"should": [
 						{
+							"match_phrase_prefix": {
+								"ObjectRef.Name.keyword": "istio"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
 							"wildcard": {
 								"ObjectRef.Name": "*istio*"
 							}
@@ -184,9 +196,130 @@ func TestParseToQueryPart(t *testing.T) {
 				}
 			},
 			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase": {
+								"Verb": "create"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase": {
+								"Level": "Metadata"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"wildcard": {
+								"SourceIPs": "*192.168*"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase": {
+								"User.Username.keyword": "system:serviceaccount:kubesphere-system:kubesphere"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"wildcard": {
+								"User.Username": "*system:serviceaccount*"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"wildcard": {
+								"User.Groups": "*system:serviceaccounts*"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase_prefix": {
+								"ObjectRef.Resource.keyword": "devops"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase_prefix": {
+								"ObjectRef.Subresource.keyword": "pipeline"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"term": {
+								"ResponseStatus.code": 404
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
+				"bool": {
+					"should": [
+						{
+							"match_phrase": {
+								"ResponseStatus.status": "Failure"
+							}
+						}
+					],
+					"minimum_should_match": 1
+				}
+			},
+			{
 				"range": {
 					"RequestReceivedTimestamp": {
-						"gte": "2019-12-01T01:01:01.000000001Z"
+						"gte": "2019-12-01T01:01:01.000000001Z",
+						"lte": "2020-01-01T01:01:01.000000001Z"
 					}
 				}
 			}
@@ -196,13 +329,26 @@ func TestParseToQueryPart(t *testing.T) {
 `
 	nsCreateTime := time.Date(2020, time.Month(1), 1, 1, 1, 1, 1, time.UTC)
 	startTime := nsCreateTime.AddDate(0, -1, 0)
+	endTime := nsCreateTime.AddDate(0, 0, 0)
 
 	filter := &auditing.Filter{
 		ObjectRefNamespaceMap: map[string]time.Time{
 			"kubesphere-system": nsCreateTime,
 		},
-		ObjectRefNameFuzzy: []string{"istio"},
-		StartTime:          &startTime,
+		ObjectRefNames:        []string{"istio"},
+		ObjectRefNameFuzzy:    []string{"istio"},
+		Levels:                []string{"Metadata"},
+		Verbs:                 []string{"create"},
+		Users:                 []string{"system:serviceaccount:kubesphere-system:kubesphere"},
+		UserFuzzy:             []string{"system:serviceaccount"},
+		GroupFuzzy:            []string{"system:serviceaccounts"},
+		SourceIpFuzzy:         []string{"192.168"},
+		ObjectRefResources:    []string{"devops"},
+		ObjectRefSubresources: []string{"pipeline"},
+		ResponseCodes:         []int32{404},
+		ResponseStatus:        []string{"Failure"},
+		StartTime:             &startTime,
+		EndTime:               &endTime,
 	}
 
 	qp := parseToQueryPart(filter)

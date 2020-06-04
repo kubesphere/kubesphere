@@ -38,7 +38,8 @@ type Filter struct {
 	SourceIpFuzzy         []string
 	ObjectRefResources    []string
 	ObjectRefSubresources []string
-	ResponseStatus        []int32
+	ResponseCodes         []int32
+	ResponseStatus        []string
 	StartTime             *time.Time
 	EndTime               *time.Time
 }

@@ -47,15 +47,15 @@ func (s *Options) Validate() []error {
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.StringVar(&s.Host, "elasticsearch-host", c.Host, ""+
+	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+
 		" the following elastic search options will be ignored.")
 
-	fs.StringVar(&s.IndexPrefix, "index-prefix", c.IndexPrefix, ""+
+	fs.StringVar(&s.IndexPrefix, "auditing-index-prefix", c.IndexPrefix, ""+
 		"Index name prefix. KubeSphere will retrieve auditing against indices matching the prefix.")
 
-	fs.StringVar(&s.Version, "elasticsearch-version", c.Version, ""+
+	fs.StringVar(&s.Version, "auditing-elasticsearch-version", c.Version, ""+
 		"Elasticsearch major version, e.g. 5/6/7, if left blank, will detect automatically."+
 		"Currently, minimum supported version is 5.x")
 }
