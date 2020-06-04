@@ -48,6 +48,7 @@ func (eo *eventsOperator) Events(queryParam *v1alpha1.Query,
 		SourceIpFuzzy:         stringutils.Split(queryParam.SourceIpSearch, ","),
 		ObjectRefResources:    stringutils.Split(queryParam.ObjectRefResourceFilter, ","),
 		ObjectRefSubresources: stringutils.Split(queryParam.ObjectRefSubresourceFilter, ","),
+		ResponseStatus:        stringutils.Split(queryParam.ResponseStatusFilter, ","),
 		StartTime:             queryParam.StartTime,
 		EndTime:               queryParam.EndTime,
 	}
@@ -55,14 +56,14 @@ func (eo *eventsOperator) Events(queryParam *v1alpha1.Query,
 		MutateFilterFunc(filter)
 	}
 
-	cs := stringutils.Split(queryParam.ResponesStatusFilter, ",")
+	cs := stringutils.Split(queryParam.ResponseCodeFilter, ",")
 	for _, c := range cs {
 		code, err := strconv.ParseInt(c, 10, 64)
 		if err != nil {
 			continue
 		}
 
-		filter.ResponseStatus = append(filter.ResponseStatus, int32(code))
+		filter.ResponseCodes = append(filter.ResponseCodes, int32(code))
 	}
 
 	var ar v1alpha1.APIResponse
