@@ -25,6 +25,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
+	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
@@ -47,6 +48,7 @@ func AddControllers(
 	informerFactory informers.InformerFactory,
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
+	multiClusterEnabled bool,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -125,6 +127,8 @@ func AddControllers(
 
 	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(), kubernetesInformer, kubesphereInformer)
 
+	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), kubernetesInformer, kubesphereInformer, multiClusterEnabled)
+
 	clusterController := cluster.NewClusterController(
 		client.Kubernetes(),
 		client.Config(),
@@ -158,6 +162,7 @@ func AddControllers(
 		"nsnp-controller":               nsnpController,
 		"csr-controller":                csrController,
 		"clusterrolebinding-controller": clusterRoleBindingController,
+		"globalrolebinding-controller":  globalRoleBindingController,
 	}
 
 	for name, ctrl := range controllers {

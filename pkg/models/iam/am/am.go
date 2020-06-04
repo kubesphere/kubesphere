@@ -18,6 +18,7 @@ package am
 import (
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ type AccessManagementInterface interface {
 	GetWorkspaceRoleOfUser(username, workspace string) (*iamv1alpha2.WorkspaceRole, error)
 	GetClusterRoleOfUser(username string) (*rbacv1.ClusterRole, error)
 	GetNamespaceRoleOfUser(username, namespace string) (*rbacv1.Role, error)
-	ListRoles(username string, query *query.Query) (*api.ListResult, error)
+	ListRoles(namespace string, query *query.Query) (*api.ListResult, error)
 	ListClusterRoles(query *query.Query) (*api.ListResult, error)
 	ListWorkspaceRoles(query *query.Query) (*api.ListResult, error)
 	ListGlobalRoles(query *query.Query) (*api.ListResult, error)
@@ -70,6 +71,7 @@ type AccessManagementInterface interface {
 	CreateOrUpdateClusterRoleBinding(username string, role string) error
 	RemoveUserFromCluster(username string) error
 	GetControlledNamespace(devops string) (string, error)
+	GetControlledWorkspace(namespace string) (string, error)
 }
 
 type amOperator struct {
@@ -341,11 +343,11 @@ func contains(subjects []rbacv1.Subject, username string) bool {
 }
 
 func (am *amOperator) ListRoles(namespace string, query *query.Query) (*api.ListResult, error) {
-	return am.resourceGetter.List("roles", namespace, query)
+	return am.resourceGetter.List(iamv1alpha2.ResourcesPluralRole, namespace, query)
 }
 
 func (am *amOperator) ListClusterRoles(query *query.Query) (*api.ListResult, error) {
-	return am.resourceGetter.List("clusterroles", "", query)
+	return am.resourceGetter.List(iamv1alpha2.ResourcesPluralClusterRole, "", query)
 }
 
 func (am *amOperator) ListWorkspaceRoles(queryParam *query.Query) (*api.ListResult, error) {
@@ -495,7 +497,7 @@ func (am *amOperator) CreateOrUpdateWorkspaceRoleBinding(username string, worksp
 
 	roleBinding := iamv1alpha2.WorkspaceRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s-%s", workspace, username, role),
+			Name: fmt.Sprintf("%s-%s", role, username),
 			Labels: map[string]string{iamv1alpha2.UserReferenceLabel: username,
 				tenantv1alpha1.WorkspaceLabel: workspace},
 		},
@@ -833,30 +835,44 @@ func (am *amOperator) DeleteNamespaceRole(namespace string, name string) error {
 }
 
 // GetRoleReferenceRules attempts to resolve the RoleBinding or ClusterRoleBinding.
-func (am *amOperator) GetRoleReferenceRules(roleRef rbacv1.RoleRef, namespace string) (string, []rbacv1.PolicyRule, error) {
+func (am *amOperator) GetRoleReferenceRules(roleRef rbacv1.RoleRef, namespace string) (regoPolicy string, rules []rbacv1.PolicyRule, err error) {
+
+	empty := make([]rbacv1.PolicyRule, 0)
+
 	switch roleRef.Kind {
 	case iamv1alpha2.ResourceKindRole:
 		role, err := am.GetNamespaceRole(namespace, roleRef.Name)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", empty, nil
+			}
 			return "", nil, err
 		}
-
 		return role.Annotations[iamv1alpha2.RegoOverrideAnnotation], role.Rules, nil
 	case iamv1alpha2.ResourceKindClusterRole:
 		clusterRole, err := am.GetClusterRole(roleRef.Name)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", empty, nil
+			}
 			return "", nil, err
 		}
 		return clusterRole.Annotations[iamv1alpha2.RegoOverrideAnnotation], clusterRole.Rules, nil
 	case iamv1alpha2.ResourceKindGlobalRole:
 		globalRole, err := am.GetGlobalRole(roleRef.Name)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", empty, nil
+			}
 			return "", nil, err
 		}
 		return globalRole.Annotations[iamv1alpha2.RegoOverrideAnnotation], globalRole.Rules, nil
 	case iamv1alpha2.ResourceKindWorkspaceRole:
 		workspaceRole, err := am.GetWorkspaceRole("", roleRef.Name)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", empty, nil
+			}
 			return "", nil, err
 		}
 		return workspaceRole.Annotations[iamv1alpha2.RegoOverrideAnnotation], workspaceRole.Rules, nil
@@ -909,4 +925,17 @@ func (am *amOperator) GetControlledNamespace(devops string) (string, error) {
 	devopsProject := obj.(*devopsv1alpha3.DevOpsProject)
 
 	return devopsProject.Status.AdminNamespace, nil
+}
+
+func (am *amOperator) GetControlledWorkspace(namespace string) (string, error) {
+	obj, err := am.resourceGetter.Get("namespaces", "", namespace)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return "", nil
+		}
+		klog.Error(err)
+		return "", err
+	}
+	ns := obj.(*corev1.Namespace)
+	return ns.Labels[tenantv1alpha1.WorkspaceLabel], nil
 }
