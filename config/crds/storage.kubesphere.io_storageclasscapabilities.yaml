@@ -1,0 +1,80 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: storageclasscapabilities.storage.kubesphere.io
+spec:
+  group: storage.kubesphere.io
+  version: v1alpha1
+  names:
+    plural: storageclasscapabilities
+    singular: storageclasscapability
+    kind: StorageClassCapability
+    shortNames:
+      - sccap
+  preserveUnknownFields: false
+  additionalPrinterColumns:
+    - name: Provisioner
+      type: string
+      JSONPath: .spec.provisioner
+    - name: Volume
+      type: boolean
+      JSONPath: .spec.features.volume.create
+    - name: Snapshot
+      type: boolean
+      JSONPath: .spec.features.snapshot.create
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  scope: Cluster
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+          properties:
+            provisioner:
+              type: string
+            features:
+              type: object
+              properties:
+                topology:
+                  description: topology determines whether a provisioner support topology by looking up GetPluginCapabilities.PluginCapability
+                  type: boolean
+                volume:
+                  type: object
+                  properties:
+                    create:
+                      description: 'Create/Delete volume. Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    attach:
+                      description: 'CSI Plugin implement ControllerPublishVolume/ControllerUnpublishVolume. Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    list:
+                      description: 'CSI Plugin implement ListVolume. Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    clone:
+                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    stats:
+                      description: 'Determined by NodeGetCapabilities in NodeServer'
+                      type: boolean
+                    expandMode:
+                      description: 'Determined by GetPluginCapabilities in IdentityServer and StorageClass AllowVolumeExpansion'
+                      type: string
+                      items:
+                        type: string
+                        enum: ["UNKNOWN", "OFFLINE", "ONLINE"]
+                snapshot:
+                  type: object
+                  properties:
+                    create:
+                      type: boolean
+                    list:
+                      type: boolean

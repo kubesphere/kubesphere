@@ -1,0 +1,18 @@
+apiVersion: storage.kubesphere.io/v1alpha1
+kind: StorageClassCapability
+metadata:
+  name: example-sc
+spec:
+  provisioner: "csi.example.sc"
+  features:
+    topology: true
+    volume:
+      create: true
+      attach: true
+      clone: true
+      list: false
+      stats: true
+      expandMode: UNKNOWN
+    snapshot:
+      create: true
+      list: false
