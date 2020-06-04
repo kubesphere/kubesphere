@@ -22,7 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	k8sinformers "k8s.io/client-go/informers"
+	appsv1informers "k8s.io/client-go/informers/apps/v1"
+	coreinfomers "k8s.io/client-go/informers/core/v1"
 	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -33,7 +34,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/kubectl"
 	"time"
 )
@@ -47,10 +48,11 @@ const (
 )
 
 type Controller struct {
-	k8sClient kubernetes.Interface
-	informer  rbacv1informers.ClusterRoleBindingInformer
-	lister    rbacv1listers.ClusterRoleBindingLister
-	synced    cache.InformerSynced
+	k8sClient                  kubernetes.Interface
+	clusterRoleBindingInformer rbacv1informers.ClusterRoleBindingInformer
+	clusterRoleBindingLister   rbacv1listers.ClusterRoleBindingLister
+	clusterRoleBindingSynced   cache.InformerSynced
+	userSynced                 cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -63,7 +65,7 @@ type Controller struct {
 	kubectlOperator kubectl.Interface
 }
 
-func NewController(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory) *Controller {
+func NewController(k8sClient kubernetes.Interface, clusterRoleBindingInformer rbacv1informers.ClusterRoleBindingInformer, deploymentInformer appsv1informers.DeploymentInformer, podInformer coreinfomers.PodInformer, userInformer iamv1alpha2informers.UserInformer) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -73,18 +75,18 @@ func NewController(k8sClient kubernetes.Interface, k8sInformer k8sinformers.Shar
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	informer := k8sInformer.Rbac().V1().ClusterRoleBindings()
 	ctl := &Controller{
-		k8sClient:       k8sClient,
-		informer:        informer,
-		lister:          informer.Lister(),
-		synced:          informer.Informer().HasSynced,
-		kubectlOperator: kubectl.NewOperator(k8sClient, k8sInformer, ksInformer),
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
-		recorder:        recorder,
+		k8sClient:                  k8sClient,
+		clusterRoleBindingInformer: clusterRoleBindingInformer,
+		clusterRoleBindingLister:   clusterRoleBindingInformer.Lister(),
+		clusterRoleBindingSynced:   clusterRoleBindingInformer.Informer().HasSynced,
+		userSynced:                 userInformer.Informer().HasSynced,
+		kubectlOperator:            kubectl.NewOperator(k8sClient, deploymentInformer, podInformer, userInformer),
+		workqueue:                  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
+		recorder:                   recorder,
 	}
 	klog.Info("Setting up event handlers")
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	clusterRoleBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: ctl.enqueueClusterRoleBinding,
 		UpdateFunc: func(old, new interface{}) {
 			ctl.enqueueClusterRoleBinding(new)
@@ -105,7 +107,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.synced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.clusterRoleBindingSynced, c.userSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -195,7 +197,7 @@ func (c *Controller) processNextWorkItem() bool {
 func (c *Controller) reconcile(key string) error {
 
 	// Get the clusterRoleBinding with this name
-	clusterRoleBinding, err := c.lister.Get(key)
+	clusterRoleBinding, err := c.clusterRoleBindingLister.Get(key)
 	if err != nil {
 		// The user may no longer exist, in which case we stop
 		// processing.

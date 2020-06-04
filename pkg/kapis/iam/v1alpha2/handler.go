@@ -67,6 +67,11 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		globalRole, err := h.am.GetGlobalRoleOfUser(username)
 
 		if err != nil {
+			// if role binding not exist return empty list
+			if errors.IsNotFound(err) {
+				response.WriteEntity([]interface{}{})
+				return
+			}
 			api.HandleInternalError(response, request, err)
 			return
 		}
@@ -91,6 +96,11 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		clusterRole, err := h.am.GetClusterRoleOfUser(username)
 
 		if err != nil {
+			// if role binding not exist return empty list
+			if errors.IsNotFound(err) {
+				response.WriteEntity([]interface{}{})
+				return
+			}
 			api.HandleInternalError(response, request, err)
 			return
 		}
@@ -117,6 +127,11 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		workspaceRole, err := h.am.GetWorkspaceRoleOfUser(username, workspace)
 
 		if err != nil {
+			// if role binding not exist return empty list
+			if errors.IsNotFound(err) {
+				response.WriteEntity([]interface{}{})
+				return
+			}
 			api.HandleInternalError(response, request, err)
 			return
 		}
@@ -141,9 +156,9 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
 
 		if err != nil {
-			klog.Error(err)
+			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
-				api.HandleNotFound(response, request, err)
+				response.WriteEntity([]interface{}{})
 				return
 			}
 			api.HandleInternalError(response, request, err)

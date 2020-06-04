@@ -23,11 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	k8sinformers "k8s.io/client-go/informers"
+	appsv1informers "k8s.io/client-go/informers/apps/v1"
+	coreinfomers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models"
 	"math/rand"
 	"os"
@@ -47,13 +48,14 @@ type Interface interface {
 }
 
 type operator struct {
-	k8sClient   kubernetes.Interface
-	k8sInformer k8sinformers.SharedInformerFactory
-	ksInformer  ksinformers.SharedInformerFactory
+	k8sClient          kubernetes.Interface
+	deploymentInformer appsv1informers.DeploymentInformer
+	podInformer        coreinfomers.PodInformer
+	userInformer       iamv1alpha2informers.UserInformer
 }
 
-func NewOperator(k8sClient kubernetes.Interface, k8sInformer k8sinformers.SharedInformerFactory, ksInformer ksinformers.SharedInformerFactory) Interface {
-	return &operator{k8sClient: k8sClient, k8sInformer: k8sInformer, ksInformer: ksInformer}
+func NewOperator(k8sClient kubernetes.Interface, deploymentInformer appsv1informers.DeploymentInformer, podInformer coreinfomers.PodInformer, userInformer iamv1alpha2informers.UserInformer) Interface {
+	return &operator{k8sClient: k8sClient, deploymentInformer: deploymentInformer, podInformer: podInformer, userInformer: userInformer}
 }
 
 var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
@@ -66,7 +68,7 @@ func init() {
 
 func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
 	deployName := fmt.Sprintf(deployNameFormat, username)
-	deploy, err := o.k8sInformer.Apps().V1().Deployments().Lister().Deployments(namespace).Get(deployName)
+	deploy, err := o.deploymentInformer.Lister().Deployments(namespace).Get(deployName)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -74,7 +76,7 @@ func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
 
 	selectors := deploy.Spec.Selector.MatchLabels
 	labelSelector := labels.Set(selectors).AsSelector()
-	pods, err := o.k8sInformer.Core().V1().Pods().Lister().Pods(namespace).List(labelSelector)
+	pods, err := o.podInformer.Lister().Pods(namespace).List(labelSelector)
 	if err != nil {
 		klog.Errorln(err)
 		return models.PodInfo{}, err
@@ -115,7 +117,7 @@ func selectCorrectPod(namespace string, pods []*v1.Pod) (kubectlPod *v1.Pod, err
 func (o *operator) CreateKubectlDeploy(username string) error {
 	deployName := fmt.Sprintf(deployNameFormat, username)
 
-	user, err := o.ksInformer.Iam().V1alpha2().Users().Lister().Get(username)
+	user, err := o.userInformer.Lister().Get(username)
 
 	if err != nil {
 		klog.Error(err)
