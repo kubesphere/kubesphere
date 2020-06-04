@@ -141,3 +141,31 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - "storage.k8s.io"
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "snapshot.storage.k8s.io"
+  resources:
+  - volumesnapshotclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "storage.kubesphere.io"
+  resources:
+  - storageclasscapabilities
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete

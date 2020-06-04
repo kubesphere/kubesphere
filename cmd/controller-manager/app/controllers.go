@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"fmt"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
@@ -31,6 +32,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
 	"kubesphere.io/kubesphere/pkg/controller/s2ibinary"
 	"kubesphere.io/kubesphere/pkg/controller/s2irun"
+	"kubesphere.io/kubesphere/pkg/controller/storage/capability"
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
@@ -109,6 +111,17 @@ func AddControllers(
 		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
 		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
 
+	storageCapabilityController := capability.NewController(
+		client.Kubernetes(),
+		client.KubeSphere(),
+		kubernetesInformer.Storage().V1().StorageClasses(),
+		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
+		kubesphereInformer.Storage().V1alpha1().StorageClassCapabilities(),
+		func(storageClassProvisioner string) string {
+			return fmt.Sprintf(capability.CSIAddressFormat, storageClassProvisioner)
+		},
+	)
+
 	volumeExpansionController := expansion.NewVolumeExpansionController(
 		client.Kubernetes(),
 		kubernetesInformer.Core().V1().PersistentVolumeClaims(),
@@ -158,6 +171,10 @@ func AddControllers(
 		"nsnp-controller":               nsnpController,
 		"csr-controller":                csrController,
 		"clusterrolebinding-controller": clusterRoleBindingController,
+	}
+
+	if storageCapabilityController.IsValidKubernetesVersion() {
+		controllers["storagecapability-controller"] = storageCapabilityController
 	}
 
 	for name, ctrl := range controllers {
