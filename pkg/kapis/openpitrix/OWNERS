@@ -1,11 +1,13 @@
 approvers:
     - zheng1
+    - wansir
     - zryfish
 
 reviewers:
     - zheng1
+    - wansir
     - zryfish
 
 labels:
     - area/api
-    - area/networking
+    - area/app-management
