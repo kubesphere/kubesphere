@@ -183,7 +183,9 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 
 	if decision == authorizer.DecisionAllow {
 
-		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+		if workspace != "" {
+			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+		}
 
 		result, err := t.resourceGetter.List("namespaces", "", queryParam)
 
@@ -213,7 +215,7 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 		}
 
 		// skip if not controlled by the specified workspace
-		if ns := namespace.(*corev1.Namespace); ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
+		if ns := namespace.(*corev1.Namespace); workspace != "" && ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
 			continue
 		}
 

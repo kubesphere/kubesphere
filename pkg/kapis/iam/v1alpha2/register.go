@@ -44,30 +44,62 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 
 	// users
 	ws.Route(ws.POST("/users").
-		To(handler.CreateUserOrClusterMembers).
+		To(handler.CreateUser).
 		Doc("Create user in global scope.").
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.DELETE("/users/{user}").
-		To(handler.DeleteUserOrClusterMember).
+		To(handler.DeleteUser).
 		Doc("Delete user.").
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.PUT("/users/{user}").
-		To(handler.UpdateUserOrClusterMember).
+		To(handler.UpdateUser).
 		Doc("Update user info.").
 		Reads(iamv1alpha2.User{}).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/users/{user}").
-		To(handler.DescribeUserOrClusterMember).
+		To(handler.DescribeUser).
 		Doc("Retrieve user details.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/users").
-		To(handler.ListUsersOrClusterMembers).
+		To(handler.ListUsers).
 		Doc("List all users.").
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.User{}}}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
+	// clustermembers
+	ws.Route(ws.POST("/clustermembers").
+		To(handler.CreateClusterMembers).
+		Doc("Add user to current cluster.").
+		Reads([]Member{}).
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.DELETE("/clustermembers/{clustermember}").
+		To(handler.RemoveClusterMember).
+		Doc("Delete user from cluster scope.").
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Param(ws.PathParameter("clustermember", "username")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.PUT("/clustermembers/{clustermember}").
+		To(handler.UpdateClusterMember).
+		Doc("Update user cluster role bind.").
+		Reads(Member{}).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
+		Param(ws.PathParameter("clustermember", "username")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.GET("/clustermembers/{clustermember}").
+		To(handler.DescribeClusterMember).
+		Doc("Retrieve user details in cluster.").
+		Param(ws.PathParameter("clustermember", "username")).
+		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.GET("/clustermembers").
+		To(handler.ListClusterMembers).
+		Doc("List all users in cluster.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.User{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
@@ -337,28 +369,35 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	ws.Route(ws.GET("/users/{user}/globalrole").
-		To(handler.RetrieveMemberRole).
-		Doc("Retrieve user's global role.").
+	ws.Route(ws.GET("/users/{user}/globalroles").
+		To(handler.RetrieveMemberRoleTemplates).
+		Doc("Retrieve user's global role templates.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/users/{user}/clusterrole").
-		To(handler.RetrieveMemberRole).
-		Doc("Retrieve user's role in cluster.").
+	ws.Route(ws.GET("/users/{user}/clusterroles").
+		To(handler.RetrieveMemberRoleTemplates).
+		Doc("Retrieve user's role templates in cluster.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/users/{user}/workspacerole").
-		To(handler.RetrieveMemberRole).
-		Doc("Retrieve member's role in workspace.").
+	ws.Route(ws.GET("/workspaces/{workspace}/users/{user}/workspaceroles").
+		To(handler.RetrieveMemberRoleTemplates).
+		Doc("Retrieve member's role templates in workspace.").
 		Param(ws.PathParameter("workspace", "workspace")).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.WorkspaceRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/namespaces/{namespace}/users/{user}/role").
-		To(handler.RetrieveMemberRole).
-		Doc("Retrieve member's role in namespace.").
+	ws.Route(ws.GET("/namespaces/{namespace}/users/{user}/roles").
+		To(handler.RetrieveMemberRoleTemplates).
+		Doc("Retrieve member's role templates in namespace.").
+		Param(ws.PathParameter("namespace", "namespace")).
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.GET("/devops/{devops}/users/{user}/roles").
+		To(handler.RetrieveMemberRoleTemplates).
+		Doc("Retrieve member's role templates in devops project.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).

@@ -36,17 +36,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/workspace"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -147,7 +146,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			klog.Fatal("Unable to create namespace controller")
 		}
 
-		if err := AddControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, stopCh); err != nil {
+		if err := AddControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, s.MultiClusterOptions.Enable, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 

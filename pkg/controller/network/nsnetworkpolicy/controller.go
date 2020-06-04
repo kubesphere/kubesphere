@@ -462,8 +462,10 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 	if err != nil {
 		return err
 	}
+	if len(ruleNode.From) > 0 {
+		policy.Spec.Ingress = append(policy.Spec.Ingress, ruleNode)
+	}
 
-	policy.Spec.Ingress = append(policy.Spec.Ingress, ruleNode)
 	if delete {
 		c.provider.Delete(c.provider.GetKey(AnnotationNPNAME, ns.Name))
 	} else {
@@ -531,7 +533,7 @@ func (c *NSNetworkPolicyController) syncNSNP(key string) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(4).Infof("NSNP %v has been deleted", key)
-			c.provider.Delete(c.provider.GetKey(name, namespace))
+			c.provider.Delete(c.provider.GetKey(network.NSNPPrefix+name, namespace))
 			return nil
 		}
 
