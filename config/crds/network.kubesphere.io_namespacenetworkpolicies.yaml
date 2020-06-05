@@ -1,3 +1,4 @@
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -10,12 +11,12 @@ spec:
   group: network.kubesphere.io
   names:
     categories:
-      - networking
+    - networking
     kind: NamespaceNetworkPolicy
     listKind: NamespaceNetworkPolicyList
     plural: namespacenetworkpolicies
     shortNames:
-      - nsnp
+    - nsnp
     singular: namespacenetworkpolicy
   scope: Namespaced
   validation:
@@ -36,7 +37,8 @@ spec:
         metadata:
           type: object
         spec:
-          description: NetworkPolicySpec provides the specification of a NetworkPolicy
+          description: NamespaceNetworkPolicySpec provides the specification of a
+            NamespaceNetworkPolicy
           properties:
             egress:
               description: List of egress rules to be applied to the selected pods.
@@ -66,8 +68,8 @@ spec:
                       properties:
                         port:
                           anyOf:
-                            - type: integer
-                            - type: string
+                          - type: integer
+                          - type: string
                           description: The port on the given protocol. This can either
                             be a numerical or named port on a pod. If this field is
                             not provided, this matches all port names and numbers.
@@ -108,21 +110,14 @@ spec:
                                 type: string
                               type: array
                           required:
-                            - cidr
+                          - cidr
                           type: object
                         namespace:
-                          description: "Selects Namespaces using cluster-scoped labels.
-                            This field follows standard label selector semantics;
-                            if present but empty, it selects all namespaces. \n If
-                            PodSelector is also set, then the NetworkPolicyPeer as
-                            a whole selects the Pods matching PodSelector in the Namespaces
-                            selected by NamespaceSelector. Otherwise it selects all
-                            Pods in the Namespaces selected by NamespaceSelector."
                           properties:
                             name:
                               type: string
                           required:
-                            - name
+                          - name
                           type: object
                         service:
                           properties:
@@ -131,8 +126,8 @@ spec:
                             namespace:
                               type: string
                           required:
-                            - name
-                            - namespace
+                          - name
+                          - namespace
                           type: object
                       type: object
                     type: array
@@ -182,21 +177,14 @@ spec:
                                 type: string
                               type: array
                           required:
-                            - cidr
+                          - cidr
                           type: object
                         namespace:
-                          description: "Selects Namespaces using cluster-scoped labels.
-                            This field follows standard label selector semantics;
-                            if present but empty, it selects all namespaces. \n If
-                            PodSelector is also set, then the NetworkPolicyPeer as
-                            a whole selects the Pods matching PodSelector in the Namespaces
-                            selected by NamespaceSelector. Otherwise it selects all
-                            Pods in the Namespaces selected by NamespaceSelector."
                           properties:
                             name:
                               type: string
                           required:
-                            - name
+                          - name
                           type: object
                         service:
                           properties:
@@ -205,8 +193,8 @@ spec:
                             namespace:
                               type: string
                           required:
-                            - name
-                            - namespace
+                          - name
+                          - namespace
                           type: object
                       type: object
                     type: array
@@ -224,8 +212,8 @@ spec:
                       properties:
                         port:
                           anyOf:
-                            - type: integer
-                            - type: string
+                          - type: integer
+                          - type: string
                           description: The port on the given protocol. This can either
                             be a numerical or named port on a pod. If this field is
                             not provided, this matches all port names and numbers.
@@ -260,9 +248,9 @@ spec:
       type: object
   version: v1alpha1
   versions:
-    - name: v1alpha1
-      served: true
-      storage: true
+  - name: v1alpha1
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""

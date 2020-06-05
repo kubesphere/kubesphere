@@ -128,6 +128,11 @@ type ClusterStatus struct {
 	// Region is the name of the region in which all of the nodes in the cluster exist.  e.g. 'us-east1'.
 	// +optional
 	Region *string `json:"region,omitempty"`
+
+	// Configz is status of components enabled in the member cluster. This is synchronized with member cluster
+	// every amount of time, like 5 minutes.
+	// +optional
+	Configz map[string]bool `json:"configz,omitempty"`
 }
 
 // +genclient

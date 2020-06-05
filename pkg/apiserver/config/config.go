@@ -94,10 +94,8 @@ type Config struct {
 	MultiClusterOptions   *multicluster.Options                      `json:"multicluster,omitempty" yaml:"multicluster,omitempty" mapstructure:"multicluster"`
 	EventsOptions         *eventsclient.Options                      `json:"events,omitempty" yaml:"events,omitempty" mapstructure:"events"`
 	AuditingOptions       *auditingclient.Options                    `json:"auditing,omitempty" yaml:"auditing,omitempty" mapstructure:"auditing"`
-	// Options used for enabling components, not actually used now. Once we switch Alerting/Notification API to kubesphere,
-	// we can add these options to kubesphere command lines
-	AlertingOptions     *alerting.Options     `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
-	NotificationOptions *notification.Options `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
+	AlertingOptions       *alerting.Options                          `json:"alerting,omitempty" yaml:"alerting,omitempty" mapstructure:"alerting"`
+	NotificationOptions   *notification.Options                      `json:"notification,omitempty" yaml:"notification,omitempty" mapstructure:"notification"`
 }
 
 // newConfig creates a default non-empty Config
