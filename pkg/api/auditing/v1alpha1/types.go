@@ -45,7 +45,8 @@ type Query struct {
 	SourceIpSearch             string `json:"source_ip_search,omitempty"`
 	ObjectRefResourceFilter    string `json:"objectref_resource_filter,omitempty"`
 	ObjectRefSubresourceFilter string `json:"objectref_subresource_filter,omitempty"`
-	ResponesStatusFilter       string `json:"response_status_filter,omitempty"`
+	ResponseCodeFilter         string `json:"response_code_filter,omitempty"`
+	ResponseStatusFilter       string `json:"response_status_filter,omitempty"`
 
 	StartTime *time.Time `json:"start_time,omitempty"`
 	EndTime   *time.Time `json:"end_time,omitempty"`
@@ -74,7 +75,8 @@ func ParseQueryParameter(req *restful.Request) (*Query, error) {
 	q.GroupSearch = req.QueryParameter("group_search")
 	q.ObjectRefResourceFilter = req.QueryParameter("objectref_resource_filter")
 	q.ObjectRefSubresourceFilter = req.QueryParameter("objectref_subresource_filter")
-	q.ResponesStatusFilter = req.QueryParameter("response_status_filter")
+	q.ResponseCodeFilter = req.QueryParameter("response_code_filter")
+	q.ResponseStatusFilter = req.QueryParameter("response_status_filter")
 
 	if tstr := req.QueryParameter("start_time"); tstr != "" {
 		sec, err := strconv.ParseInt(tstr, 10, 64)

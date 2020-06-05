@@ -361,16 +361,23 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		}
 	}
 
-	if f.ResponseStatus != nil && len(f.ResponseStatus) > 0 {
+	if f.ResponseCodes != nil && len(f.ResponseCodes) > 0 {
 
 		bi := BoolBody{MinimumShouldMatch: &mini}
-		for _, v := range f.ResponseStatus {
+		for _, v := range f.ResponseCodes {
 			bi.Should = append(bi.Should, map[string]interface{}{
 				"term": map[string]int32{"ResponseStatus.code": v},
 			})
 		}
 
 		b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+	}
+
+	if len(f.ResponseStatus) > 0 {
+		if bi := shouldBoolbody("match_phrase", "ResponseStatus.status",
+			f.ResponseStatus, nil); bi != nil {
+			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+		}
 	}
 
 	if f.StartTime != nil || f.EndTime != nil {
