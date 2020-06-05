@@ -523,16 +523,16 @@ func (p *Pipeline) GetSCMOrg() ([]devops.SCMOrg, error) {
 	return SCMOrg, err
 }
 
-func (p *Pipeline) GetOrgRepo() ([]devops.OrgRepo, error) {
+func (p *Pipeline) GetOrgRepo() (devops.OrgRepo, error) {
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 	}
-	var OrgRepo []devops.OrgRepo
+	var OrgRepo devops.OrgRepo
 	err = json.Unmarshal(res, &OrgRepo)
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return devops.OrgRepo{}, err
 	}
 
 	return OrgRepo, err

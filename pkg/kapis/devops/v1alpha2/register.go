@@ -532,8 +532,8 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Param(webservice.QueryParameter("pageSize", "the item count of one page.").
 				Required(true).
 				DataFormat("pageSize=%d")).
-			Returns(http.StatusOK, RespOK, []devops.OrgRepo{}).
-			Writes([]devops.OrgRepo{}))
+			Returns(http.StatusOK, RespOK, devops.OrgRepo{}).
+			Writes(devops.OrgRepo{}))
 
 		// match "/blue/rest/organizations/jenkins/scm/%s/servers/" create bitbucket server
 		webservice.Route(webservice.POST("/scms/{scm}/servers").

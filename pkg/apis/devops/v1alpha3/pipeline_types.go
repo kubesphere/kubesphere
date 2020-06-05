@@ -79,7 +79,7 @@ const (
 
 type NoScmPipeline struct {
 	Name              string             `json:"name" description:"name of pipeline"`
-	Description       string             `json:"descriptio,omitempty" description:"description of pipeline"`
+	Description       string             `json:"description,omitempty" description:"description of pipeline"`
 	Discarder         *DiscarderProperty `json:"discarder,omitempty" description:"Discarder of pipeline, managing when to drop a pipeline"`
 	Parameters        []Parameter        `json:"parameters,omitempty" description:"Parameters define of pipeline,user could pass param when run pipeline"`
 	DisableConcurrent bool               `json:"disable_concurrent,omitempty" mapstructure:"disable_concurrent" description:"Whether to prohibit the pipeline from running in parallel"`
@@ -90,7 +90,7 @@ type NoScmPipeline struct {
 
 type MultiBranchPipeline struct {
 	Name                  string                 `json:"name" description:"name of pipeline"`
-	Description           string                 `json:"descriptio,omitempty" description:"description of pipeline"`
+	Description           string                 `json:"description,omitempty" description:"description of pipeline"`
 	Discarder             *DiscarderProperty     `json:"discarder,omitempty" description:"Discarder of pipeline, managing when to drop a pipeline"`
 	TimerTrigger          *TimerTrigger          `json:"timer_trigger,omitempty" mapstructure:"timer_trigger" description:"Timer to trigger pipeline run"`
 	SourceType            string                 `json:"source_type" description:"type of scm, such as github/git/svn"`

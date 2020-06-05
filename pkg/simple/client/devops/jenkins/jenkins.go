@@ -658,7 +658,7 @@ func (j *Jenkins) GetSCMServers(scmId string, httpParameters *devops.HttpParamet
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
-		Path:           GetSCMServersUrl,
+		Path:           fmt.Sprintf(GetSCMServersUrl, scmId),
 	}
 	res, err := PipelineOjb.GetSCMServers()
 	return res, err
@@ -674,7 +674,7 @@ func (j *Jenkins) GetSCMOrg(scmId string, httpParameters *devops.HttpParameters)
 	return res, err
 }
 
-func (j *Jenkins) GetOrgRepo(scmId, organizationId string, httpParameters *devops.HttpParameters) ([]devops.OrgRepo, error) {
+func (j *Jenkins) GetOrgRepo(scmId, organizationId string, httpParameters *devops.HttpParameters) (devops.OrgRepo, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,

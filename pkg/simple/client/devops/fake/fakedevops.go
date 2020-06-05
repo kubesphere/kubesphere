@@ -254,8 +254,8 @@ func (d *Devops) GetSCMServers(scmId string, httpParameters *devops.HttpParamete
 func (d *Devops) GetSCMOrg(scmId string, httpParameters *devops.HttpParameters) ([]devops.SCMOrg, error) {
 	return nil, nil
 }
-func (d *Devops) GetOrgRepo(scmId, organizationId string, httpParameters *devops.HttpParameters) ([]devops.OrgRepo, error) {
-	return nil, nil
+func (d *Devops) GetOrgRepo(scmId, organizationId string, httpParameters *devops.HttpParameters) (devops.OrgRepo, error) {
+	return devops.OrgRepo{}, nil
 }
 func (d *Devops) CreateSCMServers(scmId string, httpParameters *devops.HttpParameters) (*devops.SCMServer, error) {
 	return nil, nil

@@ -269,11 +269,10 @@ func (r *resourceHandler) handleUpdateRouter(request *restful.Request, response 
 }
 
 func (r *resourceHandler) handleVerifyGitCredential(request *restful.Request, response *restful.Response) {
-
 	var credential api.GitCredential
 	err := request.ReadEntity(&credential)
 	if err != nil {
-		api.HandleBadRequest(response, nil, err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
 	var namespace, secretName string
@@ -283,11 +282,10 @@ func (r *resourceHandler) handleVerifyGitCredential(request *restful.Request, re
 	}
 	err = r.gitVerifier.VerifyGitCredential(credential.RemoteUrl, namespace, secretName)
 	if err != nil {
-		api.HandleBadRequest(response, nil, err)
+		response.WriteHeaderAndEntity(http.StatusInternalServerError, errors.Wrap(err))
 		return
 	}
-
-	response.WriteHeader(http.StatusOK)
+	response.WriteAsJson(errors.None)
 }
 
 func (r *resourceHandler) handleVerifyRegistryCredential(request *restful.Request, response *restful.Response) {
