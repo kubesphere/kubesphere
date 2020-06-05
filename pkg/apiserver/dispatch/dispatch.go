@@ -20,6 +20,7 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/client-go/rest"
@@ -174,6 +175,21 @@ func (c *clusterDispatch) getInnerCluster(name string) *innerCluster {
 	return nil
 }
 
+// copy from https://github.com/kubernetes/apimachinery/blob/master/pkg/util/proxy/dial.go
+func supportsHTTP11(nextProtos []string) bool {
+	if len(nextProtos) == 0 {
+		return true
+	}
+
+	for _, proto := range nextProtos {
+		if proto == "http/1.1" {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (c *clusterDispatch) updateInnerClusters(obj interface{}) {
 	cluster := obj.(*clusterv1alpha1.Cluster)
 
@@ -205,6 +221,15 @@ func (c *clusterDispatch) updateInnerClusters(obj interface{}) {
 	transport, err := rest.TransportFor(clusterConfig)
 	if err != nil {
 		klog.Errorf("Create transport failed, %v", err)
+		return
+	}
+
+	tlsConfig, err := net.TLSClientConfig(transport)
+	if err == nil {
+		// since http2 doesn't support websocket, we need to disable http2 when using websocket
+		if supportsHTTP11(tlsConfig.NextProtos) {
+			tlsConfig.NextProtos = []string{"http/1.1"}
+		}
 	}
 
 	c.mutex.Lock()
