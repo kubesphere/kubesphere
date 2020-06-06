@@ -48,7 +48,16 @@ mkdir -p "${_tmp}"
 
 # Add the require directive
 echo "Running: go get ${dep}@${sha}"
+
+cp "$KUBE_ROOT/go.mod" "${_tmp}/go.mod.bak"
+sed -i "/`echo ${dep} | sed 's#/#\\\\\/#g'`/d" $KUBE_ROOT/go.mod
+returnbak() {
+  rm -f "$KUBE_ROOT/go.mod"
+  cp "${_tmp}/go.mod.bak" "$KUBE_ROOT/go.mod"
+}
+trap 'returnbak;kube::log::errexit' ERR
 go get -d "${dep}@${sha}"
+trap 'kube::log::errexit' ERR
 
 # Find the resolved version
 rev=$(go mod edit -json | jq -r ".Require[] | select(.Path == \"${dep}\") | .Version")
