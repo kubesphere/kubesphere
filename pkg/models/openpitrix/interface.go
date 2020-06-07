@@ -37,6 +37,10 @@ type openpitrixOperator struct {
 }
 
 func NewOpenpitrixOperator(informers informers.SharedInformerFactory, opClient openpitrix.Client) Interface {
+	if opClient == nil {
+		return nil
+	}
+
 	return &openpitrixOperator{
 		ApplicationInterface: newApplicationOperator(informers, opClient),
 		AppTemplateInterface: newAppTemplateOperator(opClient),

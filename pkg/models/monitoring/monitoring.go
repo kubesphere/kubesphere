@@ -188,24 +188,26 @@ func (mo monitoringOperator) GetKubeSphereStats() Metrics {
 			openpitrix.RepoId: openpitrix.BuiltinRepoId,
 		},
 	}
-	tmpls, err := mo.op.ListApps(cond, "", false, 0, 0)
-	if err != nil {
-		res.Results = append(res.Results, monitoring.Metric{
-			MetricName: KubeSphereAppTmplCount,
-			Error:      err.Error(),
-		})
-	} else {
-		res.Results = append(res.Results, monitoring.Metric{
-			MetricName: KubeSphereAppTmplCount,
-			MetricData: monitoring.MetricData{
-				MetricType: monitoring.MetricTypeVector,
-				MetricValues: []monitoring.MetricValue{
-					{
-						Sample: &monitoring.Point{now, float64(tmpls.TotalCount)},
+	if mo.op != nil {
+		tmpl, err := mo.op.ListApps(cond, "", false, 0, 0)
+		if err != nil {
+			res.Results = append(res.Results, monitoring.Metric{
+				MetricName: KubeSphereAppTmplCount,
+				Error:      err.Error(),
+			})
+		} else {
+			res.Results = append(res.Results, monitoring.Metric{
+				MetricName: KubeSphereAppTmplCount,
+				MetricData: monitoring.MetricData{
+					MetricType: monitoring.MetricTypeVector,
+					MetricValues: []monitoring.MetricValue{
+						{
+							Sample: &monitoring.Point{now, float64(tmpl.TotalCount)},
+						},
 					},
 				},
-			},
-		})
+			})
+		}
 	}
 
 	return res
