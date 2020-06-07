@@ -74,7 +74,15 @@ func parseToHostPort(endpoint string) (string, int, error) {
 }
 
 func newRuntimeManagerClient(endpoint string) (pb.RuntimeManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -82,7 +90,14 @@ func newRuntimeManagerClient(endpoint string) (pb.RuntimeManagerClient, error) {
 	return pb.NewRuntimeManagerClient(conn), nil
 }
 func newClusterManagerClient(endpoint string) (pb.ClusterManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -90,7 +105,14 @@ func newClusterManagerClient(endpoint string) (pb.ClusterManagerClient, error) {
 	return pb.NewClusterManagerClient(conn), nil
 }
 func newCategoryManagerClient(endpoint string) (pb.CategoryManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -99,7 +121,14 @@ func newCategoryManagerClient(endpoint string) (pb.CategoryManagerClient, error)
 }
 
 func newAttachmentManagerClient(endpoint string) (pb.AttachmentManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -108,7 +137,14 @@ func newAttachmentManagerClient(endpoint string) (pb.AttachmentManagerClient, er
 }
 
 func newRepoManagerClient(endpoint string) (pb.RepoManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -117,7 +153,14 @@ func newRepoManagerClient(endpoint string) (pb.RepoManagerClient, error) {
 }
 
 func newRepoIndexer(endpoint string) (pb.RepoIndexerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -126,7 +169,14 @@ func newRepoIndexer(endpoint string) (pb.RepoIndexerClient, error) {
 }
 
 func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
+	if len(endpoint) == 0 {
+		return nil, nil
+	}
+
 	host, port, err := parseToHostPort(endpoint)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := manager.NewClient(host, port)
 	if err != nil {
 		return nil, err
@@ -134,52 +184,45 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 	return pb.NewAppManagerClient(conn), nil
 }
 
+// will return a nil client and nil error if endpoint is empty
 func NewClient(options *Options) (Client, error) {
-
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	clusterManagerClient, err := newClusterManagerClient(options.ClusterManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	repoManagerClient, err := newRepoManagerClient(options.RepoManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	repoIndexerClient, err := newRepoIndexer(options.RepoIndexerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	appManagerClient, err := newAppManagerClient(options.AppManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	categoryManagerClient, err := newCategoryManagerClient(options.CategoryManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	attachmentManagerClient, err := newAttachmentManagerClient(options.AttachmentManagerEndpoint)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err

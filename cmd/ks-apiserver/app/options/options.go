@@ -179,7 +179,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		apiServer.AuditingClient = auditingClient
 	}
 
-	if s.OpenPitrixOptions != nil {
+	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
 		opClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
 		if err != nil {
 			return nil, err
