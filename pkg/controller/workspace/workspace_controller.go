@@ -31,12 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	workspaceAdminDescription   = "Allows admin access to perform any action on any resource, it gives full control over every resource in the workspace."
-	workspaceRegularDescription = "Normal user in the workspace, can create namespace and DevOps project."
-	workspaceViewerDescription  = "Allows viewer access to view all resources in the workspace."
-)
-
 // Add creates a new Workspace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {

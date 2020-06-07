@@ -111,8 +111,6 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
-	//init client
-
 	// Start the csrInformer factories to begin populating the csrInformer caches
 	klog.Info("Starting User controller")
 
@@ -227,20 +225,19 @@ func (c *Controller) reconcile(key string) error {
 			klog.Error(err)
 			return err
 		}
-	}
-
-	// certificate data is not empty
-	if len(csr.Status.Certificate) > 0 {
-		err = c.UpdateKubeconfig(csr)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		// release
-		err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Delete(csr.Name, metav1.NewDeleteOptions(0))
-		if err != nil {
-			klog.Error(err)
-			return err
+		// certificate data is not empty
+		if len(csr.Status.Certificate) > 0 {
+			err = c.UpdateKubeconfig(csr)
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
+			// release
+			err := c.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Delete(csr.Name, metav1.NewDeleteOptions(0))
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
 		}
 	}
 
