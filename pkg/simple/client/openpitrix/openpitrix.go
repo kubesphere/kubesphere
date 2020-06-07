@@ -186,6 +186,10 @@ func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 
 // will return a nil client and nil error if endpoint is empty
 func NewClient(options *Options) (Client, error) {
+	if options.IsEmpty() {
+		return nil, nil
+	}
+
 	runtimeMangerClient, err := newRuntimeManagerClient(options.RuntimeManagerEndpoint)
 	if err != nil {
 		klog.Error(err)
