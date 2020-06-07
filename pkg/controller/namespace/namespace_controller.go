@@ -153,8 +153,11 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	if err := r.checkAndCreateRuntime(instance); err != nil {
-		return reconcile.Result{}, err
+	// skip if openpitrix is not enabled
+	if r.openpitrixClient != nil {
+		if err := r.checkAndCreateRuntime(instance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil
