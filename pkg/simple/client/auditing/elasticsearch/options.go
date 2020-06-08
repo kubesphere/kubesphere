@@ -22,6 +22,7 @@ import (
 )
 
 type Options struct {
+	Enabled     bool   `json:"enabled" yaml:"enable"`
 	Host        string `json:"host" yaml:"host"`
 	IndexPrefix string `json:"indexPrefix,omitempty" yaml:"indexPrefix"`
 	Version     string `json:"version" yaml:"version"`
@@ -47,6 +48,7 @@ func (s *Options) Validate() []error {
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
+	fs.BoolVar(&s.Enabled, "auditing-enabled", c.Enabled, "Dose auditing enabled")
 	fs.StringVar(&s.Host, "auditing-elasticsearch-host", c.Host, ""+
 		"Elasticsearch service host. KubeSphere is using elastic as auditing store, "+
 		"if this filed left blank, KubeSphere will use kubernetes builtin event API instead, and"+
