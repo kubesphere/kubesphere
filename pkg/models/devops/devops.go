@@ -94,7 +94,7 @@ type DevopsOperator interface {
 
 	GetSCMServers(scmId string, req *http.Request) ([]devops.SCMServer, error)
 	GetSCMOrg(scmId string, req *http.Request) ([]devops.SCMOrg, error)
-	GetOrgRepo(scmId, organizationId string, req *http.Request) ([]devops.OrgRepo, error)
+	GetOrgRepo(scmId, organizationId string, req *http.Request) (devops.OrgRepo, error)
 	CreateSCMServers(scmId string, req *http.Request) (*devops.SCMServer, error)
 	Validate(scmId string, req *http.Request) (*devops.Validates, error)
 
@@ -672,12 +672,12 @@ func (d devopsOperator) GetSCMOrg(scmId string, req *http.Request) ([]devops.SCM
 	return res, err
 }
 
-func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Request) ([]devops.OrgRepo, error) {
+func (d devopsOperator) GetOrgRepo(scmId, organizationId string, req *http.Request) (devops.OrgRepo, error) {
 
 	res, err := d.devopsClient.GetOrgRepo(scmId, organizationId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return devops.OrgRepo{}, err
 	}
 
 	return res, err

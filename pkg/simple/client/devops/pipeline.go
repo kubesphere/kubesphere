@@ -1107,7 +1107,7 @@ type PipelineOperator interface {
 	// SCM operator interface
 	GetSCMServers(scmId string, httpParameters *HttpParameters) ([]SCMServer, error)
 	GetSCMOrg(scmId string, httpParameters *HttpParameters) ([]SCMOrg, error)
-	GetOrgRepo(scmId, organizationId string, httpParameters *HttpParameters) ([]OrgRepo, error)
+	GetOrgRepo(scmId, organizationId string, httpParameters *HttpParameters) (OrgRepo, error)
 	CreateSCMServers(scmId string, httpParameters *HttpParameters) (*SCMServer, error)
 	Validate(scmId string, httpParameters *HttpParameters) (*Validates, error)
 
