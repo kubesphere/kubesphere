@@ -27,6 +27,7 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
@@ -242,6 +243,10 @@ func (s *APIServer) buildHandlerChain() {
 
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
+
+	if s.Config.AuditingOptions.Enabled {
+		handler = filters.WithAuditing(handler, audit.NewAuditing(s.InformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister()))
+	}
 
 	if s.Config.MultiClusterOptions.Enable {
 		clusterDispatcher := dispatch.NewClusterDispatch(s.InformerFactory.KubeSphereSharedInformerFactory().Cluster().V1alpha1().Clusters(),

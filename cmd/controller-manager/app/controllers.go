@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/controller/application"
+	"kubesphere.io/kubesphere/pkg/controller/auditing"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
 	"kubesphere.io/kubesphere/pkg/controller/clusterrolebinding"
@@ -161,6 +162,8 @@ func AddControllers(
 		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
 		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
 
+	auditingController := auditing.NewController(kubesphereInformer.Auditing().V1alpha1().Webhooks())
+
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":     vsController,
 		"destinationrule-controller":    drController,
@@ -178,6 +181,7 @@ func AddControllers(
 		"csr-controller":                csrController,
 		"clusterrolebinding-controller": clusterRoleBindingController,
 		"globalrolebinding-controller":  globalRoleBindingController,
+		"auditing-controller":           auditingController,
 	}
 
 	if storageCapabilityController.IsValidKubernetesVersion() {
