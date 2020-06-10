@@ -136,9 +136,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.11.1+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
-github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0 => github.com/emicklei/go-restful-openapi v1.0.0
 github.com/emicklei/go-restful-openapi
+github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -1359,7 +1359,7 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# openpitrix.io/openpitrix v0.4.1-0.20190920134345-4d2be6e4965c => openpitrix.io/openpitrix v0.4.9-0.20200610105301-68151bb90d21
+# openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797 => openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 openpitrix.io/openpitrix/pkg/config
 openpitrix.io/openpitrix/pkg/constants
 openpitrix.io/openpitrix/pkg/db

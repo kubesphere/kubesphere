@@ -35,8 +35,8 @@ import (
 
 type ApplicationInterface interface {
 	ListApplications(conditions *params.Conditions, limit, offset int, orderBy string, reverse bool) (*models.PageableResponse, error)
-	DescribeApplication(namespace, clusterId, runtimeId string) (*Application, error)
-	CreateApplication(runtimeId, namespace string, request CreateClusterRequest) error
+	DescribeApplication(namespace, applicationId, clusterName string) (*Application, error)
+	CreateApplication(clusterName, namespace string, request CreateClusterRequest) error
 	ModifyApplication(request ModifyClusterAttributesRequest) error
 	DeleteApplication(id string) error
 	UpgradeApplication(request UpgradeClusterRequest) error
@@ -143,10 +143,10 @@ func (c *applicationOperator) describeApplication(cluster *pb.Cluster) (*Applica
 	return &app, nil
 }
 
-func (c *applicationOperator) DescribeApplication(namespace string, clusterId string, runtimeId string) (*Application, error) {
+func (c *applicationOperator) DescribeApplication(namespace string, applicationId string, clusterName string) (*Application, error) {
 	describeClusterRequest := &pb.DescribeClustersRequest{
-		ClusterId:  []string{clusterId},
-		RuntimeId:  []string{runtimeId},
+		ClusterId:  []string{applicationId},
+		RuntimeId:  []string{clusterName},
 		Zone:       []string{namespace},
 		WithDetail: pbutil.ToProtoBool(true),
 		Limit:      1,
@@ -358,11 +358,11 @@ func (c *applicationOperator) getIng(namespace string, services []v1.Service) []
 	return ings
 }
 
-func (c *applicationOperator) CreateApplication(runtimeId, namespace string, request CreateClusterRequest) error {
+func (c *applicationOperator) CreateApplication(clusterName, namespace string, request CreateClusterRequest) error {
 	_, err := c.opClient.CreateCluster(openpitrix.ContextWithUsername(request.Username), &pb.CreateClusterRequest{
 		AppId:     &wrappers.StringValue{Value: request.AppId},
 		VersionId: &wrappers.StringValue{Value: request.VersionId},
-		RuntimeId: &wrappers.StringValue{Value: request.RuntimeId},
+		RuntimeId: &wrappers.StringValue{Value: clusterName},
 		Conf:      &wrappers.StringValue{Value: request.Conf},
 		Zone:      &wrappers.StringValue{Value: namespace},
 	})
@@ -395,8 +395,8 @@ func (c *applicationOperator) ModifyApplication(request ModifyClusterAttributesR
 	return nil
 }
 
-func (c *applicationOperator) DeleteApplication(clusterId string) error {
-	_, err := c.opClient.DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{clusterId}, Force: &wrappers.BoolValue{Value: true}})
+func (c *applicationOperator) DeleteApplication(applicationId string) error {
+	_, err := c.opClient.DeleteClusters(openpitrix.SystemContext(), &pb.DeleteClustersRequest{ClusterId: []string{applicationId}, Force: &wrappers.BoolValue{Value: true}})
 
 	if err != nil {
 		klog.Errorln(err)

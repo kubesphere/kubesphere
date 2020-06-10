@@ -69,6 +69,9 @@ deploy: manifests
 generate:
 	go generate ./pkg/... ./cmd/...
 
+mockgen:
+	mockgen -package=openpitrix -source=pkg/simple/client/openpitrix/openpitrix.go -destination=pkg/simple/client/openpitrix/mock.go
+
 deepcopy:
 	GO111MODULE=on go install -mod=vendor k8s.io/code-generator/cmd/deepcopy-gen
 	${GOPATH}/bin/deepcopy-gen -i kubesphere.io/kubesphere/pkg/apis/... -h ./hack/boilerplate.go.txt -O zz_generated.deepcopy
