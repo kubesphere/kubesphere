@@ -156,11 +156,6 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
 
 		if err != nil {
-			// if role binding not exist return empty list
-			if errors.IsNotFound(err) {
-				response.WriteEntity([]interface{}{})
-				return
-			}
 			api.HandleInternalError(response, request, err)
 			return
 		}
@@ -168,6 +163,11 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 		role, err := h.am.GetNamespaceRoleOfUser(username, namespace)
 
 		if err != nil {
+			// if role binding not exist return empty list
+			if errors.IsNotFound(err) {
+				response.WriteEntity([]interface{}{})
+				return
+			}
 			api.HandleInternalError(response, request, err)
 			return
 		}
@@ -208,13 +208,11 @@ func (h *iamHandler) ListUsers(request *restful.Request, response *restful.Respo
 		}
 
 		if globalRole != nil {
-
 			if user.Annotations == nil {
 				user.Annotations = make(map[string]string, 0)
 			}
 			user.Annotations[iamv1alpha2.GlobalRoleAnnotation] = globalRole.Name
 		}
-
 		result.Items[i] = user
 	}
 	response.WriteEntity(result)
@@ -226,11 +224,7 @@ func (h *iamHandler) ListRoles(request *restful.Request, response *restful.Respo
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -269,11 +263,7 @@ func (h *iamHandler) ListNamespaceMembers(request *restful.Request, response *re
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -295,11 +285,7 @@ func (h *iamHandler) DescribeNamespaceMember(request *restful.Request, response 
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -408,15 +394,7 @@ func (h *iamHandler) UpdateWorkspaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -440,11 +418,7 @@ func (h *iamHandler) CreateWorkspaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -459,11 +433,7 @@ func (h *iamHandler) DeleteWorkspaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -486,40 +456,22 @@ func (h *iamHandler) CreateUser(request *restful.Request, response *restful.Resp
 	if globalRole != "" {
 		if _, err = h.am.GetGlobalRole(globalRole); err != nil {
 			klog.Error(err)
-			if errors.IsNotFound(err) {
-				api.HandleBadRequest(response, request, err)
-				return
-			}
-			api.HandleInternalError(response, request, err)
+			handleError(request, response, err)
 			return
 		}
 	}
 
 	created, err := h.im.CreateUser(&user)
-
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		if errors.IsAlreadyExists(err) {
-			api.HandleConflict(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
 	if globalRole != "" {
-		if err := h.am.CreateOrUpdateGlobalRoleBinding(user.Name, globalRole); err != nil {
-
-			if errors.IsNotFound(err) {
-				api.HandleBadRequest(response, request, err)
-				return
-			}
-
-			api.HandleInternalError(response, request, err)
+		if err := h.am.CreateGlobalRoleBinding(user.Name, globalRole); err != nil {
+			klog.Error(err)
+			handleError(request, response, err)
 			return
 		}
 	}
@@ -554,29 +506,16 @@ func (h *iamHandler) UpdateUser(request *restful.Request, response *restful.Resp
 	delete(user.Annotations, iamv1alpha2.GlobalRoleAnnotation)
 
 	updated, err := h.im.UpdateUser(&user)
-
 	if err != nil {
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		klog.Error(err)
+		handleError(request, response, err)
 		return
 	}
 
 	if globalRole != "" {
-		if err := h.am.CreateOrUpdateGlobalRoleBinding(user.Name, globalRole); err != nil {
-
-			if errors.IsNotFound(err) {
-				api.HandleBadRequest(response, request, err)
-				return
-			}
-
-			api.HandleInternalError(response, request, err)
+		if err := h.am.CreateGlobalRoleBinding(user.Name, globalRole); err != nil {
+			klog.Error(err)
+			handleError(request, response, err)
 			return
 		}
 	}
@@ -591,11 +530,8 @@ func (h *iamHandler) DeleteUser(request *restful.Request, response *restful.Resp
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
+		return
 	}
 
 	response.WriteEntity(servererr.None)
@@ -617,11 +553,7 @@ func (h *iamHandler) CreateGlobalRole(request *restful.Request, response *restfu
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -635,11 +567,7 @@ func (h *iamHandler) DeleteGlobalRole(request *restful.Request, response *restfu
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -670,11 +598,7 @@ func (h *iamHandler) UpdateGlobalRole(request *restful.Request, response *restfu
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -686,11 +610,7 @@ func (h *iamHandler) DescribeGlobalRole(request *restful.Request, response *rest
 	globalRole, err := h.am.GetGlobalRole(globalRoleName)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -712,11 +632,7 @@ func (h *iamHandler) CreateClusterRole(request *restful.Request, response *restf
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -730,11 +646,7 @@ func (h *iamHandler) DeleteClusterRole(request *restful.Request, response *restf
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -765,15 +677,7 @@ func (h *iamHandler) UpdateClusterRole(request *restful.Request, response *restf
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -785,11 +689,7 @@ func (h *iamHandler) DescribeClusterRole(request *restful.Request, response *res
 	clusterRole, err := h.am.GetClusterRole(clusterRoleName)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -802,11 +702,7 @@ func (h *iamHandler) DescribeWorkspaceRole(request *restful.Request, response *r
 	workspaceRole, err := h.am.GetWorkspaceRole(workspace, workspaceRoleName)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -819,11 +715,7 @@ func (h *iamHandler) CreateNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -841,11 +733,7 @@ func (h *iamHandler) CreateNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -859,11 +747,7 @@ func (h *iamHandler) DeleteNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -871,11 +755,7 @@ func (h *iamHandler) DeleteNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -889,11 +769,7 @@ func (h *iamHandler) UpdateNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -918,15 +794,7 @@ func (h *iamHandler) UpdateNamespaceRole(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -947,14 +815,10 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 	}
 
 	for _, member := range members {
-		err := h.am.CreateOrUpdateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+		err := h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 		if err != nil {
 			klog.Error(err)
-			if errors.IsNotFound(err) {
-				api.HandleNotFound(response, request, err)
-				return
-			}
-			api.HandleInternalError(response, request, err)
+			handleError(request, response, err)
 			return
 		}
 	}
@@ -970,11 +834,7 @@ func (h *iamHandler) RemoveWorkspaceMember(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1002,18 +862,10 @@ func (h *iamHandler) UpdateWorkspaceMember(request *restful.Request, response *r
 		return
 	}
 
-	err = h.am.CreateOrUpdateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
+	err = h.am.CreateWorkspaceRoleBinding(member.Username, workspace, member.RoleRef)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1026,11 +878,7 @@ func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1045,14 +893,10 @@ func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *
 	}
 
 	for _, member := range members {
-		err := h.am.CreateOrUpdateNamespaceRoleBinding(member.Username, namespace, member.RoleRef)
+		err := h.am.CreateNamespaceRoleBinding(member.Username, namespace, member.RoleRef)
 		if err != nil {
 			klog.Error(err)
-			if errors.IsNotFound(err) {
-				api.HandleNotFound(response, request, err)
-				return
-			}
-			api.HandleInternalError(response, request, err)
+			handleError(request, response, err)
 			return
 		}
 	}
@@ -1066,11 +910,7 @@ func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1091,18 +931,10 @@ func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *r
 		return
 	}
 
-	err = h.am.CreateOrUpdateNamespaceRoleBinding(member.Username, namespace, member.RoleRef)
+	err = h.am.CreateNamespaceRoleBinding(member.Username, namespace, member.RoleRef)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1115,11 +947,7 @@ func (h *iamHandler) RemoveNamespaceMember(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1127,11 +955,7 @@ func (h *iamHandler) RemoveNamespaceMember(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1150,14 +974,10 @@ func (h *iamHandler) CreateClusterMembers(request *restful.Request, response *re
 	}
 
 	for _, member := range members {
-		err := h.am.CreateOrUpdateClusterRoleBinding(member.Username, member.RoleRef)
+		err := h.am.CreateClusterRoleBinding(member.Username, member.RoleRef)
 		if err != nil {
 			klog.Error(err)
-			if errors.IsNotFound(err) {
-				api.HandleNotFound(response, request, err)
-				return
-			}
-			api.HandleInternalError(response, request, err)
+			handleError(request, response, err)
 			return
 		}
 	}
@@ -1172,11 +992,7 @@ func (h *iamHandler) RemoveClusterMember(request *restful.Request, response *res
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1203,18 +1019,10 @@ func (h *iamHandler) UpdateClusterMember(request *restful.Request, response *res
 		return
 	}
 
-	err = h.am.CreateOrUpdateClusterRoleBinding(member.Username, member.RoleRef)
+	err = h.am.CreateClusterRoleBinding(member.Username, member.RoleRef)
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		if errors.IsBadRequest(err) {
-			api.HandleBadRequest(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1266,11 +1074,7 @@ func (h *iamHandler) DescribeNamespaceRole(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1278,11 +1082,7 @@ func (h *iamHandler) DescribeNamespaceRole(request *restful.Request, response *r
 
 	if err != nil {
 		klog.Error(err)
-		if errors.IsNotFound(err) {
-			api.HandleNotFound(response, request, err)
-			return
-		}
-		api.HandleInternalError(response, request, err)
+		handleError(request, response, err)
 		return
 	}
 
@@ -1295,4 +1095,16 @@ func (h *iamHandler) resolveNamespace(namespace string, devops string) (string, 
 		return namespace, nil
 	}
 	return h.am.GetControlledNamespace(devops)
+}
+
+func handleError(request *restful.Request, response *restful.Response, err error) {
+	if errors.IsBadRequest(err) {
+		api.HandleBadRequest(response, request, err)
+	} else if errors.IsNotFound(err) {
+		api.HandleNotFound(response, request, err)
+	} else if errors.IsAlreadyExists(err) {
+		api.HandleConflict(response, request, err)
+	} else {
+		api.HandleInternalError(response, request, err)
+	}
 }

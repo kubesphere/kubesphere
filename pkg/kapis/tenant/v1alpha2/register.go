@@ -46,6 +46,8 @@ const (
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 
 func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient events.Client, loggingClient logging.Interface, auditingclient auditing.Client) error {
+	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
+
 	ws := runtime.NewWebService(GroupVersion)
 	handler := newTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient)
 
@@ -62,6 +64,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.PUT("/workspaces/{workspace}").
 		To(handler.UpdateWorkspace).
+		Reads(tenantv1alpha2.WorkspaceTemplate{}).
+		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
+		Doc("Update workspace.").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.PATCH("/workspaces/{workspace}").
+		To(handler.PatchWorkspace).
+		Consumes(mimePatch...).
 		Reads(tenantv1alpha2.WorkspaceTemplate{}).
 		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Update workspace.").
@@ -94,10 +103,35 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Doc("List the namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}/namespaces/{namespace}").
+		To(handler.DescribeNamespace).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("Retrieve namespace details.").
+		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.DELETE("/workspaces/{workspace}/namespaces/{namespace}").
+		To(handler.DeleteNamespace).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("Delete namespace.").
+		Returns(http.StatusOK, api.StatusOK, errors.None).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
 		To(handler.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces of the specified workspace for the current user").
+		Reads(corev1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.PUT("/workspaces/{workspace}/namespaces/{namespace}").
+		To(handler.UpdateNamespace).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Reads(corev1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.PATCH("/workspaces/{workspace}/namespaces/{namespace}").
+		To(handler.PatchNamespace).
+		Consumes(mimePatch...).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
