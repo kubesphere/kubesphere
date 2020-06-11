@@ -32,7 +32,6 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	"net/http"
 )
 
 type AccessManagementInterface interface {
@@ -114,17 +113,8 @@ func (am *amOperator) GetGlobalRoleOfUser(username string) (*iamv1alpha2.GlobalR
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: iamv1alpha2.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindGlobalRoleBinding,
-		},
-		Message: fmt.Sprintf("global role binding not found for %s", username),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularGlobalRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -157,17 +147,8 @@ func (am *amOperator) GetWorkspaceRoleOfUser(username, workspace string) (*iamv1
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: iamv1alpha2.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindWorkspaceRoleBinding,
-		},
-		Message: fmt.Sprintf("workspace role binding not found for %s", username),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularWorkspaceRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -197,17 +178,8 @@ func (am *amOperator) GetNamespaceRoleOfUser(username, namespace string) (*rbacv
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: rbacv1.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindRoleBinding,
-		},
-		Message: fmt.Sprintf("role binding not found for %s in %s", username, namespace),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -237,17 +209,9 @@ func (am *amOperator) GetClusterRoleOfUser(username string) (*rbacv1.ClusterRole
 		out.Annotations[iamv1alpha2.ClusterRoleAnnotation] = role.Name
 		return out, nil
 	}
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: rbacv1.SchemeGroupVersion.Group,
-			Kind:  "ClusterRoleBinding",
-		},
-		Message: fmt.Sprintf("cluster role binding not found for %s", username),
-	}}
 
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularClusterRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 

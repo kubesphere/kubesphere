@@ -103,25 +103,25 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.User{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	ws.Route(ws.GET("/workspaces/{workspace}/users").
+	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers").
 		To(handler.ListWorkspaceMembers).
 		Doc("List all members in the specified workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/users/{user}").
+	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}").
 		To(handler.DescribeWorkspaceMember).
 		Doc("Retrieve workspace member details.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.POST("/workspaces/{workspace}/users").
+	ws.Route(ws.POST("/workspaces/{workspace}/workspacemembers").
 		To(handler.CreateWorkspaceMembers).
 		Doc("Batch add workspace members.").
 		Reads([]Member{}).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.PUT("/workspaces/{workspace}/users/{user}").
+	ws.Route(ws.PUT("/workspaces/{workspace}/workspacemembers/{workspacemember}").
 		To(handler.UpdateWorkspaceMember).
 		Doc("Update member in workspace.").
 		Reads(Member{}).
@@ -129,32 +129,32 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.DELETE("/workspaces/{workspace}/users/{user}").
+	ws.Route(ws.DELETE("/workspaces/{workspace}/workspacemembers/{workspacemember}").
 		To(handler.RemoveWorkspaceMember).
 		Doc("Remove member in workspace.").
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/users").
+	ws.Route(ws.GET("/namespaces/{namespace}/members").
 		To(handler.ListNamespaceMembers).
 		Doc("List all members in the specified namespace.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/namespaces/{namespace}/users/{user}").
+	ws.Route(ws.GET("/namespaces/{namespace}/members/{member}").
 		To(handler.DescribeNamespaceMember).
 		Doc("Retrieve namespace member details.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.POST("/namespaces/{namespace}/users").
+	ws.Route(ws.POST("/namespaces/{namespace}/members").
 		To(handler.CreateNamespaceMembers).
 		Doc("Batch add namespace members.").
 		Reads([]Member{}).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Param(ws.PathParameter("namespace", "namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.PUT("/namespaces/{namespace}/users/{user}").
+	ws.Route(ws.PUT("/namespaces/{namespace}/members/{member}").
 		To(handler.UpdateNamespaceMember).
 		Doc("Update member in namespace.").
 		Reads(Member{}).
@@ -162,44 +162,44 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.DELETE("/namespaces/{namespace}/users/{user}").
+	ws.Route(ws.DELETE("/namespaces/{namespace}/members/{member}").
 		To(handler.RemoveNamespaceMember).
 		Doc("Remove member in namespace.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
-	ws.Route(ws.GET("/devops/{devops}/users").
+	ws.Route(ws.GET("/devops/{devops}/members").
 		To(handler.ListNamespaceMembers).
 		Doc("List all members in the specified namespace.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/devops/{devops}/users/{user}").
+	ws.Route(ws.GET("/devops/{devops}/members/{member}").
 		To(handler.DescribeNamespaceMember).
 		Doc("Retrieve namespace member details.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.POST("/devops/{devops}/users").
+	ws.Route(ws.POST("/devops/{devops}/members").
 		To(handler.CreateNamespaceMembers).
 		Doc("Batch add namespace members.").
 		Reads([]Member{}).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Param(ws.PathParameter("namespace", "namespace")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.PUT("/devops/{devops}/users/{user}").
+	ws.Route(ws.PUT("/devops/{devops}/members/{member}").
 		To(handler.UpdateNamespaceMember).
 		Doc("Update member in namespace.").
 		Reads(Member{}).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Param(ws.PathParameter("namespace", "namespace")).
-		Param(ws.PathParameter("user", "username")).
+		Param(ws.PathParameter("member", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.DELETE("/devops/{devops}/users/{user}").
+	ws.Route(ws.DELETE("/devops/{devops}/members/{member}").
 		To(handler.RemoveNamespaceMember).
 		Doc("Remove member in namespace.").
 		Param(ws.PathParameter("namespace", "namespace")).
-		Param(ws.PathParameter("user", "username")).
+		Param(ws.PathParameter("member", "username")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	// globalroles
@@ -375,27 +375,27 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/users/{user}/clusterroles").
+	ws.Route(ws.GET("/clustermembers/{clustermember}/clusterroles").
 		To(handler.RetrieveMemberRoleTemplates).
 		Doc("Retrieve user's role templates in cluster.").
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/workspaces/{workspace}/users/{user}/workspaceroles").
+	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/workspaceroles").
 		To(handler.RetrieveMemberRoleTemplates).
 		Doc("Retrieve member's role templates in workspace.").
 		Param(ws.PathParameter("workspace", "workspace")).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.WorkspaceRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/namespaces/{namespace}/users/{user}/roles").
+	ws.Route(ws.GET("/namespaces/{namespace}/members/{member}/roles").
 		To(handler.RetrieveMemberRoleTemplates).
 		Doc("Retrieve member's role templates in namespace.").
 		Param(ws.PathParameter("namespace", "namespace")).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, rbacv1.Role{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
-	ws.Route(ws.GET("/devops/{devops}/users/{user}/roles").
+	ws.Route(ws.GET("/devops/{devops}/members/{member}/roles").
 		To(handler.RetrieveMemberRoleTemplates).
 		Doc("Retrieve member's role templates in devops project.").
 		Param(ws.PathParameter("namespace", "namespace")).

@@ -22,7 +22,9 @@ import (
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -32,41 +34,130 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
+	"reflect"
 	"testing"
 )
 
 func TestTenantOperator_ListWorkspaces(t *testing.T) {
 	tenantOperator := prepare()
 	tests := []struct {
-		name        string
 		result      *api.ListResult
 		username    string
 		expectError error
 	}{
 		{
-			name:     "list workspace",
-			username: "admin",
+			username: admin.Name,
 			result: &api.ListResult{
-				Items:      workspaces,
-				TotalItems: len(workspaces),
+				Items:      workspaceTemplates,
+				TotalItems: len(workspaceTemplates),
 			},
 		},
 		{
-			name:     "list workspaces",
-			username: "regular",
+			username: tester2.Name,
 			result: &api.ListResult{
-				Items:      []interface{}{workspaceBar},
+				Items:      []interface{}{systemWorkspaceTmpl},
 				TotalItems: 1,
 			},
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		result, err := tenantOperator.ListWorkspaces(&user.DefaultInfo{Name: test.username}, query.New())
 
 		if err != nil {
-			if test.expectError != err {
-				t.Error(err)
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("got %#v, expected %#v", err, test.expectError)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(result, test.result); diff != "" {
+			t.Errorf("case %d,%s", i, diff)
+		}
+	}
+}
+
+func TestTenantOperator_ListNamespaces(t *testing.T) {
+	tenantOperator := prepare()
+	tests := []struct {
+		result      *api.ListResult
+		username    string
+		workspace   string
+		expectError error
+	}{
+		{
+			workspace: systemWorkspace.Name,
+			username:  admin.Name,
+			result: &api.ListResult{
+				Items:      []interface{}{kubesphereSystem, defaultNamespace},
+				TotalItems: 2,
+			},
+		},
+		{
+			workspace: systemWorkspace.Name,
+			username:  tester1.Name,
+			result: &api.ListResult{
+				Items:      []interface{}{},
+				TotalItems: 0,
+			},
+		},
+		{
+			workspace: testWorkspace.Name,
+			username:  tester2.Name,
+			result: &api.ListResult{
+				Items:      []interface{}{testNamespace},
+				TotalItems: 1,
+			},
+		},
+	}
+
+	for i, test := range tests {
+		result, err := tenantOperator.ListNamespaces(&user.DefaultInfo{Name: test.username}, test.workspace, query.New())
+
+		if err != nil {
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("got %#v, expected %#v", err, test.expectError)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(result, test.result); diff != "" {
+			t.Errorf("case %d, %s", i, diff)
+		}
+	}
+}
+
+func TestTenantOperator_DescribeNamespace(t *testing.T) {
+	tenantOperator := prepare()
+	tests := []struct {
+		result      *corev1.Namespace
+		username    string
+		workspace   string
+		namespace   string
+		expectError error
+	}{
+		{
+			result:      testNamespace,
+			username:    tester2.Name,
+			workspace:   testWorkspace.Name,
+			namespace:   testNamespace.Name,
+			expectError: nil,
+		},
+		{
+			result:      testNamespace,
+			username:    tester2.Name,
+			workspace:   systemWorkspace.Name,
+			namespace:   testNamespace.Name,
+			expectError: errors.NewNotFound(corev1.Resource("namespace"), testNamespace.Name),
+		},
+	}
+
+	for _, test := range tests {
+		result, err := tenantOperator.DescribeNamespace(test.workspace, test.namespace)
+
+		if err != nil {
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("got %#v, expected %#v", err, test.expectError)
 			}
 			continue
 		}
@@ -77,50 +168,157 @@ func TestTenantOperator_ListWorkspaces(t *testing.T) {
 	}
 }
 
-func TestTenantOperator_ListNamespaces(t *testing.T) {
+func TestTenantOperator_CreateNamespace(t *testing.T) {
 	tenantOperator := prepare()
 	tests := []struct {
-		name        string
-		result      *api.ListResult
-		username    string
+		result      *corev1.Namespace
 		workspace   string
+		namespace   *corev1.Namespace
 		expectError error
 	}{
 		{
-			name:      "list namespaces",
-			workspace: "foo",
-			username:  "admin",
-			result: &api.ListResult{
-				Items:      []interface{}{foo2, foo1},
-				TotalItems: 2,
+			result: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test",
+					Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: testWorkspace.Name},
+				},
 			},
-		},
-		{
-			name:      "list namespaces",
-			workspace: "foo",
-			username:  "regular",
-			result: &api.ListResult{
-				Items:      []interface{}{},
-				TotalItems: 0,
+			workspace: testWorkspace.Name,
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
 			},
-		},
-		{
-			name:      "list namespaces",
-			workspace: "bar",
-			username:  "regular",
-			result: &api.ListResult{
-				Items:      []interface{}{bar1},
-				TotalItems: 1,
-			},
+			expectError: nil,
 		},
 	}
 
-	for _, test := range tests {
-		result, err := tenantOperator.ListNamespaces(&user.DefaultInfo{Name: test.username}, test.workspace, query.New())
+	for i, test := range tests {
+		result, err := tenantOperator.CreateNamespace(test.workspace, test.namespace)
 
 		if err != nil {
-			if test.expectError != err {
-				t.Error(err)
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("case %d, got %#v, expected %#v", i, err, test.expectError)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(result, test.result); diff != "" {
+			t.Error(diff)
+		}
+	}
+}
+
+func TestTenantOperator_DeleteNamespace(t *testing.T) {
+	tenantOperator := prepare()
+	tests := []struct {
+		workspace   string
+		namespace   string
+		expectError error
+	}{
+		{
+			workspace:   testWorkspace.Name,
+			namespace:   kubesphereSystem.Name,
+			expectError: errors.NewNotFound(corev1.Resource("namespace"), kubesphereSystem.Name),
+		},
+		{
+			workspace:   testWorkspace.Name,
+			namespace:   testNamespace.Name,
+			expectError: nil,
+		},
+	}
+
+	for i, test := range tests {
+		err := tenantOperator.DeleteNamespace(test.workspace, test.namespace)
+		if err != nil {
+			if test.expectError != nil && test.expectError.Error() == err.Error() {
+				continue
+			} else {
+				if !reflect.DeepEqual(err, test.expectError) {
+					t.Errorf("case %d, got %#v, expected %#v", i, err, test.expectError)
+				}
+			}
+		}
+	}
+}
+
+func TestTenantOperator_UpdateNamespace(t *testing.T) {
+	tenantOperator := prepare()
+	tests := []struct {
+		result      *corev1.Namespace
+		workspace   string
+		namespace   *corev1.Namespace
+		expectError error
+	}{
+		{
+			result: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-namespace",
+					Annotations: map[string]string{"test": "test"},
+					Labels:      map[string]string{tenantv1alpha1.WorkspaceLabel: testWorkspace.Name},
+				},
+			},
+			workspace: testWorkspace.Name,
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-namespace",
+					Annotations: map[string]string{"test": "test"},
+					Labels:      map[string]string{tenantv1alpha1.WorkspaceLabel: testWorkspace.Name},
+				},
+			},
+			expectError: nil,
+		},
+	}
+
+	for i, test := range tests {
+		result, err := tenantOperator.UpdateNamespace(test.workspace, test.namespace)
+
+		if err != nil {
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("case %d, got %#v, expected %#v", i, err, test.expectError)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(result, test.result); diff != "" {
+			t.Error(diff)
+		}
+	}
+}
+
+func TestTenantOperator_PatchNamespace(t *testing.T) {
+	tenantOperator := prepare()
+	tests := []struct {
+		result      *corev1.Namespace
+		workspace   string
+		patch       *corev1.Namespace
+		expectError error
+	}{
+		{
+			result: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-namespace",
+					Annotations: map[string]string{"test": "test2"},
+					Labels:      map[string]string{tenantv1alpha1.WorkspaceLabel: testWorkspace.Name},
+				},
+			},
+			workspace: testWorkspace.Name,
+			patch: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-namespace",
+					Annotations: map[string]string{"test": "test2"},
+				},
+			},
+			expectError: nil,
+		},
+	}
+
+	for i, test := range tests {
+		result, err := tenantOperator.PatchNamespace(test.workspace, test.patch)
+
+		if err != nil {
+			if !reflect.DeepEqual(err, test.expectError) {
+				t.Errorf("case %d, got %#v, expected %#v", i, err, test.expectError)
 			}
 			continue
 		}
@@ -132,28 +330,56 @@ func TestTenantOperator_ListNamespaces(t *testing.T) {
 }
 
 var (
-	foo1 = &corev1.Namespace{
+	admin = user.DefaultInfo{
+		Name: "admin",
+	}
+	tester1 = user.DefaultInfo{
+		Name: "tester1",
+	}
+	tester2 = user.DefaultInfo{
+		Name: "tester2",
+	}
+	systemWorkspaceTmpl = &tenantv1alpha2.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "foo1",
-			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "foo"},
+			Name: "system-workspace",
 		},
 	}
-
-	foo2 = &corev1.Namespace{
+	testWorkspaceTmpl = &tenantv1alpha2.WorkspaceTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "foo2",
-			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "foo"},
+			Name: "test-workspace",
 		},
 	}
-	bar1 = &corev1.Namespace{
+	systemWorkspace = &tenantv1alpha1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "bar1",
-			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "bar"},
+			Name: "system-workspace",
 		},
 	}
-	adminGlobalRole = &iamv1alpha2.GlobalRole{
+	testWorkspace = &tenantv1alpha1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "global-admin",
+			Name: "test-workspace",
+		},
+	}
+	kubesphereSystem = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "kubesphere-system",
+			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: systemWorkspace.Name},
+		},
+	}
+	defaultNamespace = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "default",
+			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: systemWorkspace.Name},
+		},
+	}
+	testNamespace = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "test-namespace",
+			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: testWorkspace.Name},
+		},
+	}
+	platformAdmin = &iamv1alpha2.GlobalRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "platform-admin",
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -163,79 +389,67 @@ var (
 			},
 		},
 	}
-	regularGlobalRole = &iamv1alpha2.GlobalRole{
+	platformRegular = &iamv1alpha2.GlobalRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "regular",
+			Name: "platform-regular",
 		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{},
-				APIGroups: []string{},
-				Resources: []string{},
-			},
-		},
+		Rules: []rbacv1.PolicyRule{},
 	}
-	reguarWorksapceRole = &iamv1alpha2.WorkspaceRole{
+	systemWorkspaceRegular = &iamv1alpha2.WorkspaceRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "workspace-regular",
-			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "bar"},
+			Name:   "system-workspace-regular",
+			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: systemWorkspace.Name},
 		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{},
-				APIGroups: []string{},
-				Resources: []string{},
-			},
-		},
+		Rules: []rbacv1.PolicyRule{},
 	}
 	adminGlobalRoleBinding = &iamv1alpha2.GlobalRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "global-admin",
+			Name: admin.Name + "-" + platformAdmin.Name,
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind: "User",
-			Name: "admin",
+			Name: admin.Name,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: iamv1alpha2.SchemeGroupVersion.String(),
 			Kind:     iamv1alpha2.ResourceKindGlobalRole,
-			Name:     "global-admin",
+			Name:     platformAdmin.Name,
 		},
 	}
 	regularGlobalRoleBinding = &iamv1alpha2.GlobalRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "regular",
+			Name: tester1.Name + "-" + platformRegular.Name,
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind: "User",
-			Name: "regular",
+			Name: tester1.Name,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: iamv1alpha2.SchemeGroupVersion.String(),
 			Kind:     iamv1alpha2.ResourceKindGlobalRole,
-			Name:     "regular",
+			Name:     platformRegular.Name,
 		},
 	}
 
-	regularWorkspaceRoleBinding = &iamv1alpha2.WorkspaceRoleBinding{
+	systemWorkspaceRegularRoleBinding = &iamv1alpha2.WorkspaceRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "workspace-regular",
-			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: "bar"},
+			Name:   tester2.Name + "-" + systemWorkspaceRegular.Name,
+			Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: systemWorkspace.Name},
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind: "User",
-			Name: "regular",
+			Name: tester2.Name,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: iamv1alpha2.SchemeGroupVersion.String(),
 			Kind:     iamv1alpha2.ResourceKindGlobalRole,
-			Name:     "workspace-regular",
+			Name:     systemWorkspaceRegular.Name,
 		},
 	}
-	bar1NamespaceRole = &rbacv1.Role{
+	testNamespaceAdmin = &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "admin",
-			Namespace: "bar1",
+			Namespace: testNamespace.Name,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -245,52 +459,48 @@ var (
 			},
 		},
 	}
-	bar1NamespaceRoleBinding = &rbacv1.RoleBinding{
+	testNamespaceAdminRoleBinding = &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "admin",
-			Namespace: "bar1",
+			Namespace: testNamespace.Name,
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind: "User",
-			Name: "regular",
+			Name: tester2.Name,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.SchemeGroupVersion.String(),
 			Kind:     "Role",
-			Name:     "admin",
-		},
-	}
-	workspaceFoo = &tenantv1alpha2.WorkspaceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
-	}
-	workspaceBar = &tenantv1alpha2.WorkspaceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
+			Name:     testNamespaceAdmin.Name,
 		},
 	}
 
-	workspaces            = []interface{}{workspaceFoo, workspaceBar}
-	namespaces            = []interface{}{foo1, foo2, bar1}
-	globalRoles           = []interface{}{adminGlobalRole, regularGlobalRole}
+	workspaces            = []interface{}{systemWorkspace, testWorkspace}
+	workspaceTemplates    = []interface{}{testWorkspaceTmpl, systemWorkspaceTmpl}
+	namespaces            = []interface{}{kubesphereSystem, defaultNamespace, testNamespace}
+	globalRoles           = []interface{}{platformAdmin, platformRegular}
 	globalRoleBindings    = []interface{}{adminGlobalRoleBinding, regularGlobalRoleBinding}
-	workspaceRoles        = []interface{}{regularGlobalRole}
-	workspaceRoleBindings = []interface{}{regularWorkspaceRoleBinding}
-	namespaceRoles        = []interface{}{bar1NamespaceRole}
-	namespaceRoleBindings = []interface{}{bar1NamespaceRoleBinding}
+	workspaceRoles        = []interface{}{systemWorkspaceRegular}
+	workspaceRoleBindings = []interface{}{systemWorkspaceRegularRoleBinding}
+	namespaceRoles        = []interface{}{testNamespaceAdmin}
+	namespaceRoleBindings = []interface{}{testNamespaceAdminRoleBinding}
 )
 
 func prepare() Interface {
-	ksClient := fakeks.NewSimpleClientset()
-	k8sClient := fakek8s.NewSimpleClientset()
+	ksClient := fakeks.NewSimpleClientset([]runtime.Object{testWorkspace, systemWorkspace}...)
+	k8sClient := fakek8s.NewSimpleClientset([]runtime.Object{testNamespace, kubesphereSystem}...)
 	istioClient := fakeistio.NewSimpleClientset()
 	appClient := fakeapp.NewSimpleClientset()
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, istioClient, appClient, nil, nil)
 
 	for _, workspace := range workspaces {
+		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha1().
+			Workspaces().Informer().GetIndexer().Add(workspace)
+	}
+
+	for _, workspaceTmpl := range workspaceTemplates {
 		fakeInformerFactory.KubeSphereSharedInformerFactory().Tenant().V1alpha2().
-			WorkspaceTemplates().Informer().GetIndexer().Add(workspace)
+			WorkspaceTemplates().Informer().GetIndexer().Add(workspaceTmpl)
 	}
 
 	for _, namespace := range namespaces {
@@ -328,5 +538,5 @@ func prepare() Interface {
 			RoleBindings().Informer().GetIndexer().Add(roleBinding)
 	}
 
-	return New(fakeInformerFactory, nil, nil, nil, nil, nil)
+	return New(fakeInformerFactory, k8sClient, ksClient, nil, nil, nil)
 }

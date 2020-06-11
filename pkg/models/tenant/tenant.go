@@ -283,7 +283,7 @@ func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
 }
 
 func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
-	_, err := t.DescribeNamespace(workspace, namespace.Namespace)
+	_, err := t.DescribeNamespace(workspace, namespace.Name)
 	if err != nil {
 		return nil, err
 	}

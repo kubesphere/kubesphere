@@ -61,9 +61,10 @@ func (h *iamHandler) DescribeUser(request *restful.Request, response *restful.Re
 }
 
 func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
 
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralGlobalRole) {
+		username := request.PathParameter("user")
+
 		globalRole, err := h.am.GetGlobalRoleOfUser(username)
 
 		if err != nil {
@@ -93,8 +94,8 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 	}
 
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralClusterRole) {
+		username := request.PathParameter("clustermember")
 		clusterRole, err := h.am.GetClusterRoleOfUser(username)
-
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -111,7 +112,6 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			Ascending:  false,
 			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(clusterRole.Name)},
 		})
-
 		if err != nil {
 			api.HandleInternalError(response, request, err)
 			return
@@ -123,9 +123,8 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralWorkspaceRole) {
 		workspace := request.PathParameter("workspace")
-
+		username := request.PathParameter("workspacemember")
 		workspaceRole, err := h.am.GetWorkspaceRoleOfUser(username, workspace)
-
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -142,7 +141,6 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			Ascending:  false,
 			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(workspaceRole.Name)},
 		})
-
 		if err != nil {
 			api.HandleInternalError(response, request, err)
 			return
@@ -154,7 +152,7 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralRole) {
 		namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
-
+		username := request.PathParameter("member")
 		if err != nil {
 			api.HandleInternalError(response, request, err)
 			return
@@ -280,7 +278,7 @@ func (h *iamHandler) ListNamespaceMembers(request *restful.Request, response *re
 }
 
 func (h *iamHandler) DescribeNamespaceMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("member")
 	namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
 
 	if err != nil {
@@ -347,7 +345,7 @@ func (h *iamHandler) ListWorkspaceMembers(request *restful.Request, response *re
 
 func (h *iamHandler) DescribeWorkspaceMember(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-	username := request.PathParameter("user")
+	username := request.PathParameter("workspacemember")
 
 	queryParam := query.New()
 	queryParam.Filters[query.FieldName] = query.Value(username)
@@ -828,7 +826,7 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 
 func (h *iamHandler) RemoveWorkspaceMember(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-	username := request.PathParameter("user")
+	username := request.PathParameter("workspacemember")
 
 	err := h.am.RemoveUserFromWorkspace(username, workspace)
 
@@ -843,7 +841,7 @@ func (h *iamHandler) RemoveWorkspaceMember(request *restful.Request, response *r
 
 func (h *iamHandler) UpdateWorkspaceMember(request *restful.Request, response *restful.Response) {
 	workspace := request.PathParameter("workspace")
-	username := request.PathParameter("user")
+	username := request.PathParameter("workspacemember")
 
 	var member Member
 
@@ -905,7 +903,7 @@ func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *
 }
 
 func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("member")
 	namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
 
 	if err != nil {
@@ -942,7 +940,7 @@ func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *r
 }
 
 func (h *iamHandler) RemoveNamespaceMember(request *restful.Request, response *restful.Response) {
-	username := request.PathParameter("user")
+	username := request.PathParameter("member")
 	namespace, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
 
 	if err != nil {
