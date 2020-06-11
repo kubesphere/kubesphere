@@ -141,7 +141,7 @@ type APIServer struct {
 	AuditingClient auditing.Client
 }
 
-func (s *APIServer) PrepareRun() error {
+func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
 
 	s.container = restful.NewContainer()
 	s.container.Filter(logRequestAndResponse)
@@ -158,7 +158,7 @@ func (s *APIServer) PrepareRun() error {
 
 	s.Server.Handler = s.container
 
-	s.buildHandlerChain()
+	s.buildHandlerChain(stopCh)
 
 	return nil
 }
@@ -235,7 +235,7 @@ func (s *APIServer) Run(stopCh <-chan struct{}) (err error) {
 	return err
 }
 
-func (s *APIServer) buildHandlerChain() {
+func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	requestInfoResolver := &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
@@ -244,8 +244,10 @@ func (s *APIServer) buildHandlerChain() {
 	handler := s.Server.Handler
 	handler = filters.WithKubeAPIServer(handler, s.KubernetesClient.Config(), &errorResponder{})
 
-	if s.Config.AuditingOptions.Enabled {
-		handler = filters.WithAuditing(handler, audit.NewAuditing(s.InformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister()))
+	if s.Config.AuditingOptions.Enable {
+		handler = filters.WithAuditing(handler,
+			audit.NewAuditing(s.InformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+				s.Config.AuditingOptions.WebhookUrl, stopCh))
 	}
 
 	if s.Config.MultiClusterOptions.Enable {

@@ -49,7 +49,7 @@ func TestGetAuditLevel(t *testing.T) {
 	assert.Equal(t, string(webhook.Spec.AuditLevel), string(a.getAuditLevel()))
 }
 
-func TestAuditing_Enable(t *testing.T) {
+func TestAuditing_Enabled(t *testing.T) {
 	webhook := &auditingv1alpha1.Webhook{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: auditingv1alpha1.SchemeGroupVersion.String(),
@@ -73,10 +73,10 @@ func TestAuditing_Enable(t *testing.T) {
 		panic(err)
 	}
 
-	assert.Equal(t, false, a.Enable())
+	assert.Equal(t, false, a.Enabled())
 }
 
-func TestAuditing_K8sAuditingEnable(t *testing.T) {
+func TestAuditing_K8sAuditingEnabled(t *testing.T) {
 	webhook := &auditingv1alpha1.Webhook{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: auditingv1alpha1.SchemeGroupVersion.String(),
@@ -85,8 +85,8 @@ func TestAuditing_K8sAuditingEnable(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:        v1alpha1.LevelNone,
-			K8sAuditingEnable: true,
+			AuditLevel:         v1alpha1.LevelNone,
+			K8sAuditingEnabled: true,
 		},
 	}
 
@@ -101,7 +101,7 @@ func TestAuditing_K8sAuditingEnable(t *testing.T) {
 		panic(err)
 	}
 
-	assert.Equal(t, true, a.K8sAuditingEnable())
+	assert.Equal(t, true, a.K8sAuditingEnabled())
 }
 
 func TestAuditing_LogRequestObject(t *testing.T) {
@@ -113,8 +113,8 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:        v1alpha1.LevelRequestResponse,
-			K8sAuditingEnable: true,
+			AuditLevel:         v1alpha1.LevelRequestResponse,
+			K8sAuditingEnabled: true,
 		},
 	}
 
@@ -178,8 +178,8 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 			Name: "kube-auditing-webhook",
 		},
 		Spec: auditingv1alpha1.WebhookSpec{
-			AuditLevel:        v1alpha1.LevelMetadata,
-			K8sAuditingEnable: true,
+			AuditLevel:         v1alpha1.LevelMetadata,
+			K8sAuditingEnabled: true,
 		},
 	}
 

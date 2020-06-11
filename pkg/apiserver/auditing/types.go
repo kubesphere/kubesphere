@@ -2,6 +2,7 @@ package auditing
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/google/uuid"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,8 +26,8 @@ const (
 )
 
 type Auditing interface {
-	Enable() bool
-	K8sAuditingEnable() bool
+	Enabled() bool
+	K8sAuditingEnabled() bool
 	LogRequestObject(req *http.Request) *Event
 	LogResponseObject(e *Event, resp *ResponseCapture, info *request.RequestInfo)
 }
@@ -34,7 +35,7 @@ type Auditing interface {
 type Event struct {
 	//The workspace which this audit event happened
 	Workspace string
-	//The devops project which this audit event happened
+	//The cluster which this audit event happened
 	Cluster string
 
 	audit.Event
@@ -50,14 +51,14 @@ type auditing struct {
 	backend *Backend
 }
 
-func NewAuditing(lister v1alpha1.WebhookLister) Auditing {
+func NewAuditing(lister v1alpha1.WebhookLister, url string, stopCh <-chan struct{}) Auditing {
 
 	a := &auditing{
 		lister: lister,
 		cache:  make(chan *EventList, DefaultCacheCapacity),
 	}
 
-	a.backend = NewBackend(ChannelCapacity, a.cache, SendTimeout)
+	a.backend = NewBackend(url, ChannelCapacity, a.cache, SendTimeout, stopCh)
 	return a
 }
 
@@ -71,7 +72,7 @@ func (a *auditing) getAuditLevel() audit.Level {
 	return (audit.Level)(wh.Spec.AuditLevel)
 }
 
-func (a *auditing) Enable() bool {
+func (a *auditing) Enabled() bool {
 
 	level := a.getAuditLevel()
 	if level.Less(audit.LevelMetadata) {
@@ -80,14 +81,14 @@ func (a *auditing) Enable() bool {
 	return true
 }
 
-func (a *auditing) K8sAuditingEnable() bool {
+func (a *auditing) K8sAuditingEnabled() bool {
 	wh, err := a.lister.Get(DefaultWebhook)
 	if err != nil {
 		klog.Error(err)
 		return false
 	}
 
-	return wh.Spec.K8sAuditingEnable
+	return wh.Spec.K8sAuditingEnabled
 }
 
 func (a *auditing) LogRequestObject(req *http.Request) *Event {
@@ -135,7 +136,7 @@ func (a *auditing) LogRequestObject(req *http.Request) *Event {
 func (a *auditing) LogResponseObject(e *Event, resp *ResponseCapture, info *request.RequestInfo) {
 
 	// Auditing should igonre k8s request when k8s auditing is enabled.
-	if info.IsKubernetesRequest && a.K8sAuditingEnable() {
+	if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
 		return
 	}
 
@@ -176,6 +177,11 @@ func (a *auditing) LogResponseObject(e *Event, resp *ResponseCapture, info *requ
 }
 
 func (a *auditing) cacheEvent(e Event) {
+	if klog.V(8) {
+		bs, _ := json.Marshal(e)
+		klog.Infof("%s", string(bs))
+	}
+
 	eventList := &EventList{}
 	eventList.Items = append(eventList.Items, e)
 	select {

@@ -118,7 +118,7 @@ type WebhookSpec struct {
 	// +optional
 	AuditLevel v1alpha1.Level `json:"auditLevel" protobuf:"bytes,1,opt,name=auditLevel"`
 	// K8s auditing is enabled or not.
-	K8sAuditingEnable bool `json:"k8sAuditingEnable,omitempty" protobuf:"bytes,8,opt,name=priority"`
+	K8sAuditingEnabled bool `json:"k8sAuditingEnabled,omitempty" protobuf:"bytes,8,opt,name=priority"`
 }
 
 // WebhookStatus defines the observed state of Webhook

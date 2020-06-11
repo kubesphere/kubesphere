@@ -80,7 +80,7 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	err = apiserver.PrepareRun()
+	err = apiserver.PrepareRun(stopCh)
 	if err != nil {
 		return nil
 	}
