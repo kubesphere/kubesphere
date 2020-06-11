@@ -60,7 +60,7 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 				DataFormat("limit=%d,page=%d").
 				DefaultValue("limit=10,page=1")).
 			Doc("list the credentials of the specified devops for the current user").
-			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/devops/{devops}/credentials").
@@ -105,7 +105,7 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 				DataFormat("limit=%d,page=%d").
 				DefaultValue("limit=10,page=1")).
 			Doc("list the pipelines of the specified devops for the current user").
-			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/devops/{devops}/pipelines").
@@ -147,7 +147,7 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 				Required(false).
 				DataFormat("limit=%d,page=%d").
 				DefaultValue("limit=10,page=1")).Doc("List the devopsproject of the specified workspace for the current user").
-			Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+			Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
 
 		ws.Route(ws.POST("/workspaces/{workspace}/devops").
