@@ -518,7 +518,8 @@ func (c *clusterController) syncCluster(key string) error {
 		c.updateClusterCondition(cluster, clusterReadyCondition)
 	}
 
-	if !isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
+	if cluster.Spec.Connection.Type == clusterv1alpha1.ConnectionTypeProxy &&
+		!isConditionTrue(cluster, clusterv1alpha1.ClusterAgentAvailable) {
 		clusterNotReadyCondition := clusterv1alpha1.ClusterCondition{
 			Type:               clusterv1alpha1.ClusterReady,
 			Status:             v1.ConditionFalse,
