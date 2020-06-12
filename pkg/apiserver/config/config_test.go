@@ -101,7 +101,7 @@ func newTestConfig() (*Config, error) {
 			AttachmentManagerEndpoint: "openpitrix-hyperpitrix.openpitrix-system.svc:9122",
 		},
 		NetworkOptions: &network.Options{
-			WeaveScopeHost: "weave-scope-app.weave.svc",
+			EnableNetworkPolicy: true,
 		},
 		MonitoringOptions: &prometheus.Options{
 			Endpoint: "http://prometheus.kubesphere-monitoring-system.svc",
