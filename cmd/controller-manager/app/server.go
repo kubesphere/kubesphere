@@ -40,7 +40,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
@@ -103,15 +102,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		return err
 	}
 
-	var openpitrixClient openpitrix.Client
-	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
-		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
-		if err != nil {
-			klog.Errorf("Failed to create openpitrix client %v", err)
-			return err
-		}
-	}
-
 	var devopsClient devops.Interface
 	if s.DevopsOptions != nil && len(s.DevopsOptions.Host) != 0 {
 		devopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions)
@@ -151,7 +141,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			klog.Fatal("Unable to create workspace controller")
 		}
 
-		err = namespace.Add(mgr, openpitrixClient)
+		err = namespace.Add(mgr)
 		if err != nil {
 			klog.Fatal("Unable to create namespace controller")
 		}

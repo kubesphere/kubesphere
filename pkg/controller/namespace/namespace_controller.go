@@ -27,7 +27,6 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,16 +44,15 @@ import (
 
 // Add creates a new Namespace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, openpitrixClient openpitrix.Client) error {
-	return add(mgr, newReconciler(mgr, openpitrixClient))
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, openpitrixClient openpitrix.Client) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileNamespace{
-		Client:           mgr.GetClient(),
-		scheme:           mgr.GetScheme(),
-		openpitrixClient: openpitrixClient,
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
 	}
 }
 
@@ -80,8 +78,7 @@ var _ reconcile.Reconciler = &ReconcileNamespace{}
 // ReconcileNamespace reconciles a Namespace object
 type ReconcileNamespace struct {
 	client.Client
-	openpitrixClient openpitrix.Client
-	scheme           *runtime.Scheme
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
