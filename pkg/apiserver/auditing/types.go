@@ -65,7 +65,7 @@ func NewAuditing(lister v1alpha1.WebhookLister, url string, stopCh <-chan struct
 func (a *auditing) getAuditLevel() audit.Level {
 	wh, err := a.lister.Get(DefaultWebhook)
 	if err != nil {
-		klog.Error(err)
+		klog.V(8).Info(err)
 		return audit.LevelNone
 	}
 
@@ -84,7 +84,7 @@ func (a *auditing) Enabled() bool {
 func (a *auditing) K8sAuditingEnabled() bool {
 	wh, err := a.lister.Get(DefaultWebhook)
 	if err != nil {
-		klog.Error(err)
+		klog.V(8).Info(err)
 		return false
 	}
 
