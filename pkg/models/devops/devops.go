@@ -175,6 +175,9 @@ func (d devopsOperator) ListDevOpsProject(workspace string, limit, offset int) (
 		limit = len(result) - offset
 	}
 	items = result[offset : offset+limit]
+	if items == nil {
+		items = []interface{}{}
+	}
 	return api.ListResult{TotalItems: len(result), Items: items}, nil
 }
 
@@ -218,7 +221,7 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 	}
 	data, err := d.ksInformers.Devops().V1alpha3().Pipelines().Lister().Pipelines(projectObj.Status.AdminNamespace).List(labels.Everything())
 	if err != nil {
-		return api.ListResult{}, nil
+		return api.ListResult{}, err
 	}
 	items := make([]interface{}, 0)
 	var result []interface{}
@@ -230,6 +233,9 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 		limit = len(result) - offset
 	}
 	items = result[offset : offset+limit]
+	if items == nil {
+		items = []interface{}{}
+	}
 	return api.ListResult{TotalItems: len(result), Items: items}, nil
 }
 
@@ -298,6 +304,9 @@ func (d devopsOperator) ListCredentialObj(projectName string, limit, offset int)
 		limit = len(result) - offset
 	}
 	items = result[offset : offset+limit]
+	if items == nil {
+		items = []interface{}{}
+	}
 	return api.ListResult{TotalItems: len(result), Items: items}, nil
 }
 
