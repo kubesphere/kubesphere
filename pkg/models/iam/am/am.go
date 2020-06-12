@@ -32,7 +32,6 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
-	"net/http"
 )
 
 type AccessManagementInterface interface {
@@ -44,16 +43,14 @@ type AccessManagementInterface interface {
 	ListClusterRoles(query *query.Query) (*api.ListResult, error)
 	ListWorkspaceRoles(query *query.Query) (*api.ListResult, error)
 	ListGlobalRoles(query *query.Query) (*api.ListResult, error)
-
 	ListGlobalRoleBindings(username string) ([]*iamv1alpha2.GlobalRoleBinding, error)
 	ListClusterRoleBindings(username string) ([]*rbacv1.ClusterRoleBinding, error)
 	ListWorkspaceRoleBindings(username, workspace string) ([]*iamv1alpha2.WorkspaceRoleBinding, error)
 	ListRoleBindings(username, namespace string) ([]*rbacv1.RoleBinding, error)
-
 	GetRoleReferenceRules(roleRef rbacv1.RoleRef, namespace string) (string, []rbacv1.PolicyRule, error)
 	GetGlobalRole(globalRole string) (*iamv1alpha2.GlobalRole, error)
 	GetWorkspaceRole(workspace string, name string) (*iamv1alpha2.WorkspaceRole, error)
-	CreateOrUpdateGlobalRoleBinding(username string, globalRole string) error
+	CreateGlobalRoleBinding(username string, globalRole string) error
 	CreateOrUpdateWorkspaceRole(workspace string, workspaceRole *iamv1alpha2.WorkspaceRole) (*iamv1alpha2.WorkspaceRole, error)
 	CreateOrUpdateGlobalRole(globalRole *iamv1alpha2.GlobalRole) (*iamv1alpha2.GlobalRole, error)
 	DeleteWorkspaceRole(workspace string, name string) error
@@ -64,11 +61,11 @@ type AccessManagementInterface interface {
 	GetNamespaceRole(namespace string, name string) (*rbacv1.Role, error)
 	CreateOrUpdateNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error)
 	DeleteNamespaceRole(namespace string, name string) error
-	CreateOrUpdateWorkspaceRoleBinding(username string, workspace string, role string) error
+	CreateWorkspaceRoleBinding(username string, workspace string, role string) error
 	RemoveUserFromWorkspace(username string, workspace string) error
-	CreateOrUpdateNamespaceRoleBinding(username string, namespace string, role string) error
+	CreateNamespaceRoleBinding(username string, namespace string, role string) error
 	RemoveUserFromNamespace(username string, namespace string) error
-	CreateOrUpdateClusterRoleBinding(username string, role string) error
+	CreateClusterRoleBinding(username string, role string) error
 	RemoveUserFromCluster(username string) error
 	GetControlledNamespace(devops string) (string, error)
 	GetControlledWorkspace(namespace string) (string, error)
@@ -116,17 +113,8 @@ func (am *amOperator) GetGlobalRoleOfUser(username string) (*iamv1alpha2.GlobalR
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: iamv1alpha2.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindGlobalRoleBinding,
-		},
-		Message: fmt.Sprintf("global role binding not found for %s", username),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularGlobalRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -159,17 +147,8 @@ func (am *amOperator) GetWorkspaceRoleOfUser(username, workspace string) (*iamv1
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: iamv1alpha2.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindWorkspaceRoleBinding,
-		},
-		Message: fmt.Sprintf("workspace role binding not found for %s", username),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularWorkspaceRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -199,17 +178,8 @@ func (am *amOperator) GetNamespaceRoleOfUser(username, namespace string) (*rbacv
 		return out, nil
 	}
 
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: rbacv1.SchemeGroupVersion.Group,
-			Kind:  iamv1alpha2.ResourceKindRoleBinding,
-		},
-		Message: fmt.Sprintf("role binding not found for %s in %s", username, namespace),
-	}}
-
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -239,17 +209,9 @@ func (am *amOperator) GetClusterRoleOfUser(username string) (*rbacv1.ClusterRole
 		out.Annotations[iamv1alpha2.ClusterRoleAnnotation] = role.Name
 		return out, nil
 	}
-	err = &errors.StatusError{ErrStatus: metav1.Status{
-		Status: metav1.StatusFailure,
-		Code:   http.StatusNotFound,
-		Reason: metav1.StatusReasonNotFound,
-		Details: &metav1.StatusDetails{
-			Group: rbacv1.SchemeGroupVersion.Group,
-			Kind:  "ClusterRoleBinding",
-		},
-		Message: fmt.Sprintf("cluster role binding not found for %s", username),
-	}}
 
+	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularClusterRoleBinding), username)
+	klog.Error(err)
 	return nil, err
 }
 
@@ -371,7 +333,7 @@ func (am *amOperator) GetGlobalRole(globalRole string) (*iamv1alpha2.GlobalRole,
 	return obj.(*iamv1alpha2.GlobalRole), nil
 }
 
-func (am *amOperator) CreateOrUpdateGlobalRoleBinding(username string, globalRole string) error {
+func (am *amOperator) CreateGlobalRoleBinding(username string, globalRole string) error {
 
 	_, err := am.GetGlobalRole(globalRole)
 
@@ -428,11 +390,9 @@ func (am *amOperator) CreateOrUpdateGlobalRoleBinding(username string, globalRol
 }
 
 func (am *amOperator) CreateOrUpdateWorkspaceRole(workspace string, workspaceRole *iamv1alpha2.WorkspaceRole) (*iamv1alpha2.WorkspaceRole, error) {
-
 	if workspaceRole.Labels == nil {
 		workspaceRole.Labels = make(map[string]string, 0)
 	}
-
 	workspaceRole.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
 	workspaceRole.Rules = make([]rbacv1.PolicyRule, 0)
 
@@ -452,15 +412,10 @@ func (am *amOperator) CreateOrUpdateWorkspaceRole(workspace string, workspaceRol
 		}
 	}
 
-	old, err := am.GetWorkspaceRole("", workspaceRole.Name)
-
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, err
-	}
-
 	var created *iamv1alpha2.WorkspaceRole
-	if old != nil {
+	var err error
+
+	if workspaceRole.ResourceVersion != "" {
 		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Update(workspaceRole)
 	} else {
 		created, err = am.ksclient.IamV1alpha2().WorkspaceRoles().Create(workspaceRole)
@@ -469,7 +424,7 @@ func (am *amOperator) CreateOrUpdateWorkspaceRole(workspace string, workspaceRol
 	return created, err
 }
 
-func (am *amOperator) CreateOrUpdateWorkspaceRoleBinding(username string, workspace string, role string) error {
+func (am *amOperator) CreateWorkspaceRoleBinding(username string, workspace string, role string) error {
 
 	_, err := am.GetWorkspaceRole(workspace, role)
 
@@ -526,7 +481,7 @@ func (am *amOperator) CreateOrUpdateWorkspaceRoleBinding(username string, worksp
 	return nil
 }
 
-func (am *amOperator) CreateOrUpdateClusterRoleBinding(username string, role string) error {
+func (am *amOperator) CreateClusterRoleBinding(username string, role string) error {
 
 	_, err := am.GetClusterRole(role)
 
@@ -582,7 +537,7 @@ func (am *amOperator) CreateOrUpdateClusterRoleBinding(username string, role str
 	return nil
 }
 
-func (am *amOperator) CreateOrUpdateNamespaceRoleBinding(username string, namespace string, role string) error {
+func (am *amOperator) CreateNamespaceRoleBinding(username string, namespace string, role string) error {
 
 	_, err := am.GetNamespaceRole(namespace, role)
 
@@ -727,15 +682,10 @@ func (am *amOperator) CreateOrUpdateGlobalRole(globalRole *iamv1alpha2.GlobalRol
 		}
 	}
 
-	old, err := am.GetGlobalRole(globalRole.Name)
-
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, err
-	}
-
 	var created *iamv1alpha2.GlobalRole
-	if old != nil {
+	var err error
+
+	if globalRole.ResourceVersion != "" {
 		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Update(globalRole)
 	} else {
 		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Create(globalRole)
@@ -763,16 +713,9 @@ func (am *amOperator) CreateOrUpdateClusterRole(clusterRole *rbacv1.ClusterRole)
 			clusterRole.Rules = append(clusterRole.Rules, role.Rules...)
 		}
 	}
-
-	old, err := am.GetClusterRole(clusterRole.Name)
-
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, err
-	}
-
 	var created *rbacv1.ClusterRole
-	if old != nil {
+	var err error
+	if clusterRole.ResourceVersion != "" {
 		created, err = am.k8sclient.RbacV1().ClusterRoles().Update(clusterRole)
 	} else {
 		created, err = am.k8sclient.RbacV1().ClusterRoles().Create(clusterRole)
@@ -801,16 +744,9 @@ func (am *amOperator) CreateOrUpdateNamespaceRole(namespace string, role *rbacv1
 			role.Rules = append(role.Rules, role.Rules...)
 		}
 	}
-
-	old, err := am.GetNamespaceRole(namespace, role.Name)
-
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error(err)
-		return nil, err
-	}
-
 	var created *rbacv1.Role
-	if old != nil {
+	var err error
+	if role.ResourceVersion != "" {
 		created, err = am.k8sclient.RbacV1().Roles(namespace).Update(role)
 	} else {
 		created, err = am.k8sclient.RbacV1().Roles(namespace).Create(role)

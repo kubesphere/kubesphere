@@ -185,7 +185,6 @@ func (h *tenantHandler) UpdateWorkspace(request *restful.Request, response *rest
 	}
 
 	response.WriteEntity(updated)
-
 }
 
 func (h *tenantHandler) DescribeWorkspace(request *restful.Request, response *restful.Response) {
@@ -309,4 +308,152 @@ func (h *tenantHandler) Auditing(req *restful.Request, resp *restful.Response) {
 
 	_ = resp.WriteEntity(result)
 
+}
+
+func (h *tenantHandler) DescribeNamespace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	namespaceName := request.PathParameter("namespace")
+	ns, err := h.tenant.DescribeNamespace(workspaceName, namespaceName)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(ns)
+}
+
+func (h *tenantHandler) DeleteNamespace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	namespaceName := request.PathParameter("namespace")
+
+	err := h.tenant.DeleteNamespace(workspaceName, namespaceName)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(servererr.None)
+}
+
+func (h *tenantHandler) UpdateNamespace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	namespaceName := request.PathParameter("namespace")
+
+	var namespace corev1.Namespace
+	err := request.ReadEntity(&namespace)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if namespaceName != namespace.Name {
+		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", namespace.Name, namespaceName)
+		klog.Errorf("%+v", err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	updated, err := h.tenant.UpdateNamespace(workspaceName, &namespace)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsBadRequest(err) {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(updated)
+}
+
+func (h *tenantHandler) PatchNamespace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	namespaceName := request.PathParameter("namespace")
+
+	var namespace corev1.Namespace
+	err := request.ReadEntity(&namespace)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if namespaceName != namespace.Name {
+		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", namespace.Name, namespaceName)
+		klog.Errorf("%+v", err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	patched, err := h.tenant.PatchNamespace(workspaceName, &namespace)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsBadRequest(err) {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(patched)
+}
+
+func (h *tenantHandler) PatchWorkspace(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+
+	var workspace tenantv1alpha2.WorkspaceTemplate
+	err := request.ReadEntity(&workspace)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	if workspaceName != workspace.Name {
+		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", workspace.Name, workspaceName)
+		klog.Errorf("%+v", err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	patched, err := h.tenant.PatchWorkspace(&workspace)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, request, err)
+			return
+		}
+		if errors.IsBadRequest(err) {
+			api.HandleBadRequest(response, request, err)
+			return
+		}
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	response.WriteEntity(patched)
 }

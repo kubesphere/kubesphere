@@ -17,12 +17,14 @@ limitations under the License.
 package tenant
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -36,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/auditing"
@@ -61,11 +64,15 @@ type Interface interface {
 	UpdateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DescribeWorkspace(workspace string) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListWorkspaceClusters(workspace string) (*api.ListResult, error)
-
 	Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error)
 	QueryLogs(user user.Info, query *loggingv1alpha2.Query) (*loggingv1alpha2.APIResponse, error)
 	ExportLogs(user user.Info, query *loggingv1alpha2.Query, writer io.Writer) error
 	Auditing(user user.Info, queryParam *auditingv1alpha1.Query) (*auditingv1alpha1.APIResponse, error)
+	DescribeNamespace(workspace, namespace string) (*corev1.Namespace, error)
+	DeleteNamespace(workspace, namespace string) error
+	UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
+	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
+	PatchWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 }
 
 type tenantOperator struct {
@@ -99,10 +106,10 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	listWS := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "list",
-		APIGroup:        "tenant.kubesphere.io",
-		APIVersion:      "v1alpha2",
+		APIGroup:        "*",
 		Resource:        "workspaces",
 		ResourceRequest: true,
+		ResourceScope:   request.GlobalScope,
 	}
 
 	decision, _, err := t.authorizer.Authorize(listWS)
@@ -154,9 +161,9 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	}
 
 	result := resources.DefaultList(workspaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
-		return resources.DefaultObjectMetaCompare(left.(*tenantv1alpha1.Workspace).ObjectMeta, right.(*tenantv1alpha1.Workspace).ObjectMeta, field)
+		return resources.DefaultObjectMetaCompare(left.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, right.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, field)
 	}, func(workspace runtime.Object, filter query.Filter) bool {
-		return resources.DefaultObjectMetaFilter(workspace.(*tenantv1alpha1.Workspace).ObjectMeta, filter)
+		return resources.DefaultObjectMetaFilter(workspace.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, filter)
 	})
 
 	return result, nil
@@ -167,11 +174,10 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	listNSInWS := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "list",
-		APIGroup:        "",
-		APIVersion:      "v1",
 		Workspace:       workspace,
 		Resource:        "namespaces",
 		ResourceRequest: true,
+		ResourceScope:   request.WorkspaceScope,
 	}
 
 	decision, _, err := t.authorizer.Authorize(listNSInWS)
@@ -238,20 +244,78 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 }
 
 func (t *tenantOperator) CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
-
 	_, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspace)
-
 	if err != nil {
 		return nil, err
 	}
-
-	if namespace.Annotations == nil {
-		namespace.Annotations = make(map[string]string, 0)
-	}
-
-	namespace.Annotations[tenantv1alpha1.WorkspaceLabel] = workspace
-
+	namespace = appendWorkspaceLabel(namespace, workspace)
 	return t.k8sclient.CoreV1().Namespaces().Create(namespace)
+}
+
+func appendWorkspaceLabel(namespace *corev1.Namespace, workspace string) *corev1.Namespace {
+	if namespace.Labels == nil {
+		namespace.Labels = make(map[string]string, 0)
+	}
+	namespace.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+	return namespace
+}
+
+func (t *tenantOperator) DescribeNamespace(workspace, namespace string) (*corev1.Namespace, error) {
+	obj, err := t.resourceGetter.Get("namespaces", "", namespace)
+	if err != nil {
+		return nil, err
+	}
+	ns := obj.(*corev1.Namespace)
+	if ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
+		err := errors.NewNotFound(corev1.Resource("namespace"), namespace)
+		klog.Error(err)
+		return nil, err
+	}
+	return ns, nil
+}
+
+func (t *tenantOperator) DeleteNamespace(workspace, namespace string) error {
+	_, err := t.DescribeNamespace(workspace, namespace)
+	if err != nil {
+		return err
+	}
+	return t.k8sclient.CoreV1().Namespaces().Delete(namespace, metav1.NewDeleteOptions(0))
+}
+
+func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
+	_, err := t.DescribeNamespace(workspace, namespace.Name)
+	if err != nil {
+		return nil, err
+	}
+	namespace = appendWorkspaceLabel(namespace, workspace)
+	return t.k8sclient.CoreV1().Namespaces().Update(namespace)
+}
+
+func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
+	_, err := t.DescribeNamespace(workspace, namespace.Name)
+	if err != nil {
+		return nil, err
+	}
+	if namespace.Labels != nil {
+		namespace.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+	}
+	data, err := json.Marshal(namespace)
+	if err != nil {
+		return nil, err
+	}
+	return t.k8sclient.CoreV1().Namespaces().Patch(namespace.Name, types.MergePatchType, data)
+}
+
+func (t *tenantOperator) PatchWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	_, err := t.DescribeWorkspace(workspace.Name)
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(workspace)
+	if err != nil {
+		return nil, err
+	}
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(workspace.Name, types.MergePatchType, data)
 }
 
 func (t *tenantOperator) CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
