@@ -203,7 +203,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.OpenPitrixOptions = nil
 	}
 
-	if conf.NetworkOptions != nil && conf.NetworkOptions.WeaveScopeHost == "" {
+	if conf.NetworkOptions != nil && conf.NetworkOptions.EnableNetworkPolicy == false {
 		conf.NetworkOptions = nil
 	}
 
