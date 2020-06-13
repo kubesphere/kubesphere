@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
+	v1alpha12 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -145,12 +146,25 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 		},
 	}))
 
-	e := a.LogRequestObject(req)
+	info := &request.RequestInfo{
+		RequestInfo: &k8srequest.RequestInfo{
+			IsResourceRequest: false,
+			Path:              "/kapis/tenant.kubesphere.io/v1alpha2/workspaces",
+			Verb:              "create",
+			APIGroup:          "tenant.kubesphere.io",
+			APIVersion:        "v1alpha2",
+			Resource:          "workspaces",
+			Name:              "test",
+		},
+	}
 
-	expectedEvent := &Event{
+	e := a.LogRequestObject(req, info)
+
+	expectedEvent := &v1alpha12.Event{
 		Event: audit.Event{
 			AuditID: e.AuditID,
 			Level:   "RequestResponse",
+			Verb:    "create",
 			Stage:   "ResponseComplete",
 			User: v1.UserInfo{
 				Username: "admin",
@@ -161,8 +175,18 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 			SourceIPs: []string{
 				"192.168.0.2",
 			},
-
+			RequestURI:               "/kapis/tenant.kubesphere.io/v1alpha2/workspaces",
 			RequestReceivedTimestamp: e.RequestReceivedTimestamp,
+			ObjectRef: &audit.ObjectReference{
+				Resource:        "workspaces",
+				Namespace:       "",
+				Name:            "test",
+				UID:             "",
+				APIGroup:        "tenant.kubesphere.io",
+				APIVersion:      "v1alpha2",
+				ResourceVersion: "",
+				Subresource:     "",
+			},
 		},
 	}
 
@@ -210,8 +234,6 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 		},
 	}))
 
-	e := a.LogRequestObject(req)
-
 	info := &request.RequestInfo{
 		RequestInfo: &k8srequest.RequestInfo{
 			IsResourceRequest: false,
@@ -224,12 +246,14 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 		},
 	}
 
+	e := a.LogRequestObject(req, info)
+
 	resp := &ResponseCapture{}
 	resp.WriteHeader(200)
 
 	a.LogResponseObject(e, resp, info)
 
-	expectedEvent := &Event{
+	expectedEvent := &v1alpha12.Event{
 		Event: audit.Event{
 			Verb:    "create",
 			AuditID: e.AuditID,

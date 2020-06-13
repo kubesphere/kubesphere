@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/klog"
+	auditv1alpha1 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/listers/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
@@ -28,26 +29,13 @@ const (
 type Auditing interface {
 	Enabled() bool
 	K8sAuditingEnabled() bool
-	LogRequestObject(req *http.Request) *Event
-	LogResponseObject(e *Event, resp *ResponseCapture, info *request.RequestInfo)
-}
-
-type Event struct {
-	//The workspace which this audit event happened
-	Workspace string
-	//The cluster which this audit event happened
-	Cluster string
-
-	audit.Event
-}
-
-type EventList struct {
-	Items []Event
+	LogRequestObject(req *http.Request, info *request.RequestInfo) *auditv1alpha1.Event
+	LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture, info *request.RequestInfo)
 }
 
 type auditing struct {
 	lister  v1alpha1.WebhookLister
-	cache   chan *EventList
+	cache   chan *auditv1alpha1.EventList
 	backend *Backend
 }
 
@@ -55,7 +43,7 @@ func NewAuditing(lister v1alpha1.WebhookLister, url string, stopCh <-chan struct
 
 	a := &auditing{
 		lister: lister,
-		cache:  make(chan *EventList, DefaultCacheCapacity),
+		cache:  make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
 	}
 
 	a.backend = NewBackend(url, ChannelCapacity, a.cache, SendTimeout, stopCh)
@@ -91,9 +79,26 @@ func (a *auditing) K8sAuditingEnabled() bool {
 	return wh.Spec.K8sAuditingEnabled
 }
 
-func (a *auditing) LogRequestObject(req *http.Request) *Event {
-	e := &Event{
+// If the request is not a standard request, or a resource request,
+// or part of the audit information cannot be obtained through url,
+// the function that handles the request can obtain Event from
+// the context of the request, assign value to audit information,
+// including name, verb, resource, subresource, message etc like this.
+//
+//	info, ok := request.AuditEventFrom(request.Request.Context())
+//	if ok {
+//		info.Verb = "post"
+//		info.Name = created.Name
+//	}
+//
+func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo) *auditv1alpha1.Event {
+
+	e := &auditv1alpha1.Event{
+		Workspace: info.Workspace,
+		Cluster:   info.Cluster,
 		Event: audit.Event{
+			RequestURI:               info.Path,
+			Verb:                     info.Verb,
 			Level:                    a.getAuditLevel(),
 			AuditID:                  types.UID(uuid.New().String()),
 			Stage:                    audit.StageResponseComplete,
@@ -101,6 +106,16 @@ func (a *auditing) LogRequestObject(req *http.Request) *Event {
 			UserAgent:                req.UserAgent(),
 			RequestReceivedTimestamp: v1.NewMicroTime(time.Now()),
 			Annotations:              nil,
+			ObjectRef: &audit.ObjectReference{
+				Resource:        info.Resource,
+				Namespace:       info.Namespace,
+				Name:            info.Name,
+				UID:             "",
+				APIGroup:        info.APIGroup,
+				APIVersion:      info.APIVersion,
+				ResourceVersion: info.ResourceScope,
+				Subresource:     info.Subresource,
+			},
 		},
 	}
 
@@ -133,7 +148,7 @@ func (a *auditing) LogRequestObject(req *http.Request) *Event {
 	return e
 }
 
-func (a *auditing) LogResponseObject(e *Event, resp *ResponseCapture, info *request.RequestInfo) {
+func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture, info *request.RequestInfo) {
 
 	// Auditing should igonre k8s request when k8s auditing is enabled.
 	if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
@@ -146,43 +161,16 @@ func (a *auditing) LogResponseObject(e *Event, resp *ResponseCapture, info *requ
 		e.ResponseObject = &runtime.Unknown{Raw: resp.Bytes()}
 	}
 
-	// If the request is not a standard request, or a resource request,
-	// or part of the audit information cannot be obtained through url,
-	// the function that handles the request can obtain RequestInfo from
-	// the context of the request, assign value to audit information,
-	// including name, verb, resource, subresource, etc like this.
-	//
-	//	info, ok := request.RequestInfoFrom(request.Request.Context())
-	//	if ok {
-	//		info.Verb = "post"
-	//		info.Name = created.Name
-	//	}
-	//
-	e.Workspace = info.Workspace
-	e.Cluster = info.Cluster
-	e.RequestURI = info.Path
-	e.Verb = info.Verb
-	e.ObjectRef = &audit.ObjectReference{
-		Resource:        info.Resource,
-		Namespace:       info.Namespace,
-		Name:            info.Name,
-		UID:             "",
-		APIGroup:        info.APIGroup,
-		APIVersion:      info.APIVersion,
-		ResourceVersion: info.ResourceScope,
-		Subresource:     info.Subresource,
-	}
-
 	a.cacheEvent(*e)
 }
 
-func (a *auditing) cacheEvent(e Event) {
+func (a *auditing) cacheEvent(e auditv1alpha1.Event) {
 	if klog.V(8) {
 		bs, _ := json.Marshal(e)
 		klog.Infof("%s", string(bs))
 	}
 
-	eventList := &EventList{}
+	eventList := &auditv1alpha1.EventList{}
 	eventList.Items = append(eventList.Items, e)
 	select {
 	case a.cache <- eventList:

@@ -19,15 +19,17 @@ func WithAuditing(handler http.Handler, a auditing.Auditing) http.Handler {
 			return
 		}
 
-		e := a.LogRequestObject(req)
-		resp := auditing.NewResponseCapture(w)
-		handler.ServeHTTP(resp, req)
-
 		info, ok := request.RequestInfoFrom(req.Context())
 		if !ok {
 			klog.Error("Unable to retrieve request info from request")
+			handler.ServeHTTP(w, req)
 			return
 		}
+
+		e := a.LogRequestObject(req, info)
+		req = req.WithContext(request.WithAuditEvent(req.Context(), e))
+		resp := auditing.NewResponseCapture(w)
+		handler.ServeHTTP(resp, req)
 
 		go a.LogResponseObject(e, resp, info)
 	})

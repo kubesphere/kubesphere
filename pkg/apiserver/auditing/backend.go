@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"net/http"
 	"time"
 )
@@ -19,14 +20,14 @@ type Backend struct {
 	url             string
 	channelCapacity int
 	semCh           chan interface{}
-	cache           chan *EventList
+	cache           chan *v1alpha1.EventList
 	client          http.Client
 	sendTimeout     time.Duration
 	waitTimeout     time.Duration
 	stopCh          <-chan struct{}
 }
 
-func NewBackend(url string, channelCapacity int, cache chan *EventList, sendTimeout time.Duration, stopCh <-chan struct{}) *Backend {
+func NewBackend(url string, channelCapacity int, cache chan *v1alpha1.EventList, sendTimeout time.Duration, stopCh <-chan struct{}) *Backend {
 
 	b := Backend{
 		url:             url,
@@ -60,7 +61,7 @@ func (b *Backend) worker() {
 
 	for {
 
-		var event *EventList
+		var event *v1alpha1.EventList
 		select {
 		case event = <-b.cache:
 			if event == nil {
@@ -70,7 +71,7 @@ func (b *Backend) worker() {
 			break
 		}
 
-		send := func(event *EventList) {
+		send := func(event *v1alpha1.EventList) {
 			ctx, cancel := context.WithTimeout(context.Background(), b.waitTimeout)
 			defer cancel()
 
