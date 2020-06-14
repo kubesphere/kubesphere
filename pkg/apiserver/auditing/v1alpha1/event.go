@@ -9,7 +9,7 @@ type Event struct {
 	Workspace string
 	// The cluster which this audit event happened
 	Cluster string
-	// Message send to user.s
+	// Message send to user.
 	Message string
 
 	audit.Event
