@@ -61,9 +61,11 @@ func FromContext(ctx context.Context) (*Database, bool) {
 
 func (db *Database) New(ctx context.Context) *Conn {
 	actualDb, ok := FromContext(ctx)
-	conn := db.Conn
-	if ok {
+	var conn *dbr.Connection
+	if ok || db == nil {
 		conn = actualDb.Conn
+	} else {
+		conn = db.Conn
 	}
 	return &Conn{
 		Session: conn.NewSession(&EventReceiver{ctx}),

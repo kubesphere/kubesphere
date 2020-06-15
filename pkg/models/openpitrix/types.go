@@ -1,3 +1,16 @@
+/*
+Copyright 2020 The KubeSphere Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package openpitrix
 
 import (
@@ -737,6 +750,25 @@ type CreateClusterRequest struct {
 	Username string `json:"-"`
 }
 
+type UpgradeClusterRequest struct {
+	// cluster id
+	ClusterId string `json:"cluster_id"`
+
+	// advanced param
+	AdvancedParam []string `json:"advanced_param"`
+
+	// required, conf a json string, include cpu, memory info of cluster
+	Conf string `json:"conf,omitempty"`
+
+	// required, id of runtime
+	RuntimeId string `json:"runtime_id,omitempty"`
+
+	// required, id of app version
+	VersionId string `json:"version_id,omitempty"`
+
+	Username string `json:"-"`
+}
+
 type Cluster struct {
 
 	// additional info
@@ -840,6 +872,7 @@ const (
 	CreateTime      = "create_time"
 	StatusTime      = "status_time"
 	RuntimeId       = "runtime_id"
+	Zone            = "zone"
 	VersionId       = "version_id"
 	RepoId          = "repo_id"
 	CategoryId      = "category_id"

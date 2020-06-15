@@ -4,6 +4,7 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
@@ -11,9 +12,10 @@ import (
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CreateJobRequest struct {
 	// required, cluster id
@@ -706,6 +708,17 @@ type JobManagerServer interface {
 	CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error)
 	// Get job, filter with these fields(job_id, cluster_id, app_id, version_id, executor, provider, status, owner), default return all jobs
 	DescribeJobs(context.Context, *DescribeJobsRequest) (*DescribeJobsResponse, error)
+}
+
+// UnimplementedJobManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedJobManagerServer struct {
+}
+
+func (*UnimplementedJobManagerServer) CreateJob(ctx context.Context, req *CreateJobRequest) (*CreateJobResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateJob not implemented")
+}
+func (*UnimplementedJobManagerServer) DescribeJobs(ctx context.Context, req *DescribeJobsRequest) (*DescribeJobsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeJobs not implemented")
 }
 
 func RegisterJobManagerServer(s *grpc.Server, srv JobManagerServer) {

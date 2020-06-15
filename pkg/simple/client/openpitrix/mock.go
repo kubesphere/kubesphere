@@ -13,30 +13,30 @@ import (
 	reflect "reflect"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// CreateRuntime mocks base method
+// CreateRuntime mocks base method.
 func (m *MockClient) CreateRuntime(ctx context.Context, in *pb.CreateRuntimeRequest, opts ...grpc.CallOption) (*pb.CreateRuntimeResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -49,14 +49,14 @@ func (m *MockClient) CreateRuntime(ctx context.Context, in *pb.CreateRuntimeRequ
 	return ret0, ret1
 }
 
-// CreateRuntime indicates an expected call of CreateRuntime
+// CreateRuntime indicates an expected call of CreateRuntime.
 func (mr *MockClientMockRecorder) CreateRuntime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRuntime", reflect.TypeOf((*MockClient)(nil).CreateRuntime), varargs...)
 }
 
-// CreateDebugRuntime mocks base method
+// CreateDebugRuntime mocks base method.
 func (m *MockClient) CreateDebugRuntime(ctx context.Context, in *pb.CreateRuntimeRequest, opts ...grpc.CallOption) (*pb.CreateRuntimeResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -69,14 +69,14 @@ func (m *MockClient) CreateDebugRuntime(ctx context.Context, in *pb.CreateRuntim
 	return ret0, ret1
 }
 
-// CreateDebugRuntime indicates an expected call of CreateDebugRuntime
+// CreateDebugRuntime indicates an expected call of CreateDebugRuntime.
 func (mr *MockClientMockRecorder) CreateDebugRuntime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDebugRuntime", reflect.TypeOf((*MockClient)(nil).CreateDebugRuntime), varargs...)
 }
 
-// DescribeRuntimeDetails mocks base method
+// DescribeRuntimeDetails mocks base method.
 func (m *MockClient) DescribeRuntimeDetails(ctx context.Context, in *pb.DescribeRuntimesRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimeDetailsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -89,14 +89,14 @@ func (m *MockClient) DescribeRuntimeDetails(ctx context.Context, in *pb.Describe
 	return ret0, ret1
 }
 
-// DescribeRuntimeDetails indicates an expected call of DescribeRuntimeDetails
+// DescribeRuntimeDetails indicates an expected call of DescribeRuntimeDetails.
 func (mr *MockClientMockRecorder) DescribeRuntimeDetails(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRuntimeDetails", reflect.TypeOf((*MockClient)(nil).DescribeRuntimeDetails), varargs...)
 }
 
-// DescribeRuntimes mocks base method
+// DescribeRuntimes mocks base method.
 func (m *MockClient) DescribeRuntimes(ctx context.Context, in *pb.DescribeRuntimesRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -109,14 +109,14 @@ func (m *MockClient) DescribeRuntimes(ctx context.Context, in *pb.DescribeRuntim
 	return ret0, ret1
 }
 
-// DescribeRuntimes indicates an expected call of DescribeRuntimes
+// DescribeRuntimes indicates an expected call of DescribeRuntimes.
 func (mr *MockClientMockRecorder) DescribeRuntimes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRuntimes", reflect.TypeOf((*MockClient)(nil).DescribeRuntimes), varargs...)
 }
 
-// DescribeDebugRuntimes mocks base method
+// DescribeDebugRuntimes mocks base method.
 func (m *MockClient) DescribeDebugRuntimes(ctx context.Context, in *pb.DescribeRuntimesRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -129,14 +129,14 @@ func (m *MockClient) DescribeDebugRuntimes(ctx context.Context, in *pb.DescribeR
 	return ret0, ret1
 }
 
-// DescribeDebugRuntimes indicates an expected call of DescribeDebugRuntimes
+// DescribeDebugRuntimes indicates an expected call of DescribeDebugRuntimes.
 func (mr *MockClientMockRecorder) DescribeDebugRuntimes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDebugRuntimes", reflect.TypeOf((*MockClient)(nil).DescribeDebugRuntimes), varargs...)
 }
 
-// ModifyRuntime mocks base method
+// ModifyRuntime mocks base method.
 func (m *MockClient) ModifyRuntime(ctx context.Context, in *pb.ModifyRuntimeRequest, opts ...grpc.CallOption) (*pb.ModifyRuntimeResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -149,14 +149,14 @@ func (m *MockClient) ModifyRuntime(ctx context.Context, in *pb.ModifyRuntimeRequ
 	return ret0, ret1
 }
 
-// ModifyRuntime indicates an expected call of ModifyRuntime
+// ModifyRuntime indicates an expected call of ModifyRuntime.
 func (mr *MockClientMockRecorder) ModifyRuntime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyRuntime", reflect.TypeOf((*MockClient)(nil).ModifyRuntime), varargs...)
 }
 
-// DeleteRuntimes mocks base method
+// DeleteRuntimes mocks base method.
 func (m *MockClient) DeleteRuntimes(ctx context.Context, in *pb.DeleteRuntimesRequest, opts ...grpc.CallOption) (*pb.DeleteRuntimesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -169,14 +169,14 @@ func (m *MockClient) DeleteRuntimes(ctx context.Context, in *pb.DeleteRuntimesRe
 	return ret0, ret1
 }
 
-// DeleteRuntimes indicates an expected call of DeleteRuntimes
+// DeleteRuntimes indicates an expected call of DeleteRuntimes.
 func (mr *MockClientMockRecorder) DeleteRuntimes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRuntimes", reflect.TypeOf((*MockClient)(nil).DeleteRuntimes), varargs...)
 }
 
-// CreateRuntimeCredential mocks base method
+// CreateRuntimeCredential mocks base method.
 func (m *MockClient) CreateRuntimeCredential(ctx context.Context, in *pb.CreateRuntimeCredentialRequest, opts ...grpc.CallOption) (*pb.CreateRuntimeCredentialResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -189,14 +189,14 @@ func (m *MockClient) CreateRuntimeCredential(ctx context.Context, in *pb.CreateR
 	return ret0, ret1
 }
 
-// CreateRuntimeCredential indicates an expected call of CreateRuntimeCredential
+// CreateRuntimeCredential indicates an expected call of CreateRuntimeCredential.
 func (mr *MockClientMockRecorder) CreateRuntimeCredential(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRuntimeCredential", reflect.TypeOf((*MockClient)(nil).CreateRuntimeCredential), varargs...)
 }
 
-// CreateDebugRuntimeCredential mocks base method
+// CreateDebugRuntimeCredential mocks base method.
 func (m *MockClient) CreateDebugRuntimeCredential(ctx context.Context, in *pb.CreateRuntimeCredentialRequest, opts ...grpc.CallOption) (*pb.CreateRuntimeCredentialResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -209,14 +209,14 @@ func (m *MockClient) CreateDebugRuntimeCredential(ctx context.Context, in *pb.Cr
 	return ret0, ret1
 }
 
-// CreateDebugRuntimeCredential indicates an expected call of CreateDebugRuntimeCredential
+// CreateDebugRuntimeCredential indicates an expected call of CreateDebugRuntimeCredential.
 func (mr *MockClientMockRecorder) CreateDebugRuntimeCredential(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDebugRuntimeCredential", reflect.TypeOf((*MockClient)(nil).CreateDebugRuntimeCredential), varargs...)
 }
 
-// DescribeRuntimeCredentials mocks base method
+// DescribeRuntimeCredentials mocks base method.
 func (m *MockClient) DescribeRuntimeCredentials(ctx context.Context, in *pb.DescribeRuntimeCredentialsRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimeCredentialsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -229,14 +229,14 @@ func (m *MockClient) DescribeRuntimeCredentials(ctx context.Context, in *pb.Desc
 	return ret0, ret1
 }
 
-// DescribeRuntimeCredentials indicates an expected call of DescribeRuntimeCredentials
+// DescribeRuntimeCredentials indicates an expected call of DescribeRuntimeCredentials.
 func (mr *MockClientMockRecorder) DescribeRuntimeCredentials(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRuntimeCredentials", reflect.TypeOf((*MockClient)(nil).DescribeRuntimeCredentials), varargs...)
 }
 
-// DescribeDebugRuntimeCredentials mocks base method
+// DescribeDebugRuntimeCredentials mocks base method.
 func (m *MockClient) DescribeDebugRuntimeCredentials(ctx context.Context, in *pb.DescribeRuntimeCredentialsRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimeCredentialsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -249,14 +249,14 @@ func (m *MockClient) DescribeDebugRuntimeCredentials(ctx context.Context, in *pb
 	return ret0, ret1
 }
 
-// DescribeDebugRuntimeCredentials indicates an expected call of DescribeDebugRuntimeCredentials
+// DescribeDebugRuntimeCredentials indicates an expected call of DescribeDebugRuntimeCredentials.
 func (mr *MockClientMockRecorder) DescribeDebugRuntimeCredentials(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDebugRuntimeCredentials", reflect.TypeOf((*MockClient)(nil).DescribeDebugRuntimeCredentials), varargs...)
 }
 
-// ModifyRuntimeCredential mocks base method
+// ModifyRuntimeCredential mocks base method.
 func (m *MockClient) ModifyRuntimeCredential(ctx context.Context, in *pb.ModifyRuntimeCredentialRequest, opts ...grpc.CallOption) (*pb.ModifyRuntimeCredentialResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -269,14 +269,14 @@ func (m *MockClient) ModifyRuntimeCredential(ctx context.Context, in *pb.ModifyR
 	return ret0, ret1
 }
 
-// ModifyRuntimeCredential indicates an expected call of ModifyRuntimeCredential
+// ModifyRuntimeCredential indicates an expected call of ModifyRuntimeCredential.
 func (mr *MockClientMockRecorder) ModifyRuntimeCredential(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyRuntimeCredential", reflect.TypeOf((*MockClient)(nil).ModifyRuntimeCredential), varargs...)
 }
 
-// DeleteRuntimeCredentials mocks base method
+// DeleteRuntimeCredentials mocks base method.
 func (m *MockClient) DeleteRuntimeCredentials(ctx context.Context, in *pb.DeleteRuntimeCredentialsRequest, opts ...grpc.CallOption) (*pb.DeleteRuntimeCredentialsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -289,14 +289,14 @@ func (m *MockClient) DeleteRuntimeCredentials(ctx context.Context, in *pb.Delete
 	return ret0, ret1
 }
 
-// DeleteRuntimeCredentials indicates an expected call of DeleteRuntimeCredentials
+// DeleteRuntimeCredentials indicates an expected call of DeleteRuntimeCredentials.
 func (mr *MockClientMockRecorder) DeleteRuntimeCredentials(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRuntimeCredentials", reflect.TypeOf((*MockClient)(nil).DeleteRuntimeCredentials), varargs...)
 }
 
-// ValidateRuntimeCredential mocks base method
+// ValidateRuntimeCredential mocks base method.
 func (m *MockClient) ValidateRuntimeCredential(ctx context.Context, in *pb.ValidateRuntimeCredentialRequest, opts ...grpc.CallOption) (*pb.ValidateRuntimeCredentialResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -309,14 +309,14 @@ func (m *MockClient) ValidateRuntimeCredential(ctx context.Context, in *pb.Valid
 	return ret0, ret1
 }
 
-// ValidateRuntimeCredential indicates an expected call of ValidateRuntimeCredential
+// ValidateRuntimeCredential indicates an expected call of ValidateRuntimeCredential.
 func (mr *MockClientMockRecorder) ValidateRuntimeCredential(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateRuntimeCredential", reflect.TypeOf((*MockClient)(nil).ValidateRuntimeCredential), varargs...)
 }
 
-// DescribeRuntimeProviderZones mocks base method
+// DescribeRuntimeProviderZones mocks base method.
 func (m *MockClient) DescribeRuntimeProviderZones(ctx context.Context, in *pb.DescribeRuntimeProviderZonesRequest, opts ...grpc.CallOption) (*pb.DescribeRuntimeProviderZonesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -329,14 +329,14 @@ func (m *MockClient) DescribeRuntimeProviderZones(ctx context.Context, in *pb.De
 	return ret0, ret1
 }
 
-// DescribeRuntimeProviderZones indicates an expected call of DescribeRuntimeProviderZones
+// DescribeRuntimeProviderZones indicates an expected call of DescribeRuntimeProviderZones.
 func (mr *MockClientMockRecorder) DescribeRuntimeProviderZones(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRuntimeProviderZones", reflect.TypeOf((*MockClient)(nil).DescribeRuntimeProviderZones), varargs...)
 }
 
-// GetRuntimeStatistics mocks base method
+// GetRuntimeStatistics mocks base method.
 func (m *MockClient) GetRuntimeStatistics(ctx context.Context, in *pb.GetRuntimeStatisticsRequest, opts ...grpc.CallOption) (*pb.GetRuntimeStatisticsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -349,14 +349,14 @@ func (m *MockClient) GetRuntimeStatistics(ctx context.Context, in *pb.GetRuntime
 	return ret0, ret1
 }
 
-// GetRuntimeStatistics indicates an expected call of GetRuntimeStatistics
+// GetRuntimeStatistics indicates an expected call of GetRuntimeStatistics.
 func (mr *MockClientMockRecorder) GetRuntimeStatistics(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeStatistics", reflect.TypeOf((*MockClient)(nil).GetRuntimeStatistics), varargs...)
 }
 
-// AddNodeKeyPairs mocks base method
+// AddNodeKeyPairs mocks base method.
 func (m *MockClient) AddNodeKeyPairs(ctx context.Context, in *pb.AddNodeKeyPairsRequest, opts ...grpc.CallOption) (*pb.AddNodeKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -369,14 +369,14 @@ func (m *MockClient) AddNodeKeyPairs(ctx context.Context, in *pb.AddNodeKeyPairs
 	return ret0, ret1
 }
 
-// AddNodeKeyPairs indicates an expected call of AddNodeKeyPairs
+// AddNodeKeyPairs indicates an expected call of AddNodeKeyPairs.
 func (mr *MockClientMockRecorder) AddNodeKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNodeKeyPairs", reflect.TypeOf((*MockClient)(nil).AddNodeKeyPairs), varargs...)
 }
 
-// DeleteNodeKeyPairs mocks base method
+// DeleteNodeKeyPairs mocks base method.
 func (m *MockClient) DeleteNodeKeyPairs(ctx context.Context, in *pb.DeleteNodeKeyPairsRequest, opts ...grpc.CallOption) (*pb.DeleteNodeKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -389,14 +389,14 @@ func (m *MockClient) DeleteNodeKeyPairs(ctx context.Context, in *pb.DeleteNodeKe
 	return ret0, ret1
 }
 
-// DeleteNodeKeyPairs indicates an expected call of DeleteNodeKeyPairs
+// DeleteNodeKeyPairs indicates an expected call of DeleteNodeKeyPairs.
 func (mr *MockClientMockRecorder) DeleteNodeKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodeKeyPairs", reflect.TypeOf((*MockClient)(nil).DeleteNodeKeyPairs), varargs...)
 }
 
-// CreateKeyPair mocks base method
+// CreateKeyPair mocks base method.
 func (m *MockClient) CreateKeyPair(ctx context.Context, in *pb.CreateKeyPairRequest, opts ...grpc.CallOption) (*pb.CreateKeyPairResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -409,14 +409,14 @@ func (m *MockClient) CreateKeyPair(ctx context.Context, in *pb.CreateKeyPairRequ
 	return ret0, ret1
 }
 
-// CreateKeyPair indicates an expected call of CreateKeyPair
+// CreateKeyPair indicates an expected call of CreateKeyPair.
 func (mr *MockClientMockRecorder) CreateKeyPair(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateKeyPair", reflect.TypeOf((*MockClient)(nil).CreateKeyPair), varargs...)
 }
 
-// DescribeKeyPairs mocks base method
+// DescribeKeyPairs mocks base method.
 func (m *MockClient) DescribeKeyPairs(ctx context.Context, in *pb.DescribeKeyPairsRequest, opts ...grpc.CallOption) (*pb.DescribeKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -429,14 +429,14 @@ func (m *MockClient) DescribeKeyPairs(ctx context.Context, in *pb.DescribeKeyPai
 	return ret0, ret1
 }
 
-// DescribeKeyPairs indicates an expected call of DescribeKeyPairs
+// DescribeKeyPairs indicates an expected call of DescribeKeyPairs.
 func (mr *MockClientMockRecorder) DescribeKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeKeyPairs", reflect.TypeOf((*MockClient)(nil).DescribeKeyPairs), varargs...)
 }
 
-// DeleteKeyPairs mocks base method
+// DeleteKeyPairs mocks base method.
 func (m *MockClient) DeleteKeyPairs(ctx context.Context, in *pb.DeleteKeyPairsRequest, opts ...grpc.CallOption) (*pb.DeleteKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -449,14 +449,14 @@ func (m *MockClient) DeleteKeyPairs(ctx context.Context, in *pb.DeleteKeyPairsRe
 	return ret0, ret1
 }
 
-// DeleteKeyPairs indicates an expected call of DeleteKeyPairs
+// DeleteKeyPairs indicates an expected call of DeleteKeyPairs.
 func (mr *MockClientMockRecorder) DeleteKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteKeyPairs", reflect.TypeOf((*MockClient)(nil).DeleteKeyPairs), varargs...)
 }
 
-// AttachKeyPairs mocks base method
+// AttachKeyPairs mocks base method.
 func (m *MockClient) AttachKeyPairs(ctx context.Context, in *pb.AttachKeyPairsRequest, opts ...grpc.CallOption) (*pb.AttachKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -469,14 +469,14 @@ func (m *MockClient) AttachKeyPairs(ctx context.Context, in *pb.AttachKeyPairsRe
 	return ret0, ret1
 }
 
-// AttachKeyPairs indicates an expected call of AttachKeyPairs
+// AttachKeyPairs indicates an expected call of AttachKeyPairs.
 func (mr *MockClientMockRecorder) AttachKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachKeyPairs", reflect.TypeOf((*MockClient)(nil).AttachKeyPairs), varargs...)
 }
 
-// DetachKeyPairs mocks base method
+// DetachKeyPairs mocks base method.
 func (m *MockClient) DetachKeyPairs(ctx context.Context, in *pb.DetachKeyPairsRequest, opts ...grpc.CallOption) (*pb.DetachKeyPairsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -489,14 +489,14 @@ func (m *MockClient) DetachKeyPairs(ctx context.Context, in *pb.DetachKeyPairsRe
 	return ret0, ret1
 }
 
-// DetachKeyPairs indicates an expected call of DetachKeyPairs
+// DetachKeyPairs indicates an expected call of DetachKeyPairs.
 func (mr *MockClientMockRecorder) DetachKeyPairs(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachKeyPairs", reflect.TypeOf((*MockClient)(nil).DetachKeyPairs), varargs...)
 }
 
-// DescribeSubnets mocks base method
+// DescribeSubnets mocks base method.
 func (m *MockClient) DescribeSubnets(ctx context.Context, in *pb.DescribeSubnetsRequest, opts ...grpc.CallOption) (*pb.DescribeSubnetsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -509,14 +509,14 @@ func (m *MockClient) DescribeSubnets(ctx context.Context, in *pb.DescribeSubnets
 	return ret0, ret1
 }
 
-// DescribeSubnets indicates an expected call of DescribeSubnets
+// DescribeSubnets indicates an expected call of DescribeSubnets.
 func (mr *MockClientMockRecorder) DescribeSubnets(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSubnets", reflect.TypeOf((*MockClient)(nil).DescribeSubnets), varargs...)
 }
 
-// CreateCluster mocks base method
+// CreateCluster mocks base method.
 func (m *MockClient) CreateCluster(ctx context.Context, in *pb.CreateClusterRequest, opts ...grpc.CallOption) (*pb.CreateClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -529,14 +529,14 @@ func (m *MockClient) CreateCluster(ctx context.Context, in *pb.CreateClusterRequ
 	return ret0, ret1
 }
 
-// CreateCluster indicates an expected call of CreateCluster
+// CreateCluster indicates an expected call of CreateCluster.
 func (mr *MockClientMockRecorder) CreateCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCluster", reflect.TypeOf((*MockClient)(nil).CreateCluster), varargs...)
 }
 
-// CreateDebugCluster mocks base method
+// CreateDebugCluster mocks base method.
 func (m *MockClient) CreateDebugCluster(ctx context.Context, in *pb.CreateClusterRequest, opts ...grpc.CallOption) (*pb.CreateClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -549,14 +549,14 @@ func (m *MockClient) CreateDebugCluster(ctx context.Context, in *pb.CreateCluste
 	return ret0, ret1
 }
 
-// CreateDebugCluster indicates an expected call of CreateDebugCluster
+// CreateDebugCluster indicates an expected call of CreateDebugCluster.
 func (mr *MockClientMockRecorder) CreateDebugCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDebugCluster", reflect.TypeOf((*MockClient)(nil).CreateDebugCluster), varargs...)
 }
 
-// ModifyCluster mocks base method
+// ModifyCluster mocks base method.
 func (m *MockClient) ModifyCluster(ctx context.Context, in *pb.ModifyClusterRequest, opts ...grpc.CallOption) (*pb.ModifyClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -569,14 +569,14 @@ func (m *MockClient) ModifyCluster(ctx context.Context, in *pb.ModifyClusterRequ
 	return ret0, ret1
 }
 
-// ModifyCluster indicates an expected call of ModifyCluster
+// ModifyCluster indicates an expected call of ModifyCluster.
 func (mr *MockClientMockRecorder) ModifyCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyCluster", reflect.TypeOf((*MockClient)(nil).ModifyCluster), varargs...)
 }
 
-// ModifyClusterNode mocks base method
+// ModifyClusterNode mocks base method.
 func (m *MockClient) ModifyClusterNode(ctx context.Context, in *pb.ModifyClusterNodeRequest, opts ...grpc.CallOption) (*pb.ModifyClusterNodeResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -589,14 +589,14 @@ func (m *MockClient) ModifyClusterNode(ctx context.Context, in *pb.ModifyCluster
 	return ret0, ret1
 }
 
-// ModifyClusterNode indicates an expected call of ModifyClusterNode
+// ModifyClusterNode indicates an expected call of ModifyClusterNode.
 func (mr *MockClientMockRecorder) ModifyClusterNode(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClusterNode", reflect.TypeOf((*MockClient)(nil).ModifyClusterNode), varargs...)
 }
 
-// ModifyClusterAttributes mocks base method
+// ModifyClusterAttributes mocks base method.
 func (m *MockClient) ModifyClusterAttributes(ctx context.Context, in *pb.ModifyClusterAttributesRequest, opts ...grpc.CallOption) (*pb.ModifyClusterAttributesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -609,14 +609,14 @@ func (m *MockClient) ModifyClusterAttributes(ctx context.Context, in *pb.ModifyC
 	return ret0, ret1
 }
 
-// ModifyClusterAttributes indicates an expected call of ModifyClusterAttributes
+// ModifyClusterAttributes indicates an expected call of ModifyClusterAttributes.
 func (mr *MockClientMockRecorder) ModifyClusterAttributes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClusterAttributes", reflect.TypeOf((*MockClient)(nil).ModifyClusterAttributes), varargs...)
 }
 
-// ModifyClusterNodeAttributes mocks base method
+// ModifyClusterNodeAttributes mocks base method.
 func (m *MockClient) ModifyClusterNodeAttributes(ctx context.Context, in *pb.ModifyClusterNodeAttributesRequest, opts ...grpc.CallOption) (*pb.ModifyClusterNodeAttributesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -629,14 +629,14 @@ func (m *MockClient) ModifyClusterNodeAttributes(ctx context.Context, in *pb.Mod
 	return ret0, ret1
 }
 
-// ModifyClusterNodeAttributes indicates an expected call of ModifyClusterNodeAttributes
+// ModifyClusterNodeAttributes indicates an expected call of ModifyClusterNodeAttributes.
 func (mr *MockClientMockRecorder) ModifyClusterNodeAttributes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClusterNodeAttributes", reflect.TypeOf((*MockClient)(nil).ModifyClusterNodeAttributes), varargs...)
 }
 
-// AddTableClusterNodes mocks base method
+// AddTableClusterNodes mocks base method.
 func (m *MockClient) AddTableClusterNodes(ctx context.Context, in *pb.AddTableClusterNodesRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -649,14 +649,14 @@ func (m *MockClient) AddTableClusterNodes(ctx context.Context, in *pb.AddTableCl
 	return ret0, ret1
 }
 
-// AddTableClusterNodes indicates an expected call of AddTableClusterNodes
+// AddTableClusterNodes indicates an expected call of AddTableClusterNodes.
 func (mr *MockClientMockRecorder) AddTableClusterNodes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTableClusterNodes", reflect.TypeOf((*MockClient)(nil).AddTableClusterNodes), varargs...)
 }
 
-// DeleteTableClusterNodes mocks base method
+// DeleteTableClusterNodes mocks base method.
 func (m *MockClient) DeleteTableClusterNodes(ctx context.Context, in *pb.DeleteTableClusterNodesRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -669,14 +669,14 @@ func (m *MockClient) DeleteTableClusterNodes(ctx context.Context, in *pb.DeleteT
 	return ret0, ret1
 }
 
-// DeleteTableClusterNodes indicates an expected call of DeleteTableClusterNodes
+// DeleteTableClusterNodes indicates an expected call of DeleteTableClusterNodes.
 func (mr *MockClientMockRecorder) DeleteTableClusterNodes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTableClusterNodes", reflect.TypeOf((*MockClient)(nil).DeleteTableClusterNodes), varargs...)
 }
 
-// DeleteClusters mocks base method
+// DeleteClusters mocks base method.
 func (m *MockClient) DeleteClusters(ctx context.Context, in *pb.DeleteClustersRequest, opts ...grpc.CallOption) (*pb.DeleteClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -689,14 +689,14 @@ func (m *MockClient) DeleteClusters(ctx context.Context, in *pb.DeleteClustersRe
 	return ret0, ret1
 }
 
-// DeleteClusters indicates an expected call of DeleteClusters
+// DeleteClusters indicates an expected call of DeleteClusters.
 func (mr *MockClientMockRecorder) DeleteClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusters", reflect.TypeOf((*MockClient)(nil).DeleteClusters), varargs...)
 }
 
-// UpgradeCluster mocks base method
+// UpgradeCluster mocks base method.
 func (m *MockClient) UpgradeCluster(ctx context.Context, in *pb.UpgradeClusterRequest, opts ...grpc.CallOption) (*pb.UpgradeClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -709,14 +709,14 @@ func (m *MockClient) UpgradeCluster(ctx context.Context, in *pb.UpgradeClusterRe
 	return ret0, ret1
 }
 
-// UpgradeCluster indicates an expected call of UpgradeCluster
+// UpgradeCluster indicates an expected call of UpgradeCluster.
 func (mr *MockClientMockRecorder) UpgradeCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeCluster", reflect.TypeOf((*MockClient)(nil).UpgradeCluster), varargs...)
 }
 
-// RollbackCluster mocks base method
+// RollbackCluster mocks base method.
 func (m *MockClient) RollbackCluster(ctx context.Context, in *pb.RollbackClusterRequest, opts ...grpc.CallOption) (*pb.RollbackClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -729,14 +729,14 @@ func (m *MockClient) RollbackCluster(ctx context.Context, in *pb.RollbackCluster
 	return ret0, ret1
 }
 
-// RollbackCluster indicates an expected call of RollbackCluster
+// RollbackCluster indicates an expected call of RollbackCluster.
 func (mr *MockClientMockRecorder) RollbackCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollbackCluster", reflect.TypeOf((*MockClient)(nil).RollbackCluster), varargs...)
 }
 
-// ResizeCluster mocks base method
+// ResizeCluster mocks base method.
 func (m *MockClient) ResizeCluster(ctx context.Context, in *pb.ResizeClusterRequest, opts ...grpc.CallOption) (*pb.ResizeClusterResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -749,14 +749,14 @@ func (m *MockClient) ResizeCluster(ctx context.Context, in *pb.ResizeClusterRequ
 	return ret0, ret1
 }
 
-// ResizeCluster indicates an expected call of ResizeCluster
+// ResizeCluster indicates an expected call of ResizeCluster.
 func (mr *MockClientMockRecorder) ResizeCluster(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResizeCluster", reflect.TypeOf((*MockClient)(nil).ResizeCluster), varargs...)
 }
 
-// AddClusterNodes mocks base method
+// AddClusterNodes mocks base method.
 func (m *MockClient) AddClusterNodes(ctx context.Context, in *pb.AddClusterNodesRequest, opts ...grpc.CallOption) (*pb.AddClusterNodesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -769,14 +769,14 @@ func (m *MockClient) AddClusterNodes(ctx context.Context, in *pb.AddClusterNodes
 	return ret0, ret1
 }
 
-// AddClusterNodes indicates an expected call of AddClusterNodes
+// AddClusterNodes indicates an expected call of AddClusterNodes.
 func (mr *MockClientMockRecorder) AddClusterNodes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddClusterNodes", reflect.TypeOf((*MockClient)(nil).AddClusterNodes), varargs...)
 }
 
-// DeleteClusterNodes mocks base method
+// DeleteClusterNodes mocks base method.
 func (m *MockClient) DeleteClusterNodes(ctx context.Context, in *pb.DeleteClusterNodesRequest, opts ...grpc.CallOption) (*pb.DeleteClusterNodesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -789,14 +789,14 @@ func (m *MockClient) DeleteClusterNodes(ctx context.Context, in *pb.DeleteCluste
 	return ret0, ret1
 }
 
-// DeleteClusterNodes indicates an expected call of DeleteClusterNodes
+// DeleteClusterNodes indicates an expected call of DeleteClusterNodes.
 func (mr *MockClientMockRecorder) DeleteClusterNodes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterNodes", reflect.TypeOf((*MockClient)(nil).DeleteClusterNodes), varargs...)
 }
 
-// UpdateClusterEnv mocks base method
+// UpdateClusterEnv mocks base method.
 func (m *MockClient) UpdateClusterEnv(ctx context.Context, in *pb.UpdateClusterEnvRequest, opts ...grpc.CallOption) (*pb.UpdateClusterEnvResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -809,14 +809,14 @@ func (m *MockClient) UpdateClusterEnv(ctx context.Context, in *pb.UpdateClusterE
 	return ret0, ret1
 }
 
-// UpdateClusterEnv indicates an expected call of UpdateClusterEnv
+// UpdateClusterEnv indicates an expected call of UpdateClusterEnv.
 func (mr *MockClientMockRecorder) UpdateClusterEnv(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterEnv", reflect.TypeOf((*MockClient)(nil).UpdateClusterEnv), varargs...)
 }
 
-// DescribeClusters mocks base method
+// DescribeClusters mocks base method.
 func (m *MockClient) DescribeClusters(ctx context.Context, in *pb.DescribeClustersRequest, opts ...grpc.CallOption) (*pb.DescribeClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -829,14 +829,14 @@ func (m *MockClient) DescribeClusters(ctx context.Context, in *pb.DescribeCluste
 	return ret0, ret1
 }
 
-// DescribeClusters indicates an expected call of DescribeClusters
+// DescribeClusters indicates an expected call of DescribeClusters.
 func (mr *MockClientMockRecorder) DescribeClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClusters", reflect.TypeOf((*MockClient)(nil).DescribeClusters), varargs...)
 }
 
-// DescribeDebugClusters mocks base method
+// DescribeDebugClusters mocks base method.
 func (m *MockClient) DescribeDebugClusters(ctx context.Context, in *pb.DescribeClustersRequest, opts ...grpc.CallOption) (*pb.DescribeClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -849,14 +849,14 @@ func (m *MockClient) DescribeDebugClusters(ctx context.Context, in *pb.DescribeC
 	return ret0, ret1
 }
 
-// DescribeDebugClusters indicates an expected call of DescribeDebugClusters
+// DescribeDebugClusters indicates an expected call of DescribeDebugClusters.
 func (mr *MockClientMockRecorder) DescribeDebugClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDebugClusters", reflect.TypeOf((*MockClient)(nil).DescribeDebugClusters), varargs...)
 }
 
-// DescribeAppClusters mocks base method
+// DescribeAppClusters mocks base method.
 func (m *MockClient) DescribeAppClusters(ctx context.Context, in *pb.DescribeAppClustersRequest, opts ...grpc.CallOption) (*pb.DescribeAppClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -869,14 +869,14 @@ func (m *MockClient) DescribeAppClusters(ctx context.Context, in *pb.DescribeApp
 	return ret0, ret1
 }
 
-// DescribeAppClusters indicates an expected call of DescribeAppClusters
+// DescribeAppClusters indicates an expected call of DescribeAppClusters.
 func (mr *MockClientMockRecorder) DescribeAppClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAppClusters", reflect.TypeOf((*MockClient)(nil).DescribeAppClusters), varargs...)
 }
 
-// DescribeDebugAppClusters mocks base method
+// DescribeDebugAppClusters mocks base method.
 func (m *MockClient) DescribeDebugAppClusters(ctx context.Context, in *pb.DescribeAppClustersRequest, opts ...grpc.CallOption) (*pb.DescribeAppClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -889,14 +889,14 @@ func (m *MockClient) DescribeDebugAppClusters(ctx context.Context, in *pb.Descri
 	return ret0, ret1
 }
 
-// DescribeDebugAppClusters indicates an expected call of DescribeDebugAppClusters
+// DescribeDebugAppClusters indicates an expected call of DescribeDebugAppClusters.
 func (mr *MockClientMockRecorder) DescribeDebugAppClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDebugAppClusters", reflect.TypeOf((*MockClient)(nil).DescribeDebugAppClusters), varargs...)
 }
 
-// DescribeClusterNodes mocks base method
+// DescribeClusterNodes mocks base method.
 func (m *MockClient) DescribeClusterNodes(ctx context.Context, in *pb.DescribeClusterNodesRequest, opts ...grpc.CallOption) (*pb.DescribeClusterNodesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -909,14 +909,14 @@ func (m *MockClient) DescribeClusterNodes(ctx context.Context, in *pb.DescribeCl
 	return ret0, ret1
 }
 
-// DescribeClusterNodes indicates an expected call of DescribeClusterNodes
+// DescribeClusterNodes indicates an expected call of DescribeClusterNodes.
 func (mr *MockClientMockRecorder) DescribeClusterNodes(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClusterNodes", reflect.TypeOf((*MockClient)(nil).DescribeClusterNodes), varargs...)
 }
 
-// StopClusters mocks base method
+// StopClusters mocks base method.
 func (m *MockClient) StopClusters(ctx context.Context, in *pb.StopClustersRequest, opts ...grpc.CallOption) (*pb.StopClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -929,14 +929,14 @@ func (m *MockClient) StopClusters(ctx context.Context, in *pb.StopClustersReques
 	return ret0, ret1
 }
 
-// StopClusters indicates an expected call of StopClusters
+// StopClusters indicates an expected call of StopClusters.
 func (mr *MockClientMockRecorder) StopClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopClusters", reflect.TypeOf((*MockClient)(nil).StopClusters), varargs...)
 }
 
-// StartClusters mocks base method
+// StartClusters mocks base method.
 func (m *MockClient) StartClusters(ctx context.Context, in *pb.StartClustersRequest, opts ...grpc.CallOption) (*pb.StartClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -949,14 +949,14 @@ func (m *MockClient) StartClusters(ctx context.Context, in *pb.StartClustersRequ
 	return ret0, ret1
 }
 
-// StartClusters indicates an expected call of StartClusters
+// StartClusters indicates an expected call of StartClusters.
 func (mr *MockClientMockRecorder) StartClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartClusters", reflect.TypeOf((*MockClient)(nil).StartClusters), varargs...)
 }
 
-// RecoverClusters mocks base method
+// RecoverClusters mocks base method.
 func (m *MockClient) RecoverClusters(ctx context.Context, in *pb.RecoverClustersRequest, opts ...grpc.CallOption) (*pb.RecoverClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -969,14 +969,14 @@ func (m *MockClient) RecoverClusters(ctx context.Context, in *pb.RecoverClusters
 	return ret0, ret1
 }
 
-// RecoverClusters indicates an expected call of RecoverClusters
+// RecoverClusters indicates an expected call of RecoverClusters.
 func (mr *MockClientMockRecorder) RecoverClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecoverClusters", reflect.TypeOf((*MockClient)(nil).RecoverClusters), varargs...)
 }
 
-// CeaseClusters mocks base method
+// CeaseClusters mocks base method.
 func (m *MockClient) CeaseClusters(ctx context.Context, in *pb.CeaseClustersRequest, opts ...grpc.CallOption) (*pb.CeaseClustersResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -989,14 +989,14 @@ func (m *MockClient) CeaseClusters(ctx context.Context, in *pb.CeaseClustersRequ
 	return ret0, ret1
 }
 
-// CeaseClusters indicates an expected call of CeaseClusters
+// CeaseClusters indicates an expected call of CeaseClusters.
 func (mr *MockClientMockRecorder) CeaseClusters(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CeaseClusters", reflect.TypeOf((*MockClient)(nil).CeaseClusters), varargs...)
 }
 
-// GetClusterStatistics mocks base method
+// GetClusterStatistics mocks base method.
 func (m *MockClient) GetClusterStatistics(ctx context.Context, in *pb.GetClusterStatisticsRequest, opts ...grpc.CallOption) (*pb.GetClusterStatisticsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1009,14 +1009,54 @@ func (m *MockClient) GetClusterStatistics(ctx context.Context, in *pb.GetCluster
 	return ret0, ret1
 }
 
-// GetClusterStatistics indicates an expected call of GetClusterStatistics
+// GetClusterStatistics indicates an expected call of GetClusterStatistics.
 func (mr *MockClientMockRecorder) GetClusterStatistics(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterStatistics", reflect.TypeOf((*MockClient)(nil).GetClusterStatistics), varargs...)
 }
 
-// SyncRepo mocks base method
+// DeleteClusterInRuntime mocks base method.
+func (m *MockClient) DeleteClusterInRuntime(ctx context.Context, in *pb.DeleteClusterInRuntimeRequest, opts ...grpc.CallOption) (*pb.DeleteClusterInRuntimeResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteClusterInRuntime", varargs...)
+	ret0, _ := ret[0].(*pb.DeleteClusterInRuntimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteClusterInRuntime indicates an expected call of DeleteClusterInRuntime.
+func (mr *MockClientMockRecorder) DeleteClusterInRuntime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterInRuntime", reflect.TypeOf((*MockClient)(nil).DeleteClusterInRuntime), varargs...)
+}
+
+// MigrateClusterInRuntime mocks base method.
+func (m *MockClient) MigrateClusterInRuntime(ctx context.Context, in *pb.MigrateClusterInRuntimeRequest, opts ...grpc.CallOption) (*pb.MigrateClusterInRuntimeResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "MigrateClusterInRuntime", varargs...)
+	ret0, _ := ret[0].(*pb.MigrateClusterInRuntimeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MigrateClusterInRuntime indicates an expected call of MigrateClusterInRuntime.
+func (mr *MockClientMockRecorder) MigrateClusterInRuntime(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateClusterInRuntime", reflect.TypeOf((*MockClient)(nil).MigrateClusterInRuntime), varargs...)
+}
+
+// SyncRepo mocks base method.
 func (m *MockClient) SyncRepo(ctx context.Context, in *pb.SyncRepoRequest, opts ...grpc.CallOption) (*pb.SyncRepoResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1029,14 +1069,14 @@ func (m *MockClient) SyncRepo(ctx context.Context, in *pb.SyncRepoRequest, opts 
 	return ret0, ret1
 }
 
-// SyncRepo indicates an expected call of SyncRepo
+// SyncRepo indicates an expected call of SyncRepo.
 func (mr *MockClientMockRecorder) SyncRepo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncRepo", reflect.TypeOf((*MockClient)(nil).SyncRepo), varargs...)
 }
 
-// CreateApp mocks base method
+// CreateApp mocks base method.
 func (m *MockClient) CreateApp(ctx context.Context, in *pb.CreateAppRequest, opts ...grpc.CallOption) (*pb.CreateAppResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1049,14 +1089,14 @@ func (m *MockClient) CreateApp(ctx context.Context, in *pb.CreateAppRequest, opt
 	return ret0, ret1
 }
 
-// CreateApp indicates an expected call of CreateApp
+// CreateApp indicates an expected call of CreateApp.
 func (mr *MockClientMockRecorder) CreateApp(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateApp", reflect.TypeOf((*MockClient)(nil).CreateApp), varargs...)
 }
 
-// ValidatePackage mocks base method
+// ValidatePackage mocks base method.
 func (m *MockClient) ValidatePackage(ctx context.Context, in *pb.ValidatePackageRequest, opts ...grpc.CallOption) (*pb.ValidatePackageResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1069,14 +1109,14 @@ func (m *MockClient) ValidatePackage(ctx context.Context, in *pb.ValidatePackage
 	return ret0, ret1
 }
 
-// ValidatePackage indicates an expected call of ValidatePackage
+// ValidatePackage indicates an expected call of ValidatePackage.
 func (mr *MockClientMockRecorder) ValidatePackage(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePackage", reflect.TypeOf((*MockClient)(nil).ValidatePackage), varargs...)
 }
 
-// GetAppStatistics mocks base method
+// GetAppStatistics mocks base method.
 func (m *MockClient) GetAppStatistics(ctx context.Context, in *pb.GetAppStatisticsRequest, opts ...grpc.CallOption) (*pb.GetAppStatisticsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1089,14 +1129,14 @@ func (m *MockClient) GetAppStatistics(ctx context.Context, in *pb.GetAppStatisti
 	return ret0, ret1
 }
 
-// GetAppStatistics indicates an expected call of GetAppStatistics
+// GetAppStatistics indicates an expected call of GetAppStatistics.
 func (mr *MockClientMockRecorder) GetAppStatistics(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppStatistics", reflect.TypeOf((*MockClient)(nil).GetAppStatistics), varargs...)
 }
 
-// DescribeApps mocks base method
+// DescribeApps mocks base method.
 func (m *MockClient) DescribeApps(ctx context.Context, in *pb.DescribeAppsRequest, opts ...grpc.CallOption) (*pb.DescribeAppsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1109,14 +1149,14 @@ func (m *MockClient) DescribeApps(ctx context.Context, in *pb.DescribeAppsReques
 	return ret0, ret1
 }
 
-// DescribeApps indicates an expected call of DescribeApps
+// DescribeApps indicates an expected call of DescribeApps.
 func (mr *MockClientMockRecorder) DescribeApps(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeApps", reflect.TypeOf((*MockClient)(nil).DescribeApps), varargs...)
 }
 
-// DescribeActiveApps mocks base method
+// DescribeActiveApps mocks base method.
 func (m *MockClient) DescribeActiveApps(ctx context.Context, in *pb.DescribeAppsRequest, opts ...grpc.CallOption) (*pb.DescribeAppsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1129,14 +1169,14 @@ func (m *MockClient) DescribeActiveApps(ctx context.Context, in *pb.DescribeApps
 	return ret0, ret1
 }
 
-// DescribeActiveApps indicates an expected call of DescribeActiveApps
+// DescribeActiveApps indicates an expected call of DescribeActiveApps.
 func (mr *MockClientMockRecorder) DescribeActiveApps(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeActiveApps", reflect.TypeOf((*MockClient)(nil).DescribeActiveApps), varargs...)
 }
 
-// ModifyApp mocks base method
+// ModifyApp mocks base method.
 func (m *MockClient) ModifyApp(ctx context.Context, in *pb.ModifyAppRequest, opts ...grpc.CallOption) (*pb.ModifyAppResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1149,14 +1189,14 @@ func (m *MockClient) ModifyApp(ctx context.Context, in *pb.ModifyAppRequest, opt
 	return ret0, ret1
 }
 
-// ModifyApp indicates an expected call of ModifyApp
+// ModifyApp indicates an expected call of ModifyApp.
 func (mr *MockClientMockRecorder) ModifyApp(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyApp", reflect.TypeOf((*MockClient)(nil).ModifyApp), varargs...)
 }
 
-// UploadAppAttachment mocks base method
+// UploadAppAttachment mocks base method.
 func (m *MockClient) UploadAppAttachment(ctx context.Context, in *pb.UploadAppAttachmentRequest, opts ...grpc.CallOption) (*pb.UploadAppAttachmentResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1169,14 +1209,14 @@ func (m *MockClient) UploadAppAttachment(ctx context.Context, in *pb.UploadAppAt
 	return ret0, ret1
 }
 
-// UploadAppAttachment indicates an expected call of UploadAppAttachment
+// UploadAppAttachment indicates an expected call of UploadAppAttachment.
 func (mr *MockClientMockRecorder) UploadAppAttachment(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadAppAttachment", reflect.TypeOf((*MockClient)(nil).UploadAppAttachment), varargs...)
 }
 
-// DeleteApps mocks base method
+// DeleteApps mocks base method.
 func (m *MockClient) DeleteApps(ctx context.Context, in *pb.DeleteAppsRequest, opts ...grpc.CallOption) (*pb.DeleteAppsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1189,14 +1229,14 @@ func (m *MockClient) DeleteApps(ctx context.Context, in *pb.DeleteAppsRequest, o
 	return ret0, ret1
 }
 
-// DeleteApps indicates an expected call of DeleteApps
+// DeleteApps indicates an expected call of DeleteApps.
 func (mr *MockClientMockRecorder) DeleteApps(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteApps", reflect.TypeOf((*MockClient)(nil).DeleteApps), varargs...)
 }
 
-// CreateAppVersion mocks base method
+// CreateAppVersion mocks base method.
 func (m *MockClient) CreateAppVersion(ctx context.Context, in *pb.CreateAppVersionRequest, opts ...grpc.CallOption) (*pb.CreateAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1209,14 +1249,14 @@ func (m *MockClient) CreateAppVersion(ctx context.Context, in *pb.CreateAppVersi
 	return ret0, ret1
 }
 
-// CreateAppVersion indicates an expected call of CreateAppVersion
+// CreateAppVersion indicates an expected call of CreateAppVersion.
 func (mr *MockClientMockRecorder) CreateAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppVersion", reflect.TypeOf((*MockClient)(nil).CreateAppVersion), varargs...)
 }
 
-// DescribeAppVersions mocks base method
+// DescribeAppVersions mocks base method.
 func (m *MockClient) DescribeAppVersions(ctx context.Context, in *pb.DescribeAppVersionsRequest, opts ...grpc.CallOption) (*pb.DescribeAppVersionsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1229,14 +1269,14 @@ func (m *MockClient) DescribeAppVersions(ctx context.Context, in *pb.DescribeApp
 	return ret0, ret1
 }
 
-// DescribeAppVersions indicates an expected call of DescribeAppVersions
+// DescribeAppVersions indicates an expected call of DescribeAppVersions.
 func (mr *MockClientMockRecorder) DescribeAppVersions(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAppVersions", reflect.TypeOf((*MockClient)(nil).DescribeAppVersions), varargs...)
 }
 
-// DescribeActiveAppVersions mocks base method
+// DescribeActiveAppVersions mocks base method.
 func (m *MockClient) DescribeActiveAppVersions(ctx context.Context, in *pb.DescribeAppVersionsRequest, opts ...grpc.CallOption) (*pb.DescribeAppVersionsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1249,14 +1289,14 @@ func (m *MockClient) DescribeActiveAppVersions(ctx context.Context, in *pb.Descr
 	return ret0, ret1
 }
 
-// DescribeActiveAppVersions indicates an expected call of DescribeActiveAppVersions
+// DescribeActiveAppVersions indicates an expected call of DescribeActiveAppVersions.
 func (mr *MockClientMockRecorder) DescribeActiveAppVersions(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeActiveAppVersions", reflect.TypeOf((*MockClient)(nil).DescribeActiveAppVersions), varargs...)
 }
 
-// DescribeAppVersionAudits mocks base method
+// DescribeAppVersionAudits mocks base method.
 func (m *MockClient) DescribeAppVersionAudits(ctx context.Context, in *pb.DescribeAppVersionAuditsRequest, opts ...grpc.CallOption) (*pb.DescribeAppVersionAuditsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1269,14 +1309,14 @@ func (m *MockClient) DescribeAppVersionAudits(ctx context.Context, in *pb.Descri
 	return ret0, ret1
 }
 
-// DescribeAppVersionAudits indicates an expected call of DescribeAppVersionAudits
+// DescribeAppVersionAudits indicates an expected call of DescribeAppVersionAudits.
 func (mr *MockClientMockRecorder) DescribeAppVersionAudits(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAppVersionAudits", reflect.TypeOf((*MockClient)(nil).DescribeAppVersionAudits), varargs...)
 }
 
-// DescribeAppVersionReviews mocks base method
+// DescribeAppVersionReviews mocks base method.
 func (m *MockClient) DescribeAppVersionReviews(ctx context.Context, in *pb.DescribeAppVersionReviewsRequest, opts ...grpc.CallOption) (*pb.DescribeAppVersionReviewsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1289,14 +1329,14 @@ func (m *MockClient) DescribeAppVersionReviews(ctx context.Context, in *pb.Descr
 	return ret0, ret1
 }
 
-// DescribeAppVersionReviews indicates an expected call of DescribeAppVersionReviews
+// DescribeAppVersionReviews indicates an expected call of DescribeAppVersionReviews.
 func (mr *MockClientMockRecorder) DescribeAppVersionReviews(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAppVersionReviews", reflect.TypeOf((*MockClient)(nil).DescribeAppVersionReviews), varargs...)
 }
 
-// ModifyAppVersion mocks base method
+// ModifyAppVersion mocks base method.
 func (m *MockClient) ModifyAppVersion(ctx context.Context, in *pb.ModifyAppVersionRequest, opts ...grpc.CallOption) (*pb.ModifyAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1309,14 +1349,14 @@ func (m *MockClient) ModifyAppVersion(ctx context.Context, in *pb.ModifyAppVersi
 	return ret0, ret1
 }
 
-// ModifyAppVersion indicates an expected call of ModifyAppVersion
+// ModifyAppVersion indicates an expected call of ModifyAppVersion.
 func (mr *MockClientMockRecorder) ModifyAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyAppVersion", reflect.TypeOf((*MockClient)(nil).ModifyAppVersion), varargs...)
 }
 
-// GetAppVersionPackage mocks base method
+// GetAppVersionPackage mocks base method.
 func (m *MockClient) GetAppVersionPackage(ctx context.Context, in *pb.GetAppVersionPackageRequest, opts ...grpc.CallOption) (*pb.GetAppVersionPackageResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1329,14 +1369,14 @@ func (m *MockClient) GetAppVersionPackage(ctx context.Context, in *pb.GetAppVers
 	return ret0, ret1
 }
 
-// GetAppVersionPackage indicates an expected call of GetAppVersionPackage
+// GetAppVersionPackage indicates an expected call of GetAppVersionPackage.
 func (mr *MockClientMockRecorder) GetAppVersionPackage(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppVersionPackage", reflect.TypeOf((*MockClient)(nil).GetAppVersionPackage), varargs...)
 }
 
-// GetAppVersionPackageFiles mocks base method
+// GetAppVersionPackageFiles mocks base method.
 func (m *MockClient) GetAppVersionPackageFiles(ctx context.Context, in *pb.GetAppVersionPackageFilesRequest, opts ...grpc.CallOption) (*pb.GetAppVersionPackageFilesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1349,14 +1389,14 @@ func (m *MockClient) GetAppVersionPackageFiles(ctx context.Context, in *pb.GetAp
 	return ret0, ret1
 }
 
-// GetAppVersionPackageFiles indicates an expected call of GetAppVersionPackageFiles
+// GetAppVersionPackageFiles indicates an expected call of GetAppVersionPackageFiles.
 func (mr *MockClientMockRecorder) GetAppVersionPackageFiles(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppVersionPackageFiles", reflect.TypeOf((*MockClient)(nil).GetAppVersionPackageFiles), varargs...)
 }
 
-// SubmitAppVersion mocks base method
+// SubmitAppVersion mocks base method.
 func (m *MockClient) SubmitAppVersion(ctx context.Context, in *pb.SubmitAppVersionRequest, opts ...grpc.CallOption) (*pb.SubmitAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1369,14 +1409,14 @@ func (m *MockClient) SubmitAppVersion(ctx context.Context, in *pb.SubmitAppVersi
 	return ret0, ret1
 }
 
-// SubmitAppVersion indicates an expected call of SubmitAppVersion
+// SubmitAppVersion indicates an expected call of SubmitAppVersion.
 func (mr *MockClientMockRecorder) SubmitAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitAppVersion", reflect.TypeOf((*MockClient)(nil).SubmitAppVersion), varargs...)
 }
 
-// CancelAppVersion mocks base method
+// CancelAppVersion mocks base method.
 func (m *MockClient) CancelAppVersion(ctx context.Context, in *pb.CancelAppVersionRequest, opts ...grpc.CallOption) (*pb.CancelAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1389,14 +1429,14 @@ func (m *MockClient) CancelAppVersion(ctx context.Context, in *pb.CancelAppVersi
 	return ret0, ret1
 }
 
-// CancelAppVersion indicates an expected call of CancelAppVersion
+// CancelAppVersion indicates an expected call of CancelAppVersion.
 func (mr *MockClientMockRecorder) CancelAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelAppVersion", reflect.TypeOf((*MockClient)(nil).CancelAppVersion), varargs...)
 }
 
-// ReleaseAppVersion mocks base method
+// ReleaseAppVersion mocks base method.
 func (m *MockClient) ReleaseAppVersion(ctx context.Context, in *pb.ReleaseAppVersionRequest, opts ...grpc.CallOption) (*pb.ReleaseAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1409,14 +1449,14 @@ func (m *MockClient) ReleaseAppVersion(ctx context.Context, in *pb.ReleaseAppVer
 	return ret0, ret1
 }
 
-// ReleaseAppVersion indicates an expected call of ReleaseAppVersion
+// ReleaseAppVersion indicates an expected call of ReleaseAppVersion.
 func (mr *MockClientMockRecorder) ReleaseAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseAppVersion", reflect.TypeOf((*MockClient)(nil).ReleaseAppVersion), varargs...)
 }
 
-// DeleteAppVersion mocks base method
+// DeleteAppVersion mocks base method.
 func (m *MockClient) DeleteAppVersion(ctx context.Context, in *pb.DeleteAppVersionRequest, opts ...grpc.CallOption) (*pb.DeleteAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1429,14 +1469,14 @@ func (m *MockClient) DeleteAppVersion(ctx context.Context, in *pb.DeleteAppVersi
 	return ret0, ret1
 }
 
-// DeleteAppVersion indicates an expected call of DeleteAppVersion
+// DeleteAppVersion indicates an expected call of DeleteAppVersion.
 func (mr *MockClientMockRecorder) DeleteAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAppVersion", reflect.TypeOf((*MockClient)(nil).DeleteAppVersion), varargs...)
 }
 
-// IsvReviewAppVersion mocks base method
+// IsvReviewAppVersion mocks base method.
 func (m *MockClient) IsvReviewAppVersion(ctx context.Context, in *pb.ReviewAppVersionRequest, opts ...grpc.CallOption) (*pb.ReviewAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1449,14 +1489,14 @@ func (m *MockClient) IsvReviewAppVersion(ctx context.Context, in *pb.ReviewAppVe
 	return ret0, ret1
 }
 
-// IsvReviewAppVersion indicates an expected call of IsvReviewAppVersion
+// IsvReviewAppVersion indicates an expected call of IsvReviewAppVersion.
 func (mr *MockClientMockRecorder) IsvReviewAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsvReviewAppVersion", reflect.TypeOf((*MockClient)(nil).IsvReviewAppVersion), varargs...)
 }
 
-// IsvPassAppVersion mocks base method
+// IsvPassAppVersion mocks base method.
 func (m *MockClient) IsvPassAppVersion(ctx context.Context, in *pb.PassAppVersionRequest, opts ...grpc.CallOption) (*pb.PassAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1469,14 +1509,14 @@ func (m *MockClient) IsvPassAppVersion(ctx context.Context, in *pb.PassAppVersio
 	return ret0, ret1
 }
 
-// IsvPassAppVersion indicates an expected call of IsvPassAppVersion
+// IsvPassAppVersion indicates an expected call of IsvPassAppVersion.
 func (mr *MockClientMockRecorder) IsvPassAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsvPassAppVersion", reflect.TypeOf((*MockClient)(nil).IsvPassAppVersion), varargs...)
 }
 
-// IsvRejectAppVersion mocks base method
+// IsvRejectAppVersion mocks base method.
 func (m *MockClient) IsvRejectAppVersion(ctx context.Context, in *pb.RejectAppVersionRequest, opts ...grpc.CallOption) (*pb.RejectAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1489,14 +1529,14 @@ func (m *MockClient) IsvRejectAppVersion(ctx context.Context, in *pb.RejectAppVe
 	return ret0, ret1
 }
 
-// IsvRejectAppVersion indicates an expected call of IsvRejectAppVersion
+// IsvRejectAppVersion indicates an expected call of IsvRejectAppVersion.
 func (mr *MockClientMockRecorder) IsvRejectAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsvRejectAppVersion", reflect.TypeOf((*MockClient)(nil).IsvRejectAppVersion), varargs...)
 }
 
-// BusinessReviewAppVersion mocks base method
+// BusinessReviewAppVersion mocks base method.
 func (m *MockClient) BusinessReviewAppVersion(ctx context.Context, in *pb.ReviewAppVersionRequest, opts ...grpc.CallOption) (*pb.ReviewAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1509,14 +1549,14 @@ func (m *MockClient) BusinessReviewAppVersion(ctx context.Context, in *pb.Review
 	return ret0, ret1
 }
 
-// BusinessReviewAppVersion indicates an expected call of BusinessReviewAppVersion
+// BusinessReviewAppVersion indicates an expected call of BusinessReviewAppVersion.
 func (mr *MockClientMockRecorder) BusinessReviewAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BusinessReviewAppVersion", reflect.TypeOf((*MockClient)(nil).BusinessReviewAppVersion), varargs...)
 }
 
-// BusinessPassAppVersion mocks base method
+// BusinessPassAppVersion mocks base method.
 func (m *MockClient) BusinessPassAppVersion(ctx context.Context, in *pb.PassAppVersionRequest, opts ...grpc.CallOption) (*pb.PassAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1529,14 +1569,14 @@ func (m *MockClient) BusinessPassAppVersion(ctx context.Context, in *pb.PassAppV
 	return ret0, ret1
 }
 
-// BusinessPassAppVersion indicates an expected call of BusinessPassAppVersion
+// BusinessPassAppVersion indicates an expected call of BusinessPassAppVersion.
 func (mr *MockClientMockRecorder) BusinessPassAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BusinessPassAppVersion", reflect.TypeOf((*MockClient)(nil).BusinessPassAppVersion), varargs...)
 }
 
-// BusinessRejectAppVersion mocks base method
+// BusinessRejectAppVersion mocks base method.
 func (m *MockClient) BusinessRejectAppVersion(ctx context.Context, in *pb.RejectAppVersionRequest, opts ...grpc.CallOption) (*pb.RejectAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1549,14 +1589,14 @@ func (m *MockClient) BusinessRejectAppVersion(ctx context.Context, in *pb.Reject
 	return ret0, ret1
 }
 
-// BusinessRejectAppVersion indicates an expected call of BusinessRejectAppVersion
+// BusinessRejectAppVersion indicates an expected call of BusinessRejectAppVersion.
 func (mr *MockClientMockRecorder) BusinessRejectAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BusinessRejectAppVersion", reflect.TypeOf((*MockClient)(nil).BusinessRejectAppVersion), varargs...)
 }
 
-// TechnicalReviewAppVersion mocks base method
+// TechnicalReviewAppVersion mocks base method.
 func (m *MockClient) TechnicalReviewAppVersion(ctx context.Context, in *pb.ReviewAppVersionRequest, opts ...grpc.CallOption) (*pb.ReviewAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1569,14 +1609,14 @@ func (m *MockClient) TechnicalReviewAppVersion(ctx context.Context, in *pb.Revie
 	return ret0, ret1
 }
 
-// TechnicalReviewAppVersion indicates an expected call of TechnicalReviewAppVersion
+// TechnicalReviewAppVersion indicates an expected call of TechnicalReviewAppVersion.
 func (mr *MockClientMockRecorder) TechnicalReviewAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TechnicalReviewAppVersion", reflect.TypeOf((*MockClient)(nil).TechnicalReviewAppVersion), varargs...)
 }
 
-// TechnicalPassAppVersion mocks base method
+// TechnicalPassAppVersion mocks base method.
 func (m *MockClient) TechnicalPassAppVersion(ctx context.Context, in *pb.PassAppVersionRequest, opts ...grpc.CallOption) (*pb.PassAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1589,14 +1629,14 @@ func (m *MockClient) TechnicalPassAppVersion(ctx context.Context, in *pb.PassApp
 	return ret0, ret1
 }
 
-// TechnicalPassAppVersion indicates an expected call of TechnicalPassAppVersion
+// TechnicalPassAppVersion indicates an expected call of TechnicalPassAppVersion.
 func (mr *MockClientMockRecorder) TechnicalPassAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TechnicalPassAppVersion", reflect.TypeOf((*MockClient)(nil).TechnicalPassAppVersion), varargs...)
 }
 
-// TechnicalRejectAppVersion mocks base method
+// TechnicalRejectAppVersion mocks base method.
 func (m *MockClient) TechnicalRejectAppVersion(ctx context.Context, in *pb.RejectAppVersionRequest, opts ...grpc.CallOption) (*pb.RejectAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1609,14 +1649,14 @@ func (m *MockClient) TechnicalRejectAppVersion(ctx context.Context, in *pb.Rejec
 	return ret0, ret1
 }
 
-// TechnicalRejectAppVersion indicates an expected call of TechnicalRejectAppVersion
+// TechnicalRejectAppVersion indicates an expected call of TechnicalRejectAppVersion.
 func (mr *MockClientMockRecorder) TechnicalRejectAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TechnicalRejectAppVersion", reflect.TypeOf((*MockClient)(nil).TechnicalRejectAppVersion), varargs...)
 }
 
-// AdminPassAppVersion mocks base method
+// AdminPassAppVersion mocks base method.
 func (m *MockClient) AdminPassAppVersion(ctx context.Context, in *pb.PassAppVersionRequest, opts ...grpc.CallOption) (*pb.PassAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1629,14 +1669,14 @@ func (m *MockClient) AdminPassAppVersion(ctx context.Context, in *pb.PassAppVers
 	return ret0, ret1
 }
 
-// AdminPassAppVersion indicates an expected call of AdminPassAppVersion
+// AdminPassAppVersion indicates an expected call of AdminPassAppVersion.
 func (mr *MockClientMockRecorder) AdminPassAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminPassAppVersion", reflect.TypeOf((*MockClient)(nil).AdminPassAppVersion), varargs...)
 }
 
-// AdminRejectAppVersion mocks base method
+// AdminRejectAppVersion mocks base method.
 func (m *MockClient) AdminRejectAppVersion(ctx context.Context, in *pb.RejectAppVersionRequest, opts ...grpc.CallOption) (*pb.RejectAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1649,14 +1689,14 @@ func (m *MockClient) AdminRejectAppVersion(ctx context.Context, in *pb.RejectApp
 	return ret0, ret1
 }
 
-// AdminRejectAppVersion indicates an expected call of AdminRejectAppVersion
+// AdminRejectAppVersion indicates an expected call of AdminRejectAppVersion.
 func (mr *MockClientMockRecorder) AdminRejectAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AdminRejectAppVersion", reflect.TypeOf((*MockClient)(nil).AdminRejectAppVersion), varargs...)
 }
 
-// SuspendAppVersion mocks base method
+// SuspendAppVersion mocks base method.
 func (m *MockClient) SuspendAppVersion(ctx context.Context, in *pb.SuspendAppVersionRequest, opts ...grpc.CallOption) (*pb.SuspendAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1669,14 +1709,14 @@ func (m *MockClient) SuspendAppVersion(ctx context.Context, in *pb.SuspendAppVer
 	return ret0, ret1
 }
 
-// SuspendAppVersion indicates an expected call of SuspendAppVersion
+// SuspendAppVersion indicates an expected call of SuspendAppVersion.
 func (mr *MockClientMockRecorder) SuspendAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SuspendAppVersion", reflect.TypeOf((*MockClient)(nil).SuspendAppVersion), varargs...)
 }
 
-// RecoverAppVersion mocks base method
+// RecoverAppVersion mocks base method.
 func (m *MockClient) RecoverAppVersion(ctx context.Context, in *pb.RecoverAppVersionRequest, opts ...grpc.CallOption) (*pb.RecoverAppVersionResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1689,14 +1729,14 @@ func (m *MockClient) RecoverAppVersion(ctx context.Context, in *pb.RecoverAppVer
 	return ret0, ret1
 }
 
-// RecoverAppVersion indicates an expected call of RecoverAppVersion
+// RecoverAppVersion indicates an expected call of RecoverAppVersion.
 func (mr *MockClientMockRecorder) RecoverAppVersion(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecoverAppVersion", reflect.TypeOf((*MockClient)(nil).RecoverAppVersion), varargs...)
 }
 
-// CreateRepo mocks base method
+// CreateRepo mocks base method.
 func (m *MockClient) CreateRepo(ctx context.Context, in *pb.CreateRepoRequest, opts ...grpc.CallOption) (*pb.CreateRepoResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1709,14 +1749,14 @@ func (m *MockClient) CreateRepo(ctx context.Context, in *pb.CreateRepoRequest, o
 	return ret0, ret1
 }
 
-// CreateRepo indicates an expected call of CreateRepo
+// CreateRepo indicates an expected call of CreateRepo.
 func (mr *MockClientMockRecorder) CreateRepo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRepo", reflect.TypeOf((*MockClient)(nil).CreateRepo), varargs...)
 }
 
-// DescribeRepos mocks base method
+// DescribeRepos mocks base method.
 func (m *MockClient) DescribeRepos(ctx context.Context, in *pb.DescribeReposRequest, opts ...grpc.CallOption) (*pb.DescribeReposResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1729,14 +1769,14 @@ func (m *MockClient) DescribeRepos(ctx context.Context, in *pb.DescribeReposRequ
 	return ret0, ret1
 }
 
-// DescribeRepos indicates an expected call of DescribeRepos
+// DescribeRepos indicates an expected call of DescribeRepos.
 func (mr *MockClientMockRecorder) DescribeRepos(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRepos", reflect.TypeOf((*MockClient)(nil).DescribeRepos), varargs...)
 }
 
-// ModifyRepo mocks base method
+// ModifyRepo mocks base method.
 func (m *MockClient) ModifyRepo(ctx context.Context, in *pb.ModifyRepoRequest, opts ...grpc.CallOption) (*pb.ModifyRepoResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1749,14 +1789,14 @@ func (m *MockClient) ModifyRepo(ctx context.Context, in *pb.ModifyRepoRequest, o
 	return ret0, ret1
 }
 
-// ModifyRepo indicates an expected call of ModifyRepo
+// ModifyRepo indicates an expected call of ModifyRepo.
 func (mr *MockClientMockRecorder) ModifyRepo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyRepo", reflect.TypeOf((*MockClient)(nil).ModifyRepo), varargs...)
 }
 
-// DeleteRepos mocks base method
+// DeleteRepos mocks base method.
 func (m *MockClient) DeleteRepos(ctx context.Context, in *pb.DeleteReposRequest, opts ...grpc.CallOption) (*pb.DeleteReposResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1769,14 +1809,14 @@ func (m *MockClient) DeleteRepos(ctx context.Context, in *pb.DeleteReposRequest,
 	return ret0, ret1
 }
 
-// DeleteRepos indicates an expected call of DeleteRepos
+// DeleteRepos indicates an expected call of DeleteRepos.
 func (mr *MockClientMockRecorder) DeleteRepos(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRepos", reflect.TypeOf((*MockClient)(nil).DeleteRepos), varargs...)
 }
 
-// ValidateRepo mocks base method
+// ValidateRepo mocks base method.
 func (m *MockClient) ValidateRepo(ctx context.Context, in *pb.ValidateRepoRequest, opts ...grpc.CallOption) (*pb.ValidateRepoResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1789,14 +1829,14 @@ func (m *MockClient) ValidateRepo(ctx context.Context, in *pb.ValidateRepoReques
 	return ret0, ret1
 }
 
-// ValidateRepo indicates an expected call of ValidateRepo
+// ValidateRepo indicates an expected call of ValidateRepo.
 func (mr *MockClientMockRecorder) ValidateRepo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateRepo", reflect.TypeOf((*MockClient)(nil).ValidateRepo), varargs...)
 }
 
-// DescribeCategories mocks base method
+// DescribeCategories mocks base method.
 func (m *MockClient) DescribeCategories(ctx context.Context, in *pb.DescribeCategoriesRequest, opts ...grpc.CallOption) (*pb.DescribeCategoriesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1809,14 +1849,14 @@ func (m *MockClient) DescribeCategories(ctx context.Context, in *pb.DescribeCate
 	return ret0, ret1
 }
 
-// DescribeCategories indicates an expected call of DescribeCategories
+// DescribeCategories indicates an expected call of DescribeCategories.
 func (mr *MockClientMockRecorder) DescribeCategories(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCategories", reflect.TypeOf((*MockClient)(nil).DescribeCategories), varargs...)
 }
 
-// CreateCategory mocks base method
+// CreateCategory mocks base method.
 func (m *MockClient) CreateCategory(ctx context.Context, in *pb.CreateCategoryRequest, opts ...grpc.CallOption) (*pb.CreateCategoryResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1829,14 +1869,14 @@ func (m *MockClient) CreateCategory(ctx context.Context, in *pb.CreateCategoryRe
 	return ret0, ret1
 }
 
-// CreateCategory indicates an expected call of CreateCategory
+// CreateCategory indicates an expected call of CreateCategory.
 func (mr *MockClientMockRecorder) CreateCategory(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCategory", reflect.TypeOf((*MockClient)(nil).CreateCategory), varargs...)
 }
 
-// ModifyCategory mocks base method
+// ModifyCategory mocks base method.
 func (m *MockClient) ModifyCategory(ctx context.Context, in *pb.ModifyCategoryRequest, opts ...grpc.CallOption) (*pb.ModifyCategoryResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1849,14 +1889,14 @@ func (m *MockClient) ModifyCategory(ctx context.Context, in *pb.ModifyCategoryRe
 	return ret0, ret1
 }
 
-// ModifyCategory indicates an expected call of ModifyCategory
+// ModifyCategory indicates an expected call of ModifyCategory.
 func (mr *MockClientMockRecorder) ModifyCategory(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyCategory", reflect.TypeOf((*MockClient)(nil).ModifyCategory), varargs...)
 }
 
-// DeleteCategories mocks base method
+// DeleteCategories mocks base method.
 func (m *MockClient) DeleteCategories(ctx context.Context, in *pb.DeleteCategoriesRequest, opts ...grpc.CallOption) (*pb.DeleteCategoriesResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1869,14 +1909,14 @@ func (m *MockClient) DeleteCategories(ctx context.Context, in *pb.DeleteCategori
 	return ret0, ret1
 }
 
-// DeleteCategories indicates an expected call of DeleteCategories
+// DeleteCategories indicates an expected call of DeleteCategories.
 func (mr *MockClientMockRecorder) DeleteCategories(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCategories", reflect.TypeOf((*MockClient)(nil).DeleteCategories), varargs...)
 }
 
-// CreateAttachment mocks base method
+// CreateAttachment mocks base method.
 func (m *MockClient) CreateAttachment(ctx context.Context, in *pb.CreateAttachmentRequest, opts ...grpc.CallOption) (*pb.CreateAttachmentResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1889,14 +1929,14 @@ func (m *MockClient) CreateAttachment(ctx context.Context, in *pb.CreateAttachme
 	return ret0, ret1
 }
 
-// CreateAttachment indicates an expected call of CreateAttachment
+// CreateAttachment indicates an expected call of CreateAttachment.
 func (mr *MockClientMockRecorder) CreateAttachment(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAttachment", reflect.TypeOf((*MockClient)(nil).CreateAttachment), varargs...)
 }
 
-// AppendAttachment mocks base method
+// AppendAttachment mocks base method.
 func (m *MockClient) AppendAttachment(ctx context.Context, in *pb.AppendAttachmentRequest, opts ...grpc.CallOption) (*pb.AppendAttachmentResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1909,14 +1949,14 @@ func (m *MockClient) AppendAttachment(ctx context.Context, in *pb.AppendAttachme
 	return ret0, ret1
 }
 
-// AppendAttachment indicates an expected call of AppendAttachment
+// AppendAttachment indicates an expected call of AppendAttachment.
 func (mr *MockClientMockRecorder) AppendAttachment(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendAttachment", reflect.TypeOf((*MockClient)(nil).AppendAttachment), varargs...)
 }
 
-// ReplaceAttachment mocks base method
+// ReplaceAttachment mocks base method.
 func (m *MockClient) ReplaceAttachment(ctx context.Context, in *pb.ReplaceAttachmentRequest, opts ...grpc.CallOption) (*pb.ReplaceAttachmentResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1929,14 +1969,14 @@ func (m *MockClient) ReplaceAttachment(ctx context.Context, in *pb.ReplaceAttach
 	return ret0, ret1
 }
 
-// ReplaceAttachment indicates an expected call of ReplaceAttachment
+// ReplaceAttachment indicates an expected call of ReplaceAttachment.
 func (mr *MockClientMockRecorder) ReplaceAttachment(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceAttachment", reflect.TypeOf((*MockClient)(nil).ReplaceAttachment), varargs...)
 }
 
-// GetAttachments mocks base method
+// GetAttachments mocks base method.
 func (m *MockClient) GetAttachments(ctx context.Context, in *pb.GetAttachmentsRequest, opts ...grpc.CallOption) (*pb.GetAttachmentsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1949,14 +1989,14 @@ func (m *MockClient) GetAttachments(ctx context.Context, in *pb.GetAttachmentsRe
 	return ret0, ret1
 }
 
-// GetAttachments indicates an expected call of GetAttachments
+// GetAttachments indicates an expected call of GetAttachments.
 func (mr *MockClientMockRecorder) GetAttachments(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttachments", reflect.TypeOf((*MockClient)(nil).GetAttachments), varargs...)
 }
 
-// DeleteAttachments mocks base method
+// DeleteAttachments mocks base method.
 func (m *MockClient) DeleteAttachments(ctx context.Context, in *pb.DeleteAttachmentsRequest, opts ...grpc.CallOption) (*pb.DeleteAttachmentsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1969,14 +2009,14 @@ func (m *MockClient) DeleteAttachments(ctx context.Context, in *pb.DeleteAttachm
 	return ret0, ret1
 }
 
-// DeleteAttachments indicates an expected call of DeleteAttachments
+// DeleteAttachments indicates an expected call of DeleteAttachments.
 func (mr *MockClientMockRecorder) DeleteAttachments(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAttachments", reflect.TypeOf((*MockClient)(nil).DeleteAttachments), varargs...)
 }
 
-// IndexRepo mocks base method
+// IndexRepo mocks base method.
 func (m *MockClient) IndexRepo(ctx context.Context, in *pb.IndexRepoRequest, opts ...grpc.CallOption) (*pb.IndexRepoResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -1989,14 +2029,14 @@ func (m *MockClient) IndexRepo(ctx context.Context, in *pb.IndexRepoRequest, opt
 	return ret0, ret1
 }
 
-// IndexRepo indicates an expected call of IndexRepo
+// IndexRepo indicates an expected call of IndexRepo.
 func (mr *MockClientMockRecorder) IndexRepo(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexRepo", reflect.TypeOf((*MockClient)(nil).IndexRepo), varargs...)
 }
 
-// DescribeRepoEvents mocks base method
+// DescribeRepoEvents mocks base method.
 func (m *MockClient) DescribeRepoEvents(ctx context.Context, in *pb.DescribeRepoEventsRequest, opts ...grpc.CallOption) (*pb.DescribeRepoEventsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
@@ -2009,9 +2049,51 @@ func (m *MockClient) DescribeRepoEvents(ctx context.Context, in *pb.DescribeRepo
 	return ret0, ret1
 }
 
-// DescribeRepoEvents indicates an expected call of DescribeRepoEvents
+// DescribeRepoEvents indicates an expected call of DescribeRepoEvents.
 func (mr *MockClientMockRecorder) DescribeRepoEvents(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeRepoEvents", reflect.TypeOf((*MockClient)(nil).DescribeRepoEvents), varargs...)
+}
+
+// UpsertRuntime mocks base method.
+func (m *MockClient) UpsertRuntime(cluster, kubeConfig string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertRuntime", cluster, kubeConfig)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpsertRuntime indicates an expected call of UpsertRuntime.
+func (mr *MockClientMockRecorder) UpsertRuntime(cluster, kubeConfig interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertRuntime", reflect.TypeOf((*MockClient)(nil).UpsertRuntime), cluster, kubeConfig)
+}
+
+// CleanupRuntime mocks base method.
+func (m *MockClient) CleanupRuntime(cluster string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanupRuntime", cluster)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanupRuntime indicates an expected call of CleanupRuntime.
+func (mr *MockClientMockRecorder) CleanupRuntime(cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupRuntime", reflect.TypeOf((*MockClient)(nil).CleanupRuntime), cluster)
+}
+
+// MigrateRuntime mocks base method.
+func (m *MockClient) MigrateRuntime(runtimeId, cluster string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MigrateRuntime", runtimeId, cluster)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MigrateRuntime indicates an expected call of MigrateRuntime.
+func (mr *MockClientMockRecorder) MigrateRuntime(runtimeId, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MigrateRuntime", reflect.TypeOf((*MockClient)(nil).MigrateRuntime), runtimeId, cluster)
 }

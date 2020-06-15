@@ -34,6 +34,7 @@ const (
 
 	WorkspaceLabelKey              = "kubesphere.io/workspace"
 	NamespaceLabelKey              = "kubesphere.io/namespace"
+	RuntimeLabelKey                = "openpitrix.io/namespace"
 	DisplayNameAnnotationKey       = "kubesphere.io/alias-name"
 	DescriptionAnnotationKey       = "kubesphere.io/description"
 	CreatorAnnotationKey           = "kubesphere.io/creator"

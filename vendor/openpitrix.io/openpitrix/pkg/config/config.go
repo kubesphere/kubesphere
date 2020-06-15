@@ -21,6 +21,7 @@ type Config struct {
 	Mysql       MysqlConfig
 	Etcd        EtcdConfig
 	IAM         IAMConfig
+	Attachment  AttachmentConfig
 	DisableGops bool `default:"false"`
 }
 
@@ -28,6 +29,13 @@ type IAMConfig struct {
 	SecretKey              string        `default:"OpenPitrix-lC4LipAXPYsuqw5F"`
 	ExpireTime             time.Duration `default:"2h"`
 	RefreshTokenExpireTime time.Duration `default:"336h"` // default is 2 week
+}
+
+type AttachmentConfig struct {
+	AccessKey  string `default:"openpitrixminioaccesskey"`
+	SecretKey  string `default:"openpitrixminiosecretkey"`
+	Endpoint   string `default:"http://openpitrix-minio:9000"`
+	BucketName string `default:"openpitrix-attachment"`
 }
 
 type LogConfig struct {
@@ -73,9 +81,9 @@ func ParseFlag() {
 	GetFlagSet().Parse(os.Args[1:])
 }
 
-func LoadConf() *Config {
-	ParseFlag()
+var conf Config
 
+func loadConf() *Config {
 	config := new(Config)
 	m := &multiconfig.DefaultLoader{}
 	m.Loader = multiconfig.MultiLoader(newLoader("openpitrix"))
@@ -88,7 +96,18 @@ func LoadConf() *Config {
 		panic(err)
 	}
 	logger.SetLevelByString(config.Log.Level)
-	logger.Debug(nil, "LoadConf: %+v", config)
+	logger.Debug(nil, "GetConf: %+v", config)
 
 	return config
+}
+
+func init() {
+	conf = *loadConf()
+}
+
+func GetConf() *Config {
+	ParseFlag()
+	var c = new(Config)
+	*c = conf
+	return c
 }

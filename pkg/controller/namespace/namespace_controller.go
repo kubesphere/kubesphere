@@ -18,8 +18,6 @@ package namespace
 
 import (
 	"context"
-	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,9 +27,7 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"openpitrix.io/openpitrix/pkg/pb"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -48,16 +44,15 @@ import (
 
 // Add creates a new Namespace Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, openpitrixClient openpitrix.Client) error {
-	return add(mgr, newReconciler(mgr, openpitrixClient))
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, openpitrixClient openpitrix.Client) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileNamespace{
-		Client:           mgr.GetClient(),
-		scheme:           mgr.GetScheme(),
-		openpitrixClient: openpitrixClient,
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
 	}
 }
 
@@ -83,8 +78,7 @@ var _ reconcile.Reconciler = &ReconcileNamespace{}
 // ReconcileNamespace reconciles a Namespace object
 type ReconcileNamespace struct {
 	client.Client
-	openpitrixClient openpitrix.Client
-	scheme           *runtime.Scheme
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
@@ -130,11 +124,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 				return reconcile.Result{}, err
 			}
 
-			// delete runtime
-			if err = r.deleteRuntime(instance); err != nil {
-				return reconcile.Result{}, err
-			}
-
 			// remove our finalizer from the list and update it.
 			instance.ObjectMeta.Finalizers = sliceutil.RemoveString(instance.ObjectMeta.Finalizers, func(item string) bool {
 				return item == finalizer
@@ -153,13 +142,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
-	// skip if openpitrix is not enabled
-	if r.openpitrixClient != nil {
-		if err := r.checkAndCreateRuntime(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
 	return reconcile.Result{}, nil
 }
 
@@ -175,88 +157,6 @@ func (r *ReconcileNamespace) isControlledByWorkspace(namespace *corev1.Namespace
 	return true, nil
 }
 
-// Create openpitrix runtime
-func (r *ReconcileNamespace) checkAndCreateRuntime(namespace *corev1.Namespace) error {
-
-	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
-		return nil
-	}
-
-	adminKubeConfigName := fmt.Sprintf("kubeconfig-%s", constants.AdminUserName)
-
-	runtimeCredentials, err := r.openpitrixClient.DescribeRuntimeCredentials(openpitrix.SystemContext(), &pb.DescribeRuntimeCredentialsRequest{SearchWord: &wrappers.StringValue{Value: adminKubeConfigName}, Limit: 1})
-
-	if err != nil {
-		klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
-		return err
-	}
-
-	var kubesphereRuntimeCredentialId string
-
-	// runtime credential exist
-	if len(runtimeCredentials.GetRuntimeCredentialSet()) > 0 {
-		kubesphereRuntimeCredentialId = runtimeCredentials.GetRuntimeCredentialSet()[0].GetRuntimeCredentialId().GetValue()
-	} else {
-		adminKubeConfig := corev1.ConfigMap{}
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.KubeSphereControlNamespace, Name: adminKubeConfigName}, &adminKubeConfig)
-
-		if err != nil {
-			klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
-			return err
-		}
-
-		resp, err := r.openpitrixClient.CreateRuntimeCredential(openpitrix.SystemContext(), &pb.CreateRuntimeCredentialRequest{
-			Name:                     &wrappers.StringValue{Value: adminKubeConfigName},
-			Provider:                 &wrappers.StringValue{Value: "kubernetes"},
-			Description:              &wrappers.StringValue{Value: "kubeconfig"},
-			RuntimeUrl:               &wrappers.StringValue{Value: "kubesphere"},
-			RuntimeCredentialContent: &wrappers.StringValue{Value: adminKubeConfig.Data["config"]},
-		})
-
-		if err != nil {
-			klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
-			return err
-		}
-
-		kubesphereRuntimeCredentialId = resp.GetRuntimeCredentialId().GetValue()
-	}
-
-	// TODO runtime id is invalid when recreate runtime
-	runtimeId, err := r.openpitrixClient.CreateRuntime(openpitrix.SystemContext(), &pb.CreateRuntimeRequest{
-		Name:                &wrappers.StringValue{Value: namespace.Name},
-		RuntimeCredentialId: &wrappers.StringValue{Value: kubesphereRuntimeCredentialId},
-		Provider:            &wrappers.StringValue{Value: openpitrix.KubernetesProvider},
-		Zone:                &wrappers.StringValue{Value: namespace.Name},
-	})
-
-	if err != nil {
-		klog.Error(fmt.Sprintf("create runtime, namespace: %s, error: %s", namespace.Name, err))
-		return err
-	}
-
-	klog.V(4).Infof("runtime created successfully, namespace: %s, runtime id: %s", namespace.Name, runtimeId)
-
-	return nil
-}
-
-// Delete openpitrix runtime
-func (r *ReconcileNamespace) deleteRuntime(namespace *corev1.Namespace) error {
-
-	if runtimeId := namespace.Annotations[constants.OpenPitrixRuntimeAnnotationKey]; runtimeId != "" {
-		_, err := r.openpitrixClient.DeleteRuntimes(openpitrix.SystemContext(), &pb.DeleteRuntimesRequest{RuntimeId: []string{runtimeId}, Force: &wrappers.BoolValue{Value: true}})
-
-		if err == nil || openpitrix.IsNotFound(err) || openpitrix.IsDeleted(err) {
-			return nil
-		} else {
-			klog.Errorf("delete openpitrix runtime: %s, error: %s", runtimeId, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Create openpitrix runtime
 func (r *ReconcileNamespace) checkAndBindWorkspace(namespace *corev1.Namespace) error {
 
 	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]

@@ -4,15 +4,17 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,7 +26,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type GetAttachmentsRequest struct {
 	// required, attachment ids
@@ -816,6 +818,26 @@ type AttachmentManagerServer interface {
 	DeleteAttachments(context.Context, *DeleteAttachmentsRequest) (*DeleteAttachmentsResponse, error)
 }
 
+// UnimplementedAttachmentManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedAttachmentManagerServer struct {
+}
+
+func (*UnimplementedAttachmentManagerServer) CreateAttachment(ctx context.Context, req *CreateAttachmentRequest) (*CreateAttachmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAttachment not implemented")
+}
+func (*UnimplementedAttachmentManagerServer) AppendAttachment(ctx context.Context, req *AppendAttachmentRequest) (*AppendAttachmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendAttachment not implemented")
+}
+func (*UnimplementedAttachmentManagerServer) ReplaceAttachment(ctx context.Context, req *ReplaceAttachmentRequest) (*ReplaceAttachmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplaceAttachment not implemented")
+}
+func (*UnimplementedAttachmentManagerServer) GetAttachments(ctx context.Context, req *GetAttachmentsRequest) (*GetAttachmentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAttachments not implemented")
+}
+func (*UnimplementedAttachmentManagerServer) DeleteAttachments(ctx context.Context, req *DeleteAttachmentsRequest) (*DeleteAttachmentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAttachments not implemented")
+}
+
 func RegisterAttachmentManagerServer(s *grpc.Server, srv AttachmentManagerServer) {
 	s.RegisterService(&_AttachmentManager_serviceDesc, srv)
 }
@@ -968,6 +990,14 @@ func (c *attachmentServiceClient) GetAttachment(ctx context.Context, in *GetAtta
 type AttachmentServiceServer interface {
 	// Get attachment, use attachment id to get attachment
 	GetAttachment(context.Context, *GetAttachmentRequest) (*GetAttachmentResponse, error)
+}
+
+// UnimplementedAttachmentServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedAttachmentServiceServer struct {
+}
+
+func (*UnimplementedAttachmentServiceServer) GetAttachment(ctx context.Context, req *GetAttachmentRequest) (*GetAttachmentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAttachment not implemented")
 }
 
 func RegisterAttachmentServiceServer(s *grpc.Server, srv AttachmentServiceServer) {

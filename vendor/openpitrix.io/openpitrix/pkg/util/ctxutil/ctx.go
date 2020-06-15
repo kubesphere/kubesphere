@@ -13,6 +13,7 @@ import (
 const (
 	messageIdKey = "x-message-id"
 	requestIdKey = "x-request-id"
+	localeKey    = "locale"
 )
 
 type getMetadataFromContext func(ctx context.Context) (md metadata.MD, ok bool)
@@ -48,5 +49,8 @@ func GetValueFromContext(ctx context.Context, key string) []string {
 }
 
 func Copy(src, dst context.Context) context.Context {
-	return SetMessageId(dst, GetMessageId(src))
+	ContextWithSender(dst, GetSender(src))
+	SetMessageId(dst, GetMessageId(src))
+	SetRequestId(dst, GetRequestId(src))
+	return SetLocale(dst, GetLocale(src))
 }

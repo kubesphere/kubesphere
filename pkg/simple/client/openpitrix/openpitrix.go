@@ -1,6 +1,6 @@
 /*
 
- Copyright 2019 The KubeSphere Authors.
+ Copyright 2020 The KubeSphere Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package openpitrix
 import (
 	"context"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"k8s.io/klog"
 	"openpitrix.io/openpitrix/pkg/manager"
 	"openpitrix.io/openpitrix/pkg/pb"
@@ -48,6 +49,12 @@ type Client interface {
 	pb.CategoryManagerClient
 	pb.AttachmentManagerClient
 	pb.RepoIndexerClient
+	// upsert the openpitrix runtime when cluster is updated or created
+	UpsertRuntime(cluster string, kubeConfig string) error
+	// clean up the openpitrix runtime when cluster is deleted
+	CleanupRuntime(cluster string) error
+	// migrate the openpitrix runtime when upgrade ks2.x to ks3.x
+	MigrateRuntime(runtimeId string, cluster string) error
 }
 
 type client struct {
@@ -58,6 +65,47 @@ type client struct {
 	pb.CategoryManagerClient
 	pb.AttachmentManagerClient
 	pb.RepoIndexerClient
+}
+
+func (c *client) UpsertRuntime(cluster string, kubeConfig string) error {
+	ctx := SystemContext()
+	req := &pb.CreateRuntimeCredentialRequest{
+		Name:                     &wrappers.StringValue{Value: fmt.Sprintf("kubeconfig-%s", cluster)},
+		Provider:                 &wrappers.StringValue{Value: "kubernetes"},
+		Description:              &wrappers.StringValue{Value: "kubeconfig"},
+		RuntimeUrl:               &wrappers.StringValue{Value: "kubesphere"},
+		RuntimeCredentialContent: &wrappers.StringValue{Value: kubeConfig},
+		RuntimeCredentialId:      &wrappers.StringValue{Value: cluster},
+	}
+	_, err := c.CreateRuntimeCredential(ctx, req)
+	if err != nil {
+		return err
+	}
+	_, err = c.CreateRuntime(ctx, &pb.CreateRuntimeRequest{
+		Name:                &wrappers.StringValue{Value: cluster},
+		RuntimeCredentialId: &wrappers.StringValue{Value: cluster},
+		Provider:            &wrappers.StringValue{Value: KubernetesProvider},
+		Zone:                &wrappers.StringValue{Value: cluster},
+	})
+
+	return err
+}
+
+func (c *client) CleanupRuntime(cluster string) error {
+	ctx := SystemContext()
+	_, err := c.DeleteClusterInRuntime(ctx, &pb.DeleteClusterInRuntimeRequest{
+		RuntimeId: []string{cluster},
+	})
+	return err
+}
+
+func (c *client) MigrateRuntime(runtimeId string, cluster string) error {
+	ctx := SystemContext()
+	_, err := c.MigrateClusterInRuntime(ctx, &pb.MigrateClusterInRuntimeRequest{
+		FromRuntimeId: runtimeId,
+		ToRuntimeId:   cluster,
+	})
+	return err
 }
 
 func parseToHostPort(endpoint string) (string, int, error) {

@@ -4,6 +4,7 @@
 package pb
 
 import (
+	context "context"
 	fmt "fmt"
 	math "math"
 
@@ -11,9 +12,10 @@ import (
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CreateTaskRequest struct {
 	// id of job(jod will split to one more task) to split
@@ -782,6 +784,20 @@ type TaskManagerServer interface {
 	DescribeTasks(context.Context, *DescribeTasksRequest) (*DescribeTasksResponse, error)
 	// Retry tasks
 	RetryTasks(context.Context, *RetryTasksRequest) (*RetryTasksResponse, error)
+}
+
+// UnimplementedTaskManagerServer can be embedded to have forward compatible implementations.
+type UnimplementedTaskManagerServer struct {
+}
+
+func (*UnimplementedTaskManagerServer) CreateTask(ctx context.Context, req *CreateTaskRequest) (*CreateTaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateTask not implemented")
+}
+func (*UnimplementedTaskManagerServer) DescribeTasks(ctx context.Context, req *DescribeTasksRequest) (*DescribeTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DescribeTasks not implemented")
+}
+func (*UnimplementedTaskManagerServer) RetryTasks(ctx context.Context, req *RetryTasksRequest) (*RetryTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RetryTasks not implemented")
 }
 
 func RegisterTaskManagerServer(s *grpc.Server, srv TaskManagerServer) {

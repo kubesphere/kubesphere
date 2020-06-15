@@ -37,7 +37,7 @@ func NewClient(host string, port int) (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientCache.Store(endpoint, conn)
+	//clientCache.Store(endpoint, conn)
 	return conn, nil
 }
 
