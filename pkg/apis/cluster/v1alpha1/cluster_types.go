@@ -92,6 +92,9 @@ const (
 
 	// Cluster is all available for requests
 	ClusterReady ClusterConditionType = "Ready"
+
+	// Openpitrix runtime is created
+	ClusterOpenPitrixRuntimeReady ClusterConditionType = "OpenPitrixRuntimeReady"
 )
 
 type ClusterCondition struct {
