@@ -71,7 +71,7 @@ func (c *client) UpsertRuntime(cluster string, kubeConfig string) error {
 	ctx := SystemContext()
 	req := &pb.CreateRuntimeCredentialRequest{
 		Name:                     &wrappers.StringValue{Value: fmt.Sprintf("kubeconfig-%s", cluster)},
-		Provider:                 &wrappers.StringValue{Value: "kubernetes"},
+		Provider:                 &wrappers.StringValue{Value: KubernetesProvider},
 		Description:              &wrappers.StringValue{Value: "kubeconfig"},
 		RuntimeUrl:               &wrappers.StringValue{Value: "kubesphere"},
 		RuntimeCredentialContent: &wrappers.StringValue{Value: kubeConfig},
@@ -86,6 +86,7 @@ func (c *client) UpsertRuntime(cluster string, kubeConfig string) error {
 		RuntimeCredentialId: &wrappers.StringValue{Value: cluster},
 		Provider:            &wrappers.StringValue{Value: KubernetesProvider},
 		Zone:                &wrappers.StringValue{Value: cluster},
+		RuntimeId:           &wrappers.StringValue{Value: cluster},
 	})
 
 	return err
