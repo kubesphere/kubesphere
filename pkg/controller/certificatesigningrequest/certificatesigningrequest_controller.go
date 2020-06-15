@@ -24,14 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
 	certificatesinformers "k8s.io/client-go/informers/certificates/v1beta1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	certificateslisters "k8s.io/client-go/listers/certificates/v1beta1"
-	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -55,11 +53,7 @@ type Controller struct {
 	csrInformer certificatesinformers.CertificateSigningRequestInformer
 	csrLister   certificateslisters.CertificateSigningRequestLister
 	csrSynced   cache.InformerSynced
-
-	cmInformer coreinformers.ConfigMapInformer
-	cmLister   corelisters.ConfigMapLister
-	cmSynced   cache.InformerSynced
-
+	cmSynced    cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -72,7 +66,8 @@ type Controller struct {
 	kubeconfigOperator kubeconfig.Interface
 }
 
-func NewController(k8sClient kubernetes.Interface, informerFactory informers.SharedInformerFactory, config *rest.Config) *Controller {
+func NewController(k8sClient kubernetes.Interface, csrInformer certificatesinformers.CertificateSigningRequestInformer,
+	configMapInformer corev1informers.ConfigMapInformer, config *rest.Config) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -82,17 +77,13 @@ func NewController(k8sClient kubernetes.Interface, informerFactory informers.Sha
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	csrInformer := informerFactory.Certificates().V1beta1().CertificateSigningRequests()
-	cmInformer := informerFactory.Core().V1().ConfigMaps()
 	ctl := &Controller{
 		k8sclient:          k8sClient,
 		csrInformer:        csrInformer,
 		csrLister:          csrInformer.Lister(),
 		csrSynced:          csrInformer.Informer().HasSynced,
-		cmInformer:         cmInformer,
-		cmLister:           cmInformer.Lister(),
-		cmSynced:           cmInformer.Informer().HasSynced,
-		kubeconfigOperator: kubeconfig.NewOperator(k8sClient, config, ""),
+		cmSynced:           configMapInformer.Informer().HasSynced,
+		kubeconfigOperator: kubeconfig.NewOperator(k8sClient, configMapInformer, config),
 		workqueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CertificateSigningRequest"),
 		recorder:           recorder,
 	}
@@ -112,7 +103,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the csrInformer factories to begin populating the csrInformer caches
-	klog.Info("Starting User controller")
+	klog.Info("Starting CSR controller")
 
 	// Wait for the caches to be csrSynced before starting workers
 	klog.Info("Waiting for csrInformer caches to sync")

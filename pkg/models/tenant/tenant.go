@@ -73,6 +73,7 @@ type Interface interface {
 	UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	ListClusters(info user.Info) (*api.ListResult, error)
 }
 
 type tenantOperator struct {
@@ -354,6 +355,90 @@ func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListR
 		clusters = append(clusters, cluster)
 	}
 	return &api.ListResult{Items: clusters, TotalItems: len(clusters)}, nil
+}
+func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
+
+	listClustersInGlobalScope := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "list",
+		Resource:        "clusters",
+		ResourceScope:   request.GlobalScope,
+		ResourceRequest: true,
+	}
+
+	allowedListClustersInGlobalScope, _, err := t.authorizer.Authorize(listClustersInGlobalScope)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	listWorkspacesInGlobalScope := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "list",
+		Resource:        "workspaces",
+		ResourceScope:   request.GlobalScope,
+		ResourceRequest: true,
+	}
+
+	allowedListWorkspacesInGlobalScope, _, err := t.authorizer.Authorize(listWorkspacesInGlobalScope)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if allowedListClustersInGlobalScope == authorizer.DecisionAllow ||
+		allowedListWorkspacesInGlobalScope == authorizer.DecisionAllow {
+		result, err := t.resourceGetter.List(clusterv1alpha1.ResourcesPluralCluster, "", query.New())
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		return result, nil
+	}
+
+	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), "")
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	clusters := map[string]*clusterv1alpha1.Cluster{}
+
+	for _, roleBinding := range workspaceRoleBindings {
+		workspaceName := roleBinding.Labels[tenantv1alpha1.WorkspaceLabel]
+		workspace, err := t.DescribeWorkspace(workspaceName)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		for _, clusterName := range workspace.Spec.Clusters {
+			// skip if cluster exist
+			if clusters[clusterName] != nil {
+				continue
+			}
+			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", clusterName)
+			if err != nil {
+				klog.Error(err)
+				if errors.IsNotFound(err) {
+					continue
+				}
+				return nil, err
+			}
+			cluster := obj.(*clusterv1alpha1.Cluster)
+			clusters[clusterName] = cluster
+		}
+	}
+
+	items := make([]interface{}, 0)
+	for _, cluster := range clusters {
+		items = append(items, cluster)
+	}
+
+	return &api.ListResult{Items: items, TotalItems: len(items)}, nil
 }
 
 func (t *tenantOperator) DeleteWorkspace(workspace string) error {

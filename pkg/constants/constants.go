@@ -49,6 +49,7 @@ const (
 	DevopsOwner                    = "owner"
 	DevopsReporter                 = "reporter"
 	DevOpsProjectLabelKey          = "kubesphere.io/devopsproject"
+	KubefedManagedLabel            = "kubefed.io/managed"
 
 	UserNameHeader = "X-Token-Username"
 

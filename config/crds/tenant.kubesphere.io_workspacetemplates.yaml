@@ -44,6 +44,35 @@ spec:
               type: string
             networkIsolation:
               type: boolean
+            overrides:
+              items:
+                properties:
+                  clusterName:
+                    type: string
+                  clusterOverrides:
+                    items:
+                      properties:
+                        op:
+                          type: string
+                        path:
+                          type: string
+                        value:
+                          anyOf:
+                            - type: string
+                            - type: integer
+                            - type: boolean
+                            - type: object
+                            - type: array
+                      required:
+                      - path
+                      - value
+                      type: object
+                    type: array
+                required:
+                - clusterName
+                - clusterOverrides
+                type: object
+              type: array
           type: object
       type: object
   version: v1alpha2

@@ -92,7 +92,7 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 		}
 	}
 
-	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users())
+	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users(), nil, nil, k8sinformers.Core().V1().ConfigMaps(), false)
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
