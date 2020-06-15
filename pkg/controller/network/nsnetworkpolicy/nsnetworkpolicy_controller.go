@@ -428,19 +428,21 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 
 	matchWorkspace := false
 	delete := false
-	nsnpList, _ := c.informer.Lister().NamespaceNetworkPolicies(ns.Name).List(labels.Everything())
+	nsnpList, err := c.informer.Lister().NamespaceNetworkPolicies(ns.Name).List(labels.Everything())
 	if isNetworkIsolateEnabled(ns) {
 		matchWorkspace = false
 	} else if wksp.Spec.NetworkIsolation {
 		matchWorkspace = true
+	} else {
+		delete = true
+	}
+	if delete || matchWorkspace {
 		//delete all namespace np when networkisolate not active
-		if err != nil && len(nsnpList) > 0 {
+		if err == nil && len(nsnpList) > 0 {
 			if c.ksclient.NamespaceNetworkPolicies(ns.Name).DeleteCollection(nil, typev1.ListOptions{}) != nil {
 				klog.Errorf("Error when delete all nsnps in namespace %s", ns.Name)
 			}
 		}
-	} else {
-		delete = true
 	}
 
 	policy := generateNSNP(workspaceName, ns.Name, matchWorkspace)
