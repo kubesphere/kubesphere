@@ -333,9 +333,9 @@ func (am *amOperator) GetGlobalRole(globalRole string) (*iamv1alpha2.GlobalRole,
 	return obj.(*iamv1alpha2.GlobalRole), nil
 }
 
-func (am *amOperator) CreateGlobalRoleBinding(username string, globalRole string) error {
+func (am *amOperator) CreateGlobalRoleBinding(username string, role string) error {
 
-	_, err := am.GetGlobalRole(globalRole)
+	_, err := am.GetGlobalRole(role)
 
 	if err != nil {
 		klog.Error(err)
@@ -350,7 +350,7 @@ func (am *amOperator) CreateGlobalRoleBinding(username string, globalRole string
 	}
 
 	for _, roleBinding := range roleBindings {
-		if globalRole == roleBinding.RoleRef.Name {
+		if role == roleBinding.RoleRef.Name {
 			return nil
 		}
 		err := am.ksclient.IamV1alpha2().GlobalRoleBindings().Delete(roleBinding.Name, metav1.NewDeleteOptions(0))
@@ -365,7 +365,7 @@ func (am *amOperator) CreateGlobalRoleBinding(username string, globalRole string
 
 	globalRoleBinding := iamv1alpha2.GlobalRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-%s", username, globalRole),
+			Name:   fmt.Sprintf("%s-%s", username, role),
 			Labels: map[string]string{iamv1alpha2.UserReferenceLabel: username},
 		},
 		Subjects: []rbacv1.Subject{
@@ -378,7 +378,7 @@ func (am *amOperator) CreateGlobalRoleBinding(username string, globalRole string
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
 			Kind:     iamv1alpha2.ResourceKindGlobalRole,
-			Name:     globalRole,
+			Name:     role,
 		},
 	}
 
@@ -456,7 +456,7 @@ func (am *amOperator) CreateWorkspaceRoleBinding(username string, workspace stri
 
 	roleBinding := iamv1alpha2.WorkspaceRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", role, username),
+			Name: fmt.Sprintf("%s-%s", username, role),
 			Labels: map[string]string{iamv1alpha2.UserReferenceLabel: username,
 				tenantv1alpha1.WorkspaceLabel: workspace},
 		},

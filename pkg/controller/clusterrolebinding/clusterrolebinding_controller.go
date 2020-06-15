@@ -100,10 +100,8 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer utilruntime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
-	//init client
-
 	// Start the informer factories to begin populating the informer caches
-	klog.Info("Starting User controller")
+	klog.Info("Starting ClusterRoleBinding controller")
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")

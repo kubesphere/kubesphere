@@ -131,10 +131,7 @@ func (im *defaultIMOperator) ListUsers(query *query.Query) (result *api.ListResu
 
 	for _, item := range result.Items {
 		user := item.(*iamv1alpha2.User)
-		out := user.DeepCopy()
-		// ensure encrypted password will not be output
-		out.Spec.EncryptedPassword = ""
-		items = append(items, out)
+		items = append(items, ensurePasswordNotOutput(user))
 	}
 
 	result.Items = items
@@ -156,11 +153,8 @@ func (im *defaultIMOperator) DescribeUser(username string) (*iamv1alpha2.User, e
 	}
 
 	user := obj.(*iamv1alpha2.User)
-	out := user.DeepCopy()
-	// ensure encrypted password will not be output
-	out.Spec.EncryptedPassword = ""
 
-	return out, nil
+	return ensurePasswordNotOutput(user), nil
 }
 
 func (im *defaultIMOperator) DeleteUser(username string) error {
@@ -174,4 +168,11 @@ func (im *defaultIMOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.Us
 		return nil, err
 	}
 	return user, nil
+}
+
+func ensurePasswordNotOutput(user *iamv1alpha2.User) *iamv1alpha2.User {
+	out := user.DeepCopy()
+	// ensure encrypted password will not be output
+	out.Spec.EncryptedPassword = ""
+	return out
 }

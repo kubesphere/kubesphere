@@ -18,7 +18,11 @@ package app
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
@@ -26,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/destinationrule"
 	"kubesphere.io/kubesphere/pkg/controller/devopscredential"
 	"kubesphere.io/kubesphere/pkg/controller/devopsproject"
+	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
@@ -37,11 +42,15 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/storage/expansion"
 	"kubesphere.io/kubesphere/pkg/controller/user"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerole"
+	"kubesphere.io/kubesphere/pkg/controller/workspacerolebinding"
+	"kubesphere.io/kubesphere/pkg/controller/workspacetemplate"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
 func AddControllers(
@@ -133,16 +142,86 @@ func AddControllers(
 		kubernetesInformer.Apps().V1().ReplicaSets(),
 		kubernetesInformer.Apps().V1().StatefulSets())
 
-	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
-		kubesphereInformer.Iam().V1alpha2().Users())
+	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache,
+		fedWorkspaceCache, fedWorkspaceRoleCache, fedWorkspaceRoleBindingCache cache.Store
+	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController,
+		fedWorkspaceCacheController, fedWorkspaceRoleCacheController, fedWorkspaceRoleBindingCacheController cache.Controller
 
-	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer, client.Config())
+	if multiClusterEnabled {
+
+		fedUserClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedUserResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		fedGlobalRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		fedGlobalRoleBindingClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleBindingResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		fedWorkspaceClient, err := util.NewResourceClient(client.Config(), &tenantv1alpha2.FedWorkspaceResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		fedWorkspaceRoleClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedWorkspaceRoleResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		fedWorkspaceRoleBindingClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedWorkspaceRoleBindingResource)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		fedUserCache, fedUserCacheController = util.NewResourceInformer(fedUserClient, "", &iamv1alpha2.FedUserResource, func(object runtime.Object) {})
+		fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "", &iamv1alpha2.FedGlobalRoleResource, func(object runtime.Object) {})
+		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController = util.NewResourceInformer(fedGlobalRoleBindingClient, "", &iamv1alpha2.FedGlobalRoleBindingResource, func(object runtime.Object) {})
+		fedWorkspaceCache, fedWorkspaceCacheController = util.NewResourceInformer(fedWorkspaceClient, "", &tenantv1alpha2.FedWorkspaceResource, func(object runtime.Object) {})
+		fedWorkspaceRoleCache, fedWorkspaceRoleCacheController = util.NewResourceInformer(fedWorkspaceRoleClient, "", &iamv1alpha2.FedWorkspaceRoleResource, func(object runtime.Object) {})
+		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController = util.NewResourceInformer(fedWorkspaceRoleBindingClient, "", &iamv1alpha2.FedWorkspaceRoleBindingResource, func(object runtime.Object) {})
+
+		go fedUserCacheController.Run(stopCh)
+		go fedGlobalRoleCacheController.Run(stopCh)
+		go fedGlobalRoleBindingCacheController.Run(stopCh)
+		go fedWorkspaceCacheController.Run(stopCh)
+		go fedWorkspaceRoleCacheController.Run(stopCh)
+		go fedWorkspaceRoleBindingCacheController.Run(stopCh)
+	}
+
+	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
+		kubesphereInformer.Iam().V1alpha2().Users(),
+		fedUserCache, fedUserCacheController, kubernetesInformer.Core().V1().ConfigMaps(), multiClusterEnabled)
+
+	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
+		kubernetesInformer.Core().V1().ConfigMaps(), client.Config())
 
 	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(),
 		kubernetesInformer.Rbac().V1().ClusterRoleBindings(), kubernetesInformer.Apps().V1().Deployments(),
 		kubernetesInformer.Core().V1().Pods(), kubesphereInformer.Iam().V1alpha2().Users())
 
-	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(), multiClusterEnabled)
+	globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
+
+	workspaceRoleController := workspacerole.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(), fedWorkspaceRoleCache, fedWorkspaceRoleCacheController)
+
+	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(), fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled)
+
+	workspaceRoleBindingController := workspacerolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(), fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController)
+
+	workspaceTemplateController := workspacetemplate.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubesphereInformer.Iam().V1alpha2().RoleBases(), kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
+		fedWorkspaceCache, fedWorkspaceCacheController, multiClusterEnabled)
 
 	clusterController := cluster.NewClusterController(
 		client.Kubernetes(),
@@ -169,19 +248,29 @@ func AddControllers(
 		"s2ibinary-controller":          s2iBinaryController,
 		"s2irun-controller":             s2iRunController,
 		"volumeexpansion-controller":    volumeExpansionController,
-		"devopsprojects-controller":     devopsProjectController,
-		"pipeline-controller":           devopsPipelineController,
-		"devopscredential-controller":   devopsCredentialController,
 		"user-controller":               userController,
 		"cluster-controller":            clusterController,
 		"nsnp-controller":               nsnpController,
 		"csr-controller":                csrController,
 		"clusterrolebinding-controller": clusterRoleBindingController,
 		"globalrolebinding-controller":  globalRoleBindingController,
+		"workspacetemplate-controller":  workspaceTemplateController,
+	}
+
+	if devopsClient != nil {
+		controllers["pipeline-controller"] = devopsPipelineController
+		controllers["devopsprojects-controller"] = devopsProjectController
+		controllers["devopscredential-controller"] = devopsCredentialController
 	}
 
 	if storageCapabilityController.IsValidKubernetesVersion() {
 		controllers["storagecapability-controller"] = storageCapabilityController
+	}
+
+	if multiClusterEnabled {
+		controllers["globalrole-controller"] = globalRoleController
+		controllers["workspacerole-controller"] = workspaceRoleController
+		controllers["workspacerolebinding-controller"] = workspaceRoleBindingController
 	}
 
 	for name, ctrl := range controllers {

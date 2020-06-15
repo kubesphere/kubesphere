@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -60,30 +61,38 @@ type Interface interface {
 }
 
 type operator struct {
-	k8sclient kubernetes.Interface
-	config    *rest.Config
-	masterURL string
+	k8sClient         kubernetes.Interface
+	configMapInformer corev1informers.ConfigMapInformer
+	config            *rest.Config
+	masterURL         string
 }
 
-func NewOperator(k8sclient kubernetes.Interface, config *rest.Config, masterURL string) Interface {
-	return &operator{k8sclient: k8sclient, config: config, masterURL: masterURL}
+func NewOperator(k8sClient kubernetes.Interface, configMapInformer corev1informers.ConfigMapInformer, config *rest.Config) Interface {
+	return &operator{k8sClient: k8sClient, configMapInformer: configMapInformer, config: config}
+}
+
+func NewReadOnlyOperator(configMapInformer corev1informers.ConfigMapInformer, masterURL string) Interface {
+	return &operator{configMapInformer: configMapInformer, masterURL: masterURL}
 }
 
 func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 
 	configName := fmt.Sprintf(kubeconfigNameFormat, user.Name)
 
-	_, err := o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
+	_, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
 
+	// already exist
 	if err == nil {
 		return nil
 	}
 
+	// internal error
 	if !errors.IsNotFound(err) {
 		klog.Error(err)
 		return err
 	}
 
+	// create if not exist
 	var ca []byte
 	if len(o.config.CAData) > 0 {
 		ca = o.config.CAData
@@ -142,7 +151,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		return err
 	}
 
-	_, err = o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(cm)
+	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Create(cm)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -154,7 +163,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 
 func (o *operator) GetKubeConfig(username string) (string, error) {
 	configName := fmt.Sprintf(kubeconfigNameFormat, username)
-	configMap, err := o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
+	configMap, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
 	if err != nil {
 		klog.Errorln(err)
 		return "", err
@@ -171,6 +180,7 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 
 	masterURL := o.masterURL
 
+	// server host override
 	if cluster := kubeconfig.Clusters[defaultClusterName]; cluster != nil {
 		cluster.Server = masterURL
 	}
@@ -244,7 +254,7 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 	}
 
 	// create csr
-	k8sCSR, err = o.k8sclient.CertificatesV1beta1().CertificateSigningRequests().Create(k8sCSR)
+	k8sCSR, err = o.k8sClient.CertificatesV1beta1().CertificateSigningRequests().Create(k8sCSR)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -256,14 +266,14 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 
 func (o *operator) UpdateKubeconfig(username string, certificate []byte) error {
 	configName := fmt.Sprintf(kubeconfigNameFormat, username)
-	configMap, err := o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
+	configMap, err := o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
 	configMap = appendCert(configMap, certificate)
-	_, err = o.k8sclient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(configMap)
+	_, err = o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Update(configMap)
 	if err != nil {
 		klog.Errorln(err)
 		return err

@@ -51,6 +51,11 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 	ws := runtime.NewWebService(GroupVersion)
 	handler := newTenantHandler(factory, k8sclient, ksclient, evtsClient, loggingClient, auditingclient)
 
+	ws.Route(ws.GET("/clusters").
+		To(handler.ListClusters).
+		Doc("List clusters available to users").
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.POST("/workspaces").
 		To(handler.CreateWorkspace).
 		Reads(tenantv1alpha2.WorkspaceTemplate{}).
@@ -82,12 +87,12 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}").
 		To(handler.DescribeWorkspace).
-		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Describe workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/clusters").
 		To(handler.ListWorkspaceClusters).
-		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Doc("List clusters authorized to the specified workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 

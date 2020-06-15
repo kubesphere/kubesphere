@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package user
+package globalrole
 
 import (
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,25 +26,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
-	userinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
-	userlister "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
+	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
 	"time"
 )
 
@@ -53,20 +47,18 @@ const (
 	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
 	successSynced = "Synced"
 	// is synced successfully
-	messageResourceSynced = "User synced successfully"
-	controllerName        = "user-controller"
+	messageResourceSynced = "GlobalRole synced successfully"
+	controllerName        = "globalrole-controller"
 )
 
 type Controller struct {
-	k8sClient         kubernetes.Interface
-	ksClient          kubesphere.Interface
-	kubeconfig        kubeconfig.Interface
-	userInformer      userinformer.UserInformer
-	userLister        userlister.UserLister
-	userSynced        cache.InformerSynced
-	cmSynced          cache.InformerSynced
-	fedUserCache      cache.Store
-	fedUserController cache.Controller
+	k8sClient                    kubernetes.Interface
+	ksClient                     kubesphere.Interface
+	globalRoleInformer           iamv1alpha2informers.GlobalRoleInformer
+	globalRoleLister             iamv1alpha2listers.GlobalRoleLister
+	globalRoleSynced             cache.InformerSynced
+	fedGlobalRoleCache           cache.Store
+	fedGlobalRoleCacheController cache.Controller
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -75,48 +67,38 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
-	recorder            record.EventRecorder
-	multiClusterEnabled bool
+	recorder record.EventRecorder
 }
 
-func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
-	config *rest.Config, userInformer userinformer.UserInformer, fedUserCache cache.Store, fedUserController cache.Controller,
-	configMapInformer corev1informers.ConfigMapInformer, multiClusterEnabled bool) *Controller {
+func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface, globalRoleInformer iamv1alpha2informers.GlobalRoleInformer,
+	fedGlobalRoleCache cache.Store, fedGlobalRoleCacheController cache.Controller) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
 
-	utilruntime.Must(kubespherescheme.AddToScheme(scheme.Scheme))
 	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
-	var kubeconfigOperator kubeconfig.Interface
-	if config != nil {
-		kubeconfigOperator = kubeconfig.NewOperator(k8sClient, configMapInformer, config)
-	}
 	ctl := &Controller{
-		k8sClient:           k8sClient,
-		ksClient:            ksClient,
-		kubeconfig:          kubeconfigOperator,
-		userInformer:        userInformer,
-		userLister:          userInformer.Lister(),
-		userSynced:          userInformer.Informer().HasSynced,
-		cmSynced:            configMapInformer.Informer().HasSynced,
-		fedUserCache:        fedUserCache,
-		fedUserController:   fedUserController,
-		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
-		recorder:            recorder,
-		multiClusterEnabled: multiClusterEnabled,
+		k8sClient:                    k8sClient,
+		ksClient:                     ksClient,
+		globalRoleInformer:           globalRoleInformer,
+		globalRoleLister:             globalRoleInformer.Lister(),
+		globalRoleSynced:             globalRoleInformer.Informer().HasSynced,
+		fedGlobalRoleCache:           fedGlobalRoleCache,
+		fedGlobalRoleCacheController: fedGlobalRoleCacheController,
+		workqueue:                    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "GlobalRole"),
+		recorder:                     recorder,
 	}
 	klog.Info("Setting up event handlers")
-	userInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueUser,
+	globalRoleInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: ctl.enqueueClusterRole,
 		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueUser(new)
+			ctl.enqueueClusterRole(new)
 		},
-		DeleteFunc: ctl.enqueueUser,
+		DeleteFunc: ctl.enqueueClusterRole,
 	})
 	return ctl
 }
@@ -126,18 +108,12 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	klog.Info("Starting User controller")
+	klog.Info("Starting GlobalRole controller")
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 
-	synced := make([]cache.InformerSynced, 0)
-	synced = append(synced, c.userSynced, c.cmSynced)
-	if c.multiClusterEnabled {
-		synced = append(synced, c.fedUserController.HasSynced)
-	}
-
-	if ok := cache.WaitForCacheSync(stopCh, synced...); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.globalRoleSynced, c.fedGlobalRoleCacheController.HasSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -153,7 +129,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	return nil
 }
 
-func (c *Controller) enqueueUser(obj interface{}) {
+func (c *Controller) enqueueClusterRole(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -226,41 +202,24 @@ func (c *Controller) processNextWorkItem() bool {
 // with the current status of the resource.
 func (c *Controller) reconcile(key string) error {
 
-	// Get the user with this name
-	user, err := c.userLister.Get(key)
+	globalRole, err := c.globalRoleLister.Get(key)
 	if err != nil {
 		// The user may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			utilruntime.HandleError(fmt.Errorf("user '%s' in work queue no longer exists", key))
+			utilruntime.HandleError(fmt.Errorf("globalrole '%s' in work queue no longer exists", key))
 			return nil
 		}
 		klog.Error(err)
 		return err
 	}
 
-	if user, err = c.ensurePasswordIsEncrypted(user); err != nil {
+	if err = c.multiClusterSync(globalRole); err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	if c.kubeconfig != nil {
-		// ensure user kubeconfig configmap is created
-		if err = c.kubeconfig.CreateKubeConfig(user); err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-
-	// synchronization through kubefed-controller when multi cluster is enabled
-	if c.multiClusterEnabled {
-		if err = c.multiClusterSync(user); err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-
-	c.recorder.Event(user, corev1.EventTypeNormal, successSynced, messageResourceSynced)
+	c.recorder.Event(globalRole, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 	return nil
 }
 
@@ -268,99 +227,59 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(4, stopCh)
 }
 
-func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
-	encrypted, err := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
-	// password is not encrypted
-	if err != nil || !encrypted {
-		password, err := encrypt(user.Spec.EncryptedPassword)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-		user = user.DeepCopy()
-		user.Spec.EncryptedPassword = password
-		if user.Annotations == nil {
-			user.Annotations = make(map[string]string, 0)
-		}
+func (c *Controller) multiClusterSync(globalRole *iamv1alpha2.GlobalRole) error {
 
-		user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = "true"
-		user.Status.State = iamv1alpha2.UserActive
-		return c.ksClient.IamV1alpha2().Users().Update(user)
-	}
-
-	return user, nil
-}
-
-func (c *Controller) ensureNotControlledByKubefed(user *iamv1alpha2.User) error {
-	if user.Labels[constants.KubefedManagedLabel] != "false" {
-		if user.Labels == nil {
-			user.Labels = make(map[string]string, 0)
-		}
-		user = user.DeepCopy()
-		user.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().Users().Update(user)
-		if err != nil {
-			klog.Error(err)
-		}
-	}
-	return nil
-}
-
-func (c *Controller) multiClusterSync(user *iamv1alpha2.User) error {
-
-	if err := c.ensureNotControlledByKubefed(user); err != nil {
+	if err := c.ensureNotControlledByKubefed(globalRole); err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	obj, exist, err := c.fedUserCache.GetByKey(user.Name)
+	obj, exist, err := c.fedGlobalRoleCache.GetByKey(globalRole.Name)
 	if !exist {
-		return c.createFederatedUser(user)
+		return c.createFederatedGlobalRole(globalRole)
 	}
 	if err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	var federatedUser iamv1alpha2.FederatedUser
-	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).Object, &federatedUser); err != nil {
+	var federatedGlobalRole iamv1alpha2.FederatedRole
+
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.(*unstructured.Unstructured).Object, &federatedGlobalRole); err != nil {
 		klog.Error(err)
 		return err
 	}
 
-	if !reflect.DeepEqual(federatedUser.Spec.Template.Spec, user.Spec) ||
-		!reflect.DeepEqual(federatedUser.Spec.Template.Status, user.Status) ||
-		!reflect.DeepEqual(federatedUser.Labels, user.Labels) ||
-		!reflect.DeepEqual(federatedUser.Annotations, user.Annotations) {
+	if !reflect.DeepEqual(federatedGlobalRole.Spec.Template.Rules, globalRole.Rules) ||
+		!reflect.DeepEqual(federatedGlobalRole.Spec.Template.Labels, globalRole.Labels) ||
+		!reflect.DeepEqual(federatedGlobalRole.Spec.Template.Annotations, globalRole.Annotations) {
 
-		federatedUser.Labels = user.Labels
-		federatedUser.Spec.Template.Spec = user.Spec
-		federatedUser.Spec.Template.Status = user.Status
-		federatedUser.Spec.Template.Labels = user.Labels
-		federatedUser.Spec.Template.Annotations = user.Annotations
-		return c.updateFederatedUser(&federatedUser)
+		federatedGlobalRole.Spec.Template.Rules = globalRole.Rules
+		federatedGlobalRole.Spec.Template.Annotations = globalRole.Annotations
+		federatedGlobalRole.Spec.Template.Labels = globalRole.Labels
+
+		return c.updateFederatedGlobalRole(&federatedGlobalRole)
 	}
 
 	return nil
 }
 
-func (c *Controller) createFederatedUser(user *iamv1alpha2.User) error {
-	federatedUser := &iamv1alpha2.FederatedUser{
+func (c *Controller) createFederatedGlobalRole(globalRole *iamv1alpha2.GlobalRole) error {
+	federatedGlobalRole := &iamv1alpha2.FederatedRole{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       iamv1alpha2.FedUserKind,
-			APIVersion: iamv1alpha2.FedUserResource.Group + "/" + iamv1alpha2.FedUserResource.Version,
+			Kind:       iamv1alpha2.FedGlobalRoleKind,
+			APIVersion: iamv1alpha2.FedGlobalRoleResource.Group + "/" + iamv1alpha2.FedGlobalRoleResource.Version,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: user.Name,
+			Name: globalRole.Name,
 		},
-		Spec: iamv1alpha2.FederatedUserSpec{
-			Template: iamv1alpha2.UserTemplate{
+		Spec: iamv1alpha2.FederatedRoleSpec{
+			Template: iamv1alpha2.RoleTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      user.Labels,
-					Annotations: user.Annotations,
+					Labels:      globalRole.Labels,
+					Annotations: globalRole.Annotations,
 				},
-				Spec:   user.Spec,
-				Status: user.Status,
+				Rules: globalRole.Rules,
 			},
 			Placement: iamv1alpha2.Placement{
 				ClusterSelector: iamv1alpha2.ClusterSelector{},
@@ -368,22 +287,20 @@ func (c *Controller) createFederatedUser(user *iamv1alpha2.User) error {
 		},
 	}
 
-	// must bind user lifecycle
-	err := controllerutil.SetControllerReference(user, federatedUser, scheme.Scheme)
+	err := controllerutil.SetControllerReference(globalRole, federatedGlobalRole, scheme.Scheme)
 	if err != nil {
 		return err
 	}
 
-	data, err := json.Marshal(federatedUser)
+	data, err := json.Marshal(federatedGlobalRole)
 	if err != nil {
 		return err
 	}
 
 	cli := c.k8sClient.(*kubernetes.Clientset)
-
 	err = cli.RESTClient().Post().
-		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedUserResource.Group,
-			iamv1alpha2.FedUserResource.Version, iamv1alpha2.FedUserResource.Name)).
+		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedGlobalRoleResource.Group,
+			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name)).
 		Body(data).
 		Do().Error()
 	if err != nil {
@@ -396,8 +313,9 @@ func (c *Controller) createFederatedUser(user *iamv1alpha2.User) error {
 	return nil
 }
 
-func (c *Controller) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser) error {
-	data, err := json.Marshal(fedUser)
+func (c *Controller) updateFederatedGlobalRole(federatedGlobalRole *iamv1alpha2.FederatedRole) error {
+
+	data, err := json.Marshal(federatedGlobalRole)
 	if err != nil {
 		return err
 	}
@@ -405,8 +323,9 @@ func (c *Controller) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser) err
 	cli := c.k8sClient.(*kubernetes.Clientset)
 
 	err = cli.RESTClient().Put().
-		AbsPath(fmt.Sprintf("/apis/%s/%s/%s/%s", iamv1alpha2.FedUserResource.Group,
-			iamv1alpha2.FedUserResource.Version, iamv1alpha2.FedUserResource.Name, fedUser.Name)).
+		AbsPath(fmt.Sprintf("/apis/%s/%s/%s/%s", iamv1alpha2.FedGlobalRoleResource.Group,
+			iamv1alpha2.FedGlobalRoleResource.Version, iamv1alpha2.FedGlobalRoleResource.Name,
+			federatedGlobalRole.Name)).
 		Body(data).
 		Do().Error()
 	if err != nil {
@@ -419,12 +338,17 @@ func (c *Controller) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser) err
 	return nil
 }
 
-func encrypt(password string) (string, error) {
-	// when user is already mapped to another identity, password is empty by default
-	// unable to log in directly until password reset
-	if password == "" {
-		return "", nil
+func (c *Controller) ensureNotControlledByKubefed(globalRole *iamv1alpha2.GlobalRole) error {
+	if globalRole.Labels[constants.KubefedManagedLabel] != "false" {
+		if globalRole.Labels == nil {
+			globalRole.Labels = make(map[string]string, 0)
+		}
+		globalRole = globalRole.DeepCopy()
+		globalRole.Labels[constants.KubefedManagedLabel] = "false"
+		_, err := c.ksClient.IamV1alpha2().GlobalRoles().Update(globalRole)
+		if err != nil {
+			klog.Error(err)
+		}
 	}
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
+	return nil
 }

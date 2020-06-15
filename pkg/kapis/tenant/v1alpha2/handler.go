@@ -457,3 +457,26 @@ func (h *tenantHandler) PatchWorkspace(request *restful.Request, response *restf
 
 	response.WriteEntity(patched)
 }
+
+func (h *tenantHandler) ListClusters(r *restful.Request, response *restful.Response) {
+	user, ok := request.UserFrom(r.Request.Context())
+
+	if !ok {
+		response.WriteEntity([]interface{}{})
+		return
+	}
+
+	result, err := h.tenant.ListClusters(user)
+
+	if err != nil {
+		klog.Error(err)
+		if errors.IsNotFound(err) {
+			api.HandleNotFound(response, r, err)
+			return
+		}
+		api.HandleInternalError(response, r, err)
+		return
+	}
+
+	response.WriteEntity(result)
+}

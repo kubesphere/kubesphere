@@ -22,6 +22,8 @@ type GlobalRoleExpansion interface{}
 
 type GlobalRoleBindingExpansion interface{}
 
+type RoleBaseExpansion interface{}
+
 type UserExpansion interface{}
 
 type WorkspaceRoleExpansion interface{}

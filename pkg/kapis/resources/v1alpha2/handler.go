@@ -48,7 +48,7 @@ func newResourceHandler(k8sClient kubernetes.Interface, factory informers.Inform
 		routerOperator:      routers.NewRouterOperator(k8sClient, factory.KubernetesSharedInformerFactory()),
 		gitVerifier:         git.NewGitVerifier(factory.KubernetesSharedInformerFactory()),
 		registryGetter:      registries.NewRegistryGetter(factory.KubernetesSharedInformerFactory()),
-		kubeconfigOperator:  kubeconfig.NewOperator(k8sClient, nil, masterURL),
+		kubeconfigOperator:  kubeconfig.NewReadOnlyOperator(factory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps(), masterURL),
 		kubectlOperator: kubectl.NewOperator(nil, factory.KubernetesSharedInformerFactory().Apps().V1().Deployments(),
 			factory.KubernetesSharedInformerFactory().Core().V1().Pods(),
 			factory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users()),

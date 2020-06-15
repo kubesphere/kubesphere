@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -65,6 +66,7 @@ const (
 	ScopeCluster                          = "cluster"
 	ScopeNamespace                        = "namespace"
 	PlatformAdmin                         = "platform-admin"
+	NamespaceAdmin                        = "admin"
 	ClusterAdmin                          = "cluster-admin"
 )
 
@@ -284,31 +286,22 @@ type WorkspaceRoleBindingList struct {
 	Items           []WorkspaceRoleBinding `json:"items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type FederatedClusterRoleBinding struct {
+// +kubebuilder:resource:categories="iam",scope="Cluster"
+type RoleBase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FederatedClusterRoleBindingSpec `json:"spec"`
+
+	Role runtime.RawExtension `json:"role"`
 }
 
-type FederatedClusterRoleBindingSpec struct {
-	Template  Template  `json:"template"`
-	Placement Placement `json:"placement"`
-}
-type Template struct {
-	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
-	RoleRef  rbacv1.RoleRef   `json:"roleRef"`
-}
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type Placement struct {
-	Clusters        []Cluster       `json:"clusters,omitempty"`
-	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
-}
-
-type ClusterSelector struct {
-	MatchLabels map[string]string `json:"matchLabels,omitempty"`
-}
-
-type Cluster struct {
-	Name string `json:"name"`
+// RoleBaseList contains a list of RoleBase
+type RoleBaseList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []RoleBase `json:"items"`
 }
