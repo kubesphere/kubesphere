@@ -48,18 +48,21 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/kubefed/pkg/controller/util"
 )
 
-func AddControllers(
+func addControllers(
 	mgr manager.Manager,
 	client k8s.Client,
 	informerFactory informers.InformerFactory,
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
+	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
+	networkPolicyEnabled bool,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -94,33 +97,37 @@ func AddControllers(
 
 	jobController := job.NewJobController(kubernetesInformer.Batch().V1().Jobs(), client.Kubernetes())
 
-	s2iBinaryController := s2ibinary.NewController(client.Kubernetes(),
-		client.KubeSphere(),
-		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-		s3Client,
-	)
+	var s2iBinaryController, s2iRunController, devopsProjectController, devopsPipelineController, devopsCredentialController manager.Runnable
+	if devopsClient != nil {
+		s2iBinaryController = s2ibinary.NewController(client.Kubernetes(),
+			client.KubeSphere(),
+			kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+			s3Client,
+		)
 
-	s2iRunController := s2irun.NewS2iRunController(client.Kubernetes(),
-		client.KubeSphere(),
-		kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
-		kubesphereInformer.Devops().V1alpha1().S2iRuns())
+		s2iRunController = s2irun.NewS2iRunController(client.Kubernetes(),
+			client.KubeSphere(),
+			kubesphereInformer.Devops().V1alpha1().S2iBinaries(),
+			kubesphereInformer.Devops().V1alpha1().S2iRuns())
 
-	devopsProjectController := devopsproject.NewController(client.Kubernetes(),
-		client.KubeSphere(), devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
-	)
+		devopsProjectController = devopsproject.NewController(client.Kubernetes(),
+			client.KubeSphere(), devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().DevOpsProjects(),
+		)
 
-	devopsPipelineController := pipeline.NewController(client.Kubernetes(),
-		client.KubeSphere(),
-		devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
+		devopsPipelineController = pipeline.NewController(client.Kubernetes(),
+			client.KubeSphere(),
+			devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubeSphereSharedInformerFactory().Devops().V1alpha3().Pipelines())
 
-	devopsCredentialController := devopscredential.NewController(client.Kubernetes(),
-		devopsClient,
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
-		informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
+		devopsCredentialController = devopscredential.NewController(client.Kubernetes(),
+			devopsClient,
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Namespaces(),
+			informerFactory.KubernetesSharedInformerFactory().Core().V1().Secrets())
+
+	}
 
 	storageCapabilityController := capability.NewController(
 		client.Kubernetes(),
@@ -223,22 +230,29 @@ func AddControllers(
 		kubesphereInformer.Iam().V1alpha2().RoleBases(), kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
 		fedWorkspaceCache, fedWorkspaceCacheController, multiClusterEnabled)
 
-	clusterController := cluster.NewClusterController(
-		client.Kubernetes(),
-		client.Config(),
-		kubesphereInformer.Cluster().V1alpha1().Clusters(),
-		client.KubeSphere().ClusterV1alpha1().Clusters())
-
-	nsnpProvider, err := provider.NewNsNetworkPolicyProvider(client.Kubernetes(),
-		kubernetesInformer.Networking().V1().NetworkPolicies())
-	if err != nil {
-		return err
+	var clusterController manager.Runnable
+	if multiClusterEnabled {
+		clusterController = cluster.NewClusterController(
+			client.Kubernetes(),
+			client.Config(),
+			kubesphereInformer.Cluster().V1alpha1().Clusters(),
+			client.KubeSphere().ClusterV1alpha1().Clusters(),
+			openpitrixClient)
 	}
-	nsnpController := nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
-		client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
-		kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
-		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
-		kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
+
+	var nsnpController manager.Runnable
+	if networkPolicyEnabled {
+		nsnpProvider, err := provider.NewNsNetworkPolicyProvider(client.Kubernetes(), kubernetesInformer.Networking().V1().NetworkPolicies())
+		if err != nil {
+			return err
+		}
+
+		nsnpController = nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
+			client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
+			kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
+			kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
+	}
 
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":     vsController,
@@ -274,6 +288,11 @@ func AddControllers(
 	}
 
 	for name, ctrl := range controllers {
+		if ctrl == nil {
+			klog.V(4).Infof("%s is not going to run due to dependent component disabled.", name)
+			continue
+		}
+
 		if err := mgr.Add(ctrl); err != nil {
 			klog.Error(err, "add controller to manager failed", "name", name)
 			return err

@@ -40,6 +40,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 	"os"
@@ -58,6 +59,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			DevopsOptions:       conf.DevopsOptions,
 			S3Options:           conf.S3Options,
 			OpenPitrixOptions:   conf.OpenPitrixOptions,
+			NetworkOptions:      conf.NetworkOptions,
 			MultiClusterOptions: conf.MultiClusterOptions,
 			LeaderElection:      s.LeaderElection,
 			LeaderElect:         s.LeaderElect,
@@ -111,6 +113,15 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		}
 	}
 
+	var openpitrixClient openpitrix.Client
+	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
+		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
+		if err != nil {
+			klog.Errorf("Failed to create openpitrix client %v", err)
+			return err
+		}
+	}
+
 	var s3Client s3.Interface
 	if s.S3Options != nil && len(s.S3Options.Endpoint) != 0 {
 		s3Client, err = s3.NewS3Client(s.S3Options)
@@ -125,7 +136,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")
-		mgr, err := manager.New(kubernetesClient.Config(), manager.Options{})
+		mgr, err := manager.New(kubernetesClient.Config(), manager.Options{CertDir: s.WebhookCertDir})
 		if err != nil {
 			klog.Fatalf("unable to set up overall controller manager: %v", err)
 		}
@@ -146,7 +157,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			klog.Fatal("Unable to create namespace controller")
 		}
 
-		if err := AddControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, s.MultiClusterOptions.Enable, stopCh); err != nil {
+		if err := addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, openpitrixClient, s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 
@@ -190,9 +201,6 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	// add a uniquifier so that two processes on the same host don't accidentally both become active
 	id = id + "_" + string(uuid.NewUUID())
 
-	// TODO: change lockType to lease
-	// once we finished moving to Kubernetes v1.16+, we
-	// change lockType to lease
 	lock, err := resourcelock.New(resourcelock.LeasesResourceLock,
 		"kubesphere-system",
 		"ks-controller-manager",

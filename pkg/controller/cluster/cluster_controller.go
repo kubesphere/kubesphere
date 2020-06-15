@@ -26,6 +26,7 @@ import (
 	clusterclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/cluster/v1alpha1"
 	clusterinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/cluster/v1alpha1"
 	clusterlister "kubesphere.io/kubesphere/pkg/client/listers/cluster/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"math/rand"
 	"net/http"
 	"reflect"
@@ -50,7 +51,8 @@ const (
 	// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
 	maxRetries = 15
 
-	kubefedNamespace = "kube-federation-system"
+	kubefedNamespace  = "kube-federation-system"
+	openpitrixRuntime = "openpitrix.io/runtime"
 
 	// Actually host cluster name can be anything, there is only necessary when calling JoinFederation function
 	hostClusterName = "kubesphere"
@@ -98,6 +100,8 @@ type clusterController struct {
 	clusterLister    clusterlister.ClusterLister
 	clusterHasSynced cache.InformerSynced
 
+	openpitrixClient openpitrix.Client
+
 	queue workqueue.RateLimitingInterface
 
 	workerLoopPeriod time.Duration
@@ -112,6 +116,7 @@ func NewClusterController(
 	config *rest.Config,
 	clusterInformer clusterinformer.ClusterInformer,
 	clusterClient clusterclient.ClusterInterface,
+	openpitrixClient openpitrix.Client,
 ) *clusterController {
 
 	broadcaster := record.NewBroadcaster()
@@ -127,6 +132,7 @@ func NewClusterController(
 		client:           client,
 		hostConfig:       config,
 		clusterClient:    clusterClient,
+		openpitrixClient: openpitrixClient,
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cluster"),
 		workerLoopPeriod: time.Second,
 		clusterMap:       make(map[string]*clusterData),
@@ -314,6 +320,18 @@ func (c *clusterController) syncCluster(key string) error {
 					klog.Errorf("Unable to delete service %s, error %v", serviceName, err)
 					return err
 				}
+			}
+
+			// clean up openpitrix runtime of the cluster
+			if _, ok := cluster.Annotations[openpitrixRuntime]; ok {
+				if c.openpitrixClient != nil {
+					err = c.openpitrixClient.CleanupRuntime(cluster.Name)
+					if err != nil {
+						klog.Errorf("Unable to delete openpitrix for cluster %s, error %v", cluster.Name, err)
+						return err
+					}
+				}
+				delete(cluster.Annotations, openpitrixRuntime)
 			}
 
 			// remove our cluster finalizer
@@ -530,6 +548,22 @@ func (c *clusterController) syncCluster(key string) error {
 		}
 
 		c.updateClusterCondition(cluster, clusterNotReadyCondition)
+	}
+
+	if c.openpitrixClient != nil { // OpenPitrix is enabled, create runtime
+		if cluster.GetAnnotations() == nil {
+			cluster.Annotations = make(map[string]string)
+		}
+
+		if _, ok = cluster.Annotations[openpitrixRuntime]; !ok {
+			err = c.openpitrixClient.UpsertRuntime(cluster.Name, string(cluster.Spec.Connection.KubeConfig))
+			if err != nil {
+				klog.Errorf("Failed to create runtime for cluster %s, error %v", cluster.Name, err)
+				return err
+			} else {
+				cluster.Annotations[openpitrixRuntime] = cluster.Name
+			}
+		}
 	}
 
 	if !reflect.DeepEqual(oldCluster, cluster) {
