@@ -52,6 +52,9 @@ hypersphere: fmt vet
 fmt: generate
 	gofmt -w ./pkg ./cmd ./tools ./api
 
+license-header:
+	@addlicense -c "KubeSphere Authors" -l apache $(shell find . -type f -not -path "*/vendor/*" -name '*.go')
+
 # Run go vet against code
 vet: generate
 	go vet ./pkg/... ./cmd/...

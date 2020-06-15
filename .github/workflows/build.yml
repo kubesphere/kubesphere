@@ -21,7 +21,7 @@ jobs:
     steps:
 
       - name: Set up Go 1.13
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: 1.13
         id: go
@@ -31,6 +31,9 @@ jobs:
 
       - name: Check pr is properly formatted
         run: diff -u <(echo -n) <(gofmt -d ./pkg ./cmd ./tools ./test)
+
+      - name: Check all source code files have license header
+        run: go get -u github.com/google/addlicense && addlicense -c "KubeSphere Authors" -l apache -check $(find . -type f -not -path "*/vendor/*" -name '*.go')
 
       - name: Downloading go dependencies
         run: go mod vendor
