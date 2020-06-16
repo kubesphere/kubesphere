@@ -1,8 +1,10 @@
 package auditing
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +16,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/listers/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
+	"net"
 	"net/http"
 	"time"
 )
@@ -186,7 +189,6 @@ type ResponseCapture struct {
 	wroteHeader bool
 	status      int
 	body        *bytes.Buffer
-	StopCh      chan interface{}
 }
 
 func NewResponseCapture(w http.ResponseWriter) *ResponseCapture {
@@ -194,7 +196,6 @@ func NewResponseCapture(w http.ResponseWriter) *ResponseCapture {
 		ResponseWriter: w,
 		wroteHeader:    false,
 		body:           new(bytes.Buffer),
-		StopCh:         make(chan interface{}, 1),
 	}
 }
 
@@ -204,10 +205,6 @@ func (c *ResponseCapture) Header() http.Header {
 
 func (c *ResponseCapture) Write(data []byte) (int, error) {
 
-	defer func() {
-		c.StopCh <- struct{}{}
-	}()
-
 	c.WriteHeader(http.StatusOK)
 	c.body.Write(data)
 	return c.ResponseWriter.Write(data)
@@ -216,6 +213,7 @@ func (c *ResponseCapture) Write(data []byte) (int, error) {
 func (c *ResponseCapture) WriteHeader(statusCode int) {
 	if !c.wroteHeader {
 		c.status = statusCode
+		c.ResponseWriter.WriteHeader(statusCode)
 		c.wroteHeader = true
 	}
 }
@@ -226,4 +224,15 @@ func (c *ResponseCapture) Bytes() []byte {
 
 func (c *ResponseCapture) StatusCode() int {
 	return c.status
+}
+
+// Hijack implements the http.Hijacker interface.  This expands
+// the Response to fulfill http.Hijacker if the underlying
+// http.ResponseWriter supports it.
+func (c *ResponseCapture) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := c.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("ResponseWriter doesn't support Hijacker interface")
+	}
+	return hijacker.Hijack()
 }
