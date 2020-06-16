@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -249,6 +250,11 @@ func (c *Controller) reconcile(key string) error {
 	}
 
 	if err = c.initRoles(workspaceTemplate); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err = c.initManagerRoleBinding(workspaceTemplate); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -490,5 +496,41 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 			}
 		}
 	}
+	return nil
+}
+
+func (r *Controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceTemplate) error {
+	if manager := workspace.Spec.Manager; manager != "" {
+
+		workspaceAdminRoleName := fmt.Sprintf(iamv1alpha2.WorkspaceAdminFormat, workspace.Name)
+
+		managerRoleBinding := &iamv1alpha2.WorkspaceRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   fmt.Sprintf("%s-%s", manager, workspaceAdminRoleName),
+				Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+				Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
+				Name:     workspaceAdminRoleName,
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Name:     manager,
+					Kind:     iamv1alpha2.ResourceKindUser,
+					APIGroup: rbacv1.GroupName,
+				},
+			},
+		}
+		_, err := r.ksClient.IamV1alpha2().WorkspaceRoleBindings().Create(managerRoleBinding)
+		if err != nil {
+			if errors.IsAlreadyExists(err) {
+				return nil
+			}
+			klog.Error(err)
+			return err
+		}
+	}
+
 	return nil
 }
