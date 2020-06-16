@@ -114,7 +114,7 @@ func (am *amOperator) GetGlobalRoleOfUser(username string) (*iamv1alpha2.GlobalR
 	}
 
 	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularGlobalRoleBinding), username)
-	klog.Error(err)
+	klog.V(4).Info(err)
 	return nil, err
 }
 
@@ -148,7 +148,7 @@ func (am *amOperator) GetWorkspaceRoleOfUser(username, workspace string) (*iamv1
 	}
 
 	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularWorkspaceRoleBinding), username)
-	klog.Error(err)
+	klog.V(4).Info(err)
 	return nil, err
 }
 
@@ -179,7 +179,7 @@ func (am *amOperator) GetNamespaceRoleOfUser(username, namespace string) (*rbacv
 	}
 
 	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularRoleBinding), username)
-	klog.Error(err)
+	klog.V(4).Info(err)
 	return nil, err
 }
 
@@ -211,7 +211,7 @@ func (am *amOperator) GetClusterRoleOfUser(username string) (*rbacv1.ClusterRole
 	}
 
 	err = errors.NewNotFound(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularClusterRoleBinding), username)
-	klog.Error(err)
+	klog.V(4).Info(err)
 	return nil, err
 }
 

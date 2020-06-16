@@ -265,7 +265,7 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 	for _, roleBase := range roleBases.Items {
 		var role rbacv1.Role
 
-		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil {
+		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindRole {
 			var old rbacv1.Role
 			err := r.Client.Get(context.Background(), types.NamespacedName{Namespace: namespace.Name, Name: role.Name}, &old)
 			if err != nil {
