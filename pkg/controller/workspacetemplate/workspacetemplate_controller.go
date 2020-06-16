@@ -458,7 +458,7 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 
 	for _, roleBase := range roleBases {
 		var role iamv1alpha2.WorkspaceRole
-		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil {
+		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindWorkspaceRole {
 			old, err := r.workspaceRoleLister.Get(fmt.Sprintf("%s-%s", workspace.Name, role.Name))
 			if err != nil {
 				if errors.IsNotFound(err) {
