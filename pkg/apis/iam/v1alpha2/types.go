@@ -67,6 +67,7 @@ const (
 	ScopeNamespace                        = "namespace"
 	PlatformAdmin                         = "platform-admin"
 	NamespaceAdmin                        = "admin"
+	WorkspaceAdminFormat                  = "%s-admin"
 	ClusterAdmin                          = "cluster-admin"
 )
 
