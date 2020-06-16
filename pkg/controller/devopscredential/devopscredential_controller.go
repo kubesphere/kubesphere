@@ -239,7 +239,6 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(copySecret.ObjectMeta.Finalizers, devopsv1alpha3.CredentialFinalizerName) {
 			if _, err := c.devopsClient.DeleteCredentialInProject(nsName, secret.Name); err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete secret %s in devops", key))
-				return err
 			}
 			copySecret.ObjectMeta.Finalizers = sliceutil.RemoveString(copySecret.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.CredentialFinalizerName

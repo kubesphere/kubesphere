@@ -295,7 +295,6 @@ func (c *Controller) syncHandler(key string) error {
 		if sliceutil.HasString(project.ObjectMeta.Finalizers, devopsv1alpha3.DevOpsProjectFinalizerName) {
 			if err := c.deleteDevOpsProjectInDevOps(project); err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to delete resource %s in devops", key))
-				return err
 			}
 			project.ObjectMeta.Finalizers = sliceutil.RemoveString(project.ObjectMeta.Finalizers, func(item string) bool {
 				return item == devopsv1alpha3.DevOpsProjectFinalizerName
