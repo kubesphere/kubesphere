@@ -296,3 +296,29 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 
 	assert.EqualValues(t, string(expectedBs), string(bs))
 }
+
+func TestResponseCapture_WriteHeader(t *testing.T) {
+	record := httptest.NewRecorder()
+	resp := NewResponseCapture(record)
+
+	resp.WriteHeader(404)
+
+	assert.EqualValues(t, 404, resp.StatusCode())
+	assert.EqualValues(t, 404, record.Code)
+}
+
+func TestResponseCapture_Write(t *testing.T) {
+
+	record := httptest.NewRecorder()
+	resp := NewResponseCapture(record)
+
+	body := []byte("123")
+
+	_, err := resp.Write(body)
+	if err != nil {
+		panic(err)
+	}
+
+	assert.EqualValues(t, body, resp.Bytes())
+	assert.EqualValues(t, body, record.Body.Bytes())
+}
