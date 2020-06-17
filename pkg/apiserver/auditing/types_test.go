@@ -16,6 +16,7 @@ import (
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -248,7 +249,7 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 
 	e := a.LogRequestObject(req, info)
 
-	resp := &ResponseCapture{}
+	resp := NewResponseCapture(httptest.NewRecorder())
 	resp.WriteHeader(200)
 
 	a.LogResponseObject(e, resp, info)
@@ -294,4 +295,30 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 	}
 
 	assert.EqualValues(t, string(expectedBs), string(bs))
+}
+
+func TestResponseCapture_WriteHeader(t *testing.T) {
+	record := httptest.NewRecorder()
+	resp := NewResponseCapture(record)
+
+	resp.WriteHeader(404)
+
+	assert.EqualValues(t, 404, resp.StatusCode())
+	assert.EqualValues(t, 404, record.Code)
+}
+
+func TestResponseCapture_Write(t *testing.T) {
+
+	record := httptest.NewRecorder()
+	resp := NewResponseCapture(record)
+
+	body := []byte("123")
+
+	_, err := resp.Write(body)
+	if err != nil {
+		panic(err)
+	}
+
+	assert.EqualValues(t, body, resp.Bytes())
+	assert.EqualValues(t, body, record.Body.Bytes())
 }
