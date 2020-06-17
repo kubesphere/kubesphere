@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/informers"
 	resourceheper "k8s.io/kubectl/pkg/util/resource"
 	"kubesphere.io/kubesphere/pkg/api"
-	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 )
@@ -104,12 +103,12 @@ func (c nodesGetter) compare(left runtime.Object, right runtime.Object, field qu
 }
 
 func (c nodesGetter) filter(object runtime.Object, filter query.Filter) bool {
-	cluster, ok := object.(*clusterv1alpha1.Cluster)
+	node, ok := object.(*v1.Node)
 	if !ok {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaFilter(cluster.ObjectMeta, filter)
+	return v1alpha3.DefaultObjectMetaFilter(node.ObjectMeta, filter)
 }
 
 // annotateNode adds cpu/memory requests usage data to node's annotations
