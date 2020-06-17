@@ -17,19 +17,12 @@ limitations under the License.
 package workspace
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
-	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -124,48 +117,5 @@ func (r *ReconcileWorkspace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.initRoles(instance); err != nil {
-		klog.Error(err)
-		return reconcile.Result{}, err
-	}
-
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileWorkspace) initRoles(workspace *tenantv1alpha1.Workspace) error {
-	var roleBases iamv1alpha2.RoleBaseList
-
-	err := r.List(context.Background(), &roleBases)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
-
-	for _, roleBase := range roleBases.Items {
-		var role iamv1alpha2.WorkspaceRole
-
-		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil {
-			var old iamv1alpha2.WorkspaceRole
-			err := r.Client.Get(context.Background(), types.NamespacedName{Name: fmt.Sprintf("%s-%s", workspace.Name, role.Name)}, &old)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					role.Name = fmt.Sprintf("%s-%s", workspace.Name, role.Name)
-					role.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
-					return r.Client.Create(context.Background(), &role)
-				}
-			}
-
-			if !reflect.DeepEqual(role.Labels, old.Labels) ||
-				!reflect.DeepEqual(role.Annotations, old.Annotations) ||
-				!reflect.DeepEqual(role.Rules, old.Rules) {
-
-				old.Labels = role.Labels
-				old.Annotations = role.Annotations
-				old.Rules = role.Rules
-
-				return r.Update(context.Background(), &old)
-			}
-		}
-	}
-	return nil
 }
