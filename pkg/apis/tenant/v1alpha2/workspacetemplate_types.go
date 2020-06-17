@@ -58,34 +58,6 @@ type WorkspaceTemplate struct {
 }
 
 type WorkspaceTemplateSpec struct {
-	v1alpha1.WorkspaceSpec `json:",inline"`
-	// authorized clusters
-	// +optional
-	Clusters  []string   `json:"clusters,omitempty"`
-	Overrides []Override `json:"overrides,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
-
-// WorkspaceTemplateList contains a list of WorkspaceTemplate
-type WorkspaceTemplateList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []WorkspaceTemplate `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&WorkspaceTemplate{}, &WorkspaceTemplateList{})
-}
-
-type FederatedWorkspace struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FederatedWorkspaceSpec `json:"spec"`
-}
-
-type FederatedWorkspaceSpec struct {
 	Template  Template   `json:"template"`
 	Placement Placement  `json:"placement"`
 	Overrides []Override `json:"overrides,omitempty"`
@@ -118,4 +90,24 @@ type ClusterOverride struct {
 	Path  string               `json:"path"`
 	Op    string               `json:"op,omitempty"`
 	Value runtime.RawExtension `json:"value"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+
+// WorkspaceTemplateList contains a list of WorkspaceTemplate
+type WorkspaceTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []WorkspaceTemplate `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&WorkspaceTemplate{}, &WorkspaceTemplateList{})
+}
+
+type FederatedWorkspace struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              WorkspaceTemplateSpec `json:"spec"`
 }

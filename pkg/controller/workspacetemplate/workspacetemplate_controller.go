@@ -297,15 +297,9 @@ func (c *Controller) multiClusterSync(workspaceTemplate *tenantv1alpha2.Workspac
 		return err
 	}
 
-	if !reflect.DeepEqual(fedWorkspace.Spec.Template.Spec, workspaceTemplate.Spec.WorkspaceSpec) ||
-		!reflect.DeepEqual(fedWorkspace.Labels, workspaceTemplate.Labels) ||
-		!reflect.DeepEqual(fedWorkspace.Annotations, workspaceTemplate.Annotations) ||
-		!reflect.DeepEqual(fedWorkspace.Spec.Overrides, workspaceTemplate.Spec.Overrides) {
+	if !reflect.DeepEqual(fedWorkspace.Spec, workspaceTemplate.Spec) {
 
-		fedWorkspace.Spec.Template.Spec = workspaceTemplate.Spec.WorkspaceSpec
-		fedWorkspace.Annotations = workspaceTemplate.Annotations
-		fedWorkspace.Labels = workspaceTemplate.Labels
-		fedWorkspace.Spec.Overrides = workspaceTemplate.Spec.Overrides
+		fedWorkspace.Spec = workspaceTemplate.Spec
 
 		return c.updateFederatedWorkspace(&fedWorkspace)
 	}
@@ -314,11 +308,6 @@ func (c *Controller) multiClusterSync(workspaceTemplate *tenantv1alpha2.Workspac
 }
 
 func (c *Controller) createFederatedWorkspace(workspaceTemplate *tenantv1alpha2.WorkspaceTemplate) error {
-	clusters := make([]tenantv1alpha2.Cluster, 0)
-	for _, cluster := range workspaceTemplate.Spec.Clusters {
-		clusters = append(clusters, tenantv1alpha2.Cluster{Name: cluster})
-	}
-
 	federatedWorkspace := &tenantv1alpha2.FederatedWorkspace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       tenantv1alpha2.FedWorkspaceKind,
@@ -327,19 +316,7 @@ func (c *Controller) createFederatedWorkspace(workspaceTemplate *tenantv1alpha2.
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workspaceTemplate.Name,
 		},
-		Spec: tenantv1alpha2.FederatedWorkspaceSpec{
-			Template: tenantv1alpha2.Template{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      workspaceTemplate.Labels,
-					Annotations: workspaceTemplate.Annotations,
-				},
-				Spec: workspaceTemplate.Spec.WorkspaceSpec,
-			},
-			Placement: tenantv1alpha2.Placement{
-				Clusters: clusters,
-			},
-			Overrides: workspaceTemplate.Spec.Overrides,
-		},
+		Spec: workspaceTemplate.Spec,
 	}
 
 	err := controllerutil.SetControllerReference(workspaceTemplate, federatedWorkspace, scheme.Scheme)
@@ -404,14 +381,14 @@ func (c *Controller) sync(workspaceTemplate *tenantv1alpha2.WorkspaceTemplate) e
 		return err
 	}
 
-	if !reflect.DeepEqual(workspace.Spec, workspaceTemplate.Spec.WorkspaceSpec) ||
-		!reflect.DeepEqual(workspace.Labels, workspaceTemplate.Labels) ||
-		!reflect.DeepEqual(workspace.Annotations, workspaceTemplate.Annotations) {
+	if !reflect.DeepEqual(workspace.Spec, workspaceTemplate.Spec.Template.Spec) ||
+		!reflect.DeepEqual(workspace.Labels, workspaceTemplate.Spec.Template.Labels) ||
+		!reflect.DeepEqual(workspace.Annotations, workspaceTemplate.Spec.Template.Annotations) {
 
 		workspace = workspace.DeepCopy()
-		workspace.Spec = workspaceTemplate.Spec.WorkspaceSpec
-		workspace.Annotations = workspaceTemplate.Annotations
-		workspace.Labels = workspaceTemplate.Labels
+		workspace.Spec = workspaceTemplate.Spec.Template.Spec
+		workspace.Labels = workspaceTemplate.Spec.Template.Labels
+		workspace.Annotations = workspaceTemplate.Spec.Template.Annotations
 
 		return c.updateWorkspace(workspace)
 	}
@@ -423,10 +400,10 @@ func (c *Controller) createWorkspace(workspaceTemplate *tenantv1alpha2.Workspace
 	workspace := &tenantv1alpha1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        workspaceTemplate.Name,
-			Labels:      workspaceTemplate.Labels,
-			Annotations: workspaceTemplate.Annotations,
+			Labels:      workspaceTemplate.Spec.Template.Labels,
+			Annotations: workspaceTemplate.Spec.Template.Annotations,
 		},
-		Spec: workspaceTemplate.Spec.WorkspaceSpec,
+		Spec: workspaceTemplate.Spec.Template.Spec,
 	}
 
 	err := controllerutil.SetControllerReference(workspaceTemplate, workspace, scheme.Scheme)
@@ -482,9 +459,11 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 				}
 			}
 
-			if !reflect.DeepEqual(role.Annotations, old.Annotations) ||
+			if !reflect.DeepEqual(role.Labels, old.Labels) ||
+				!reflect.DeepEqual(role.Annotations, old.Annotations) ||
 				!reflect.DeepEqual(role.Rules, old.Rules) {
 				updated := old.DeepCopy()
+				updated.Labels = role.Labels
 				updated.Annotations = role.Annotations
 				updated.Rules = role.Rules
 
@@ -500,7 +479,7 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 }
 
 func (r *Controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceTemplate) error {
-	if manager := workspace.Spec.Manager; manager != "" {
+	if manager := workspace.Spec.Template.Spec.Manager; manager != "" {
 
 		workspaceAdminRoleName := fmt.Sprintf(iamv1alpha2.WorkspaceAdminFormat, workspace.Name)
 

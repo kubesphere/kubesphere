@@ -342,8 +342,8 @@ func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListR
 		return nil, err
 	}
 	clusters := make([]interface{}, 0)
-	for _, cluster := range workspace.Spec.Clusters {
-		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster)
+	for _, cluster := range workspace.Spec.Placement.Clusters {
+		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster.Name)
 		if err != nil {
 			klog.Error(err)
 			if errors.IsNotFound(err) {
@@ -415,12 +415,12 @@ func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 			return nil, err
 		}
 
-		for _, clusterName := range workspace.Spec.Clusters {
+		for _, grantedCluster := range workspace.Spec.Placement.Clusters {
 			// skip if cluster exist
-			if clusters[clusterName] != nil {
+			if clusters[grantedCluster.Name] != nil {
 				continue
 			}
-			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", clusterName)
+			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", grantedCluster.Name)
 			if err != nil {
 				klog.Error(err)
 				if errors.IsNotFound(err) {
@@ -429,7 +429,7 @@ func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 				return nil, err
 			}
 			cluster := obj.(*clusterv1alpha1.Cluster)
-			clusters[clusterName] = cluster
+			clusters[cluster.Name] = cluster
 		}
 	}
 

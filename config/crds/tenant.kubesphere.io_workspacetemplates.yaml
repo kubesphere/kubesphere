@@ -35,15 +35,6 @@ spec:
           type: object
         spec:
           properties:
-            clusters:
-              description: authorized clusters
-              items:
-                type: string
-              type: array
-            manager:
-              type: string
-            networkIsolation:
-              type: boolean
             overrides:
               items:
                 properties:
@@ -54,15 +45,15 @@ spec:
                       properties:
                         op:
                           type: string
-                        path:
-                          type: string
-                        value:
-                          anyOf:
-                            - type: string
-                            - type: integer
-                            - type: boolean
-                            - type: object
-                            - type: array
+                          path:
+                            type: string
+                          value:
+                            anyOf:
+                              - type: string
+                              - type: integer
+                              - type: boolean
+                              - type: object
+                              - type: array
                       required:
                       - path
                       - value
@@ -73,6 +64,43 @@ spec:
                 - clusterOverrides
                 type: object
               type: array
+            placement:
+              properties:
+                clusterSelector:
+                  properties:
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                clusters:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
+              type: object
+            template:
+              properties:
+                metadata:
+                  type: object
+                spec:
+                  description: WorkspaceSpec defines the desired state of Workspace
+                  properties:
+                    manager:
+                      type: string
+                    networkIsolation:
+                      type: boolean
+                  type: object
+              required:
+              - spec
+              type: object
+          required:
+          - placement
+          - template
           type: object
       type: object
   version: v1alpha2
