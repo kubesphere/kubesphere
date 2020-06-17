@@ -144,21 +144,19 @@ func labelMatch(labels map[string]string, filter string) bool {
 		}
 		value = fields[1]
 	} else {
-		value = fields[0]
+		key = fields[0]
+		value = "*"
 	}
 	for k, v := range labels {
 		if opposite {
-			if (key == "" || k == key) && v != value {
+			if (k == key) && v != value {
 				return true
 			}
 		} else {
-			if (key == "" || k == key) && v == value {
+			if (k == key) && (value == "*" || v == value) {
 				return true
 			}
 		}
-	}
-	if opposite && labels[key] == "" {
-		return true
 	}
 	return false
 }
