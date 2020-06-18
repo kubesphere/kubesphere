@@ -10,6 +10,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	requestinfo "kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
@@ -821,6 +822,14 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 		}
 	}
 
+	if event := requestinfo.AuditEventFrom(request.Request.Context()); event != nil {
+		name := ""
+		for _, member := range members {
+			name += member.Username + ", "
+		}
+		name = strings.TrimSuffix(name, ", ")
+		event.ObjectRef.Name = name
+	}
 	response.WriteEntity(members)
 }
 
@@ -899,6 +908,14 @@ func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *
 		}
 	}
 
+	if event := requestinfo.AuditEventFrom(request.Request.Context()); event != nil {
+		name := ""
+		for _, member := range members {
+			name += member.Username + ", "
+		}
+		name = strings.TrimSuffix(name, ", ")
+		event.ObjectRef.Name = name
+	}
 	response.WriteEntity(members)
 }
 
@@ -980,6 +997,14 @@ func (h *iamHandler) CreateClusterMembers(request *restful.Request, response *re
 		}
 	}
 
+	if event := requestinfo.AuditEventFrom(request.Request.Context()); event != nil {
+		name := ""
+		for _, member := range members {
+			name += member.Username + ", "
+		}
+		name = strings.TrimSuffix(name, ", ")
+		event.ObjectRef.Name = name
+	}
 	response.WriteEntity(members)
 }
 

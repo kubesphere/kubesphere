@@ -122,6 +122,19 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		},
 	}
 
+	// Handle the devops request which request url matched /devops/{devops}/kind.
+	if len(info.Parts) >= 3 && info.Parts[0] == "devops" {
+		e.ObjectRef.Subresource = ""
+		e.Devops = info.Parts[1]
+		// set resource as kind
+		e.ObjectRef.Resource = info.Parts[2]
+
+		// If the request url matched /devops/{devops}/kind/{kind}, set resource name as {kind}
+		if len(info.Parts) >= 4 {
+			e.ObjectRef.Name = info.Parts[3]
+		}
+	}
+
 	ips := make([]string, 1)
 	ips[0] = iputil.RemoteIp(req)
 	e.SourceIPs = ips
@@ -137,7 +150,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		}
 	}
 
-	if e.Level.GreaterOrEqual(audit.LevelRequest) && req.ContentLength > 0 {
+	if (e.Level.GreaterOrEqual(audit.LevelRequest) || e.Verb == "create") && req.ContentLength > 0 {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			klog.Error(err)
@@ -145,18 +158,24 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		}
 		_ = req.Body.Close()
 		req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		e.RequestObject = &runtime.Unknown{Raw: body}
+
+		if e.Level.GreaterOrEqual(audit.LevelRequest) {
+			e.RequestObject = &runtime.Unknown{Raw: body}
+		}
+
+		// For resource creating request, get resource name from the request body.
+		if info.Verb == "create" {
+			obj := &auditv1alpha1.Object{}
+			if err := json.Unmarshal(body, obj); err == nil {
+				e.ObjectRef.Name = obj.Name
+			}
+		}
 	}
 
 	return e
 }
 
 func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture, info *request.RequestInfo) {
-
-	// Auditing should igonre k8s request when k8s auditing is enabled.
-	if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
-		return
-	}
 
 	e.StageTimestamp = v1.NewMicroTime(time.Now())
 	e.ResponseStatus = &v1.Status{Code: int32(resp.StatusCode())}
@@ -168,10 +187,6 @@ func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCaptu
 }
 
 func (a *auditing) cacheEvent(e auditv1alpha1.Event) {
-	if klog.V(8) {
-		bs, _ := json.Marshal(e)
-		klog.Infof("%s", string(bs))
-	}
 
 	eventList := &auditv1alpha1.EventList{}
 	eventList.Items = append(eventList.Items, e)

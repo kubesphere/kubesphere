@@ -26,6 +26,12 @@ func WithAuditing(handler http.Handler, a auditing.Auditing) http.Handler {
 			return
 		}
 
+		// Auditing should igonre k8s request when k8s auditing is enabled.
+		if info.IsKubernetesRequest && a.K8sAuditingEnabled() {
+			handler.ServeHTTP(w, req)
+			return
+		}
+
 		e := a.LogRequestObject(req, info)
 		req = req.WithContext(request.WithAuditEvent(req.Context(), e))
 		resp := auditing.NewResponseCapture(w)
