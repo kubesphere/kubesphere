@@ -395,12 +395,7 @@ func (h *tenantHandler) PatchNamespace(request *restful.Request, response *restf
 		return
 	}
 
-	if namespaceName != namespace.Name {
-		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", namespace.Name, namespaceName)
-		klog.Errorf("%+v", err)
-		api.HandleBadRequest(response, request, err)
-		return
-	}
+	namespace.Name = namespaceName
 
 	patched, err := h.tenant.PatchNamespace(workspaceName, &namespace)
 
@@ -432,12 +427,7 @@ func (h *tenantHandler) PatchWorkspace(request *restful.Request, response *restf
 		return
 	}
 
-	if workspaceName != workspace.Name {
-		err := fmt.Errorf("the name of the object (%s) does not match the name on the URL (%s)", workspace.Name, workspaceName)
-		klog.Errorf("%+v", err)
-		api.HandleBadRequest(response, request, err)
-		return
-	}
+	workspace.Name = workspaceName
 
 	patched, err := h.tenant.PatchWorkspace(&workspace)
 

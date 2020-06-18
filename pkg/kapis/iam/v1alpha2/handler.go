@@ -821,7 +821,7 @@ func (h *iamHandler) CreateWorkspaceMembers(request *restful.Request, response *
 		}
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(members)
 }
 
 func (h *iamHandler) RemoveWorkspaceMember(request *restful.Request, response *restful.Response) {
@@ -867,7 +867,7 @@ func (h *iamHandler) UpdateWorkspaceMember(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(member)
 }
 
 func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *restful.Response) {
@@ -899,7 +899,7 @@ func (h *iamHandler) CreateNamespaceMembers(request *restful.Request, response *
 		}
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(members)
 }
 
 func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *restful.Response) {
@@ -936,7 +936,7 @@ func (h *iamHandler) UpdateNamespaceMember(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(member)
 }
 
 func (h *iamHandler) RemoveNamespaceMember(request *restful.Request, response *restful.Response) {
@@ -980,7 +980,7 @@ func (h *iamHandler) CreateClusterMembers(request *restful.Request, response *re
 		}
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(members)
 }
 
 func (h *iamHandler) RemoveClusterMember(request *restful.Request, response *restful.Response) {
@@ -1024,7 +1024,7 @@ func (h *iamHandler) UpdateClusterMember(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteEntity(servererr.None)
+	response.WriteEntity(member)
 }
 
 func (h *iamHandler) DescribeClusterMember(request *restful.Request, response *restful.Response) {
@@ -1093,6 +1093,105 @@ func (h *iamHandler) resolveNamespace(namespace string, devops string) (string, 
 		return namespace, nil
 	}
 	return h.am.GetControlledNamespace(devops)
+}
+
+func (h *iamHandler) PatchWorkspaceRole(request *restful.Request, response *restful.Response) {
+	workspaceName := request.PathParameter("workspace")
+	workspaceRoleName := request.PathParameter("workspacerole")
+
+	var workspaceRole iamv1alpha2.WorkspaceRole
+	err := request.ReadEntity(&workspaceRole)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	workspaceRole.Name = workspaceRoleName
+
+	patched, err := h.am.PatchWorkspaceRole(workspaceName, &workspaceRole)
+
+	if err != nil {
+		handleError(request, response, err)
+		return
+	}
+
+	response.WriteEntity(patched)
+}
+
+func (h *iamHandler) PatchGlobalRole(request *restful.Request, response *restful.Response) {
+	globalRoleName := request.PathParameter("globalrole")
+
+	var globalRole iamv1alpha2.GlobalRole
+	err := request.ReadEntity(&globalRole)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	globalRole.Name = globalRoleName
+
+	patched, err := h.am.PatchGlobalRole(&globalRole)
+
+	if err != nil {
+		handleError(request, response, err)
+		return
+	}
+
+	response.WriteEntity(patched)
+}
+
+func (h *iamHandler) PatchNamespaceRole(request *restful.Request, response *restful.Response) {
+	roleName := request.PathParameter("role")
+	namespaceName, err := h.resolveNamespace(request.PathParameter("namespace"), request.PathParameter("devops"))
+	if err != nil {
+		klog.Error(err)
+		handleError(request, response, err)
+		return
+	}
+
+	var role rbacv1.Role
+	err = request.ReadEntity(&role)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	role.Name = roleName
+
+	patched, err := h.am.PatchNamespaceRole(namespaceName, &role)
+
+	if err != nil {
+		handleError(request, response, err)
+		return
+	}
+
+	response.WriteEntity(patched)
+}
+
+func (h *iamHandler) PatchClusterRole(request *restful.Request, response *restful.Response) {
+	clusterRoleName := request.PathParameter("clusterrole")
+
+	var clusterRole rbacv1.ClusterRole
+	err := request.ReadEntity(&clusterRole)
+	if err != nil {
+		klog.Error(err)
+		api.HandleBadRequest(response, request, err)
+		return
+	}
+
+	clusterRole.Name = clusterRoleName
+
+	patched, err := h.am.PatchClusterRole(&clusterRole)
+
+	if err != nil {
+		handleError(request, response, err)
+		return
+	}
+
+	response.WriteEntity(patched)
 }
 
 func handleError(request *restful.Request, response *restful.Response, err error) {
