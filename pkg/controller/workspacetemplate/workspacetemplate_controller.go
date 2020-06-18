@@ -438,18 +438,18 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 		klog.Error(err)
 		return err
 	}
-
 	for _, roleBase := range roleBases {
 		var role iamv1alpha2.WorkspaceRole
 		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindWorkspaceRole {
-			old, err := r.workspaceRoleLister.Get(fmt.Sprintf("%s-%s", workspace.Name, role.Name))
+			roleName := fmt.Sprintf("%s-%s", workspace.Name, role.Name)
+			if role.Labels == nil {
+				role.Labels = make(map[string]string, 0)
+			}
+			// make sure workspace label always exist
+			role.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
+			old, err := r.workspaceRoleLister.Get(roleName)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					role.Name = fmt.Sprintf("%s-%s", workspace.Name, role.Name)
-					if role.Labels == nil {
-						role.Labels = make(map[string]string, 0)
-					}
-					role.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
 					_, err = r.ksClient.IamV1alpha2().WorkspaceRoles().Create(&role)
 					if err != nil {
 						klog.Error(err)
@@ -458,7 +458,6 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 					continue
 				}
 			}
-
 			if !reflect.DeepEqual(role.Labels, old.Labels) ||
 				!reflect.DeepEqual(role.Annotations, old.Annotations) ||
 				!reflect.DeepEqual(role.Rules, old.Rules) {
@@ -466,7 +465,6 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 				updated.Labels = role.Labels
 				updated.Annotations = role.Annotations
 				updated.Rules = role.Rules
-
 				_, err = r.ksClient.IamV1alpha2().WorkspaceRoles().Update(updated)
 				if err != nil {
 					klog.Error(err)
