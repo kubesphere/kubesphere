@@ -30,7 +30,7 @@ func AddToContainer(container *restful.Container,
 	webservice.Route(webservice.GET("/clusters/{cluster}/agent/deployment").
 		Doc("Return deployment yaml for cluster agent.").
 		Param(webservice.PathParameter("cluster", "Name of the cluster.").Required(true)).
-		To(h.GenerateAgentDeployment).
+		To(h.generateAgentDeployment).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	webservice.Route(webservice.POST("/clusters/validation").

@@ -61,7 +61,10 @@ func NewHandler(serviceLister v1.ServiceLister, clusterLister clusterlister.Clus
 	}
 }
 
-func (h *handler) GenerateAgentDeployment(request *restful.Request, response *restful.Response) {
+// generateAgentDeployment will return a deployment yaml for proxy connection type cluster
+// ProxyPublishAddress takes high precedence over proxyPublishService, use proxyPublishService ingress
+// address only when proxyPublishAddress is not provided.
+func (h *handler) generateAgentDeployment(request *restful.Request, response *restful.Response) {
 	clusterName := request.PathParameter("cluster")
 
 	cluster, err := h.clusterLister.Get(clusterName)
@@ -113,7 +116,7 @@ func (h *handler) populateProxyAddress() error {
 
 	service, err := h.serviceLister.Services(namespace).Get(parts[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("service %s not found in namespace %s", parts[0], namespace)
 	}
 
 	if len(service.Spec.Ports) == 0 {
@@ -184,9 +187,10 @@ func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writ
 								fmt.Sprintf("--name=%s", cluster.Name),
 								fmt.Sprintf("--token=%s", cluster.Spec.Connection.Token),
 								fmt.Sprintf("--proxy-server=%s", h.proxyAddress),
-								fmt.Sprintf("--keepalive=30s"),
+								fmt.Sprintf("--keepalive=10s"),
 								fmt.Sprintf("--kubesphere-service=ks-apiserver.kubesphere-system.svc:80"),
 								fmt.Sprintf("--kubernetes-service=kubernetes.default.svc:443"),
+								fmt.Sprintf("--v=0"),
 							},
 							Image: h.agentImage,
 							Resources: corev1.ResourceRequirements{
@@ -221,25 +225,18 @@ func (h *handler) ValidateCluster(request *restful.Request, response *restful.Re
 	}
 
 	if cluster.Spec.Connection.Type != v1alpha1.ConnectionTypeDirect {
-		api.HandleBadRequest(response, request, fmt.Errorf("cluster connection type is not direct"))
+		api.HandleBadRequest(response, request, fmt.Errorf("cluster connection type MUST be direct"))
 		return
 	}
 
-	if len(cluster.Spec.Connection.KubeConfig) == 0 || len(cluster.Spec.Connection.KubeSphereAPIEndpoint) == 0 {
-		api.HandleBadRequest(response, request, fmt.Errorf("cluster kubeconfig and kubesphere endpoint should not be empty"))
+	if len(cluster.Spec.Connection.KubeConfig) == 0 {
+		api.HandleBadRequest(response, request, fmt.Errorf("cluster kubeconfig MUST NOT be empty"))
 		return
 	}
 
 	err = validateKubeConfig(cluster.Spec.Connection.KubeConfig)
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
-		return
-	}
-
-	// kubesphere apiserver endpoint not provided, that's allowed
-	// Cluster dispatcher will use kube-apiserver proxy instead
-	if len(cluster.Spec.Connection.KubeSphereAPIEndpoint) == 0 {
-		response.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -286,7 +283,7 @@ func loadKubeConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
 }
 
 // validateKubeSphereAPIServer uses version api to check the accessibility
-// If ksEndpoint is empty, use
+// If kubesphere apiserver endpoint is not provided, use kube-apiserver proxy instead
 func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version.Info, error) {
 	if len(ksEndpoint) == 0 && len(kubeconfig) == 0 {
 		return nil, fmt.Errorf("neither kubesphere api endpoint nor kubeconfig was provided")
