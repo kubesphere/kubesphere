@@ -89,9 +89,10 @@ spec:
         - --name=gondor
         - --token=randomtoken
         - --proxy-server=http://139.198.121.121:8080
-        - --keepalive=30s
+        - --keepalive=10s
         - --kubesphere-service=ks-apiserver.kubesphere-system.svc:80
         - --kubernetes-service=kubernetes.default.svc:443
+        - --v=0
         image: kubesphere/tower:v1.0
         name: agent
         resources:
