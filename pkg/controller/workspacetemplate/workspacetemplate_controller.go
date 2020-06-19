@@ -447,6 +447,7 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 			}
 			// make sure workspace label always exist
 			role.Labels[tenantv1alpha1.WorkspaceLabel] = workspace.Name
+			role.Name = roleName
 			old, err := r.workspaceRoleLister.Get(roleName)
 			if err != nil {
 				if errors.IsNotFound(err) {

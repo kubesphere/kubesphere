@@ -38,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/proxy"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
@@ -267,7 +268,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
-		authorizers = unionauthorizer.New(pathAuthorizer, authorizerfactory.NewRBACAuthorizer(amOperator))
+		authorizers = unionauthorizer.New(pathAuthorizer, proxy.NewAuthorizer(s.Config.MultiClusterOptions.Enable), authorizerfactory.NewRBACAuthorizer(amOperator))
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)

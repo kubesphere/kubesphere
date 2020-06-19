@@ -230,37 +230,6 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.ClusterScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
-		if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
-			if !visitor(nil, "", nil, err) {
-				return
-			}
-		} else {
-			sourceDescriber := &clusterRoleBindingDescriber{}
-			for _, clusterRoleBinding := range clusterRoleBindings {
-				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), clusterRoleBinding.Subjects, "")
-				if !applies {
-					continue
-				}
-				regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
-				if err != nil {
-					visitor(nil, "", nil, err)
-					continue
-				}
-				sourceDescriber.binding = clusterRoleBinding
-				sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
-				if !visitor(sourceDescriber, regoPolicy, nil, nil) {
-					return
-				}
-				for i := range rules {
-					if !visitor(sourceDescriber, "", &rules[i], nil) {
-						return
-					}
-				}
-			}
-		}
-	}
-
 	if requestAttributes.GetResourceScope() == request.WorkspaceScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
 
 		var workspace string
@@ -334,6 +303,35 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 					if !visitor(sourceDescriber, "", &rules[i], nil) {
 						return
 					}
+				}
+			}
+		}
+	}
+
+	if clusterRoleBindings, err := r.am.ListClusterRoleBindings(""); err != nil {
+		if !visitor(nil, "", nil, err) {
+			return
+		}
+	} else {
+		sourceDescriber := &clusterRoleBindingDescriber{}
+		for _, clusterRoleBinding := range clusterRoleBindings {
+			subjectIndex, applies := appliesTo(requestAttributes.GetUser(), clusterRoleBinding.Subjects, "")
+			if !applies {
+				continue
+			}
+			regoPolicy, rules, err := r.am.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
+			if err != nil {
+				visitor(nil, "", nil, err)
+				continue
+			}
+			sourceDescriber.binding = clusterRoleBinding
+			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
+			if !visitor(sourceDescriber, regoPolicy, nil, nil) {
+				return
+			}
+			for i := range rules {
+				if !visitor(sourceDescriber, "", &rules[i], nil) {
+					return
 				}
 			}
 		}
