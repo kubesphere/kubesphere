@@ -299,10 +299,6 @@ const (
 
 func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
 
-	if request.Cluster != "" {
-		return ClusterScope
-	}
-
 	if request.Namespace != "" {
 		return NamespaceScope
 	}
@@ -311,5 +307,5 @@ func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
 		return WorkspaceScope
 	}
 
-	return GlobalScope
+	return ClusterScope
 }
