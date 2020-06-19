@@ -25,7 +25,7 @@ func labelReplace(input, ns string) (string, error) {
 	return root.String(), nil
 }
 
-// Inspired by https://github.com/openshift/prom-label-proxy
+// Inspired by https://github.com/prometheus-community/prom-label-proxy
 func setRecursive(node promql.Node, namespace string) (err error) {
 	switch n := node.(type) {
 	case *promql.EvalStmt:
