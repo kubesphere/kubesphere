@@ -57,6 +57,21 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
+	webservice.Route(webservice.GET("/namespaces/{namespace}/applications").
+		To(handler.ListApplications).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Doc("List all applications within the specified namespace").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
+			Required(false).
+			DataFormat("key=value,key~value").
+			DefaultValue("")).
+		Param(webservice.PathParameter("namespace", "the name of the project.").Required(true)).
+		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")))
+
 	webservice.Route(webservice.GET("/clusters/{cluster}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
