@@ -108,7 +108,7 @@ func (es *Elasticsearch) CountOverTime(filter *events.Filter, interval string) (
 	if err := json.Unmarshal(raw, &agg); err != nil {
 		return nil, err
 	}
-	histo := events.Histogram{Total: int64(len(agg.Buckets))}
+	histo := events.Histogram{Total: resp.Hits.Total}
 	for _, b := range agg.Buckets {
 		histo.Buckets = append(histo.Buckets,
 			events.Bucket{Time: b.Key, Count: b.DocCount})
