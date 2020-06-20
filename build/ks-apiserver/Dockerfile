@@ -10,7 +10,7 @@ WORKDIR /go/src/kubesphere.io/kubesphere
 RUN GIT_VERSION=$(git describe --always --dirty) && \
     GIT_HASH=$(git rev-parse HEAD) && \
     BUILDDATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && \
-    CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOARCH=amd64 GOFLAGS=-mod=vendor \
+    CGO_ENABLED=0 GO111MODULE=on GOOS=linux GOFLAGS=-mod=vendor \
     go build -i -ldflags \
     '-w -s -X kubesphere.io/kubesphere/pkg/version.version=$(GIT_VERSION) \
      -X kubesphere.io/kubesphere/pkg/version.gitCommit=$(GIT_HASH) \
