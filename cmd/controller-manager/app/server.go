@@ -61,6 +61,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			OpenPitrixOptions:   conf.OpenPitrixOptions,
 			NetworkOptions:      conf.NetworkOptions,
 			MultiClusterOptions: conf.MultiClusterOptions,
+			ServiceMeshOptions:  conf.ServiceMeshOptions,
 			LeaderElection:      s.LeaderElection,
 			LeaderElect:         s.LeaderElect,
 		}
@@ -157,7 +158,9 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			klog.Fatal("Unable to create namespace controller")
 		}
 
-		if err := addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, openpitrixClient, s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, stopCh); err != nil {
+		// TODO(jeff): refactor config with CRD
+		servicemeshEnabled := s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.IstioPilotHost) != 0
+		if err = addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, openpitrixClient, s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, servicemeshEnabled, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 

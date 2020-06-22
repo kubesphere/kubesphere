@@ -6,13 +6,13 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-	kubesphereconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/multicluster"
 	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
+	"kubesphere.io/kubesphere/pkg/simple/client/servicemesh"
 	"strings"
 	"time"
 )
@@ -24,6 +24,7 @@ type KubeSphereControllerManagerOptions struct {
 	OpenPitrixOptions   *openpitrix.Options
 	NetworkOptions      *network.Options
 	MultiClusterOptions *multicluster.Options
+	ServiceMeshOptions  *servicemesh.Options
 	LeaderElect         bool
 	LeaderElection      *leaderelection.LeaderElectionConfig
 	WebhookCertDir      string
@@ -37,6 +38,7 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 		OpenPitrixOptions:   openpitrix.NewOptions(),
 		NetworkOptions:      network.NewNetworkOptions(),
 		MultiClusterOptions: multicluster.NewOptions(),
+		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
@@ -49,13 +51,6 @@ func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions
 	return s
 }
 
-func (s *KubeSphereControllerManagerOptions) ApplyTo(conf *kubesphereconfig.Config) {
-	s.S3Options.ApplyTo(conf.S3Options)
-	s.KubernetesOptions.ApplyTo(conf.KubernetesOptions)
-	s.DevopsOptions.ApplyTo(conf.DevopsOptions)
-	s.OpenPitrixOptions.ApplyTo(conf.OpenPitrixOptions)
-}
-
 func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
@@ -65,6 +60,7 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)
 	s.MultiClusterOptions.AddFlags(fss.FlagSet("multicluster"), s.MultiClusterOptions)
+	s.ServiceMeshOptions.AddFlags(fss.FlagSet("servicemesh"), s.ServiceMeshOptions)
 
 	fs := fss.FlagSet("leaderelection")
 	s.bindLeaderElectionFlags(s.LeaderElection, fs)
