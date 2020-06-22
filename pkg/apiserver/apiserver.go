@@ -278,7 +278,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory))),
 		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
-	handler = filters.WithRequestInfo(handler, requestInfoResolver)
+	handler = filters.WithRequestInfo(handler, requestInfoResolver, s.Config.MultiClusterOptions.Enable)
 	s.Server.Handler = handler
 }
 

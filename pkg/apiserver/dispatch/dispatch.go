@@ -151,6 +151,14 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 		// designated cluster kube-apiserver, then copy req.Header['X-KubeSphere-Authorization'] to
 		// req.Header['Authorization'] before authentication.
 		req.Header.Set("X-KubeSphere-Authorization", req.Header.Get("Authorization"))
+
+		// Dirty trick again. The kube-apiserver apiserver proxy rejects all proxy requests with dryRun parameter
+		// https://github.com/kubernetes/kubernetes/pull/66083
+		// Really don't understand why they do this. And here we are, bypass with replacing 'dryRun'
+		// with dryrun and switch bach before send to kube-apiserver on the other side.
+		if len(u.Query()["dryRun"]) != 0 {
+			req.URL.RawQuery = strings.Replace(req.URL.RawQuery, "dryRun", "dryrun", 1)
+		}
 	} else {
 		// everything else goes to ks-apiserver, since our ks-apiserver has the ability to proxy kube-apiserver requests
 
