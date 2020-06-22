@@ -72,6 +72,14 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")))
 
+	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{application}").
+		To(handler.DescribeApplication).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Doc("Describe the specified application of the namespace").
+		Param(webservice.PathParameter("namespace", "the name of the project").Required(true)).
+		Param(webservice.PathParameter("application", "the id of the application").Required(true)))
+
 	webservice.Route(webservice.GET("/clusters/{cluster}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
