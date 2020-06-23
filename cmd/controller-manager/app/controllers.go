@@ -63,6 +63,7 @@ func addControllers(
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
 	networkPolicyEnabled bool,
+	serviceMeshEnabled bool,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -70,21 +71,24 @@ func addControllers(
 	kubesphereInformer := informerFactory.KubeSphereSharedInformerFactory()
 	applicationInformer := informerFactory.ApplicationSharedInformerFactory()
 
-	vsController := virtualservice.NewVirtualServiceController(kubernetesInformer.Core().V1().Services(),
-		istioInformer.Networking().V1alpha3().VirtualServices(),
-		istioInformer.Networking().V1alpha3().DestinationRules(),
-		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
-		client.Kubernetes(),
-		client.Istio(),
-		client.KubeSphere())
+	var vsController, drController manager.Runnable
+	if serviceMeshEnabled {
+		vsController = virtualservice.NewVirtualServiceController(kubernetesInformer.Core().V1().Services(),
+			istioInformer.Networking().V1alpha3().VirtualServices(),
+			istioInformer.Networking().V1alpha3().DestinationRules(),
+			kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
+			client.Kubernetes(),
+			client.Istio(),
+			client.KubeSphere())
 
-	drController := destinationrule.NewDestinationRuleController(kubernetesInformer.Apps().V1().Deployments(),
-		istioInformer.Networking().V1alpha3().DestinationRules(),
-		kubernetesInformer.Core().V1().Services(),
-		kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
-		client.Kubernetes(),
-		client.Istio(),
-		client.KubeSphere())
+		drController = destinationrule.NewDestinationRuleController(kubernetesInformer.Apps().V1().Deployments(),
+			istioInformer.Networking().V1alpha3().DestinationRules(),
+			kubernetesInformer.Core().V1().Services(),
+			kubesphereInformer.Servicemesh().V1alpha2().ServicePolicies(),
+			client.Kubernetes(),
+			client.Istio(),
+			client.KubeSphere())
+	}
 
 	apController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
 		kubernetesInformer.Apps().V1().Deployments(),
