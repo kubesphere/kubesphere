@@ -112,24 +112,18 @@ func (b *Backend) worker() {
 
 func (b *Backend) eventToBytes(event *v1alpha1.EventList) ([]byte, error) {
 
-	if bs, err := json.Marshal(event); err == nil {
-		return bs, nil
-	}
-
-	// Normally, the serialization failure is caused by the failure of RequestObject or ResponseObject serialization.
-	// To ensure the integrity of the auditing event to the greatest extent,
-	// it is necessary to delete RequestObject or ResponseObject and and then try to serialize again.
-	if event.Items[0].RequestObject != nil {
-		if _, err := json.Marshal(event.Items[0].RequestObject); err != nil {
-			event.Items[0].RequestObject = nil
-		}
-	}
-
-	if event.Items[0].ResponseObject != nil {
-		if _, err := json.Marshal(event.Items[0].ResponseObject); err != nil {
+	bs, err := json.Marshal(event)
+	if err != nil {
+		// Normally, the serialization failure is caused by the failure of ResponseObject serialization.
+		// To ensure the integrity of the auditing event to the greatest extent,
+		// it is necessary to delete ResponseObject and and then try to serialize again.
+		if event.Items[0].ResponseObject != nil {
 			event.Items[0].ResponseObject = nil
+			return json.Marshal(event)
 		}
+
+		return nil, err
 	}
 
-	return json.Marshal(event)
+	return bs, err
 }

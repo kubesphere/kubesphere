@@ -20,7 +20,6 @@ import (
 	"github.com/emicklei/go-restful"
 	log "k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
-	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/devops"
 	"net/http"
 	"strings"
@@ -93,12 +92,6 @@ func (h *ProjectPipelineHandler) StopPipeline(req *restful.Request, resp *restfu
 		return
 	}
 
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.runs"
-		event.ObjectRef.Name = pipelineName + "." + runId
-		event.Verb = "stop"
-	}
-
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
@@ -114,12 +107,6 @@ func (h *ProjectPipelineHandler) ReplayPipeline(req *restful.Request, resp *rest
 		return
 	}
 
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.runs"
-		event.ObjectRef.Name = pipelineName + "." + runId
-		event.Verb = "replay"
-	}
-
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
@@ -132,11 +119,6 @@ func (h *ProjectPipelineHandler) RunPipeline(req *restful.Request, resp *restful
 	if err != nil {
 		parseErr(err, resp)
 		return
-	}
-
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.runs"
-		event.ObjectRef.Name = pipelineName + "." + res.ID
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
@@ -233,11 +215,6 @@ func (h *ProjectPipelineHandler) SubmitInputStep(req *restful.Request, resp *res
 		return
 	}
 
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.runs.nodes.step"
-		event.ObjectRef.Name = pipelineName + "." + runId + "." + nodeId + "." + stepId
-	}
-
 	resp.Write(res)
 }
 
@@ -297,12 +274,6 @@ func (h *ProjectPipelineHandler) StopBranchPipeline(req *restful.Request, resp *
 		return
 	}
 
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.branches.runs"
-		event.ObjectRef.Name = pipelineName + "." + branchName + "." + runId
-		event.Verb = "stop"
-	}
-
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
@@ -319,12 +290,6 @@ func (h *ProjectPipelineHandler) ReplayBranchPipeline(req *restful.Request, resp
 		return
 	}
 
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.branches.runs"
-		event.ObjectRef.Name = pipelineName + "." + branchName + "." + runId
-		event.Verb = "replay"
-	}
-
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
 	resp.WriteAsJson(res)
 }
@@ -338,11 +303,6 @@ func (h *ProjectPipelineHandler) RunBranchPipeline(req *restful.Request, resp *r
 	if err != nil {
 		parseErr(err, resp)
 		return
-	}
-
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.branches.runs"
-		event.ObjectRef.Name = pipelineName + "." + branchName + "." + res.ID
 	}
 
 	resp.Header().Set(restful.HEADER_ContentType, restful.MIME_JSON)
@@ -445,11 +405,6 @@ func (h *ProjectPipelineHandler) SubmitBranchInputStep(req *restful.Request, res
 	if err != nil {
 		parseErr(err, resp)
 		return
-	}
-
-	if event := request.AuditEventFrom(req.Request.Context()); event != nil {
-		event.ObjectRef.Resource = "pipelines.branches.runs.nodes.steps"
-		event.ObjectRef.Name = pipelineName + "." + branchName + "." + runId + "." + nodeId + "." + stepId
 	}
 
 	resp.Write(res)
