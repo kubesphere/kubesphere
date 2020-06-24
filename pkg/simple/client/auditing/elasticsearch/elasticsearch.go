@@ -123,7 +123,7 @@ func (es *Elasticsearch) CountOverTime(filter *auditing.Filter, interval string)
 	if err := json.Unmarshal(raw, &agg); err != nil {
 		return nil, err
 	}
-	histo := auditing.Histogram{Total: int64(len(agg.Buckets))}
+	histo := auditing.Histogram{Total: resp.Hits.Total}
 	for _, b := range agg.Buckets {
 		histo.Buckets = append(histo.Buckets,
 			auditing.Bucket{Time: b.Key, Count: b.DocCount})
