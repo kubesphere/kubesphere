@@ -702,10 +702,9 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 		listEvts := authorizer.AttributesRecord{
 			User:            user,
 			Verb:            "list",
-			APIGroup:        "",
-			APIVersion:      "v1",
 			Resource:        "namespaces",
 			ResourceRequest: true,
+			ResourceScope:   request.ClusterScope,
 		}
 		decision, _, err := t.authorizer.Authorize(listEvts)
 		if err != nil {
