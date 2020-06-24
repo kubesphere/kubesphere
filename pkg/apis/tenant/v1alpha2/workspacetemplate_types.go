@@ -69,8 +69,8 @@ type Template struct {
 }
 
 type Placement struct {
-	Clusters        []Cluster       `json:"clusters,omitempty"`
-	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
+	Clusters        []Cluster        `json:"clusters,omitempty"`
+	ClusterSelector *ClusterSelector `json:"clusterSelector,omitempty"`
 }
 
 type ClusterSelector struct {
