@@ -171,17 +171,21 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 }
 
 func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryParam *query.Query) (*api.ListResult, error) {
+	nsScope := request.ClusterScope
+	if workspace != "" {
+		nsScope = request.WorkspaceScope
+	}
 
-	listNSInWS := authorizer.AttributesRecord{
+	listNS := authorizer.AttributesRecord{
 		User:            user,
 		Verb:            "list",
 		Workspace:       workspace,
 		Resource:        "namespaces",
 		ResourceRequest: true,
-		ResourceScope:   request.WorkspaceScope,
+		ResourceScope:   nsScope,
 	}
 
-	decision, _, err := t.authorizer.Authorize(listNSInWS)
+	decision, _, err := t.authorizer.Authorize(listNS)
 
 	if err != nil {
 		klog.Error(err)
@@ -235,8 +239,10 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 		return resources.DefaultObjectMetaCompare(left.(*corev1.Namespace).ObjectMeta, right.(*corev1.Namespace).ObjectMeta, field)
 	}, func(object runtime.Object, filter query.Filter) bool {
 		namespace := object.(*corev1.Namespace).ObjectMeta
-		if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
-			return false
+		if workspace != "" {
+			if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
+				return false
+			}
 		}
 		return resources.DefaultObjectMetaFilter(namespace, filter)
 	})
@@ -459,41 +465,39 @@ func (t *tenantOperator) listIntersectedNamespaces(user user.Info,
 
 		iNamespaces []*corev1.Namespace
 	)
-
 	includeNsWithoutWs := len(workspaceSet) == 0 && len(workspaceSubstrs) == 0
 
-	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+	result, err := t.ListNamespaces(user, "", query.New())
 	if err != nil {
 		return nil, err
 	}
-	for _, rb := range roleBindings {
-		if len(namespaceSet) > 0 {
-			if _, ok := namespaceSet[rb.Namespace]; !ok {
-				continue
-			}
-		}
-		if len(namespaceSubstrs) > 0 && !stringContains(rb.Namespace, namespaceSubstrs) {
+	for _, obj := range result.Items {
+		ns, ok := obj.(*corev1.Namespace)
+		if !ok {
 			continue
 		}
-		ns, err := t.resourceGetter.Get("namespaces", "", rb.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		if ns, ok := ns.(*corev1.Namespace); ok {
-			if ws := ns.Labels[tenantv1alpha1.WorkspaceLabel]; ws != "" {
-				if len(workspaceSet) > 0 {
-					if _, ok := workspaceSet[ws]; !ok {
-						continue
-					}
-				}
-				if len(workspaceSubstrs) > 0 && !stringContains(ws, workspaceSubstrs) {
-					continue
-				}
-			} else if !includeNsWithoutWs {
+
+		if len(namespaceSet) > 0 {
+			if _, ok := namespaceSet[ns.Name]; !ok {
 				continue
 			}
-			iNamespaces = append(iNamespaces, ns)
 		}
+		if len(namespaceSubstrs) > 0 && !stringContains(ns.Name, namespaceSubstrs) {
+			continue
+		}
+		if ws := ns.Labels[tenantv1alpha1.WorkspaceLabel]; ws != "" {
+			if len(workspaceSet) > 0 {
+				if _, ok := workspaceSet[ws]; !ok {
+					continue
+				}
+			}
+			if len(workspaceSubstrs) > 0 && !stringContains(ws, workspaceSubstrs) {
+				continue
+			}
+		} else if !includeNsWithoutWs {
+			continue
+		}
+		iNamespaces = append(iNamespaces, ns)
 	}
 	return iNamespaces, nil
 }
@@ -520,6 +524,7 @@ func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query
 			Namespace:       ns.Name,
 			Resource:        "events",
 			ResourceRequest: true,
+			ResourceScope:   request.NamespaceScope,
 		}
 		decision, _, err := t.authorizer.Authorize(listEvts)
 		if err != nil {
@@ -541,6 +546,7 @@ func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query
 			APIVersion:      "v1",
 			Resource:        "events",
 			ResourceRequest: true,
+			ResourceScope:   request.ClusterScope,
 		}
 		decision, _, err := t.authorizer.Authorize(listEvts)
 		if err != nil {
