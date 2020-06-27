@@ -707,15 +707,14 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 	// those events with empty `ObjectRef.Namespace` will also be listed when user can list all namespaces
 	if len(queryParam.WorkspaceFilter) == 0 && len(queryParam.ObjectRefNamespaceFilter) == 0 &&
 		len(queryParam.WorkspaceSearch) == 0 && len(queryParam.ObjectRefNamespaceSearch) == 0 {
-		listEvts := authorizer.AttributesRecord{
+		listNs := authorizer.AttributesRecord{
 			User:            user,
 			Verb:            "list",
-			APIGroup:        "",
-			APIVersion:      "v1",
 			Resource:        "namespaces",
 			ResourceRequest: true,
+			ResourceScope:   request.ClusterScope,
 		}
-		decision, _, err := t.authorizer.Authorize(listEvts)
+		decision, _, err := t.authorizer.Authorize(listNs)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
