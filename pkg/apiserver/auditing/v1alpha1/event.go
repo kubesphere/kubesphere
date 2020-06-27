@@ -1,6 +1,9 @@
 package v1alpha1
 
-import "k8s.io/apiserver/pkg/apis/audit"
+import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/apis/audit"
+)
 
 type Event struct {
 	// Devops project
@@ -17,4 +20,8 @@ type Event struct {
 
 type EventList struct {
 	Items []Event
+}
+
+type Object struct {
+	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 }
