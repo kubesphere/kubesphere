@@ -585,6 +585,7 @@ func (t *tenantOperator) QueryLogs(user user.Info, query *loggingv1alpha2.Query)
 			Resource:        "pods",
 			Subresource:     "log",
 			ResourceRequest: true,
+			ResourceScope:   request.NamespaceScope,
 		}
 		decision, _, err := t.authorizer.Authorize(podLogs)
 		if err != nil {
@@ -655,6 +656,7 @@ func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query
 			Resource:        "pods",
 			Subresource:     "log",
 			ResourceRequest: true,
+			ResourceScope:   request.NamespaceScope,
 		}
 		decision, _, err := t.authorizer.Authorize(podLogs)
 		if err != nil {
