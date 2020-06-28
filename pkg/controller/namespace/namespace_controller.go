@@ -205,7 +205,8 @@ func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
 }
 
 func removeWorkspaceOwnerReferences(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
-	for i, owner := range ownerReferences {
+	for i := 0; i < len(ownerReferences); i++ {
+		owner := ownerReferences[i]
 		if owner.Kind == tenantv1alpha1.ResourceKindWorkspace {
 			ownerReferences = append(ownerReferences[:i], ownerReferences[i+1:]...)
 			i--

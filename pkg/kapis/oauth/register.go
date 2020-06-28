@@ -90,5 +90,20 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, iss
 
 	c.Add(ws)
 
+	// legacy auth API
+	legacy := &restful.WebService{}
+	legacy.Path("/kapis/iam.kubesphere.io/v1alpha2/login").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+	legacy.Route(legacy.POST("").
+		To(handler.Login).
+		Deprecate().
+		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
+		Reads(auth.LoginRequest{}).
+		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+
+	c.Add(legacy)
+
 	return nil
 }

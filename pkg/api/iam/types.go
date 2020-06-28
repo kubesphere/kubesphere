@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package im
+package iam
 
-import "kubesphere.io/kubesphere/pkg/simple/client/ldap"
-
-func NewFakeOperator() IdentityManagementInterface {
-	return NewLDAPOperator(ldap.NewSimpleLdap())
+type PasswordReset struct {
+	CurrentPassword string `json:"currentPassword"`
+	Password        string `json:"password"`
 }

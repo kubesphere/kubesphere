@@ -22,11 +22,13 @@ import (
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	kubesphereclient "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/informers"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"net/mail"
+	"time"
 )
 
 type IdentityManagementInterface interface {
@@ -36,6 +38,7 @@ type IdentityManagementInterface interface {
 	UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error)
 	DescribeUser(username string) (*iamv1alpha2.User, error)
 	Authenticate(username, password string) (*iamv1alpha2.User, error)
+	ModifyPassword(username string, password string) error
 }
 
 var (
@@ -45,34 +48,66 @@ var (
 	UserNotExists               = errors.New("user not exists")
 )
 
-func NewOperator(ksClient kubesphereclient.Interface, factory informers.InformerFactory) IdentityManagementInterface {
-
-	return &defaultIMOperator{
+func NewOperator(ksClient kubesphereclient.Interface, factory informers.InformerFactory, options *authoptions.AuthenticationOptions) IdentityManagementInterface {
+	im := &defaultIMOperator{
 		ksClient:       ksClient,
 		resourceGetter: resourcev1alpha3.NewResourceGetter(factory),
 	}
-
+	if options != nil {
+		im.authenticateRateLimiterDuration = options.AuthenticateRateLimiterDuration
+		im.authenticateRateLimiterMaxTries = options.AuthenticateRateLimiterMaxTries
+	}
+	return im
 }
 
 type defaultIMOperator struct {
-	ksClient       kubesphereclient.Interface
-	resourceGetter *resourcev1alpha3.ResourceGetter
+	ksClient                        kubesphereclient.Interface
+	resourceGetter                  *resourcev1alpha3.ResourceGetter
+	authenticateRateLimiterMaxTries int
+	authenticateRateLimiterDuration time.Duration
 }
 
 func (im *defaultIMOperator) UpdateUser(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
 	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", user.Name)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	old := obj.(*iamv1alpha2.User).DeepCopy()
+	if user.Annotations == nil {
+		user.Annotations = make(map[string]string, 0)
+	}
 	user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = old.Annotations[iamv1alpha2.PasswordEncryptedAnnotation]
 	user.Spec.EncryptedPassword = old.Spec.EncryptedPassword
 	user.Status = old.Status
 
-	return im.ksClient.IamV1alpha2().Users().Update(user)
+	updated, err := im.ksClient.IamV1alpha2().Users().Update(user)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	return ensurePasswordNotOutput(updated), nil
+}
+
+func (im *defaultIMOperator) ModifyPassword(username string, password string) error {
+	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
+
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	user := obj.(*iamv1alpha2.User).DeepCopy()
+	delete(user.Annotations, iamv1alpha2.PasswordEncryptedAnnotation)
+	user.Spec.EncryptedPassword = password
+
+	_, err = im.ksClient.IamV1alpha2().Users().Update(user)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (im *defaultIMOperator) Authenticate(username, password string) (*iamv1alpha2.User, error) {
@@ -80,26 +115,21 @@ func (im *defaultIMOperator) Authenticate(username, password string) (*iamv1alph
 	var user *iamv1alpha2.User
 
 	if _, err := mail.ParseAddress(username); err != nil {
-
 		obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
 		user = obj.(*iamv1alpha2.User)
 	} else {
 		objs, err := im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", &query.Query{
 			Pagination: query.NoPagination,
 			Filters:    map[query.Field]query.Value{iamv1alpha2.FieldEmail: query.Value(username)},
 		})
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
 		if len(objs.Items) != 1 {
 			if len(objs.Items) == 0 {
 				klog.Warningf("username or email: %s not exist", username)
@@ -108,34 +138,36 @@ func (im *defaultIMOperator) Authenticate(username, password string) (*iamv1alph
 			}
 			return nil, AuthFailedIncorrectPassword
 		}
-
 		user = objs.Items[0].(*iamv1alpha2.User)
+	}
+
+	if im.authRateLimitExceeded(user) {
+		im.authFailRecord(user, AuthRateLimitExceeded)
+		return nil, AuthRateLimitExceeded
 	}
 
 	if checkPasswordHash(password, user.Spec.EncryptedPassword) {
 		return user, nil
 	}
 
+	im.authFailRecord(user, AuthFailedIncorrectPassword)
 	return nil, AuthFailedIncorrectPassword
 }
 
 func (im *defaultIMOperator) ListUsers(query *query.Query) (result *api.ListResult, err error) {
 	result, err = im.resourceGetter.List(iamv1alpha2.ResourcesPluralUser, "", query)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	items := make([]interface{}, 0)
-
 	for _, item := range result.Items {
 		user := item.(*iamv1alpha2.User)
-		items = append(items, ensurePasswordNotOutput(user))
+		out := ensurePasswordNotOutput(user)
+		items = append(items, out)
 	}
-
 	result.Items = items
-
 	return result, nil
 }
 
@@ -146,14 +178,12 @@ func checkPasswordHash(password, hash string) bool {
 
 func (im *defaultIMOperator) DescribeUser(username string) (*iamv1alpha2.User, error) {
 	obj, err := im.resourceGetter.Get(iamv1alpha2.ResourcesPluralUser, "", username)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	user := obj.(*iamv1alpha2.User)
-
 	return ensurePasswordNotOutput(user), nil
 }
 
@@ -168,6 +198,29 @@ func (im *defaultIMOperator) CreateUser(user *iamv1alpha2.User) (*iamv1alpha2.Us
 		return nil, err
 	}
 	return user, nil
+}
+
+func (im *defaultIMOperator) authRateLimitEnabled() bool {
+	if im.authenticateRateLimiterMaxTries <= 0 || im.authenticateRateLimiterDuration == 0 {
+		return false
+	}
+	return true
+}
+
+func (im *defaultIMOperator) authRateLimitExceeded(user *iamv1alpha2.User) bool {
+	if !im.authRateLimitEnabled() {
+		return false
+	}
+	// TODO record login history using CRD
+	return false
+}
+
+func (im *defaultIMOperator) authFailRecord(user *iamv1alpha2.User, err error) {
+	if !im.authRateLimitEnabled() {
+		return
+	}
+
+	// TODO record login history using CRD
 }
 
 func ensurePasswordNotOutput(user *iamv1alpha2.User) *iamv1alpha2.User {

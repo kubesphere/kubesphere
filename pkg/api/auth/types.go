@@ -38,6 +38,11 @@ type TokenReview struct {
 	Status     *Status `json:"status,omitempty" description:"token review status"`
 }
 
+type LoginRequest struct {
+	Username string `json:"username" description:"username"`
+	Password string `json:"password" description:"password"`
+}
+
 func (request *TokenReview) Validate() error {
 	if request.Spec == nil || request.Spec.Token == "" {
 		return fmt.Errorf("token must not be null")

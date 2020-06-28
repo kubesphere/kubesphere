@@ -43,10 +43,3 @@ type PodInfo struct {
 	Pod       string `json:"pod" description:"pod name"`
 	Container string `json:"container" description:"container name"`
 }
-
-type AuthGrantResponse struct {
-	TokenType    string  `json:"token_type,omitempty"`
-	Token        string  `json:"access_token" description:"access token"`
-	ExpiresIn    float64 `json:"expires_in,omitempty"`
-	RefreshToken string  `json:"refresh_token,omitempty"`
-}

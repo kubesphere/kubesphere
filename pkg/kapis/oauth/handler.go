@@ -90,7 +90,6 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 	redirectURI := req.QueryParameter("redirect_uri")
 
 	conf, err := h.options.OAuthOptions.OAuthClient(clientId)
-
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
@@ -109,14 +108,7 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
-
-	if conf.AccessTokenMaxAge != nil {
-		expiresIn = *conf.AccessTokenMaxAge
-	}
-
-	accessToken, err := h.issuer.IssueTo(user, expiresIn)
-
+	token, err := h.issueTo(user.GetName())
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
@@ -131,12 +123,11 @@ func (h *oauthHandler) AuthorizeHandler(req *restful.Request, resp *restful.Resp
 		return
 	}
 
-	redirectURL = fmt.Sprintf("%s#access_token=%s&token_type=Bearer", redirectURL, accessToken)
+	redirectURL = fmt.Sprintf("%s#access_token=%s&token_type=Bearer", redirectURL, token.AccessToken)
 
-	if expiresIn > 0 {
-		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, expiresIn.Seconds())
+	if token.ExpiresIn > 0 {
+		redirectURL = fmt.Sprintf("%s&expires_in=%v", redirectURL, token.ExpiresIn)
 	}
-
 	resp.Header().Set("Content-Type", "text/plain")
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }
@@ -212,23 +203,57 @@ func (h *oauthHandler) OAuthCallBackHandler(req *restful.Request, resp *restful.
 		return
 	}
 
-	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
-
-	accessToken, err := h.issuer.IssueTo(&authuser.DefaultInfo{
-		Name: user.GetName(),
-	}, expiresIn)
-
+	result, err := h.issueTo(user.GetName())
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
 		return
 	}
+	resp.WriteEntity(result)
+}
 
-	result := oauth.Token{
+func (h *oauthHandler) Login(request *restful.Request, response *restful.Response) {
+	var loginRequest auth.LoginRequest
+
+	err := request.ReadEntity(&loginRequest)
+	if err != nil || loginRequest.Username == "" || loginRequest.Password == "" {
+		response.WriteHeaderAndEntity(http.StatusUnauthorized, fmt.Errorf("empty username or password"))
+		return
+	}
+
+	user, err := h.im.Authenticate(loginRequest.Username, loginRequest.Password)
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		response.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	result, err := h.issueTo(user.Name)
+	if err != nil {
+		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		response.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+	response.WriteEntity(result)
+}
+
+func (h *oauthHandler) issueTo(username string) (*oauth.Token, error) {
+	expiresIn := h.options.OAuthOptions.AccessTokenMaxAge
+
+	accessToken, err := h.issuer.IssueTo(&authuser.DefaultInfo{
+		Name: username,
+	}, expiresIn)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	result := &oauth.Token{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
 		ExpiresIn:   int(expiresIn.Seconds()),
 	}
 
-	resp.WriteEntity(result)
+	return result, nil
 }
