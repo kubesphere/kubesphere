@@ -29,6 +29,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"reflect"
 	"testing"
 	"time"
@@ -81,6 +82,7 @@ func newUser(name string) *iamv1alpha2.User {
 func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactory, kubeinformers.SharedInformerFactory) {
 	f.ksclient = fake.NewSimpleClientset(f.objects...)
 	f.k8sclient = k8sfake.NewSimpleClientset(f.kubeobjects...)
+	ldapClient := ldapclient.NewSimpleLdap()
 
 	ksinformers := ksinformers.NewSharedInformerFactory(f.ksclient, noResyncPeriodFunc())
 	k8sinformers := kubeinformers.NewSharedInformerFactory(f.k8sclient, noResyncPeriodFunc())
@@ -92,7 +94,7 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 		}
 	}
 
-	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users(), nil, nil, k8sinformers.Core().V1().ConfigMaps(), false)
+	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users(), nil, nil, k8sinformers.Core().V1().ConfigMaps(), ldapClient, false)
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
@@ -208,6 +210,7 @@ func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
 		if action.Matches("list", "users") ||
+			action.Matches("list", "configmaps") ||
 			action.Matches("watch", "users") {
 			continue
 		}
@@ -219,9 +222,14 @@ func filterInformerActions(actions []core.Action) []core.Action {
 
 func (f *fixture) expectUpdateUserStatusAction(user *iamv1alpha2.User) {
 	expect := user.DeepCopy()
+	expect.Finalizers = []string{"finalizers.kubesphere.io/users"}
+	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
+	f.actions = append(f.actions, action)
+
+	expect = expect.DeepCopy()
 	expect.Status.State = iamv1alpha2.UserActive
 	expect.Annotations = map[string]string{iamv1alpha2.PasswordEncryptedAnnotation: "true"}
-	action := core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
+	action = core.NewUpdateAction(schema.GroupVersionResource{Resource: "users"}, "", expect)
 	f.actions = append(f.actions, action)
 }
 

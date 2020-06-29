@@ -43,6 +43,8 @@ import (
 	userlister "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
@@ -67,6 +69,7 @@ type Controller struct {
 	cmSynced          cache.InformerSynced
 	fedUserCache      cache.Store
 	fedUserController cache.Controller
+	ldapClient        ldapclient.Interface
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -81,7 +84,7 @@ type Controller struct {
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
 	config *rest.Config, userInformer userinformer.UserInformer, fedUserCache cache.Store, fedUserController cache.Controller,
-	configMapInformer corev1informers.ConfigMapInformer, multiClusterEnabled bool) *Controller {
+	configMapInformer corev1informers.ConfigMapInformer, ldapClient ldapclient.Interface, multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -106,6 +109,7 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 		cmSynced:            configMapInformer.Informer().HasSynced,
 		fedUserCache:        fedUserCache,
 		fedUserController:   fedUserController,
+		ldapClient:          ldapClient,
 		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
 		recorder:            recorder,
 		multiClusterEnabled: multiClusterEnabled,
@@ -239,6 +243,48 @@ func (c *Controller) reconcile(key string) error {
 		return err
 	}
 
+	// name of your custom finalizer
+	finalizer := "finalizers.kubesphere.io/users"
+
+	if user.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object.
+		if !sliceutil.HasString(user.Finalizers, finalizer) {
+			user.ObjectMeta.Finalizers = append(user.ObjectMeta.Finalizers, finalizer)
+
+			if user, err = c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
+				return err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if sliceutil.HasString(user.ObjectMeta.Finalizers, finalizer) {
+
+			klog.V(4).Infof("delete user %s", key)
+			if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
+				klog.Error(err)
+				return err
+			}
+
+			// remove our finalizer from the list and update it.
+			user.Finalizers = sliceutil.RemoveString(user.ObjectMeta.Finalizers, func(item string) bool {
+				return item == finalizer
+			})
+
+			if _, err := c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
+				return err
+			}
+		}
+
+		// Our finalizer has finished, so the reconciler can do nothing.
+		return nil
+	}
+
+	if err = c.ldapSync(user); err != nil {
+		klog.Error(err)
+		return err
+	}
+
 	if user, err = c.ensurePasswordIsEncrypted(user); err != nil {
 		klog.Error(err)
 		return err
@@ -269,9 +315,9 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 }
 
 func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
-	encrypted, err := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
+	encrypted, _ := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
 	// password is not encrypted
-	if err != nil || !encrypted {
+	if !encrypted {
 		password, err := encrypt(user.Spec.EncryptedPassword)
 		if err != nil {
 			klog.Error(err)
@@ -282,7 +328,6 @@ func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1al
 		if user.Annotations == nil {
 			user.Annotations = make(map[string]string, 0)
 		}
-
 		user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = "true"
 		user.Status.State = iamv1alpha2.UserActive
 		return c.ksClient.IamV1alpha2().Users().Update(user)
@@ -417,6 +462,25 @@ func (c *Controller) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser) err
 	}
 
 	return nil
+}
+
+func (c *Controller) ldapSync(user *iamv1alpha2.User) error {
+	encrypted, _ := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
+	if encrypted {
+		return nil
+	}
+	_, err := c.ldapClient.Get(user.Name)
+	if err != nil {
+		if err == ldapclient.ErrUserNotExists {
+			klog.V(4).Infof("create user %s", user.Name)
+			return c.ldapClient.Create(user)
+		}
+		klog.Error(err)
+		return err
+	} else {
+		klog.V(4).Infof("update user %s", user.Name)
+		return c.ldapClient.Update(user)
+	}
 }
 
 func encrypt(password string) (string, error) {

@@ -40,6 +40,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
@@ -58,6 +59,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			KubernetesOptions:   conf.KubernetesOptions,
 			DevopsOptions:       conf.DevopsOptions,
 			S3Options:           conf.S3Options,
+			LdapOptions:         conf.LdapOptions,
 			OpenPitrixOptions:   conf.OpenPitrixOptions,
 			NetworkOptions:      conf.NetworkOptions,
 			MultiClusterOptions: conf.MultiClusterOptions,
@@ -114,6 +116,22 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		}
 	}
 
+	var ldapClient ldapclient.Interface
+	if s.LdapOptions == nil || len(s.LdapOptions.Host) == 0 {
+		klog.Errorf("Failed to create devops client invalid ldap options")
+		return err
+	}
+
+	if s.LdapOptions.Host == ldapclient.FAKE_HOST {
+		ldapClient = ldapclient.NewSimpleLdap()
+	} else {
+		ldapClient, err = ldapclient.NewLdapClient(s.LdapOptions, stopCh)
+		if err != nil {
+			klog.Errorf("Failed to create ldap client %v", err)
+			return err
+		}
+	}
+
 	var openpitrixClient openpitrix.Client
 	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
 		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
@@ -160,7 +178,8 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 		// TODO(jeff): refactor config with CRD
 		servicemeshEnabled := s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.IstioPilotHost) != 0
-		if err = addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, openpitrixClient, s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, servicemeshEnabled, stopCh); err != nil {
+		if err = addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, ldapClient, openpitrixClient,
+			s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, servicemeshEnabled, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 

@@ -48,6 +48,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
+	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -60,6 +61,7 @@ func addControllers(
 	informerFactory informers.InformerFactory,
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
+	ldapClient ldapclient.Interface,
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
 	networkPolicyEnabled bool,
@@ -207,8 +209,8 @@ func addControllers(
 	}
 
 	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
-		kubesphereInformer.Iam().V1alpha2().Users(),
-		fedUserCache, fedUserCacheController, kubernetesInformer.Core().V1().ConfigMaps(), multiClusterEnabled)
+		kubesphereInformer.Iam().V1alpha2().Users(), fedUserCache, fedUserCacheController,
+		kubernetesInformer.Core().V1().ConfigMaps(), ldapClient, multiClusterEnabled)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
 		kubernetesInformer.Core().V1().ConfigMaps(), client.Config())

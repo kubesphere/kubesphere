@@ -19,7 +19,6 @@ package ldap
 import (
 	"fmt"
 	"github.com/go-ldap/ldap"
-	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -184,7 +183,7 @@ func (l *ldapInterfaceImpl) dnForUsername(username string) string {
 }
 
 func (l *ldapInterfaceImpl) filterForUsername(username string) string {
-	return fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=%s)(mail=%s)))", username, username)
+	return fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(%s=%s)(%s=%s)))", ldapAttributeUserID, username, ldapAttributeMail, username)
 }
 
 func (l *ldapInterfaceImpl) Get(name string) (*iamv1alpha2.User, error) {
@@ -205,7 +204,6 @@ func (l *ldapInterfaceImpl) Get(name string) (*iamv1alpha2.User, error) {
 		Attributes: []string{
 			ldapAttributeMail,
 			ldapAttributeDescription,
-			ldapAttributePreferredLanguage,
 			ldapAttributeCreateTimestamp,
 		},
 	}
@@ -215,7 +213,7 @@ func (l *ldapInterfaceImpl) Get(name string) (*iamv1alpha2.User, error) {
 		return nil, err
 	}
 
-	if len(searchResults.Entries) != 1 {
+	if len(searchResults.Entries) == 0 {
 		return nil, ErrUserNotExists
 	}
 
@@ -227,28 +225,22 @@ func (l *ldapInterfaceImpl) Get(name string) (*iamv1alpha2.User, error) {
 		},
 		Spec: iamv1alpha2.UserSpec{
 			Email:       userEntry.GetAttributeValue(ldapAttributeMail),
-			Lang:        userEntry.GetAttributeValue(ldapAttributePreferredLanguage),
 			Description: userEntry.GetAttributeValue(ldapAttributeDescription),
 		},
 	}
 
 	createTimestamp, _ := time.Parse(ldapAttributeCreateTimestampLayout, userEntry.GetAttributeValue(ldapAttributeCreateTimestamp))
 	user.ObjectMeta.CreationTimestamp.Time = createTimestamp
-
 	return user, nil
 }
 
 func (l *ldapInterfaceImpl) Create(user *iamv1alpha2.User) error {
-	if _, err := l.Get(user.Name); err != nil {
-		return ErrUserAlreadyExisted
-	}
-
 	createRequest := &ldap.AddRequest{
 		DN: l.dnForUsername(user.Name),
 		Attributes: []ldap.Attribute{
 			{
 				Type: ldapAttributeObjectClass,
-				Vals: []string{"inetOrgPerson", "posixAccount", "top"},
+				Vals: []string{"inetOrgPerson", "top"},
 			},
 			{
 				Type: ldapAttributeCommonName,
@@ -256,39 +248,11 @@ func (l *ldapInterfaceImpl) Create(user *iamv1alpha2.User) error {
 			},
 			{
 				Type: ldapAttributeSerialNumber,
-				Vals: []string{" "},
-			},
-			{
-				Type: ldapAttributeGlobalIDNumber,
-				Vals: []string{"500"},
-			},
-			{
-				Type: ldapAttributeHomeDirectory,
-				Vals: []string{"/home/" + user.Name},
-			},
-			{
-				Type: ldapAttributeUserID,
 				Vals: []string{user.Name},
-			},
-			{
-				Type: ldapAttributeUserIDNumber,
-				Vals: []string{uuid.New().String()},
-			},
-			{
-				Type: ldapAttributeMail,
-				Vals: []string{user.Spec.Email},
 			},
 			{
 				Type: ldapAttributeUserPassword,
 				Vals: []string{user.Spec.EncryptedPassword},
-			},
-			{
-				Type: ldapAttributePreferredLanguage,
-				Vals: []string{user.Spec.Lang},
-			},
-			{
-				Type: ldapAttributeDescription,
-				Vals: []string{user.Spec.Description},
 			},
 		},
 	}
@@ -341,14 +305,6 @@ func (l *ldapInterfaceImpl) Update(newUser *iamv1alpha2.User) error {
 		DN: l.dnForUsername(newUser.Name),
 	}
 
-	if newUser.Spec.Description != "" {
-		modifyRequest.Replace(ldapAttributeDescription, []string{newUser.Spec.Description})
-	}
-
-	if newUser.Spec.Lang != "" {
-		modifyRequest.Replace(ldapAttributePreferredLanguage, []string{newUser.Spec.Lang})
-	}
-
 	if newUser.Spec.EncryptedPassword != "" {
 		modifyRequest.Replace(ldapAttributeUserPassword, []string{newUser.Spec.EncryptedPassword})
 	}
@@ -385,55 +341,37 @@ func (l *ldapInterfaceImpl) List(query *query.Query) (*api.ListResult, error) {
 
 	filter := "(&(objectClass=inetOrgPerson))"
 
-	if keyword := query.Filters["keyword"]; keyword != "" {
-		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|(uid=*%s*)(mail=*%s*)(description=*%s*)))", keyword, keyword, keyword)
-	}
-
-	if username := query.Filters["username"]; username != "" {
-		uidFilter := ""
-		for _, username := range strings.Split(string(username), "|") {
-			uidFilter += fmt.Sprintf("(uid=%s)", username)
-		}
-		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", uidFilter)
-	}
-
-	if email := query.Filters["email"]; email != "" {
-		emailFilter := ""
-		for _, username := range strings.Split(string(email), "|") {
-			emailFilter += fmt.Sprintf("(mail=%s)", username)
-		}
-		filter = fmt.Sprintf("(&(objectClass=inetOrgPerson)(|%s))", emailFilter)
-	}
-
 	for {
 		userSearchRequest := ldap.NewSearchRequest(
 			l.userSearchBase,
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 			filter,
-			[]string{"uid", "mail", "description", "preferredLanguage", "createTimestamp"},
+			[]string{ldapAttributeUserID, ldapAttributeMail, ldapAttributeDescription, ldapAttributeCreateTimestamp},
 			[]ldap.Control{pageControl},
 		)
 
 		response, err := conn.Search(userSearchRequest)
 
 		if err != nil {
-			klog.Errorln("search user", err)
+			klog.Error(err)
 			return nil, err
 		}
 
 		for _, entry := range response.Entries {
 
-			uid := entry.GetAttributeValue("uid")
-			email := entry.GetAttributeValue("mail")
-			description := entry.GetAttributeValue("description")
-			lang := entry.GetAttributeValue("preferredLanguage")
-			createTimestamp, _ := time.Parse("20060102150405Z", entry.GetAttributeValue("createTimestamp"))
+			uid := entry.GetAttributeValue(ldapAttributeUserID)
+			email := entry.GetAttributeValue(ldapAttributeMail)
+			description := entry.GetAttributeValue(ldapAttributeDescription)
+			createTimestamp, _ := time.Parse(ldapAttributeCreateTimestampLayout, entry.GetAttributeValue(ldapAttributeCreateTimestamp))
 
-			user := iamv1alpha2.User{ObjectMeta: metav1.ObjectMeta{Name: uid, CreationTimestamp: metav1.Time{Time: createTimestamp}}, Spec: iamv1alpha2.UserSpec{
-				Email:       email,
-				Lang:        lang,
-				Description: description,
-			}}
+			user := iamv1alpha2.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              uid,
+					CreationTimestamp: metav1.Time{Time: createTimestamp}},
+				Spec: iamv1alpha2.UserSpec{
+					Email:       email,
+					Description: description,
+				}}
 
 			users = append(users, user)
 		}

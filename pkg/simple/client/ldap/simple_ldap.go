@@ -23,6 +23,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 )
 
+const FAKE_HOST string = "FAKE"
+
 // simpleLdap is a implementation of ldap.Interface, you should never use this in production env!
 type simpleLdap struct {
 	store map[string]*iamv1alpha2.User
