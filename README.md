@@ -110,7 +110,7 @@ KubeSphere Installer can help you to install KubeSphere and Kubernetes on your l
 #### Minimum Requirements
 
 - Operating Systems
-  - CentOS 7.5 (64 bit)
+  - CentOS 7.4~7.7 (64 bit)
   - Ubuntu 16.04/18.04 LTS (64 bit)
   - Red Hat Enterprise Linux Server 7.4 (64 bit)
   - Debian Stretch 9.5 (64 bit)
@@ -148,7 +148,7 @@ Please submit any KubeSphere bugs, issues, and feature requests to [KubeSphere G
 
 ## Who are using KubeSphere
 
-The [Powered by KubeSphere](docs/powered-by-kubesphere.md) page includes users list of the project. You can submit your institution name and homepage if you are using KubeSphere.
+The [Powered by KubeSphere](https://kubesphere.io/case/) page includes the user list of the project. You can submit your institution name and homepage if you are using KubeSphere.
 
 ## RoadMap
 
