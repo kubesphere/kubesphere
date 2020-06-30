@@ -112,7 +112,10 @@ func (es *Elasticsearch) CountOverTime(filter *auditing.Filter, interval string)
 		return nil, err
 	}
 
-	raw := resp.Aggregations[aggName]
+	raw, ok := resp.Aggregations[aggName]
+	if !ok || len(raw) == 0 {
+		return &auditing.Histogram{}, nil
+	}
 	var agg struct {
 		Buckets []struct {
 			KeyAsString string `json:"key_as_string"`
@@ -123,12 +126,12 @@ func (es *Elasticsearch) CountOverTime(filter *auditing.Filter, interval string)
 	if err := json.Unmarshal(raw, &agg); err != nil {
 		return nil, err
 	}
-	histo := auditing.Histogram{Total: resp.Hits.Total}
+	h := auditing.Histogram{Total: resp.Hits.Total}
 	for _, b := range agg.Buckets {
-		histo.Buckets = append(histo.Buckets,
+		h.Buckets = append(h.Buckets,
 			auditing.Bucket{Time: b.Key, Count: b.DocCount})
 	}
-	return &histo, nil
+	return &h, nil
 }
 
 func (es *Elasticsearch) StatisticsOnResources(filter *auditing.Filter) (*auditing.Statistics, error) {
@@ -159,7 +162,10 @@ func (es *Elasticsearch) StatisticsOnResources(filter *auditing.Filter) (*auditi
 		return nil, err
 	}
 
-	raw := resp.Aggregations[aggName]
+	raw, ok := resp.Aggregations[aggName]
+	if !ok || len(raw) == 0 {
+		return &auditing.Statistics{}, nil
+	}
 	var agg struct {
 		Value int64 `json:"value"`
 	}
