@@ -173,7 +173,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 		klog.Info("registering webhooks to the webhook server")
 		hookServer.Register("/validate-email-iam-kubesphere-io-v1alpha2-user", &webhook.Admission{Handler: &user.EmailValidator{Client: mgr.GetClient()}})
-		hookServer.Register("/validate-service-nsnp-kubesphere-io-v1alpha1-network", &webhook.Admission{Handler: &nsnetworkpolicy.ServiceValidator{}})
+		hookServer.Register("/validate-nsnp-kubesphere-io-v1alpha1-network", &webhook.Admission{Handler: &nsnetworkpolicy.NSNPValidator{Client: mgr.GetClient()}})
 
 		klog.V(0).Info("Starting the controllers.")
 		if err = mgr.Start(stopCh); err != nil {
