@@ -41,7 +41,8 @@ func (e Error) Error() string {
 type ClientV5 es5.Client
 
 func (c *ClientV5) ExSearch(r *Request) (*Response, error) {
-	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body)))
+	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body),
+		c.Search.WithIgnoreUnavailable(true)))
 }
 func (c *ClientV5) parse(resp *es5api.Response, err error) (*Response, error) {
 	if err != nil {
@@ -85,7 +86,8 @@ func (c *ClientV5) Version() (string, error) {
 type ClientV6 es6.Client
 
 func (c *ClientV6) ExSearch(r *Request) (*Response, error) {
-	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body)))
+	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body),
+		c.Search.WithIgnoreUnavailable(true)))
 }
 func (c *ClientV6) parse(resp *es6api.Response, err error) (*Response, error) {
 	if err != nil {
@@ -114,7 +116,8 @@ func (c *ClientV6) parse(resp *es6api.Response, err error) (*Response, error) {
 type ClientV7 es7.Client
 
 func (c *ClientV7) ExSearch(r *Request) (*Response, error) {
-	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body)))
+	return c.parse(c.Search(c.Search.WithIndex(r.Index), c.Search.WithBody(r.Body),
+		c.Search.WithIgnoreUnavailable(true)))
 }
 func (c *ClientV7) parse(resp *es7api.Response, err error) (*Response, error) {
 	if err != nil {
