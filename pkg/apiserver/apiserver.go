@@ -69,7 +69,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -130,9 +129,6 @@ type APIServer struct {
 
 	//
 	S3Client s3.Interface
-
-	//
-	LdapClient ldap.Interface
 
 	SonarClient sonarqube.SonarInterface
 

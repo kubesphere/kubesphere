@@ -15,7 +15,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
-	"kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	esclient "kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch"
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring/prometheus"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
@@ -53,7 +52,6 @@ func (s *ServerRunOptions) Flags() (fss cliflag.NamedFlagSets) {
 	s.AuthorizationOptions.AddFlags(fss.FlagSet("authorization"), s.AuthorizationOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.SonarQubeOptions.AddFlags(fss.FlagSet("sonarqube"), s.SonarQubeOptions)
-	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
 	s.RedisOptions.AddFlags(fss.FlagSet("redis"), s.RedisOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
@@ -136,18 +134,6 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 			return nil, err
 		}
 		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
-	}
-
-	if s.LdapOptions.Host != "" {
-		if s.LdapOptions.Host == fakeInterface && s.DebugMode {
-			apiServer.LdapClient = ldap.NewSimpleLdap()
-		} else {
-			ldapClient, err := ldap.NewLdapClient(s.LdapOptions, stopCh)
-			if err != nil {
-				return nil, err
-			}
-			apiServer.LdapClient = ldapClient
-		}
 	}
 
 	var cacheClient cache.Interface
