@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -347,20 +348,40 @@ func (t *tenantOperator) ListWorkspaceClusters(workspaceName string) (*api.ListR
 		klog.Error(err)
 		return nil, err
 	}
-	clusters := make([]interface{}, 0)
-	for _, cluster := range workspace.Spec.Placement.Clusters {
-		obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster.Name)
-		if err != nil {
-			klog.Error(err)
-			if errors.IsNotFound(err) {
-				continue
+
+	// In this case, spec.placement.clusterSelector will be ignored, since spec.placement.clusters is provided.
+	if workspace.Spec.Placement.Clusters != nil {
+		clusters := make([]interface{}, 0)
+		for _, cluster := range workspace.Spec.Placement.Clusters {
+			obj, err := t.resourceGetter.Get(clusterv1alpha1.ResourcesPluralCluster, "", cluster.Name)
+			if err != nil {
+				klog.Error(err)
+				if errors.IsNotFound(err) {
+					continue
+				}
+				return nil, err
 			}
-			return nil, err
+			clusters = append(clusters, obj)
 		}
-		cluster := obj.(*clusterv1alpha1.Cluster)
-		clusters = append(clusters, cluster)
+		return &api.ListResult{Items: clusters, TotalItems: len(clusters)}, nil
 	}
-	return &api.ListResult{Items: clusters, TotalItems: len(clusters)}, nil
+
+	if workspace.Spec.Placement.ClusterSelector != nil {
+		// In this case, the resource will be propagated to all member clusters.
+		if workspace.Spec.Placement.ClusterSelector.MatchLabels == nil {
+			return t.resourceGetter.List(clusterv1alpha1.ResourcesPluralCluster, "", query.New())
+		} else {
+			// In this case, the resource will only be propagated to member clusters that are labeled with foo: bar.
+			return t.resourceGetter.List(clusterv1alpha1.ResourcesPluralCluster, "", &query.Query{
+				Pagination:    query.NoPagination,
+				Ascending:     false,
+				LabelSelector: labels.SelectorFromSet(workspace.Spec.Placement.ClusterSelector.MatchLabels).String(),
+			})
+		}
+	}
+
+	// In this case, you can either set spec: {} as above or remove spec field from your placement policy. The resource will not be propagated to member clusters.
+	return &api.ListResult{Items: []interface{}{}, TotalItems: 0}, nil
 }
 func (t *tenantOperator) ListClusters(user user.Info) (*api.ListResult, error) {
 
