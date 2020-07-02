@@ -12,6 +12,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"strings"
+	"sync"
 )
 
 const (
@@ -22,7 +23,12 @@ const (
 
 // Elasticsearch implement logging interface
 type Elasticsearch struct {
-	c client
+	host    string
+	version string
+	index   string
+
+	c   client
+	mux sync.Mutex
 }
 
 // versioned es client interface
@@ -34,76 +40,105 @@ type client interface {
 }
 
 func NewElasticsearch(options *Options) (*Elasticsearch, error) {
-	var version, index string
-	es := &Elasticsearch{}
-
-	if options.Version == "" {
-		var err error
-		version, err = detectVersionMajor(options.Host)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		version = options.Version
+	var err error
+	es := &Elasticsearch{
+		host:    options.Host,
+		version: options.Version,
+		index:   options.IndexPrefix,
 	}
 
-	if options.IndexPrefix != "" {
-		index = options.IndexPrefix
-	} else {
-		index = "logstash"
-	}
-
-	switch version {
+	switch es.version {
 	case ElasticV5:
-		es.c = v5.New(options.Host, index)
+		es.c, err = v5.New(es.host, es.index)
 	case ElasticV6:
-		es.c = v6.New(options.Host, index)
+		es.c, err = v6.New(es.host, es.index)
 	case ElasticV7:
-		es.c = v7.New(options.Host, index)
+		es.c, err = v7.New(es.host, es.index)
+	case "":
+		es.c = nil
 	default:
-		return nil, fmt.Errorf("unsupported elasticsearch version %s", version)
+		return nil, fmt.Errorf("unsupported elasticsearch version %s", es.version)
 	}
 
-	return es, nil
+	return es, err
 }
 
-func (es *Elasticsearch) ES() *client {
-	return &es.c
-}
+func (es *Elasticsearch) loadClient() error {
+	// Check if Elasticsearch client has been initialized.
+	if es.c != nil {
+		return nil
+	}
 
-func detectVersionMajor(host string) (string, error) {
-	// Info APIs are backward compatible with versions of v5.x, v6.x and v7.x
-	es := v6.New(host, "")
-	res, err := es.Client.Info(
-		es.Client.Info.WithContext(context.Background()),
+	// Create Elasticsearch client.
+	es.mux.Lock()
+	defer es.mux.Unlock()
+
+	if es.c != nil {
+		return nil
+	}
+
+	// Detect Elasticsearch server version using Info API.
+	// Info API is backward compatible across v5, v6 and v7.
+	esv6, err := v6.New(es.host, "")
+	if err != nil {
+		return err
+	}
+
+	res, err := esv6.Client.Info(
+		esv6.Client.Info.WithContext(context.Background()),
 	)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer res.Body.Close()
 
 	var b map[string]interface{}
 	if err = jsoniter.NewDecoder(res.Body).Decode(&b); err != nil {
-		return "", err
+		return err
 	}
 	if res.IsError() {
 		// Print the response status and error information.
 		e, _ := b["error"].(map[string]interface{})
-		return "", fmt.Errorf("[%s] type: %v, reason: %v", res.Status(), e["type"], e["reason"])
+		return fmt.Errorf("[%s] type: %v, reason: %v", res.Status(), e["type"], e["reason"])
 	}
 
 	// get the major version
 	version, _ := b["version"].(map[string]interface{})
 	number, _ := version["number"].(string)
 	if number == "" {
-		return "", fmt.Errorf("failed to detect elastic version number")
+		return fmt.Errorf("failed to detect elastic version number")
 	}
 
+	var c client
 	v := strings.Split(number, ".")[0]
-	return v, nil
+	switch v {
+	case ElasticV5:
+		c, err = v5.New(es.host, es.index)
+	case ElasticV6:
+		c, err = v6.New(es.host, es.index)
+	case ElasticV7:
+		c, err = v7.New(es.host, es.index)
+	default:
+		err = fmt.Errorf("unsupported elasticsearch version %s", version)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	es.c = c
+	es.version = v
+	return nil
 }
 
-func (es Elasticsearch) GetCurrentStats(sf logging.SearchFilter) (logging.Statistics, error) {
+func (es *Elasticsearch) GetCurrentStats(sf logging.SearchFilter) (logging.Statistics, error) {
+	var err error
+
+	err = es.loadClient()
+	if err != nil {
+		return logging.Statistics{}, err
+	}
+
 	body, err := newBodyBuilder().
 		mainBool(sf).
 		cardinalityAggregation().
@@ -129,7 +164,14 @@ func (es Elasticsearch) GetCurrentStats(sf logging.SearchFilter) (logging.Statis
 		nil
 }
 
-func (es Elasticsearch) CountLogsByInterval(sf logging.SearchFilter, interval string) (logging.Histogram, error) {
+func (es *Elasticsearch) CountLogsByInterval(sf logging.SearchFilter, interval string) (logging.Histogram, error) {
+	var err error
+
+	err = es.loadClient()
+	if err != nil {
+		return logging.Histogram{}, err
+	}
+
 	body, err := newBodyBuilder().
 		mainBool(sf).
 		dateHistogramAggregation(interval).
@@ -159,7 +201,14 @@ func (es Elasticsearch) CountLogsByInterval(sf logging.SearchFilter, interval st
 	return h, nil
 }
 
-func (es Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o string) (logging.Logs, error) {
+func (es *Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o string) (logging.Logs, error) {
+	var err error
+
+	err = es.loadClient()
+	if err != nil {
+		return logging.Logs{}, err
+	}
+
 	body, err := newBodyBuilder().
 		mainBool(sf).
 		from(f).
@@ -194,9 +243,15 @@ func (es Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o string
 	return l, nil
 }
 
-func (es Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
+func (es *Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error {
+	var err error
 	var id string
 	var data []string
+
+	err = es.loadClient()
+	if err != nil {
+		return err
+	}
 
 	// Initial Search
 	body, err := newBodyBuilder().
