@@ -40,6 +40,10 @@ const (
 
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}
 
+func Resource(resource string) schema.GroupResource {
+	return GroupVersion.WithResource(resource).GroupResource()
+}
+
 func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory) error {
 
 	webservice := runtime.NewWebService(GroupVersion)

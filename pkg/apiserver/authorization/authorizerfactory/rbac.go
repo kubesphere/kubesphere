@@ -131,8 +131,8 @@ func (r *RBACAuthorizer) Authorize(requestAttributes authorizer.Attributes) (aut
 			scope = fmt.Sprintf("in namespace %q", ns)
 		} else if ws := requestAttributes.GetWorkspace(); len(ws) > 0 {
 			scope = fmt.Sprintf("in workspace %q", ws)
-		} else if cluster := requestAttributes.GetWorkspace(); len(cluster) > 0 {
-			scope = fmt.Sprintf("in cluster %q", cluster)
+		} else if requestAttributes.GetResourceScope() == request.ClusterScope {
+			scope = "cluster scope"
 		} else {
 			scope = "global-wide"
 		}
@@ -228,13 +228,15 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 				}
 			}
 		}
+
+		if requestAttributes.GetResourceScope() == request.GlobalScope {
+			return
+		}
 	}
 
 	if requestAttributes.GetResourceScope() == request.WorkspaceScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
-
 		var workspace string
 		var err error
-
 		if requestAttributes.GetResourceScope() == request.NamespaceScope {
 			if workspace, err = r.am.GetControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
 				if !visitor(nil, "", nil, err) {

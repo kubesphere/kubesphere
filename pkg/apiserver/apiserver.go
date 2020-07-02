@@ -27,6 +27,9 @@ import (
 	unionauth "k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
+	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
@@ -238,6 +241,16 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 	requestInfoResolver := &request.RequestInfoFactory{
 		APIPrefixes:          sets.NewString("api", "apis", "kapis", "kapi"),
 		GrouplessAPIPrefixes: sets.NewString("api", "kapi"),
+		GlobalResources: []schema.GroupResource{
+			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralUser),
+			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralGlobalRole),
+			iamv1alpha2.Resource(iamv1alpha2.ResourcesPluralGlobalRoleBinding),
+			tenantv1alpha1.Resource(tenantv1alpha1.ResourcePluralWorkspace),
+			tenantv1alpha2.Resource(tenantv1alpha1.ResourcePluralWorkspace),
+			tenantv1alpha2.Resource(clusterv1alpha1.ResourcesPluralCluster),
+			clusterv1alpha1.Resource(clusterv1alpha1.ResourcesPluralCluster),
+			resourcev1alpha3.Resource(clusterv1alpha1.ResourcesPluralCluster),
+		},
 	}
 
 	handler := s.Server.Handler
