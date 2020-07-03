@@ -251,20 +251,22 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	return result, nil
 }
 
+// CreateNamespace adds a workspace label to namespace which indicates namespace is under the workspace
+// The reason here why don't check the existence of workspace anymore is this function is only executed in host cluster.
+// but if the host cluster is not authorized to workspace, there will be no workspace in host cluster.
 func (t *tenantOperator) CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error) {
-	_, err := t.resourceGetter.Get(tenantv1alpha1.ResourcePluralWorkspace, "", workspace)
-	if err != nil {
-		return nil, err
-	}
-	namespace = appendWorkspaceLabel(namespace, workspace)
-	return t.k8sclient.CoreV1().Namespaces().Create(namespace)
+	return t.k8sclient.CoreV1().Namespaces().Create(labelNamespaceWithWorkspaceName(namespace, workspace))
 }
 
-func appendWorkspaceLabel(namespace *corev1.Namespace, workspace string) *corev1.Namespace {
+// labelNamespaceWithWorkspaceName adds a kubesphere.io/workspace=[workspaceName] label to namespace which
+// indicates namespace is under the workspace
+func labelNamespaceWithWorkspaceName(namespace *corev1.Namespace, workspaceName string) *corev1.Namespace {
 	if namespace.Labels == nil {
 		namespace.Labels = make(map[string]string, 0)
 	}
-	namespace.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
+
+	namespace.Labels[tenantv1alpha1.WorkspaceLabel] = workspaceName // label namespace with workspace name
+
 	return namespace
 }
 
@@ -295,7 +297,7 @@ func (t *tenantOperator) UpdateNamespace(workspace string, namespace *corev1.Nam
 	if err != nil {
 		return nil, err
 	}
-	namespace = appendWorkspaceLabel(namespace, workspace)
+	namespace = labelNamespaceWithWorkspaceName(namespace, workspace)
 	return t.k8sclient.CoreV1().Namespaces().Update(namespace)
 }
 
