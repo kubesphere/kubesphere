@@ -399,6 +399,10 @@ func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Respons
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
 
+	if req.PathParameter("workspace") != "" {
+		conditions.Match["isv"] = req.PathParameter("workspace")
+	}
+
 	if err != nil {
 		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, nil, err)
@@ -848,29 +852,6 @@ func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Respon
 	}
 
 	result, err := h.openpitrix.ListRepos(conditions, orderBy, reverse, limit, offset)
-
-	if err != nil {
-		klog.Errorln(err)
-		handleOpenpitrixError(resp, err)
-		return
-	}
-
-	resp.WriteEntity(result)
-}
-
-func (h *openpitrixHandler) ListEvents(req *restful.Request, resp *restful.Response) {
-	limit, offset := params.ParsePaging(req)
-	orderBy := params.GetStringValueWithDefault(req, params.OrderByParam, openpitrix.CreateTime)
-	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
-	conditions, err := params.ParseConditions(req)
-
-	if err != nil {
-		klog.V(4).Infoln(err)
-		api.HandleBadRequest(resp, nil, err)
-		return
-	}
-
-	result, err := h.openpitrix.ListEvents(conditions, orderBy, reverse, limit, offset)
 
 	if err != nil {
 		klog.Errorln(err)
