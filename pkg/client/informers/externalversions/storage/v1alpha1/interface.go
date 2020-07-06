@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// ProvisionerCapabilities returns a ProvisionerCapabilityInformer.
+	ProvisionerCapabilities() ProvisionerCapabilityInformer
 	// StorageClassCapabilities returns a StorageClassCapabilityInformer.
 	StorageClassCapabilities() StorageClassCapabilityInformer
 }
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// ProvisionerCapabilities returns a ProvisionerCapabilityInformer.
+func (v *version) ProvisionerCapabilities() ProvisionerCapabilityInformer {
+	return &provisionerCapabilityInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // StorageClassCapabilities returns a StorageClassCapabilityInformer.

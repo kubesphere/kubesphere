@@ -17,7 +17,6 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
@@ -136,14 +135,14 @@ func addControllers(
 	}
 
 	storageCapabilityController := capability.NewController(
-		client.Kubernetes(),
-		client.KubeSphere(),
+		client.KubeSphere().StorageV1alpha1().StorageClassCapabilities(),
+		kubesphereInformer.Storage().V1alpha1(),
+		client.Kubernetes().StorageV1().StorageClasses(),
 		kubernetesInformer.Storage().V1().StorageClasses(),
+		capability.SnapshotSupported(client.Kubernetes().Discovery()),
+		client.Snapshot().SnapshotV1beta1().VolumeSnapshotClasses(),
 		informerFactory.SnapshotSharedInformerFactory().Snapshot().V1beta1().VolumeSnapshotClasses(),
-		kubesphereInformer.Storage().V1alpha1().StorageClassCapabilities(),
-		func(storageClassProvisioner string) string {
-			return fmt.Sprintf(capability.CSIAddressFormat, storageClassProvisioner)
-		},
+		kubernetesInformer.Storage().V1beta1().CSIDrivers(),
 	)
 
 	volumeExpansionController := expansion.NewVolumeExpansionController(
@@ -267,6 +266,7 @@ func addControllers(
 		"job-controller":                jobController,
 		"s2ibinary-controller":          s2iBinaryController,
 		"s2irun-controller":             s2iRunController,
+		"storagecapability-controller":  storageCapabilityController,
 		"volumeexpansion-controller":    volumeExpansionController,
 		"user-controller":               userController,
 		"cluster-controller":            clusterController,
@@ -281,10 +281,6 @@ func addControllers(
 		controllers["pipeline-controller"] = devopsPipelineController
 		controllers["devopsprojects-controller"] = devopsProjectController
 		controllers["devopscredential-controller"] = devopsCredentialController
-	}
-
-	if storageCapabilityController.IsValidKubernetesVersion() {
-		controllers["storagecapability-controller"] = storageCapabilityController
 	}
 
 	if multiClusterEnabled {

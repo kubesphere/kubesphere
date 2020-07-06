@@ -28,6 +28,10 @@ type FakeStorageV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeStorageV1alpha1) ProvisionerCapabilities() v1alpha1.ProvisionerCapabilityInterface {
+	return &FakeProvisionerCapabilities{c}
+}
+
 func (c *FakeStorageV1alpha1) StorageClassCapabilities() v1alpha1.StorageClassCapabilityInterface {
 	return &FakeStorageClassCapabilities{c}
 }

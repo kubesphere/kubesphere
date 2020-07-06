@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// ProvisionerCapabilityListerExpansion allows custom methods to be added to
+// ProvisionerCapabilityLister.
+type ProvisionerCapabilityListerExpansion interface{}
+
 // StorageClassCapabilityListerExpansion allows custom methods to be added to
 // StorageClassCapabilityLister.
 type StorageClassCapabilityListerExpansion interface{}

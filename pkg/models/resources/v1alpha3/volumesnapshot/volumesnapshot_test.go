@@ -178,5 +178,43 @@ func TestListVolumeSnapshot(t *testing.T) {
 		})
 	})
 
+	Describe("snapshot status", func() {
+		snapshot := newVolumeSnapshot("snap-0")
+		It("snapshot == nil", func() {
+			Expect(snapshotStatus(nil)).To(Equal(statusCreating))
+		})
+		It("snapshot.Status == nil", func() {
+			snapshot.Status = nil
+			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
+		})
+		It("snapshot.Status.ReadyToUse == nil", func() {
+			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+				ReadyToUse: nil,
+			}
+			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
+		})
+		It("snapshot.Status.ReadyToUse == false", func() {
+			readyToUse := false
+			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+				ReadyToUse: &readyToUse,
+			}
+			Expect(snapshotStatus(snapshot)).To(Equal(statusCreating))
+		})
+
+		It("snapshot.Status.ReadyToUse == true", func() {
+			readyToUse := true
+			snapshot.Status = &v1beta1.VolumeSnapshotStatus{
+				ReadyToUse: &readyToUse,
+			}
+			Expect(snapshotStatus(snapshot)).To(Equal(statusReady))
+		})
+	})
+
 	RunSpecs(t, "volume snapshot getter list")
 }
+
+//func TestVolumeSnapshotStatus( t *testing.T)  {
+//	RegisterFailHandler(Fail)
+//
+//	RunSpecs(t, "volume snapshot status")
+//}

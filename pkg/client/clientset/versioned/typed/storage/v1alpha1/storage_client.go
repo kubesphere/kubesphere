@@ -26,12 +26,17 @@ import (
 
 type StorageV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	ProvisionerCapabilitiesGetter
 	StorageClassCapabilitiesGetter
 }
 
 // StorageV1alpha1Client is used to interact with features provided by the storage.kubesphere.io group.
 type StorageV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *StorageV1alpha1Client) ProvisionerCapabilities() ProvisionerCapabilityInterface {
+	return newProvisionerCapabilities(c)
 }
 
 func (c *StorageV1alpha1Client) StorageClassCapabilities() StorageClassCapabilityInterface {

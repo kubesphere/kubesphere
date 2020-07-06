@@ -1,0 +1,20 @@
+apiVersion: storage.kubesphere.io/v1alpha1
+kind: ProvisionerCapability
+metadata:
+  name: kubernetes-io-azure-file
+spec:
+  pluginInfo:
+    name: kubernetes.io/azure-file
+    version: ""
+  features:
+    topology: false
+    volume:
+      create: true
+      attach: true
+      clone: false
+      list: false
+      stats: false
+      expandMode: OFFLINE
+    snapshot:
+      create: false
+      list: false
