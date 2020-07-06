@@ -38,9 +38,9 @@ func (c *daemonSetSearcher) Get(namespace, name string) (interface{}, error) {
 }
 
 func daemonSetStatus(item *v1.DaemonSet) string {
-	if item.Status.NumberAvailable == 0 {
+	if item.Status.DesiredNumberScheduled == 0 && item.Status.NumberReady == 0 {
 		return v1alpha2.StatusStopped
-	} else if item.Status.DesiredNumberScheduled == item.Status.NumberAvailable {
+	} else if item.Status.DesiredNumberScheduled == item.Status.NumberReady {
 		return v1alpha2.StatusRunning
 	} else {
 		return v1alpha2.StatusUpdating
