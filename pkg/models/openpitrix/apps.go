@@ -507,16 +507,16 @@ func (c *appTemplateOperator) GetAppVersionFiles(versionId string, request *GetA
 func (c *appTemplateOperator) ListAppVersionAudits(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionAudits := &pb.DescribeAppVersionAuditsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionAudits.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
 	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionAudits.AppId = []string{appId}
 	}
-	if versionId := conditions.Match["version"]; versionId != "" {
+	if versionId := conditions.Match[VersionId]; versionId != "" {
 		describeAppVersionAudits.VersionId = []string{versionId}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionAudits.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
@@ -545,10 +545,10 @@ func (c *appTemplateOperator) ListAppVersionAudits(conditions *params.Conditions
 func (c *appTemplateOperator) ListAppVersionReviews(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionReviews := &pb.DescribeAppVersionReviewsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionReviews.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionReviews.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
@@ -578,13 +578,13 @@ func (c *appTemplateOperator) ListAppVersionReviews(conditions *params.Condition
 func (c *appTemplateOperator) ListAppVersions(conditions *params.Conditions, orderBy string, reverse bool, limit, offset int) (*models.PageableResponse, error) {
 	describeAppVersionsRequest := &pb.DescribeAppVersionsRequest{}
 
-	if keyword := conditions.Match["keyword"]; keyword != "" {
+	if keyword := conditions.Match[Keyword]; keyword != "" {
 		describeAppVersionsRequest.SearchWord = &wrappers.StringValue{Value: keyword}
 	}
 	if appId := conditions.Match[AppId]; appId != "" {
 		describeAppVersionsRequest.AppId = []string{appId}
 	}
-	if status := conditions.Match["status"]; status != "" {
+	if status := conditions.Match[Status]; status != "" {
 		describeAppVersionsRequest.Status = strings.Split(status, "|")
 	}
 	if orderBy != "" {
