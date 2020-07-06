@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 	"strings"
 
@@ -193,6 +194,15 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		}
 	}
 
+	selector := req.URL.Query().Get("labelSelector")
+	// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
+	if strings.HasPrefix(selector, workspaceSelectorPrefix) {
+		workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
+		// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace==system-workspace
+		workspace = strings.TrimPrefix(workspace, "=")
+		requestInfo.Workspace = workspace
+	}
+
 	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
 	if currentParts[0] == "namespaces" {
 		if len(currentParts) > 1 {
@@ -291,10 +301,11 @@ func splitPath(path string) []string {
 }
 
 const (
-	GlobalScope    = "Global"
-	ClusterScope   = "Cluster"
-	WorkspaceScope = "Workspace"
-	NamespaceScope = "Namespace"
+	GlobalScope             = "Global"
+	ClusterScope            = "Cluster"
+	WorkspaceScope          = "Workspace"
+	NamespaceScope          = "Namespace"
+	workspaceSelectorPrefix = constants.WorkspaceLabelKey + "="
 )
 
 func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
