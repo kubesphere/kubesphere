@@ -112,6 +112,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicemesh().V1alpha2().Strategies().Informer()}, nil
 
 		// Group=storage.kubesphere.io, Version=v1alpha1
+	case storagev1alpha1.SchemeGroupVersion.WithResource("provisionercapabilities"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Storage().V1alpha1().ProvisionerCapabilities().Informer()}, nil
 	case storagev1alpha1.SchemeGroupVersion.WithResource("storageclasscapabilities"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Storage().V1alpha1().StorageClassCapabilities().Informer()}, nil
 

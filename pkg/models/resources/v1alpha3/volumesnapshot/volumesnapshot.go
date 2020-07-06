@@ -93,7 +93,7 @@ func (v *volumeSnapshotGetter) filter(object runtime.Object, filter query.Filter
 
 func snapshotStatus(item *v1beta1.VolumeSnapshot) string {
 	status := statusCreating
-	if *item.Status.ReadyToUse {
+	if item != nil && item.Status != nil && item.Status.ReadyToUse != nil && *item.Status.ReadyToUse {
 		status = statusReady
 	}
 	return status

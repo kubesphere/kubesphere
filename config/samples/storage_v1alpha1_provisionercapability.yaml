@@ -1,0 +1,20 @@
+apiVersion: storage.kubesphere.io/v1alpha1
+kind: ProvisionerCapability
+metadata:
+  name: kubernetes-io-no-provisioner
+spec:
+  pluginInfo:
+    name: kubernetes.io/no-provisioner
+    version: ""
+  features:
+    topology: false
+    volume:
+      create: true
+      attach: true
+      clone: false
+      list: false
+      stats: fasle
+      expandMode: OFFLINE
+    snapshot:
+      create: fasle
+      list: false

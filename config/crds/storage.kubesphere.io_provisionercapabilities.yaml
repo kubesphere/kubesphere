@@ -1,0 +1,99 @@
+# according to https://kubernetes.io/blog/2018/07/12/resizing-persistent-volumes-using-kubernetes/,
+# and https://kubernetes.io/docs/concepts/storage/storage-classes/#allow-volume-expansion
+# volume expansion support for the following in-tree volume plugins:
+# AWS-EBS, GCE-PD, Azure Disk, Azure File, Glusterfs, Cinder, Portworx, and Ceph RBD.
+# online file system expansion support for the following in-tree plugin
+# GCE-PD, AWS-EBS, Cinder, and Ceph RBD
+
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: provisionercapabilities.storage.kubesphere.io
+spec:
+  group: storage.kubesphere.io
+  version: v1alpha1
+  preserveUnknownFields: false
+  names:
+    plural: provisionercapabilities
+    singular: provisionercapability
+    kind: ProvisionerCapability
+    shortNames:
+      - pcap
+  scope: Cluster
+  additionalPrinterColumns:
+    - name: Provisioner
+      type: string
+      description: The provisioner name should be the same as name
+      JSONPath: .spec.pluginInfo.name
+    - name: Expand
+      type: string
+      JSONPath: .spec.features.volume.expandMode
+    - name: Age
+      type: date
+      JSONPath: .metadata.creationTimestamp
+  validation:
+    openAPIV3Schema:
+      required:
+        - spec
+      type: object
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.'
+          type: string
+        spec:
+          type: object
+          description: 'spec defines the desired characteristics of obejct'
+          properties:
+            pluginInfo:
+              type: object
+              description: 'Plugininfo represents plugin metadata'
+              properties:
+                name:
+                  description: 'provisioner name'
+                  type: string
+                version:
+                  description: 'plugin version'
+                  type: string
+            features:
+              type: object
+              description: 'Features represents plugin capability'
+              properties:
+                topology:
+                  description: 'topology determines whether a provisioner support topology by looking up GetPluginCapabilities.PluginCapability'
+                  type: boolean
+                volume:
+                  type: object
+                  description: 'Volume represents whether plugin supports volume features'
+                  properties:
+                    create:
+                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    attach:
+                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    list:
+                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    clone:
+                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
+                      type: boolean
+                    stats:
+                      description: 'Determined by NodeGetCapabilities in NodeServer'
+                      type: boolean
+                    expandMode:
+                      description: 'Determined by GetPluginCapabilities in IdentityServer'
+                      type: string
+                      items:
+                        type: string
+                        enum: ["UNKNOWN", "OFFLINE", "ONLINE"]
+                snapshot:
+                  type: object
+                  description: 'Snapshot represents whether plugin supports snapshot features'
+                  properties:
+                    create:
+                      type: boolean
+                    list:
+                      type: boolean

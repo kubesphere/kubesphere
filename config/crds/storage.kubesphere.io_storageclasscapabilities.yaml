@@ -19,6 +19,12 @@ spec:
     - name: Volume
       type: boolean
       JSONPath: .spec.features.volume.create
+    - name: Expand
+      type: string
+      JSONPath: .spec.features.volume.expandMode
+    - name: Clone
+      type: boolean
+      JSONPath: .spec.features.volume.clone
     - name: Snapshot
       type: boolean
       JSONPath: .spec.features.snapshot.create

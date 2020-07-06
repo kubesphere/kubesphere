@@ -28,6 +28,35 @@ const (
 	ExpandModeOnline  ExpandMode = "ONLINE"
 )
 
+// VolumeFeature describe volume features
+type VolumeFeature struct {
+	Create bool       `json:"create"`
+	Attach bool       `json:"attach"`
+	List   bool       `json:"list"`
+	Clone  bool       `json:"clone"`
+	Stats  bool       `json:"stats"`
+	Expand ExpandMode `json:"expandMode"`
+}
+
+// SnapshotFeature describe snapshot features
+type SnapshotFeature struct {
+	Create bool `json:"create"`
+	List   bool `json:"list"`
+}
+
+// CapabilityFeatures describe storage features
+type CapabilityFeatures struct {
+	Topology bool            `json:"topology"`
+	Volume   VolumeFeature   `json:"volume"`
+	Snapshot SnapshotFeature `json:"snapshot"`
+}
+
+// PluginInfo describes plugin info
+type PluginInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:noStatus
@@ -44,31 +73,8 @@ type StorageClassCapability struct {
 
 // StorageClassCapabilitySpec defines the desired state of StorageClassCapability
 type StorageClassCapabilitySpec struct {
-	Provisioner string                             `json:"provisioner"`
-	Features    StorageClassCapabilitySpecFeatures `json:"features"`
-}
-
-// StorageClassCapabilitySpecFeatures describe storage class features
-type StorageClassCapabilitySpecFeatures struct {
-	Topology bool                                       `json:"topology"`
-	Volume   StorageClassCapabilitySpecFeaturesVolume   `json:"volume"`
-	Snapshot StorageClassCapabilitySpecFeaturesSnapshot `json:"snapshot"`
-}
-
-// StorageClassCapabilitySpecFeaturesVolume describe volume features
-type StorageClassCapabilitySpecFeaturesVolume struct {
-	Create bool       `json:"create"`
-	Attach bool       `json:"attach"`
-	List   bool       `json:"list"`
-	Clone  bool       `json:"clone"`
-	Stats  bool       `json:"stats"`
-	Expand ExpandMode `json:"expandMode"`
-}
-
-// StorageClassCapabilitySpecFeaturesSnapshot describe snapshot features
-type StorageClassCapabilitySpecFeaturesSnapshot struct {
-	Create bool `json:"create"`
-	List   bool `json:"list"`
+	Provisioner string             `json:"provisioner"`
+	Features    CapabilityFeatures `json:"features"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -81,8 +87,37 @@ type StorageClassCapabilityList struct {
 	Items           []StorageClassCapability `json:"items"`
 }
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:noStatus
+// +genclient:nonNamespaced
+
+// ProvisionerCapability is the schema for the provisionercapability API
+// +k8s:openapi-gen=true
+type ProvisionerCapability struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec ProvisionerCapabilitySpec `json:"spec"`
+}
+
+// ProvisionerCapabilitySpec defines the desired state of ProvisionerCapability
+type ProvisionerCapabilitySpec struct {
+	PluginInfo PluginInfo         `json:"pluginInfo"`
+	Features   CapabilityFeatures `json:"features"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type ProvisionerCapabilityList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []ProvisionerCapability `json:"items"`
+}
+
 func init() {
 	SchemeBuilder.Register(
 		&StorageClassCapability{},
-		&StorageClassCapabilityList{})
+		&StorageClassCapabilityList{},
+		&ProvisionerCapability{},
+		&ProvisionerCapabilityList{})
 }

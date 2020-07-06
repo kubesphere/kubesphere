@@ -19,6 +19,7 @@ package capability
 
 import (
 	"context"
+	"fmt"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
@@ -72,9 +73,9 @@ type fakeCSIServer struct {
 	server  *grpc.Server
 }
 
-func newTestCSIServer() (csiServer *fakeCSIServer, address string) {
+func newTestCSIServer(port int) (csiServer *fakeCSIServer, address string) {
 	if runtime.GOOS == "windows" {
-		address = "localhost:38886"
+		address = fmt.Sprintf("localhost:%d", +port)
 		csiServer = newFakeCSIServer("tcp", address)
 	} else {
 		address = filepath.Join(os.TempDir(), "csi.sock"+rand.String(4))
@@ -151,7 +152,7 @@ func (*fakeCSIServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 }
 
 func Test_CSICapability(t *testing.T) {
-	fakeCSIServer, address := newTestCSIServer()
+	fakeCSIServer, address := newTestCSIServer(30087)
 	fakeCSIServer.run()
 	defer fakeCSIServer.stop()
 
@@ -168,9 +169,9 @@ func Test_CSICapability(t *testing.T) {
 
 func newStorageClassCapabilitySpec() *v1alpha1.StorageClassCapabilitySpec {
 	return &v1alpha1.StorageClassCapabilitySpec{
-		Features: v1alpha1.StorageClassCapabilitySpecFeatures{
+		Features: v1alpha1.CapabilityFeatures{
 			Topology: false,
-			Volume: v1alpha1.StorageClassCapabilitySpecFeaturesVolume{
+			Volume: v1alpha1.VolumeFeature{
 				Create: true,
 				Attach: false,
 				List:   false,
@@ -178,7 +179,7 @@ func newStorageClassCapabilitySpec() *v1alpha1.StorageClassCapabilitySpec {
 				Stats:  true,
 				Expand: v1alpha1.ExpandModeOffline,
 			},
-			Snapshot: v1alpha1.StorageClassCapabilitySpecFeaturesSnapshot{
+			Snapshot: v1alpha1.SnapshotFeature{
 				Create: true,
 				List:   false,
 			},
