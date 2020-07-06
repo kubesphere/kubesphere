@@ -251,3 +251,8 @@ func (c *ResponseCapture) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	}
 	return hijacker.Hijack()
 }
+
+// CloseNotify is part of http.CloseNotifier interface
+func (c *ResponseCapture) CloseNotify() <-chan bool {
+	return c.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
