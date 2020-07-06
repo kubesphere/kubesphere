@@ -378,7 +378,7 @@ func (h *openpitrixHandler) ListAppVersions(req *restful.Request, resp *restful.
 	if statistics {
 		for _, item := range result.Items {
 			if version, ok := item.(*openpitrix.AppVersion); ok {
-				statisticsResult, err := h.openpitrix.ListApplications(&params.Conditions{Match: map[string]string{"app_id": version.AppId, "version_id": version.VersionId}}, 0, 0, "", false)
+				statisticsResult, err := h.openpitrix.ListApplications(&params.Conditions{Match: map[string]string{openpitrix.AppId: version.AppId, openpitrix.VersionId: version.VersionId}}, 0, 0, "", false)
 				if err != nil {
 					klog.Errorln(err)
 					api.HandleInternalError(resp, nil, err)
@@ -399,14 +399,18 @@ func (h *openpitrixHandler) ListApps(req *restful.Request, resp *restful.Respons
 	statistics := params.GetBoolValueWithDefault(req, "statistics", false)
 	conditions, err := params.ParseConditions(req)
 
-	if req.PathParameter("workspace") != "" {
-		conditions.Match["isv"] = req.PathParameter("workspace")
-	}
-
 	if err != nil {
 		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, nil, err)
 		return
+	}
+
+	if req.PathParameter("workspace") != "" {
+		conditions.Match[openpitrix.ISV] = req.PathParameter("workspace")
+	}
+
+	if conditions.Match[openpitrix.ISV] == "" {
+		conditions.Match[openpitrix.ISV] = req.QueryParameter("workspace")
 	}
 
 	result, err := h.openpitrix.ListApps(conditions, orderBy, reverse, limit, offset)
