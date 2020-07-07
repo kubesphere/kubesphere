@@ -22,6 +22,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/api/iam"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
@@ -61,6 +62,13 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Reads(iamv1alpha2.User{}).
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.PUT("/users/{user}/password").
+		To(handler.ModifyPassword).
+		Doc("Modify user's password.").
+		Reads(iam.PasswordReset{}).
+		Param(ws.PathParameter("user", "username")).
+		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/users/{user}").
 		To(handler.DescribeUser).

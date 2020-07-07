@@ -179,12 +179,11 @@ func (s *APIServer) installKubeSphereAPIs() {
 		s.Config.MultiClusterOptions.ProxyPublishService,
 		s.Config.MultiClusterOptions.ProxyPublishAddress,
 		s.Config.MultiClusterOptions.AgentImage))
-	urlruntime.Must(iamapi.AddToContainer(s.container,
-		im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
+	imOperator := im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions)
+	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
 		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		s.Config.AuthenticationOptions))
-	urlruntime.Must(oauth.AddToContainer(s.container,
-		im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory),
+	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
 		token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
@@ -271,7 +270,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory))),
+		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions))),
 		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)

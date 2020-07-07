@@ -54,16 +54,14 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
 	}
 
 	clm := &Claims{}
-
 	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// 0 means no expiration.
-	// validate token cache
-	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
+	// accessTokenMaxAge = 0 or token without expiration time means that the token will not expire
+	// do not validate token cache
+	if s.options.OAuthOptions.AccessTokenMaxAge > 0 && clm.ExpiresAt > 0 {
 		_, err = s.cache.Get(tokenCacheKey(tokenString))
 
 		if err != nil {
