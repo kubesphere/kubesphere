@@ -26,6 +26,7 @@ import (
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metainternalversionscheme "k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -75,6 +76,7 @@ type RequestInfo struct {
 type RequestInfoFactory struct {
 	APIPrefixes          sets.String
 	GrouplessAPIPrefixes sets.String
+	GlobalResources      []schema.GroupResource
 }
 
 // NewRequestInfo returns the information from the http request.  If error is not nil, RequestInfo holds the information as best it is known before the failure
@@ -106,7 +108,6 @@ type RequestInfoFactory struct {
 // /kapis/clusters/{cluster}/{api-group}/{version}/namespaces/{namespace}/{resource}/{resourceName}
 //
 func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, error) {
-
 	requestInfo := RequestInfo{
 		IsKubernetesRequest: false,
 		RequestInfo: &k8srequest.RequestInfo{
@@ -309,6 +310,9 @@ const (
 )
 
 func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
+	if r.isGlobalScopeResource(request.APIGroup, request.Resource) {
+		return GlobalScope
+	}
 
 	if request.Namespace != "" {
 		return NamespaceScope
@@ -319,4 +323,13 @@ func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
 	}
 
 	return ClusterScope
+}
+
+func (r *RequestInfoFactory) isGlobalScopeResource(apiGroup, resource string) bool {
+	for _, groupResource := range r.GlobalResources {
+		if groupResource.Group == apiGroup && groupResource.Resource == resource {
+			return true
+		}
+	}
+	return false
 }
