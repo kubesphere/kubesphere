@@ -38,7 +38,7 @@ jobs:
         run: bash hack/install_kubebuilder.sh
 
       - name: Build
-        run: make test
+        run: make all
 
       - name: Make OpenAPI Spec
         run: make openapi
