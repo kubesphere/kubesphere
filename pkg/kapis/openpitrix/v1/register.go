@@ -229,6 +229,33 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
+	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}/versions/{version}").
+		To(handler.DescribeAppVersion).
+		Doc("Describe the specified app template version").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersion{}).
+		Param(webservice.PathParameter("version", "app template version id")).
+		Param(webservice.PathParameter("app", "app template id")))
+	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}/versions").
+		To(handler.ListAppVersions).
+		Doc("Get active versions of app, can filter with these fields(version_id, app_id, name, owner, description, package_name, status, type), default return all active app versions").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions,connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
+			Required(false).
+			DataFormat("key=%s,key~%s")).
+		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")).
+		Param(webservice.PathParameter("app", "app template id")).
+		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
+		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
+	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}/versions/{version}/audits").
+		To(handler.ListAppVersionAudits).
+		Doc("List audits information of version-specific app template").
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}).
+		Param(webservice.PathParameter("version", "app template version id")).
+		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/audits").
 		To(handler.ListAppVersionAudits).
 		Doc("List audits information of version-specific app template").
@@ -316,6 +343,12 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Reads(openpitrix2.ModifyAppVersionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("app", "app template id")))
+	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}").
+		To(handler.DescribeApp).
+		Doc("Describe the specified app template").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersion{}).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}").
 		To(handler.DescribeApp).
