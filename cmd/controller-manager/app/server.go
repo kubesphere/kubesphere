@@ -82,6 +82,7 @@ func NewControllerManagerCommand() *cobra.Command {
 				os.Exit(1)
 			}
 		},
+		SilenceUsage: true,
 	}
 
 	fs := cmd.Flags()
@@ -111,24 +112,21 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if s.DevopsOptions != nil && len(s.DevopsOptions.Host) != 0 {
 		devopsClient, err = jenkins.NewDevopsClient(s.DevopsOptions)
 		if err != nil {
-			klog.Errorf("Failed to create devops client %v", err)
-			return err
+			return fmt.Errorf("failed to connect jenkins, please check jenkins status, error: %v", err)
 		}
 	}
 
 	var ldapClient ldapclient.Interface
 	if s.LdapOptions == nil || len(s.LdapOptions.Host) == 0 {
-		klog.Errorf("Failed to create devops client invalid ldap options")
-		return err
-	}
-
-	if s.LdapOptions.Host == ldapclient.FAKE_HOST {
-		ldapClient = ldapclient.NewSimpleLdap()
+		return fmt.Errorf("ldap service address MUST not be empty")
 	} else {
-		ldapClient, err = ldapclient.NewLdapClient(s.LdapOptions, stopCh)
-		if err != nil {
-			klog.Errorf("Failed to create ldap client %v", err)
-			return err
+		if s.LdapOptions.Host == ldapclient.FAKE_HOST { // for debug only
+			ldapClient = ldapclient.NewSimpleLdap()
+		} else {
+			ldapClient, err = ldapclient.NewLdapClient(s.LdapOptions, stopCh)
+			if err != nil {
+				return fmt.Errorf("failed to connect to ldap service, please check ldap status, error: %v", err)
+			}
 		}
 	}
 
@@ -136,8 +134,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
 		openpitrixClient, err = openpitrix.NewClient(s.OpenPitrixOptions)
 		if err != nil {
-			klog.Errorf("Failed to create openpitrix client %v", err)
-			return err
+			return fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
 		}
 	}
 
@@ -145,13 +142,17 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	if s.S3Options != nil && len(s.S3Options.Endpoint) != 0 {
 		s3Client, err = s3.NewS3Client(s.S3Options)
 		if err != nil {
-			klog.Errorf("Failed to create s3 client %v", err)
-			return err
+			return fmt.Errorf("failed to connect to s3, please check s3 service status, error: %v", err)
 		}
 	}
 
-	informerFactory := informers.NewInformerFactories(kubernetesClient.Kubernetes(), kubernetesClient.KubeSphere(),
-		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
+	informerFactory := informers.NewInformerFactories(
+		kubernetesClient.Kubernetes(),
+		kubernetesClient.KubeSphere(),
+		kubernetesClient.Istio(),
+		kubernetesClient.Application(),
+		kubernetesClient.Snapshot(),
+		kubernetesClient.ApiExtensions())
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")

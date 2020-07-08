@@ -260,10 +260,8 @@ func isClusterReady(cluster *clusterv1alpha1.Cluster) bool {
 }
 
 func isClusterHostCluster(cluster *clusterv1alpha1.Cluster) bool {
-	for key, value := range cluster.Annotations {
-		if key == clusterv1alpha1.IsHostCluster && value == "true" {
-			return true
-		}
+	if _, ok := cluster.Labels[clusterv1alpha1.HostCluster]; ok {
+		return true
 	}
 
 	return false

@@ -10,7 +10,7 @@
 
 # Check if the program is installed, otherwise exit
 function command_exists () {
-  if ! [ -x "$(command -v $1)" ]; then
+  if ! [[ -x "$(command -v $1)" ]]; then
     echo "Error: $1 program is not installed." >&2
     exit 1
   fi
@@ -45,14 +45,14 @@ esac
 command_exists curl
 command_exists tar
 
-KUBEBUILDER_VERSION=v1.0.8
+KUBEBUILDER_VERSION=v2.3.1
 KUBEBUILDER_VERSION=${KUBEBUILDER_VERSION#"v"}
 KUBEBUILDER_VERSION_NAME="kubebuilder_${KUBEBUILDER_VERSION}"
 KUBEBUILDER_DIR=/usr/local/kubebuilder
 
 # Check if folder containing kubebuilder executable exists and is not empty
-if [ -d "$KUBEBUILDER_DIR" ]; then
-  if [ "$(ls -A $KUBEBUILDER_DIR)" ]; then
+if [[ -d "$KUBEBUILDER_DIR" ]]; then
+  if [[ "$(ls -A ${KUBEBUILDER_DIR})" ]]; then
     echo "\n/usr/local/kubebuilder folder is not empty. Please delete or backup it before to install ${KUBEBUILDER_VERSION_NAME}"
     exit 1
   fi
@@ -64,7 +64,7 @@ pushd $TMP_DIR
 # Downloading Kubebuilder compressed file using curl program
 URL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH}.tar.gz"
 echo "Downloading ${KUBEBUILDER_VERSION_NAME}\nfrom $URL\n"
-curl -L "$URL"| tar xz -C $TMP_DIR
+curl -L "$URL"| tar xz -C ${TMP_DIR}
 
 echo "Downloaded executable files"
 ls "${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH}/bin"
@@ -75,6 +75,6 @@ mv ${KUBEBUILDER_VERSION_NAME}_${OSEXT}_${ARCH} kubebuilder && sudo mv -f kubebu
 echo "Add kubebuilder to your path; e.g copy paste in your shell and/or edit your ~/.profile file"
 echo "export PATH=\$PATH:/usr/local/kubebuilder/bin"
 popd
-rm -rf $TMP_DIR
+rm -rf ${TMP_DIR}
 
 export PATH=$PATH:/usr/local/kubebuilder/bin

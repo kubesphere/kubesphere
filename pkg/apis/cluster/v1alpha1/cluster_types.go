@@ -10,7 +10,7 @@ const (
 	ResourcesSingularCluster = "cluster"
 	ResourcesPluralCluster   = "clusters"
 
-	IsHostCluster = "cluster.kubesphere.io/is-host-cluster"
+	HostCluster = "cluster-role.kubesphere.io/host"
 	// Description of which region the cluster been placed
 	ClusterRegion = "cluster.kubesphere.io/region"
 	// Name of the cluster group

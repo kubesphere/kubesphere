@@ -4,13 +4,12 @@ on:
   push:
     branches:
       - 'master'
-      - 'dev'
+      - 'release*'
     tags:
-      - 'release-*'
+      - 'v*'
   pull_request:
     branches:
       - 'master'
-      - 'dev'
 
 jobs:
   build:
@@ -39,7 +38,7 @@ jobs:
         run: bash hack/install_kubebuilder.sh
 
       - name: Build
-        run: make all
+        run: make test
 
       - name: Make OpenAPI Spec
         run: make openapi

@@ -92,10 +92,12 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		kubernetesClient.Istio(), kubernetesClient.Application(), kubernetesClient.Snapshot(), kubernetesClient.ApiExtensions())
 	apiServer.InformerFactory = informerFactory
 
-	if s.MonitoringOptions.Endpoint != "" {
+	if s.MonitoringOptions == nil || len(s.MonitoringOptions.Endpoint) == 0 {
+		return nil, fmt.Errorf("moinitoring service address in configuration MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
+	} else {
 		monitoringClient, err := prometheus.NewPrometheus(s.MonitoringOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to prometheus, please check prometheus status, error: %v", err)
 		}
 		apiServer.MonitoringClient = monitoringClient
 	}
@@ -103,7 +105,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.LoggingOptions.Host != "" {
 		loggingClient, err := esclient.NewElasticsearch(s.LoggingOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
 		apiServer.LoggingClient = loggingClient
 	}
@@ -114,7 +116,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 		} else {
 			s3Client, err := s3.NewS3Client(s.S3Options)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to connect to s3, please check s3 service status, error: %v", err)
 			}
 			apiServer.S3Client = s3Client
 		}
@@ -123,7 +125,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.DevopsOptions.Host != "" {
 		devopsClient, err := jenkins.NewDevopsClient(s.DevopsOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to jenkins, please check jenkins status, error: %v", err)
 		}
 		apiServer.DevopsClient = devopsClient
 	}
@@ -131,19 +133,21 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.SonarQubeOptions.Host != "" {
 		sonarClient, err := sonarqube.NewSonarQubeClient(s.SonarQubeOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connecto to sonarqube, please check sonarqube status, error: %v", err)
 		}
 		apiServer.SonarClient = sonarqube.NewSonar(sonarClient.SonarQube())
 	}
 
 	var cacheClient cache.Interface
-	if s.RedisOptions.Host != "" {
+	if s.RedisOptions == nil || len(s.RedisOptions.Host) == 0 {
+		return nil, fmt.Errorf("redis service address MUST not be empty, please check configmap/kubesphere-config in kubesphere-system namespace")
+	} else {
 		if s.RedisOptions.Host == fakeInterface && s.DebugMode {
 			apiServer.CacheClient = cache.NewSimpleCache()
 		} else {
 			cacheClient, err = cache.NewRedisClient(s.RedisOptions, stopCh)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to connect to redis service, please check redis status, error: %v", err)
 			}
 			apiServer.CacheClient = cacheClient
 		}
@@ -152,7 +156,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.EventsOptions.Host != "" {
 		eventsClient, err := eventsclient.NewClient(s.EventsOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
 		apiServer.EventsClient = eventsClient
 	}
@@ -160,7 +164,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.AuditingOptions.Host != "" {
 		auditingClient, err := auditingclient.NewClient(s.AuditingOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to elasticsearch, please check elasticsearch status, error: %v", err)
 		}
 		apiServer.AuditingClient = auditingClient
 	}
@@ -168,7 +172,7 @@ func (s *ServerRunOptions) NewAPIServer(stopCh <-chan struct{}) (*apiserver.APIS
 	if s.OpenPitrixOptions != nil && !s.OpenPitrixOptions.IsEmpty() {
 		opClient, err := openpitrix.NewClient(s.OpenPitrixOptions)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to connect to openpitrix, please check openpitrix status, error: %v", err)
 		}
 		apiServer.OpenpitrixClient = opClient
 	}
