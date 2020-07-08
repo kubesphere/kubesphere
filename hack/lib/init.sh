@@ -19,6 +19,8 @@ export THIS_PLATFORM_BIN="${KUBE_ROOT}/_output/bin"
 
 source "${KUBE_ROOT}/hack/lib/util.sh"
 source "${KUBE_ROOT}/hack/lib/logging.sh"
+source "${KUBE_ROOT}/hack/lib/version.sh"
+
 
 kube::log::install_errexit
 

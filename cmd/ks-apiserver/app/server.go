@@ -54,6 +54,7 @@ cluster's shared state through which all other components interact.`,
 
 			return Run(s, signals.SetupSignalHandler())
 		},
+		SilenceUsage: true,
 	}
 
 	fs := cmd.Flags()

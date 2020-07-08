@@ -70,7 +70,34 @@ const (
 
 	// proxy format
 	proxyFormat = "%s/api/v1/namespaces/kubesphere-system/services/:ks-apiserver:80/proxy/%s"
+
+	// mulitcluster configuration name
+	configzMultiCluster = "multicluster"
 )
+
+// Cluster template for reconcile host cluster if there is none.
+var hostCluster = &clusterv1alpha1.Cluster{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "host",
+		Annotations: map[string]string{
+			"kubesphere.io/description": "Automatically created by kubesphere, " +
+				"we encourage you use host cluster for cluster management only, " +
+				"deploy workloads to member clusters.",
+		},
+		Labels: map[string]string{
+			clusterv1alpha1.HostCluster:  "",
+			clusterv1alpha1.ClusterGroup: "production",
+		},
+	},
+	Spec: clusterv1alpha1.ClusterSpec{
+		JoinFederation: true,
+		Enable:         true,
+		Provider:       "kubesphere",
+		Connection: clusterv1alpha1.Connection{
+			Type: clusterv1alpha1.ConnectionTypeDirect,
+		},
+	},
+}
 
 // ClusterData stores cluster client
 type clusterData struct {
@@ -176,11 +203,17 @@ func (c *clusterController) Run(workers int, stopCh <-chan struct{}) error {
 		go wait.Until(c.worker, c.workerLoopPeriod, stopCh)
 	}
 
+	// refresh cluster configz every 2 minutes
 	go wait.Until(func() {
 		if err := c.syncStatus(); err != nil {
 			klog.Errorf("Error periodically sync cluster status, %v", err)
 		}
-	}, 5*time.Minute, stopCh)
+
+		if err := c.reconcileHostCluster(); err != nil {
+			klog.Errorf("Error create host cluster, error %v", err)
+		}
+
+	}, 2*time.Minute, stopCh)
 
 	<-stopCh
 	return nil
@@ -251,6 +284,26 @@ func (c *clusterController) syncStatus() error {
 		}
 
 		c.queue.AddRateLimited(key)
+	}
+
+	return nil
+}
+
+// reconcileHostCluster will create a host cluster if there are no clusters labeled 'cluster-role.kubesphere.io/host'
+func (c *clusterController) reconcileHostCluster() error {
+	clusters, err := c.clusterLister.List(labels.SelectorFromSet(labels.Set{clusterv1alpha1.HostCluster: ""}))
+	if err != nil {
+		return err
+	}
+
+	if len(clusters) == 0 {
+		hostKubeConfig, err := buildKubeconfigFromRestConfig(c.hostConfig)
+		if err != nil {
+			return err
+		}
+		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
+		_, err = c.clusterClient.Create(hostCluster)
+		return err
 	}
 
 	return nil
@@ -524,6 +577,14 @@ func (c *clusterController) syncCluster(key string) error {
 			cluster.Status.Configz = configz
 		}
 
+		// label cluster host cluster if configz["multicluster"]==true, this is
+		if mc, ok := configz[configzMultiCluster]; ok && mc && c.checkIfClusterIsHostCluster(nodes) {
+			if cluster.Labels == nil {
+				cluster.Labels = make(map[string]string)
+			}
+			cluster.Labels[clusterv1alpha1.HostCluster] = ""
+		}
+
 		clusterReadyCondition := clusterv1alpha1.ClusterCondition{
 			Type:               clusterv1alpha1.ClusterReady,
 			Status:             v1.ConditionTrue,
@@ -575,6 +636,27 @@ func (c *clusterController) syncCluster(key string) error {
 	}
 
 	return nil
+}
+
+func (c *clusterController) checkIfClusterIsHostCluster(memberClusterNodes *v1.NodeList) bool {
+	hostNodes, err := c.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return false
+	}
+
+	if hostNodes == nil || memberClusterNodes == nil {
+		return false
+	}
+
+	if len(hostNodes.Items) != len(memberClusterNodes.Items) {
+		return false
+	}
+
+	if len(hostNodes.Items) > 0 && (hostNodes.Items[0].Status.NodeInfo.MachineID != memberClusterNodes.Items[0].Status.NodeInfo.MachineID) {
+		return false
+	}
+
+	return true
 }
 
 // tryToFetchKubeSphereComponents will send requests to member cluster configz api using kube-apiserver proxy way
@@ -669,16 +751,6 @@ func (c *clusterController) updateClusterCondition(cluster *clusterv1alpha1.Clus
 		newConditions = append(newConditions, condition)
 		cluster.Status.Conditions = newConditions
 	}
-}
-
-func isHostCluster(cluster *clusterv1alpha1.Cluster) bool {
-	for k, v := range cluster.Annotations {
-		if k == clusterv1alpha1.IsHostCluster && v == "true" {
-			return true
-		}
-	}
-
-	return false
 }
 
 // joinFederation joins a cluster into federation clusters.

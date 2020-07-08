@@ -3,17 +3,17 @@
 set -ex
 set -o pipefail
 
+tag_for_branch() {
+    local tag=$1
+    if [[ "${tag}" == "master" ]]; then
+        tag="latest"
+    fi
+    echo ${tag}
+}
+
 # push to kubespheredev with default latest tag
 REPO=${REPO:-kubespheredev}
-TAG=${TRAVIS_BRANCH:-latest}
-
-# check if build was triggered by a travis cronjob
-if [[ -z "$TRAVIS_EVENT_TYPE" ]]; then
-    echo "TRAVIS_EVENT_TYPE is empty, also normaly build"
-elif [[ $TRAVIS_EVENT_TYPE == "cron" ]]; then
-    TAG=dev-$(date +%Y%m%d)
-fi
-
+TAG=$(tag_for_branch $1)
 
 docker build -f build/ks-apiserver/Dockerfile -t $REPO/ks-apiserver:$TAG .
 docker build -f build/ks-controller-manager/Dockerfile -t $REPO/ks-controller-manager:$TAG .

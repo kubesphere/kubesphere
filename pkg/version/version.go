@@ -24,14 +24,18 @@ import (
 )
 
 var (
-	version      = "v0.0.0"
+	gitVersion   = "v0.0.0"
 	gitCommit    = "unknown"
 	gitTreeState = "unknown"
 	buildDate    = "unknown"
+	gitMajor     = "unknown"
+	gitMinor     = "unknown"
 )
 
 type Info struct {
-	Version      string                    `json:"gitVersion"`
+	GitVersion   string                    `json:"gitVersion"`
+	GitMajor     string                    `json:"gitMajor"`
+	GitMinor     string                    `json:"gitMinor"`
 	GitCommit    string                    `json:"gitCommit"`
 	GitTreeState string                    `json:"gitTreeState"`
 	BuildDate    string                    `json:"buildDate"`
@@ -47,7 +51,8 @@ func Get() Info {
 	// These variables typically come from -ldflags settings and
 	// in their absence fallback to the default settings
 	return Info{
-		Version:      version,
+		GitVersion: gitVersion,
+
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
 		BuildDate:    buildDate,
