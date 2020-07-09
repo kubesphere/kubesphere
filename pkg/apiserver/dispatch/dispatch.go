@@ -118,13 +118,13 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 	}
 
 	if !isClusterReady(cluster) {
-		http.Error(w, fmt.Sprintf("cluster is not ready"), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusInternalServerError)
 		return
 	}
 
 	innCluster := c.getInnerCluster(cluster.Name)
 	if innCluster == nil {
-		http.Error(w, fmt.Sprintf("cluster not ready"), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("cluster %s is not ready", cluster.Name), http.StatusInternalServerError)
 		return
 	}
 
