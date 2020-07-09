@@ -533,7 +533,7 @@ func (h *iamHandler) ModifyPassword(request *restful.Request, response *restful.
 		_, err := h.im.Authenticate(username, passwordReset.CurrentPassword)
 		if err != nil {
 			if err == im.AuthFailedIncorrectPassword {
-				err = errors.NewForbidden(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularUser), username, err)
+				err = errors.NewBadRequest("incorrect old password")
 				klog.Warning(err)
 				handleError(request, response, err)
 				return
@@ -1173,6 +1173,17 @@ func (h *iamHandler) PatchClusterRole(request *restful.Request, response *restfu
 }
 
 func (h *iamHandler) updateGlobalRoleBinding(operator user.Info, user *iamv1alpha2.User, globalRole string) error {
+
+	oldGlobalRole, err := h.am.GetGlobalRoleOfUser(user.Name)
+	if err != nil && !errors.IsNotFound(err) {
+		klog.Error(err)
+		return err
+	}
+
+	if oldGlobalRole.Name == globalRole {
+		return nil
+	}
+
 	userManagement := authorizer.AttributesRecord{
 		Resource:        iamv1alpha2.ResourcesPluralUser,
 		Verb:            "update",
@@ -1186,7 +1197,8 @@ func (h *iamHandler) updateGlobalRoleBinding(operator user.Info, user *iamv1alph
 		return err
 	}
 	if decision != authorizer.DecisionAllow {
-		err = errors.NewForbidden(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularUser), user.Name, fmt.Errorf("update global role binding not allowed"))
+		err = errors.NewForbidden(iamv1alpha2.Resource(iamv1alpha2.ResourcesSingularUser),
+			user.Name, fmt.Errorf("update global role binding is not allowed"))
 		klog.Warning(err)
 		return err
 	}

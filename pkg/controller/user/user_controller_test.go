@@ -209,9 +209,7 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
-		if action.Matches("list", "users") ||
-			action.Matches("list", "configmaps") ||
-			action.Matches("watch", "users") {
+		if !action.Matches("update", "users") {
 			continue
 		}
 		ret = append(ret, action)
