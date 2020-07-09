@@ -89,7 +89,7 @@ func TestNewKubeconfigCredential(t *testing.T) {
 			Namespace: "test",
 		},
 		Type: "credential.devops.kubesphere.io/kubeconfig",
-		Data: map[string][]byte{"secret": content},
+		Data: map[string][]byte{"content": content},
 	}
 	credential := NewKubeconfigCredential(secret)
 	if credential.StaplerClass != "com.microsoft.jenkins.kubernetes.credentials.KubeconfigCredentials" {
