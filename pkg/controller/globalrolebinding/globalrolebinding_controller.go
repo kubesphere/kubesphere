@@ -97,11 +97,11 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	}
 	klog.Info("Setting up event handlers")
 	globalRoleBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueClusterRoleBinding,
+		AddFunc: ctl.enqueueGlobalRoleBinding,
 		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueClusterRoleBinding(new)
+			ctl.enqueueGlobalRoleBinding(new)
 		},
-		DeleteFunc: ctl.enqueueClusterRoleBinding,
+		DeleteFunc: ctl.enqueueGlobalRoleBinding,
 	})
 	return ctl
 }
@@ -138,7 +138,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	return nil
 }
 
-func (c *Controller) enqueueClusterRoleBinding(obj interface{}) {
+func (c *Controller) enqueueGlobalRoleBinding(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {

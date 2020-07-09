@@ -94,7 +94,11 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 		}
 	}
 
-	c := NewController(f.k8sclient, f.ksclient, nil, ksinformers.Iam().V1alpha2().Users(), nil, nil, k8sinformers.Core().V1().ConfigMaps(), ldapClient, false)
+	c := NewController(f.k8sclient, f.ksclient, nil,
+		ksinformers.Iam().V1alpha2().Users(),
+		nil, nil,
+		k8sinformers.Core().V1().ConfigMaps(),
+		ldapClient, false)
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
@@ -209,9 +213,7 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 func filterInformerActions(actions []core.Action) []core.Action {
 	var ret []core.Action
 	for _, action := range actions {
-		if action.Matches("list", "users") ||
-			action.Matches("list", "configmaps") ||
-			action.Matches("watch", "users") {
+		if !action.Matches("update", "users") {
 			continue
 		}
 		ret = append(ret, action)

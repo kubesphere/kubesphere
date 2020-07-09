@@ -477,37 +477,64 @@ func (r *Controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 	return nil
 }
 
+func (r *Controller) resetWorkspaceOwner(workspace *tenantv1alpha2.WorkspaceTemplate) error {
+	workspace = workspace.DeepCopy()
+	workspace.Spec.Template.Spec.Manager = ""
+	_, err := r.ksClient.TenantV1alpha2().WorkspaceTemplates().Update(workspace)
+	klog.V(4).Infof("update workspace after manager has been deleted")
+	return err
+}
+
 func (r *Controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceTemplate) error {
-	if manager := workspace.Spec.Template.Spec.Manager; manager != "" {
+	manager := workspace.Spec.Template.Spec.Manager
+	if manager == "" {
+		return nil
+	}
 
-		workspaceAdminRoleName := fmt.Sprintf(iamv1alpha2.WorkspaceAdminFormat, workspace.Name)
+	user, err := r.ksClient.IamV1alpha2().Users().Get(manager, metav1.GetOptions{})
+	if err != nil {
+		// skip if user has been deleted
+		if errors.IsNotFound(err) {
+			return r.resetWorkspaceOwner(workspace)
+		}
+		klog.Error(err)
+		return err
+	}
 
-		managerRoleBinding := &iamv1alpha2.WorkspaceRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   fmt.Sprintf("%s-%s", manager, workspaceAdminRoleName),
-				Labels: map[string]string{tenantv1alpha1.WorkspaceLabel: workspace.Name},
+	// skip if user has been deleted
+	if !user.DeletionTimestamp.IsZero() {
+		return r.resetWorkspaceOwner(workspace)
+	}
+
+	workspaceAdminRoleName := fmt.Sprintf(iamv1alpha2.WorkspaceAdminFormat, workspace.Name)
+	managerRoleBinding := &iamv1alpha2.WorkspaceRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", manager, workspaceAdminRoleName),
+			Labels: map[string]string{
+				tenantv1alpha1.WorkspaceLabel:  workspace.Name,
+				iamv1alpha2.UserReferenceLabel: manager,
 			},
-			RoleRef: rbacv1.RoleRef{
-				APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
-				Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
-				Name:     workspaceAdminRoleName,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: iamv1alpha2.SchemeGroupVersion.Group,
+			Kind:     iamv1alpha2.ResourceKindWorkspaceRole,
+			Name:     workspaceAdminRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Name:     manager,
+				Kind:     iamv1alpha2.ResourceKindUser,
+				APIGroup: rbacv1.GroupName,
 			},
-			Subjects: []rbacv1.Subject{
-				{
-					Name:     manager,
-					Kind:     iamv1alpha2.ResourceKindUser,
-					APIGroup: rbacv1.GroupName,
-				},
-			},
+		},
+	}
+	_, err = r.ksClient.IamV1alpha2().WorkspaceRoleBindings().Create(managerRoleBinding)
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil
 		}
-		_, err := r.ksClient.IamV1alpha2().WorkspaceRoleBindings().Create(managerRoleBinding)
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				return nil
-			}
-			klog.Error(err)
-			return err
-		}
+		klog.Error(err)
+		return err
 	}
 
 	return nil

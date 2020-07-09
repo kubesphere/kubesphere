@@ -160,7 +160,6 @@ func addControllers(
 		fedWorkspaceCacheController, fedWorkspaceRoleCacheController, fedWorkspaceRoleBindingCacheController cache.Controller
 
 	if multiClusterEnabled {
-
 		fedUserClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedUserResource)
 		if err != nil {
 			klog.Error(err)
@@ -208,31 +207,42 @@ func addControllers(
 	}
 
 	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
-		kubesphereInformer.Iam().V1alpha2().Users(), fedUserCache, fedUserCacheController,
+		kubesphereInformer.Iam().V1alpha2().Users(),
+		fedUserCache, fedUserCacheController,
 		kubernetesInformer.Core().V1().ConfigMaps(), ldapClient, multiClusterEnabled)
 
-	csrController := certificatesigningrequest.NewController(client.Kubernetes(), kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
+	csrController := certificatesigningrequest.NewController(client.Kubernetes(),
+		kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
 		kubernetesInformer.Core().V1().ConfigMaps(), client.Config())
 
 	clusterRoleBindingController := clusterrolebinding.NewController(client.Kubernetes(),
-		kubernetesInformer.Rbac().V1().ClusterRoleBindings(), kubernetesInformer.Apps().V1().Deployments(),
-		kubernetesInformer.Core().V1().Pods(), kubesphereInformer.Iam().V1alpha2().Users())
+		kubernetesInformer.Rbac().V1().ClusterRoleBindings(),
+		kubernetesInformer.Apps().V1().Deployments(),
+		kubernetesInformer.Core().V1().Pods(),
+		kubesphereInformer.Iam().V1alpha2().Users())
 
 	globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
 
 	workspaceRoleController := workspacerole.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(), fedWorkspaceRoleCache, fedWorkspaceRoleCacheController)
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
+		fedWorkspaceRoleCache, fedWorkspaceRoleCacheController,
+		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
 
 	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(), fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled)
+		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(),
+		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled)
 
 	workspaceRoleBindingController := workspacerolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(), fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController)
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(),
+		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController,
+		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
 
 	workspaceTemplateController := workspacetemplate.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), kubesphereInformer.Tenant().V1alpha1().Workspaces(),
-		kubesphereInformer.Iam().V1alpha2().RoleBases(), kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
+		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(),
+		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubesphereInformer.Iam().V1alpha2().RoleBases(),
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
 		fedWorkspaceCache, fedWorkspaceCacheController, multiClusterEnabled)
 
 	var clusterController manager.Runnable
@@ -253,28 +263,32 @@ func addControllers(
 		}
 
 		nsnpController = nsnetworkpolicy.NewNSNetworkPolicyController(client.Kubernetes(),
-			client.KubeSphere().NetworkV1alpha1(), kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
-			kubernetesInformer.Core().V1().Services(), kubernetesInformer.Core().V1().Nodes(),
+			client.KubeSphere().NetworkV1alpha1(),
+			kubesphereInformer.Network().V1alpha1().NamespaceNetworkPolicies(),
+			kubernetesInformer.Core().V1().Services(),
+			kubernetesInformer.Core().V1().Nodes(),
 			kubesphereInformer.Tenant().V1alpha1().Workspaces(),
 			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
 	}
 
 	controllers := map[string]manager.Runnable{
-		"virtualservice-controller":     vsController,
-		"destinationrule-controller":    drController,
-		"application-controller":        apController,
-		"job-controller":                jobController,
-		"s2ibinary-controller":          s2iBinaryController,
-		"s2irun-controller":             s2iRunController,
-		"storagecapability-controller":  storageCapabilityController,
-		"volumeexpansion-controller":    volumeExpansionController,
-		"user-controller":               userController,
-		"cluster-controller":            clusterController,
-		"nsnp-controller":               nsnpController,
-		"csr-controller":                csrController,
-		"clusterrolebinding-controller": clusterRoleBindingController,
-		"globalrolebinding-controller":  globalRoleBindingController,
-		"workspacetemplate-controller":  workspaceTemplateController,
+		"virtualservice-controller":       vsController,
+		"destinationrule-controller":      drController,
+		"application-controller":          apController,
+		"job-controller":                  jobController,
+		"s2ibinary-controller":            s2iBinaryController,
+		"s2irun-controller":               s2iRunController,
+		"storagecapability-controller":    storageCapabilityController,
+		"volumeexpansion-controller":      volumeExpansionController,
+		"user-controller":                 userController,
+		"cluster-controller":              clusterController,
+		"nsnp-controller":                 nsnpController,
+		"csr-controller":                  csrController,
+		"clusterrolebinding-controller":   clusterRoleBindingController,
+		"globalrolebinding-controller":    globalRoleBindingController,
+		"workspacetemplate-controller":    workspaceTemplateController,
+		"workspacerole-controller":        workspaceRoleController,
+		"workspacerolebinding-controller": workspaceRoleBindingController,
 	}
 
 	if devopsClient != nil {
@@ -285,8 +299,6 @@ func addControllers(
 
 	if multiClusterEnabled {
 		controllers["globalrole-controller"] = globalRoleController
-		controllers["workspacerole-controller"] = workspaceRoleController
-		controllers["workspacerolebinding-controller"] = workspaceRoleBindingController
 	}
 
 	for name, ctrl := range controllers {

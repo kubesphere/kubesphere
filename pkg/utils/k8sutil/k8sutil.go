@@ -28,12 +28,3 @@ func IsControlledBy(reference []metav1.OwnerReference, kind string, name string)
 	}
 	return false
 }
-
-func GetControlledWorkspace(reference []metav1.OwnerReference) string {
-	for _, ref := range reference {
-		if ref.Kind == "Workspace" {
-			return ref.Name
-		}
-	}
-	return ""
-}
