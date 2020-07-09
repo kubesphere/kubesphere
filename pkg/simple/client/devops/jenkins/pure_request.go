@@ -1,15 +1,10 @@
 package jenkins
 
 import (
-	"encoding/base64"
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"k8s.io/klog"
-	authtoken "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -32,23 +27,7 @@ func (j *Jenkins) SendPureRequestWithHeaderResp(path string, httpParameters *dev
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	header := httpParameters.Header
-	bearTokenArray := strings.Split(header.Get("Authorization"), " ")
-	bearFlag := bearTokenArray[0]
-	if strings.ToLower(bearFlag) == "bearer" {
-		bearToken := bearTokenArray[1]
-		if err != nil {
-			klog.Error(err)
-			return nil, nil, err
-		}
-		claim := authtoken.Claims{}
-		parser := jwt.Parser{}
-		_, _, err = parser.ParseUnverified(bearToken, &claim)
-		if err != nil {
-			return nil, nil, err
-		}
-		creds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", claim.Username, bearToken)))
-		header.Set("Authorization", fmt.Sprintf("Basic %s", creds))
-	}
+	SetBasicBearTokenHeader(&header)
 
 	newRequest := &http.Request{
 		Method:   httpParameters.Method,
