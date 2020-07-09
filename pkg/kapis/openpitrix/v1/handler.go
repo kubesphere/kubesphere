@@ -504,6 +504,10 @@ func (h *openpitrixHandler) CreateApp(req *restful.Request, resp *restful.Respon
 
 	createAppRequest.Username = req.HeaderParameter(constants.UserNameHeader)
 
+	if req.PathParameter("workspace") != "" {
+		createAppRequest.Isv = req.PathParameter("workspace")
+	}
+
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 
 	var result interface{}
