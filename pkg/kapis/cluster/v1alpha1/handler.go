@@ -120,7 +120,7 @@ func (h *handler) populateProxyAddress() error {
 	}
 
 	if len(service.Spec.Ports) == 0 {
-		return fmt.Errorf("there are no ports in proxy service spec")
+		return fmt.Errorf("there are no ports in proxy service %s spec", h.proxyService)
 	}
 
 	port := service.Spec.Ports[0].Port
@@ -137,7 +137,9 @@ func (h *handler) populateProxyAddress() error {
 	}
 
 	if len(serviceAddress) == 0 {
-		return fmt.Errorf("service ingress is empty")
+		return fmt.Errorf("cannot generate agent deployment yaml for member cluster "+
+			" because %s service has no public address, please check %s status, or set address "+
+			" mannually in ClusterConfiguration", h.proxyService, h.proxyService)
 	}
 
 	h.proxyAddress = serviceAddress
@@ -149,6 +151,11 @@ func (h *handler) populateProxyAddress() error {
 // if we want to change the template.
 // TODO(jeff): load template from configmap
 func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writer) error {
+
+	_, err := url.Parse(h.proxyAddress)
+	if err != nil {
+		return fmt.Errorf("invalid proxy address %s, should format like http[s]://1.2.3.4:123", h.proxyAddress)
+	}
 
 	if cluster.Spec.Connection.Type == v1alpha1.ConnectionTypeDirect {
 		return errClusterConnectionIsNotProxy
