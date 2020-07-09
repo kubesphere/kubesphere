@@ -24,7 +24,7 @@ func AddToContainer(container *restful.Container,
 	agentImage string) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
-	h := NewHandler(k8sInformers.Core().V1().Services().Lister(), ksInformers.Cluster().V1alpha1().Clusters().Lister(), proxyService, proxyAddress, agentImage)
+	h := newHandler(k8sInformers.Core().V1().Services().Lister(), ksInformers.Cluster().V1alpha1().Clusters().Lister(), proxyService, proxyAddress, agentImage)
 
 	// returns deployment yaml for cluster agent
 	webservice.Route(webservice.GET("/clusters/{cluster}/agent/deployment").
@@ -36,7 +36,7 @@ func AddToContainer(container *restful.Container,
 	webservice.Route(webservice.POST("/clusters/validation").
 		Doc("").
 		Param(webservice.BodyParameter("cluster", "cluster specification")).
-		To(h.ValidateCluster).
+		To(h.validateCluster).
 		Returns(http.StatusOK, api.StatusOK, nil))
 
 	container.Add(webservice)

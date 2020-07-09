@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"io"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
@@ -29,12 +31,10 @@ import (
 
 const (
 	defaultAgentImage = "kubesphere/tower:v1.0"
-	defaultTimeout    = 5 * time.Second
+	defaultTimeout    = 10 * time.Second
 )
 
 var errClusterConnectionIsNotProxy = fmt.Errorf("cluster is not using proxy connection")
-var errNon200Response = fmt.Errorf("non-200 response returned from endpoint")
-var errInvalidResponse = fmt.Errorf("invalid response from kubesphere apiserver")
 
 type handler struct {
 	serviceLister v1.ServiceLister
@@ -45,7 +45,7 @@ type handler struct {
 	yamlPrinter   *printers.YAMLPrinter
 }
 
-func NewHandler(serviceLister v1.ServiceLister, clusterLister clusterlister.ClusterLister, proxyService, proxyAddress, agentImage string) *handler {
+func newHandler(serviceLister v1.ServiceLister, clusterLister clusterlister.ClusterLister, proxyService, proxyAddress, agentImage string) *handler {
 
 	if len(agentImage) == 0 {
 		agentImage = defaultAgentImage
@@ -222,7 +222,7 @@ func (h *handler) generateDefaultDeployment(cluster *v1alpha1.Cluster, w io.Writ
 }
 
 // ValidateCluster validate cluster kubeconfig and kubesphere apiserver address, check their accessibility
-func (h *handler) ValidateCluster(request *restful.Request, response *restful.Response) {
+func (h *handler) validateCluster(request *restful.Request, response *restful.Response) {
 	var cluster v1alpha1.Cluster
 
 	err := request.ReadEntity(&cluster)
@@ -241,7 +241,7 @@ func (h *handler) ValidateCluster(request *restful.Request, response *restful.Re
 		return
 	}
 
-	err = validateKubeConfig(cluster.Spec.Connection.KubeConfig)
+	err = h.validateKubeConfig(cluster.Spec.Connection.KubeConfig)
 	if err != nil {
 		api.HandleBadRequest(response, request, err)
 		return
@@ -257,10 +257,23 @@ func (h *handler) ValidateCluster(request *restful.Request, response *restful.Re
 }
 
 // validateKubeConfig takes base64 encoded kubeconfig and check its validity
-func validateKubeConfig(kubeconfig []byte) error {
+func (h *handler) validateKubeConfig(kubeconfig []byte) error {
 	config, err := loadKubeConfigFromBytes(kubeconfig)
 	if err != nil {
 		return err
+	}
+
+	clusters, err := h.clusterLister.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+
+	// clusters with the exactly same KubernetesAPIEndpoint considered to be one
+	// MUST not import the same cluster twice
+	for _, cluster := range clusters {
+		if len(cluster.Spec.Connection.KubernetesAPIEndpoint) != 0 && cluster.Spec.Connection.KubernetesAPIEndpoint == config.Host {
+			return fmt.Errorf("existing cluster %s with the exacty same server address, MUST not import the same cluster twice", cluster.Name)
+		}
 	}
 
 	config.Timeout = defaultTimeout
@@ -327,14 +340,19 @@ func validateKubeSphereAPIServer(ksEndpoint string, kubeconfig []byte) (*version
 		return nil, err
 	}
 
+	responseBytes, _ := ioutil.ReadAll(response.Body)
+	responseBody := string(responseBytes)
+
+	response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBytes))
+
 	if response.StatusCode != http.StatusOK {
-		return nil, errNon200Response
+		return nil, fmt.Errorf("invalid response: %s , please make sure ks-apiserver.kubesphere-system.svc of member cluster is up and running", responseBody)
 	}
 
 	ver := version.Info{}
 	err = json.NewDecoder(response.Body).Decode(&ver)
 	if err != nil {
-		return nil, errInvalidResponse
+		return nil, fmt.Errorf("invalid response: %s , please make sure ks-apiserver.kubesphere-system.svc of member cluster is up and running", responseBody)
 	}
 
 	return &ver, nil
