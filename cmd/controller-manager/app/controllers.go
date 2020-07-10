@@ -230,8 +230,7 @@ func addControllers(
 		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
 
 	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(),
-		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled)
+		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(), fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled, devopsClient)
 
 	workspaceRoleBindingController := workspacerolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(),

@@ -39,6 +39,9 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modeldevops "kubesphere.io/kubesphere/pkg/models/devops"
+	devops "kubesphere.io/kubesphere/pkg/simple/client/devops"
+
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
@@ -70,10 +73,11 @@ type Controller struct {
 	// Kubernetes API.
 	recorder            record.EventRecorder
 	multiClusterEnabled bool
+	devopsClient        devops.Interface
 }
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface, globalRoleBindingInformer iamv1alpha2informers.GlobalRoleBindingInformer,
-	fedGlobalRoleBindingCache cache.Store, fedGlobalRoleBindingCacheController cache.Controller, multiClusterEnabled bool) *Controller {
+	fedGlobalRoleBindingCache cache.Store, fedGlobalRoleBindingCacheController cache.Controller, multiClusterEnabled bool, devopsClient devops.Interface) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -94,6 +98,7 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 		workqueue:                           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "GlobalRoleBinding"),
 		recorder:                            recorder,
 		multiClusterEnabled:                 multiClusterEnabled,
+		devopsClient:                        devopsClient,
 	}
 	klog.Info("Setting up event handlers")
 	globalRoleBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -227,6 +232,14 @@ func (c *Controller) reconcile(key string) error {
 		if err := c.relateToClusterAdmin(globalRoleBinding); err != nil {
 			klog.Error(err)
 			return err
+		}
+		if c.devopsClient != nil {
+			username := findExpectUsername(globalRoleBinding)
+			err = c.devopsClient.AssignGlobalRole(modeldevops.JenkinsAdminRoleName, username)
+			if err != nil {
+				klog.Errorf("%+v", err)
+				return err
+			}
 		}
 	}
 

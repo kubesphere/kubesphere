@@ -2,6 +2,7 @@ package jenkins
 
 import (
 	"errors"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -9,45 +10,13 @@ import (
 )
 
 type GlobalRoleResponse struct {
-	RoleName      string              `json:"roleName"`
-	PermissionIds GlobalPermissionIds `json:"permissionIds"`
+	RoleName      string                     `json:"roleName"`
+	PermissionIds devops.GlobalPermissionIds `json:"permissionIds"`
 }
 
 type GlobalRole struct {
 	Jenkins *Jenkins
 	Raw     GlobalRoleResponse
-}
-
-type GlobalPermissionIds struct {
-	Administer              bool `json:"hudson.model.Hudson.Administer"`
-	GlobalRead              bool `json:"hudson.model.Hudson.Read"`
-	CredentialCreate        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Create"`
-	CredentialUpdate        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Update"`
-	CredentialView          bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.View"`
-	CredentialDelete        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Delete"`
-	CredentialManageDomains bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains"`
-	SlaveCreate             bool `json:"hudson.model.Computer.Create"`
-	SlaveConfigure          bool `json:"hudson.model.Computer.Configure"`
-	SlaveDelete             bool `json:"hudson.model.Computer.Delete"`
-	SlaveBuild              bool `json:"hudson.model.Computer.Build"`
-	SlaveConnect            bool `json:"hudson.model.Computer.Connect"`
-	SlaveDisconnect         bool `json:"hudson.model.Computer.Disconnect"`
-	ItemBuild               bool `json:"hudson.model.Item.Build"`
-	ItemCreate              bool `json:"hudson.model.Item.Create"`
-	ItemRead                bool `json:"hudson.model.Item.Read"`
-	ItemConfigure           bool `json:"hudson.model.Item.Configure"`
-	ItemCancel              bool `json:"hudson.model.Item.Cancel"`
-	ItemMove                bool `json:"hudson.model.Item.Move"`
-	ItemDiscover            bool `json:"hudson.model.Item.Discover"`
-	ItemWorkspace           bool `json:"hudson.model.Item.Workspace"`
-	ItemDelete              bool `json:"hudson.model.Item.Delete"`
-	RunUpdate               bool `json:"hudson.model.Run.Update"`
-	RunDelete               bool `json:"hudson.model.Run.Delete"`
-	ViewCreate              bool `json:"hudson.model.View.Create"`
-	ViewConfigure           bool `json:"hudson.model.View.Configure"`
-	ViewRead                bool `json:"hudson.model.View.Read"`
-	ViewDelete              bool `json:"hudson.model.View.Delete"`
-	SCMTag                  bool `json:"hudson.scm.SCM.Tag"`
 }
 
 type ProjectRole struct {
@@ -56,33 +25,12 @@ type ProjectRole struct {
 }
 
 type ProjectRoleResponse struct {
-	RoleName      string               `json:"roleName"`
-	PermissionIds ProjectPermissionIds `json:"permissionIds"`
-	Pattern       string               `json:"pattern"`
+	RoleName      string                      `json:"roleName"`
+	PermissionIds devops.ProjectPermissionIds `json:"permissionIds"`
+	Pattern       string                      `json:"pattern"`
 }
 
-type ProjectPermissionIds struct {
-	CredentialCreate        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Create"`
-	CredentialUpdate        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Update"`
-	CredentialView          bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.View"`
-	CredentialDelete        bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.Delete"`
-	CredentialManageDomains bool `json:"com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains"`
-	ItemBuild               bool `json:"hudson.model.Item.Build"`
-	ItemCreate              bool `json:"hudson.model.Item.Create"`
-	ItemRead                bool `json:"hudson.model.Item.Read"`
-	ItemConfigure           bool `json:"hudson.model.Item.Configure"`
-	ItemCancel              bool `json:"hudson.model.Item.Cancel"`
-	ItemMove                bool `json:"hudson.model.Item.Move"`
-	ItemDiscover            bool `json:"hudson.model.Item.Discover"`
-	ItemWorkspace           bool `json:"hudson.model.Item.Workspace"`
-	ItemDelete              bool `json:"hudson.model.Item.Delete"`
-	RunUpdate               bool `json:"hudson.model.Run.Update"`
-	RunDelete               bool `json:"hudson.model.Run.Delete"`
-	RunReplay               bool `json:"hudson.model.Run.Replay"`
-	SCMTag                  bool `json:"hudson.scm.SCM.Tag"`
-}
-
-func (j *GlobalRole) Update(ids GlobalPermissionIds) error {
+func (j *GlobalRole) Update(ids devops.GlobalPermissionIds) error {
 	var idArray []string
 	values := reflect.ValueOf(ids)
 	for i := 0; i < values.NumField(); i++ {
@@ -108,6 +56,7 @@ func (j *GlobalRole) Update(ids GlobalPermissionIds) error {
 	return nil
 }
 
+// call jenkins api to update global role
 func (j *GlobalRole) AssignRole(sid string) error {
 	param := map[string]string{
 		"type":     GLOBAL_ROLE,
@@ -142,7 +91,9 @@ func (j *GlobalRole) UnAssignRole(sid string) error {
 	return nil
 }
 
-func (j *ProjectRole) Update(pattern string, ids ProjectPermissionIds) error {
+// update ProjectPermissionIds to Project
+// pattern string means some project, like project-name/*
+func (j *ProjectRole) Update(pattern string, ids devops.ProjectPermissionIds) error {
 	var idArray []string
 	values := reflect.ValueOf(ids)
 	for i := 0; i < values.NumField(); i++ {
