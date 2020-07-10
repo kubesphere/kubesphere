@@ -189,7 +189,7 @@ func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
 
 	// federated namespace not controlled by workspace
 	if namespace.Labels[constants.KubefedManagedLabel] != "true" && !metav1.IsControlledBy(namespace, workspace) {
-		namespace.OwnerReferences = removeWorkspaceOwnerReferences(namespace.OwnerReferences)
+		namespace.OwnerReferences = nil
 		if err := controllerutil.SetControllerReference(workspace, namespace, r.scheme); err != nil {
 			klog.Error(err)
 			return err
@@ -202,17 +202,6 @@ func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
 	}
 
 	return nil
-}
-
-func removeWorkspaceOwnerReferences(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
-	for i := 0; i < len(ownerReferences); i++ {
-		owner := ownerReferences[i]
-		if owner.Kind == tenantv1alpha1.ResourceKindWorkspace {
-			ownerReferences = append(ownerReferences[:i], ownerReferences[i+1:]...)
-			i--
-		}
-	}
-	return ownerReferences
 }
 
 func (r *ReconcileNamespace) deleteRouter(namespace string) error {
@@ -296,34 +285,62 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 	return nil
 }
 
+func (r *ReconcileNamespace) resetNamespaceOwner(namespace *corev1.Namespace) error {
+	namespace = namespace.DeepCopy()
+	delete(namespace.Annotations, constants.CreatorAnnotationKey)
+	err := r.Update(context.Background(), namespace)
+	klog.V(4).Infof("update namespace after creator has been deleted")
+	return err
+}
+
 func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace) error {
-	if creator := namespace.Annotations[constants.CreatorAnnotationKey]; creator != "" {
-		creatorRoleBinding := &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-%s", creator, iamv1alpha2.NamespaceAdmin),
-				Namespace: namespace.Name,
-			},
-			RoleRef: rbacv1.RoleRef{
+	creator := namespace.Annotations[constants.CreatorAnnotationKey]
+	if creator == "" {
+		return nil
+	}
+
+	var user iamv1alpha2.User
+	err := r.Get(context.Background(), types.NamespacedName{Name: creator}, &user)
+	if err != nil {
+		// skip if user has been deleted
+		if errors.IsNotFound(err) {
+			return r.resetNamespaceOwner(namespace)
+		}
+		klog.Error(err)
+		return err
+	}
+
+	// skip if user has been deleted
+	if !user.DeletionTimestamp.IsZero() {
+		return r.resetNamespaceOwner(namespace)
+	}
+
+	creatorRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%s", creator, iamv1alpha2.NamespaceAdmin),
+			Labels:    map[string]string{iamv1alpha2.UserReferenceLabel: creator},
+			Namespace: namespace.Name,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     iamv1alpha2.ResourceKindRole,
+			Name:     iamv1alpha2.NamespaceAdmin,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Name:     creator,
+				Kind:     iamv1alpha2.ResourceKindUser,
 				APIGroup: rbacv1.GroupName,
-				Kind:     iamv1alpha2.ResourceKindRole,
-				Name:     iamv1alpha2.NamespaceAdmin,
 			},
-			Subjects: []rbacv1.Subject{
-				{
-					Name:     creator,
-					Kind:     iamv1alpha2.ResourceKindUser,
-					APIGroup: rbacv1.GroupName,
-				},
-			},
+		},
+	}
+	err = r.Client.Create(context.Background(), creatorRoleBinding)
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil
 		}
-		err := r.Client.Create(context.Background(), creatorRoleBinding)
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				return nil
-			}
-			klog.Error(err)
-			return err
-		}
+		klog.Error(err)
+		return err
 	}
 
 	return nil

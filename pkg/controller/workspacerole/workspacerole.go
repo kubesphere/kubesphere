@@ -36,7 +36,9 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
+	tenantv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	tenantv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/tenant/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -52,13 +54,18 @@ const (
 )
 
 type Controller struct {
+	scheme                          *runtime.Scheme
 	k8sClient                       kubernetes.Interface
 	ksClient                        kubesphere.Interface
 	workspaceRoleInformer           iamv1alpha2informers.WorkspaceRoleInformer
 	workspaceRoleLister             iamv1alpha2listers.WorkspaceRoleLister
 	workspaceRoleSynced             cache.InformerSynced
+	workspaceTemplateInformer       tenantv1alpha2informers.WorkspaceTemplateInformer
+	workspaceTemplateLister         tenantv1alpha2listers.WorkspaceTemplateLister
+	workspaceTemplateSynced         cache.InformerSynced
 	fedWorkspaceRoleCache           cache.Store
 	fedWorkspaceRoleCacheController cache.Controller
+	multiClusterEnabled             bool
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -71,7 +78,7 @@ type Controller struct {
 }
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface, workspaceRoleInformer iamv1alpha2informers.WorkspaceRoleInformer,
-	fedWorkspaceRoleCache cache.Store, fedWorkspaceRoleCacheController cache.Controller) *Controller {
+	fedWorkspaceRoleCache cache.Store, fedWorkspaceRoleCacheController cache.Controller, workspaceTemplateInformer tenantv1alpha2informers.WorkspaceTemplateInformer, multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -89,6 +96,10 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 		workspaceRoleSynced:             workspaceRoleInformer.Informer().HasSynced,
 		fedWorkspaceRoleCache:           fedWorkspaceRoleCache,
 		fedWorkspaceRoleCacheController: fedWorkspaceRoleCacheController,
+		workspaceTemplateInformer:       workspaceTemplateInformer,
+		workspaceTemplateLister:         workspaceTemplateInformer.Lister(),
+		workspaceTemplateSynced:         workspaceTemplateInformer.Informer().HasSynced,
+		multiClusterEnabled:             multiClusterEnabled,
 		workqueue:                       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "WorkspaceRole"),
 		recorder:                        recorder,
 	}
@@ -113,7 +124,13 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 
-	if ok := cache.WaitForCacheSync(stopCh, c.workspaceRoleSynced, c.fedWorkspaceRoleCacheController.HasSynced); !ok {
+	synced := make([]cache.InformerSynced, 0)
+	synced = append(synced, c.workspaceRoleSynced, c.workspaceTemplateSynced)
+	if c.multiClusterEnabled {
+		synced = append(synced, c.fedWorkspaceRoleCacheController.HasSynced)
+	}
+
+	if ok := cache.WaitForCacheSync(stopCh); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -214,9 +231,16 @@ func (c *Controller) reconcile(key string) error {
 		return err
 	}
 
-	if err = c.multiClusterSync(workspaceRole); err != nil {
+	if err = c.bindWorkspace(workspaceRole); err != nil {
 		klog.Error(err)
 		return err
+	}
+
+	if c.multiClusterEnabled {
+		if err = c.multiClusterSync(workspaceRole); err != nil {
+			klog.Error(err)
+			return err
+		}
 	}
 
 	c.recorder.Event(workspaceRole, corev1.EventTypeNormal, successSynced, messageResourceSynced)
@@ -225,6 +249,40 @@ func (c *Controller) reconcile(key string) error {
 
 func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(4, stopCh)
+}
+
+func (c *Controller) bindWorkspace(workspaceRole *iamv1alpha2.WorkspaceRole) error {
+
+	workspaceName := workspaceRole.Labels[constants.WorkspaceLabelKey]
+
+	if workspaceName == "" {
+		return nil
+	}
+
+	workspace, err := c.workspaceTemplateLister.Get(workspaceName)
+
+	if err != nil {
+		// skip if workspace not found
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		klog.Error(err)
+		return err
+	}
+
+	if !metav1.IsControlledBy(workspaceRole, workspace) {
+		workspaceRole.OwnerReferences = nil
+		if err := controllerutil.SetControllerReference(workspace, workspaceRole, scheme.Scheme); err != nil {
+			klog.Error(err)
+			return err
+		}
+		_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Update(workspaceRole)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Controller) multiClusterSync(workspaceRole *iamv1alpha2.WorkspaceRole) error {

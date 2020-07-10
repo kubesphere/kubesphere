@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -39,8 +40,8 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
-	userinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
-	userlister "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
+	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
+	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -63,8 +64,8 @@ type Controller struct {
 	k8sClient         kubernetes.Interface
 	ksClient          kubesphere.Interface
 	kubeconfig        kubeconfig.Interface
-	userInformer      userinformer.UserInformer
-	userLister        userlister.UserLister
+	userInformer      iamv1alpha2informers.UserInformer
+	userLister        iamv1alpha2listers.UserLister
 	userSynced        cache.InformerSynced
 	cmSynced          cache.InformerSynced
 	fedUserCache      cache.Store
@@ -83,8 +84,10 @@ type Controller struct {
 }
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
-	config *rest.Config, userInformer userinformer.UserInformer, fedUserCache cache.Store, fedUserController cache.Controller,
-	configMapInformer corev1informers.ConfigMapInformer, ldapClient ldapclient.Interface, multiClusterEnabled bool) *Controller {
+	config *rest.Config, userInformer iamv1alpha2informers.UserInformer,
+	fedUserCache cache.Store, fedUserController cache.Controller,
+	configMapInformer corev1informers.ConfigMapInformer,
+	ldapClient ldapclient.Interface, multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -262,6 +265,11 @@ func (c *Controller) reconcile(key string) error {
 
 			klog.V(4).Infof("delete user %s", key)
 			if err = c.ldapClient.Delete(key); err != nil && err != ldapclient.ErrUserNotExists {
+				klog.Error(err)
+				return err
+			}
+
+			if err = c.deleteRoleBindings(user); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -481,6 +489,46 @@ func (c *Controller) ldapSync(user *iamv1alpha2.User) error {
 		klog.V(4).Infof("update user %s", user.Name)
 		return c.ldapClient.Update(user)
 	}
+}
+
+func (c *Controller) deleteRoleBindings(user *iamv1alpha2.User) error {
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
+	}
+	deleteOptions := metav1.NewDeleteOptions(0)
+
+	if err := c.ksClient.IamV1alpha2().GlobalRoleBindings().
+		DeleteCollection(deleteOptions, listOptions); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err := c.ksClient.IamV1alpha2().WorkspaceRoleBindings().
+		DeleteCollection(deleteOptions, listOptions); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if err := c.k8sClient.RbacV1().ClusterRoleBindings().
+		DeleteCollection(deleteOptions, listOptions); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if result, err := c.k8sClient.CoreV1().Namespaces().List(metav1.ListOptions{}); err != nil {
+		klog.Error(err)
+		return err
+	} else {
+		for _, namespace := range result.Items {
+			if err := c.k8sClient.RbacV1().RoleBindings(namespace.Name).
+				DeleteCollection(deleteOptions, listOptions); err != nil {
+				klog.Error(err)
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func encrypt(password string) (string, error) {
