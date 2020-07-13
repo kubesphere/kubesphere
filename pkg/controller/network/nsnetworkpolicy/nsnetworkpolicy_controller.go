@@ -384,8 +384,8 @@ func (c *NSNetworkPolicyController) addNamespace(obj interface{}) {
 	c.nsEnqueue(ns)
 }
 
-func isNetworkIsolateEnabled(ns *corev1.Namespace) bool {
-	if ns.Annotations[NamespaceNPAnnotationKey] == NamespaceNPAnnotationEnabled {
+func namespaceNetworkIsolateEnabled(ns *corev1.Namespace) bool {
+	if ns.Annotations != nil && ns.Annotations[NamespaceNPAnnotationKey] == NamespaceNPAnnotationEnabled {
 		return true
 	}
 
@@ -429,9 +429,9 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 	matchWorkspace := false
 	delete := false
 	nsnpList, err := c.informer.Lister().NamespaceNetworkPolicies(ns.Name).List(labels.Everything())
-	if isNetworkIsolateEnabled(ns) {
+	if namespaceNetworkIsolateEnabled(ns) {
 		matchWorkspace = false
-	} else if wksp.Spec.NetworkIsolation {
+	} else if workspaceNetworkIsolationEnabled(wksp) {
 		matchWorkspace = true
 	} else {
 		delete = true
@@ -573,6 +573,13 @@ func (c *NSNetworkPolicyController) processNSNPWorkItem() bool {
 	return true
 }
 
+func workspaceNetworkIsolationEnabled(wksp *workspacev1alpha1.Workspace) bool {
+	if wksp.Spec.NetworkIsolation != nil && *wksp.Spec.NetworkIsolation {
+		return true
+	}
+	return false
+}
+
 // NewnamespacenpController returns a controller which manages NSNSP objects.
 func NewNSNetworkPolicyController(
 	client kubernetes.Interface,
@@ -607,7 +614,7 @@ func NewNSNetworkPolicyController(
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			old := oldObj.(*workspacev1alpha1.Workspace)
 			new := newObj.(*workspacev1alpha1.Workspace)
-			if old.Spec.NetworkIsolation == new.Spec.NetworkIsolation {
+			if workspaceNetworkIsolationEnabled(old) == workspaceNetworkIsolationEnabled(new) {
 				return
 			}
 			controller.addWorkspace(newObj)

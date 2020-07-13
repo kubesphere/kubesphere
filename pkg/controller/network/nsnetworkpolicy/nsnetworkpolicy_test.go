@@ -134,6 +134,25 @@ var _ = Describe("Nsnetworkpolicy", func() {
 		go c.Start(stopCh)
 	})
 
+	It("test func namespaceNetworkIsolateEnabled", func() {
+		ns := &corev1.Namespace{}
+		Expect(namespaceNetworkIsolateEnabled(ns)).To(BeFalse())
+		ns.Annotations = make(map[string]string)
+		Expect(namespaceNetworkIsolateEnabled(ns)).To(BeFalse())
+		ns.Annotations[NamespaceNPAnnotationKey] = NamespaceNPAnnotationEnabled
+		Expect(namespaceNetworkIsolateEnabled(ns)).To(BeTrue())
+	})
+
+	It("test func workspaceNetworkIsolationEnabled", func() {
+		value := false
+		wksp := &wkspv1alpha1.Workspace{}
+		Expect(workspaceNetworkIsolationEnabled(wksp)).To(BeFalse())
+		wksp.Spec.NetworkIsolation = &value
+		Expect(workspaceNetworkIsolationEnabled(wksp)).To(BeFalse())
+		value = true
+		Expect(workspaceNetworkIsolationEnabled(wksp)).To(BeTrue())
+	})
+
 	It("Should create ns networkisolate np correctly in workspace", func() {
 		objSrt := fmt.Sprintf(workspaceNP, "testns", constants.WorkspaceLabelKey, "testworkspace")
 		obj := &netv1.NetworkPolicy{}
