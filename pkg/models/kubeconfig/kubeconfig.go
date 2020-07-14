@@ -181,7 +181,7 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 	masterURL := o.masterURL
 
 	// server host override
-	if cluster := kubeconfig.Clusters[defaultClusterName]; cluster != nil {
+	if cluster := kubeconfig.Clusters[defaultClusterName]; cluster != nil && masterURL != "" {
 		cluster.Server = masterURL
 	}
 
