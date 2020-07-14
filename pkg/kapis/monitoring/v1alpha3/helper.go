@@ -262,6 +262,7 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 		q.target = r.target
 		q.page = DefaultPage
 		q.limit = DefaultLimit
+		q.order = r.order
 		if r.order != model.OrderAscending {
 			q.order = DefaultOrder
 		}
