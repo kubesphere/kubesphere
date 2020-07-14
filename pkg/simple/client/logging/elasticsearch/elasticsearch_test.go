@@ -224,17 +224,14 @@ func mockElasticsearchService(pattern, fakeResp string, fakeCode int) *httptest.
 }
 
 func newElasticsearchClient(srv *httptest.Server, version string) *Elasticsearch {
-	var es *Elasticsearch
+	es := &Elasticsearch{index: "ks-logstash-log"}
 	switch version {
 	case ElasticV5:
-		client, _ := v5.New(srv.URL, "ks-logstash-log")
-		es = &Elasticsearch{c: client}
+		es.c, _ = v5.New(srv.URL, "ks-logstash-log")
 	case ElasticV6:
-		client, _ := v6.New(srv.URL, "ks-logstash-log")
-		es = &Elasticsearch{c: client}
+		es.c, _ = v6.New(srv.URL, "ks-logstash-log")
 	case ElasticV7:
-		client, _ := v7.New(srv.URL, "ks-logstash-log")
-		es = &Elasticsearch{c: client}
+		es.c, _ = v7.New(srv.URL, "ks-logstash-log")
 	}
 	return es
 }

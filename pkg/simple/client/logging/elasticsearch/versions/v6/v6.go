@@ -24,10 +24,11 @@ func New(address string, index string) (*Elastic, error) {
 	return &Elastic{Client: client, index: index}, err
 }
 
-func (e *Elastic) Search(body []byte, scroll bool) ([]byte, error) {
+func (e *Elastic) Search(indices string, body []byte, scroll bool) ([]byte, error) {
 	opts := []func(*esapi.SearchRequest){
 		e.Client.Search.WithContext(context.Background()),
-		e.Client.Search.WithIndex(fmt.Sprintf("%s*", e.index)),
+		e.Client.Search.WithIndex(indices),
+		e.Client.Search.WithIgnoreUnavailable(true),
 		e.Client.Search.WithBody(bytes.NewBuffer(body)),
 	}
 	if scroll {

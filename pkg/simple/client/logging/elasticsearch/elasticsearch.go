@@ -10,6 +10,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v5"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v6"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging/elasticsearch/versions/v7"
+	"kubesphere.io/kubesphere/pkg/utils/esutil"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 	"strings"
 	"sync"
@@ -33,7 +34,7 @@ type Elasticsearch struct {
 
 // versioned es client interface
 type client interface {
-	Search(body []byte, scroll bool) ([]byte, error)
+	Search(indices string, body []byte, scroll bool) ([]byte, error)
 	Scroll(id string) ([]byte, error)
 	ClearScroll(id string)
 	GetTotalHitCount(v interface{}) int64
@@ -147,7 +148,7 @@ func (es *Elasticsearch) GetCurrentStats(sf logging.SearchFilter) (logging.Stati
 		return logging.Statistics{}, err
 	}
 
-	b, err := es.c.Search(body, true)
+	b, err := es.c.Search(esutil.ResolveIndexNames(es.index, sf.Starttime, sf.Endtime), body, true)
 	if err != nil {
 		return logging.Statistics{}, err
 	}
@@ -180,7 +181,7 @@ func (es *Elasticsearch) CountLogsByInterval(sf logging.SearchFilter, interval s
 		return logging.Histogram{}, err
 	}
 
-	b, err := es.c.Search(body, false)
+	b, err := es.c.Search(esutil.ResolveIndexNames(es.index, sf.Starttime, sf.Endtime), body, false)
 	if err != nil {
 		return logging.Histogram{}, err
 	}
@@ -219,7 +220,7 @@ func (es *Elasticsearch) SearchLogs(sf logging.SearchFilter, f, s int64, o strin
 		return logging.Logs{}, err
 	}
 
-	b, err := es.c.Search(body, false)
+	b, err := es.c.Search(esutil.ResolveIndexNames(es.index, sf.Starttime, sf.Endtime), body, false)
 	if err != nil {
 		return logging.Logs{}, err
 	}
@@ -264,7 +265,7 @@ func (es *Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error 
 		return err
 	}
 
-	b, err := es.c.Search(body, true)
+	b, err := es.c.Search(esutil.ResolveIndexNames(es.index, sf.Starttime, sf.Endtime), body, true)
 	defer es.ClearScroll(id)
 	if err != nil {
 		return err
