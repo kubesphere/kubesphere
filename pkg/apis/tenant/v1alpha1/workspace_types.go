@@ -33,7 +33,7 @@ const (
 // WorkspaceSpec defines the desired state of Workspace
 type WorkspaceSpec struct {
 	Manager          string `json:"manager,omitempty"`
-	NetworkIsolation bool   `json:"networkIsolation,omitempty"`
+	NetworkIsolation *bool  `json:"networkIsolation,omitempty"`
 }
 
 // WorkspaceStatus defines the observed state of Workspace
