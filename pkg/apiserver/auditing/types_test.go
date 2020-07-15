@@ -252,7 +252,7 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 	resp := NewResponseCapture(httptest.NewRecorder())
 	resp.WriteHeader(200)
 
-	a.LogResponseObject(e, resp, info)
+	a.LogResponseObject(e, resp)
 
 	expectedEvent := &v1alpha12.Event{
 		Event: audit.Event{

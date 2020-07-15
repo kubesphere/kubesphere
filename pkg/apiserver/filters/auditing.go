@@ -33,10 +33,13 @@ func WithAuditing(handler http.Handler, a auditing.Auditing) http.Handler {
 		}
 
 		e := a.LogRequestObject(req, info)
-		req = req.WithContext(request.WithAuditEvent(req.Context(), e))
-		resp := auditing.NewResponseCapture(w)
-		handler.ServeHTTP(resp, req)
+		if e != nil {
+			resp := auditing.NewResponseCapture(w)
+			handler.ServeHTTP(resp, req)
 
-		go a.LogResponseObject(e, resp, info)
+			go a.LogResponseObject(e, resp)
+		} else {
+			handler.ServeHTTP(w, req)
+		}
 	})
 }
