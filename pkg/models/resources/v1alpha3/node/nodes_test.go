@@ -23,6 +23,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"kubesphere.io/kubesphere/pkg/api"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"strconv"
 	"testing"
 )
 
@@ -143,4 +147,113 @@ func TestNodesGetterGet(t *testing.T) {
 		t.Errorf("%T, diff(-got, +expected), %v", expectedAnnotations, nodeGot.Annotations)
 	}
 
+}
+
+func TestListNodes(t *testing.T) {
+	tests := []struct {
+		query    *query.Query
+		expected *api.ListResult
+	}{
+		{
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  1,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{query.FieldName: query.Value(node2.Name)},
+			},
+			&api.ListResult{
+				Items: []interface{}{
+					node2,
+				},
+				TotalItems: 1,
+			},
+		},
+		{
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  1,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{query.FieldStatus: query.Value(statusUnschedulable)},
+			},
+			&api.ListResult{
+				Items: []interface{}{
+					node1,
+				},
+				TotalItems: 1,
+			},
+		},
+		{
+			&query.Query{
+				Pagination: &query.Pagination{
+					Limit:  1,
+					Offset: 0,
+				},
+				SortBy:    query.FieldName,
+				Ascending: false,
+				Filters:   map[query.Field]query.Value{query.FieldStatus: query.Value(statusRunning)},
+			},
+			&api.ListResult{
+				Items: []interface{}{
+					node2,
+				},
+				TotalItems: 1,
+			},
+		},
+	}
+
+	getter := prepare()
+
+	for index, test := range tests {
+		t.Run(strconv.Itoa(index), func(t *testing.T) {
+
+			got, err := getter.List("", test.query)
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			if diff := cmp.Diff(got, test.expected); diff != "" {
+				t.Errorf("%T differ (-got, +want): %s", test.expected, diff)
+			}
+		})
+	}
+
+}
+
+var (
+	node1 = &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+		},
+		Spec: corev1.NodeSpec{
+			Unschedulable: true,
+		},
+	}
+	node2 = &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node2",
+		},
+		Spec: corev1.NodeSpec{
+			Unschedulable: false,
+		},
+	}
+	nodes = []*corev1.Node{node1, node2}
+)
+
+func prepare() v1alpha3.Interface {
+
+	fake := fake.NewSimpleClientset(node1, node2)
+
+	informer := informers.NewSharedInformerFactory(fake, 0)
+	for _, node := range nodes {
+		informer.Core().V1().Nodes().Informer().GetIndexer().Add(node)
+	}
+
+	return New(informer)
 }
