@@ -101,6 +101,7 @@ func NewController(
 ) *StorageCapabilityController {
 
 	utilruntime.Must(crdscheme.AddToScheme(scheme.Scheme))
+
 	controller := &StorageCapabilityController{
 		storageClassCapabilityClient: capabilityClient,
 		storageCapabilityLister:      capabilityInformer.StorageClassCapabilities().Lister(),
@@ -111,13 +112,16 @@ func NewController(
 		storageClassLister:           storageClassInformer.Lister(),
 		storageClassSynced:           storageClassInformer.Informer().HasSynced,
 		snapshotSupported:            snapshotSupported,
-		snapshotClassClient:          snapshotClassClient,
-		snapshotClassLister:          snapshotClassInformer.Lister(),
-		snapshotClassSynced:          snapshotClassInformer.Informer().HasSynced,
 		csiDriverLister:              csiDriverInformer.Lister(),
 		csiDriverSynced:              csiDriverInformer.Informer().HasSynced,
 		csiAddressGetter:             csiAddress,
 		workQueue:                    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StorageClasses"),
+	}
+
+	if snapshotSupported {
+		controller.snapshotClassClient = snapshotClassClient
+		controller.snapshotClassLister = snapshotClassInformer.Lister()
+		controller.snapshotClassSynced = snapshotClassInformer.Informer().HasSynced
 	}
 
 	storageClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -159,6 +163,10 @@ func (c *StorageCapabilityController) Run(threadCnt int, stopCh <-chan struct{})
 		c.provisionerCapabilitySynced,
 		c.storageClassSynced,
 		c.csiDriverSynced,
+	}
+
+	if c.snapshotAllowed() {
+		cacheSyncs = append(cacheSyncs, c.snapshotClassSynced)
 	}
 
 	if ok := cache.WaitForCacheSync(stopCh, cacheSyncs...); !ok {
@@ -250,7 +258,7 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 	if err != nil {
 		// StorageClass has been deleted, delete StorageClassCapability and VolumeSnapshotClass
 		if errors.IsNotFound(err) {
-			if c.snapshotSupported {
+			if c.snapshotAllowed() {
 				err = c.deleteSnapshotClass(name)
 				if err != nil {
 					return err
@@ -280,7 +288,7 @@ func (c *StorageCapabilityController) syncHandler(key string) error {
 	// Handle VolumeSnapshotClass with same name of StorageClass
 	// annotate "support-snapshot" of StorageClass
 	withSnapshotCapability := false
-	if c.snapshotSupported && capabilitySpec.Features.Snapshot.Create {
+	if c.snapshotAllowed() && capabilitySpec.Features.Snapshot.Create {
 		_, err = c.snapshotClassLister.Get(name)
 		if err != nil {
 			// If VolumeSnapshotClass not exist, create it
@@ -356,7 +364,7 @@ func (c *StorageCapabilityController) deleteStorageCapability(name string) error
 }
 
 func (c *StorageCapabilityController) deleteSnapshotClass(name string) error {
-	if !c.snapshotSupported {
+	if !c.snapshotAllowed() {
 		return nil
 	}
 	_, err := c.snapshotClassLister.Get(name)
@@ -427,6 +435,10 @@ func (c *StorageCapabilityController) isCSIStorage(provisioner string) (bool, er
 // this is used for test of CSIDriver on windows
 func (c *StorageCapabilityController) setCSIAddressGetter(getter csiAddressGetter) {
 	c.csiAddressGetter = getter
+}
+
+func (c *StorageCapabilityController) snapshotAllowed() bool {
+	return c.snapshotSupported && c.snapshotClassClient != nil && c.snapshotClassLister != nil && c.snapshotClassSynced != nil
 }
 
 func SnapshotSupported(discoveryInterface discovery.DiscoveryInterface) bool {
