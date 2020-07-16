@@ -31,14 +31,19 @@ import (
 
 // Those annotations were added to node only for display purposes
 const (
-	nodeCPURequests            = "node.kubesphere.io/cpu-requests"
-	nodeMemoryRequests         = "node.kubesphere.io/memory-requests"
-	nodeCPULimits              = "node.kubesphere.io/cpu-limits"
-	nodeMemoryLimits           = "node.kubesphere.io/memory-limits"
-	nodeCPURequestsFraction    = "node.kubesphere.io/cpu-requests-fraction"
-	nodeCPULimitsFraction      = "node.kubesphere.io/cpu-limits-fraction"
-	nodeMemoryRequestsFraction = "node.kubesphere.io/memory-requests-fraction"
-	nodeMemoryLimitsFraction   = "node.kubesphere.io/memory-limits-fraction"
+	nodeCPURequests                                 = "node.kubesphere.io/cpu-requests"
+	nodeMemoryRequests                              = "node.kubesphere.io/memory-requests"
+	nodeCPULimits                                   = "node.kubesphere.io/cpu-limits"
+	nodeMemoryLimits                                = "node.kubesphere.io/memory-limits"
+	nodeCPURequestsFraction                         = "node.kubesphere.io/cpu-requests-fraction"
+	nodeCPULimitsFraction                           = "node.kubesphere.io/cpu-limits-fraction"
+	nodeMemoryRequestsFraction                      = "node.kubesphere.io/memory-requests-fraction"
+	nodeMemoryLimitsFraction                        = "node.kubesphere.io/memory-limits-fraction"
+	nodeConfigOK               v1.NodeConditionType = "ConfigOK"
+	nodeKubeletReady           v1.NodeConditionType = "KubeletReady"
+	statusRunning                                   = "running"
+	statusWarning                                   = "warning"
+	statusUnschedulable                             = "unschedulable"
 )
 
 type nodesGetter struct {
@@ -106,6 +111,10 @@ func (c nodesGetter) filter(object runtime.Object, filter query.Filter) bool {
 	node, ok := object.(*v1.Node)
 	if !ok {
 		return false
+	}
+	switch filter.Field {
+	case query.FieldStatus:
+		return getNodeStatus(node) == string(filter.Value)
 	}
 
 	return v1alpha3.DefaultObjectMetaFilter(node.ObjectMeta, filter)
@@ -176,4 +185,35 @@ func (c nodesGetter) getPodsTotalRequestAndLimits(pods []*v1.Pod) (reqs map[v1.R
 		}
 	}
 	return
+}
+
+func getNodeStatus(node *v1.Node) string {
+	if node.Spec.Unschedulable {
+		return statusUnschedulable
+	}
+	for _, condition := range node.Status.Conditions {
+		if isUnhealthyStatus(condition) {
+			return statusWarning
+		}
+	}
+
+	return statusRunning
+}
+
+var expectedConditions = map[v1.NodeConditionType]v1.ConditionStatus{
+	v1.NodeMemoryPressure:     v1.ConditionFalse,
+	v1.NodeDiskPressure:       v1.ConditionFalse,
+	v1.NodePIDPressure:        v1.ConditionFalse,
+	v1.NodeNetworkUnavailable: v1.ConditionFalse,
+	nodeConfigOK:              v1.ConditionTrue,
+	nodeKubeletReady:          v1.ConditionTrue,
+	v1.NodeReady:              v1.ConditionTrue,
+}
+
+func isUnhealthyStatus(condition v1.NodeCondition) bool {
+	expectedStatus := expectedConditions[condition.Type]
+	if expectedStatus != "" && condition.Status != expectedStatus {
+		return true
+	}
+	return false
 }
