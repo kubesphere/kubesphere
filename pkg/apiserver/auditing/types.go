@@ -98,12 +98,9 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 
 	// Ignore the dryRun k8s request.
 	if info.IsKubernetesRequest {
-		values := req.URL.Query()
-		if v, ok := values["dryRun"]; ok {
-			if len(v) > 0 && v[0] == v1.DryRunAll {
-				klog.V(6).Infof("ignore dryRun request %s", req.URL.Path)
-				return nil
-			}
+		if len(req.URL.Query()["dryRun"]) != 0 {
+			klog.V(6).Infof("ignore dryRun request %s", req.URL.Path)
+			return nil
 		}
 	}
 
