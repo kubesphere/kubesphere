@@ -16,11 +16,14 @@ package jenkins
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"io"
 	"io/ioutil"
+	authtoken "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"mime/multipart"
 	"net/http"
@@ -38,6 +41,28 @@ type APIRequest struct {
 	Payload  io.Reader
 	Headers  http.Header
 	Suffix   string
+}
+
+// set basic token for jenkins auth
+func SetBasicBearTokenHeader(header *http.Header) error {
+	bearTokenArray := strings.Split(header.Get("Authorization"), " ")
+	bearFlag := bearTokenArray[0]
+	var err error
+	if strings.ToLower(bearFlag) == "bearer" {
+		bearToken := bearTokenArray[1]
+		if err != nil {
+			return err
+		}
+		claim := authtoken.Claims{}
+		parser := jwt.Parser{}
+		_, _, err = parser.ParseUnverified(bearToken, &claim)
+		if err != nil {
+			return err
+		}
+		creds := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", claim.Username, bearToken)))
+		header.Set("Authorization", fmt.Sprintf("Basic %s", creds))
+	}
+	return nil
 }
 
 func (ar *APIRequest) SetHeader(key string, value string) *APIRequest {
