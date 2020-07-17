@@ -11,4 +11,7 @@ RUN apk add --update ca-certificates && \
     chown -R kubesphere:kubesphere /usr/local/bin/controller-manager
 
 USER kubesphere
+
+EXPOSE 8443 8080
+
 CMD controller-manager

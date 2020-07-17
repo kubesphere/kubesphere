@@ -156,7 +156,8 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 	run := func(ctx context.Context) {
 		klog.V(0).Info("setting up manager")
-		mgr, err := manager.New(kubernetesClient.Config(), manager.Options{CertDir: s.WebhookCertDir})
+		// Use 8443 instead of 443 cause we need root permission to bind port 443
+		mgr, err := manager.New(kubernetesClient.Config(), manager.Options{CertDir: s.WebhookCertDir, Port: 8443})
 		if err != nil {
 			klog.Fatalf("unable to set up overall controller manager: %v", err)
 		}
