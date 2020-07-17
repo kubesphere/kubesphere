@@ -36,6 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/clusterrolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/configmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/customresourcedefinition"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/daemonset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
@@ -47,6 +48,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/pod"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/role"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/rolebinding"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/service"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/statefulset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/volumesnapshot"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/workspace"
@@ -65,6 +68,9 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters := make(map[schema.GroupVersionResource]v1alpha3.Interface)
 
 	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}] = deployment.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}] = daemonset.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"}] = statefulset.New(factory.KubernetesSharedInformerFactory())
+	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}] = service.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}] = namespace.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}] = configmap.New(factory.KubernetesSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}] = pod.New(factory.KubernetesSharedInformerFactory())
