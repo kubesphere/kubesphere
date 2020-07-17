@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -9,19 +10,29 @@ import (
 func buildKubeconfigFromRestConfig(config *rest.Config) ([]byte, error) {
 	apiConfig := api.NewConfig()
 
-	apiConfig.Clusters["kubernetes"] = &api.Cluster{
+	apiCluster := &api.Cluster{
 		Server:                   config.Host,
 		CertificateAuthorityData: config.CAData,
-		CertificateAuthority:     config.CAFile,
 	}
 
+	// generated kubeconfig will be used by cluster federation, CAFile is not
+	// accepted by kubefed, so we need read CAFile
+	if len(apiCluster.CertificateAuthorityData) == 0 && len(config.CAFile) != 0 {
+		caData, err := ioutil.ReadFile(config.CAFile)
+		if err != nil {
+			return nil, err
+		}
+
+		apiCluster.CertificateAuthorityData = caData
+	}
+
+	apiConfig.Clusters["kubernetes"] = apiCluster
+
 	apiConfig.AuthInfos["kubernetes-admin"] = &api.AuthInfo{
-		ClientCertificate:     config.CertFile,
 		ClientCertificateData: config.CertData,
-		ClientKey:             config.KeyFile,
 		ClientKeyData:         config.KeyData,
-		TokenFile:             config.BearerTokenFile,
 		Token:                 config.BearerToken,
+		TokenFile:             config.BearerTokenFile,
 		Username:              config.Username,
 		Password:              config.Password,
 	}

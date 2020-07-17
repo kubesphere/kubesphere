@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
@@ -53,6 +54,7 @@ const (
 
 	kubefedNamespace  = "kube-federation-system"
 	openpitrixRuntime = "openpitrix.io/runtime"
+	kubesphereManaged = "kubesphere.io/managed"
 
 	// Actually host cluster name can be anything, there is only necessary when calling JoinFederation function
 	hostClusterName = "kubesphere"
@@ -81,12 +83,12 @@ var hostCluster = &clusterv1alpha1.Cluster{
 		Name: "host",
 		Annotations: map[string]string{
 			"kubesphere.io/description": "Automatically created by kubesphere, " +
-				"we encourage you use host cluster for cluster management only, " +
+				"we encourage you to use host cluster for clusters management only, " +
 				"deploy workloads to member clusters.",
 		},
 		Labels: map[string]string{
-			clusterv1alpha1.HostCluster:  "",
-			clusterv1alpha1.ClusterGroup: "production",
+			clusterv1alpha1.HostCluster: "",
+			kubesphereManaged:           "true",
 		},
 	},
 	Spec: clusterv1alpha1.ClusterSpec{
@@ -119,6 +121,7 @@ type clusterController struct {
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
 
+	// build this only for host cluster
 	client     kubernetes.Interface
 	hostConfig *rest.Config
 
@@ -296,17 +299,40 @@ func (c *clusterController) reconcileHostCluster() error {
 		return err
 	}
 
-	if len(clusters) == 0 {
-		hostKubeConfig, err := buildKubeconfigFromRestConfig(c.hostConfig)
-		if err != nil {
-			return err
-		}
-		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
-		_, err = c.clusterClient.Create(hostCluster)
+	hostKubeConfig, err := buildKubeconfigFromRestConfig(c.hostConfig)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	// no host cluster, create one
+	if len(clusters) == 0 {
+		hostCluster.Spec.Connection.KubeConfig = hostKubeConfig
+		_, err = c.clusterClient.Create(hostCluster)
+		return err
+	} else if len(clusters) > 1 {
+		return fmt.Errorf("there MUST not be more than one host clusters, while there are %d", len(clusters))
+	}
+
+	// only deal with cluster managed by kubesphere
+	cluster := clusters[0]
+	managedByKubesphere, ok := cluster.Labels[kubesphereManaged]
+	if !ok || managedByKubesphere != "true" {
+		return nil
+	}
+
+	// no kubeconfig, not likely to happen
+	if len(cluster.Spec.Connection.KubeConfig) == 0 {
+		cluster.Spec.Connection.KubeConfig = hostKubeConfig
+	} else {
+		// if kubeconfig are the same, then there is nothing to do
+		if bytes.Equal(cluster.Spec.Connection.KubeConfig, hostKubeConfig) {
+			return nil
+		}
+	}
+
+	// update host cluster config
+	_, err = c.clusterClient.Update(cluster)
+	return err
 }
 
 func (c *clusterController) syncCluster(key string) error {
@@ -699,6 +725,16 @@ func (c *clusterController) addCluster(obj interface{}) {
 	c.queue.Add(key)
 }
 
+func hasHostClusterLabel(cluster *clusterv1alpha1.Cluster) bool {
+	if cluster.Labels == nil || len(cluster.Labels) == 0 {
+		return false
+	}
+
+	_, ok := cluster.Labels[clusterv1alpha1.HostCluster]
+
+	return ok
+}
+
 func (c *clusterController) handleErr(err error, key interface{}) {
 	if err == nil {
 		c.queue.Forget(key)
@@ -771,14 +807,40 @@ func (c *clusterController) joinFederation(clusterConfig *rest.Config, joiningCl
 }
 
 // unJoinFederation unjoins a cluster from federation control plane.
+// It will first do normal unjoin process, if maximum retries reached, it will skip
+// member cluster resource deletion, only delete resources in host cluster.
 func (c *clusterController) unJoinFederation(clusterConfig *rest.Config, unjoiningClusterName string) error {
-	return unjoinCluster(c.hostConfig,
-		clusterConfig,
-		kubefedNamespace,
-		hostClusterName,
-		unjoiningClusterName,
-		true,
-		false)
+	localMaxRetries := 5
+	retries := 0
+
+	for {
+		err := unjoinCluster(c.hostConfig,
+			clusterConfig,
+			kubefedNamespace,
+			hostClusterName,
+			unjoiningClusterName,
+			true,
+			false,
+			false)
+		if err != nil {
+			klog.Errorf("Failed to unJoin federation for cluster %s, error %v", unjoiningClusterName, err)
+		} else {
+			return nil
+		}
+
+		retries += 1
+		if retries >= localMaxRetries {
+			err = unjoinCluster(c.hostConfig,
+				clusterConfig,
+				kubefedNamespace,
+				hostClusterName,
+				unjoiningClusterName,
+				true,
+				false,
+				true)
+			return err
+		}
+	}
 }
 
 // allocatePort find a available port between [portRangeMin, portRangeMax] in maximumRetries

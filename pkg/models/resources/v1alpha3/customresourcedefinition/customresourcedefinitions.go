@@ -17,7 +17,7 @@ limitations under the License.
 package customresourcedefinition
 
 import (
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -35,12 +35,15 @@ func New(informers apiextensionsinformers.SharedInformerFactory) v1alpha3.Interf
 	}
 }
 
+// The reason we are still using v1beta1 instead of stable v1 is v1 is not released yet
+// in Kubernetes v1.15.x, while v1.15.x is in our supporting list. Maybe we can change
+// it to v1 when v1.15.x is no longer officially supported.
 func (c crdGetter) Get(_, name string) (runtime.Object, error) {
-	return c.informers.Apiextensions().V1().CustomResourceDefinitions().Lister().Get(name)
+	return c.informers.Apiextensions().V1beta1().CustomResourceDefinitions().Lister().Get(name)
 }
 
 func (c crdGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	crds, err := c.informers.Apiextensions().V1().CustomResourceDefinitions().Lister().List(query.Selector())
+	crds, err := c.informers.Apiextensions().V1beta1().CustomResourceDefinitions().Lister().List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +57,12 @@ func (c crdGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
 }
 
 func (c crdGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
-	leftCRD, ok := left.(*v1.CustomResourceDefinition)
+	leftCRD, ok := left.(*v1beta1.CustomResourceDefinition)
 	if !ok {
 		return false
 	}
 
-	rightCRD, ok := right.(*v1.CustomResourceDefinition)
+	rightCRD, ok := right.(*v1beta1.CustomResourceDefinition)
 	if !ok {
 		return false
 	}
@@ -68,7 +71,7 @@ func (c crdGetter) compare(left runtime.Object, right runtime.Object, field quer
 }
 
 func (c crdGetter) filter(object runtime.Object, filter query.Filter) bool {
-	crd, ok := object.(*v1.CustomResourceDefinition)
+	crd, ok := object.(*v1beta1.CustomResourceDefinition)
 	if !ok {
 		return false
 	}

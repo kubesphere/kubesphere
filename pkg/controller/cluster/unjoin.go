@@ -18,7 +18,7 @@ import (
 // UnjoinCluster performs all the necessary steps to remove the
 // registration of a cluster from a KubeFed control plane provided the
 // required set of parameters are passed in.
-func unjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName, unjoiningClusterName string, forceDeletion, dryRun bool) error {
+func unjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hostClusterName, unjoiningClusterName string, forceDeletion, dryRun bool, skipMemberClusterResources bool) error {
 
 	hostClientset, err := util.HostClientset(hostConfig)
 	if err != nil {
@@ -43,7 +43,7 @@ func unjoinCluster(hostConfig, clusterConfig *rest.Config, kubefedNamespace, hos
 		return err
 	}
 
-	if clusterClientset != nil {
+	if clusterClientset != nil && !skipMemberClusterResources {
 		err := deleteRBACResources(clusterClientset, kubefedNamespace, unjoiningClusterName, hostClusterName, forceDeletion, dryRun)
 		if err != nil {
 			if !forceDeletion {
