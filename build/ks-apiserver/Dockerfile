@@ -10,5 +10,7 @@ RUN apk add --update ca-certificates && \
     adduser -D -g kubesphere -u 1002 kubesphere && \
     chown -R kubesphere:kubesphere /usr/local/bin/ks-apiserver
 
+EXPOSE 9090
+
 USER kubesphere
 CMD ["sh"]

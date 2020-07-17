@@ -20,10 +20,6 @@ bin/
 # Vscode files
 .vscode/
 
-tmp/
-
-apiserver.local.config
-
 # OSX trash
 .DS_Store
 api.json
@@ -32,3 +28,6 @@ cover.out
 coverage.txt
 
 kustomize/network/etcd
+apiserver.local.config
+tmp/
+
