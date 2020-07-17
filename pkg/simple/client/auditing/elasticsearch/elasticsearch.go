@@ -19,6 +19,7 @@ package elasticsearch
 import (
 	"bytes"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/utils/esutil"
 	"strings"
 	"sync"
 	"time"
@@ -73,7 +74,7 @@ func (es *Elasticsearch) SearchAuditingEvent(filter *auditing.Filter, from, size
 		return nil, err
 	}
 	resp, err := es.c.ExSearch(&Request{
-		Index: es.index,
+		Index: resolveIndexNames(es.index, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
 	if err != nil || resp == nil {
@@ -124,7 +125,7 @@ func (es *Elasticsearch) CountOverTime(filter *auditing.Filter, interval string)
 		return nil, err
 	}
 	resp, err := es.c.ExSearch(&Request{
-		Index: es.index,
+		Index: resolveIndexNames(es.index, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
 	if err != nil || resp == nil {
@@ -179,7 +180,7 @@ func (es *Elasticsearch) StatisticsOnResources(filter *auditing.Filter) (*auditi
 		return nil, err
 	}
 	resp, err := es.c.ExSearch(&Request{
-		Index: es.index,
+		Index: resolveIndexNames(es.index, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
 	if err != nil || resp == nil {
@@ -207,7 +208,7 @@ func NewClient(options *Options) (*Elasticsearch, error) {
 	es := &Elasticsearch{
 		host:    options.Host,
 		version: options.Version,
-		index:   fmt.Sprintf("%s*", options.IndexPrefix),
+		index:   options.IndexPrefix,
 	}
 
 	err := es.initEsClient(es.version)
@@ -451,4 +452,15 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	return queryBody
+}
+
+func resolveIndexNames(prefix string, start, end *time.Time) string {
+	var s, e time.Time
+	if start != nil {
+		s = *start
+	}
+	if end != nil {
+		e = *end
+	}
+	return esutil.ResolveIndexNames(prefix, s, e)
 }
