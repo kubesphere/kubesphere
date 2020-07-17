@@ -17,6 +17,8 @@ type Interface interface {
 	ProjectPipelineOperator
 
 	ProjectOperator
+
+	RoleOperator
 }
 
 func GetDevOpsStatusCode(devopsErr error) int {

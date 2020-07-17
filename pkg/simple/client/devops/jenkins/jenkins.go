@@ -214,7 +214,9 @@ func (j *Jenkins) Poll() (int, error) {
 	return resp.StatusCode, nil
 }
 
-func (j *Jenkins) GetGlobalRole(roleName string) (*GlobalRole, error) {
+// query roleName exist or not
+// if return roleName means exist
+func (j *Jenkins) GetGlobalRole(roleName string) (string, error) {
 	roleResponse := &GlobalRoleResponse{
 		RoleName: roleName,
 	}
@@ -226,15 +228,29 @@ func (j *Jenkins) GetGlobalRole(roleName string) (*GlobalRole, error) {
 			"type":     GLOBAL_ROLE,
 		})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return "", errors.New(strconv.Itoa(response.StatusCode))
 	}
 	if stringResponse == "{}" {
-		return nil, nil
+		return "", nil
 	}
 	err = json.Unmarshal([]byte(stringResponse), roleResponse)
+	if err != nil {
+		return "", err
+	}
+	return roleResponse.RoleName, nil
+}
+
+func (j *Jenkins) GetGlobalRoleHandler(roleName string) (*GlobalRole, error) {
+	name, err := j.GetGlobalRole(roleName)
+	if err != nil {
+		return nil, err
+	}
+	roleResponse := &GlobalRoleResponse{
+		RoleName: name,
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +258,50 @@ func (j *Jenkins) GetGlobalRole(roleName string) (*GlobalRole, error) {
 		Jenkins: j,
 		Raw:     *roleResponse,
 	}, nil
+}
+
+// assign a global roleName to username(sid)
+func (j *Jenkins) AssignGlobalRole(roleName string, sid string) error {
+	globalRole, err := j.GetGlobalRoleHandler(roleName)
+	if err != nil {
+		return err
+	}
+	param := map[string]string{
+		"type":     GLOBAL_ROLE,
+		"roleName": globalRole.Raw.RoleName,
+		"sid":      sid,
+	}
+	responseString := ""
+	response, err := j.Requester.Post("/role-strategy/strategy/assignRole", nil, &responseString, param)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New(strconv.Itoa(response.StatusCode))
+	}
+	return nil
+}
+
+// unassign a global roleName to username(sid)
+func (j *Jenkins) UnAssignGlobalRole(roleName string, sid string) error {
+	globalRole, err := j.GetGlobalRoleHandler(roleName)
+	if err != nil {
+		return err
+	}
+	param := map[string]string{
+		"type":     GLOBAL_ROLE,
+		"roleName": globalRole.Raw.RoleName,
+		"sid":      sid,
+	}
+	responseString := ""
+	response, err := j.Requester.Post("/role-strategy/strategy/unassignRole", nil, &responseString, param)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New(strconv.Itoa(response.StatusCode))
+	}
+	return nil
 }
 
 func (j *Jenkins) GetProjectRole(roleName string) (*ProjectRole, error) {
@@ -274,13 +334,52 @@ func (j *Jenkins) GetProjectRole(roleName string) (*ProjectRole, error) {
 	}, nil
 }
 
-func (j *Jenkins) AddGlobalRole(roleName string, ids GlobalPermissionIds, overwrite bool) (*GlobalRole, error) {
-	responseRole := &GlobalRole{
-		Jenkins: j,
-		Raw: GlobalRoleResponse{
-			RoleName:      roleName,
-			PermissionIds: ids,
-		}}
+// assign a project roleName to username(sid)
+func (j *Jenkins) AssignProjectRole(roleName string, sid string) error {
+	projectRole, err := j.GetProjectRole(roleName)
+	if err != nil {
+		return err
+	}
+	param := map[string]string{
+		"type":     PROJECT_ROLE,
+		"roleName": projectRole.Raw.RoleName,
+		"sid":      sid,
+	}
+	responseString := ""
+	response, err := j.Requester.Post("/role-strategy/strategy/assignRole", nil, &responseString, param)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New(strconv.Itoa(response.StatusCode))
+	}
+	return nil
+}
+
+// unassign a project roleName to username(sid)
+func (j *Jenkins) UnAssignProjectRole(roleName string, sid string) error {
+	projectRole, err := j.GetProjectRole(roleName)
+	if err != nil {
+		return err
+	}
+	param := map[string]string{
+		"type":     PROJECT_ROLE,
+		"roleName": projectRole.Raw.RoleName,
+		"sid":      sid,
+	}
+	responseString := ""
+	response, err := j.Requester.Post("/role-strategy/strategy/unassignRole", nil, &responseString, param)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return errors.New(strconv.Itoa(response.StatusCode))
+	}
+	return nil
+}
+
+// add a global roleName
+func (j *Jenkins) AddGlobalRole(roleName string, ids devops.GlobalPermissionIds, overwrite bool) error {
 	var idArray []string
 	values := reflect.ValueOf(ids)
 	for i := 0; i < values.NumField(); i++ {
@@ -298,14 +397,15 @@ func (j *Jenkins) AddGlobalRole(roleName string, ids GlobalPermissionIds, overwr
 	responseString := ""
 	response, err := j.Requester.Post("/role-strategy/strategy/addRole", nil, &responseString, param)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return errors.New(strconv.Itoa(response.StatusCode))
 	}
-	return responseRole, nil
+	return nil
 }
 
+// delete roleName from the project
 func (j *Jenkins) DeleteProjectRoles(roleName ...string) error {
 	responseString := ""
 
@@ -323,14 +423,8 @@ func (j *Jenkins) DeleteProjectRoles(roleName ...string) error {
 	return nil
 }
 
-func (j *Jenkins) AddProjectRole(roleName string, pattern string, ids ProjectPermissionIds, overwrite bool) (*ProjectRole, error) {
-	responseRole := &ProjectRole{
-		Jenkins: j,
-		Raw: ProjectRoleResponse{
-			RoleName:      roleName,
-			PermissionIds: ids,
-			Pattern:       pattern,
-		}}
+// add roleName for project
+func (j *Jenkins) AddProjectRole(roleName string, pattern string, ids devops.ProjectPermissionIds, overwrite bool) error {
 	var idArray []string
 	values := reflect.ValueOf(ids)
 	for i := 0; i < values.NumField(); i++ {
@@ -349,12 +443,12 @@ func (j *Jenkins) AddProjectRole(roleName string, pattern string, ids ProjectPer
 	responseString := ""
 	response, err := j.Requester.Post("/role-strategy/strategy/addRole", nil, &responseString, param)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(response.StatusCode))
+		return errors.New(strconv.Itoa(response.StatusCode))
 	}
-	return responseRole, nil
+	return nil
 }
 
 func (j *Jenkins) DeleteUserInProject(username string) error {

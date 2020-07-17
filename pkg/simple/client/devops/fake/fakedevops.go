@@ -540,3 +540,39 @@ func (d *Devops) GetProjectPipelineConfig(projectId, pipelineId string) (*devops
 
 	return d.Pipelines[projectId][pipelineId], nil
 }
+
+func (d *Devops) AddGlobalRole(roleName string, ids devops.GlobalPermissionIds, overwrite bool) error {
+	return nil
+}
+
+func (d *Devops) AddProjectRole(roleName string, pattern string, ids devops.ProjectPermissionIds, overwrite bool) error {
+	return nil
+}
+
+func (d *Devops) DeleteProjectRoles(roleName ...string) error {
+	return nil
+}
+
+func (d *Devops) AssignProjectRole(roleName string, sid string) error {
+	return nil
+}
+
+func (d *Devops) UnAssignProjectRole(roleName string, sid string) error {
+	return nil
+}
+
+func (d *Devops) AssignGlobalRole(roleName string, sid string) error {
+	return nil
+}
+
+func (d *Devops) UnAssignGlobalRole(roleName string, sid string) error {
+	return nil
+}
+
+func (d *Devops) DeleteUserInProject(sid string) error {
+	return nil
+}
+
+func (d *Devops) GetGlobalRole(roleName string) (string, error) {
+	return "", nil
+}
