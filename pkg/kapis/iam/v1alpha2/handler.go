@@ -1180,7 +1180,7 @@ func (h *iamHandler) updateGlobalRoleBinding(operator user.Info, user *iamv1alph
 		return err
 	}
 
-	if oldGlobalRole.Name == globalRole {
+	if oldGlobalRole != nil && oldGlobalRole.Name == globalRole {
 		return nil
 	}
 
