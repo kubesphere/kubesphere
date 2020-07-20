@@ -27,6 +27,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
@@ -39,6 +40,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/daemonset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/deployment"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatednamespace"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/namespace"
@@ -93,6 +95,9 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[snapshotv1beta1.SchemeGroupVersion.WithResource("volumesnapshots")] = volumesnapshot.New(factory.SnapshotSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"}] = cluster.New(factory.KubeSphereSharedInformerFactory())
 	getters[schema.GroupVersionResource{Group: "apiextensions.k8s.io", Version: "v1", Resource: "customresourcedefinitions"}] = customresourcedefinition.New(factory.ApiExtensionSharedInformerFactory())
+
+	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcesPluralFedNamespace)] = federatednamespace.New(factory.KubeSphereSharedInformerFactory())
+
 	return &ResourceGetter{
 		getters: getters,
 	}

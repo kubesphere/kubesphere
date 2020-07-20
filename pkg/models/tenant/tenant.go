@@ -36,6 +36,7 @@ import (
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
@@ -59,6 +60,7 @@ import (
 type Interface interface {
 	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
+	ListFederatedNamespaces(info user.Info, workspace string, param *query.Query) (*api.ListResult, error)
 	CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
 	DeleteWorkspace(workspace string) error
@@ -168,6 +170,85 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 		return resources.DefaultObjectMetaFilter(workspace.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, filter)
 	})
 
+	return result, nil
+}
+
+func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace string, queryParam *query.Query) (*api.ListResult, error) {
+	nsScope := request.ClusterScope
+	if workspace != "" {
+		nsScope = request.WorkspaceScope
+	}
+
+	listNS := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "list",
+		Workspace:       workspace,
+		Resource:        "namespaces",
+		ResourceRequest: true,
+		ResourceScope:   nsScope,
+	}
+
+	decision, _, err := t.authorizer.Authorize(listNS)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	if decision == authorizer.DecisionAllow {
+
+		if workspace != "" {
+			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
+		}
+
+		result, err := t.resourceGetter.List(typesv1beta1.ResourcesPluralFedNamespace, "", queryParam)
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		return result, nil
+	}
+
+	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	namespaces := make([]runtime.Object, 0)
+
+	for _, roleBinding := range roleBindings {
+		namespace, err := t.resourceGetter.Get(typesv1beta1.ResourcesPluralFedNamespace, roleBinding.Namespace, roleBinding.Namespace)
+
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+
+		// skip if not controlled by the specified workspace
+		if ns := namespace.(*typesv1beta1.FederatedNamespace); workspace != "" && ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
+			continue
+		}
+
+		if !contains(namespaces, namespace) {
+			namespaces = append(namespaces, namespace)
+		}
+	}
+
+	result := resources.DefaultList(namespaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
+		return resources.DefaultObjectMetaCompare(left.(*corev1.Namespace).ObjectMeta, right.(*corev1.Namespace).ObjectMeta, field)
+	}, func(object runtime.Object, filter query.Filter) bool {
+		namespace := object.(*typesv1beta1.FederatedNamespace).ObjectMeta
+		if workspace != "" {
+			if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
+				return false
+			}
+		}
+		return resources.DefaultObjectMetaFilter(namespace, filter)
+	})
 	return result, nil
 }
 

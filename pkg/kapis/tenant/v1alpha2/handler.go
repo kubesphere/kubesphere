@@ -55,6 +55,29 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 	resp.WriteEntity(result)
 }
 
+func (h *tenantHandler) ListFederatedNamespaces(req *restful.Request, resp *restful.Response) {
+	user, ok := request.UserFrom(req.Request.Context())
+	queryParam := query.ParseQueryParameter(req)
+
+	if !ok {
+		err := fmt.Errorf("cannot obtain user info")
+		klog.Errorln(err)
+		api.HandleForbidden(resp, nil, err)
+		return
+	}
+
+	workspace := req.PathParameter("workspace")
+
+	result, err := h.tenant.ListFederatedNamespaces(user, workspace, queryParam)
+
+	if err != nil {
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	resp.WriteEntity(result)
+}
+
 func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Response) {
 	user, ok := request.UserFrom(req.Request.Context())
 	queryParam := query.ParseQueryParameter(req)

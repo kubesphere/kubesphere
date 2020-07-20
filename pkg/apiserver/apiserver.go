@@ -30,6 +30,7 @@ import (
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	audit "kubesphere.io/kubesphere/pkg/apiserver/auditing"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/basic"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/authenticators/jwttoken"
@@ -398,6 +399,10 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	// skip caching servicemesh resources if servicemesh not enabled
 	if s.KubernetesClient.Istio() != nil {
 		ksGVRs = append(ksGVRs, servicemeshGVRs...)
+	}
+
+	if s.Config.MultiClusterOptions.Enable {
+		ksGVRs = append(ksGVRs, typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcesPluralFedNamespace))
 	}
 
 	for _, gvr := range ksGVRs {
