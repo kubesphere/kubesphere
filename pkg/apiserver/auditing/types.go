@@ -33,7 +33,7 @@ type Auditing interface {
 	Enabled() bool
 	K8sAuditingEnabled() bool
 	LogRequestObject(req *http.Request, info *request.RequestInfo) *auditv1alpha1.Event
-	LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture, info *request.RequestInfo)
+	LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture)
 }
 
 type auditing struct {
@@ -95,6 +95,14 @@ func (a *auditing) K8sAuditingEnabled() bool {
 //	}
 //
 func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo) *auditv1alpha1.Event {
+
+	// Ignore the dryRun k8s request.
+	if info.IsKubernetesRequest {
+		if len(req.URL.Query()["dryRun"]) != 0 {
+			klog.V(6).Infof("ignore dryRun request %s", req.URL.Path)
+			return nil
+		}
+	}
 
 	e := &auditv1alpha1.Event{
 		Workspace: info.Workspace,
@@ -175,7 +183,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 	return e
 }
 
-func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture, info *request.RequestInfo) {
+func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture) {
 
 	e.StageTimestamp = v1.NewMicroTime(time.Now())
 	e.ResponseStatus = &v1.Status{Code: int32(resp.StatusCode())}
