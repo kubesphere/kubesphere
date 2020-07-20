@@ -1,17 +1,20 @@
 # Copyright 2020 The KubeSphere Authors. All rights reserved.
 # Use of this source code is governed by an Apache license
 # that can be found in the LICENSE file.
-FROM alpine:3.7
+FROM alpine:3.11
+ENV USER=kubesphere
+ENV UID=1002
+# docker group
+ENV GID=998
 
 COPY  /bin/cmd/controller-manager /usr/local/bin/
 
-RUN apk add --update ca-certificates && \
-    update-ca-certificates && \
-    adduser -D -g kubesphere -u 1002 kubesphere && \
-    chown -R kubesphere:kubesphere /usr/local/bin/controller-manager
-
-USER kubesphere
+RUN apk add --no-cache ca-certificates && \
+    addgroup --gid "$GID" "$USER" && \
+    adduser -D -g "" --ingroup "$USER" -u "$UID" "$USER" && \
+    chown -R kubesphere:"$GID" /usr/local/bin/controller-manager
 
 EXPOSE 8443 8080
 
-CMD controller-manager
+USER kubesphere
+CMD ["sh"]
