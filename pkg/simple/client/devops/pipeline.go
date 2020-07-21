@@ -81,6 +81,7 @@ type Pipeline struct {
 // GetPipeBranchRun & SearchPipelineRuns
 type PipelineRunList struct {
 	Items []PipelineRun `json:"items"`
+	Total int           `json:"totalItems"`
 }
 
 // GetBranchPipeRunNodes
