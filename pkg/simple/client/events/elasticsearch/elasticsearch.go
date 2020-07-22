@@ -49,8 +49,11 @@ func (es *elasticsearch) SearchEvents(filter *events.Filter, from, size int64,
 		Index: resolveIndexNames(es.opts.indexPrefix, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
-	if err != nil || resp == nil {
+	if err != nil {
 		return nil, err
+	}
+	if resp == nil || len(resp.Hits.Hits) == 0 {
+		return &events.Events{}, nil
 	}
 
 	var innerHits []struct {
@@ -95,11 +98,17 @@ func (es *elasticsearch) CountOverTime(filter *events.Filter, interval string) (
 		Index: resolveIndexNames(es.opts.indexPrefix, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
-	if err != nil || resp == nil {
+	if err != nil {
 		return nil, err
 	}
+	if resp == nil || resp.Aggregations == nil {
+		return &events.Histogram{}, nil
+	}
 
-	raw := resp.Aggregations[aggName]
+	raw, ok := resp.Aggregations[aggName]
+	if !ok || len(raw) == 0 {
+		return &events.Histogram{}, nil
+	}
 	var agg struct {
 		Buckets []struct {
 			KeyAsString string `json:"key_as_string"`
@@ -142,11 +151,17 @@ func (es *elasticsearch) StatisticsOnResources(filter *events.Filter) (*events.S
 		Index: resolveIndexNames(es.opts.indexPrefix, filter.StartTime, filter.EndTime),
 		Body:  bytes.NewBuffer(body),
 	})
-	if err != nil || resp == nil {
+	if err != nil {
 		return nil, err
 	}
+	if resp == nil || resp.Aggregations == nil {
+		return &events.Statistics{}, nil
+	}
 
-	raw := resp.Aggregations[aggName]
+	raw, ok := resp.Aggregations[aggName]
+	if !ok || len(raw) == 0 {
+		return &events.Statistics{}, nil
+	}
 	var agg struct {
 		Value int64 `json:"value"`
 	}
