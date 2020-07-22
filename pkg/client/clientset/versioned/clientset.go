@@ -34,6 +34,7 @@ import (
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/tenant/v1alpha2"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/client/clientset/versioned/typed/types/v1beta1"
 )
 
 type Interface interface {
@@ -48,6 +49,7 @@ type Interface interface {
 	StorageV1alpha1() storagev1alpha1.StorageV1alpha1Interface
 	TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface
 	TenantV1alpha2() tenantv1alpha2.TenantV1alpha2Interface
+	TypesV1beta1() typesv1beta1.TypesV1beta1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -64,6 +66,7 @@ type Clientset struct {
 	storageV1alpha1     *storagev1alpha1.StorageV1alpha1Client
 	tenantV1alpha1      *tenantv1alpha1.TenantV1alpha1Client
 	tenantV1alpha2      *tenantv1alpha2.TenantV1alpha2Client
+	typesV1beta1        *typesv1beta1.TypesV1beta1Client
 }
 
 // AuditingV1alpha1 retrieves the AuditingV1alpha1Client
@@ -114,6 +117,11 @@ func (c *Clientset) TenantV1alpha1() tenantv1alpha1.TenantV1alpha1Interface {
 // TenantV1alpha2 retrieves the TenantV1alpha2Client
 func (c *Clientset) TenantV1alpha2() tenantv1alpha2.TenantV1alpha2Interface {
 	return c.tenantV1alpha2
+}
+
+// TypesV1beta1 retrieves the TypesV1beta1Client
+func (c *Clientset) TypesV1beta1() typesv1beta1.TypesV1beta1Interface {
+	return c.typesV1beta1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -177,6 +185,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.typesV1beta1, err = typesv1beta1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -199,6 +211,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 	cs.storageV1alpha1 = storagev1alpha1.NewForConfigOrDie(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.NewForConfigOrDie(c)
 	cs.tenantV1alpha2 = tenantv1alpha2.NewForConfigOrDie(c)
+	cs.typesV1beta1 = typesv1beta1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -217,6 +230,7 @@ func New(c rest.Interface) *Clientset {
 	cs.storageV1alpha1 = storagev1alpha1.New(c)
 	cs.tenantV1alpha1 = tenantv1alpha1.New(c)
 	cs.tenantV1alpha2 = tenantv1alpha2.New(c)
+	cs.typesV1beta1 = typesv1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

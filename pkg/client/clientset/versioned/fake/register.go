@@ -34,6 +34,7 @@ import (
 	storagev1alpha1 "kubesphere.io/kubesphere/pkg/apis/storage/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 )
 
 var scheme = runtime.NewScheme()
@@ -50,6 +51,7 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	storagev1alpha1.AddToScheme,
 	tenantv1alpha1.AddToScheme,
 	tenantv1alpha2.AddToScheme,
+	typesv1beta1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

@@ -27,6 +27,7 @@ import (
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	typesv1beta1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -105,6 +106,18 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces for the current user").
 		Returns(http.StatusOK, api.StatusOK, []corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/federatednamespaces").
+		To(handler.ListFederatedNamespaces).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("List the federated namespaces for the current user").
+		Returns(http.StatusOK, api.StatusOK, []typesv1beta1.FederatedNamespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}/federatednamespaces").
+		To(handler.ListFederatedNamespaces).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Doc("List the federated namespaces of the specified workspace for the current user").
+		Returns(http.StatusOK, api.StatusOK, []typesv1beta1.FederatedNamespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
 		To(handler.ListNamespaces).

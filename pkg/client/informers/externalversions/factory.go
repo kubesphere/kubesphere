@@ -37,6 +37,7 @@ import (
 	servicemesh "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh"
 	storage "kubesphere.io/kubesphere/pkg/client/informers/externalversions/storage"
 	tenant "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant"
+	types "kubesphere.io/kubesphere/pkg/client/informers/externalversions/types"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -187,6 +188,7 @@ type SharedInformerFactory interface {
 	Servicemesh() servicemesh.Interface
 	Storage() storage.Interface
 	Tenant() tenant.Interface
+	Types() types.Interface
 }
 
 func (f *sharedInformerFactory) Auditing() auditing.Interface {
@@ -219,4 +221,8 @@ func (f *sharedInformerFactory) Storage() storage.Interface {
 
 func (f *sharedInformerFactory) Tenant() tenant.Interface {
 	return tenant.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Types() types.Interface {
+	return types.New(f, f.namespace, f.tweakListOptions)
 }
