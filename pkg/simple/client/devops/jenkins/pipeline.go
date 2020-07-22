@@ -150,6 +150,12 @@ func (p *Pipeline) ListPipelineRuns() (*devops.PipelineRunList, error) {
 		klog.Error(err)
 		return nil, err
 	}
+	total, err := p.searchPipelineRunsCount()
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	pipelineRunList.Total = total
 	return &pipelineRunList, err
 }
 
@@ -160,7 +166,7 @@ func (p *Pipeline) searchPipelineRunsCount() (int, error) {
 	query.Set("depth", "-1")
 	//formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
 
-	res, err := p.Jenkins.SendPureRequest(ListPipelineRunUrl+query.Encode(), p.HttpParameters)
+	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 		return 0, err
