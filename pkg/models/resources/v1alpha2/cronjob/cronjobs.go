@@ -106,12 +106,16 @@ func (c *cronJobSearcher) Search(namespace string, conditions *params.Conditions
 		}
 	}
 	sort.Slice(result, func(i, j int) bool {
-		return c.compare(result[i], result[j], orderBy) && !reverse
+		if reverse {
+			return !c.compare(result[i], result[j], orderBy)
+		} else {
+			return c.compare(result[i], result[j], orderBy)
+		}
 	})
 
 	r := make([]interface{}, 0)
-	for _, i := range result {
-		r = append(r, i)
+	for i := range result {
+		r = append(r, result[i])
 	}
 	return r, nil
 }

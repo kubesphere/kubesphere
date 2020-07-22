@@ -90,7 +90,6 @@ func (d *deploymentsGetter) filter(object runtime.Object, filter query.Filter) b
 	}
 
 	switch filter.Field {
-
 	case query.FieldStatus:
 		return strings.Compare(deploymentStatus(deployment.Status), string(filter.Value)) == 0
 	default:
