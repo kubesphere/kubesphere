@@ -853,6 +853,10 @@ func (h *openpitrixHandler) ListRepos(req *restful.Request, resp *restful.Respon
 	reverse := params.GetBoolValueWithDefault(req, params.ReverseParam, false)
 	conditions, err := params.ParseConditions(req)
 
+	if req.PathParameter("workspace") != "" {
+		conditions.Match[openpitrix.WorkspaceLabel] = req.PathParameter("workspace")
+	}
+
 	if err != nil {
 		klog.V(4).Infoln(err)
 		api.HandleBadRequest(resp, nil, err)
