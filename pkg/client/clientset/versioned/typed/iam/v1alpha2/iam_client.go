@@ -28,6 +28,7 @@ type IamV1alpha2Interface interface {
 	RESTClient() rest.Interface
 	GlobalRolesGetter
 	GlobalRoleBindingsGetter
+	LoginRecordsGetter
 	RoleBasesGetter
 	UsersGetter
 	WorkspaceRolesGetter
@@ -45,6 +46,10 @@ func (c *IamV1alpha2Client) GlobalRoles() GlobalRoleInterface {
 
 func (c *IamV1alpha2Client) GlobalRoleBindings() GlobalRoleBindingInterface {
 	return newGlobalRoleBindings(c)
+}
+
+func (c *IamV1alpha2Client) LoginRecords() LoginRecordInterface {
+	return newLoginRecords(c)
 }
 
 func (c *IamV1alpha2Client) RoleBases() RoleBaseInterface {

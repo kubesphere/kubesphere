@@ -5,6 +5,8 @@ import (
 	"github.com/emicklei/go-restful"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -530,8 +532,7 @@ func (h *iamHandler) ModifyPassword(request *restful.Request, response *restful.
 	operator, ok := apirequest.UserFrom(request.Request.Context())
 	// change password by self
 	if ok && operator.GetName() == username {
-		_, err := h.im.Authenticate(username, passwordReset.CurrentPassword)
-		if err != nil {
+		if err = h.im.PasswordVerify(username, passwordReset.CurrentPassword); err != nil {
 			if err == im.AuthFailedIncorrectPassword {
 				err = errors.NewBadRequest("incorrect old password")
 				klog.Warning(err)
@@ -1207,6 +1208,30 @@ func (h *iamHandler) updateGlobalRoleBinding(operator user.Info, user *iamv1alph
 		return err
 	}
 	return nil
+}
+
+func (h *iamHandler) ListUserLoginRecords(request *restful.Request, response *restful.Response) {
+	username := request.PathParameter("user")
+	queryParam := query.ParseQueryParameter(request)
+	selector, _ := labels.Parse(queryParam.LabelSelector)
+	if selector == nil {
+		selector = labels.NewSelector()
+	}
+	requirement, err := labels.NewRequirement(iamv1alpha2.UserReferenceLabel, selection.Equals, []string{username})
+	if err != nil {
+		klog.Error(err)
+		handleError(request, response, err)
+		return
+	}
+	selector.Add(*requirement)
+	queryParam.LabelSelector = selector.String()
+	result, err := h.im.ListLoginRecords(queryParam)
+	if err != nil {
+		klog.Error(err)
+		handleError(request, response, err)
+		return
+	}
+	response.WriteEntity(result)
 }
 
 func handleError(request *restful.Request, response *restful.Response, err error) {

@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	"kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -94,11 +95,12 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 		}
 	}
 
-	c := NewController(f.k8sclient, f.ksclient, nil,
+	c := NewUserController(f.k8sclient, f.ksclient, nil,
 		ksinformers.Iam().V1alpha2().Users(),
 		nil, nil,
+		ksinformers.Iam().V1alpha2().LoginRecords(),
 		k8sinformers.Core().V1().ConfigMaps(),
-		ldapClient, false)
+		ldapClient, options.NewAuthenticateOptions(), false)
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 
@@ -187,8 +189,11 @@ func checkAction(expected, actual core.Action, t *testing.T) {
 		e, _ := expected.(core.UpdateActionImpl)
 		expObject := e.GetObject()
 		object := a.GetObject()
-
-		if !reflect.DeepEqual(expObject, object) {
+		expUser := expObject.(*iamv1alpha2.User)
+		user := object.(*iamv1alpha2.User)
+		expUser.Status.LastTransitionTime = nil
+		user.Status.LastTransitionTime = nil
+		if !reflect.DeepEqual(expUser, user) {
 			t.Errorf("Action %s %s has wrong object\nDiff:\n %s",
 				a.GetVerb(), a.GetResource().Resource, diff.ObjectGoPrintSideBySide(expObject, object))
 		}

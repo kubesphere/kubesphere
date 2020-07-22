@@ -21,68 +21,50 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/server/errors"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"time"
 )
 
-const DefaultIssuerName = "kubesphere"
-
-var (
-	errInvalidToken = errors.New("invalid token")
-	errTokenExpired = errors.New("expired token")
+const (
+	DefaultIssuerName = "kubesphere"
 )
 
 type Claims struct {
-	Username string `json:"username"`
-	UID      string `json:"uid"`
+	Username  string    `json:"username"`
+	UID       string    `json:"uid"`
+	TokenType TokenType `json:"token_type"`
 	// Currently, we are not using any field in jwt.StandardClaims
 	jwt.StandardClaims
 }
 
 type jwtTokenIssuer struct {
-	name    string
-	options *authoptions.AuthenticationOptions
-	cache   cache.Interface
-	keyFunc jwt.Keyfunc
+	name   string
+	secret []byte
+	// Maximum time difference
+	maximumClockSkew time.Duration
 }
 
-func (s *jwtTokenIssuer) Verify(tokenString string) (User, error) {
-	if len(tokenString) == 0 {
-		return nil, errInvalidToken
-	}
-
+func (s *jwtTokenIssuer) Verify(tokenString string) (user.Info, TokenType, error) {
 	clm := &Claims{}
+	// verify token signature and expiration time
 	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
 	if err != nil {
-		return nil, err
+		klog.Error(err)
+		return nil, "", err
 	}
-
-	// accessTokenMaxAge = 0 or token without expiration time means that the token will not expire
-	// do not validate token cache
-	if s.options.OAuthOptions.AccessTokenMaxAge > 0 && clm.ExpiresAt > 0 {
-		_, err = s.cache.Get(tokenCacheKey(tokenString))
-
-		if err != nil {
-			if err == cache.ErrNoSuchKey {
-				return nil, errTokenExpired
-			}
-			return nil, err
-		}
-	}
-
-	return &user.DefaultInfo{Name: clm.Username, UID: clm.UID}, nil
+	return &user.DefaultInfo{Name: clm.Username, UID: clm.UID}, clm.TokenType, nil
 }
 
-func (s *jwtTokenIssuer) IssueTo(user User, expiresIn time.Duration) (string, error) {
+func (s *jwtTokenIssuer) IssueTo(user user.Info, tokenType TokenType, expiresIn time.Duration) (string, error) {
+	issueAt := time.Now().Unix() - int64(s.maximumClockSkew.Seconds())
+	notBefore := issueAt
 	clm := &Claims{
-		Username: user.GetName(),
-		UID:      user.GetUID(),
+		Username:  user.GetName(),
+		UID:       user.GetUID(),
+		TokenType: tokenType,
 		StandardClaims: jwt.StandardClaims{
-			IssuedAt:  time.Now().Unix(),
+			IssuedAt:  issueAt,
 			Issuer:    s.name,
-			NotBefore: time.Now().Unix(),
+			NotBefore: notBefore,
 		},
 	}
 
@@ -92,48 +74,28 @@ func (s *jwtTokenIssuer) IssueTo(user User, expiresIn time.Duration) (string, er
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, clm)
 
-	tokenString, err := token.SignedString([]byte(s.options.JwtSecret))
+	tokenString, err := token.SignedString(s.secret)
 
 	if err != nil {
 		klog.Error(err)
 		return "", err
 	}
 
-	// 0 means no expiration.
-	// validate token cache
-	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
-		err = s.cache.Set(tokenCacheKey(tokenString), tokenString, s.options.OAuthOptions.AccessTokenMaxAge)
-		if err != nil {
-			klog.Error(err)
-			return "", err
-		}
-	}
-
 	return tokenString, nil
 }
 
-func (s *jwtTokenIssuer) Revoke(token string) error {
-	if s.options.OAuthOptions.AccessTokenMaxAge > 0 {
-		return s.cache.Del(tokenCacheKey(token))
+func (s *jwtTokenIssuer) keyFunc(token *jwt.Token) (i interface{}, err error) {
+	if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+		return s.secret, nil
+	} else {
+		return nil, fmt.Errorf("expect token signed with HMAC but got %v", token.Header["alg"])
 	}
-	return nil
 }
 
-func NewJwtTokenIssuer(issuerName string, options *authoptions.AuthenticationOptions, cache cache.Interface) Issuer {
+func NewTokenIssuer(secret string, maximumClockSkew time.Duration) Issuer {
 	return &jwtTokenIssuer{
-		name:    issuerName,
-		options: options,
-		cache:   cache,
-		keyFunc: func(token *jwt.Token) (i interface{}, err error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-				return []byte(options.JwtSecret), nil
-			} else {
-				return nil, fmt.Errorf("expect token signed with HMAC but got %v", token.Header["alg"])
-			}
-		},
+		name:             DefaultIssuerName,
+		secret:           []byte(secret),
+		maximumClockSkew: maximumClockSkew,
 	}
-}
-
-func tokenCacheKey(token string) string {
-	return fmt.Sprintf("kubesphere:tokens:%s", token)
 }

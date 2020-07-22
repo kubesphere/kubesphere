@@ -37,7 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
@@ -78,10 +77,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
-	"net"
+	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
 	rt "runtime"
-	"strings"
 	"time"
 )
 
@@ -187,8 +185,16 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
 		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		s.Config.AuthenticationOptions))
+
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
-		token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient),
+		im.NewTokenOperator(
+			s.CacheClient,
+			s.Config.AuthenticationOptions),
+		im.NewPasswordAuthenticator(
+			s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions),
+		im.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
@@ -283,11 +289,12 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	handler = filters.WithAuthorization(handler, authorizers)
 
+	loginRecorder := im.NewLoginRecorder(s.KubernetesClient.KubeSphere())
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions))),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
-	handler = filters.WithAuthentication(handler, authn)
+		basictoken.New(basic.NewBasicAuthenticator(im.NewPasswordAuthenticator(s.KubernetesClient.KubeSphere(), s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(), s.Config.AuthenticationOptions))),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(s.CacheClient, s.Config.AuthenticationOptions))))
+	handler = filters.WithAuthentication(handler, authn, loginRecorder)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
 }
@@ -373,6 +380,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 	}
@@ -514,7 +522,7 @@ func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *
 	}
 
 	logWithVerbose.Infof("%s - \"%s %s %s\" %d %d %dms",
-		getRequestIP(req),
+		utilnet.GetRequestIP(req.Request),
 		req.Request.Method,
 		req.Request.URL,
 		req.Request.Proto,
@@ -522,25 +530,6 @@ func logRequestAndResponse(req *restful.Request, resp *restful.Response, chain *
 		resp.ContentLength(),
 		time.Since(start)/time.Millisecond,
 	)
-}
-
-func getRequestIP(req *restful.Request) string {
-	address := strings.Trim(req.Request.Header.Get("X-Real-Ip"), " ")
-	if address != "" {
-		return address
-	}
-
-	address = strings.Trim(req.Request.Header.Get("X-Forwarded-For"), " ")
-	if address != "" {
-		return address
-	}
-
-	address, _, err := net.SplitHostPort(req.Request.RemoteAddr)
-	if err != nil {
-		return req.Request.RemoteAddr
-	}
-
-	return address
 }
 
 type errorResponder struct{}

@@ -27,24 +27,31 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
 )
 
 // WithAuthentication installs authentication handler to handler chain.
-func WithAuthentication(handler http.Handler, auth authenticator.Request) http.Handler {
+func WithAuthentication(handler http.Handler, auth authenticator.Request, loginRecorder im.LoginRecorder) http.Handler {
 	if auth == nil {
 		klog.Warningf("Authentication is disabled")
 		return handler
 	}
-
 	s := serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-
 		resp, ok, err := auth.AuthenticateRequest(req)
 		if err != nil || !ok {
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to error: %v", err)
+				if err == im.AuthFailedIncorrectPassword { // log failed login attempts
+					go func() {
+						if loginRecorder != nil && resp != nil {
+							err = loginRecorder.RecordLogin(resp.User.GetName(), err, req)
+							klog.Errorf("Failed to record unsuccessful login attempt for user %s", resp.User.GetName())
+						}
+					}()
+				}
 			}
 
 			ctx := req.Context()
@@ -55,7 +62,7 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request) http.H
 			}
 
 			gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized:%s", err)), s, gv, w, req)
+			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), s, gv, w, req)
 			return
 		}
 
