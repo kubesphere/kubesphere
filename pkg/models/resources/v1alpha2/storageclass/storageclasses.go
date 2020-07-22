@@ -90,13 +90,10 @@ func (s *storageClassesSearcher) Search(namespace string, conditions *params.Con
 	r := make([]interface{}, 0)
 	for _, i := range result {
 		count := s.countPersistentVolumeClaims(i.Name)
-		isSnapshotAllow := s.isSnapshotAllowed(i.Provisioner)
 		if i.Annotations == nil {
 			i.Annotations = make(map[string]string)
-			i.Annotations["kubesphere.io/pvc-count"] = string(count)
-			i.Annotations["kubesphere.io/allow-snapshot"] = strconv.FormatBool(isSnapshotAllow)
 		}
-
+		i.Annotations["kubesphere.io/pvc-count"] = strconv.Itoa(count)
 		r = append(r, i)
 	}
 	return r, nil
@@ -116,21 +113,4 @@ func (s *storageClassesSearcher) countPersistentVolumeClaims(name string) int {
 	}
 
 	return count
-}
-
-func (s *storageClassesSearcher) isSnapshotAllowed(provisioner string) bool {
-	if len(provisioner) == 0 {
-		return false
-	}
-
-	volumeSnapshotClasses, err := s.snapshotInformers.Snapshot().V1beta1().VolumeSnapshotClasses().Lister().List(labels.Everything())
-	if err != nil {
-		return false
-	}
-	for _, volumeSnapshotClass := range volumeSnapshotClasses {
-		if volumeSnapshotClass.Driver == provisioner {
-			return true
-		}
-	}
-	return false
 }
