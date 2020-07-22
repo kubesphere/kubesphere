@@ -31,6 +31,7 @@ import (
 // FakeFederatedNamespaces implements FederatedNamespaceInterface
 type FakeFederatedNamespaces struct {
 	Fake *FakeTypesV1beta1
+	ns   string
 }
 
 var federatednamespacesResource = schema.GroupVersionResource{Group: "types.kubefed.io", Version: "v1beta1", Resource: "federatednamespaces"}
@@ -40,7 +41,8 @@ var federatednamespacesKind = schema.GroupVersionKind{Group: "types.kubefed.io",
 // Get takes name of the federatedNamespace, and returns the corresponding federatedNamespace object, and an error if there is any.
 func (c *FakeFederatedNamespaces) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(federatednamespacesResource, name), &v1beta1.FederatedNamespace{})
+		Invokes(testing.NewGetAction(federatednamespacesResource, c.ns, name), &v1beta1.FederatedNamespace{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -50,7 +52,8 @@ func (c *FakeFederatedNamespaces) Get(name string, options v1.GetOptions) (resul
 // List takes label and field selectors, and returns the list of FederatedNamespaces that match those selectors.
 func (c *FakeFederatedNamespaces) List(opts v1.ListOptions) (result *v1beta1.FederatedNamespaceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(federatednamespacesResource, federatednamespacesKind, opts), &v1beta1.FederatedNamespaceList{})
+		Invokes(testing.NewListAction(federatednamespacesResource, federatednamespacesKind, c.ns, opts), &v1beta1.FederatedNamespaceList{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -71,13 +74,15 @@ func (c *FakeFederatedNamespaces) List(opts v1.ListOptions) (result *v1beta1.Fed
 // Watch returns a watch.Interface that watches the requested federatedNamespaces.
 func (c *FakeFederatedNamespaces) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(federatednamespacesResource, opts))
+		InvokesWatch(testing.NewWatchAction(federatednamespacesResource, c.ns, opts))
+
 }
 
 // Create takes the representation of a federatedNamespace and creates it.  Returns the server's representation of the federatedNamespace, and an error, if there is any.
 func (c *FakeFederatedNamespaces) Create(federatedNamespace *v1beta1.FederatedNamespace) (result *v1beta1.FederatedNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(federatednamespacesResource, federatedNamespace), &v1beta1.FederatedNamespace{})
+		Invokes(testing.NewCreateAction(federatednamespacesResource, c.ns, federatedNamespace), &v1beta1.FederatedNamespace{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -87,7 +92,8 @@ func (c *FakeFederatedNamespaces) Create(federatedNamespace *v1beta1.FederatedNa
 // Update takes the representation of a federatedNamespace and updates it. Returns the server's representation of the federatedNamespace, and an error, if there is any.
 func (c *FakeFederatedNamespaces) Update(federatedNamespace *v1beta1.FederatedNamespace) (result *v1beta1.FederatedNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(federatednamespacesResource, federatedNamespace), &v1beta1.FederatedNamespace{})
+		Invokes(testing.NewUpdateAction(federatednamespacesResource, c.ns, federatedNamespace), &v1beta1.FederatedNamespace{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -97,13 +103,14 @@ func (c *FakeFederatedNamespaces) Update(federatedNamespace *v1beta1.FederatedNa
 // Delete takes name of the federatedNamespace and deletes it. Returns an error if one occurs.
 func (c *FakeFederatedNamespaces) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(federatednamespacesResource, name), &v1beta1.FederatedNamespace{})
+		Invokes(testing.NewDeleteAction(federatednamespacesResource, c.ns, name), &v1beta1.FederatedNamespace{})
+
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeFederatedNamespaces) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(federatednamespacesResource, listOptions)
+	action := testing.NewDeleteCollectionAction(federatednamespacesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedNamespaceList{})
 	return err
@@ -112,7 +119,8 @@ func (c *FakeFederatedNamespaces) DeleteCollection(options *v1.DeleteOptions, li
 // Patch applies the patch and returns the patched federatedNamespace.
 func (c *FakeFederatedNamespaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedNamespace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(federatednamespacesResource, name, pt, data, subresources...), &v1beta1.FederatedNamespace{})
+		Invokes(testing.NewPatchSubresourceAction(federatednamespacesResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedNamespace{})
+
 	if obj == nil {
 		return nil, err
 	}

@@ -222,8 +222,10 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 
 	for _, roleBinding := range roleBindings {
 		namespace, err := t.resourceGetter.Get(typesv1beta1.ResourcesPluralFedNamespace, roleBinding.Namespace, roleBinding.Namespace)
-
 		if err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
 			klog.Error(err)
 			return nil, err
 		}
@@ -239,7 +241,7 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 	}
 
 	result := resources.DefaultList(namespaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
-		return resources.DefaultObjectMetaCompare(left.(*corev1.Namespace).ObjectMeta, right.(*corev1.Namespace).ObjectMeta, field)
+		return resources.DefaultObjectMetaCompare(left.(*typesv1beta1.FederatedNamespace).ObjectMeta, right.(*typesv1beta1.FederatedNamespace).ObjectMeta, field)
 	}, func(object runtime.Object, filter query.Filter) bool {
 		namespace := object.(*typesv1beta1.FederatedNamespace).ObjectMeta
 		if workspace != "" {

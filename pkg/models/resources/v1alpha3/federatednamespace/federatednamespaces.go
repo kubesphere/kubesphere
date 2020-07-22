@@ -33,8 +33,8 @@ func New(informers informers.SharedInformerFactory) v1alpha3.Interface {
 	return &federatedNamespacesGetter{informers: informers}
 }
 
-func (n federatedNamespacesGetter) Get(_, name string) (runtime.Object, error) {
-	return n.informers.Types().V1beta1().FederatedNamespaces().Lister().Get(name)
+func (n federatedNamespacesGetter) Get(namespace, name string) (runtime.Object, error) {
+	return n.informers.Types().V1beta1().FederatedNamespaces().Lister().FederatedNamespaces(namespace).Get(name)
 }
 
 func (n federatedNamespacesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {

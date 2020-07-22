@@ -29,8 +29,8 @@ import (
 type FederatedNamespaceLister interface {
 	// List lists all FederatedNamespaces in the indexer.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedNamespace, err error)
-	// Get retrieves the FederatedNamespace from the index for a given name.
-	Get(name string) (*v1beta1.FederatedNamespace, error)
+	// FederatedNamespaces returns an object that can list and get FederatedNamespaces.
+	FederatedNamespaces(namespace string) FederatedNamespaceNamespaceLister
 	FederatedNamespaceListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *federatedNamespaceLister) List(selector labels.Selector) (ret []*v1beta
 	return ret, err
 }
 
-// Get retrieves the FederatedNamespace from the index for a given name.
-func (s *federatedNamespaceLister) Get(name string) (*v1beta1.FederatedNamespace, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// FederatedNamespaces returns an object that can list and get FederatedNamespaces.
+func (s *federatedNamespaceLister) FederatedNamespaces(namespace string) FederatedNamespaceNamespaceLister {
+	return federatedNamespaceNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// FederatedNamespaceNamespaceLister helps list and get FederatedNamespaces.
+type FederatedNamespaceNamespaceLister interface {
+	// List lists all FederatedNamespaces in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1beta1.FederatedNamespace, err error)
+	// Get retrieves the FederatedNamespace from the indexer for a given namespace and name.
+	Get(name string) (*v1beta1.FederatedNamespace, error)
+	FederatedNamespaceNamespaceListerExpansion
+}
+
+// federatedNamespaceNamespaceLister implements the FederatedNamespaceNamespaceLister
+// interface.
+type federatedNamespaceNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all FederatedNamespaces in the indexer for a given namespace.
+func (s federatedNamespaceNamespaceLister) List(selector labels.Selector) (ret []*v1beta1.FederatedNamespace, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1beta1.FederatedNamespace))
+	})
+	return ret, err
+}
+
+// Get retrieves the FederatedNamespace from the indexer for a given namespace and name.
+func (s federatedNamespaceNamespaceLister) Get(name string) (*v1beta1.FederatedNamespace, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

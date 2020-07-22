@@ -21,3 +21,7 @@ package v1beta1
 // FederatedNamespaceListerExpansion allows custom methods to be added to
 // FederatedNamespaceLister.
 type FederatedNamespaceListerExpansion interface{}
+
+// FederatedNamespaceNamespaceListerExpansion allows custom methods to be added to
+// FederatedNamespaceNamespaceLister.
+type FederatedNamespaceNamespaceListerExpansion interface{}

@@ -56,7 +56,6 @@ type ClusterOverride struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
 type FederatedNamespace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -76,7 +75,6 @@ type NamespaceTemplate struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
 
 // FederatedNamespaceList contains a list of federatednamespacelists
 type FederatedNamespaceList struct {
