@@ -44,13 +44,14 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, loginR
 		if err != nil || !ok {
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to error: %v", err)
-				if err == im.AuthFailedIncorrectPassword { // log failed login attempts
-					go func() {
-						if loginRecorder != nil && resp != nil {
-							err = loginRecorder.RecordLogin(resp.User.GetName(), err, req)
-							klog.Errorf("Failed to record unsuccessful login attempt for user %s", resp.User.GetName())
+				if err.Error() == im.AuthFailedIncorrectPassword.Error() { // log failed login attempts
+					username, _, _ := req.BasicAuth()
+					go func(user string) {
+						if loginRecorder != nil && len(user) != 0 {
+							err = loginRecorder.RecordLogin(user, err, req)
+							klog.Errorf("Failed to record unsuccessful login attempt for user %s", user)
 						}
-					}()
+					}(username)
 				}
 			}
 
