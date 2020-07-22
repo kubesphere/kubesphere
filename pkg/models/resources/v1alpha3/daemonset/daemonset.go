@@ -23,6 +23,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"strings"
+)
+
+const (
+	statusStopped  = "stopped"
+	statusRunning  = "running"
+	statusUpdating = "updating"
 )
 
 type daemonSetGetter struct {
@@ -72,5 +79,20 @@ func (d *daemonSetGetter) filter(object runtime.Object, filter query.Filter) boo
 	if !ok {
 		return false
 	}
-	return v1alpha3.DefaultObjectMetaFilter(daemonSet.ObjectMeta, filter)
+	switch filter.Field {
+	case query.FieldStatus:
+		return strings.Compare(daemonsetStatus(&daemonSet.Status), string(filter.Value)) == 0
+	default:
+		return v1alpha3.DefaultObjectMetaFilter(daemonSet.ObjectMeta, filter)
+	}
+}
+
+func daemonsetStatus(status *appsv1.DaemonSetStatus) string {
+	if status.DesiredNumberScheduled == 0 && status.NumberReady == 0 {
+		return statusStopped
+	} else if status.DesiredNumberScheduled == status.NumberReady {
+		return statusRunning
+	} else {
+		return statusUpdating
+	}
 }

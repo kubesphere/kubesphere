@@ -140,8 +140,11 @@ func FuzzyMatch(m map[string]string, key, value string) bool {
 func ObjectMetaCompare(left, right metav1.ObjectMeta, compareField string) bool {
 	switch compareField {
 	case CreateTime:
-		if left.CreationTimestamp.Equal(&right.CreationTimestamp) {
-			return strings.Compare(left.Name, right.Name) <= 0
+		if left.CreationTimestamp.Time.Equal(right.CreationTimestamp.Time) {
+			if left.Namespace == right.Namespace {
+				return strings.Compare(left.Name, right.Name) < 0
+			}
+			return strings.Compare(left.Namespace, right.Namespace) < 0
 		}
 		return left.CreationTimestamp.Time.Before(right.CreationTimestamp.Time)
 	case Name:
