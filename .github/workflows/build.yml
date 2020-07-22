@@ -50,7 +50,7 @@ jobs:
           file: ./coverage.txt
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
       - name: Get branch name
         id: extract_branch
