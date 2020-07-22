@@ -79,6 +79,7 @@ func NewControllerManagerCommand() *cobra.Command {
 			}
 
 			if err = Run(s, signals.SetupSignalHandler()); err != nil {
+				klog.Error(err)
 				os.Exit(1)
 			}
 		},
