@@ -51,7 +51,7 @@ func newResourceHandler(k8sClient kubernetes.Interface, factory informers.Inform
 		kubeconfigOperator:  kubeconfig.NewReadOnlyOperator(factory.KubernetesSharedInformerFactory().Core().V1().ConfigMaps(), masterURL),
 		kubectlOperator: kubectl.NewOperator(nil, factory.KubernetesSharedInformerFactory().Apps().V1().Deployments(),
 			factory.KubernetesSharedInformerFactory().Core().V1().Pods(),
-			factory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users()),
+			factory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users(), ""),
 	}
 }
 

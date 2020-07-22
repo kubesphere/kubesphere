@@ -53,6 +53,8 @@ type Controller struct {
 	clusterRoleBindingLister   rbacv1listers.ClusterRoleBindingLister
 	clusterRoleBindingSynced   cache.InformerSynced
 	userSynced                 cache.InformerSynced
+	deploymentSynced           cache.InformerSynced
+	podSynced                  cache.InformerSynced
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -65,7 +67,9 @@ type Controller struct {
 	kubectlOperator kubectl.Interface
 }
 
-func NewController(k8sClient kubernetes.Interface, clusterRoleBindingInformer rbacv1informers.ClusterRoleBindingInformer, deploymentInformer appsv1informers.DeploymentInformer, podInformer coreinfomers.PodInformer, userInformer iamv1alpha2informers.UserInformer) *Controller {
+func NewController(k8sClient kubernetes.Interface, clusterRoleBindingInformer rbacv1informers.ClusterRoleBindingInformer,
+	deploymentInformer appsv1informers.DeploymentInformer, podInformer coreinfomers.PodInformer,
+	userInformer iamv1alpha2informers.UserInformer, kubectlImage string) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -81,7 +85,9 @@ func NewController(k8sClient kubernetes.Interface, clusterRoleBindingInformer rb
 		clusterRoleBindingLister:   clusterRoleBindingInformer.Lister(),
 		clusterRoleBindingSynced:   clusterRoleBindingInformer.Informer().HasSynced,
 		userSynced:                 userInformer.Informer().HasSynced,
-		kubectlOperator:            kubectl.NewOperator(k8sClient, deploymentInformer, podInformer, userInformer),
+		deploymentSynced:           deploymentInformer.Informer().HasSynced,
+		podSynced:                  podInformer.Informer().HasSynced,
+		kubectlOperator:            kubectl.NewOperator(k8sClient, deploymentInformer, podInformer, userInformer, kubectlImage),
 		workqueue:                  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleBinding"),
 		recorder:                   recorder,
 	}
@@ -105,7 +111,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.clusterRoleBindingSynced, c.userSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.clusterRoleBindingSynced, c.userSynced, c.deploymentSynced, c.podSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 

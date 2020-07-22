@@ -65,6 +65,7 @@ func addControllers(
 	multiClusterEnabled bool,
 	networkPolicyEnabled bool,
 	serviceMeshEnabled bool,
+	kubectlImage string,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -219,7 +220,8 @@ func addControllers(
 		kubernetesInformer.Rbac().V1().ClusterRoleBindings(),
 		kubernetesInformer.Apps().V1().Deployments(),
 		kubernetesInformer.Core().V1().Pods(),
-		kubesphereInformer.Iam().V1alpha2().Users())
+		kubesphereInformer.Iam().V1alpha2().Users(),
+		kubectlImage)
 
 	globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
