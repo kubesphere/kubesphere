@@ -6,28 +6,30 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: users.iam.kubesphere.io
+  name: loginrecords.iam.kubesphere.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.email
-    name: Email
+  - JSONPath: .spec.type
+    name: Type
     type: string
-  - JSONPath: .status.state
-    name: Status
+  - JSONPath: .status.reason
+    name: Reason
     type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: iam.kubesphere.io
   names:
     categories:
     - iam
-    kind: User
-    listKind: UserList
-    plural: users
-    singular: user
+    kind: LoginRecord
+    listKind: LoginRecordList
+    plural: loginrecords
+    singular: loginrecord
   scope: Cluster
   subresources: {}
   validation:
     openAPIV3Schema:
-      description: User is the Schema for the users API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -40,43 +42,19 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
-          description: Standard object's metadata.
           type: object
         spec:
-          description: UserSpec defines the desired state of User
           properties:
-            description:
-              description: Description of the user.
-              type: string
-            displayName:
-              type: string
-            email:
-              description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
-              type: string
-            groups:
-              items:
-                type: string
-              type: array
-            lang:
-              description: The preferred written or spoken language for the user.
-              type: string
-            password:
-              description: password will be encrypted by mutating admission webhook
-              type: string
-          required:
-          - email
-          type: object
-        status:
-          description: UserStatus defines the observed state of User
-          properties:
-            lastTransitionTime:
-              format: date-time
-              type: string
             reason:
               type: string
-            state:
-              description: The user status
+            sourceIP:
               type: string
+            type:
+              type: string
+          required:
+          - reason
+          - sourceIP
+          - type
           type: object
       required:
       - spec

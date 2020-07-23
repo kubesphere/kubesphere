@@ -23,7 +23,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/api/auth"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
@@ -35,13 +34,13 @@ import (
 // Most authentication integrations place an authenticating proxy in front of this endpoint, or configure ks-apiserver
 // to validate credentials against a backing identity provider.
 // Requests to <ks-apiserver>/oauth/authorize can come from user-agents that cannot display interactive login pages, such as the CLI.
-func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, issuer token.Issuer, options *authoptions.AuthenticationOptions) error {
+func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tokenOperator im.TokenManagementInterface, authenticator im.PasswordAuthenticator, loginRecorder im.LoginRecordInterface, options *authoptions.AuthenticationOptions) error {
 	ws := &restful.WebService{}
 	ws.Path("/oauth").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	handler := newOAUTHHandler(im, issuer, options)
+	handler := newHandler(im, tokenOperator, authenticator, loginRecorder, options)
 
 	// Implement webhook authentication interface
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
@@ -49,7 +48,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, iss
 		Doc("TokenReview attempts to authenticate a token to a known user. Note: TokenReview requests may be "+
 			"cached by the webhook token authenticator plugin in the kube-apiserver.").
 		Reads(auth.TokenReview{}).
-		To(handler.TokenReviewHandler).
+		To(handler.TokenReview).
 		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
 
@@ -65,8 +64,15 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, iss
 		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
 			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
 			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
-		To(handler.AuthorizeHandler))
-	//ws.Route(ws.POST("/token"))
+		To(handler.Authorize))
+	// Resource Owner Password Credentials Grant
+	// https://tools.ietf.org/html/rfc6749#section-4.3
+	ws.Route(ws.POST("/token").
+		Consumes("application/x-www-form-urlencoded").
+		Doc("The resource owner password credentials grant type is suitable in\n" +
+			"cases where the resource owner has a trust relationship with the\n" +
+			"client, such as the device operating system or a highly privileged application.").
+		To(handler.Token))
 
 	// Authorization callback URL, where the end of the URL contains the identity provider name.
 	// The provider name is also used to build the callback URL.
@@ -85,7 +91,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, iss
 			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
 		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
 			"The exact value received from the client.").Required(true)).
-		To(handler.OAuthCallBackHandler).
+		To(handler.OAuthCallBack).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
 
 	c.Add(ws)

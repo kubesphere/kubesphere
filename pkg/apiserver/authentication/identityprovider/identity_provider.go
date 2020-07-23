@@ -16,33 +16,7 @@ limitations under the License.
 
 package identityprovider
 
-import (
-	"errors"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-)
-
-var (
-	ErrorIdentityProviderNotFound = errors.New("the identity provider was not found")
-	oauthProviders                = make(map[string]OAuthProvider, 0)
-)
-
-type OAuthProvider interface {
-	Type() string
-	Setup(options *oauth.DynamicOptions) (OAuthProvider, error)
-	IdentityExchange(code string) (Identity, error)
-}
 type Identity interface {
 	GetName() string
 	GetEmail() string
-}
-
-func GetOAuthProvider(providerType string, options *oauth.DynamicOptions) (OAuthProvider, error) {
-	if provider, ok := oauthProviders[providerType]; ok {
-		return provider.Setup(options)
-	}
-	return nil, ErrorIdentityProviderNotFound
-}
-
-func RegisterOAuthProviderCodec(provider OAuthProvider) {
-	oauthProviders[provider.Type()] = provider
 }

@@ -37,7 +37,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/anonymous"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/basictoken"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/request/bearertoken"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizer"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
@@ -187,8 +186,16 @@ func (s *APIServer) installKubeSphereAPIs() {
 	urlruntime.Must(iamapi.AddToContainer(s.container, imOperator,
 		am.NewOperator(s.InformerFactory, s.KubernetesClient.KubeSphere(), s.KubernetesClient.Kubernetes()),
 		s.Config.AuthenticationOptions))
+
 	urlruntime.Must(oauth.AddToContainer(s.container, imOperator,
-		token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient),
+		im.NewTokenOperator(
+			s.CacheClient,
+			s.Config.AuthenticationOptions),
+		im.NewPasswordAuthenticator(
+			s.KubernetesClient.KubeSphere(),
+			s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+			s.Config.AuthenticationOptions),
+		im.NewLoginRecoder(s.KubernetesClient.KubeSphere()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
@@ -278,15 +285,24 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 		excludedPaths := []string{"/oauth/*", "/kapis/config.kubesphere.io/*", "/kapis/version"}
 		pathAuthorizer, _ := path.NewAuthorizer(excludedPaths)
 		amOperator := am.NewReadOnlyOperator(s.InformerFactory)
-		authorizers = unionauthorizer.New(pathAuthorizer, proxy.NewAuthorizer(s.Config.MultiClusterOptions.Enable), authorizerfactory.NewRBACAuthorizer(amOperator))
+		authorizers = unionauthorizer.New(pathAuthorizer,
+			proxy.NewAuthorizer(s.Config.MultiClusterOptions.Enable),
+			authorizerfactory.NewRBACAuthorizer(amOperator))
 	}
 
 	handler = filters.WithAuthorization(handler, authorizers)
 
 	// authenticators are unordered
 	authn := unionauth.New(anonymous.NewAuthenticator(),
-		basictoken.New(basic.NewBasicAuthenticator(im.NewOperator(s.KubernetesClient.KubeSphere(), s.InformerFactory, s.Config.AuthenticationOptions))),
-		bearertoken.New(jwttoken.NewTokenAuthenticator(token.NewJwtTokenIssuer(token.DefaultIssuerName, s.Config.AuthenticationOptions, s.CacheClient))))
+		basictoken.New(basic.NewBasicAuthenticator(
+			im.NewLoginRecoder(s.KubernetesClient.KubeSphere()),
+			im.NewPasswordAuthenticator(
+				s.KubernetesClient.KubeSphere(),
+				s.InformerFactory.KubeSphereSharedInformerFactory().Iam().V1alpha2().Users().Lister(),
+				s.Config.AuthenticationOptions))),
+		bearertoken.New(jwttoken.NewTokenAuthenticator(im.NewTokenOperator(
+			s.CacheClient,
+			s.Config.AuthenticationOptions))))
 	handler = filters.WithAuthentication(handler, authn)
 	handler = filters.WithRequestInfo(handler, requestInfoResolver)
 	s.Server.Handler = handler
@@ -373,6 +389,7 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "globalrolebindings"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspaceroles"},
 		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "workspacerolebindings"},
+		{Group: "iam.kubesphere.io", Version: "v1alpha2", Resource: "loginrecords"},
 		{Group: "cluster.kubesphere.io", Version: "v1alpha1", Resource: "clusters"},
 		{Group: "devops.kubesphere.io", Version: "v1alpha3", Resource: "devopsprojects"},
 	}

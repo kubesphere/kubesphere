@@ -28,6 +28,7 @@ func TestDefaultAuthOptions(t *testing.T) {
 	expect := Client{
 		Name:                         "default",
 		RespondWithChallenges:        true,
+		Secret:                       "kubesphere",
 		RedirectURIs:                 []string{AllowAllRedirectURI},
 		GrantMethod:                  GrantHandlerAuto,
 		ScopeRestrictions:            []string{"full"},

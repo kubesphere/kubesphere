@@ -45,7 +45,8 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-	if _, err := mail.ParseAddress(user.Spec.Email); err != nil {
+
+	if _, err := mail.ParseAddress(user.Spec.Email); user.Spec.Email != "" && err != nil {
 		return admission.Errored(http.StatusBadRequest, fmt.Errorf("invalid email address:%s", user.Spec.Email))
 	}
 

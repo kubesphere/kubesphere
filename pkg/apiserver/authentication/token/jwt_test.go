@@ -19,89 +19,30 @@ package token
 import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
-	"kubesphere.io/kubesphere/pkg/simple/client/cache"
 	"testing"
 )
 
-func TestJwtTokenIssuer(t *testing.T) {
-	options := authoptions.NewAuthenticateOptions()
-	options.JwtSecret = "kubesphere"
-	issuer := NewJwtTokenIssuer(DefaultIssuerName, options, cache.NewSimpleCache())
-
-	testCases := []struct {
-		description string
-		name        string
-		uid         string
-		email       string
-	}{
-		{
-			name: "admin",
-			uid:  "b8be6edd-2c92-4535-9b2a-df6326474458",
-		},
-		{
-			name: "bar",
-			uid:  "b8be6edd-2c92-4535-9b2a-df6326474452",
-		},
-	}
-
-	for _, testCase := range testCases {
-		user := &user.DefaultInfo{
-			Name: testCase.name,
-			UID:  testCase.uid,
-		}
-
-		t.Run(testCase.description, func(t *testing.T) {
-			token, err := issuer.IssueTo(user, 0)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			got, err := issuer.Verify(token)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if diff := cmp.Diff(user, got); len(diff) != 0 {
-				t.Errorf("%T differ (-got, +expected), %s", user, diff)
-			}
-		})
-	}
-}
-
 func TestTokenVerifyWithoutCacheValidate(t *testing.T) {
-	options := authoptions.NewAuthenticateOptions()
 
-	// do not set token cache and disable token cache validate,
-	options.OAuthOptions = &oauth.Options{AccessTokenMaxAge: 0}
-	options.JwtSecret = "kubesphere"
-	issuer := NewJwtTokenIssuer(DefaultIssuerName, options, nil)
+	issuer := NewTokenIssuer("kubesphere", 0)
 
-	client, err := options.OAuthOptions.OAuthClient("default")
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	user := &user.DefaultInfo{
+	admin := &user.DefaultInfo{
 		Name: "admin",
-		UID:  "admin",
 	}
 
-	tokenString, err := issuer.IssueTo(user, *client.AccessTokenMaxAge)
+	tokenString, err := issuer.IssueTo(admin, AccessToken, 0)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := issuer.Verify(tokenString)
+	got, _, err := issuer.Verify(tokenString)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(got, user); diff != "" {
+	if diff := cmp.Diff(got, admin); diff != "" {
 		t.Error("token validate failed")
 	}
 }

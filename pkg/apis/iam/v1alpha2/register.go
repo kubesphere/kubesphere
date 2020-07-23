@@ -51,6 +51,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&User{},
 		&UserList{},
+		&LoginRecord{},
+		&LoginRecordList{},
 		&GlobalRole{},
 		&GlobalRoleList{},
 		&GlobalRoleBinding{},

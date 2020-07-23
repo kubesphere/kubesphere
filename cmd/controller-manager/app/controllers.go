@@ -22,6 +22,7 @@ import (
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
@@ -32,6 +33,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/controller/globalrole"
 	"kubesphere.io/kubesphere/pkg/controller/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/controller/job"
+	"kubesphere.io/kubesphere/pkg/controller/loginrecord"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
 	"kubesphere.io/kubesphere/pkg/controller/pipeline"
@@ -61,11 +63,11 @@ func addControllers(
 	devopsClient devops.Interface,
 	s3Client s3.Interface,
 	ldapClient ldapclient.Interface,
+	authenticationOptions *authoptions.AuthenticationOptions,
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
 	networkPolicyEnabled bool,
 	serviceMeshEnabled bool,
-	kubectlImage string,
 	stopCh <-chan struct{}) error {
 
 	kubernetesInformer := informerFactory.KubernetesSharedInformerFactory()
@@ -210,7 +212,15 @@ func addControllers(
 	userController := user.NewController(client.Kubernetes(), client.KubeSphere(), client.Config(),
 		kubesphereInformer.Iam().V1alpha2().Users(),
 		fedUserCache, fedUserCacheController,
-		kubernetesInformer.Core().V1().ConfigMaps(), ldapClient, multiClusterEnabled)
+		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		kubernetesInformer.Core().V1().ConfigMaps(),
+		ldapClient, authenticationOptions, multiClusterEnabled)
+
+	loginRecordController := loginrecord.NewController(
+		client.Kubernetes(),
+		client.KubeSphere(),
+		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
+		authenticationOptions)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(),
 		kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
@@ -221,7 +231,7 @@ func addControllers(
 		kubernetesInformer.Apps().V1().Deployments(),
 		kubernetesInformer.Core().V1().Pods(),
 		kubesphereInformer.Iam().V1alpha2().Users(),
-		kubectlImage)
+		authenticationOptions.KubectlImage)
 
 	globalRoleController := globalrole.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().GlobalRoles(), fedGlobalRoleCache, fedGlobalRoleCacheController)
@@ -282,6 +292,7 @@ func addControllers(
 		"storagecapability-controller":    storageCapabilityController,
 		"volumeexpansion-controller":      volumeExpansionController,
 		"user-controller":                 userController,
+		"loginrecord-controller":          loginRecordController,
 		"cluster-controller":              clusterController,
 		"nsnp-controller":                 nsnpController,
 		"csr-controller":                  csrController,

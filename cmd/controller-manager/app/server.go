@@ -184,9 +184,10 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		// TODO(jeff): refactor config with CRD
 		servicemeshEnabled := s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.IstioPilotHost) != 0
 		if err = addControllers(mgr, kubernetesClient, informerFactory,
-			devopsClient, s3Client, ldapClient, openpitrixClient,
+			devopsClient, s3Client, ldapClient,
+			s.AuthenticationOptions, openpitrixClient,
 			s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy,
-			servicemeshEnabled, s.AuthenticationOptions.KubectlImage, stopCh); err != nil {
+			servicemeshEnabled, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 

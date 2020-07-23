@@ -18,8 +18,11 @@ package basic
 
 import (
 	"context"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/klog"
+	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
@@ -29,27 +32,40 @@ import (
 // and group from user.AllUnauthenticated. This helps requests be passed along the handler chain,
 // because some resources are public accessible.
 type basicAuthenticator struct {
-	im im.IdentityManagementInterface
+	authenticator im.PasswordAuthenticator
+	loginRecorder im.LoginRecordInterface
 }
 
-func NewBasicAuthenticator(im im.IdentityManagementInterface) authenticator.Password {
+func NewBasicAuthenticator(loginRecorder im.LoginRecordInterface, authenticator im.PasswordAuthenticator) authenticator.Password {
 	return &basicAuthenticator{
-		im: im,
+		authenticator: authenticator,
+		loginRecorder: loginRecorder,
 	}
 }
 
 func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 
-	providedUser, err := t.im.Authenticate(username, password)
+	providedUser, err := t.authenticator.Authenticate(username, password)
 
 	if err != nil {
+		if err == im.AuthFailedIncorrectPassword {
+			klog.V(4).Info(err)
+			if err := t.loginRecorder.RecordLoginLogs(username, iamv1alpha2.LoginRecordSpec{
+				Type:   iamv1alpha2.LoginFailure,
+				Reason: err.Error(),
+			}); err != nil {
+				klog.Error(err)
+				err := apierrors.NewInternalError(err)
+				return nil, false, err
+			}
+		}
 		return nil, false, err
 	}
 
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
 			Name:   providedUser.GetName(),
-			UID:    string(providedUser.GetUID()),
+			UID:    providedUser.GetUID(),
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil

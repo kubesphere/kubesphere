@@ -93,6 +93,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoles().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("globalrolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().GlobalRoleBindings().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("loginrecords"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().LoginRecords().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("rolebases"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().RoleBases().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("users"):

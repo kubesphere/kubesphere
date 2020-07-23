@@ -38,6 +38,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	kubespherescheme "kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
@@ -61,16 +62,19 @@ const (
 )
 
 type Controller struct {
-	k8sClient         kubernetes.Interface
-	ksClient          kubesphere.Interface
-	kubeconfig        kubeconfig.Interface
-	userInformer      iamv1alpha2informers.UserInformer
-	userLister        iamv1alpha2listers.UserLister
-	userSynced        cache.InformerSynced
-	cmSynced          cache.InformerSynced
-	fedUserCache      cache.Store
-	fedUserController cache.Controller
-	ldapClient        ldapclient.Interface
+	k8sClient           kubernetes.Interface
+	ksClient            kubesphere.Interface
+	kubeconfig          kubeconfig.Interface
+	userInformer        iamv1alpha2informers.UserInformer
+	userLister          iamv1alpha2listers.UserLister
+	userSynced          cache.InformerSynced
+	loginRecordInformer iamv1alpha2informers.LoginRecordInformer
+	loginRecordLister   iamv1alpha2listers.LoginRecordLister
+	loginRecordSynced   cache.InformerSynced
+	cmSynced            cache.InformerSynced
+	fedUserCache        cache.Store
+	fedUserController   cache.Controller
+	ldapClient          ldapclient.Interface
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -79,15 +83,19 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
-	recorder            record.EventRecorder
-	multiClusterEnabled bool
+	recorder              record.EventRecorder
+	authenticationOptions *authoptions.AuthenticationOptions
+	multiClusterEnabled   bool
 }
 
 func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
 	config *rest.Config, userInformer iamv1alpha2informers.UserInformer,
 	fedUserCache cache.Store, fedUserController cache.Controller,
+	loginRecordInformer iamv1alpha2informers.LoginRecordInformer,
 	configMapInformer corev1informers.ConfigMapInformer,
-	ldapClient ldapclient.Interface, multiClusterEnabled bool) *Controller {
+	ldapClient ldapclient.Interface,
+	authenticationOptions *authoptions.AuthenticationOptions,
+	multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -103,19 +111,23 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 		kubeconfigOperator = kubeconfig.NewOperator(k8sClient, configMapInformer, config)
 	}
 	ctl := &Controller{
-		k8sClient:           k8sClient,
-		ksClient:            ksClient,
-		kubeconfig:          kubeconfigOperator,
-		userInformer:        userInformer,
-		userLister:          userInformer.Lister(),
-		userSynced:          userInformer.Informer().HasSynced,
-		cmSynced:            configMapInformer.Informer().HasSynced,
-		fedUserCache:        fedUserCache,
-		fedUserController:   fedUserController,
-		ldapClient:          ldapClient,
-		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
-		recorder:            recorder,
-		multiClusterEnabled: multiClusterEnabled,
+		k8sClient:             k8sClient,
+		ksClient:              ksClient,
+		kubeconfig:            kubeconfigOperator,
+		userInformer:          userInformer,
+		userLister:            userInformer.Lister(),
+		userSynced:            userInformer.Informer().HasSynced,
+		loginRecordInformer:   loginRecordInformer,
+		loginRecordLister:     loginRecordInformer.Lister(),
+		loginRecordSynced:     loginRecordInformer.Informer().HasSynced,
+		cmSynced:              configMapInformer.Informer().HasSynced,
+		fedUserCache:          fedUserCache,
+		fedUserController:     fedUserController,
+		ldapClient:            ldapClient,
+		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
+		recorder:              recorder,
+		multiClusterEnabled:   multiClusterEnabled,
+		authenticationOptions: authenticationOptions,
 	}
 	klog.Info("Setting up event handlers")
 	userInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -124,6 +136,18 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 			ctl.enqueueUser(new)
 		},
 		DeleteFunc: ctl.enqueueUser,
+	})
+	loginRecordInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(new interface{}) {
+			if username := new.(*iamv1alpha2.LoginRecord).Labels[iamv1alpha2.UserReferenceLabel]; username != "" {
+				ctl.workqueue.Add(username)
+			}
+		},
+		DeleteFunc: func(obj interface{}) {
+			if username := obj.(*iamv1alpha2.LoginRecord).Labels[iamv1alpha2.UserReferenceLabel]; username != "" {
+				ctl.workqueue.Add(username)
+			}
+		},
 	})
 	return ctl
 }
@@ -139,7 +163,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	klog.Info("Waiting for informer caches to sync")
 
 	synced := make([]cache.InformerSynced, 0)
-	synced = append(synced, c.userSynced, c.cmSynced)
+	synced = append(synced, c.userSynced, c.loginRecordSynced, c.cmSynced)
 	if c.multiClusterEnabled {
 		synced = append(synced, c.fedUserController.HasSynced)
 	}
@@ -274,12 +298,17 @@ func (c *Controller) reconcile(key string) error {
 				return err
 			}
 
+			if err = c.deleteLoginRecords(user); err != nil {
+				klog.Error(err)
+				return err
+			}
+
 			// remove our finalizer from the list and update it.
 			user.Finalizers = sliceutil.RemoveString(user.ObjectMeta.Finalizers, func(item string) bool {
 				return item == finalizer
 			})
 
-			if _, err := c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
+			if user, err = c.ksClient.IamV1alpha2().Users().Update(user); err != nil {
 				return err
 			}
 		}
@@ -294,6 +323,11 @@ func (c *Controller) reconcile(key string) error {
 	}
 
 	if user, err = c.ensurePasswordIsEncrypted(user); err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if user, err = c.syncUserStatus(user); err != nil {
 		klog.Error(err)
 		return err
 	}
@@ -319,11 +353,11 @@ func (c *Controller) reconcile(key string) error {
 }
 
 func (c *Controller) Start(stopCh <-chan struct{}) error {
-	return c.Run(4, stopCh)
+	return c.Run(5, stopCh)
 }
 
 func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
-	encrypted, _ := strconv.ParseBool(user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation])
+	encrypted := user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] == "true"
 	// password is not encrypted
 	if !encrypted {
 		password, err := encrypt(user.Spec.EncryptedPassword)
@@ -337,7 +371,10 @@ func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1al
 			user.Annotations = make(map[string]string, 0)
 		}
 		user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = "true"
-		user.Status.State = iamv1alpha2.UserActive
+		user.Status = iamv1alpha2.UserStatus{
+			State:              iamv1alpha2.UserActive,
+			LastTransitionTime: &metav1.Time{Time: time.Now()},
+		}
 		return c.ksClient.IamV1alpha2().Users().Update(user)
 	}
 
@@ -382,15 +419,10 @@ func (c *Controller) multiClusterSync(user *iamv1alpha2.User) error {
 	}
 
 	if !reflect.DeepEqual(federatedUser.Spec.Template.Spec, user.Spec) ||
-		!reflect.DeepEqual(federatedUser.Spec.Template.Status, user.Status) ||
-		!reflect.DeepEqual(federatedUser.Labels, user.Labels) ||
-		!reflect.DeepEqual(federatedUser.Annotations, user.Annotations) {
+		!reflect.DeepEqual(federatedUser.Spec.Template.Status, user.Status) {
 
-		federatedUser.Labels = user.Labels
 		federatedUser.Spec.Template.Spec = user.Spec
 		federatedUser.Spec.Template.Status = user.Status
-		federatedUser.Spec.Template.Labels = user.Labels
-		federatedUser.Spec.Template.Annotations = user.Annotations
 		return c.updateFederatedUser(&federatedUser)
 	}
 
@@ -408,10 +440,6 @@ func (c *Controller) createFederatedUser(user *iamv1alpha2.User) error {
 		},
 		Spec: iamv1alpha2.FederatedUserSpec{
 			Template: iamv1alpha2.UserTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels:      user.Labels,
-					Annotations: user.Annotations,
-				},
 				Spec:   user.Spec,
 				Status: user.Status,
 			},
@@ -529,6 +557,78 @@ func (c *Controller) deleteRoleBindings(user *iamv1alpha2.User) error {
 	}
 
 	return nil
+}
+
+func (c *Controller) deleteLoginRecords(user *iamv1alpha2.User) error {
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}).String(),
+	}
+	deleteOptions := metav1.NewDeleteOptions(0)
+
+	if err := c.ksClient.IamV1alpha2().LoginRecords().
+		DeleteCollection(deleteOptions, listOptions); err != nil {
+		klog.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (c *Controller) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.User, error) {
+	if user == nil || (user.Status.State == iamv1alpha2.UserDisabled) {
+		return user, nil
+	}
+
+	if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
+		if user.Status.LastTransitionTime != nil &&
+			time.Now().Sub(user.Status.LastTransitionTime.Time) > c.authenticationOptions.AuthenticateRateLimiterDuration {
+			expect := user.DeepCopy()
+			// UserActive
+			passwordEncrypted := user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] == "true"
+			if passwordEncrypted {
+				expect.Status = iamv1alpha2.UserStatus{
+					State:              iamv1alpha2.UserActive,
+					LastTransitionTime: &metav1.Time{Time: time.Now()},
+				}
+				// StatusPending
+			} else {
+				expect.Status = iamv1alpha2.UserStatus{}
+			}
+			return c.ksClient.IamV1alpha2().Users().Update(expect)
+		} else {
+			c.workqueue.AddAfter(user.Name, c.authenticationOptions.AuthenticateRateLimiterDuration-time.Now().Sub(user.Status.LastTransitionTime.Time))
+			return user, nil
+		}
+	}
+
+	records, err := c.loginRecordLister.List(labels.SelectorFromSet(labels.Set{iamv1alpha2.UserReferenceLabel: user.Name}))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
+	now := time.Now()
+	loginAttempts := 0
+	for _, record := range records {
+		if record.Spec.Type == iamv1alpha2.LoginFailure &&
+			now.Sub(record.CreationTimestamp.Time) <= c.authenticationOptions.AuthenticateRateLimiterDuration {
+			loginAttempts++
+		}
+	}
+
+	// UserAuthLimitExceeded
+	if loginAttempts >= c.authenticationOptions.AuthenticateRateLimiterMaxTries {
+		expect := user.DeepCopy()
+		expect.Status = iamv1alpha2.UserStatus{
+			State:              iamv1alpha2.UserAuthLimitExceeded,
+			Reason:             "auth rate limit exceeded",
+			LastTransitionTime: &metav1.Time{Time: time.Now()},
+		}
+
+		c.workqueue.AddAfter(user.Name, c.authenticationOptions.AuthenticateRateLimiterDuration)
+		return c.ksClient.IamV1alpha2().Users().Update(expect)
+	}
+
+	return user, nil
 }
 
 func encrypt(password string) (string, error) {

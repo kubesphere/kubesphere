@@ -26,6 +26,9 @@ const (
 	ResourceKindUser                      = "User"
 	ResourcesSingularUser                 = "user"
 	ResourcesPluralUser                   = "users"
+	ResourceKindLoginRecord               = "LoginRecord"
+	ResourcesSingularLoginRecord          = "loginrecord"
+	ResourcesPluralLoginRecord            = "loginrecords"
 	ResourceKindGlobalRoleBinding         = "GlobalRoleBinding"
 	ResourcesSingularGlobalRoleBinding    = "globalrolebinding"
 	ResourcesPluralGlobalRoleBinding      = "globalrolebindings"
@@ -119,6 +122,13 @@ const (
 	UserActive UserState = "Active"
 	// UserDisabled means the user is disabled.
 	UserDisabled UserState = "Disabled"
+	// UserDisabled means the user is disabled.
+	UserAuthLimitExceeded UserState = "AuthLimitExceeded"
+
+	LoginFailure LoginRecordType = "LoginFailure"
+	LoginSuccess LoginRecordType = "LoginSuccess"
+
+	AuthenticatedSuccessfully = "authenticated successfully"
 )
 
 // UserStatus defines the observed state of User
@@ -126,42 +136,11 @@ type UserStatus struct {
 	// The user status
 	// +optional
 	State UserState `json:"state,omitempty"`
-	// Represents the latest available observations of a user's current state.
-	// +optional
-	Conditions []UserCondition `json:"conditions,omitempty"`
-}
-
-type UserCondition struct {
-	// Type of user controller condition.
-	Type UserConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
-	Status ConditionStatus `json:"status"`
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// +optional
 	Reason string `json:"reason,omitempty"`
 	// +optional
-	Message string `json:"message,omitempty"`
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 }
-
-type UserConditionType string
-
-// These are valid conditions of a user.
-const (
-	// UserLoginFailure contains information about user login.
-	LoginFailure UserConditionType = "LoginFailure"
-)
-
-type ConditionStatus string
-
-// These are valid condition statuses. "ConditionTrue" means a resource is in the condition.
-// "ConditionFalse" means a resource is not in the condition. "ConditionUnknown" means kubernetes
-// can't decide if a resource is in the condition or not. In the future, we could add other
-// intermediate conditions, e.g. ConditionDegraded.
-const (
-	ConditionTrue  ConditionStatus = "True"
-	ConditionFalse ConditionStatus = "False"
-)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -305,4 +284,34 @@ type RoleBaseList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RoleBase `json:"items"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type"
+// +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.reason"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:resource:categories="iam",scope="Cluster"
+type LoginRecord struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              LoginRecordSpec `json:"spec"`
+}
+
+type LoginRecordSpec struct {
+	SourceIP string          `json:"sourceIP"`
+	Type     LoginRecordType `json:"type"`
+	Reason   string          `json:"reason"`
+}
+
+type LoginRecordType string
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// LoginRecordList contains a list of LoginRecord
+type LoginRecordList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []LoginRecord `json:"items"`
 }

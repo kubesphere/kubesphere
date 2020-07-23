@@ -55,7 +55,7 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request) http.H
 			}
 
 			gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized:%s", err)), s, gv, w, req)
+			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), s, gv, w, req)
 			return
 		}
 
