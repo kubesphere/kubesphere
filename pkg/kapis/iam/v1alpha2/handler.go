@@ -1218,6 +1218,8 @@ func handleError(request *restful.Request, response *restful.Response, err error
 		api.HandleConflict(response, request, err)
 	} else if errors.IsForbidden(err) {
 		api.HandleForbidden(response, request, err)
+	} else if errors.IsResourceExpired(err) {
+		api.HandleConflict(response, request, err)
 	} else {
 		api.HandleInternalError(response, request, err)
 	}
