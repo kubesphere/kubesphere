@@ -34,8 +34,8 @@ type TypesV1beta1Client struct {
 	restClient rest.Interface
 }
 
-func (c *TypesV1beta1Client) FederatedNamespaces() FederatedNamespaceInterface {
-	return newFederatedNamespaces(c)
+func (c *TypesV1beta1Client) FederatedNamespaces(namespace string) FederatedNamespaceInterface {
+	return newFederatedNamespaces(c, namespace)
 }
 
 // NewForConfig creates a new TypesV1beta1Client for the given config.

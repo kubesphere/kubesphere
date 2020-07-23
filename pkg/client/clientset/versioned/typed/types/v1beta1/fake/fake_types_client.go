@@ -28,8 +28,8 @@ type FakeTypesV1beta1 struct {
 	*testing.Fake
 }
 
-func (c *FakeTypesV1beta1) FederatedNamespaces() v1beta1.FederatedNamespaceInterface {
-	return &FakeFederatedNamespaces{c}
+func (c *FakeTypesV1beta1) FederatedNamespaces(namespace string) v1beta1.FederatedNamespaceInterface {
+	return &FakeFederatedNamespaces{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

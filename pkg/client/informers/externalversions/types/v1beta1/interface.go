@@ -41,5 +41,5 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // FederatedNamespaces returns a FederatedNamespaceInformer.
 func (v *version) FederatedNamespaces() FederatedNamespaceInformer {
-	return &federatedNamespaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &federatedNamespaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
