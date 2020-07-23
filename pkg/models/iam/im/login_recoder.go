@@ -43,7 +43,6 @@ func NewLoginRecorder(ksClient kubesphere.Interface) LoginRecorder {
 }
 
 func (l *loginRecorder) RecordLogin(username string, authErr error, req *http.Request) error {
-
 	loginEntry := &iamv1alpha2.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", username),

@@ -77,7 +77,7 @@ func (im *passwordAuthenticator) Authenticate(username, password string) (authus
 	// no identity provider
 	// even auth failed, still return username to record login attempt
 	if user == nil && (providerOptions == nil || providerOptions.MappingMethod != oauth.MappingMethodAuto) {
-		return &authuser.DefaultInfo{Name: user.Name}, AuthFailedIncorrectPassword
+		return nil, AuthFailedIncorrectPassword
 	}
 
 	if user != nil && user.Status.State != iamv1alpha2.UserActive {
