@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops/jenkins"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
@@ -19,29 +20,31 @@ import (
 )
 
 type KubeSphereControllerManagerOptions struct {
-	KubernetesOptions   *k8s.KubernetesOptions
-	DevopsOptions       *jenkins.Options
-	S3Options           *s3.Options
-	LdapOptions         *ldapclient.Options
-	OpenPitrixOptions   *openpitrix.Options
-	NetworkOptions      *network.Options
-	MultiClusterOptions *multicluster.Options
-	ServiceMeshOptions  *servicemesh.Options
-	LeaderElect         bool
-	LeaderElection      *leaderelection.LeaderElectionConfig
-	WebhookCertDir      string
+	KubernetesOptions     *k8s.KubernetesOptions
+	DevopsOptions         *jenkins.Options
+	S3Options             *s3.Options
+	AuthenticationOptions *authoptions.AuthenticationOptions
+	LdapOptions           *ldapclient.Options
+	OpenPitrixOptions     *openpitrix.Options
+	NetworkOptions        *network.Options
+	MultiClusterOptions   *multicluster.Options
+	ServiceMeshOptions    *servicemesh.Options
+	LeaderElect           bool
+	LeaderElection        *leaderelection.LeaderElectionConfig
+	WebhookCertDir        string
 }
 
 func NewKubeSphereControllerManagerOptions() *KubeSphereControllerManagerOptions {
 	s := &KubeSphereControllerManagerOptions{
-		KubernetesOptions:   k8s.NewKubernetesOptions(),
-		DevopsOptions:       jenkins.NewDevopsOptions(),
-		S3Options:           s3.NewS3Options(),
-		LdapOptions:         ldapclient.NewOptions(),
-		OpenPitrixOptions:   openpitrix.NewOptions(),
-		NetworkOptions:      network.NewNetworkOptions(),
-		MultiClusterOptions: multicluster.NewOptions(),
-		ServiceMeshOptions:  servicemesh.NewServiceMeshOptions(),
+		KubernetesOptions:     k8s.NewKubernetesOptions(),
+		DevopsOptions:         jenkins.NewDevopsOptions(),
+		S3Options:             s3.NewS3Options(),
+		LdapOptions:           ldapclient.NewOptions(),
+		OpenPitrixOptions:     openpitrix.NewOptions(),
+		NetworkOptions:        network.NewNetworkOptions(),
+		MultiClusterOptions:   multicluster.NewOptions(),
+		ServiceMeshOptions:    servicemesh.NewServiceMeshOptions(),
+		AuthenticationOptions: authoptions.NewAuthenticateOptions(),
 		LeaderElection: &leaderelection.LeaderElectionConfig{
 			LeaseDuration: 30 * time.Second,
 			RenewDeadline: 15 * time.Second,
@@ -60,6 +63,7 @@ func (s *KubeSphereControllerManagerOptions) Flags() cliflag.NamedFlagSets {
 	s.KubernetesOptions.AddFlags(fss.FlagSet("kubernetes"), s.KubernetesOptions)
 	s.DevopsOptions.AddFlags(fss.FlagSet("devops"), s.DevopsOptions)
 	s.S3Options.AddFlags(fss.FlagSet("s3"), s.S3Options)
+	s.AuthenticationOptions.AddFlags(fss.FlagSet("authentication"), s.AuthenticationOptions)
 	s.LdapOptions.AddFlags(fss.FlagSet("ldap"), s.LdapOptions)
 	s.OpenPitrixOptions.AddFlags(fss.FlagSet("openpitrix"), s.OpenPitrixOptions)
 	s.NetworkOptions.AddFlags(fss.FlagSet("network"), s.NetworkOptions)

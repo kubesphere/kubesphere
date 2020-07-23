@@ -31,7 +31,6 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models"
 	"math/rand"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"kubesphere.io/kubesphere/pkg/constants"
@@ -52,18 +51,13 @@ type operator struct {
 	deploymentInformer appsv1informers.DeploymentInformer
 	podInformer        coreinfomers.PodInformer
 	userInformer       iamv1alpha2informers.UserInformer
+	kubectlImage       string
 }
 
-func NewOperator(k8sClient kubernetes.Interface, deploymentInformer appsv1informers.DeploymentInformer, podInformer coreinfomers.PodInformer, userInformer iamv1alpha2informers.UserInformer) Interface {
-	return &operator{k8sClient: k8sClient, deploymentInformer: deploymentInformer, podInformer: podInformer, userInformer: userInformer}
-}
-
-var DefaultImage = "kubesphere/kubectl:advanced-1.0.0"
-
-func init() {
-	if env := os.Getenv("KUBECTL_IMAGE"); env != "" {
-		DefaultImage = env
-	}
+func NewOperator(k8sClient kubernetes.Interface, deploymentInformer appsv1informers.DeploymentInformer,
+	podInformer coreinfomers.PodInformer, userInformer iamv1alpha2informers.UserInformer, kubectlImage string) Interface {
+	return &operator{k8sClient: k8sClient, deploymentInformer: deploymentInformer, podInformer: podInformer,
+		userInformer: userInformer, kubectlImage: kubectlImage}
 }
 
 func (o *operator) GetKubectlPod(username string) (models.PodInfo, error) {
@@ -118,7 +112,6 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 	deployName := fmt.Sprintf(deployNameFormat, username)
 
 	user, err := o.userInformer.Lister().Get(username)
-
 	if err != nil {
 		klog.Error(err)
 		// ignore if user not exist
@@ -146,7 +139,7 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
 						{Name: "kubectl",
-							Image: DefaultImage,
+							Image: o.kubectlImage,
 						},
 					},
 					ServiceAccountName: "kubesphere-cluster-admin",
@@ -156,14 +149,12 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 	}
 
 	err = controllerutil.SetControllerReference(user, deployment, scheme.Scheme)
-
 	if err != nil {
 		klog.Errorln(err)
 		return err
 	}
 
 	_, err = o.k8sClient.AppsV1().Deployments(namespace).Create(deployment)
-
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil

@@ -34,6 +34,7 @@ type AuthenticationOptions struct {
 	JwtSecret string `json:"-" yaml:"jwtSecret"`
 	// oauth options
 	OAuthOptions *oauth.Options `json:"oauthOptions" yaml:"oauthOptions"`
+	KubectlImage string         `json:"kubectlImage" yaml:"kubectlImage"`
 }
 
 func NewAuthenticateOptions() *AuthenticationOptions {
@@ -43,6 +44,7 @@ func NewAuthenticateOptions() *AuthenticationOptions {
 		OAuthOptions:                    oauth.NewOptions(),
 		MultipleLogin:                   false,
 		JwtSecret:                       "",
+		KubectlImage:                    "kubesphere/kubectl:v1.0.0",
 	}
 }
 
@@ -61,4 +63,5 @@ func (options *AuthenticationOptions) AddFlags(fs *pflag.FlagSet, s *Authenticat
 	fs.BoolVar(&options.MultipleLogin, "multiple-login", s.MultipleLogin, "Allow multiple login with the same account, disable means only one user can login at the same time.")
 	fs.StringVar(&options.JwtSecret, "jwt-secret", s.JwtSecret, "Secret to sign jwt token, must not be empty.")
 	fs.DurationVar(&options.OAuthOptions.AccessTokenMaxAge, "access-token-max-age", s.OAuthOptions.AccessTokenMaxAge, "AccessTokenMaxAgeSeconds  control the lifetime of access tokens, 0 means no expiration.")
+	fs.StringVar(&s.KubectlImage, "kubectl-image", s.KubectlImage, "Setup the image used by kubectl terminal pod")
 }

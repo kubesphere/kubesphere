@@ -56,16 +56,18 @@ func NewControllerManagerCommand() *cobra.Command {
 	if err == nil {
 		// make sure LeaderElection is not nil
 		s = &options.KubeSphereControllerManagerOptions{
-			KubernetesOptions:   conf.KubernetesOptions,
-			DevopsOptions:       conf.DevopsOptions,
-			S3Options:           conf.S3Options,
-			LdapOptions:         conf.LdapOptions,
-			OpenPitrixOptions:   conf.OpenPitrixOptions,
-			NetworkOptions:      conf.NetworkOptions,
-			MultiClusterOptions: conf.MultiClusterOptions,
-			ServiceMeshOptions:  conf.ServiceMeshOptions,
-			LeaderElection:      s.LeaderElection,
-			LeaderElect:         s.LeaderElect,
+			KubernetesOptions:     conf.KubernetesOptions,
+			DevopsOptions:         conf.DevopsOptions,
+			S3Options:             conf.S3Options,
+			AuthenticationOptions: conf.AuthenticationOptions,
+			LdapOptions:           conf.LdapOptions,
+			OpenPitrixOptions:     conf.OpenPitrixOptions,
+			NetworkOptions:        conf.NetworkOptions,
+			MultiClusterOptions:   conf.MultiClusterOptions,
+			ServiceMeshOptions:    conf.ServiceMeshOptions,
+			LeaderElection:        s.LeaderElection,
+			LeaderElect:           s.LeaderElect,
+			WebhookCertDir:        s.WebhookCertDir,
 		}
 	}
 
@@ -181,8 +183,10 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 
 		// TODO(jeff): refactor config with CRD
 		servicemeshEnabled := s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.IstioPilotHost) != 0
-		if err = addControllers(mgr, kubernetesClient, informerFactory, devopsClient, s3Client, ldapClient, openpitrixClient,
-			s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy, servicemeshEnabled, stopCh); err != nil {
+		if err = addControllers(mgr, kubernetesClient, informerFactory,
+			devopsClient, s3Client, ldapClient, openpitrixClient,
+			s.MultiClusterOptions.Enable, s.NetworkOptions.EnableNetworkPolicy,
+			servicemeshEnabled, s.AuthenticationOptions.KubectlImage, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
 		}
 
