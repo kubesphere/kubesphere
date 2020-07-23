@@ -102,6 +102,9 @@ func newTestConfig() (*Config, error) {
 		},
 		NetworkOptions: &network.Options{
 			EnableNetworkPolicy: true,
+			NSNPOptions: network.NSNPOptions{
+				AllowedIngressNamespaces: []string{},
+			},
 		},
 		MonitoringOptions: &prometheus.Options{
 			Endpoint: "http://prometheus.kubesphere-monitoring-system.svc",

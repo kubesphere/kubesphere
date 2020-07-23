@@ -22,6 +22,7 @@ import (
 	workspaceinformer "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	options "kubesphere.io/kubesphere/pkg/simple/client/network"
 )
 
 var (
@@ -48,6 +49,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               %s: %s
+        - namespaceSelector:
+            matchLabels:
+              "kubesphere.io/namespace" : "kubesphere-monitoring-system"
   policyTypes:
     - Ingress`
 
@@ -113,8 +117,12 @@ var _ = Describe("Nsnetworkpolicy", func() {
 		nodeInforemer := kubeInformer.Core().V1().Nodes()
 		workspaceInformer := ksInformer.Tenant().V1alpha1().Workspaces()
 		namespaceInformer := kubeInformer.Core().V1().Namespaces()
+		nsnpOptions := options.NewNetworkOptions()
+		nsnpOptions.NSNPOptions.AllowedIngressNamespaces = append(nsnpOptions.NSNPOptions.AllowedIngressNamespaces, "kubesphere-monitoring-system")
 
-		c = NewNSNetworkPolicyController(kubeClient, ksClient.NetworkV1alpha1(), nsnpInformer, serviceInformer, nodeInforemer, workspaceInformer, namespaceInformer, calicoProvider)
+		c = NewNSNetworkPolicyController(kubeClient, ksClient.NetworkV1alpha1(),
+			nsnpInformer, serviceInformer, nodeInforemer,
+			workspaceInformer, namespaceInformer, calicoProvider, nsnpOptions.NSNPOptions)
 
 		serviceObj := &corev1.Service{}
 		Expect(StringToObject(serviceTmp, serviceObj)).ShouldNot(HaveOccurred())
@@ -158,7 +166,7 @@ var _ = Describe("Nsnetworkpolicy", func() {
 		obj := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj)).ShouldNot(HaveOccurred())
 
-		policy := generateNSNP("testworkspace", "testns", true)
+		policy := c.generateNSNP("testworkspace", "testns", true)
 		Expect(reflect.DeepEqual(obj.Spec, policy.Spec)).To(BeTrue())
 	})
 
@@ -167,7 +175,7 @@ var _ = Describe("Nsnetworkpolicy", func() {
 		obj := &netv1.NetworkPolicy{}
 		Expect(StringToObject(objSrt, obj)).ShouldNot(HaveOccurred())
 
-		policy := generateNSNP("testworkspace", "testns", false)
+		policy := c.generateNSNP("testworkspace", "testns", false)
 		Expect(reflect.DeepEqual(obj.Spec, policy.Spec)).To(BeTrue())
 	})
 

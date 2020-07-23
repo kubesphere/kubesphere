@@ -29,6 +29,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/controller/network"
 	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	options "kubesphere.io/kubesphere/pkg/simple/client/network"
 )
 
 const (
@@ -77,6 +78,7 @@ type NSNetworkPolicyController struct {
 	namespaceInformerSynced cache.InformerSynced
 
 	provider provider.NsNetworkPolicyProvider
+	options  options.NSNPOptions
 
 	nsQueue   workqueue.RateLimitingInterface
 	nsnpQueue workqueue.RateLimitingInterface
@@ -301,7 +303,7 @@ func (c *NSNetworkPolicyController) generateNodeRule() (netv1.NetworkPolicyIngre
 	return rule, nil
 }
 
-func generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv1.NetworkPolicy {
+func (c *NSNetworkPolicyController) generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv1.NetworkPolicy {
 	policy := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      AnnotationNPNAME,
@@ -326,6 +328,17 @@ func generateNSNP(workspace string, namespace string, matchWorkspace bool) *netv
 		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.WorkspaceLabelKey] = workspace
 	} else {
 		policy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels[constants.NamespaceLabelKey] = namespace
+	}
+
+	for _, allowedIngressNamespace := range c.options.AllowedIngressNamespaces {
+		defaultAllowedIngress := netv1.NetworkPolicyPeer{
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					constants.NamespaceLabelKey: allowedIngressNamespace,
+				},
+			},
+		}
+		policy.Spec.Ingress[0].From = append(policy.Spec.Ingress[0].From, defaultAllowedIngress)
 	}
 
 	return policy
@@ -445,7 +458,7 @@ func (c *NSNetworkPolicyController) syncNs(key string) error {
 		}
 	}
 
-	policy := generateNSNP(workspaceName, ns.Name, matchWorkspace)
+	policy := c.generateNSNP(workspaceName, ns.Name, matchWorkspace)
 	if shouldAddDNSRule(nsnpList) {
 		ruleDNS, err := generateDNSRule([]string{DNSLocalIP})
 		if err != nil {
@@ -589,7 +602,8 @@ func NewNSNetworkPolicyController(
 	nodeInformer v1.NodeInformer,
 	workspaceInformer workspace.WorkspaceInformer,
 	namespaceInformer v1.NamespaceInformer,
-	policyProvider provider.NsNetworkPolicyProvider) *NSNetworkPolicyController {
+	policyProvider provider.NsNetworkPolicyProvider,
+	options options.NSNPOptions) *NSNetworkPolicyController {
 
 	controller := &NSNetworkPolicyController{
 		client:                  client,
@@ -607,6 +621,7 @@ func NewNSNetworkPolicyController(
 		provider:                policyProvider,
 		nsQueue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespace"),
 		nsnpQueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespacenp"),
+		options:                 options,
 	}
 
 	workspaceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
