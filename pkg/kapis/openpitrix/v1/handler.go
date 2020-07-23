@@ -753,6 +753,14 @@ func (h *openpitrixHandler) CreateRepo(req *restful.Request, resp *restful.Respo
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+
+	if req.PathParameter("workspace") != "" {
+		if createRepoRequest.Workspace == nil {
+			createRepoRequest.Workspace = new(string)
+		}
+		*createRepoRequest.Workspace = req.PathParameter("workspace")
+	}
+
 	validate, _ := strconv.ParseBool(req.QueryParameter("validate"))
 
 	var result interface{}
