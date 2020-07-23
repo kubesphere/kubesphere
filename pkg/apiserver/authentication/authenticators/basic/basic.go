@@ -29,18 +29,18 @@ import (
 // and group from user.AllUnauthenticated. This helps requests be passed along the handler chain,
 // because some resources are public accessible.
 type basicAuthenticator struct {
-	im im.IdentityManagementInterface
+	authenticator im.PasswordAuthenticator
 }
 
-func NewBasicAuthenticator(im im.IdentityManagementInterface) authenticator.Password {
+func NewBasicAuthenticator(authenticator im.PasswordAuthenticator) authenticator.Password {
 	return &basicAuthenticator{
-		im: im,
+		authenticator: authenticator,
 	}
 }
 
 func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 
-	providedUser, err := t.im.Authenticate(username, password)
+	providedUser, err := t.authenticator.Authenticate(username, password)
 
 	if err != nil {
 		return nil, false, err
@@ -49,7 +49,7 @@ func (t *basicAuthenticator) AuthenticatePassword(ctx context.Context, username,
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
 			Name:   providedUser.GetName(),
-			UID:    string(providedUser.GetUID()),
+			UID:    providedUser.GetUID(),
 			Groups: []string{user.AllAuthenticated},
 		},
 	}, true, nil

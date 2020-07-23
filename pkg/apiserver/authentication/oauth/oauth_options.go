@@ -46,6 +46,7 @@ const (
 
 var (
 	ErrorClientNotFound        = errors.New("the OAuth client was not found")
+	ErrorProviderNotFound      = errors.New("the identity provider was not found")
 	ErrorRedirectURLNotAllowed = errors.New("redirect URL is not allowed")
 )
 
@@ -92,7 +93,7 @@ type IdentityProviderOptions struct {
 	Type string `json:"type" yaml:"type"`
 
 	// The options of identify provider
-	Provider *DynamicOptions `json:"provider,omitempty" yaml:"provider"`
+	Provider *DynamicOptions `json:"-" yaml:"provider"`
 }
 
 type Token struct {
@@ -155,6 +156,7 @@ var (
 	DefaultAccessTokenInactivityTimeout = time.Duration(0)
 	DefaultClients                      = []Client{{
 		Name:                         "default",
+		Secret:                       "kubesphere",
 		RespondWithChallenges:        true,
 		RedirectURIs:                 []string{AllowAllRedirectURI},
 		GrantMethod:                  GrantHandlerAuto,
@@ -177,13 +179,13 @@ func (o *Options) OAuthClient(name string) (Client, error) {
 	}
 	return Client{}, ErrorClientNotFound
 }
-func (o *Options) IdentityProviderOptions(name string) (IdentityProviderOptions, error) {
+func (o *Options) IdentityProviderOptions(name string) (*IdentityProviderOptions, error) {
 	for _, found := range o.IdentityProviders {
 		if found.Name == name {
-			return found, nil
+			return &found, nil
 		}
 	}
-	return IdentityProviderOptions{}, ErrorClientNotFound
+	return nil, ErrorProviderNotFound
 }
 
 func (c Client) anyRedirectAbleURI() []string {
@@ -224,7 +226,7 @@ func NewOptions() *Options {
 	return &Options{
 		IdentityProviders:            make([]IdentityProviderOptions, 0),
 		Clients:                      make([]Client, 0),
-		AccessTokenMaxAge:            time.Hour * 24,
-		AccessTokenInactivityTimeout: 0,
+		AccessTokenMaxAge:            time.Hour * 2,
+		AccessTokenInactivityTimeout: time.Hour * 2,
 	}
 }

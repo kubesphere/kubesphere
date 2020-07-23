@@ -81,6 +81,11 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Doc("List all users in global scope.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.User{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+	ws.Route(ws.GET("/users/{user}/loginrecords").
+		To(handler.ListUserLoginRecords).
+		Doc("List user's login records.").
+		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.LoginRecord{}}}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 
 	// clustermembers
 	ws.Route(ws.POST("/clustermembers").

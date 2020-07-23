@@ -99,7 +99,7 @@ type GithubIdentity struct {
 }
 
 func init() {
-	identityprovider.RegisterOAuthProviderCodec(&Github{})
+	identityprovider.RegisterOAuthProvider(&Github{})
 }
 
 func (g *Github) Type() string {

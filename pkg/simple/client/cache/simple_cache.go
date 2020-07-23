@@ -76,13 +76,8 @@ func (s *simpleCache) Set(key string, value string, duration time.Duration) erro
 
 func (s *simpleCache) Del(keys ...string) error {
 	for _, key := range keys {
-		if _, ok := s.store[key]; ok {
-			delete(s.store, key)
-		} else {
-			return ErrNoSuchKey
-		}
+		delete(s.store, key)
 	}
-
 	return nil
 }
 
@@ -99,7 +94,7 @@ func (s *simpleCache) Get(key string) (string, error) {
 func (s *simpleCache) Exists(keys ...string) (bool, error) {
 	for _, key := range keys {
 		if _, ok := s.store[key]; !ok {
-			return false, ErrNoSuchKey
+			return false, nil
 		}
 	}
 

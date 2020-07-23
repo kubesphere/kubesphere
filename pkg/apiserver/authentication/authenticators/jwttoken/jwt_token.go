@@ -20,7 +20,8 @@ import (
 	"context"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
-	token2 "kubesphere.io/kubesphere/pkg/apiserver/authentication/token"
+	"k8s.io/klog"
+	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
 // TokenAuthenticator implements kubernetes token authenticate interface with our custom logic.
@@ -29,18 +30,19 @@ import (
 // and group from user.AllUnauthenticated. This helps requests be passed along the handler chain,
 // because some resources are public accessible.
 type tokenAuthenticator struct {
-	jwtTokenIssuer token2.Issuer
+	tokenOperator im.TokenManagementInterface
 }
 
-func NewTokenAuthenticator(issuer token2.Issuer) authenticator.Token {
+func NewTokenAuthenticator(tokenOperator im.TokenManagementInterface) authenticator.Token {
 	return &tokenAuthenticator{
-		jwtTokenIssuer: issuer,
+		tokenOperator: tokenOperator,
 	}
 }
 
 func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	providedUser, err := t.jwtTokenIssuer.Verify(token)
+	providedUser, err := t.tokenOperator.Verify(token)
 	if err != nil {
+		klog.Error(err)
 		return nil, false, err
 	}
 
