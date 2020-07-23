@@ -98,7 +98,7 @@ func (c *ClientV6) parse(resp *es6api.Response, err error) (*Response, error) {
 		return nil, fmt.Errorf(resp.String())
 	}
 	var r struct {
-		Hits *struct {
+		Hits struct {
 			Total int64               `json:"total"`
 			Hits  jsoniter.RawMessage `json:"hits"`
 		} `json:"hits"`
@@ -128,7 +128,7 @@ func (c *ClientV7) parse(resp *es7api.Response, err error) (*Response, error) {
 		return nil, fmt.Errorf(resp.String())
 	}
 	var r struct {
-		Hits *struct {
+		Hits struct {
 			Total struct {
 				Value int64 `json:"value"`
 			} `json:"total"`
