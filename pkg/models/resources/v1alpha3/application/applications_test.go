@@ -18,13 +18,13 @@ package application
 
 import (
 	"github.com/google/go-cmp/cmp"
-	appv1beta1 "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
-	"github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
-	"github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
+	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
+	"sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
+	"sigs.k8s.io/application/pkg/client/informers/externalversions"
 	"testing"
 )
 

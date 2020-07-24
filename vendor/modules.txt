@@ -136,9 +136,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.11.1+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
+github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0 => github.com/emicklei/go-restful-openapi v1.0.0
 github.com/emicklei/go-restful-openapi
-github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -342,22 +342,6 @@ github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalv
 github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions/volumesnapshot
 github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions/volumesnapshot/v1beta1
 github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/listers/volumesnapshot/v1beta1
-# github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4 => github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4
-github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1
-github.com/kubernetes-sigs/application/pkg/client/clientset/versioned
-github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake
-github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/scheme
-github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/typed/app/v1beta1
-github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/typed/app/v1beta1/fake
-github.com/kubernetes-sigs/application/pkg/client/informers/externalversions
-github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/app
-github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/app/v1beta1
-github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/internalinterfaces
-github.com/kubernetes-sigs/application/pkg/client/listers/app/v1beta1
-github.com/kubernetes-sigs/application/pkg/component
-github.com/kubernetes-sigs/application/pkg/customresource
-github.com/kubernetes-sigs/application/pkg/finalizer
-github.com/kubernetes-sigs/application/pkg/resource
 # github.com/kubesphere/sonargo v0.0.2 => github.com/kubesphere/sonargo v0.0.2
 github.com/kubesphere/sonargo/sonar
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de => github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
@@ -1338,6 +1322,7 @@ k8s.io/gengo/parser
 k8s.io/gengo/types
 # k8s.io/klog v1.0.0 => k8s.io/klog v1.0.0
 k8s.io/klog
+k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a => k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 k8s.io/kube-openapi/cmd/openapi-gen/
 k8s.io/kube-openapi/cmd/openapi-gen/args
@@ -1374,7 +1359,22 @@ openpitrix.io/openpitrix/pkg/util/reflectutil
 openpitrix.io/openpitrix/pkg/util/stringutil
 openpitrix.io/openpitrix/pkg/util/yamlutil
 openpitrix.io/openpitrix/pkg/version
+# sigs.k8s.io/application v0.8.3 => kubesphere.io/application v1.0.0
+sigs.k8s.io/application/controllers
+sigs.k8s.io/application/pkg/apis/app/v1beta1
+sigs.k8s.io/application/pkg/client/clientset/versioned
+sigs.k8s.io/application/pkg/client/clientset/versioned/fake
+sigs.k8s.io/application/pkg/client/clientset/versioned/scheme
+sigs.k8s.io/application/pkg/client/clientset/versioned/typed/app/v1beta1
+sigs.k8s.io/application/pkg/client/clientset/versioned/typed/app/v1beta1/fake
+sigs.k8s.io/application/pkg/client/informers/externalversions
+sigs.k8s.io/application/pkg/client/informers/externalversions/app
+sigs.k8s.io/application/pkg/client/informers/externalversions/app/v1beta1
+sigs.k8s.io/application/pkg/client/informers/externalversions/internalinterfaces
+sigs.k8s.io/application/pkg/client/listers/app/v1beta1
 # sigs.k8s.io/controller-runtime v0.5.0 => sigs.k8s.io/controller-runtime v0.4.0
+sigs.k8s.io/controller-runtime
+sigs.k8s.io/controller-runtime/pkg/builder
 sigs.k8s.io/controller-runtime/pkg/cache
 sigs.k8s.io/controller-runtime/pkg/cache/internal
 sigs.k8s.io/controller-runtime/pkg/client
@@ -1382,6 +1382,7 @@ sigs.k8s.io/controller-runtime/pkg/client/apiutil
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/controller
 sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
+sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/envtest
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/event
@@ -1407,6 +1408,7 @@ sigs.k8s.io/controller-runtime/pkg/source
 sigs.k8s.io/controller-runtime/pkg/source/internal
 sigs.k8s.io/controller-runtime/pkg/webhook
 sigs.k8s.io/controller-runtime/pkg/webhook/admission
+sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/certwatcher
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
 # sigs.k8s.io/controller-tools v0.2.4 => sigs.k8s.io/controller-tools v0.2.4

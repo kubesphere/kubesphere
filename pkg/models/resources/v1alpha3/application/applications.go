@@ -17,12 +17,12 @@ limitations under the License.
 package application
 
 import (
-	appv1beta1 "github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
-	"github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/runtime"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
+	"sigs.k8s.io/application/pkg/client/informers/externalversions"
 	"time"
 )
 
