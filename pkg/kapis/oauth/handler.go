@@ -272,40 +272,35 @@ func (h *handler) Token(req *restful.Request, response *restful.Response) {
 func (h *handler) passwordGrant(username string, password string, req *restful.Request, response *restful.Response) {
 	authenticated, err := h.authenticator.Authenticate(username, password)
 	if err != nil {
-		if err == im.AuthFailedIncorrectPassword {
+		klog.Error(err)
+		switch err {
+		case im.AuthFailedIncorrectPassword:
 			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, "", err, req.Request); err != nil {
 				klog.Error(err)
-				err = apierrors.NewInternalError(err)
-				response.WriteError(http.StatusInternalServerError, err)
-				return
+				response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
 			}
-		}
-		if err == im.AuthFailedIncorrectPassword ||
-			err == im.AuthFailedIdentityMappingNotMatch ||
-			err == im.AuthRateLimitExceeded {
-			klog.V(4).Info(err)
-			err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
-			response.WriteError(http.StatusUnauthorized, err)
 			return
+		case im.AuthFailedIdentityMappingNotMatch:
+			response.WriteError(http.StatusUnauthorized, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
+			return
+		case im.AuthRateLimitExceeded:
+			response.WriteError(http.StatusTooManyRequests, apierrors.NewTooManyRequests(fmt.Sprintf("Unauthorized: %s", err), 60))
+			return
+		default:
+			response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
 		}
-		klog.Error(err)
-		err := apierrors.NewInternalError(err)
-		response.WriteError(http.StatusInternalServerError, err)
-		return
 	}
 
 	result, err := h.tokenOperator.IssueTo(authenticated)
 	if err != nil {
 		klog.Error(err)
-		err := apierrors.NewInternalError(err)
-		response.WriteError(http.StatusInternalServerError, err)
+		response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
 		return
 	}
 
 	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, "", nil, req.Request); err != nil {
 		klog.Error(err)
-		err := apierrors.NewInternalError(err)
-		response.WriteError(http.StatusInternalServerError, err)
+		response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
 		return
 	}
 

@@ -58,7 +58,7 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, loginR
 		if err != nil || !ok {
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to error: %v", err)
-				if usingBasicAuth { // log failed login attempts
+				if usingBasicAuth && err.Error() == im.AuthFailedIncorrectPassword.Error() { // log failed login attempts
 					go func(user string) {
 						if loginRecorder != nil && len(user) != 0 {
 							err = loginRecorder.RecordLogin(user, iamv1alpha2.BasicAuth, "", err, req)
@@ -76,7 +76,11 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, loginR
 			}
 
 			gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-			responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), s, gv, w, req)
+			if err != nil && err.Error() == im.AuthRateLimitExceeded.Error() {
+				responsewriters.ErrorNegotiated(apierrors.NewTooManyRequests(fmt.Sprintf("Unauthorized: %s", err), 60), s, gv, w, req)
+			} else {
+				responsewriters.ErrorNegotiated(apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)), s, gv, w, req)
+			}
 			return
 		}
 
