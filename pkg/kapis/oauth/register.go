@@ -91,7 +91,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 			"otherwise, REQUIRED.  The scope of the access token as described by [RFC6479] Section 3.3.").Required(false)).
 		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
 			"The exact value received from the client.").Required(true)).
-		To(handler.OAuthCallBack).
+		To(handler.oAuthCallBack).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
 
 	c.Add(ws)

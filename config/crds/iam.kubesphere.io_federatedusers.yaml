@@ -6,20 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: workspacetemplates.tenant.kubesphere.io
+  name: federatedusers.iam.kubesphere.io
 spec:
-  group: tenant.kubesphere.io
+  group: iam.kubesphere.io
   names:
-    categories:
-    - tenant
-    kind: WorkspaceTemplate
-    listKind: WorkspaceTemplateList
-    plural: workspacetemplates
-    singular: workspacetemplate
-  scope: Cluster
+    kind: FederatedUser
+    listKind: FederatedUserList
+    plural: federatedusers
+    singular: federateduser
+  scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: WorkspaceTemplate is the Schema for the workspacetemplates API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -35,30 +32,6 @@ spec:
           type: object
         spec:
           properties:
-            overrides:
-              items:
-                properties:
-                  clusterName:
-                    type: string
-                  clusterOverrides:
-                    items:
-                      properties:
-                        op:
-                          type: string
-                        path:
-                          type: string
-                        value:
-                          type: object
-                      required:
-                      - path
-                      - value
-                      type: object
-                    type: array
-                required:
-                - clusterName
-                - clusterOverrides
-                type: object
-              type: array
             placement:
               properties:
                 clusterSelector:
@@ -83,12 +56,42 @@ spec:
                 metadata:
                   type: object
                 spec:
-                  description: WorkspaceSpec defines the desired state of Workspace
+                  description: UserSpec defines the desired state of User
                   properties:
-                    manager:
+                    description:
+                      description: Description of the user.
                       type: string
-                    networkIsolation:
-                      type: boolean
+                    displayName:
+                      type: string
+                    email:
+                      description: Unique email address(https://www.ietf.org/rfc/rfc5322.txt).
+                      type: string
+                    groups:
+                      items:
+                        type: string
+                      type: array
+                    lang:
+                      description: The preferred written or spoken language for the
+                        user.
+                      type: string
+                    password:
+                      description: password will be encrypted by mutating admission
+                        webhook
+                      type: string
+                  required:
+                  - email
+                  type: object
+                status:
+                  description: UserStatus defines the observed state of User
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    reason:
+                      type: string
+                    state:
+                      description: The user status
+                      type: string
                   type: object
               required:
               - spec
@@ -97,6 +100,8 @@ spec:
           - placement
           - template
           type: object
+      required:
+      - spec
       type: object
   version: v1alpha2
   versions:

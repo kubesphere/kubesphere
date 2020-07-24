@@ -71,7 +71,7 @@ spec:
                     scm_id:
                       type: string
                   type: object
-                descriptio:
+                description:
                   type: string
                 discarder:
                   properties:
@@ -188,7 +188,7 @@ spec:
               type: object
             pipeline:
               properties:
-                descriptio:
+                description:
                   type: string
                 disable_concurrent:
                   type: boolean

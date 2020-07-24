@@ -12,7 +12,16 @@ spec:
   - JSONPath: .spec.type
     name: Type
     type: string
-  - JSONPath: .status.reason
+  - JSONPath: .spec.provider
+    name: Provider
+    type: string
+  - JSONPath: .spec.sourceIP
+    name: From
+    type: string
+  - JSONPath: .spec.success
+    name: Success
+    type: string
+  - JSONPath: .spec.reason
     name: Reason
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -45,15 +54,29 @@ spec:
           type: object
         spec:
           properties:
+            provider:
+              description: Provider of authentication, Ldap/Github etc.
+              type: string
             reason:
+              description: States failed login attempt reason
               type: string
             sourceIP:
+              description: Source IP of client
               type: string
+            success:
+              description: Successful login attempt or not
+              type: boolean
             type:
+              description: Which authentication method used, BasicAuth/OAuth
+              type: string
+            userAgent:
+              description: User agent of login attempt
               type: string
           required:
+          - provider
           - reason
           - sourceIP
+          - success
           - type
           type: object
       required:

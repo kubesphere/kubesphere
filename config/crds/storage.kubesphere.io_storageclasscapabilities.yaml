@@ -1,86 +1,101 @@
+
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
   name: storageclasscapabilities.storage.kubesphere.io
 spec:
   group: storage.kubesphere.io
-  version: v1alpha1
   names:
+    kind: StorageClassCapability
+    listKind: StorageClassCapabilityList
     plural: storageclasscapabilities
     singular: storageclasscapability
-    kind: StorageClassCapability
-    shortNames:
-      - sccap
-  preserveUnknownFields: false
-  additionalPrinterColumns:
-    - name: Provisioner
-      type: string
-      JSONPath: .spec.provisioner
-    - name: Volume
-      type: boolean
-      JSONPath: .spec.features.volume.create
-    - name: Expand
-      type: string
-      JSONPath: .spec.features.volume.expandMode
-    - name: Clone
-      type: boolean
-      JSONPath: .spec.features.volume.clone
-    - name: Snapshot
-      type: boolean
-      JSONPath: .spec.features.snapshot.create
-    - name: Age
-      type: date
-      JSONPath: .metadata.creationTimestamp
-  scope: Cluster
+  scope: Namespaced
   validation:
     openAPIV3Schema:
-      type: object
+      description: StorageClassCapability is the Schema for the storage class capability
+        API
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
-          type: object
+          description: StorageClassCapabilitySpec defines the desired state of StorageClassCapability
           properties:
-            provisioner:
-              type: string
             features:
-              type: object
+              description: CapabilityFeatures describe storage features
               properties:
+                snapshot:
+                  description: SnapshotFeature describe snapshot features
+                  properties:
+                    create:
+                      type: boolean
+                    list:
+                      type: boolean
+                  required:
+                  - create
+                  - list
+                  type: object
                 topology:
-                  description: topology determines whether a provisioner support topology by looking up GetPluginCapabilities.PluginCapability
                   type: boolean
                 volume:
-                  type: object
+                  description: VolumeFeature describe volume features
                   properties:
-                    create:
-                      description: 'Create/Delete volume. Determined by ControllerGetCapabilities in ControllerServer'
-                      type: boolean
                     attach:
-                      description: 'CSI Plugin implement ControllerPublishVolume/ControllerUnpublishVolume. Determined by ControllerGetCapabilities in ControllerServer'
-                      type: boolean
-                    list:
-                      description: 'CSI Plugin implement ListVolume. Determined by ControllerGetCapabilities in ControllerServer'
                       type: boolean
                     clone:
-                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
                       type: boolean
-                    stats:
-                      description: 'Determined by NodeGetCapabilities in NodeServer'
-                      type: boolean
-                    expandMode:
-                      description: 'Determined by GetPluginCapabilities in IdentityServer and StorageClass AllowVolumeExpansion'
-                      type: string
-                      items:
-                        type: string
-                        enum: ["UNKNOWN", "OFFLINE", "ONLINE"]
-                snapshot:
-                  type: object
-                  properties:
                     create:
                       type: boolean
+                    expandMode:
+                      type: string
                     list:
                       type: boolean
+                    stats:
+                      type: boolean
+                  required:
+                  - attach
+                  - clone
+                  - create
+                  - expandMode
+                  - list
+                  - stats
+                  type: object
+              required:
+              - snapshot
+              - topology
+              - volume
+              type: object
+            provisioner:
+              type: string
+          required:
+          - features
+          - provisioner
+          type: object
+      required:
+      - spec
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

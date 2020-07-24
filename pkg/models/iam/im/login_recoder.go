@@ -29,7 +29,7 @@ import (
 )
 
 type LoginRecorder interface {
-	RecordLogin(username string, authErr error, req *http.Request) error
+	RecordLogin(username string, loginType iamv1alpha2.LoginType, provider string, authErr error, req *http.Request) error
 }
 
 type loginRecorder struct {
@@ -42,7 +42,7 @@ func NewLoginRecorder(ksClient kubesphere.Interface) LoginRecorder {
 	}
 }
 
-func (l *loginRecorder) RecordLogin(username string, authErr error, req *http.Request) error {
+func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.LoginType, provider string, authErr error, req *http.Request) error {
 	loginEntry := &iamv1alpha2.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", username),
@@ -51,14 +51,17 @@ func (l *loginRecorder) RecordLogin(username string, authErr error, req *http.Re
 			},
 		},
 		Spec: iamv1alpha2.LoginRecordSpec{
-			SourceIP: net.GetRequestIP(req),
-			Type:     iamv1alpha2.LoginSuccess,
-			Reason:   iamv1alpha2.AuthenticatedSuccessfully,
+			Type:      loginType,
+			Provider:  provider,
+			Success:   true,
+			Reason:    iamv1alpha2.AuthenticatedSuccessfully,
+			SourceIP:  net.GetRequestIP(req),
+			UserAgent: req.UserAgent(),
 		},
 	}
 
 	if authErr != nil {
-		loginEntry.Spec.Type = iamv1alpha2.LoginFailure
+		loginEntry.Spec.Success = false
 		loginEntry.Spec.Reason = authErr.Error()
 	}
 
