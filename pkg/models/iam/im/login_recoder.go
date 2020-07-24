@@ -26,6 +26,7 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
+	"strings"
 )
 
 type LoginRecorder interface {
@@ -43,6 +44,10 @@ func NewLoginRecorder(ksClient kubesphere.Interface) LoginRecorder {
 }
 
 func (l *loginRecorder) RecordLogin(username string, loginType iamv1alpha2.LoginType, provider string, authErr error, req *http.Request) error {
+	// This is a temporary solution in case of user login with email,
+	// '@' is not allowed in Kubernetes object name.
+	username = strings.Replace(username, "@", "-", -1)
+
 	loginEntry := &iamv1alpha2.LoginRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", username),
