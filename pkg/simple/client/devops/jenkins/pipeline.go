@@ -164,9 +164,12 @@ func (p *Pipeline) searchPipelineRunsCount() (int, error) {
 	query.Set("start", "0")
 	query.Set("limit", "1000")
 	query.Set("depth", "-1")
-	//formatUrl := fmt.Sprintf(SearchPipelineRunUrl, projectName, pipelineName)
-
-	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
+	p.HttpParameters.Url.RawQuery = query.Encode()
+	u, err := url.Parse(p.Path)
+	if err != nil {
+		return 0, err
+	}
+	res, err := p.Jenkins.SendPureRequest(u.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
 		return 0, err
