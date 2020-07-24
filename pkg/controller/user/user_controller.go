@@ -528,8 +528,7 @@ func (c *Controller) deleteRoleBindings(user *iamv1alpha2.User) error {
 		return err
 	} else {
 		for _, namespace := range result.Items {
-			if err := c.k8sClient.RbacV1().RoleBindings(namespace.Name).
-				DeleteCollection(deleteOptions, listOptions); err != nil {
+			if err = c.k8sClient.RbacV1().RoleBindings(namespace.Name).DeleteCollection(deleteOptions, listOptions); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -590,8 +589,7 @@ func (c *Controller) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.User, 
 	now := time.Now()
 	failedLoginAttempts := 0
 	for _, loginRecord := range records {
-		if loginRecord.Spec.Type == iamv1alpha2.LoginFailure &&
-			loginRecord.CreationTimestamp.Add(c.authenticationOptions.AuthenticateRateLimiterDuration).After(now) {
+		if !loginRecord.Spec.Success && loginRecord.CreationTimestamp.Add(c.authenticationOptions.AuthenticateRateLimiterDuration).After(now) {
 			failedLoginAttempts++
 		}
 	}

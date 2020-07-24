@@ -43,11 +43,6 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.R
 	}
 
 	resp, ok, err := a.auth.AuthenticatePassword(req.Context(), username, password)
-	// if we authenticated successfully, go ahead and remove the bearer token so that no one
-	// is ever tempted to use it inside of the API server
-	if ok {
-		req.Header.Del("Authorization")
-	}
 
 	// If the token authenticator didn't error, provide a default error
 	if !ok && err == nil {

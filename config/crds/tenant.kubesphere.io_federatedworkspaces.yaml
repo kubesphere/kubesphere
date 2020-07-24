@@ -6,20 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: (devel)
   creationTimestamp: null
-  name: workspacetemplates.tenant.kubesphere.io
+  name: federatedworkspaces.tenant.kubesphere.io
 spec:
   group: tenant.kubesphere.io
   names:
-    categories:
-    - tenant
-    kind: WorkspaceTemplate
-    listKind: WorkspaceTemplateList
-    plural: workspacetemplates
-    singular: workspacetemplate
-  scope: Cluster
+    kind: FederatedWorkspace
+    listKind: FederatedWorkspaceList
+    plural: federatedworkspaces
+    singular: federatedworkspace
+  scope: Namespaced
   validation:
     openAPIV3Schema:
-      description: WorkspaceTemplate is the Schema for the workspacetemplates API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -97,6 +94,8 @@ spec:
           - placement
           - template
           type: object
+      required:
+      - spec
       type: object
   version: v1alpha2
   versions:

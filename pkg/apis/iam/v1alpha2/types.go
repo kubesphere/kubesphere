@@ -125,9 +125,6 @@ const (
 	// UserDisabled means the user is disabled.
 	UserAuthLimitExceeded UserState = "AuthLimitExceeded"
 
-	LoginFailure LoginRecordType = "LoginFailure"
-	LoginSuccess LoginRecordType = "LoginSuccess"
-
 	AuthenticatedSuccessfully = "authenticated successfully"
 )
 
@@ -290,7 +287,10 @@ type RoleBaseList struct {
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".spec.type"
-// +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.reason"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".spec.provider"
+// +kubebuilder:printcolumn:name="From",type="string",JSONPath=".spec.sourceIP"
+// +kubebuilder:printcolumn:name="Success",type="string",JSONPath=".spec.success"
+// +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".spec.reason"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:categories="iam",scope="Cluster"
 type LoginRecord struct {
@@ -300,12 +300,27 @@ type LoginRecord struct {
 }
 
 type LoginRecordSpec struct {
-	SourceIP string          `json:"sourceIP"`
-	Type     LoginRecordType `json:"type"`
-	Reason   string          `json:"reason"`
+	// Which authentication method used, BasicAuth/OAuth
+	Type LoginType `json:"type"`
+	// Provider of authentication, Ldap/Github etc.
+	Provider string `json:"provider"`
+	// Source IP of client
+	SourceIP string `json:"sourceIP"`
+	// User agent of login attempt
+	UserAgent string `json:"userAgent,omitempty"`
+	// Successful login attempt or not
+	Success bool `json:"success"`
+	// States failed login attempt reason
+	Reason string `json:"reason"`
 }
 
-type LoginRecordType string
+type LoginType string
+
+const (
+	BasicAuth LoginType = "Basic"
+	OAuth     LoginType = "OAuth"
+	Token     LoginType = "Token"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

@@ -133,7 +133,7 @@ func (h *handler) Authorize(req *restful.Request, resp *restful.Response) {
 	http.Redirect(resp, req.Request, redirectURL, http.StatusFound)
 }
 
-func (h *handler) OAuthCallBack(req *restful.Request, resp *restful.Response) {
+func (h *handler) oAuthCallBack(req *restful.Request, resp *restful.Response) {
 
 	code := req.QueryParameter("code")
 	name := req.PathParameter("callback")
@@ -161,7 +161,7 @@ func (h *handler) OAuthCallBack(req *restful.Request, resp *restful.Response) {
 	identity, err := oauthIdentityProvider.IdentityExchange(code)
 
 	if err != nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
 		return
 	}
@@ -217,7 +217,7 @@ func (h *handler) OAuthCallBack(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	if err = h.loginRecorder.RecordLogin(authenticated.Name, nil, req.Request); err != nil {
+	if err = h.loginRecorder.RecordLogin(authenticated.Name, iamv1alpha2.OAuth, providerOptions.Name, nil, req.Request); err != nil {
 		klog.Error(err)
 		err := apierrors.NewInternalError(err)
 		resp.WriteError(http.StatusInternalServerError, err)
@@ -273,9 +273,9 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 	authenticated, err := h.authenticator.Authenticate(username, password)
 	if err != nil {
 		if err == im.AuthFailedIncorrectPassword {
-			if err := h.loginRecorder.RecordLogin(username, err, req.Request); err != nil {
+			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, "", err, req.Request); err != nil {
 				klog.Error(err)
-				err := apierrors.NewInternalError(err)
+				err = apierrors.NewInternalError(err)
 				response.WriteError(http.StatusInternalServerError, err)
 				return
 			}
@@ -284,7 +284,7 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 			err == im.AuthFailedIdentityMappingNotMatch ||
 			err == im.AuthRateLimitExceeded {
 			klog.V(4).Info(err)
-			err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+			err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 			response.WriteError(http.StatusUnauthorized, err)
 			return
 		}
@@ -302,7 +302,7 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 		return
 	}
 
-	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), nil, req.Request); err != nil {
+	if err = h.loginRecorder.RecordLogin(authenticated.GetName(), iamv1alpha2.Token, "", nil, req.Request); err != nil {
 		klog.Error(err)
 		err := apierrors.NewInternalError(err)
 		response.WriteError(http.StatusInternalServerError, err)

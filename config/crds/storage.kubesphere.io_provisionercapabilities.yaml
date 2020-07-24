@@ -1,99 +1,110 @@
-# according to https://kubernetes.io/blog/2018/07/12/resizing-persistent-volumes-using-kubernetes/,
-# and https://kubernetes.io/docs/concepts/storage/storage-classes/#allow-volume-expansion
-# volume expansion support for the following in-tree volume plugins:
-# AWS-EBS, GCE-PD, Azure Disk, Azure File, Glusterfs, Cinder, Portworx, and Ceph RBD.
-# online file system expansion support for the following in-tree plugin
-# GCE-PD, AWS-EBS, Cinder, and Ceph RBD
 
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
   name: provisionercapabilities.storage.kubesphere.io
 spec:
   group: storage.kubesphere.io
-  version: v1alpha1
-  preserveUnknownFields: false
   names:
+    kind: ProvisionerCapability
+    listKind: ProvisionerCapabilityList
     plural: provisionercapabilities
     singular: provisionercapability
-    kind: ProvisionerCapability
-    shortNames:
-      - pcap
-  scope: Cluster
-  additionalPrinterColumns:
-    - name: Provisioner
-      type: string
-      description: The provisioner name should be the same as name
-      JSONPath: .spec.pluginInfo.name
-    - name: Expand
-      type: string
-      JSONPath: .spec.features.volume.expandMode
-    - name: Age
-      type: date
-      JSONPath: .metadata.creationTimestamp
+  scope: Namespaced
   validation:
     openAPIV3Schema:
-      required:
-        - spec
-      type: object
+      description: ProvisionerCapability is the schema for the provisionercapability
+        API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.'
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents.'
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
-        spec:
+        metadata:
           type: object
-          description: 'spec defines the desired characteristics of obejct'
+        spec:
+          description: ProvisionerCapabilitySpec defines the desired state of ProvisionerCapability
           properties:
-            pluginInfo:
-              type: object
-              description: 'Plugininfo represents plugin metadata'
-              properties:
-                name:
-                  description: 'provisioner name'
-                  type: string
-                version:
-                  description: 'plugin version'
-                  type: string
             features:
-              type: object
-              description: 'Features represents plugin capability'
+              description: CapabilityFeatures describe storage features
               properties:
+                snapshot:
+                  description: SnapshotFeature describe snapshot features
+                  properties:
+                    create:
+                      type: boolean
+                    list:
+                      type: boolean
+                  required:
+                  - create
+                  - list
+                  type: object
                 topology:
-                  description: 'topology determines whether a provisioner support topology by looking up GetPluginCapabilities.PluginCapability'
                   type: boolean
                 volume:
-                  type: object
-                  description: 'Volume represents whether plugin supports volume features'
+                  description: VolumeFeature describe volume features
                   properties:
-                    create:
-                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
-                      type: boolean
                     attach:
-                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
-                      type: boolean
-                    list:
-                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
                       type: boolean
                     clone:
-                      description: 'Determined by ControllerGetCapabilities in ControllerServer'
                       type: boolean
-                    stats:
-                      description: 'Determined by NodeGetCapabilities in NodeServer'
-                      type: boolean
-                    expandMode:
-                      description: 'Determined by GetPluginCapabilities in IdentityServer'
-                      type: string
-                      items:
-                        type: string
-                        enum: ["UNKNOWN", "OFFLINE", "ONLINE"]
-                snapshot:
-                  type: object
-                  description: 'Snapshot represents whether plugin supports snapshot features'
-                  properties:
                     create:
                       type: boolean
+                    expandMode:
+                      type: string
                     list:
                       type: boolean
+                    stats:
+                      type: boolean
+                  required:
+                  - attach
+                  - clone
+                  - create
+                  - expandMode
+                  - list
+                  - stats
+                  type: object
+              required:
+              - snapshot
+              - topology
+              - volume
+              type: object
+            pluginInfo:
+              description: PluginInfo describes plugin info
+              properties:
+                name:
+                  type: string
+                version:
+                  type: string
+              required:
+              - name
+              - version
+              type: object
+          required:
+          - features
+          - pluginInfo
+          type: object
+      required:
+      - spec
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
