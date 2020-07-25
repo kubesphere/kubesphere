@@ -843,12 +843,12 @@ func (am *amOperator) CreateOrUpdateNamespaceRole(namespace string, role *rbacv1
 	var aggregateRoles []string
 	if err := json.Unmarshal([]byte(role.Annotations[iamv1alpha2.AggregationRolesAnnotation]), &aggregateRoles); err == nil {
 		for _, roleName := range aggregateRoles {
-			role, err := am.GetNamespaceRole(namespace, roleName)
+			aggregationRole, err := am.GetNamespaceRole(namespace, roleName)
 			if err != nil {
 				klog.Error(err)
 				return nil, err
 			}
-			role.Rules = append(role.Rules, role.Rules...)
+			role.Rules = append(role.Rules, aggregationRole.Rules...)
 		}
 	}
 

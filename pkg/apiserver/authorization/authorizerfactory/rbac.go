@@ -249,7 +249,7 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 			workspace = requestAttributes.GetWorkspace()
 		}
 
-		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", requestAttributes.GetWorkspace()); err != nil {
+		if workspaceRoleBindings, err := r.am.ListWorkspaceRoleBindings("", workspace); err != nil {
 			if !visitor(nil, "", nil, err) {
 				return
 			}
