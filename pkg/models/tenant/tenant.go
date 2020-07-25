@@ -557,13 +557,13 @@ func (t *tenantOperator) DeleteWorkspace(workspace string) error {
 	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Delete(workspace, metav1.NewDeleteOptions(0))
 }
 
-// listIntersectedNamespaces lists the namespaces which meet all the following conditions at the same time
-// 1. the namespace in workspace which is in workspaces when workspaces is not empty.
-// 2. the namespace in workspace which contains one of workspaceSubstrs when workspaceSubstrs is not empty.
-// 3. the namespace which is in namespaces when namespaces is not empty.
-// 4. the namespace which contains one of namespaceSubstrs when namespaceSubstrs is not empty.
-func (t *tenantOperator) listIntersectedNamespaces(user user.Info,
-	workspaces, workspaceSubstrs, namespaces, namespaceSubstrs []string) ([]*corev1.Namespace, error) {
+// listIntersectedNamespaces returns a list of namespaces that MUST meet ALL the following filters:
+// 1. If `workspaces` is not empty, the namespace SHOULD belong to one of the specified workpsaces.
+// 2. If `workspaceSubstrs` is not empty, the namespace SHOULD belong to a workspace whose name contains one of the specified substrings.
+// 3. If `namespaces` is not empty, the namespace SHOULD be one of the specified namespacs.
+// 4. If `namespaceSubstrs` is not empty, the namespace's name SHOULD contain one of the specified substrings.
+func (t *tenantOperator) listIntersectedNamespaces(workspaces, workspaceSubstrs,
+	namespaces, namespaceSubstrs []string) ([]*corev1.Namespace, error) {
 	var (
 		namespaceSet = stringSet(namespaces)
 		workspaceSet = stringSet(workspaces)
@@ -608,7 +608,7 @@ func (t *tenantOperator) listIntersectedNamespaces(user user.Info,
 }
 
 func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error) {
-	iNamespaces, err := t.listIntersectedNamespaces(user,
+	iNamespaces, err := t.listIntersectedNamespaces(
 		stringutils.Split(queryParam.WorkspaceFilter, ","),
 		stringutils.Split(queryParam.WorkspaceSearch, ","),
 		stringutils.Split(queryParam.InvolvedObjectNamespaceFilter, ","),
@@ -669,7 +669,7 @@ func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query
 }
 
 func (t *tenantOperator) QueryLogs(user user.Info, query *loggingv1alpha2.Query) (*loggingv1alpha2.APIResponse, error) {
-	iNamespaces, err := t.listIntersectedNamespaces(user,
+	iNamespaces, err := t.listIntersectedNamespaces(
 		stringutils.Split(query.WorkspaceFilter, ","),
 		stringutils.Split(query.WorkspaceSearch, ","),
 		stringutils.Split(query.NamespaceFilter, ","),
@@ -740,7 +740,7 @@ func (t *tenantOperator) QueryLogs(user user.Info, query *loggingv1alpha2.Query)
 }
 
 func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query, writer io.Writer) error {
-	iNamespaces, err := t.listIntersectedNamespaces(user,
+	iNamespaces, err := t.listIntersectedNamespaces(
 		stringutils.Split(query.WorkspaceFilter, ","),
 		stringutils.Split(query.WorkspaceSearch, ","),
 		stringutils.Split(query.NamespaceFilter, ","),
@@ -794,7 +794,7 @@ func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query
 }
 
 func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Query) (*auditingv1alpha1.APIResponse, error) {
-	iNamespaces, err := t.listIntersectedNamespaces(user,
+	iNamespaces, err := t.listIntersectedNamespaces(
 		stringutils.Split(queryParam.WorkspaceFilter, ","),
 		stringutils.Split(queryParam.WorkspaceSearch, ","),
 		stringutils.Split(queryParam.ObjectRefNamespaceFilter, ","),
@@ -806,7 +806,7 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 
 	namespaceCreateTimeMap := make(map[string]time.Time)
 
-	// Now auditing and event have the same authority management, so we can determine whether the user
+	// Now auditing and event have the same authorization mechanism, so we can determine whether the user
 	// has permission to view the auditing log in ns by judging whether the user has the permission to view the event in ns.
 	for _, ns := range iNamespaces {
 		listEvts := authorizer.AttributesRecord{
