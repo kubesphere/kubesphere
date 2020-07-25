@@ -138,11 +138,28 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 				},
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
-						{Name: "kubectl",
+						{
+							Name:  "kubectl",
 							Image: o.kubectlImage,
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "host-time",
+									MountPath: "/etc/localtime",
+								},
+							},
 						},
 					},
 					ServiceAccountName: "kubesphere-cluster-admin",
+					Volumes: []v1.Volume{
+						{
+							Name: "host-time",
+							VolumeSource: v1.VolumeSource{
+								HostPath: &v1.HostPathVolumeSource{
+									Path: "/etc/localtime",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
