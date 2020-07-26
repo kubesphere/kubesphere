@@ -562,7 +562,7 @@ func (c *Controller) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.User, 
 	// blocked user, check if need to unblock user
 	if user.Status.State == iamv1alpha2.UserAuthLimitExceeded {
 		if user.Status.LastTransitionTime != nil &&
-			user.Status.LastTransitionTime.Add(c.authenticationOptions.AuthenticateRateLimiterDuration).After(time.Now()) {
+			user.Status.LastTransitionTime.Add(c.authenticationOptions.AuthenticateRateLimiterDuration).Before(time.Now()) {
 			expected := user.DeepCopy()
 			// unblock user
 			if user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] == "true" {
@@ -608,7 +608,6 @@ func (c *Controller) syncUserStatus(user *iamv1alpha2.User) (*iamv1alpha2.User, 
 
 		return c.ksClient.IamV1alpha2().Users().Update(expect)
 	}
-
 	return user, nil
 }
 
