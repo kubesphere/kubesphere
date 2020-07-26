@@ -731,7 +731,13 @@ func (h *openpitrixHandler) ListCategories(req *restful.Request, resp *restful.R
 	if statistics {
 		for _, item := range result.Items {
 			if category, ok := item.(*openpitrix.Category); ok {
-				statisticsResult, err := h.openpitrix.ListApps(&params.Conditions{Match: map[string]string{"category_id": category.CategoryID, "status": openpitrix.StatusActive, "repo": openpitrix.BuiltinRepoId}}, "", false, 0, 0)
+				statisticsResult, err := h.openpitrix.ListApps(&params.Conditions{
+					Match: map[string]string{
+						openpitrix.CategoryId: category.CategoryID,
+						openpitrix.Status:     openpitrix.StatusActive,
+						openpitrix.RepoId:     openpitrix.BuiltinRepoId,
+					},
+				}, "", false, 0, 0)
 				if err != nil {
 					klog.Errorln(err)
 					handleOpenpitrixError(resp, err)
