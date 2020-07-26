@@ -18,7 +18,6 @@ package tenant
 
 import (
 	"github.com/google/go-cmp/cmp"
-	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -35,6 +34,7 @@ import (
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
 	"reflect"
+	fakeapp "sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
 	"testing"
 )
 

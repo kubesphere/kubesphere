@@ -19,8 +19,6 @@ package informers
 import (
 	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
 	snapshotinformer "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/informers/externalversions"
-	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
-	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -29,6 +27,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	applicationclient "sigs.k8s.io/application/pkg/client/clientset/versioned"
+	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions"
 	"time"
 )
 

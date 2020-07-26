@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	applicationclient "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned"
-	applicationinformers "github.com/kubernetes-sigs/application/pkg/client/informers/externalversions/app/v1beta1"
-	applicationlister "github.com/kubernetes-sigs/application/pkg/client/listers/app/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +23,9 @@ import (
 	servicemeshinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/servicemesh/v1alpha2"
 	servicemeshlisters "kubesphere.io/kubesphere/pkg/client/listers/servicemesh/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/controller/virtualservice/util"
+	applicationclient "sigs.k8s.io/application/pkg/client/clientset/versioned"
+	applicationinformers "sigs.k8s.io/application/pkg/client/informers/externalversions/app/v1beta1"
+	applicationlister "sigs.k8s.io/application/pkg/client/listers/app/v1beta1"
 )
 
 const (

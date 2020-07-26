@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
@@ -48,6 +49,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	application "sigs.k8s.io/application/controllers"
 )
 
 func NewControllerManagerCommand() *cobra.Command {
@@ -179,6 +182,16 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		err = namespace.Add(mgr)
 		if err != nil {
 			klog.Fatal("Unable to create namespace controller")
+		}
+
+		err = (&application.ApplicationReconciler{
+			Scheme: mgr.GetScheme(),
+			Client: mgr.GetClient(),
+			Mapper: mgr.GetRESTMapper(),
+			Log:    klogr.New(),
+		}).SetupWithManager(mgr)
+		if err != nil {
+			klog.Fatal("Unable to create application controller")
 		}
 
 		// TODO(jeff): refactor config with CRD

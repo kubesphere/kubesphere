@@ -20,7 +20,7 @@ import (
 	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"kubesphere.io/kubesphere/pkg/apis/servicemesh/v1alpha2"
 
-	"github.com/kubernetes-sigs/application/pkg/apis/app/v1beta1"
+	appv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
 )
 
 func init() {
@@ -31,5 +31,5 @@ func init() {
 	AddToSchemes = append(AddToSchemes, v1alpha3.SchemeBuilder.AddToScheme)
 
 	// Register application scheme
-	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
+	AddToSchemes = append(AddToSchemes, appv1beta1.SchemeBuilder.AddToScheme)
 }

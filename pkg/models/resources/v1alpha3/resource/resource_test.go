@@ -19,7 +19,6 @@ package resource
 import (
 	"github.com/google/go-cmp/cmp"
 	fakesnapshot "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned/fake"
-	fakeapp "github.com/kubernetes-sigs/application/pkg/client/clientset/versioned/fake"
 	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
@@ -29,6 +28,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	fakeks "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	"kubesphere.io/kubesphere/pkg/informers"
+	fakeapp "sigs.k8s.io/application/pkg/client/clientset/versioned/fake"
 	"testing"
 )
 

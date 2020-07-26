@@ -290,7 +290,6 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 			return
 		default:
 			response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
-			return
 		}
 	}
 

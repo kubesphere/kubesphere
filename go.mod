@@ -10,6 +10,7 @@ require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20190710193110-1eb035ffe2b6
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/aws/aws-sdk-go v1.25.21
 	github.com/beevik/etree v1.1.0
@@ -26,11 +27,13 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
+	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/loads v0.19.2
 	github.com/go-openapi/spec v0.19.4
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/validate v0.19.5
+	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
@@ -40,6 +43,7 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gophercloud/gophercloud v0.3.0 // indirect
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/go-version v1.2.0 // indirect
@@ -47,8 +51,8 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/kiali/kiali v0.15.1-0.20200520152915-769a61d75460
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
-	github.com/kubernetes-sigs/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo v0.0.2
+	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
@@ -77,6 +81,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.26.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
+	gopkg.in/go-playground/validator.v9 v9.29.1 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
 	gopkg.in/yaml.v2 v2.2.8
@@ -96,6 +101,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl v0.17.3
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
+	sigs.k8s.io/application v0.8.3
 	sigs.k8s.io/controller-runtime v0.5.0
 	sigs.k8s.io/controller-tools v0.2.4
 	sigs.k8s.io/kubefed v0.2.0-alpha.1
@@ -134,6 +140,7 @@ replace (
 	github.com/alecthomas/units => github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 	github.com/andybalholm/cascadia => github.com/andybalholm/cascadia v1.0.0
 	github.com/anmitsu/go-shlex => github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
+	github.com/appscode/jsonpatch => github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30
 	github.com/armon/consul-api => github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6
 	github.com/asaskevich/govalidator => github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/aws/aws-sdk-go => github.com/aws/aws-sdk-go v1.22.2
@@ -291,7 +298,6 @@ replace (
 	github.com/kubernetes-csi/csi-lib-utils => github.com/kubernetes-csi/csi-lib-utils v0.7.0
 	github.com/kubernetes-csi/csi-test => github.com/kubernetes-csi/csi-test v2.0.0+incompatible
 	github.com/kubernetes-csi/external-snapshotter/v2 => github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
-	github.com/kubernetes-sigs/application => github.com/kubesphere/application v0.0.0-20191210100950-18cc93526ab4
 	github.com/kubesphere/sonargo => github.com/kubesphere/sonargo v0.0.2
 	github.com/leodido/go-urn => github.com/leodido/go-urn v1.1.0
 	github.com/lib/pq => github.com/lib/pq v1.2.0
@@ -466,7 +472,6 @@ replace (
 	k8s.io/kubernetes => k8s.io/kubernetes v1.14.0
 	k8s.io/metrics => k8s.io/metrics v0.17.3
 	k8s.io/utils => k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
-	kubesphere.io/application => kubesphere.io/application v0.0.0-20190404151855-67ae7f915d4e
 	kubesphere.io/im => kubesphere.io/im v0.1.0
 	modernc.org/cc => modernc.org/cc v1.0.0
 	modernc.org/golex => modernc.org/golex v1.0.0
@@ -480,6 +485,7 @@ replace (
 	openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 	rsc.io/goversion => rsc.io/goversion v1.0.0
 	rsc.io/letsencrypt => rsc.io/letsencrypt v0.0.1
+	sigs.k8s.io/application => kubesphere.io/application v1.0.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.4
 	sigs.k8s.io/kubefed => sigs.k8s.io/kubefed v0.2.0-alpha.1
