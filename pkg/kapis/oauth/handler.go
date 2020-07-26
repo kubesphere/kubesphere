@@ -278,7 +278,9 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 			if err := h.loginRecorder.RecordLogin(username, iamv1alpha2.Token, "", err, req.Request); err != nil {
 				klog.Error(err)
 				response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
+				return
 			}
+			response.WriteError(http.StatusUnauthorized, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
 			return
 		case im.AuthFailedIdentityMappingNotMatch:
 			response.WriteError(http.StatusUnauthorized, apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err)))
@@ -288,6 +290,7 @@ func (h *handler) passwordGrant(username string, password string, req *restful.R
 			return
 		default:
 			response.WriteError(http.StatusInternalServerError, apierrors.NewInternalError(err))
+			return
 		}
 	}
 
