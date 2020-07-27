@@ -270,6 +270,10 @@ func (c *Controller) syncHandler(key string) error {
 				}
 				copyProject.Status.AdminNamespace = ns.Name
 			}
+			if err = c.bindWorkspace(copyProject); err != nil {
+				klog.V(8).Info(err, fmt.Sprintf("failed to bind workspace %s ", key))
+				return err
+			}
 		}
 
 		if !reflect.DeepEqual(copyProject, project) {
@@ -282,7 +286,6 @@ func (c *Controller) syncHandler(key string) error {
 		// Check project exists, otherwise we will create it.
 		_, err := c.devopsClient.GetDevOpsProject(copyProject.Status.AdminNamespace)
 		if err != nil {
-			klog.Error(err, fmt.Sprintf("failed to get project %s ", key))
 			_, err := c.devopsClient.CreateDevOpsProject(copyProject.Status.AdminNamespace)
 			if err != nil {
 				klog.V(8).Info(err, fmt.Sprintf("failed to get project %s ", key))
@@ -335,4 +338,29 @@ func (c *Controller) generateNewNamespace(project *devopsv1alpha3.DevOpsProject)
 	}
 	controllerutil.SetControllerReference(project, ns, scheme.Scheme)
 	return ns
+}
+
+// binding workspace for synchronous deletion
+func (c *Controller) bindWorkspace(project *devopsv1alpha3.DevOpsProject) error {
+
+	workspaceName := project.Labels[constants.WorkspaceLabelKey]
+
+	if workspaceName == "" {
+		return nil
+	}
+
+	workspace, err := c.kubesphereClient.TenantV1alpha1().Workspaces().Get(workspaceName, metav1.GetOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	if !metav1.IsControlledBy(project, workspace) {
+		project.OwnerReferences = nil
+		if err := controllerutil.SetControllerReference(workspace, project, scheme.Scheme); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
