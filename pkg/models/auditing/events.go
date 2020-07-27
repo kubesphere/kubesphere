@@ -70,19 +70,19 @@ func (eo *eventsOperator) Events(queryParam *v1alpha1.Query,
 	var err error
 	switch queryParam.Operation {
 	case "histogram":
-		if len(filter.ObjectRefNamespaceMap) == 0 {
+		if len(filter.ObjectRefNamespaceMap) == 0 && len(filter.ObjectRefWorkspaceMap) == 0 {
 			ar.Histogram = &auditing.Histogram{}
 		} else {
 			ar.Histogram, err = eo.client.CountOverTime(filter, queryParam.Interval)
 		}
 	case "statistics":
-		if len(filter.ObjectRefNamespaceMap) == 0 {
+		if len(filter.ObjectRefNamespaceMap) == 0 && len(filter.ObjectRefWorkspaceMap) == 0 {
 			ar.Statistics = &auditing.Statistics{}
 		} else {
 			ar.Statistics, err = eo.client.StatisticsOnResources(filter)
 		}
 	default:
-		if len(filter.ObjectRefNamespaceMap) == 0 {
+		if len(filter.ObjectRefNamespaceMap) == 0 && len(filter.ObjectRefWorkspaceMap) == 0 {
 			ar.Events = &auditing.Events{}
 		} else {
 			ar.Events, err = eo.client.SearchAuditingEvent(filter, queryParam.From, queryParam.Size, queryParam.Sort)

@@ -28,6 +28,7 @@ type Client interface {
 
 type Filter struct {
 	ObjectRefNamespaceMap map[string]time.Time
+	ObjectRefWorkspaceMap map[string]time.Time
 	ObjectRefNames        []string
 	ObjectRefNameFuzzy    []string
 	Levels                []string

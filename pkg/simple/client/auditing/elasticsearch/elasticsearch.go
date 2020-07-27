@@ -305,7 +305,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		"bool": &b,
 	}
 
-	if len(f.ObjectRefNamespaceMap) > 0 {
+	if len(f.ObjectRefNamespaceMap) > 0 || len(f.ObjectRefWorkspaceMap) > 0 {
 		bi := BoolBody{MinimumShouldMatch: &mini}
 		for k, v := range f.ObjectRefNamespaceMap {
 			bi.Should = append(bi.Should, map[string]interface{}{
@@ -322,6 +322,23 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 				},
 			})
 		}
+
+		for k, v := range f.ObjectRefWorkspaceMap {
+			bi.Should = append(bi.Should, map[string]interface{}{
+				"bool": &BoolBody{
+					Filter: []map[string]interface{}{{
+						"match_phrase": map[string]string{"Workspace.keyword": k},
+					}, {
+						"range": map[string]interface{}{
+							"RequestReceivedTimestamp": map[string]interface{}{
+								"gte": v,
+							},
+						},
+					}},
+				},
+			})
+		}
+
 		if len(bi.Should) > 0 {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": &bi})
 		}

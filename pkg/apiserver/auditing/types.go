@@ -12,9 +12,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/klog"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	auditv1alpha1 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/listers/auditing/v1alpha1"
+	"kubesphere.io/kubesphere/pkg/informers"
+	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net"
 	"net/http"
@@ -37,16 +41,18 @@ type Auditing interface {
 }
 
 type auditing struct {
-	lister  v1alpha1.WebhookLister
-	cache   chan *auditv1alpha1.EventList
-	backend *Backend
+	lister         v1alpha1.WebhookLister
+	resourceGetter *resourcesv1alpha3.ResourceGetter
+	cache          chan *auditv1alpha1.EventList
+	backend        *Backend
 }
 
-func NewAuditing(lister v1alpha1.WebhookLister, url string, stopCh <-chan struct{}) Auditing {
+func NewAuditing(informers informers.InformerFactory, url string, stopCh <-chan struct{}) Auditing {
 
 	a := &auditing{
-		lister: lister,
-		cache:  make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
+		lister:         informers.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
+		cache:          make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
 	}
 
 	a.backend = NewBackend(url, ChannelCapacity, a.cache, SendTimeout, stopCh)
@@ -115,7 +121,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 			Stage:                    audit.StageResponseComplete,
 			ImpersonatedUser:         nil,
 			UserAgent:                req.UserAgent(),
-			RequestReceivedTimestamp: v1.NewMicroTime(time.Now()),
+			RequestReceivedTimestamp: v1.NowMicro(),
 			Annotations:              nil,
 			ObjectRef: &audit.ObjectReference{
 				Resource:        info.Resource,
@@ -140,6 +146,25 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		// If the request url matched /devops/{devops}/kind/{kind}, set resource name as {kind}
 		if len(info.Parts) >= 4 {
 			e.ObjectRef.Name = info.Parts[3]
+		}
+
+		// Get the workspace which the devops project be in.
+		if len(e.Workspace) == 0 {
+			res, err := a.resourceGetter.List(devopsv1alpha3.ResourcePluralDevOpsProject, "", query.New())
+			if err != nil {
+				klog.Error(err)
+			}
+
+			for _, obj := range res.Items {
+				d := obj.(*devopsv1alpha3.DevOpsProject)
+
+				if d.Name == e.Devops {
+					e.Workspace = d.Labels["kubesphere.io/workspace"]
+				} else if d.Status.AdminNamespace == e.Devops {
+					e.Workspace = d.Labels["kubesphere.io/workspace"]
+					e.Devops = d.Name
+				}
+			}
 		}
 	}
 
@@ -185,7 +210,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 
 func (a *auditing) LogResponseObject(e *auditv1alpha1.Event, resp *ResponseCapture) {
 
-	e.StageTimestamp = v1.NewMicroTime(time.Now())
+	e.StageTimestamp = v1.NowMicro()
 	e.ResponseStatus = &v1.Status{Code: int32(resp.StatusCode())}
 	if e.Level.GreaterOrEqual(audit.LevelRequestResponse) {
 		e.ResponseObject = &runtime.Unknown{Raw: resp.Bytes()}
