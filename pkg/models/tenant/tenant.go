@@ -60,6 +60,7 @@ import (
 type Interface interface {
 	ListWorkspaces(user user.Info, query *query.Query) (*api.ListResult, error)
 	ListNamespaces(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
+	ListDevOpsProjects(user user.Info, workspace string, query *query.Query) (*api.ListResult, error)
 	ListFederatedNamespaces(info user.Info, workspace string, param *query.Query) (*api.ListResult, error)
 	CreateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)

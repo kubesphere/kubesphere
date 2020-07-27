@@ -69,6 +69,9 @@ type RequestInfo struct {
 	// Cluster of requested resource, this is empty in single-cluster environment
 	Cluster string
 
+	// DevOps project of requested resource
+	DevOps string
+
 	// Scope of requested resource.
 	ResourceScope string
 }
@@ -195,15 +198,6 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 		}
 	}
 
-	selector := req.URL.Query().Get("labelSelector")
-	// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
-	if strings.HasPrefix(selector, workspaceSelectorPrefix) {
-		workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
-		// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace==system-workspace
-		workspace = strings.TrimPrefix(workspace, "=")
-		requestInfo.Workspace = workspace
-	}
-
 	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
 	if currentParts[0] == "namespaces" {
 		if len(currentParts) > 1 {
@@ -215,8 +209,19 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 				currentParts = currentParts[2:]
 			}
 		}
+	} else if currentParts[0] == "devops" {
+		if len(currentParts) > 1 {
+			requestInfo.DevOps = currentParts[1]
+
+			// if there is another step after the devops name
+			// move currentParts to include it as a resource in its own right
+			if len(currentParts) > 2 {
+				currentParts = currentParts[2:]
+			}
+		}
 	} else {
 		requestInfo.Namespace = metav1.NamespaceNone
+		requestInfo.DevOps = metav1.NamespaceNone
 	}
 
 	// parsing successful, so we now know the proper value for .Parts
@@ -258,6 +263,15 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			requestInfo.Verb = "watch"
 		} else {
 			requestInfo.Verb = "list"
+		}
+
+		// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
+		if requestInfo.Verb == "watch" {
+			selector := req.URL.Query().Get("labelSelector")
+			if strings.HasPrefix(selector, workspaceSelectorPrefix) {
+				workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
+				requestInfo.Workspace = workspace
+			}
 		}
 
 		if opts.FieldSelector != nil {
@@ -306,6 +320,7 @@ const (
 	ClusterScope            = "Cluster"
 	WorkspaceScope          = "Workspace"
 	NamespaceScope          = "Namespace"
+	DevOpsScope             = "DevOps"
 	workspaceSelectorPrefix = constants.WorkspaceLabelKey + "="
 )
 
@@ -316,6 +331,10 @@ func (r *RequestInfoFactory) resolveResourceScope(request RequestInfo) string {
 
 	if request.Namespace != "" {
 		return NamespaceScope
+	}
+
+	if request.DevOps != "" {
+		return DevOpsScope
 	}
 
 	if request.Workspace != "" {

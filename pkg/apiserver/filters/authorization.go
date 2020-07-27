@@ -82,12 +82,12 @@ func getAuthorizerAttributes(ctx context.Context) (authorizer.Attributes, error)
 	attribs.Cluster = requestInfo.Cluster
 	attribs.Workspace = requestInfo.Workspace
 	attribs.KubernetesRequest = requestInfo.IsKubernetesRequest
-
 	attribs.APIGroup = requestInfo.APIGroup
 	attribs.APIVersion = requestInfo.APIVersion
 	attribs.Resource = requestInfo.Resource
 	attribs.Subresource = requestInfo.Subresource
 	attribs.Namespace = requestInfo.Namespace
+	attribs.DevOps = requestInfo.DevOps
 	attribs.Name = requestInfo.Name
 
 	return &attribs, nil

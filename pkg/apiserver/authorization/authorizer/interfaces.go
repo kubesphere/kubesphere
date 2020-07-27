@@ -51,6 +51,9 @@ type Attributes interface {
 	// The namespace of the object, if a request is for a REST object.
 	GetNamespace() string
 
+	// The devops project of the object, if a request is for a REST object.
+	GetDevOps() string
+
 	// The kind of object, if a request is for a REST object.
 	GetResource() string
 
@@ -109,6 +112,7 @@ type AttributesRecord struct {
 	Cluster           string
 	Workspace         string
 	Namespace         string
+	DevOps            string
 	APIGroup          string
 	APIVersion        string
 	Resource          string
@@ -142,6 +146,10 @@ func (a AttributesRecord) GetWorkspace() string {
 
 func (a AttributesRecord) GetNamespace() string {
 	return a.Namespace
+}
+
+func (a AttributesRecord) GetDevOps() string {
+	return a.DevOps
 }
 
 func (a AttributesRecord) GetResource() string {
