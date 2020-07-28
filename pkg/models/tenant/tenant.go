@@ -681,25 +681,51 @@ func (t *tenantOperator) QueryLogs(user user.Info, query *loggingv1alpha2.Query)
 	}
 
 	namespaceCreateTimeMap := make(map[string]time.Time)
-	for _, ns := range iNamespaces {
-		podLogs := authorizer.AttributesRecord{
-			User:            user,
-			Verb:            "get",
-			APIGroup:        "",
-			APIVersion:      "v1",
-			Namespace:       ns.Name,
-			Resource:        "pods",
-			Subresource:     "log",
-			ResourceRequest: true,
-			ResourceScope:   request.NamespaceScope,
-		}
-		decision, _, err := t.authorizer.Authorize(podLogs)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-		if decision == authorizer.DecisionAllow {
-			namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
+
+	var isGlobalAdmin bool
+
+	// If it is a global admin, the user can view logs from any namespace.
+	podLogs := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "get",
+		APIGroup:        "",
+		APIVersion:      "v1",
+		Resource:        "pods",
+		Subresource:     "log",
+		ResourceRequest: true,
+		ResourceScope:   request.ClusterScope,
+	}
+	decision, _, err := t.authorizer.Authorize(podLogs)
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+	if decision == authorizer.DecisionAllow {
+		isGlobalAdmin = true
+	}
+
+	// If it is a regular user, this user can only view logs of namespaces the user belongs to.
+	if !isGlobalAdmin {
+		for _, ns := range iNamespaces {
+			podLogs := authorizer.AttributesRecord{
+				User:            user,
+				Verb:            "get",
+				APIGroup:        "",
+				APIVersion:      "v1",
+				Namespace:       ns.Name,
+				Resource:        "pods",
+				Subresource:     "log",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			}
+			decision, _, err := t.authorizer.Authorize(podLogs)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
+			}
+			if decision == authorizer.DecisionAllow {
+				namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
+			}
 		}
 	}
 
@@ -719,19 +745,19 @@ func (t *tenantOperator) QueryLogs(user user.Info, query *loggingv1alpha2.Query)
 	var ar loggingv1alpha2.APIResponse
 	switch query.Operation {
 	case loggingv1alpha2.OperationStatistics:
-		if len(namespaceCreateTimeMap) == 0 {
+		if len(namespaceCreateTimeMap) == 0 && !isGlobalAdmin {
 			ar.Statistics = &loggingclient.Statistics{}
 		} else {
 			ar, err = t.lo.GetCurrentStats(sf)
 		}
 	case loggingv1alpha2.OperationHistogram:
-		if len(namespaceCreateTimeMap) == 0 {
+		if len(namespaceCreateTimeMap) == 0 && !isGlobalAdmin {
 			ar.Histogram = &loggingclient.Histogram{}
 		} else {
 			ar, err = t.lo.CountLogsByInterval(sf, query.Interval)
 		}
 	default:
-		if len(namespaceCreateTimeMap) == 0 {
+		if len(namespaceCreateTimeMap) == 0 && !isGlobalAdmin {
 			ar.Logs = &loggingclient.Logs{}
 		} else {
 			ar, err = t.lo.SearchLogs(sf, query.From, query.Size, query.Sort)
@@ -752,25 +778,51 @@ func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query
 	}
 
 	namespaceCreateTimeMap := make(map[string]time.Time)
-	for _, ns := range iNamespaces {
-		podLogs := authorizer.AttributesRecord{
-			User:            user,
-			Verb:            "get",
-			APIGroup:        "",
-			APIVersion:      "v1",
-			Namespace:       ns.Name,
-			Resource:        "pods",
-			Subresource:     "log",
-			ResourceRequest: true,
-			ResourceScope:   request.NamespaceScope,
-		}
-		decision, _, err := t.authorizer.Authorize(podLogs)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		if decision == authorizer.DecisionAllow {
-			namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
+
+	var isGlobalAdmin bool
+
+	// If it is a global admin, the user can view logs from any namespace.
+	podLogs := authorizer.AttributesRecord{
+		User:            user,
+		Verb:            "get",
+		APIGroup:        "",
+		APIVersion:      "v1",
+		Resource:        "pods",
+		Subresource:     "log",
+		ResourceRequest: true,
+		ResourceScope:   request.ClusterScope,
+	}
+	decision, _, err := t.authorizer.Authorize(podLogs)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+	if decision == authorizer.DecisionAllow {
+		isGlobalAdmin = true
+	}
+
+	// If it is a regular user, this user can only view logs of namespaces the user belongs to.
+	if !isGlobalAdmin {
+		for _, ns := range iNamespaces {
+			podLogs := authorizer.AttributesRecord{
+				User:            user,
+				Verb:            "get",
+				APIGroup:        "",
+				APIVersion:      "v1",
+				Namespace:       ns.Name,
+				Resource:        "pods",
+				Subresource:     "log",
+				ResourceRequest: true,
+				ResourceScope:   request.NamespaceScope,
+			}
+			decision, _, err := t.authorizer.Authorize(podLogs)
+			if err != nil {
+				klog.Error(err)
+				return err
+			}
+			if decision == authorizer.DecisionAllow {
+				namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
+			}
 		}
 	}
 
@@ -787,7 +839,7 @@ func (t *tenantOperator) ExportLogs(user user.Info, query *loggingv1alpha2.Query
 		Endtime:         query.EndTime,
 	}
 
-	if len(namespaceCreateTimeMap) == 0 {
+	if len(namespaceCreateTimeMap) == 0 && !isGlobalAdmin {
 		return nil
 	} else {
 		return t.lo.ExportLogs(sf, writer)
