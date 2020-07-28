@@ -16,8 +16,8 @@ func TestMainBool(t *testing.T) {
 	}{
 		{
 			filter: logging.SearchFilter{
-				NamespaceFilter: map[string]time.Time{
-					"default": time.Unix(1589981934, 0),
+				NamespaceFilter: map[string]*time.Time{
+					"default": func() *time.Time { t := time.Unix(1589981934, 0); return &t }(),
 				},
 			},
 			expected: "api_body_1.json",
@@ -50,6 +50,14 @@ func TestMainBool(t *testing.T) {
 				Starttime: time.Unix(1590744676, 0),
 			},
 			expected: "api_body_7.json",
+		},
+		{
+			filter: logging.SearchFilter{
+				NamespaceFilter: map[string]*time.Time{
+					"default": nil,
+				},
+			},
+			expected: "api_body_8.json",
 		},
 	}
 

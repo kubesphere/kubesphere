@@ -1,0 +1,26 @@
+{
+  "query":{
+    "bool":{
+      "filter":[
+        {
+          "bool":{
+            "should":[
+              {
+                "bool":{
+                  "filter":[
+                    {
+                      "match_phrase":{
+                        "kubernetes.namespace_name.keyword":"default"
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "minimum_should_match":1
+          }
+        }
+      ]
+    }
+  }
+}

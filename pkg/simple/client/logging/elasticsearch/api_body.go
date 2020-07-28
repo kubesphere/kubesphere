@@ -5,7 +5,6 @@ import (
 	"github.com/json-iterator/go"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/simple/client/logging"
-	"time"
 )
 
 const (
@@ -36,23 +35,38 @@ func (bb *bodyBuilder) mainBool(sf logging.SearchFilter) *bodyBuilder {
 	if len(sf.NamespaceFilter) != 0 {
 		var b Bool
 		for ns := range sf.NamespaceFilter {
-			match := Match{
-				Bool: &Bool{
-					Filter: []Match{
-						{
-							MatchPhrase: map[string]string{
-								"kubernetes.namespace_name.keyword": ns,
+			var match Match
+			if ct := sf.NamespaceFilter[ns]; ct != nil {
+				match = Match{
+					Bool: &Bool{
+						Filter: []Match{
+							{
+								MatchPhrase: map[string]string{
+									"kubernetes.namespace_name.keyword": ns,
+								},
 							},
-						},
-						{
-							Range: &Range{
-								Time: &Time{
-									Gte: func() *time.Time { t := sf.NamespaceFilter[ns]; return &t }(),
+							{
+								Range: &Range{
+									Time: &Time{
+										Gte: ct,
+									},
 								},
 							},
 						},
 					},
-				},
+				}
+			} else {
+				match = Match{
+					Bool: &Bool{
+						Filter: []Match{
+							{
+								MatchPhrase: map[string]string{
+									"kubernetes.namespace_name.keyword": ns,
+								},
+							},
+						},
+					},
+				}
 			}
 			b.Should = append(b.Should, match)
 		}

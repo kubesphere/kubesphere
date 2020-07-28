@@ -51,7 +51,7 @@ type SearchFilter struct {
 	// To prevent disclosing archived logs of a reopened namespace,
 	// NamespaceFilter records the namespace creation time.
 	// Any query to this namespace must begin after its creation.
-	NamespaceFilter map[string]time.Time
+	NamespaceFilter map[string]*time.Time
 	WorkloadSearch  []string
 	WorkloadFilter  []string
 	PodSearch       []string
