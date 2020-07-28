@@ -305,7 +305,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		"bool": &b,
 	}
 
-	if len(f.ObjectRefNamespaceMap) > 0 || len(f.ObjectRefWorkspaceMap) > 0 {
+	if len(f.ObjectRefNamespaceMap) > 0 || len(f.WorkspaceMap) > 0 {
 		bi := BoolBody{MinimumShouldMatch: &mini}
 		for k, v := range f.ObjectRefNamespaceMap {
 			bi.Should = append(bi.Should, map[string]interface{}{
@@ -323,7 +323,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 			})
 		}
 
-		for k, v := range f.ObjectRefWorkspaceMap {
+		for k, v := range f.WorkspaceMap {
 			bi.Should = append(bi.Should, map[string]interface{}{
 				"bool": &BoolBody{
 					Filter: []map[string]interface{}{{
@@ -358,6 +358,36 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 			return nil
 		}
 		return &bi
+	}
+
+	if len(f.ObjectRefNamespaces) > 0 {
+		if bi := shouldBoolbody("match_phrase_prefix", "ObjectRef.Namespace.keyword",
+			f.ObjectRefNamespaces, nil); bi != nil {
+			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+		}
+	}
+	if len(f.ObjectRefNamespaceFuzzy) > 0 {
+		if bi := shouldBoolbody("wildcard", "ObjectRef.Namespace",
+			f.ObjectRefNamespaceFuzzy, func(s string) string {
+				return fmt.Sprintf("*" + s + "*")
+			}); bi != nil {
+			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+		}
+	}
+
+	if len(f.Workspaces) > 0 {
+		if bi := shouldBoolbody("match_phrase_prefix", "Workspace.keyword",
+			f.Workspaces, nil); bi != nil {
+			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+		}
+	}
+	if len(f.WorkspaceFuzzy) > 0 {
+		if bi := shouldBoolbody("wildcard", "Workspace",
+			f.WorkspaceFuzzy, func(s string) string {
+				return fmt.Sprintf("*" + s + "*")
+			}); bi != nil {
+			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
+		}
 	}
 
 	if len(f.ObjectRefNames) > 0 {

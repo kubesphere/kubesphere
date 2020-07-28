@@ -922,7 +922,7 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 
 	return t.auditing.Events(queryParam, func(filter *auditingclient.Filter) {
 		filter.ObjectRefNamespaceMap = namespaceCreateTimeMap
-		filter.ObjectRefWorkspaceMap = workspaceCreateTimeMap
+		filter.WorkspaceMap = workspaceCreateTimeMap
 	})
 }
 
