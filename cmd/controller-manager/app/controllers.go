@@ -49,6 +49,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
+	"kubesphere.io/kubesphere/pkg/simple/client/network"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -65,7 +66,7 @@ func addControllers(
 	authenticationOptions *authoptions.AuthenticationOptions,
 	openpitrixClient openpitrix.Client,
 	multiClusterEnabled bool,
-	networkPolicyEnabled bool,
+	networkOptions *network.Options,
 	serviceMeshEnabled bool,
 	kubectlImage string,
 	stopCh <-chan struct{}) error {
@@ -267,7 +268,7 @@ func addControllers(
 	}
 
 	var nsnpController manager.Runnable
-	if networkPolicyEnabled {
+	if networkOptions.EnableNetworkPolicy {
 		nsnpProvider, err := provider.NewNsNetworkPolicyProvider(client.Kubernetes(), kubernetesInformer.Networking().V1().NetworkPolicies())
 		if err != nil {
 			return err
@@ -279,7 +280,7 @@ func addControllers(
 			kubernetesInformer.Core().V1().Services(),
 			kubernetesInformer.Core().V1().Nodes(),
 			kubesphereInformer.Tenant().V1alpha1().Workspaces(),
-			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider)
+			kubernetesInformer.Core().V1().Namespaces(), nsnpProvider, networkOptions.NSNPOptions)
 	}
 
 	controllers := map[string]manager.Runnable{

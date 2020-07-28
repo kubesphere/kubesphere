@@ -205,7 +205,7 @@ func Run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 			s.AuthenticationOptions,
 			openpitrixClient,
 			s.MultiClusterOptions.Enable,
-			s.NetworkOptions.EnableNetworkPolicy,
+			s.NetworkOptions,
 			servicemeshEnabled,
 			s.AuthenticationOptions.KubectlImage, stopCh); err != nil {
 			klog.Fatalf("unable to register controllers to the manager: %v", err)
