@@ -361,7 +361,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	if len(f.ObjectRefNamespaces) > 0 {
-		if bi := shouldBoolbody("match_phrase_prefix", "ObjectRef.Namespace.keyword",
+		if bi := shouldBoolbody("match_phrase", "ObjectRef.Namespace.keyword",
 			f.ObjectRefNamespaces, nil); bi != nil {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
 		}
@@ -376,7 +376,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	if len(f.Workspaces) > 0 {
-		if bi := shouldBoolbody("match_phrase_prefix", "Workspace.keyword",
+		if bi := shouldBoolbody("match_phrase", "Workspace.keyword",
 			f.Workspaces, nil); bi != nil {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
 		}
