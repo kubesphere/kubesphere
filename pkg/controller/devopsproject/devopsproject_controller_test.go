@@ -371,13 +371,13 @@ func TestUpdateNsOwnerReference(t *testing.T) {
 func TestCreateDevOpsProjects(t *testing.T) {
 	f := newFixture(t)
 	project := newDevOpsProject("test", "", true, false)
-	ns := newNamespace("test-123", "test", true, true)
+	ns := newNamespace("test", "test", false, true)
 	f.devopsProjectLister = append(f.devopsProjectLister, project)
 	f.objects = append(f.objects, project)
 	f.expectDevOpsProject = []string{""}
-
-	// because generateName not work in fakeClient, so DevOpsProject would not be update
-	// f.expectUpdateDevOpsProjectAction(project)
+	expect := project.DeepCopy()
+	expect.Status.AdminNamespace = "test"
+	f.expectUpdateDevOpsProjectAction(expect)
 	f.expectCreateNamespaceAction(ns)
 	f.run(getKey(project, t))
 }

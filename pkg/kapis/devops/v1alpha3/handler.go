@@ -103,6 +103,9 @@ func (h *devopsHandler) CreateDevOpsProject(request *restful.Request, response *
 		if errors.IsNotFound(err) {
 			api.HandleNotFound(response, request, err)
 			return
+		} else if errors.IsConflict(err) {
+			api.HandleConflict(response, request, err)
+			return
 		}
 		api.HandleBadRequest(response, request, err)
 		return

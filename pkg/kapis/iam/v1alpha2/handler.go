@@ -1222,7 +1222,7 @@ func (h *iamHandler) ListUserLoginRecords(request *restful.Request, response *re
 }
 
 func handleError(request *restful.Request, response *restful.Response, err error) {
-	if errors.IsBadRequest(err) {
+	if errors.IsBadRequest(err) || errors.IsInvalid(err) {
 		api.HandleBadRequest(response, request, err)
 	} else if errors.IsNotFound(err) {
 		api.HandleNotFound(response, request, err)
