@@ -378,7 +378,7 @@ func (c *StorageCapabilityController) deleteSnapshotClass(name string) error {
 	return c.snapshotClassClient.Delete(name, &metav1.DeleteOptions{})
 }
 
-func (c *StorageCapabilityController) nonCSICapability(provisioner string) (*capability.StorageClassCapabilitySpec, error) {
+func (c *StorageCapabilityController) capabilityFromProvisioner(provisioner string) (*capability.StorageClassCapabilitySpec, error) {
 	provisionerCapability, err := c.provisionerCapabilityLister.Get(getProvisionerCapabilityName(provisioner))
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -386,6 +386,7 @@ func (c *StorageCapabilityController) nonCSICapability(provisioner string) (*cap
 		}
 		return nil, err
 	}
+	klog.V(4).Infof("get provisioner capability:%s %v", provisioner, provisionerCapability)
 	capabilitySpec := &capability.StorageClassCapabilitySpec{
 		Features: provisionerCapability.Spec.Features,
 	}
@@ -393,19 +394,25 @@ func (c *StorageCapabilityController) nonCSICapability(provisioner string) (*cap
 }
 
 func (c *StorageCapabilityController) getCapabilitySpec(storageClass *storagev1.StorageClass) (*capability.StorageClassCapabilitySpec, error) {
-	isCsi, err := c.isCSIStorage(storageClass.Provisioner)
+	// get from provisioner capability first
+	klog.V(4).Info("get cap ", storageClass.Provisioner)
+	capabilitySpec, err := c.capabilityFromProvisioner(storageClass.Provisioner)
 	if err != nil {
 		return nil, err
 	}
 
-	var capabilitySpec *capability.StorageClassCapabilitySpec
-	if isCsi {
-		capabilitySpec, err = csiCapability(c.csiAddressGetter(storageClass.Provisioner))
-	} else {
-		capabilitySpec, err = c.nonCSICapability(storageClass.Provisioner)
-	}
-	if err != nil {
-		return nil, err
+	// csi of storage capability
+	if capabilitySpec == nil {
+		isCsi, err := c.isCSIStorage(storageClass.Provisioner)
+		if err != nil {
+			return nil, err
+		}
+		if isCsi {
+			capabilitySpec, err = csiCapability(c.csiAddressGetter(storageClass.Provisioner))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if capabilitySpec != nil {
