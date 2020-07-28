@@ -137,6 +137,9 @@ type UserStatus struct {
 	Reason string `json:"reason,omitempty"`
 	// +optional
 	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// Last login attempt timestamp
+	// +optional
+	LastLoginTime *metav1.Time `json:"lastLoginTime,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

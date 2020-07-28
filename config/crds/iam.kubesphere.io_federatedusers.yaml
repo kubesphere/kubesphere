@@ -84,6 +84,10 @@ spec:
                 status:
                   description: UserStatus defines the observed state of User
                   properties:
+                    lastLoginTime:
+                      description: Last login attempt timestamp
+                      format: date-time
+                      type: string
                     lastTransitionTime:
                       format: date-time
                       type: string

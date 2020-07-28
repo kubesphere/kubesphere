@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
-	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
@@ -54,13 +53,13 @@ type LoginRecordController struct {
 	workqueue workqueue.RateLimitingInterface
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
-	recorder              record.EventRecorder
-	authenticationOptions *authoptions.AuthenticationOptions
+	recorder                    record.EventRecorder
+	loginHistoryRetentionPeriod time.Duration
 }
 
 func NewLoginRecordController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
 	loginRecordInformer iamv1alpha2informers.LoginRecordInformer,
-	authenticationOptions *authoptions.AuthenticationOptions) *LoginRecordController {
+	loginHistoryRetentionPeriod time.Duration) *LoginRecordController {
 
 	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
@@ -68,17 +67,15 @@ func NewLoginRecordController(k8sClient kubernetes.Interface, ksClient kubespher
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "loginrecord-controller"})
 	ctl := &LoginRecordController{
-		k8sClient:             k8sClient,
-		ksClient:              ksClient,
-		loginRecordInformer:   loginRecordInformer,
-		loginRecordLister:     loginRecordInformer.Lister(),
-		loginRecordSynced:     loginRecordInformer.Informer().HasSynced,
-		authenticationOptions: authenticationOptions,
-		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "WorkspaceTemplate"),
-		recorder:              recorder,
+		k8sClient:                   k8sClient,
+		ksClient:                    ksClient,
+		loginRecordInformer:         loginRecordInformer,
+		loginRecordLister:           loginRecordInformer.Lister(),
+		loginRecordSynced:           loginRecordInformer.Informer().HasSynced,
+		loginHistoryRetentionPeriod: loginHistoryRetentionPeriod,
+		workqueue:                   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "loginrecord"),
+		recorder:                    recorder,
 	}
-	klog.Error(authenticationOptions.RecordRetentionPeriod)
-	klog.Info("Setting up event handlers")
 	return ctl
 }
 
@@ -182,15 +179,9 @@ func (c *LoginRecordController) processNextWorkItem() bool {
 	return true
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Foo resource
-// with the current status of the resource.
 func (c *LoginRecordController) reconcile(key string) error {
-
 	loginRecord, err := c.loginRecordLister.Get(key)
 	if err != nil {
-		// The user may no longer exist, in which case we stop
-		// processing.
 		if errors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("login record '%s' in work queue no longer exists", key))
 			return nil
@@ -198,12 +189,15 @@ func (c *LoginRecordController) reconcile(key string) error {
 		klog.Error(err)
 		return err
 	}
+
 	now := time.Now()
-	if now.Sub(loginRecord.CreationTimestamp.Time) > c.authenticationOptions.RecordRetentionPeriod {
+	if loginRecord.CreationTimestamp.Add(c.loginHistoryRetentionPeriod).Before(now) { // login record beyonds retention period
 		if err = c.ksClient.IamV1alpha2().LoginRecords().Delete(loginRecord.Name, metav1.NewDeleteOptions(0)); err != nil {
 			klog.Error(err)
 			return err
 		}
+	} else { // put item back into the queue
+		c.workqueue.AddAfter(key, loginRecord.CreationTimestamp.Add(c.loginHistoryRetentionPeriod).Sub(now))
 	}
 	c.recorder.Event(loginRecord, corev1.EventTypeNormal, successSynced, messageResourceSynced)
 	return nil

@@ -221,7 +221,7 @@ func addControllers(
 		client.Kubernetes(),
 		client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
-		authenticationOptions)
+		authenticationOptions.LoginHistoryRetentionPeriod)
 
 	csrController := certificatesigningrequest.NewController(client.Kubernetes(),
 		kubernetesInformer.Certificates().V1beta1().CertificateSigningRequests(),
