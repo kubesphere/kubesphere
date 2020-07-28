@@ -610,7 +610,7 @@ func (t *tenantOperator) listIntersectedNamespaces(workspaces, workspaceSubstrs,
 
 // listIntersectedWorkspaces returns a list of workspaces that MUST meet ALL the following filters:
 // 1. If `workspaces` is not empty, the workspace SHOULD be one of the specified workpsaces.
-// 2. Else f `workspaceSubstrs` is not empty, the workspace SHOULD be contains one of the specified substrings.
+// 2. Else if `workspaceSubstrs` is not empty, the workspace SHOULD be contains one of the specified substrings.
 // 3. Else, return all workspace in the cluster.
 func (t *tenantOperator) listIntersectedWorkspaces(workspaces, workspaceSubstrs []string) ([]*tenantv1alpha1.Workspace, error) {
 	var (
@@ -873,6 +873,8 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 		}
 	}
 
+	// Now auditing and event have the same authorization mechanism, so we can determine whether the user
+	// has permission to view the auditing log in ws by judging whether the user has the permission to view the event in ws.
 	for _, ws := range iWorkspaces {
 		listEvts := authorizer.AttributesRecord{
 			User:            user,
