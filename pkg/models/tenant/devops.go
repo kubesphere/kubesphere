@@ -37,6 +37,8 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 	scope := request.ClusterScope
 	if workspace != "" {
 		scope = request.WorkspaceScope
+		// filter by workspace
+		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
 	}
 
 	listDevOps := authorizer.AttributesRecord{
@@ -54,12 +56,8 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 		return nil, err
 	}
 
-	// allowed list devops in the specified scope
+	// allowed list devops project in the specified scope
 	if decision == authorizer.DecisionAllow {
-		// filter by workspace
-		if workspace != "" {
-			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
-		}
 		result, err := t.resourceGetter.List(devopsv1alpha3.ResourcePluralDevOpsProject, "", queryParam)
 		if err != nil {
 			klog.Error(err)
@@ -74,15 +72,17 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 		return nil, err
 	}
 
+	// list the devops projects that the user joined
 	devopsProjects := make([]runtime.Object, 0)
 	for _, roleBinding := range roleBindings {
+		// the namespace to which role binding belongs
 		obj, err := t.resourceGetter.Get("namespaces", "", roleBinding.Namespace)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-		namespace := obj.(*corev1.Namespace)
-		controlledDevOpsProject := namespace.Labels[constants.DevOpsProjectLabelKey]
+
+		controlledDevOpsProject := obj.(*corev1.Namespace).Labels[constants.DevOpsProjectLabelKey]
 		// skip if not controlled by devops project
 		if controlledDevOpsProject == "" {
 			continue
@@ -91,35 +91,25 @@ func (t *tenantOperator) ListDevOpsProjects(user user.Info, workspace string, qu
 		devopsProject, err := t.resourceGetter.Get(devopsv1alpha3.ResourcePluralDevOpsProject, "", controlledDevOpsProject)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				klog.Warning("orphan devops project found ", devopsProject)
+				klog.Warningf("orphan devops project found: %s", roleBinding.Namespace)
 				continue
 			}
 			klog.Error(err)
 			return nil, err
 		}
 
-		// skip if not controlled by the specified workspace
-		if workspace != "" &&
-			devopsProject.(*devopsv1alpha3.DevOpsProject).Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
-			continue
-		}
-
+		// avoid duplication
 		if !contains(devopsProjects, devopsProject) {
-			devopsProjects = append(devopsProjects, namespace)
+			devopsProjects = append(devopsProjects, devopsProject)
 		}
 	}
 
+	// devops project filtering
 	result := resources.DefaultList(devopsProjects, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
 		return resources.DefaultObjectMetaCompare(left.(*devopsv1alpha3.DevOpsProject).ObjectMeta, right.(*devopsv1alpha3.DevOpsProject).ObjectMeta, field)
 	}, func(object runtime.Object, filter query.Filter) bool {
-		devopsProject := object.(*devopsv1alpha3.DevOpsProject).ObjectMeta
-		if workspace != "" {
-			if workspaceLabel, ok := devopsProject.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
-				return false
-			}
-		}
-		return resources.DefaultObjectMetaFilter(devopsProject, filter)
+		devopsProject := object.(*devopsv1alpha3.DevOpsProject)
+		return resources.DefaultObjectMetaFilter(devopsProject.ObjectMeta, filter)
 	})
-
 	return result, nil
 }
