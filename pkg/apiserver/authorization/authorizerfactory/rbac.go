@@ -234,11 +234,21 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.WorkspaceScope || requestAttributes.GetResourceScope() == request.NamespaceScope {
+	if requestAttributes.GetResourceScope() == request.WorkspaceScope ||
+		requestAttributes.GetResourceScope() == request.NamespaceScope ||
+		requestAttributes.GetResourceScope() == request.DevOpsScope {
+
 		var workspace string
 		var err error
+		// all of resource under namespace and devops belong to workspace
 		if requestAttributes.GetResourceScope() == request.NamespaceScope {
-			if workspace, err = r.am.GetControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
+			if workspace, err = r.am.GetNamespaceControlledWorkspace(requestAttributes.GetNamespace()); err != nil {
+				if !visitor(nil, "", nil, err) {
+					return
+				}
+			}
+		} else if requestAttributes.GetResourceScope() == request.DevOpsScope {
+			if workspace, err = r.am.GetDevOpsControlledWorkspace(requestAttributes.GetDevOps()); err != nil {
 				if !visitor(nil, "", nil, err) {
 					return
 				}
@@ -279,19 +289,33 @@ func (r *RBACAuthorizer) visitRulesFor(requestAttributes authorizer.Attributes, 
 		}
 	}
 
-	if requestAttributes.GetResourceScope() == request.NamespaceScope {
-		if roleBindings, err := r.am.ListRoleBindings("", requestAttributes.GetNamespace()); err != nil {
+	if requestAttributes.GetResourceScope() == request.NamespaceScope ||
+		requestAttributes.GetResourceScope() == request.DevOpsScope {
+
+		namespace := requestAttributes.GetNamespace()
+		// list devops role binding
+		if requestAttributes.GetResourceScope() == request.DevOpsScope {
+			if relatedNamespace, err := r.am.GetDevOpsRelatedNamespace(requestAttributes.GetDevOps()); err != nil {
+				if !visitor(nil, "", nil, err) {
+					return
+				}
+			} else {
+				namespace = relatedNamespace
+			}
+		}
+
+		if roleBindings, err := r.am.ListRoleBindings("", namespace); err != nil {
 			if !visitor(nil, "", nil, err) {
 				return
 			}
 		} else {
 			sourceDescriber := &roleBindingDescriber{}
 			for _, roleBinding := range roleBindings {
-				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), roleBinding.Subjects, requestAttributes.GetNamespace())
+				subjectIndex, applies := appliesTo(requestAttributes.GetUser(), roleBinding.Subjects, namespace)
 				if !applies {
 					continue
 				}
-				regoPolicy, rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, requestAttributes.GetNamespace())
+				regoPolicy, rules, err := r.am.GetRoleReferenceRules(roleBinding.RoleRef, namespace)
 				if err != nil {
 					visitor(nil, "", nil, err)
 					continue

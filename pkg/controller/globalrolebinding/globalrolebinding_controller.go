@@ -229,17 +229,16 @@ func (c *Controller) reconcile(key string) error {
 	}
 
 	if globalRoleBinding.RoleRef.Name == iamv1alpha2.PlatformAdmin {
-		if err := c.relateToClusterAdmin(globalRoleBinding); err != nil {
+		if err := c.assignClusterAdminRole(globalRoleBinding); err != nil {
 			klog.Error(err)
 			return err
 		}
-		if c.devopsClient != nil {
-			username := findExpectUsername(globalRoleBinding)
-			err = c.devopsClient.AssignGlobalRole(modeldevops.JenkinsAdminRoleName, username)
-			if err != nil {
-				klog.Errorf("%+v", err)
-				return err
-			}
+	}
+
+	if c.devopsClient != nil {
+		if err := c.assignDevOpsAdminRole(globalRoleBinding); err != nil {
+			klog.Error(err)
+			return err
 		}
 	}
 
@@ -299,11 +298,9 @@ func (c *Controller) multiClusterSync(globalRoleBinding *iamv1alpha2.GlobalRoleB
 	return nil
 }
 
-func (c *Controller) relateToClusterAdmin(globalRoleBinding *iamv1alpha2.GlobalRoleBinding) error {
+func (c *Controller) assignClusterAdminRole(globalRoleBinding *iamv1alpha2.GlobalRoleBinding) error {
 
 	username := findExpectUsername(globalRoleBinding)
-
-	// unexpected
 	if username == "" {
 		return nil
 	}
@@ -431,6 +428,16 @@ func (c *Controller) ensureNotControlledByKubefed(globalRoleBinding *iamv1alpha2
 		_, err := c.ksClient.IamV1alpha2().GlobalRoleBindings().Update(globalRoleBinding)
 		if err != nil {
 			klog.Error(err)
+		}
+	}
+	return nil
+}
+
+func (c *Controller) assignDevOpsAdminRole(globalRoleBinding *iamv1alpha2.GlobalRoleBinding) error {
+	if username := findExpectUsername(globalRoleBinding); username != "" {
+		if err := c.devopsClient.AssignGlobalRole(modeldevops.JenkinsAdminRoleName, username); err != nil {
+			klog.Errorf("%+v", err)
+			return err
 		}
 	}
 	return nil

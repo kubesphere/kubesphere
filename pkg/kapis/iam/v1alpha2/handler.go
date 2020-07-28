@@ -5,8 +5,6 @@ import (
 	"github.com/emicklei/go-restful"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -1079,7 +1077,7 @@ func (h *iamHandler) resolveNamespace(namespace string, devops string) (string, 
 	if devops == "" {
 		return namespace, nil
 	}
-	return h.am.GetControlledNamespace(devops)
+	return h.am.GetDevOpsRelatedNamespace(devops)
 }
 
 func (h *iamHandler) PatchWorkspaceRole(request *restful.Request, response *restful.Response) {
@@ -1213,18 +1211,7 @@ func (h *iamHandler) updateGlobalRoleBinding(operator user.Info, user *iamv1alph
 func (h *iamHandler) ListUserLoginRecords(request *restful.Request, response *restful.Response) {
 	username := request.PathParameter("user")
 	queryParam := query.ParseQueryParameter(request)
-	selector, _ := labels.Parse(queryParam.LabelSelector)
-	if selector == nil {
-		selector = labels.NewSelector()
-	}
-	requirement, err := labels.NewRequirement(iamv1alpha2.UserReferenceLabel, selection.Equals, []string{username})
-	if err != nil {
-		klog.Error(err)
-		handleError(request, response, err)
-		return
-	}
-	selector.Add(*requirement)
-	queryParam.LabelSelector = selector.String()
+	queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", iamv1alpha2.UserReferenceLabel, username))
 	result, err := h.im.ListLoginRecords(queryParam)
 	if err != nil {
 		klog.Error(err)

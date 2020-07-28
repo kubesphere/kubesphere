@@ -120,8 +120,10 @@ func (f *fixture) newController() (*Controller, informers.SharedInformerFactory,
 	k8sI := kubeinformers.NewSharedInformerFactory(f.kubeclient, noResyncPeriodFunc())
 	dI := fakeDevOps.New(f.initDevOpsProject...)
 
-	c := NewController(f.kubeclient, f.client, dI, k8sI.Core().V1().Namespaces(),
-		i.Devops().V1alpha3().DevOpsProjects())
+	c := NewController(f.kubeclient, f.client, dI,
+		k8sI.Core().V1().Namespaces(),
+		i.Devops().V1alpha3().DevOpsProjects(),
+		i.Tenant().V1alpha1().Workspaces())
 
 	c.devOpsProjectSynced = alwaysReady
 	c.eventRecorder = &record.FakeRecorder{}
@@ -251,7 +253,9 @@ func filterInformerActions(actions []core.Action) []core.Action {
 			(action.Matches("list", devopsprojects.ResourcePluralDevOpsProject) ||
 				action.Matches("watch", devopsprojects.ResourcePluralDevOpsProject) ||
 				action.Matches("list", "namespaces") ||
-				action.Matches("watch", "namespaces")) {
+				action.Matches("watch", "namespaces") ||
+				action.Matches("watch", "workspaces") ||
+				action.Matches("list", "workspaces")) {
 			continue
 		}
 		ret = append(ret, action)
