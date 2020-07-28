@@ -99,12 +99,9 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	ldapClient ldapclient.Interface,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	multiClusterEnabled bool) *Controller {
-	// Create event broadcaster
-	// Add sample-controller types to the default Kubernetes Scheme so Events can be
-	// logged for sample-controller types.
 
 	utilruntime.Must(kubespherescheme.AddToScheme(scheme.Scheme))
-	klog.V(4).Info("Creating event broadcaster")
+
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
@@ -132,6 +129,7 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 		multiClusterEnabled:   multiClusterEnabled,
 		authenticationOptions: authenticationOptions,
 	}
+
 	klog.Info("Setting up event handlers")
 	userInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: ctl.enqueueUser,
@@ -140,16 +138,11 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 		},
 		DeleteFunc: ctl.enqueueUser,
 	})
+
 	loginRecordInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {
-			if username := new.(*iamv1alpha2.LoginRecord).Labels[iamv1alpha2.UserReferenceLabel]; username != "" {
-				ctl.workqueue.Add(username)
-			}
-		},
-		DeleteFunc: func(obj interface{}) {
-			if username := obj.(*iamv1alpha2.LoginRecord).Labels[iamv1alpha2.UserReferenceLabel]; username != "" {
-				ctl.workqueue.Add(username)
-			}
+			err := ctl.enqueueLogin(new)
+			klog.Errorf("Failed to enqueue login object, error: %v", err)
 		},
 	})
 	return ctl
@@ -235,9 +228,32 @@ func (c *Controller) processNextWorkItem() bool {
 	return true
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Foo resource
-// with the current status of the resource.
+// enqueueLogin accepts a login object and set user lastLoginTime field
+func (c *Controller) enqueueLogin(object interface{}) error {
+	login := object.(*iamv1alpha2.LoginRecord)
+	username, ok := login.Labels[iamv1alpha2.UserReferenceLabel]
+
+	if !ok || len(username) == 0 {
+		return fmt.Errorf("login doesn't belong to any user")
+	}
+
+	user, err := c.userLister.Get(username)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("user %s doesn't exist any more, login record will be deleted later", username)
+		}
+		return err
+	}
+
+	if user.Status.LastLoginTime == nil || user.Status.LastLoginTime.Before(&login.CreationTimestamp) {
+		user.Status.LastLoginTime = &login.CreationTimestamp
+		user, err = c.ksClient.IamV1alpha2().Users().Update(user)
+		return err
+	}
+
+	return nil
+}
+
 func (c *Controller) reconcile(key string) error {
 
 	// Get the user with this name
