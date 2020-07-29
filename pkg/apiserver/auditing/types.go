@@ -18,7 +18,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/listers/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/informers"
-	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/devops"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net"
 	"net/http"
@@ -41,18 +42,18 @@ type Auditing interface {
 }
 
 type auditing struct {
-	lister         v1alpha1.WebhookLister
-	resourceGetter *resourcesv1alpha3.ResourceGetter
-	cache          chan *auditv1alpha1.EventList
-	backend        *Backend
+	webhookLister v1alpha1.WebhookLister
+	devopsGetter  v1alpha3.Interface
+	cache         chan *auditv1alpha1.EventList
+	backend       *Backend
 }
 
 func NewAuditing(informers informers.InformerFactory, url string, stopCh <-chan struct{}) Auditing {
 
 	a := &auditing{
-		lister:         informers.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
-		resourceGetter: resourcesv1alpha3.NewResourceGetter(informers),
-		cache:          make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
+		webhookLister: informers.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		devopsGetter:  devops.New(informers.KubeSphereSharedInformerFactory()),
+		cache:         make(chan *auditv1alpha1.EventList, DefaultCacheCapacity),
 	}
 
 	a.backend = NewBackend(url, ChannelCapacity, a.cache, SendTimeout, stopCh)
@@ -60,7 +61,7 @@ func NewAuditing(informers informers.InformerFactory, url string, stopCh <-chan 
 }
 
 func (a *auditing) getAuditLevel() audit.Level {
-	wh, err := a.lister.Get(DefaultWebhook)
+	wh, err := a.webhookLister.Get(DefaultWebhook)
 	if err != nil {
 		klog.V(8).Info(err)
 		return audit.LevelNone
@@ -79,7 +80,7 @@ func (a *auditing) Enabled() bool {
 }
 
 func (a *auditing) K8sAuditingEnabled() bool {
-	wh, err := a.lister.Get(DefaultWebhook)
+	wh, err := a.webhookLister.Get(DefaultWebhook)
 	if err != nil {
 		klog.V(8).Info(err)
 		return false
@@ -111,6 +112,7 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 	}
 
 	e := &auditv1alpha1.Event{
+		Devops:    info.DevOps,
 		Workspace: info.Workspace,
 		Cluster:   info.Cluster,
 		Event: audit.Event{
@@ -136,34 +138,21 @@ func (a *auditing) LogRequestObject(req *http.Request, info *request.RequestInfo
 		},
 	}
 
-	// Handle the devops request which request url matched /devops/{devops}/kind.
-	if len(info.Parts) >= 3 && info.Parts[0] == "devops" {
-		e.ObjectRef.Subresource = ""
-		e.Devops = info.Parts[1]
-		// set resource as kind
-		e.ObjectRef.Resource = info.Parts[2]
-
-		// If the request url matched /devops/{devops}/kind/{kind}, set resource name as {kind}
-		if len(info.Parts) >= 4 {
-			e.ObjectRef.Name = info.Parts[3]
+	// Get the workspace which the devops project be in.
+	if len(e.Devops) > 0 && len(e.Workspace) == 0 {
+		res, err := a.devopsGetter.List("", query.New())
+		if err != nil {
+			klog.Error(err)
 		}
 
-		// Get the workspace which the devops project be in.
-		if len(e.Workspace) == 0 {
-			res, err := a.resourceGetter.List(devopsv1alpha3.ResourcePluralDevOpsProject, "", query.New())
-			if err != nil {
-				klog.Error(err)
-			}
+		for _, obj := range res.Items {
+			d := obj.(*devopsv1alpha3.DevOpsProject)
 
-			for _, obj := range res.Items {
-				d := obj.(*devopsv1alpha3.DevOpsProject)
-
-				if d.Name == e.Devops {
-					e.Workspace = d.Labels["kubesphere.io/workspace"]
-				} else if d.Status.AdminNamespace == e.Devops {
-					e.Workspace = d.Labels["kubesphere.io/workspace"]
-					e.Devops = d.Name
-				}
+			if d.Name == e.Devops {
+				e.Workspace = d.Labels["kubesphere.io/workspace"]
+			} else if d.Status.AdminNamespace == e.Devops {
+				e.Workspace = d.Labels["kubesphere.io/workspace"]
+				e.Devops = d.Name
 			}
 		}
 	}

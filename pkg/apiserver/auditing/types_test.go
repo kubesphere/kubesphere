@@ -43,7 +43,7 @@ func TestGetAuditLevel(t *testing.T) {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
 	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
@@ -72,7 +72,7 @@ func TestAuditing_Enabled(t *testing.T) {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
 	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
@@ -102,7 +102,7 @@ func TestAuditing_K8sAuditingEnabled(t *testing.T) {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
 	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
@@ -132,7 +132,7 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
 	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
@@ -222,7 +222,7 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
 	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
