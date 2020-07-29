@@ -26,13 +26,6 @@ import (
 
 func WithRequestInfo(handler http.Handler, resolver request.RequestInfoResolver) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
-		info, err := resolver.NewRequestInfo(req)
-		if err != nil {
-			responsewriters.InternalError(w, req, fmt.Errorf("failed to crate RequestInfo: %v", err))
-			return
-		}
-
 		// KubeSphere supports kube-apiserver proxy requests in multicluster mode. But kube-apiserver
 		// stripped all authorization headers. Use custom header to carry token to avoid losing authentication token.
 		// We may need a better way. See issue below.
@@ -52,6 +45,22 @@ func WithRequestInfo(handler http.Handler, resolver request.RequestInfoResolver)
 		// See pkg/apiserver/dispatch/dispatch.go for more details
 		if len(req.URL.Query()["dryrun"]) != 0 {
 			req.URL.RawQuery = strings.Replace(req.URL.RawQuery, "dryrun", "dryRun", 1)
+		}
+
+		// kube-apiserver lost query string when proxy websocket requests, there are several issues opened
+		// tracking this, like https://github.com/kubernetes/kubernetes/issues/89360. Also there is a promising
+		// PR aim to fix this, but it's unlikely it will get merged soon. So here we are again. Put raw query
+		// string in Header and extract it on member cluster.
+		if rawQuery := req.Header.Get("X-KubeSphere-Rawquery"); len(rawQuery) != 0 && len(req.URL.RawQuery) == 0 {
+			req.URL.RawQuery = rawQuery
+			req.Header.Del("X-KubeSphere-Rawquery")
+		}
+
+		ctx := req.Context()
+		info, err := resolver.NewRequestInfo(req)
+		if err != nil {
+			responsewriters.InternalError(w, req, fmt.Errorf("failed to crate RequestInfo: %v", err))
+			return
 		}
 
 		req = req.WithContext(request.WithRequestInfo(ctx, info))
