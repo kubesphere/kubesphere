@@ -141,8 +141,9 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 
 	loginRecordInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(new interface{}) {
-			err := ctl.enqueueLogin(new)
-			klog.Errorf("Failed to enqueue login object, error: %v", err)
+			if err := ctl.enqueueLogin(new); err != nil {
+				klog.Errorf("Failed to enqueue login object, error: %v", err)
+			}
 		},
 	})
 	return ctl
