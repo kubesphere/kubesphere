@@ -20,6 +20,7 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
@@ -158,6 +159,14 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 		// with dryrun and switch bach before send to kube-apiserver on the other side.
 		if len(u.Query()["dryRun"]) != 0 {
 			req.URL.RawQuery = strings.Replace(req.URL.RawQuery, "dryRun", "dryrun", 1)
+		}
+
+		// kube-apiserver lost query string when proxy websocket requests, there are several issues opened
+		// tracking this, like https://github.com/kubernetes/kubernetes/issues/89360. Also there is a promising
+		// PR aim to fix this, but it's unlikely it will get merged soon. So here we are again. Put raw query
+		// string in Header and extract it on member cluster.
+		if httpstream.IsUpgradeRequest(req) && len(req.URL.RawQuery) != 0 {
+			req.Header.Set("X-KubeSphere-Rawquery", req.URL.RawQuery)
 		}
 	} else {
 		// everything else goes to ks-apiserver, since our ks-apiserver has the ability to proxy kube-apiserver requests
