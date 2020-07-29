@@ -265,15 +265,6 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			requestInfo.Verb = "list"
 		}
 
-		// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
-		if requestInfo.Verb == "watch" {
-			selector := req.URL.Query().Get("labelSelector")
-			if strings.HasPrefix(selector, workspaceSelectorPrefix) {
-				workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
-				requestInfo.Workspace = workspace
-			}
-		}
-
 		if opts.FieldSelector != nil {
 			if name, ok := opts.FieldSelector.RequiresExactMatch("metadata.name"); ok {
 				if len(path.IsValidPathSegmentName(name)) == 0 {
@@ -282,6 +273,17 @@ func (r *RequestInfoFactory) NewRequestInfo(req *http.Request) (*RequestInfo, er
 			}
 		}
 	}
+
+	// URL forms: /api/v1/watch/namespaces?labelSelector=kubesphere.io/workspace=system-workspace
+	if requestInfo.Verb == "watch" {
+		selector := req.URL.Query().Get("labelSelector")
+		if strings.HasPrefix(selector, workspaceSelectorPrefix) {
+			workspace := strings.TrimPrefix(selector, workspaceSelectorPrefix)
+			requestInfo.Workspace = workspace
+			requestInfo.ResourceScope = WorkspaceScope
+		}
+	}
+
 	// if there's no name on the request and we thought it was a delete before, then the actual verb is deletecollection
 	if len(requestInfo.Name) == 0 && requestInfo.Verb == "delete" {
 		requestInfo.Verb = "deletecollection"
