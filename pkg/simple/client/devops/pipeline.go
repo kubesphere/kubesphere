@@ -1008,6 +1008,18 @@ type ResJson struct {
 						} `json:"value,omitempty"`
 					} `json:"arguments,omitempty"`
 				} `json:"agent,omitempty"`
+				Parameters struct {
+					Parameters []struct {
+						Name      string `json:"name,omitempty" description:"name"`
+						Arguments []struct {
+							Key   string `json:"key,omitempty" description:"key"`
+							Value struct {
+								IsLiteral bool   `json:"isLiteral,omitempty" description:"is literal or not"`
+								Value     string `json:"value,omitempty" description:"value"`
+							} `json:"value,omitempty"`
+						} `json:"arguments,omitempty"`
+					} `json:"parameters,omitempty"`
+				} `json:"parameters,omitempty"`
 			} `json:"pipeline,omitempty"`
 		} `json:"json,omitempty"`
 	} `json:"data,omitempty"`
