@@ -27,8 +27,6 @@ type APIResponse struct {
 
 type Query struct {
 	Operation       string
-	WorkspaceFilter string
-	WorkspaceSearch string
 	NamespaceFilter string
 	NamespaceSearch string
 	WorkloadFilter  string
@@ -49,8 +47,6 @@ type Query struct {
 func ParseQueryParameter(req *restful.Request) (*Query, error) {
 	var q Query
 	q.Operation = req.QueryParameter("operation")
-	q.WorkspaceFilter = req.QueryParameter("workspaces")
-	q.WorkspaceSearch = req.QueryParameter("workspace_query")
 	q.NamespaceFilter = req.QueryParameter("namespaces")
 	q.NamespaceSearch = req.QueryParameter("namespace_query")
 	q.WorkloadFilter = req.QueryParameter("workloads")
