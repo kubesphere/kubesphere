@@ -175,7 +175,7 @@ func TestParseToQueryPart(t *testing.T) {
 				"bool": {
 					"should": [
 						{
-							"match_phrase_prefix": {
+							"match_phrase": {
 								"ObjectRef.Name.keyword": "istio"
 							}
 						}
@@ -188,7 +188,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"wildcard": {
-								"ObjectRef.Name": "*istio*"
+								"ObjectRef.Name.keyword": "*istio*"
 							}
 						}
 					],
@@ -200,7 +200,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"match_phrase": {
-								"Verb": "create"
+								"Verb.keyword": "create"
 							}
 						}
 					],
@@ -212,7 +212,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"match_phrase": {
-								"Level": "Metadata"
+								"Level.keyword": "Metadata"
 							}
 						}
 					],
@@ -224,7 +224,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"wildcard": {
-								"SourceIPs": "*192.168*"
+								"SourceIPs.keyword": "*192.168*"
 							}
 						}
 					],
@@ -248,7 +248,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"wildcard": {
-								"User.Username": "*system:serviceaccount*"
+								"User.Username.keyword": "*system:serviceaccount*"
 							}
 						}
 					],
@@ -260,7 +260,7 @@ func TestParseToQueryPart(t *testing.T) {
 					"should": [
 						{
 							"wildcard": {
-								"User.Groups": "*system:serviceaccounts*"
+								"User.Groups.keyword": "*system:serviceaccounts*"
 							}
 						}
 					],

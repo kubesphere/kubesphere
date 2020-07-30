@@ -367,7 +367,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		}
 	}
 	if len(f.ObjectRefNamespaceFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "ObjectRef.Namespace",
+		if bi := shouldBoolbody("wildcard", "ObjectRef.Namespace.keyword",
 			f.ObjectRefNamespaceFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
@@ -382,7 +382,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		}
 	}
 	if len(f.WorkspaceFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "Workspace",
+		if bi := shouldBoolbody("wildcard", "Workspace.keyword",
 			f.WorkspaceFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
@@ -391,13 +391,13 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	if len(f.ObjectRefNames) > 0 {
-		if bi := shouldBoolbody("match_phrase_prefix", "ObjectRef.Name.keyword",
+		if bi := shouldBoolbody("match_phrase", "ObjectRef.Name.keyword",
 			f.ObjectRefNames, nil); bi != nil {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
 		}
 	}
 	if len(f.ObjectRefNameFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "ObjectRef.Name",
+		if bi := shouldBoolbody("wildcard", "ObjectRef.Name.keyword",
 			f.ObjectRefNameFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
@@ -406,20 +406,20 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	if len(f.Verbs) > 0 {
-		if bi := shouldBoolbody("match_phrase", "Verb",
+		if bi := shouldBoolbody("match_phrase", "Verb.keyword",
 			f.Verbs, nil); bi != nil {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
 		}
 	}
 	if len(f.Levels) > 0 {
-		if bi := shouldBoolbody("match_phrase", "Level",
+		if bi := shouldBoolbody("match_phrase", "Level.keyword",
 			f.Levels, nil); bi != nil {
 			b.Filter = append(b.Filter, map[string]interface{}{"bool": bi})
 		}
 	}
 
 	if len(f.SourceIpFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "SourceIPs",
+		if bi := shouldBoolbody("wildcard", "SourceIPs.keyword",
 			f.SourceIpFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
@@ -434,7 +434,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 		}
 	}
 	if len(f.UserFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "User.Username",
+		if bi := shouldBoolbody("wildcard", "User.Username.keyword",
 			f.UserFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
@@ -443,7 +443,7 @@ func parseToQueryPart(f *auditing.Filter) interface{} {
 	}
 
 	if len(f.GroupFuzzy) > 0 {
-		if bi := shouldBoolbody("wildcard", "User.Groups",
+		if bi := shouldBoolbody("wildcard", "User.Groups.keyword",
 			f.GroupFuzzy, func(s string) string {
 				return fmt.Sprintf("*" + s + "*")
 			}); bi != nil {
