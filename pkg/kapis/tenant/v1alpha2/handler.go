@@ -5,6 +5,7 @@ import (
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -56,9 +57,10 @@ func (h *tenantHandler) ListWorkspaces(req *restful.Request, resp *restful.Respo
 }
 
 func (h *tenantHandler) ListFederatedNamespaces(req *restful.Request, resp *restful.Response) {
-	user, ok := request.UserFrom(req.Request.Context())
+	workspace := req.PathParameter("workspace")
 	queryParam := query.ParseQueryParameter(req)
 
+	workspaceMember, ok := request.UserFrom(req.Request.Context())
 	if !ok {
 		err := fmt.Errorf("cannot obtain user info")
 		klog.Errorln(err)
@@ -66,10 +68,7 @@ func (h *tenantHandler) ListFederatedNamespaces(req *restful.Request, resp *rest
 		return
 	}
 
-	workspace := req.PathParameter("workspace")
-
-	result, err := h.tenant.ListFederatedNamespaces(user, workspace, queryParam)
-
+	result, err := h.tenant.ListFederatedNamespaces(workspaceMember, workspace, queryParam)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
@@ -79,20 +78,26 @@ func (h *tenantHandler) ListFederatedNamespaces(req *restful.Request, resp *rest
 }
 
 func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Response) {
-	user, ok := request.UserFrom(req.Request.Context())
+	workspace := req.PathParameter("workspace")
 	queryParam := query.ParseQueryParameter(req)
 
-	if !ok {
-		err := fmt.Errorf("cannot obtain user info")
-		klog.Errorln(err)
-		api.HandleForbidden(resp, nil, err)
-		return
+	var workspaceMember user.Info
+	if username := req.PathParameter("workspacemember"); username != "" {
+		workspaceMember = &user.DefaultInfo{
+			Name: username,
+		}
+	} else {
+		requestUser, ok := request.UserFrom(req.Request.Context())
+		if !ok {
+			err := fmt.Errorf("cannot obtain user info")
+			klog.Errorln(err)
+			api.HandleForbidden(resp, nil, err)
+			return
+		}
+		workspaceMember = requestUser
 	}
 
-	workspace := req.PathParameter("workspace")
-
-	result, err := h.tenant.ListNamespaces(user, workspace, queryParam)
-
+	result, err := h.tenant.ListNamespaces(workspaceMember, workspace, queryParam)
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
 		return
@@ -102,19 +107,26 @@ func (h *tenantHandler) ListNamespaces(req *restful.Request, resp *restful.Respo
 }
 
 func (h *tenantHandler) ListDevOpsProjects(req *restful.Request, resp *restful.Response) {
-	user, ok := request.UserFrom(req.Request.Context())
+	workspace := req.PathParameter("workspace")
 	queryParam := query.ParseQueryParameter(req)
 
-	if !ok {
-		err := fmt.Errorf("cannot obtain user info")
-		klog.Errorln(err)
-		api.HandleForbidden(resp, nil, err)
-		return
+	var workspaceMember user.Info
+	if username := req.PathParameter("workspacemember"); username != "" {
+		workspaceMember = &user.DefaultInfo{
+			Name: username,
+		}
+	} else {
+		requestUser, ok := request.UserFrom(req.Request.Context())
+		if !ok {
+			err := fmt.Errorf("cannot obtain user info")
+			klog.Errorln(err)
+			api.HandleForbidden(resp, nil, err)
+			return
+		}
+		workspaceMember = requestUser
 	}
 
-	workspace := req.PathParameter("workspace")
-
-	result, err := h.tenant.ListDevOpsProjects(user, workspace, queryParam)
+	result, err := h.tenant.ListDevOpsProjects(workspaceMember, workspace, queryParam)
 
 	if err != nil {
 		api.HandleInternalError(resp, nil, err)
