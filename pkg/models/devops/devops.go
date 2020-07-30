@@ -23,13 +23,16 @@ import (
 	"io"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -143,7 +146,30 @@ func convertToHttpParameters(req *http.Request) *devops.HttpParameters {
 }
 
 func (d devopsOperator) CreateDevOpsProject(workspace string, project *v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error) {
-	project.Annotations[tenantv1alpha1.WorkspaceLabel] = workspace
+	// All resources of devops project belongs to the namespace of the same name
+	// The devops project name is used as the name of the admin namespace, using generateName to avoid conflicts
+	if project.GenerateName == "" {
+		err := errors.NewInvalid(devopsv1alpha3.SchemeGroupVersion.WithKind(devopsv1alpha3.ResourceKindDevOpsProject).GroupKind(),
+			"", []*field.Error{field.Required(field.NewPath("metadata.generateName"), "generateName is required")})
+		klog.Error(err)
+		return nil, err
+	}
+	// generateName is used as displayName
+	// ensure generateName is unique in workspace scope
+	if unique, err := d.isGenerateNameUnique(workspace, project.GenerateName); err != nil {
+		return nil, err
+	} else if !unique {
+		err = errors.NewConflict(devopsv1alpha3.Resource(devopsv1alpha3.ResourceSingularDevOpsProject),
+			project.GenerateName, fmt.Errorf(project.GenerateName, fmt.Errorf("a devops project named %s already exists in the workspace", project.GenerateName)))
+		klog.Error(err)
+		return nil, err
+	}
+	// metadata override
+	if project.Labels == nil {
+		project.Labels = make(map[string]string, 0)
+	}
+	project.Name = ""
+	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
 	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Create(project)
 }
 
@@ -156,7 +182,10 @@ func (d devopsOperator) DeleteDevOpsProject(workspace string, projectName string
 }
 
 func (d devopsOperator) UpdateDevOpsProject(workspace string, project *v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error) {
-	project.Annotations[tenantv1alpha1.WorkspaceLabel] = workspace
+	if project.Labels == nil {
+		project.Labels = make(map[string]string, 0)
+	}
+	project.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
 	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Update(project)
 }
 
@@ -864,6 +893,21 @@ func (d devopsOperator) ToJson(req *http.Request) (*devops.ResJson, error) {
 	}
 
 	return res, err
+}
+
+func (d devopsOperator) isGenerateNameUnique(workspace, generateName string) (bool, error) {
+	selector := labels.Set{tenantv1alpha1.WorkspaceLabel: workspace}
+	projects, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().List(labels.SelectorFromSet(selector))
+	if err != nil {
+		klog.Error(err)
+		return false, err
+	}
+	for _, p := range projects {
+		if p.GenerateName == generateName {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func getInputReqBody(reqBody io.ReadCloser) (newReqBody io.ReadCloser, err error) {

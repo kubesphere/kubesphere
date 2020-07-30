@@ -254,6 +254,12 @@ func (c *Controller) syncHandler(key string) error {
 				ns := c.generateNewNamespace(project)
 				ns, err := c.client.CoreV1().Namespaces().Create(ns)
 				if err != nil {
+					// devops project name is conflict, cannot create admin namespace
+					if errors.IsAlreadyExists(err) {
+						klog.Errorf("Failed to create admin namespace for devopsproject %s, error %v", project.Name, err)
+						c.eventRecorder.Event(project, v1.EventTypeWarning, "CreateAdminNamespaceFailed", err.Error())
+						return err
+					}
 					klog.V(8).Info(err, fmt.Sprintf("failed to create ns %s ", key))
 					return err
 				}
@@ -369,13 +375,15 @@ func (c *Controller) deleteDevOpsProjectInDevOps(project *devopsv1alpha3.DevOpsP
 }
 
 func (c *Controller) generateNewNamespace(project *devopsv1alpha3.DevOpsProject) *v1.Namespace {
+	// devops project name and admin namespace name should be the same
+	// solve the access control problem of devops API v1alpha2 and v1alpha3
 	ns := &v1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
 			APIVersion: v1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: project.Name,
+			Name: project.Name,
 			Labels: map[string]string{
 				constants.DevOpsProjectLabelKey: project.Name,
 			},
