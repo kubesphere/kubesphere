@@ -12,6 +12,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+DOCKER_TAG=latest
+
 OUTPUT_DIR=bin
 GOFLAGS=-mod=vendor
 define ALL_HELP_INFO
@@ -82,7 +84,10 @@ openapi:
 	go run ./tools/cmd/crd-doc-gen/main.go
 # Build the docker image
 docker-build: all
-	hack/docker_build.sh
+	hack/docker_build.sh ${DOCKER_TAG}
+
+docker-release: all
+	hack/docker_build.sh ${DOCKER_TAG} true
 
 # Run tests
 test: fmt vet

@@ -7,12 +7,13 @@ ENV UID=1002
 # docker group
 ENV GID=998
 
-COPY  /bin/cmd/ks-apiserver /usr/local/bin/
-
 RUN apk add --no-cache ca-certificates && \
     addgroup --gid "$GID" "$USER" && \
-    adduser -D -g "" --ingroup "$USER" -u "$UID" "$USER" && \
-    chown -R kubesphere:"$GID" /usr/local/bin/ks-apiserver
+    adduser -D -g "" --ingroup "$USER" -u "$UID" "$USER"
+
+COPY  /bin/cmd/ks-apiserver /usr/local/bin/
+
+RUN chown -R kubesphere:"$GID" /usr/local/bin/ks-apiserver
 
 EXPOSE 9090
 
