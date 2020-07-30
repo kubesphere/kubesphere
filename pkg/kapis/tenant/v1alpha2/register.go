@@ -130,6 +130,14 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Doc("List the devops projects of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/devops").
+		To(handler.ListDevOpsProjects).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("workspacemember", "workspacemember username")).
+		Doc("List the devops projects of specified workspace for the workspace member").
+		Reads(corev1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.DescribeNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -146,6 +154,14 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		To(handler.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces of the specified workspace for the current user").
+		Reads(corev1.Namespace{}).
+		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/namespaces").
+		To(handler.ListNamespaces).
+		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("workspacemember", "workspacemember username")).
+		Doc("List the namespaces of the specified workspace for the workspace member").
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
