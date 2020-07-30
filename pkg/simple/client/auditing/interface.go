@@ -27,21 +27,26 @@ type Client interface {
 }
 
 type Filter struct {
-	ObjectRefNamespaceMap map[string]time.Time
-	ObjectRefNames        []string
-	ObjectRefNameFuzzy    []string
-	Levels                []string
-	Verbs                 []string
-	Users                 []string
-	UserFuzzy             []string
-	GroupFuzzy            []string
-	SourceIpFuzzy         []string
-	ObjectRefResources    []string
-	ObjectRefSubresources []string
-	ResponseCodes         []int32
-	ResponseStatus        []string
-	StartTime             *time.Time
-	EndTime               *time.Time
+	ObjectRefNamespaceMap   map[string]time.Time
+	WorkspaceMap            map[string]time.Time
+	ObjectRefNamespaces     []string
+	ObjectRefNamespaceFuzzy []string
+	Workspaces              []string
+	WorkspaceFuzzy          []string
+	ObjectRefNames          []string
+	ObjectRefNameFuzzy      []string
+	Levels                  []string
+	Verbs                   []string
+	Users                   []string
+	UserFuzzy               []string
+	GroupFuzzy              []string
+	SourceIpFuzzy           []string
+	ObjectRefResources      []string
+	ObjectRefSubresources   []string
+	ResponseCodes           []int32
+	ResponseStatus          []string
+	StartTime               *time.Time
+	EndTime                 *time.Time
 }
 
 type Event map[string]interface{}

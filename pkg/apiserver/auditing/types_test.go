@@ -9,11 +9,12 @@ import (
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/authentication/user"
 	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
+	fakek8s "k8s.io/client-go/kubernetes/fake"
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/apis/auditing/v1alpha1"
 	v1alpha12 "kubesphere.io/kubesphere/pkg/apiserver/auditing/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
-	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/informers"
 	"kubesphere.io/kubesphere/pkg/utils/iputil"
 	"net/http"
 	"net/http/httptest"
@@ -37,13 +38,15 @@ func TestGetAuditLevel(t *testing.T) {
 		},
 	}
 
-	informer := ksinformers.NewSharedInformerFactory(fake.NewSimpleClientset(), noResyncPeriodFunc())
+	ksClient := fake.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: informer.Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
-	err := informer.Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
+	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
 	if err != nil {
 		panic(err)
 	}
@@ -64,13 +67,15 @@ func TestAuditing_Enabled(t *testing.T) {
 		},
 	}
 
-	informer := ksinformers.NewSharedInformerFactory(fake.NewSimpleClientset(), noResyncPeriodFunc())
+	ksClient := fake.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: informer.Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
-	err := informer.Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
+	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
 	if err != nil {
 		panic(err)
 	}
@@ -92,13 +97,15 @@ func TestAuditing_K8sAuditingEnabled(t *testing.T) {
 		},
 	}
 
-	informer := ksinformers.NewSharedInformerFactory(fake.NewSimpleClientset(), noResyncPeriodFunc())
+	ksClient := fake.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: informer.Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
-	err := informer.Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
+	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
 	if err != nil {
 		panic(err)
 	}
@@ -120,13 +127,15 @@ func TestAuditing_LogRequestObject(t *testing.T) {
 		},
 	}
 
-	informer := ksinformers.NewSharedInformerFactory(fake.NewSimpleClientset(), noResyncPeriodFunc())
+	ksClient := fake.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: informer.Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
-	err := informer.Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
+	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
 	if err != nil {
 		panic(err)
 	}
@@ -208,13 +217,15 @@ func TestAuditing_LogResponseObject(t *testing.T) {
 		},
 	}
 
-	informer := ksinformers.NewSharedInformerFactory(fake.NewSimpleClientset(), noResyncPeriodFunc())
+	ksClient := fake.NewSimpleClientset()
+	k8sClient := fakek8s.NewSimpleClientset()
+	fakeInformerFactory := informers.NewInformerFactories(k8sClient, ksClient, nil, nil, nil, nil)
 
 	a := auditing{
-		lister: informer.Auditing().V1alpha1().Webhooks().Lister(),
+		webhookLister: fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
 	}
 
-	err := informer.Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
+	err := fakeInformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Informer().GetIndexer().Add(webhook)
 	if err != nil {
 		panic(err)
 	}

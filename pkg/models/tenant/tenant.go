@@ -609,6 +609,40 @@ func (t *tenantOperator) listIntersectedNamespaces(workspaces, workspaceSubstrs,
 	return iNamespaces, nil
 }
 
+// listIntersectedWorkspaces returns a list of workspaces that MUST meet ALL the following filters:
+// 1. If `workspaces` is not empty, the workspace SHOULD be one of the specified workpsaces.
+// 2. Else if `workspaceSubstrs` is not empty, the workspace SHOULD be contains one of the specified substrings.
+// 3. Else, return all workspace in the cluster.
+func (t *tenantOperator) listIntersectedWorkspaces(workspaces, workspaceSubstrs []string) ([]*tenantv1alpha1.Workspace, error) {
+	var (
+		workspaceSet = stringSet(workspaces)
+		iWorkspaces  []*tenantv1alpha1.Workspace
+	)
+
+	result, err := t.resourceGetter.List("workspaces", "", query.New())
+	if err != nil {
+		return nil, err
+	}
+	for _, obj := range result.Items {
+		ws, ok := obj.(*tenantv1alpha1.Workspace)
+		if !ok {
+			continue
+		}
+
+		if len(workspaceSet) > 0 {
+			if _, ok := workspaceSet[ws.Name]; !ok {
+				continue
+			}
+		}
+		if len(workspaceSubstrs) > 0 && !stringContains(ws.Name, workspaceSubstrs) {
+			continue
+		}
+
+		iWorkspaces = append(iWorkspaces, ws)
+	}
+	return iWorkspaces, nil
+}
+
 func (t *tenantOperator) Events(user user.Info, queryParam *eventsv1alpha1.Query) (*eventsv1alpha1.APIResponse, error) {
 	iNamespaces, err := t.listIntersectedNamespaces(
 		stringutils.Split(queryParam.WorkspaceFilter, ","),
@@ -870,7 +904,16 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 		return nil, err
 	}
 
+	iWorkspaces, err := t.listIntersectedWorkspaces(
+		stringutils.Split(queryParam.WorkspaceFilter, ","),
+		stringutils.Split(queryParam.WorkspaceSearch, ","))
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
 	namespaceCreateTimeMap := make(map[string]time.Time)
+	workspaceCreateTimeMap := make(map[string]time.Time)
 
 	// Now auditing and event have the same authorization mechanism, so we can determine whether the user
 	// has permission to view the auditing log in ns by judging whether the user has the permission to view the event in ns.
@@ -894,6 +937,30 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 			namespaceCreateTimeMap[ns.Name] = ns.CreationTimestamp.Time
 		}
 	}
+
+	// Now auditing and event have the same authorization mechanism, so we can determine whether the user
+	// has permission to view the auditing log in ws by judging whether the user has the permission to view the event in ws.
+	for _, ws := range iWorkspaces {
+		listEvts := authorizer.AttributesRecord{
+			User:            user,
+			Verb:            "list",
+			APIGroup:        "",
+			APIVersion:      "v1",
+			Workspace:       ws.Name,
+			Resource:        "events",
+			ResourceRequest: true,
+			ResourceScope:   request.WorkspaceScope,
+		}
+		decision, _, err := t.authorizer.Authorize(listEvts)
+		if err != nil {
+			klog.Error(err)
+			return nil, err
+		}
+		if decision == authorizer.DecisionAllow {
+			workspaceCreateTimeMap[ws.Name] = ws.CreationTimestamp.Time
+		}
+	}
+
 	// If there are no ns and ws query conditions,
 	// those events with empty `objectRef.namespace` will also be listed when user can list all events
 	if len(queryParam.WorkspaceFilter) == 0 && len(queryParam.ObjectRefNamespaceFilter) == 0 &&
@@ -914,11 +981,13 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 		}
 		if decision == authorizer.DecisionAllow {
 			namespaceCreateTimeMap[""] = time.Time{}
+			workspaceCreateTimeMap[""] = time.Time{}
 		}
 	}
 
 	return t.auditing.Events(queryParam, func(filter *auditingclient.Filter) {
 		filter.ObjectRefNamespaceMap = namespaceCreateTimeMap
+		filter.WorkspaceMap = workspaceCreateTimeMap
 	})
 }
 

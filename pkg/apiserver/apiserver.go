@@ -260,8 +260,7 @@ func (s *APIServer) buildHandlerChain(stopCh <-chan struct{}) {
 
 	if s.Config.AuditingOptions.Enable {
 		handler = filters.WithAuditing(handler,
-			audit.NewAuditing(s.InformerFactory.KubeSphereSharedInformerFactory().Auditing().V1alpha1().Webhooks().Lister(),
-				s.Config.AuditingOptions.WebhookUrl, stopCh))
+			audit.NewAuditing(s.InformerFactory, s.Config.AuditingOptions.WebhookUrl, stopCh))
 	}
 
 	var authorizers authorizer.Authorizer
