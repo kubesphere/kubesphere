@@ -18,4 +18,34 @@ limitations under the License.
 
 package v1beta1
 
+type FederatedApplicationExpansion interface{}
+
+type FederatedClusterRoleExpansion interface{}
+
+type FederatedClusterRoleBindingExpansion interface{}
+
+type FederatedConfigMapExpansion interface{}
+
+type FederatedDeploymentExpansion interface{}
+
+type FederatedIngressExpansion interface{}
+
+type FederatedJobExpansion interface{}
+
+type FederatedLimitRangeExpansion interface{}
+
 type FederatedNamespaceExpansion interface{}
+
+type FederatedPersistentVolumeClaimExpansion interface{}
+
+type FederatedResourceQuotaExpansion interface{}
+
+type FederatedSecretExpansion interface{}
+
+type FederatedServiceExpansion interface{}
+
+type FederatedStatefulSetExpansion interface{}
+
+type FederatedUserExpansion interface{}
+
+type FederatedWorkspaceExpansion interface{}

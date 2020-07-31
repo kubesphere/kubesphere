@@ -136,9 +136,9 @@ github.com/elastic/go-elasticsearch/v7/estransport
 github.com/elastic/go-elasticsearch/v7/internal/version
 # github.com/emicklei/go-restful v2.11.1+incompatible => github.com/emicklei/go-restful v2.9.5+incompatible
 github.com/emicklei/go-restful
-github.com/emicklei/go-restful/log
 # github.com/emicklei/go-restful-openapi v1.0.0 => github.com/emicklei/go-restful-openapi v1.0.0
 github.com/emicklei/go-restful-openapi
+github.com/emicklei/go-restful/log
 # github.com/emirpasic/gods v1.12.0 => github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/containers
 github.com/emirpasic/gods/lists
@@ -1359,7 +1359,7 @@ openpitrix.io/openpitrix/pkg/util/reflectutil
 openpitrix.io/openpitrix/pkg/util/stringutil
 openpitrix.io/openpitrix/pkg/util/yamlutil
 openpitrix.io/openpitrix/pkg/version
-# sigs.k8s.io/application v0.8.3 => kubesphere.io/application v1.0.0
+# sigs.k8s.io/application v1.0.0 => kubesphere.io/application v1.0.0
 sigs.k8s.io/application/controllers
 sigs.k8s.io/application/pkg/apis/app/v1beta1
 sigs.k8s.io/application/pkg/client/clientset/versioned

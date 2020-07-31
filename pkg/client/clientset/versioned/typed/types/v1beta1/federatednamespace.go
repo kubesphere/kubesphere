@@ -39,6 +39,7 @@ type FederatedNamespacesGetter interface {
 type FederatedNamespaceInterface interface {
 	Create(*v1beta1.FederatedNamespace) (*v1beta1.FederatedNamespace, error)
 	Update(*v1beta1.FederatedNamespace) (*v1beta1.FederatedNamespace, error)
+	UpdateStatus(*v1beta1.FederatedNamespace) (*v1beta1.FederatedNamespace, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1beta1.FederatedNamespace, error)
@@ -126,6 +127,22 @@ func (c *federatedNamespaces) Update(federatedNamespace *v1beta1.FederatedNamesp
 		Namespace(c.ns).
 		Resource("federatednamespaces").
 		Name(federatedNamespace.Name).
+		Body(federatedNamespace).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+
+func (c *federatedNamespaces) UpdateStatus(federatedNamespace *v1beta1.FederatedNamespace) (result *v1beta1.FederatedNamespace, err error) {
+	result = &v1beta1.FederatedNamespace{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("federatednamespaces").
+		Name(federatedNamespace.Name).
+		SubResource("status").
 		Body(federatedNamespace).
 		Do().
 		Into(result)

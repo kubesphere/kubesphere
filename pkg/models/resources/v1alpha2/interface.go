@@ -37,7 +37,7 @@ const (
 	StatusFailed             = "failed"
 	StatusBound              = "bound"
 	StatusLost               = "lost"
-	StatusComplete           = "complete"
+	StatusComplete           = "completed"
 	StatusWarning            = "warning"
 	StatusUnschedulable      = "unschedulable"
 	Deployments              = "deployments"

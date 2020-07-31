@@ -19,66 +19,89 @@
 package v1beta1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	ResourcesPluralFedNamespace   = "federatednamespaces"
-	ResourcesSingularFedNamespace = "federatednamespace"
-	FedNamespaceKind              = "FederatedNamespace"
-)
-
-type Placement struct {
-	Clusters        []Cluster        `json:"clusters,omitempty"`
-	ClusterSelector *ClusterSelector `json:"clusterSelector,omitempty"`
-}
-
-type ClusterSelector struct {
-	MatchLabels map[string]string `json:"matchLabels,omitempty"`
-}
-
-type Cluster struct {
+type GenericClusterReference struct {
 	Name string `json:"name"`
 }
 
-type Override struct {
-	ClusterName      string            `json:"clusterName"`
-	ClusterOverrides []ClusterOverride `json:"clusterOverrides"`
+type GenericPlacementFields struct {
+	Clusters        []GenericClusterReference `json:"clusters,omitempty"`
+	ClusterSelector *metav1.LabelSelector     `json:"clusterSelector,omitempty"`
+}
+type GenericPlacementSpec struct {
+	Placement GenericPlacementFields `json:"placement,omitempty"`
+}
+
+type GenericPlacement struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec GenericPlacementSpec `json:"spec,omitempty"`
 }
 
 type ClusterOverride struct {
-	Path  string               `json:"path"`
 	Op    string               `json:"op,omitempty"`
-	Value runtime.RawExtension `json:"value"`
+	Path  string               `json:"path"`
+	Value runtime.RawExtension `json:"value,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type FederatedNamespace struct {
+type GenericOverrideItem struct {
+	ClusterName      string            `json:"clusterName"`
+	ClusterOverrides []ClusterOverride `json:"clusterOverrides,omitempty"`
+}
+
+type GenericOverrideSpec struct {
+	Overrides []GenericOverrideItem `json:"overrides,omitempty"`
+}
+
+type GenericOverride struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              FederatedNamespaceSpec `json:"spec"`
+
+	Spec *GenericOverrideSpec `json:"spec,omitempty"`
 }
 
-type FederatedNamespaceSpec struct {
-	Template  NamespaceTemplate `json:"template"`
-	Placement Placement         `json:"placement"`
-	Overrides []Override        `json:"overrides,omitempty"`
+type ConditionType string
+
+type AggregateReason string
+
+type PropagationStatus string
+
+type GenericClusterStatus struct {
+	Name   string            `json:"name"`
+	Status PropagationStatus `json:"status,omitempty"`
 }
 
-type NamespaceTemplate struct {
+type GenericCondition struct {
+	// Type of cluster condition
+	Type ConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status v1.ConditionStatus `json:"status"`
+	// Last time reconciliation resulted in an error or the last time a
+	// change was propagated to member clusters.
+	// +optional
+	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
+	// Last time the condition transit from one status to another.
+	// +optional
+	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	// (brief) reason for the condition's last transition.
+	// +optional
+	Reason AggregateReason `json:"reason,omitempty"`
+}
+
+type GenericFederatedStatus struct {
+	ObservedGeneration int64                  `json:"observedGeneration,omitempty"`
+	Conditions         []*GenericCondition    `json:"conditions,omitempty"`
+	Clusters           []GenericClusterStatus `json:"clusters,omitempty"`
+}
+
+type GenericFederatedResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              corev1.NamespaceSpec `json:"spec,omitempty"`
-}
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// FederatedNamespaceList contains a list of federatednamespacelists
-type FederatedNamespaceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FederatedNamespace `json:"items"`
+	Status *GenericFederatedStatus `json:"status,omitempty"`
 }

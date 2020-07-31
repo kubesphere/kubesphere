@@ -28,8 +28,68 @@ type FakeTypesV1beta1 struct {
 	*testing.Fake
 }
 
+func (c *FakeTypesV1beta1) FederatedApplications(namespace string) v1beta1.FederatedApplicationInterface {
+	return &FakeFederatedApplications{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedClusterRoles(namespace string) v1beta1.FederatedClusterRoleInterface {
+	return &FakeFederatedClusterRoles{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedClusterRoleBindings(namespace string) v1beta1.FederatedClusterRoleBindingInterface {
+	return &FakeFederatedClusterRoleBindings{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedConfigMaps(namespace string) v1beta1.FederatedConfigMapInterface {
+	return &FakeFederatedConfigMaps{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedDeployments(namespace string) v1beta1.FederatedDeploymentInterface {
+	return &FakeFederatedDeployments{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedIngresses(namespace string) v1beta1.FederatedIngressInterface {
+	return &FakeFederatedIngresses{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedJobs(namespace string) v1beta1.FederatedJobInterface {
+	return &FakeFederatedJobs{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedLimitRanges(namespace string) v1beta1.FederatedLimitRangeInterface {
+	return &FakeFederatedLimitRanges{c, namespace}
+}
+
 func (c *FakeTypesV1beta1) FederatedNamespaces(namespace string) v1beta1.FederatedNamespaceInterface {
 	return &FakeFederatedNamespaces{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedPersistentVolumeClaims(namespace string) v1beta1.FederatedPersistentVolumeClaimInterface {
+	return &FakeFederatedPersistentVolumeClaims{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedResourceQuotas(namespace string) v1beta1.FederatedResourceQuotaInterface {
+	return &FakeFederatedResourceQuotas{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedSecrets(namespace string) v1beta1.FederatedSecretInterface {
+	return &FakeFederatedSecrets{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedServices(namespace string) v1beta1.FederatedServiceInterface {
+	return &FakeFederatedServices{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedStatefulSets(namespace string) v1beta1.FederatedStatefulSetInterface {
+	return &FakeFederatedStatefulSets{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedUsers(namespace string) v1beta1.FederatedUserInterface {
+	return &FakeFederatedUsers{c, namespace}
+}
+
+func (c *FakeTypesV1beta1) FederatedWorkspaces(namespace string) v1beta1.FederatedWorkspaceInterface {
+	return &FakeFederatedWorkspaces{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

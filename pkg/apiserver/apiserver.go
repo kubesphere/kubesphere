@@ -396,6 +396,23 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "servicemesh.kubesphere.io", Version: "v1alpha2", Resource: "servicepolicies"},
 	}
 
+	// federated resources on cached in multi cluster setup
+	federatedResourceGVRs := []schema.GroupVersionResource{
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedClusterRole),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedClusterRoleBindingBinding),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedNamespace),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedService),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedDeployment),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedSecret),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedConfigmap),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedStatefulSet),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedResourceQuota),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedWorkspace),
+		typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedUser),
+	}
+
 	// skip caching devops resources if devops not enabled
 	if s.DevopsClient != nil {
 		ksGVRs = append(ksGVRs, devopsGVRs...)
@@ -407,14 +424,14 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	}
 
 	if s.Config.MultiClusterOptions.Enable {
-		ksGVRs = append(ksGVRs, typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcesPluralFedNamespace))
+		ksGVRs = append(ksGVRs, federatedResourceGVRs...)
 	}
 
 	for _, gvr := range ksGVRs {
 		if !isResourceExists(gvr) {
 			klog.Warningf("resource %s not exists in the cluster", gvr)
 		} else {
-			_, err := ksInformerFactory.ForResource(gvr)
+			_, err = ksInformerFactory.ForResource(gvr)
 			if err != nil {
 				return err
 			}

@@ -202,7 +202,7 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
 		}
 
-		result, err := t.resourceGetter.List(typesv1beta1.ResourcesPluralFedNamespace, "", queryParam)
+		result, err := t.resourceGetter.List(typesv1beta1.ResourcePluralFederatedNamespace, "", queryParam)
 
 		if err != nil {
 			klog.Error(err)
@@ -222,7 +222,7 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 	namespaces := make([]runtime.Object, 0)
 
 	for _, roleBinding := range roleBindings {
-		namespace, err := t.resourceGetter.Get(typesv1beta1.ResourcesPluralFedNamespace, roleBinding.Namespace, roleBinding.Namespace)
+		namespace, err := t.resourceGetter.Get(typesv1beta1.ResourcePluralFederatedNamespace, roleBinding.Namespace, roleBinding.Namespace)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
