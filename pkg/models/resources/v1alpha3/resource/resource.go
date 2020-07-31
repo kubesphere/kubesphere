@@ -43,10 +43,12 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedapplication"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedconfigmap"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federateddeployment"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedingress"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatednamespace"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedpersistentvolumeclaim"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedsecret"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedservice"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/federatedstatefulset"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrole"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/globalrolebinding"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/ingress"
@@ -114,6 +116,8 @@ func NewResourceGetter(factory informers.InformerFactory) *ResourceGetter {
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedService)] = federatedservice.New(factory.KubeSphereSharedInformerFactory())
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedApplication)] = federatedapplication.New(factory.KubeSphereSharedInformerFactory())
 	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedPersistentVolumeClaim)] = federatedpersistentvolumeclaim.New(factory.KubeSphereSharedInformerFactory())
+	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedStatefulSet)] = federatedstatefulset.New(factory.KubeSphereSharedInformerFactory())
+	getters[typesv1beta1.SchemeGroupVersion.WithResource(typesv1beta1.ResourcePluralFederatedIngress)] = federatedingress.New(factory.KubeSphereSharedInformerFactory())
 
 	return &ResourceGetter{
 		getters: getters,

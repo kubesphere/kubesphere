@@ -76,7 +76,7 @@ func (c nodesGetter) List(_ string, query *query.Query) (*api.ListResult, error)
 	}
 
 	// ignore the error, skip annotating process if error happened
-	pods, _ := c.informers.Core().V1().Pods().Lister().Pods("").List(labels.Everything())
+	pods, _ := c.informers.Core().V1().Pods().Lister().Pods("").List(query.Selector())
 	var nonTerminatedPodsList []*v1.Pod
 	for _, pod := range pods {
 		if pod.Status.Phase != v1.PodSucceeded && pod.Status.Phase != v1.PodFailed {
