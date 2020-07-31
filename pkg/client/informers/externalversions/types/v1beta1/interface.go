@@ -24,8 +24,38 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// FederatedApplications returns a FederatedApplicationInformer.
+	FederatedApplications() FederatedApplicationInformer
+	// FederatedClusterRoles returns a FederatedClusterRoleInformer.
+	FederatedClusterRoles() FederatedClusterRoleInformer
+	// FederatedClusterRoleBindings returns a FederatedClusterRoleBindingInformer.
+	FederatedClusterRoleBindings() FederatedClusterRoleBindingInformer
+	// FederatedConfigMaps returns a FederatedConfigMapInformer.
+	FederatedConfigMaps() FederatedConfigMapInformer
+	// FederatedDeployments returns a FederatedDeploymentInformer.
+	FederatedDeployments() FederatedDeploymentInformer
+	// FederatedIngresses returns a FederatedIngressInformer.
+	FederatedIngresses() FederatedIngressInformer
+	// FederatedJobs returns a FederatedJobInformer.
+	FederatedJobs() FederatedJobInformer
+	// FederatedLimitRanges returns a FederatedLimitRangeInformer.
+	FederatedLimitRanges() FederatedLimitRangeInformer
 	// FederatedNamespaces returns a FederatedNamespaceInformer.
 	FederatedNamespaces() FederatedNamespaceInformer
+	// FederatedPersistentVolumeClaims returns a FederatedPersistentVolumeClaimInformer.
+	FederatedPersistentVolumeClaims() FederatedPersistentVolumeClaimInformer
+	// FederatedResourceQuotas returns a FederatedResourceQuotaInformer.
+	FederatedResourceQuotas() FederatedResourceQuotaInformer
+	// FederatedSecrets returns a FederatedSecretInformer.
+	FederatedSecrets() FederatedSecretInformer
+	// FederatedServices returns a FederatedServiceInformer.
+	FederatedServices() FederatedServiceInformer
+	// FederatedStatefulSets returns a FederatedStatefulSetInformer.
+	FederatedStatefulSets() FederatedStatefulSetInformer
+	// FederatedUsers returns a FederatedUserInformer.
+	FederatedUsers() FederatedUserInformer
+	// FederatedWorkspaces returns a FederatedWorkspaceInformer.
+	FederatedWorkspaces() FederatedWorkspaceInformer
 }
 
 type version struct {
@@ -39,7 +69,82 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// FederatedApplications returns a FederatedApplicationInformer.
+func (v *version) FederatedApplications() FederatedApplicationInformer {
+	return &federatedApplicationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedClusterRoles returns a FederatedClusterRoleInformer.
+func (v *version) FederatedClusterRoles() FederatedClusterRoleInformer {
+	return &federatedClusterRoleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedClusterRoleBindings returns a FederatedClusterRoleBindingInformer.
+func (v *version) FederatedClusterRoleBindings() FederatedClusterRoleBindingInformer {
+	return &federatedClusterRoleBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedConfigMaps returns a FederatedConfigMapInformer.
+func (v *version) FederatedConfigMaps() FederatedConfigMapInformer {
+	return &federatedConfigMapInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedDeployments returns a FederatedDeploymentInformer.
+func (v *version) FederatedDeployments() FederatedDeploymentInformer {
+	return &federatedDeploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedIngresses returns a FederatedIngressInformer.
+func (v *version) FederatedIngresses() FederatedIngressInformer {
+	return &federatedIngressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedJobs returns a FederatedJobInformer.
+func (v *version) FederatedJobs() FederatedJobInformer {
+	return &federatedJobInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedLimitRanges returns a FederatedLimitRangeInformer.
+func (v *version) FederatedLimitRanges() FederatedLimitRangeInformer {
+	return &federatedLimitRangeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // FederatedNamespaces returns a FederatedNamespaceInformer.
 func (v *version) FederatedNamespaces() FederatedNamespaceInformer {
 	return &federatedNamespaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedPersistentVolumeClaims returns a FederatedPersistentVolumeClaimInformer.
+func (v *version) FederatedPersistentVolumeClaims() FederatedPersistentVolumeClaimInformer {
+	return &federatedPersistentVolumeClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedResourceQuotas returns a FederatedResourceQuotaInformer.
+func (v *version) FederatedResourceQuotas() FederatedResourceQuotaInformer {
+	return &federatedResourceQuotaInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedSecrets returns a FederatedSecretInformer.
+func (v *version) FederatedSecrets() FederatedSecretInformer {
+	return &federatedSecretInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedServices returns a FederatedServiceInformer.
+func (v *version) FederatedServices() FederatedServiceInformer {
+	return &federatedServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedStatefulSets returns a FederatedStatefulSetInformer.
+func (v *version) FederatedStatefulSets() FederatedStatefulSetInformer {
+	return &federatedStatefulSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedUsers returns a FederatedUserInformer.
+func (v *version) FederatedUsers() FederatedUserInformer {
+	return &federatedUserInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// FederatedWorkspaces returns a FederatedWorkspaceInformer.
+func (v *version) FederatedWorkspaces() FederatedWorkspaceInformer {
+	return &federatedWorkspaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

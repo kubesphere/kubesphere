@@ -129,8 +129,38 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Tenant().V1alpha2().WorkspaceTemplates().Informer()}, nil
 
 		// Group=types.kubefed.io, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("federatedapplications"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedApplications().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedclusterroles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedClusterRoles().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedclusterrolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedClusterRoleBindings().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedconfigmaps"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedConfigMaps().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federateddeployments"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedDeployments().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedingresses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedIngresses().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedjobs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedJobs().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedlimitranges"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedLimitRanges().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("federatednamespaces"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedNamespaces().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedpersistentvolumeclaims"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedPersistentVolumeClaims().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedresourcequotas"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedResourceQuotas().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedsecrets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedSecrets().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedservices"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedServices().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedstatefulsets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedStatefulSets().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedusers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedUsers().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("federatedworkspaces"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Types().V1beta1().FederatedWorkspaces().Informer()}, nil
 
 	}
 

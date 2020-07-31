@@ -35,7 +35,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/user"
-	rbacv1helpers "kubesphere.io/kubesphere/pkg/apis/rbac/v1"
+	rbacv1helpers "kubesphere.io/kubesphere/pkg/api/rbac/v1"
 )
 
 const (

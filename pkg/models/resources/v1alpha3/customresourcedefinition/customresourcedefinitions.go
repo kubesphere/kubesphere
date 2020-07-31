@@ -23,6 +23,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"strings"
 )
 
 type crdGetter struct {
@@ -76,5 +77,10 @@ func (c crdGetter) filter(object runtime.Object, filter query.Filter) bool {
 		return false
 	}
 
-	return v1alpha3.DefaultObjectMetaFilter(crd.ObjectMeta, filter)
+	switch filter.Field {
+	case query.FieldName:
+		return strings.Contains(crd.Name, string(filter.Value)) || strings.Contains(crd.Spec.Names.Kind, string(filter.Value))
+	default:
+		return v1alpha3.DefaultObjectMetaFilter(crd.ObjectMeta, filter)
+	}
 }

@@ -33,6 +33,8 @@ const (
 	FieldStatus              = "status"
 	FieldOwnerReference      = "ownerReference"
 	FieldOwnerKind           = "ownerKind"
+
+	FieldType = "type"
 )
 
 var SortableFields = []Field{
