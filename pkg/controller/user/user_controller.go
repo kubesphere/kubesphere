@@ -367,6 +367,8 @@ func (c *Controller) ensurePasswordIsEncrypted(user *iamv1alpha2.User) (*iamv1al
 		if user.Annotations == nil {
 			user.Annotations = make(map[string]string, 0)
 		}
+		// ensure plain text password won't be kept anywhere
+		delete(user.Annotations, corev1.LastAppliedConfigAnnotation)
 		user.Annotations[iamv1alpha2.PasswordEncryptedAnnotation] = "true"
 		user.Status = iamv1alpha2.UserStatus{
 			State:              iamv1alpha2.UserActive,
