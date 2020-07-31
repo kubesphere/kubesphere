@@ -55,6 +55,7 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws.Route(ws.GET("/devops/{devops}/credentials").
 			To(handler.ListCredential).
 			Param(ws.PathParameter("devops", "devops name")).
+			Param(ws.QueryParameter(params.ConditionsParam, "filter keyword, e.g. conditions=keywsord%3Dabc")).
 			Param(ws.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
 				Required(false).
 				DataFormat("limit=%d,page=%d").

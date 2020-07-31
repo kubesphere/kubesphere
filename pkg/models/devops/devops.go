@@ -38,6 +38,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -62,7 +63,7 @@ type DevopsOperator interface {
 	GetCredentialObj(projectName string, secretName string) (*v1.Secret, error)
 	DeleteCredentialObj(projectName string, secretName string) error
 	UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error)
-	ListCredentialObj(projectName string, limit, offset int) (api.ListResult, error)
+	ListCredentialObj(projectName string, limit, offset int, keyword string) (api.ListResult, error)
 
 	GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error)
 	ListPipelines(req *http.Request) (*devops.PipelineList, error)
@@ -301,7 +302,7 @@ func (d devopsOperator) UpdateCredentialObj(projectName string, secret *v1.Secre
 	return d.k8sclient.CoreV1().Secrets(projectObj.Status.AdminNamespace).Update(secret)
 }
 
-func (d devopsOperator) ListCredentialObj(projectName string, limit, offset int) (api.ListResult, error) {
+func (d devopsOperator) ListCredentialObj(projectName string, limit, offset int, keyword string) (api.ListResult, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
 	if err != nil {
 		return api.ListResult{}, err
@@ -323,7 +324,7 @@ func (d devopsOperator) ListCredentialObj(projectName string, limit, offset int)
 	}
 	for _, credential := range credentialList {
 		for _, credentialType := range credentialTypeList {
-			if credential.Type == credentialType {
+			if credential.Type == credentialType && strings.Contains(credential.Name, keyword) {
 				result = append(result, *credential)
 			}
 		}

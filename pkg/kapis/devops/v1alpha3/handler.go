@@ -291,9 +291,19 @@ func (h *devopsHandler) GetCredential(request *restful.Request, response *restfu
 
 func (h *devopsHandler) ListCredential(request *restful.Request, response *restful.Response) {
 	devops := request.PathParameter("devops")
+
+	// parase filter parameter: keyword
+	conditions, err := params.ParseConditions(request)
+
+	if err != nil {
+		klog.Error(err)
+		return
+	}
+	var keyword = conditions.Match["keyword"]
+
 	limit, offset := params.ParsePaging(request)
 
-	objs, err := h.devops.ListCredentialObj(devops, limit, offset)
+	objs, err := h.devops.ListCredentialObj(devops, limit, offset, keyword)
 
 	if err != nil {
 		klog.Error(err)
