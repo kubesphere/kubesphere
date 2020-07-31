@@ -18,7 +18,6 @@ package networkpolicy
 
 import (
 	v1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -39,7 +38,7 @@ func (n networkpolicyGetter) Get(namespace, name string) (runtime.Object, error)
 }
 
 func (n networkpolicyGetter) List(namespace string, query *query.Query) (*api.ListResult, error) {
-	nps, err := n.informers.Networking().V1().NetworkPolicies().Lister().NetworkPolicies(namespace).List(labels.Everything())
+	nps, err := n.informers.Networking().V1().NetworkPolicies().Lister().NetworkPolicies(namespace).List(query.Selector())
 	if err != nil {
 		return nil, err
 	}
