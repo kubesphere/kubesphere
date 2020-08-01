@@ -105,18 +105,16 @@ func (d *rolesGetter) fetchAggregationRoles(namespace, name string) ([]*rbacv1.R
 	if annotation := obj.(*rbacv1.Role).Annotations[iamv1alpha2.AggregationRolesAnnotation]; annotation != "" {
 		var roleNames []string
 		if err = json.Unmarshal([]byte(annotation), &roleNames); err == nil {
-
 			for _, roleName := range roleNames {
 				role, err := d.Get(namespace, roleName)
-
 				if err != nil {
 					if errors.IsNotFound(err) {
-						klog.Warningf("invalid aggregation role found: %s, %s", name, roleName)
+						klog.V(6).Infof("invalid aggregation role found: %s, %s", name, roleName)
 						continue
 					}
+					klog.Error(err)
 					return nil, err
 				}
-
 				roles = append(roles, role.(*rbacv1.Role))
 			}
 		}

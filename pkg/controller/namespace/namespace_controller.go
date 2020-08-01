@@ -25,6 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -206,7 +207,6 @@ func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
 
 func (r *ReconcileNamespace) deleteRouter(namespace string) error {
 	routerName := constants.IngressControllerPrefix + namespace
-
 	// delete service first
 	found := corev1.Service{}
 	err := r.Get(context.TODO(), types.NamespacedName{Namespace: constants.IngressControllerNamespace, Name: routerName}, &found)
@@ -246,7 +246,16 @@ func (r *ReconcileNamespace) deleteRouter(namespace string) error {
 func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 	var roleBases iamv1alpha2.RoleBaseList
 
-	err := r.List(context.Background(), &roleBases)
+	var labelKey string
+	// filtering initial roles by label
+	if namespace.Labels[constants.DevOpsProjectLabelKey] != "" {
+		// scope.kubesphere.io/devops: ""
+		labelKey = fmt.Sprintf(iamv1alpha2.ScopeLabelFormat, iamv1alpha2.ScopeDevOps)
+	} else {
+		// scope.kubesphere.io/namespace: ""
+		labelKey = fmt.Sprintf(iamv1alpha2.ScopeLabelFormat, iamv1alpha2.ScopeNamespace)
+	}
+	err := r.List(context.Background(), &roleBases, client.MatchingLabelsSelector{Selector: labels.SelectorFromSet(labels.Set{labelKey: ""})})
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -254,7 +263,6 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 
 	for _, roleBase := range roleBases.Items {
 		var role rbacv1.Role
-
 		if err = yaml.NewYAMLOrJSONDecoder(bytes.NewBuffer(roleBase.Role.Raw), 1024).Decode(&role); err == nil && role.Kind == iamv1alpha2.ResourceKindRole {
 			var old rbacv1.Role
 			err := r.Client.Get(context.Background(), types.NamespacedName{Namespace: namespace.Name, Name: role.Name}, &old)
