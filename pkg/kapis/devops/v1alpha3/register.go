@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
@@ -55,10 +56,11 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 		ws.Route(ws.GET("/devops/{devops}/credentials").
 			To(handler.ListCredential).
 			Param(ws.PathParameter("devops", "devops name")).
-			Param(ws.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
-				Required(false).
-				DataFormat("limit=%d,page=%d").
-				DefaultValue("limit=10,page=1")).
+			Param(ws.QueryParameter(query.ParameterName, "name used to do filtering").Required(false)).
+			Param(ws.QueryParameter(query.ParameterPage, "page").Required(false).DataFormat("page=%d").DefaultValue("page=1")).
+			Param(ws.QueryParameter(query.ParameterLimit, "limit").Required(false)).
+			Param(ws.QueryParameter(query.ParameterAscending, "sort parameters, e.g. ascending=false").Required(false).DefaultValue("ascending=false")).
+			Param(ws.QueryParameter(query.ParameterOrderBy, "sort parameters, e.g. orderBy=createTime")).
 			Doc("list the credentials of the specified devops for the current user").
 			Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{}}).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectTag}))
