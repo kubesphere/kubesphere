@@ -393,19 +393,16 @@ func (am *amOperator) CreateOrUpdateWorkspaceRole(workspace string, workspaceRol
 	}
 	workspaceRole.Labels[tenantv1alpha1.WorkspaceLabel] = workspace
 	workspaceRole.Rules = make([]rbacv1.PolicyRule, 0)
-
-	var aggregateRoles []string
-	if err := json.Unmarshal([]byte(workspaceRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]), &aggregateRoles); err == nil {
+	if aggregateRoles := am.getAggregateRoles(workspaceRole.ObjectMeta); aggregateRoles != nil {
 		for _, roleName := range aggregateRoles {
-			role, err := am.GetWorkspaceRole("", roleName)
+			aggregationRole, err := am.GetWorkspaceRole("", roleName)
 			if err != nil {
 				klog.Error(err)
 				return nil, err
 			}
-			workspaceRole.Rules = append(workspaceRole.Rules, role.Rules...)
+			workspaceRole.Rules = append(workspaceRole.Rules, aggregationRole.Rules...)
 		}
 	}
-
 	var created *iamv1alpha2.WorkspaceRole
 	var err error
 	if workspaceRole.ResourceVersion != "" {
@@ -426,20 +423,16 @@ func (am *amOperator) PatchGlobalRole(globalRole *iamv1alpha2.GlobalRole) (*iamv
 
 	// rules cannot be override
 	globalRole.Rules = old.Rules
-
 	// aggregate roles if annotation has change
-	if aggregateRolesAnnotation := globalRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]; aggregateRolesAnnotation != "" {
+	if aggregateRoles := am.getAggregateRoles(globalRole.ObjectMeta); aggregateRoles != nil {
 		globalRole.Rules = make([]rbacv1.PolicyRule, 0)
-		var aggregateRoles []string
-		if err := json.Unmarshal([]byte(aggregateRolesAnnotation), &aggregateRoles); err == nil {
-			for _, roleName := range aggregateRoles {
-				role, err := am.GetGlobalRole(roleName)
-				if err != nil {
-					klog.Error(err)
-					return nil, err
-				}
-				globalRole.Rules = append(globalRole.Rules, role.Rules...)
+		for _, roleName := range aggregateRoles {
+			aggregationRole, err := am.GetGlobalRole(roleName)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
 			}
+			globalRole.Rules = append(globalRole.Rules, aggregationRole.Rules...)
 		}
 	}
 
@@ -449,6 +442,17 @@ func (am *amOperator) PatchGlobalRole(globalRole *iamv1alpha2.GlobalRole) (*iamv
 	}
 
 	return am.ksclient.IamV1alpha2().GlobalRoles().Patch(globalRole.Name, types.MergePatchType, data)
+}
+
+func (am *amOperator) getAggregateRoles(obj metav1.ObjectMeta) []string {
+	if aggregateRolesAnnotation := obj.Annotations[iamv1alpha2.AggregationRolesAnnotation]; aggregateRolesAnnotation != "" {
+		var aggregateRoles []string
+		if err := json.Unmarshal([]byte(aggregateRolesAnnotation), &aggregateRoles); err != nil {
+			klog.Warningf("invalid aggregation role annotation found %+v", obj)
+		}
+		return aggregateRoles
+	}
+	return nil
 }
 
 func (am *amOperator) PatchWorkspaceRole(workspace string, workspaceRole *iamv1alpha2.WorkspaceRole) (*iamv1alpha2.WorkspaceRole, error) {
@@ -465,20 +469,16 @@ func (am *amOperator) PatchWorkspaceRole(workspace string, workspaceRole *iamv1a
 
 	// rules cannot be override
 	workspaceRole.Rules = old.Rules
-
 	// aggregate roles if annotation has change
-	if aggregateRolesAnnotation := workspaceRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]; aggregateRolesAnnotation != "" {
+	if aggregateRoles := am.getAggregateRoles(workspaceRole.ObjectMeta); aggregateRoles != nil {
 		workspaceRole.Rules = make([]rbacv1.PolicyRule, 0)
-		var aggregateRoles []string
-		if err := json.Unmarshal([]byte(aggregateRolesAnnotation), &aggregateRoles); err == nil {
-			for _, roleName := range aggregateRoles {
-				role, err := am.GetWorkspaceRole("", roleName)
-				if err != nil {
-					klog.Error(err)
-					return nil, err
-				}
-				workspaceRole.Rules = append(workspaceRole.Rules, role.Rules...)
+		for _, roleName := range aggregateRoles {
+			aggregationRole, err := am.GetWorkspaceRole("", roleName)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
 			}
+			workspaceRole.Rules = append(workspaceRole.Rules, aggregationRole.Rules...)
 		}
 	}
 
@@ -499,20 +499,16 @@ func (am *amOperator) PatchNamespaceRole(namespace string, role *rbacv1.Role) (*
 
 	// rules cannot be override
 	role.Rules = old.Rules
-
 	// aggregate roles if annotation has change
-	if aggregateRolesAnnotation := role.Annotations[iamv1alpha2.AggregationRolesAnnotation]; aggregateRolesAnnotation != "" {
+	if aggregateRoles := am.getAggregateRoles(role.ObjectMeta); aggregateRoles != nil {
 		role.Rules = make([]rbacv1.PolicyRule, 0)
-		var aggregateRoles []string
-		if err := json.Unmarshal([]byte(aggregateRolesAnnotation), &aggregateRoles); err == nil {
-			for _, roleName := range aggregateRoles {
-				role, err := am.GetNamespaceRole(namespace, roleName)
-				if err != nil {
-					klog.Error(err)
-					return nil, err
-				}
-				role.Rules = append(role.Rules, role.Rules...)
+		for _, roleName := range aggregateRoles {
+			aggregationRole, err := am.GetNamespaceRole(namespace, roleName)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
 			}
+			role.Rules = append(role.Rules, aggregationRole.Rules...)
 		}
 	}
 
@@ -533,20 +529,16 @@ func (am *amOperator) PatchClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1
 
 	// rules cannot be override
 	clusterRole.Rules = old.Rules
-
 	// aggregate roles if annotation has change
-	if aggregateRolesAnnotation := clusterRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]; aggregateRolesAnnotation != "" {
+	if aggregateRoles := am.getAggregateRoles(clusterRole.ObjectMeta); aggregateRoles != nil {
 		clusterRole.Rules = make([]rbacv1.PolicyRule, 0)
-		var aggregateRoles []string
-		if err := json.Unmarshal([]byte(aggregateRolesAnnotation), &aggregateRoles); err == nil {
-			for _, roleName := range aggregateRoles {
-				role, err := am.GetClusterRole(roleName)
-				if err != nil {
-					klog.Error(err)
-					return nil, err
-				}
-				role.Rules = append(role.Rules, role.Rules...)
+		for _, roleName := range aggregateRoles {
+			aggregationRole, err := am.GetClusterRole(roleName)
+			if err != nil {
+				klog.Error(err)
+				return nil, err
 			}
+			clusterRole.Rules = append(clusterRole.Rules, aggregationRole.Rules...)
 		}
 	}
 
@@ -787,19 +779,16 @@ func (am *amOperator) RemoveUserFromCluster(username string) error {
 
 func (am *amOperator) CreateOrUpdateGlobalRole(globalRole *iamv1alpha2.GlobalRole) (*iamv1alpha2.GlobalRole, error) {
 	globalRole.Rules = make([]rbacv1.PolicyRule, 0)
-
-	var aggregateRoles []string
-	if err := json.Unmarshal([]byte(globalRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]), &aggregateRoles); err == nil {
+	if aggregateRoles := am.getAggregateRoles(globalRole.ObjectMeta); aggregateRoles != nil {
 		for _, roleName := range aggregateRoles {
-			role, err := am.GetGlobalRole(roleName)
+			aggregationRole, err := am.GetGlobalRole(roleName)
 			if err != nil {
 				klog.Error(err)
 				return nil, err
 			}
-			globalRole.Rules = append(globalRole.Rules, role.Rules...)
+			globalRole.Rules = append(globalRole.Rules, aggregationRole.Rules...)
 		}
 	}
-
 	var created *iamv1alpha2.GlobalRole
 	var err error
 	if globalRole.ResourceVersion != "" {
@@ -807,21 +796,19 @@ func (am *amOperator) CreateOrUpdateGlobalRole(globalRole *iamv1alpha2.GlobalRol
 	} else {
 		created, err = am.ksclient.IamV1alpha2().GlobalRoles().Create(globalRole)
 	}
-
 	return created, err
 }
 
 func (am *amOperator) CreateOrUpdateClusterRole(clusterRole *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error) {
 	clusterRole.Rules = make([]rbacv1.PolicyRule, 0)
-	var aggregateRoles []string
-	if err := json.Unmarshal([]byte(clusterRole.Annotations[iamv1alpha2.AggregationRolesAnnotation]), &aggregateRoles); err == nil {
+	if aggregateRoles := am.getAggregateRoles(clusterRole.ObjectMeta); aggregateRoles != nil {
 		for _, roleName := range aggregateRoles {
-			role, err := am.GetClusterRole(roleName)
+			aggregationRole, err := am.GetClusterRole(roleName)
 			if err != nil {
 				klog.Error(err)
 				return nil, err
 			}
-			clusterRole.Rules = append(clusterRole.Rules, role.Rules...)
+			clusterRole.Rules = append(clusterRole.Rules, aggregationRole.Rules...)
 		}
 	}
 	var created *rbacv1.ClusterRole
@@ -837,8 +824,7 @@ func (am *amOperator) CreateOrUpdateClusterRole(clusterRole *rbacv1.ClusterRole)
 func (am *amOperator) CreateOrUpdateNamespaceRole(namespace string, role *rbacv1.Role) (*rbacv1.Role, error) {
 	role.Rules = make([]rbacv1.PolicyRule, 0)
 	role.Namespace = namespace
-	var aggregateRoles []string
-	if err := json.Unmarshal([]byte(role.Annotations[iamv1alpha2.AggregationRolesAnnotation]), &aggregateRoles); err == nil {
+	if aggregateRoles := am.getAggregateRoles(role.ObjectMeta); aggregateRoles != nil {
 		for _, roleName := range aggregateRoles {
 			aggregationRole, err := am.GetNamespaceRole(namespace, roleName)
 			if err != nil {
@@ -848,7 +834,6 @@ func (am *amOperator) CreateOrUpdateNamespaceRole(namespace string, role *rbacv1
 			role.Rules = append(role.Rules, aggregationRole.Rules...)
 		}
 	}
-
 	var created *rbacv1.Role
 	var err error
 	if role.ResourceVersion != "" {
