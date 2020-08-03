@@ -72,6 +72,8 @@ func init() {
 		&FederatedServiceList{},
 		&FederatedStatefulSet{},
 		&FederatedStatefulSetList{},
+		&FederatedUser{},
+		&FederatedUserList{},
 		&FederatedWorkspace{},
 		&FederatedWorkspaceList{})
 }
