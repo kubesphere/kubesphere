@@ -118,53 +118,49 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 	}
 
 	decision, _, err := t.authorizer.Authorize(listWS)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
+	// allowed to list all workspaces
 	if decision == authorizer.DecisionAllow {
-
 		result, err := t.resourceGetter.List(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", queryParam)
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
 		return result, nil
 	}
 
+	// retrieving associated resources through role binding
 	workspaceRoleBindings, err := t.am.ListWorkspaceRoleBindings(user.GetName(), "")
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	workspaces := make([]runtime.Object, 0)
-
 	for _, roleBinding := range workspaceRoleBindings {
-
 		workspaceName := roleBinding.Labels[tenantv1alpha1.WorkspaceLabel]
-		workspace, err := t.resourceGetter.Get(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", workspaceName)
-
+		obj, err := t.resourceGetter.Get(tenantv1alpha2.ResourcePluralWorkspaceTemplate, "", workspaceName)
 		if errors.IsNotFound(err) {
-			klog.Warningf("workspace role binding: %+v found but workspace not exist", roleBinding.ObjectMeta.String())
+			klog.Warningf("workspace role binding: %+v found but workspace not exist", roleBinding.Name)
 			continue
 		}
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
-		if !contains(workspaces, workspace) {
+		workspace := obj.(*tenantv1alpha2.WorkspaceTemplate)
+		// label matching selector, remove duplicate entity
+		if queryParam.Selector().Matches(labels.Set(workspace.Labels)) &&
+			!contains(workspaces, workspace) {
 			workspaces = append(workspaces, workspace)
 		}
 	}
 
+	// use default pagination search logic
 	result := resources.DefaultList(workspaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
 		return resources.DefaultObjectMetaCompare(left.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, right.(*tenantv1alpha2.WorkspaceTemplate).ObjectMeta, field)
 	}, func(workspace runtime.Object, filter query.Filter) bool {
@@ -175,9 +171,12 @@ func (t *tenantOperator) ListWorkspaces(user user.Info, queryParam *query.Query)
 }
 
 func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace string, queryParam *query.Query) (*api.ListResult, error) {
+
 	nsScope := request.ClusterScope
 	if workspace != "" {
 		nsScope = request.WorkspaceScope
+		// filter by workspace
+		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
 	}
 
 	listNS := authorizer.AttributesRecord{
@@ -190,39 +189,31 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 	}
 
 	decision, _, err := t.authorizer.Authorize(listNS)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
+	// allowed to list all namespaces in the specified scope
 	if decision == authorizer.DecisionAllow {
-
-		if workspace != "" {
-			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
-		}
-
 		result, err := t.resourceGetter.List(typesv1beta1.ResourcePluralFederatedNamespace, "", queryParam)
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
 		return result, nil
 	}
 
+	// retrieving associated resources through role binding
 	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	namespaces := make([]runtime.Object, 0)
-
 	for _, roleBinding := range roleBindings {
-		namespace, err := t.resourceGetter.Get(typesv1beta1.ResourcePluralFederatedNamespace, roleBinding.Namespace, roleBinding.Namespace)
+		obj, err := t.resourceGetter.Get(typesv1beta1.ResourcePluralFederatedNamespace, roleBinding.Namespace, roleBinding.Namespace)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -230,28 +221,21 @@ func (t *tenantOperator) ListFederatedNamespaces(user user.Info, workspace strin
 			klog.Error(err)
 			return nil, err
 		}
-
-		// skip if not controlled by the specified workspace
-		if ns := namespace.(*typesv1beta1.FederatedNamespace); workspace != "" && ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
-			continue
-		}
-
-		if !contains(namespaces, namespace) {
+		namespace := obj.(*typesv1beta1.FederatedNamespace)
+		// label matching selector, remove duplicate entity
+		if queryParam.Selector().Matches(labels.Set(namespace.Labels)) &&
+			!contains(namespaces, namespace) {
 			namespaces = append(namespaces, namespace)
 		}
 	}
 
+	// use default pagination search logic
 	result := resources.DefaultList(namespaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
 		return resources.DefaultObjectMetaCompare(left.(*typesv1beta1.FederatedNamespace).ObjectMeta, right.(*typesv1beta1.FederatedNamespace).ObjectMeta, field)
 	}, func(object runtime.Object, filter query.Filter) bool {
-		namespace := object.(*typesv1beta1.FederatedNamespace).ObjectMeta
-		if workspace != "" {
-			if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
-				return false
-			}
-		}
-		return resources.DefaultObjectMetaFilter(namespace, filter)
+		return resources.DefaultObjectMetaFilter(object.(*typesv1beta1.FederatedNamespace).ObjectMeta, filter)
 	})
+
 	return result, nil
 }
 
@@ -259,6 +243,8 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	nsScope := request.ClusterScope
 	if workspace != "" {
 		nsScope = request.WorkspaceScope
+		// filter by workspace
+		queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
 	}
 
 	listNS := authorizer.AttributesRecord{
@@ -271,65 +257,48 @@ func (t *tenantOperator) ListNamespaces(user user.Info, workspace string, queryP
 	}
 
 	decision, _, err := t.authorizer.Authorize(listNS)
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
+	// allowed to list all namespaces in the specified scope
 	if decision == authorizer.DecisionAllow {
-
-		if workspace != "" {
-			queryParam.Filters[query.FieldLabel] = query.Value(fmt.Sprintf("%s=%s", tenantv1alpha1.WorkspaceLabel, workspace))
-		}
-
 		result, err := t.resourceGetter.List("namespaces", "", queryParam)
-
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
 		return result, nil
 	}
 
+	// retrieving associated resources through role binding
 	roleBindings, err := t.am.ListRoleBindings(user.GetName(), "")
-
 	if err != nil {
 		klog.Error(err)
 		return nil, err
 	}
 
 	namespaces := make([]runtime.Object, 0)
-
 	for _, roleBinding := range roleBindings {
-		namespace, err := t.resourceGetter.Get("namespaces", "", roleBinding.Namespace)
-
+		obj, err := t.resourceGetter.Get("namespaces", "", roleBinding.Namespace)
 		if err != nil {
 			klog.Error(err)
 			return nil, err
 		}
-
-		// skip if not controlled by the specified workspace
-		if ns := namespace.(*corev1.Namespace); workspace != "" && ns.Labels[tenantv1alpha1.WorkspaceLabel] != workspace {
-			continue
-		}
-
-		if !contains(namespaces, namespace) {
+		namespace := obj.(*corev1.Namespace)
+		// label matching selector, remove duplicate entity
+		if queryParam.Selector().Matches(labels.Set(namespace.Labels)) &&
+			!contains(namespaces, namespace) {
 			namespaces = append(namespaces, namespace)
 		}
 	}
 
+	// use default pagination search logic
 	result := resources.DefaultList(namespaces, queryParam, func(left runtime.Object, right runtime.Object, field query.Field) bool {
 		return resources.DefaultObjectMetaCompare(left.(*corev1.Namespace).ObjectMeta, right.(*corev1.Namespace).ObjectMeta, field)
 	}, func(object runtime.Object, filter query.Filter) bool {
-		namespace := object.(*corev1.Namespace).ObjectMeta
-		if workspace != "" {
-			if workspaceLabel, ok := namespace.Labels[tenantv1alpha1.WorkspaceLabel]; !ok || workspaceLabel != workspace {
-				return false
-			}
-		}
-		return resources.DefaultObjectMetaFilter(namespace, filter)
+		return resources.DefaultObjectMetaFilter(object.(*corev1.Namespace).ObjectMeta, filter)
 	})
 
 	return result, nil
