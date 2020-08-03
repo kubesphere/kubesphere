@@ -109,8 +109,8 @@ func (c *TypesV1beta1Client) FederatedUsers(namespace string) FederatedUserInter
 	return newFederatedUsers(c, namespace)
 }
 
-func (c *TypesV1beta1Client) FederatedWorkspaces(namespace string) FederatedWorkspaceInterface {
-	return newFederatedWorkspaces(c, namespace)
+func (c *TypesV1beta1Client) FederatedWorkspaces() FederatedWorkspaceInterface {
+	return newFederatedWorkspaces(c)
 }
 
 // NewForConfig creates a new TypesV1beta1Client for the given config.

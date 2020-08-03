@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
-	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
@@ -159,9 +158,9 @@ func addControllers(
 		kubernetesInformer.Apps().V1().StatefulSets())
 
 	var fedUserCache, fedGlobalRoleBindingCache, fedGlobalRoleCache,
-		fedWorkspaceCache, fedWorkspaceRoleCache, fedWorkspaceRoleBindingCache cache.Store
+		fedWorkspaceRoleCache, fedWorkspaceRoleBindingCache cache.Store
 	var fedUserCacheController, fedGlobalRoleBindingCacheController, fedGlobalRoleCacheController,
-		fedWorkspaceCacheController, fedWorkspaceRoleCacheController, fedWorkspaceRoleBindingCacheController cache.Controller
+		fedWorkspaceRoleCacheController, fedWorkspaceRoleBindingCacheController cache.Controller
 
 	if multiClusterEnabled {
 		fedUserClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedUserResource)
@@ -175,11 +174,6 @@ func addControllers(
 			return err
 		}
 		fedGlobalRoleBindingClient, err := util.NewResourceClient(client.Config(), &iamv1alpha2.FedGlobalRoleBindingResource)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		fedWorkspaceClient, err := util.NewResourceClient(client.Config(), &tenantv1alpha2.FedWorkspaceResource)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -198,14 +192,12 @@ func addControllers(
 		fedUserCache, fedUserCacheController = util.NewResourceInformer(fedUserClient, "", &iamv1alpha2.FedUserResource, func(object runtime.Object) {})
 		fedGlobalRoleCache, fedGlobalRoleCacheController = util.NewResourceInformer(fedGlobalRoleClient, "", &iamv1alpha2.FedGlobalRoleResource, func(object runtime.Object) {})
 		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController = util.NewResourceInformer(fedGlobalRoleBindingClient, "", &iamv1alpha2.FedGlobalRoleBindingResource, func(object runtime.Object) {})
-		fedWorkspaceCache, fedWorkspaceCacheController = util.NewResourceInformer(fedWorkspaceClient, "", &tenantv1alpha2.FedWorkspaceResource, func(object runtime.Object) {})
 		fedWorkspaceRoleCache, fedWorkspaceRoleCacheController = util.NewResourceInformer(fedWorkspaceRoleClient, "", &iamv1alpha2.FedWorkspaceRoleResource, func(object runtime.Object) {})
 		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController = util.NewResourceInformer(fedWorkspaceRoleBindingClient, "", &iamv1alpha2.FedWorkspaceRoleBindingResource, func(object runtime.Object) {})
 
 		go fedUserCacheController.Run(stopCh)
 		go fedGlobalRoleCacheController.Run(stopCh)
 		go fedGlobalRoleBindingCacheController.Run(stopCh)
-		go fedWorkspaceCacheController.Run(stopCh)
 		go fedWorkspaceRoleCacheController.Run(stopCh)
 		go fedWorkspaceRoleBindingCacheController.Run(stopCh)
 	}
@@ -255,7 +247,8 @@ func addControllers(
 		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
 		kubesphereInformer.Iam().V1alpha2().RoleBases(),
 		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
-		fedWorkspaceCache, fedWorkspaceCacheController, multiClusterEnabled)
+		kubesphereInformer.Types().V1beta1().FederatedWorkspaces(),
+		multiClusterEnabled)
 
 	var clusterController manager.Runnable
 	if multiClusterEnabled {

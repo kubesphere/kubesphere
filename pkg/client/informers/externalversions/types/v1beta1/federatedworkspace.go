@@ -41,33 +41,32 @@ type FederatedWorkspaceInformer interface {
 type federatedWorkspaceInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
-	namespace        string
 }
 
 // NewFederatedWorkspaceInformer constructs a new informer for FederatedWorkspace type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFederatedWorkspaceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFederatedWorkspaceInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewFederatedWorkspaceInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredFederatedWorkspaceInformer(client, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredFederatedWorkspaceInformer constructs a new informer for FederatedWorkspace type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFederatedWorkspaceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredFederatedWorkspaceInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TypesV1beta1().FederatedWorkspaces(namespace).List(options)
+				return client.TypesV1beta1().FederatedWorkspaces().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TypesV1beta1().FederatedWorkspaces(namespace).Watch(options)
+				return client.TypesV1beta1().FederatedWorkspaces().Watch(options)
 			},
 		},
 		&typesv1beta1.FederatedWorkspace{},
@@ -77,7 +76,7 @@ func NewFilteredFederatedWorkspaceInformer(client versioned.Interface, namespace
 }
 
 func (f *federatedWorkspaceInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFederatedWorkspaceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredFederatedWorkspaceInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *federatedWorkspaceInformer) Informer() cache.SharedIndexInformer {

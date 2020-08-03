@@ -32,7 +32,7 @@ import (
 // FederatedWorkspacesGetter has a method to return a FederatedWorkspaceInterface.
 // A group's client should implement this interface.
 type FederatedWorkspacesGetter interface {
-	FederatedWorkspaces(namespace string) FederatedWorkspaceInterface
+	FederatedWorkspaces() FederatedWorkspaceInterface
 }
 
 // FederatedWorkspaceInterface has methods to work with FederatedWorkspace resources.
@@ -52,14 +52,12 @@ type FederatedWorkspaceInterface interface {
 // federatedWorkspaces implements FederatedWorkspaceInterface
 type federatedWorkspaces struct {
 	client rest.Interface
-	ns     string
 }
 
 // newFederatedWorkspaces returns a FederatedWorkspaces
-func newFederatedWorkspaces(c *TypesV1beta1Client, namespace string) *federatedWorkspaces {
+func newFederatedWorkspaces(c *TypesV1beta1Client) *federatedWorkspaces {
 	return &federatedWorkspaces{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -67,7 +65,6 @@ func newFederatedWorkspaces(c *TypesV1beta1Client, namespace string) *federatedW
 func (c *federatedWorkspaces) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -84,7 +81,6 @@ func (c *federatedWorkspaces) List(opts v1.ListOptions) (result *v1beta1.Federat
 	}
 	result = &v1beta1.FederatedWorkspaceList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -101,7 +97,6 @@ func (c *federatedWorkspaces) Watch(opts v1.ListOptions) (watch.Interface, error
 	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -112,7 +107,6 @@ func (c *federatedWorkspaces) Watch(opts v1.ListOptions) (watch.Interface, error
 func (c *federatedWorkspaces) Create(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		Body(federatedWorkspace).
 		Do().
@@ -124,7 +118,6 @@ func (c *federatedWorkspaces) Create(federatedWorkspace *v1beta1.FederatedWorksp
 func (c *federatedWorkspaces) Update(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		Name(federatedWorkspace.Name).
 		Body(federatedWorkspace).
@@ -139,7 +132,6 @@ func (c *federatedWorkspaces) Update(federatedWorkspace *v1beta1.FederatedWorksp
 func (c *federatedWorkspaces) UpdateStatus(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		Name(federatedWorkspace.Name).
 		SubResource("status").
@@ -152,7 +144,6 @@ func (c *federatedWorkspaces) UpdateStatus(federatedWorkspace *v1beta1.Federated
 // Delete takes name of the federatedWorkspace and deletes it. Returns an error if one occurs.
 func (c *federatedWorkspaces) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		Name(name).
 		Body(options).
@@ -167,7 +158,6 @@ func (c *federatedWorkspaces) DeleteCollection(options *v1.DeleteOptions, listOp
 		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -180,7 +170,6 @@ func (c *federatedWorkspaces) DeleteCollection(options *v1.DeleteOptions, listOp
 func (c *federatedWorkspaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("federatedworkspaces").
 		SubResource(subresources...).
 		Name(name).

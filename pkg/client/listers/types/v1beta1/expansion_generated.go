@@ -141,7 +141,3 @@ type FederatedUserNamespaceListerExpansion interface{}
 // FederatedWorkspaceListerExpansion allows custom methods to be added to
 // FederatedWorkspaceLister.
 type FederatedWorkspaceListerExpansion interface{}
-
-// FederatedWorkspaceNamespaceListerExpansion allows custom methods to be added to
-// FederatedWorkspaceNamespaceLister.
-type FederatedWorkspaceNamespaceListerExpansion interface{}

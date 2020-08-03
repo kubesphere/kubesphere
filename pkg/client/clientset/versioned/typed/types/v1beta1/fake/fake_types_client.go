@@ -88,8 +88,8 @@ func (c *FakeTypesV1beta1) FederatedUsers(namespace string) v1beta1.FederatedUse
 	return &FakeFederatedUsers{c, namespace}
 }
 
-func (c *FakeTypesV1beta1) FederatedWorkspaces(namespace string) v1beta1.FederatedWorkspaceInterface {
-	return &FakeFederatedWorkspaces{c, namespace}
+func (c *FakeTypesV1beta1) FederatedWorkspaces() v1beta1.FederatedWorkspaceInterface {
+	return &FakeFederatedWorkspaces{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

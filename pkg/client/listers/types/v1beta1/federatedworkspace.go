@@ -29,8 +29,8 @@ import (
 type FederatedWorkspaceLister interface {
 	// List lists all FederatedWorkspaces in the indexer.
 	List(selector labels.Selector) (ret []*v1beta1.FederatedWorkspace, err error)
-	// FederatedWorkspaces returns an object that can list and get FederatedWorkspaces.
-	FederatedWorkspaces(namespace string) FederatedWorkspaceNamespaceLister
+	// Get retrieves the FederatedWorkspace from the index for a given name.
+	Get(name string) (*v1beta1.FederatedWorkspace, error)
 	FederatedWorkspaceListerExpansion
 }
 
@@ -52,38 +52,9 @@ func (s *federatedWorkspaceLister) List(selector labels.Selector) (ret []*v1beta
 	return ret, err
 }
 
-// FederatedWorkspaces returns an object that can list and get FederatedWorkspaces.
-func (s *federatedWorkspaceLister) FederatedWorkspaces(namespace string) FederatedWorkspaceNamespaceLister {
-	return federatedWorkspaceNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// FederatedWorkspaceNamespaceLister helps list and get FederatedWorkspaces.
-type FederatedWorkspaceNamespaceLister interface {
-	// List lists all FederatedWorkspaces in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1beta1.FederatedWorkspace, err error)
-	// Get retrieves the FederatedWorkspace from the indexer for a given namespace and name.
-	Get(name string) (*v1beta1.FederatedWorkspace, error)
-	FederatedWorkspaceNamespaceListerExpansion
-}
-
-// federatedWorkspaceNamespaceLister implements the FederatedWorkspaceNamespaceLister
-// interface.
-type federatedWorkspaceNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all FederatedWorkspaces in the indexer for a given namespace.
-func (s federatedWorkspaceNamespaceLister) List(selector labels.Selector) (ret []*v1beta1.FederatedWorkspace, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1beta1.FederatedWorkspace))
-	})
-	return ret, err
-}
-
-// Get retrieves the FederatedWorkspace from the indexer for a given namespace and name.
-func (s federatedWorkspaceNamespaceLister) Get(name string) (*v1beta1.FederatedWorkspace, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the FederatedWorkspace from the index for a given name.
+func (s *federatedWorkspaceLister) Get(name string) (*v1beta1.FederatedWorkspace, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

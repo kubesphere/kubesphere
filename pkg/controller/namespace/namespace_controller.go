@@ -293,14 +293,6 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 	return nil
 }
 
-func (r *ReconcileNamespace) resetNamespaceOwner(namespace *corev1.Namespace) error {
-	namespace = namespace.DeepCopy()
-	delete(namespace.Annotations, constants.CreatorAnnotationKey)
-	err := r.Update(context.Background(), namespace)
-	klog.V(4).Infof("update namespace after creator has been deleted")
-	return err
-}
-
 func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace) error {
 	creator := namespace.Annotations[constants.CreatorAnnotationKey]
 	if creator == "" {
@@ -308,19 +300,12 @@ func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace)
 	}
 
 	var user iamv1alpha2.User
-	err := r.Get(context.Background(), types.NamespacedName{Name: creator}, &user)
-	if err != nil {
-		// skip if user has been deleted
+	if err := r.Get(context.Background(), types.NamespacedName{Name: creator}, &user); err != nil {
 		if errors.IsNotFound(err) {
-			return r.resetNamespaceOwner(namespace)
+			return nil
 		}
 		klog.Error(err)
 		return err
-	}
-
-	// skip if user has been deleted
-	if !user.DeletionTimestamp.IsZero() {
-		return r.resetNamespaceOwner(namespace)
 	}
 
 	creatorRoleBinding := &rbacv1.RoleBinding{
@@ -342,8 +327,8 @@ func (r *ReconcileNamespace) initCreatorRoleBinding(namespace *corev1.Namespace)
 			},
 		},
 	}
-	err = r.Client.Create(context.Background(), creatorRoleBinding)
-	if err != nil {
+
+	if err := r.Client.Create(context.Background(), creatorRoleBinding); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
 		}

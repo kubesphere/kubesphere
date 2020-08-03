@@ -13,6 +13,8 @@ const (
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+
 // +k8s:openapi-gen=true
 type FederatedWorkspace struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -29,7 +31,8 @@ type FederatedWorkspaceSpec struct {
 }
 
 type WorkspaceTemplate struct {
-	Spec workspacev1alpha1.WorkspaceSpec `json:"spec,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              workspacev1alpha1.WorkspaceSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
