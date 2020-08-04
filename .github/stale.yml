@@ -5,6 +5,10 @@ daysUntilClose: 30
 # Issues with these labels will never be considered stale
 exemptLabels:
   - frozen
+  - kind/feature-request
+  - kind/feature
+  - kind/security
+  - kind/design
 staleLabel: stale
 # Comment to post when marking an issue as stale. Set to `false` to disable
 markComment: >
