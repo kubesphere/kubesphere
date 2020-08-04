@@ -213,11 +213,10 @@ func (c *Controller) reconcile(key string) error {
 		return err
 	}
 
-	isClusterAdmin := clusterRoleBinding.RoleRef.Name == iamv1alpha2.ClusterAdmin
-	if isClusterAdmin {
+	if clusterRoleBinding.RoleRef.Name == iamv1alpha2.ClusterAdmin {
 		for _, subject := range clusterRoleBinding.Subjects {
 			if subject.Kind == iamv1alpha2.ResourceKindUser {
-				err = c.kubectlOperator.CreateKubectlDeploy(subject.Name)
+				err = c.kubectlOperator.CreateKubectlDeploy(subject.Name, clusterRoleBinding)
 				if err != nil {
 					klog.Error(err)
 					return err
