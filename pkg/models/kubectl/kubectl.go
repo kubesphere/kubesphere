@@ -43,7 +43,7 @@ const (
 
 type Interface interface {
 	GetKubectlPod(username string) (models.PodInfo, error)
-	CreateKubectlDeploy(username string) error
+	CreateKubectlDeploy(username string, owner metav1.Object) error
 }
 
 type operator struct {
@@ -108,10 +108,10 @@ func selectCorrectPod(namespace string, pods []*v1.Pod) (kubectlPod *v1.Pod, err
 	return kubectlPodList[random], nil
 }
 
-func (o *operator) CreateKubectlDeploy(username string) error {
+func (o *operator) CreateKubectlDeploy(username string, owner metav1.Object) error {
 	deployName := fmt.Sprintf(deployNameFormat, username)
 
-	user, err := o.userInformer.Lister().Get(username)
+	_, err := o.userInformer.Lister().Get(username)
 	if err != nil {
 		klog.Error(err)
 		// ignore if user not exist
@@ -165,7 +165,8 @@ func (o *operator) CreateKubectlDeploy(username string) error {
 		},
 	}
 
-	err = controllerutil.SetControllerReference(user, deployment, scheme.Scheme)
+	// bind the lifecycle of role binding
+	err = controllerutil.SetControllerReference(owner, deployment, scheme.Scheme)
 	if err != nil {
 		klog.Errorln(err)
 		return err
