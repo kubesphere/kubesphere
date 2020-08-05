@@ -200,7 +200,7 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 		CommonName:   username,
 		Organization: nil,
 		AltNames:     certutil.AltNames{},
-		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 	x509csr, x509key, err := pkiutil.NewCSRAndKey(csrConfig)
 	if err != nil {
@@ -247,7 +247,7 @@ func (o *operator) createCSR(username string) ([]byte, error) {
 		},
 		Spec: certificatesv1beta1.CertificateSigningRequestSpec{
 			Request:  csr,
-			Usages:   []certificatesv1beta1.KeyUsage{certificatesv1beta1.UsageServerAuth, certificatesv1beta1.UsageKeyEncipherment, certificatesv1beta1.UsageClientAuth, certificatesv1beta1.UsageDigitalSignature},
+			Usages:   []certificatesv1beta1.KeyUsage{certificatesv1beta1.UsageKeyEncipherment, certificatesv1beta1.UsageClientAuth, certificatesv1beta1.UsageDigitalSignature},
 			Username: username,
 			Groups:   []string{user.AllAuthenticated},
 		},
