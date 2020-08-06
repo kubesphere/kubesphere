@@ -22,6 +22,7 @@ import (
 	"k8s.io/klog"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	"kubesphere.io/kubesphere/pkg/client/informers/externalversions/types/v1beta1"
 	"kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/certificatesigningrequest"
 	"kubesphere.io/kubesphere/pkg/controller/cluster"
@@ -242,15 +243,8 @@ func addControllers(
 		fedWorkspaceRoleBindingCache, fedWorkspaceRoleBindingCacheController,
 		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
 
-	workspaceTemplateController := workspacetemplate.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(),
-		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
-		kubesphereInformer.Iam().V1alpha2().RoleBases(),
-		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
-		kubesphereInformer.Types().V1beta1().FederatedWorkspaces(),
-		multiClusterEnabled)
-
 	var clusterController manager.Runnable
+	var federatedWorkspaceInformer v1beta1.FederatedWorkspaceInformer
 	if multiClusterEnabled {
 		clusterController = cluster.NewClusterController(
 			client.Kubernetes(),
@@ -258,7 +252,16 @@ func addControllers(
 			kubesphereInformer.Cluster().V1alpha1().Clusters(),
 			client.KubeSphere().ClusterV1alpha1().Clusters(),
 			openpitrixClient)
+		// register informer if multi-cluster is enabled
+		federatedWorkspaceInformer = kubesphereInformer.Types().V1beta1().FederatedWorkspaces()
 	}
+	workspaceTemplateController := workspacetemplate.NewController(client.Kubernetes(), client.KubeSphere(),
+		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(),
+		kubesphereInformer.Tenant().V1alpha1().Workspaces(),
+		kubesphereInformer.Iam().V1alpha2().RoleBases(),
+		kubesphereInformer.Iam().V1alpha2().WorkspaceRoles(),
+		federatedWorkspaceInformer,
+		multiClusterEnabled)
 
 	var nsnpController manager.Runnable
 	if networkOptions.EnableNetworkPolicy {

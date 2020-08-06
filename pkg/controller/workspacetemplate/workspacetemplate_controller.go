@@ -107,26 +107,28 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerName})
 	ctl := &Controller{
-		k8sClient:                  k8sClient,
-		ksClient:                   ksClient,
-		workspaceTemplateInformer:  workspaceTemplateInformer,
-		workspaceTemplateLister:    workspaceTemplateInformer.Lister(),
-		workspaceTemplateSynced:    workspaceTemplateInformer.Informer().HasSynced,
-		workspaceInformer:          workspaceInformer,
-		workspaceLister:            workspaceInformer.Lister(),
-		workspaceSynced:            workspaceInformer.Informer().HasSynced,
-		workspaceRoleInformer:      workspaceRoleInformer,
-		workspaceRoleLister:        workspaceRoleInformer.Lister(),
-		workspaceRoleSynced:        workspaceRoleInformer.Informer().HasSynced,
-		roleBaseInformer:           roleBaseInformer,
-		roleBaseLister:             roleBaseInformer.Lister(),
-		roleBaseSynced:             roleBaseInformer.Informer().HasSynced,
-		federatedWorkspaceInformer: federatedWorkspaceInformer,
-		federatedWorkspaceLister:   federatedWorkspaceInformer.Lister(),
-		federatedWorkspaceSynced:   federatedWorkspaceInformer.Informer().HasSynced,
-		multiClusterEnabled:        multiClusterEnabled,
-		workqueue:                  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "WorkspaceTemplate"),
-		recorder:                   recorder,
+		k8sClient:                 k8sClient,
+		ksClient:                  ksClient,
+		workspaceTemplateInformer: workspaceTemplateInformer,
+		workspaceTemplateLister:   workspaceTemplateInformer.Lister(),
+		workspaceTemplateSynced:   workspaceTemplateInformer.Informer().HasSynced,
+		workspaceInformer:         workspaceInformer,
+		workspaceLister:           workspaceInformer.Lister(),
+		workspaceSynced:           workspaceInformer.Informer().HasSynced,
+		workspaceRoleInformer:     workspaceRoleInformer,
+		workspaceRoleLister:       workspaceRoleInformer.Lister(),
+		workspaceRoleSynced:       workspaceRoleInformer.Informer().HasSynced,
+		roleBaseInformer:          roleBaseInformer,
+		roleBaseLister:            roleBaseInformer.Lister(),
+		roleBaseSynced:            roleBaseInformer.Informer().HasSynced,
+		multiClusterEnabled:       multiClusterEnabled,
+		workqueue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "WorkspaceTemplate"),
+		recorder:                  recorder,
+	}
+	if multiClusterEnabled {
+		ctl.federatedWorkspaceInformer = federatedWorkspaceInformer
+		ctl.federatedWorkspaceLister = federatedWorkspaceInformer.Lister()
+		ctl.federatedWorkspaceSynced = federatedWorkspaceInformer.Informer().HasSynced
 	}
 	klog.Info("Setting up event handlers")
 	workspaceTemplateInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
