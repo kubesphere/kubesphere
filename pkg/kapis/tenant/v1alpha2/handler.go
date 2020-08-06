@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/emicklei/go-restful"
 	corev1 "k8s.io/api/core/v1"
@@ -492,18 +493,15 @@ func (h *tenantHandler) PatchNamespace(request *restful.Request, response *restf
 
 func (h *tenantHandler) PatchWorkspace(request *restful.Request, response *restful.Response) {
 	workspaceName := request.PathParameter("workspace")
-
-	var workspace tenantv1alpha2.WorkspaceTemplate
-	err := request.ReadEntity(&workspace)
+	var data json.RawMessage
+	err := request.ReadEntity(&data)
 	if err != nil {
 		klog.Error(err)
 		api.HandleBadRequest(response, request, err)
 		return
 	}
 
-	workspace.Name = workspaceName
-
-	patched, err := h.tenant.PatchWorkspace(&workspace)
+	patched, err := h.tenant.PatchWorkspace(workspaceName, data)
 
 	if err != nil {
 		klog.Error(err)

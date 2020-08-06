@@ -76,7 +76,7 @@ type Interface interface {
 	DeleteNamespace(workspace, namespace string) error
 	UpdateNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
-	PatchWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error)
+	PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListClusters(info user.Info) (*api.ListResult, error)
 }
 
@@ -369,16 +369,8 @@ func (t *tenantOperator) PatchNamespace(workspace string, namespace *corev1.Name
 	return t.k8sclient.CoreV1().Namespaces().Patch(namespace.Name, types.MergePatchType, data)
 }
 
-func (t *tenantOperator) PatchWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {
-	_, err := t.DescribeWorkspace(workspace.Name)
-	if err != nil {
-		return nil, err
-	}
-	data, err := json.Marshal(workspace)
-	if err != nil {
-		return nil, err
-	}
-	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(workspace.Name, types.MergePatchType, data)
+func (t *tenantOperator) PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error) {
+	return t.ksclient.TenantV1alpha2().WorkspaceTemplates().Patch(workspace, types.MergePatchType, data)
 }
 
 func (t *tenantOperator) CreateWorkspace(workspace *tenantv1alpha2.WorkspaceTemplate) (*tenantv1alpha2.WorkspaceTemplate, error) {

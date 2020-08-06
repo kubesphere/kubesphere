@@ -105,11 +105,11 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	}
 	klog.Info("Setting up event handlers")
 	workspaceRoleInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctl.enqueueClusterRole,
+		AddFunc: ctl.enqueueWorkspaceRole,
 		UpdateFunc: func(old, new interface{}) {
-			ctl.enqueueClusterRole(new)
+			ctl.enqueueWorkspaceRole(new)
 		},
-		DeleteFunc: ctl.enqueueClusterRole,
+		DeleteFunc: ctl.enqueueWorkspaceRole,
 	})
 	return ctl
 }
@@ -146,7 +146,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	return nil
 }
 
-func (c *Controller) enqueueClusterRole(obj interface{}) {
+func (c *Controller) enqueueWorkspaceRole(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {

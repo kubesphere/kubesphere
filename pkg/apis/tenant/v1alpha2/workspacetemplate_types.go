@@ -18,30 +18,13 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
+	typesv1alpha1 "kubesphere.io/kubesphere/pkg/apis/types/v1beta1"
 )
 
 const (
 	ResourceKindWorkspaceTemplate     = "WorkspaceTemplate"
 	ResourceSingularWorkspaceTemplate = "workspacetemplate"
 	ResourcePluralWorkspaceTemplate   = "workspacetemplates"
-	ResourcesPluralFedWorkspace       = "federatedworkspaces"
-	ResourcesSingularFedWorkspace     = "federatedworkspace"
-	FedWorkspaceKind                  = "FederatedWorkspace"
-	fedResourceGroup                  = "types.kubefed.io"
-	fedResourceVersion                = "v1beta1"
-)
-
-var (
-	FedWorkspaceResource = metav1.APIResource{
-		Name:         ResourcesPluralFedWorkspace,
-		SingularName: ResourcesSingularFedWorkspace,
-		Namespaced:   false,
-		Group:        fedResourceGroup,
-		Version:      fedResourceVersion,
-		Kind:         FedWorkspaceKind,
-	}
 )
 
 // +genclient
@@ -54,42 +37,7 @@ var (
 type WorkspaceTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              WorkspaceTemplateSpec `json:"spec,omitempty"`
-}
-
-type WorkspaceTemplateSpec struct {
-	Template  Template   `json:"template"`
-	Placement Placement  `json:"placement"`
-	Overrides []Override `json:"overrides,omitempty"`
-}
-
-type Template struct {
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              v1alpha1.WorkspaceSpec `json:"spec"`
-}
-
-type Placement struct {
-	Clusters        []Cluster        `json:"clusters,omitempty"`
-	ClusterSelector *ClusterSelector `json:"clusterSelector,omitempty"`
-}
-
-type ClusterSelector struct {
-	MatchLabels map[string]string `json:"matchLabels,omitempty"`
-}
-
-type Cluster struct {
-	Name string `json:"name"`
-}
-
-type Override struct {
-	ClusterName      string            `json:"clusterName"`
-	ClusterOverrides []ClusterOverride `json:"clusterOverrides"`
-}
-
-type ClusterOverride struct {
-	Path  string               `json:"path"`
-	Op    string               `json:"op,omitempty"`
-	Value runtime.RawExtension `json:"value"`
+	Spec              typesv1alpha1.FederatedWorkspaceSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -104,10 +52,4 @@ type WorkspaceTemplateList struct {
 
 func init() {
 	SchemeBuilder.Register(&WorkspaceTemplate{}, &WorkspaceTemplateList{})
-}
-
-type FederatedWorkspace struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              WorkspaceTemplateSpec `json:"spec"`
 }

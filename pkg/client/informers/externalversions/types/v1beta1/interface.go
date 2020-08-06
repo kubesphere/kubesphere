@@ -146,5 +146,5 @@ func (v *version) FederatedUsers() FederatedUserInformer {
 
 // FederatedWorkspaces returns a FederatedWorkspaceInformer.
 func (v *version) FederatedWorkspaces() FederatedWorkspaceInformer {
-	return &federatedWorkspaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &federatedWorkspaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

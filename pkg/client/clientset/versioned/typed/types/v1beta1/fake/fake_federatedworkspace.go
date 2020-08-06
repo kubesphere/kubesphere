@@ -31,7 +31,6 @@ import (
 // FakeFederatedWorkspaces implements FederatedWorkspaceInterface
 type FakeFederatedWorkspaces struct {
 	Fake *FakeTypesV1beta1
-	ns   string
 }
 
 var federatedworkspacesResource = schema.GroupVersionResource{Group: "types.kubefed.io", Version: "v1beta1", Resource: "federatedworkspaces"}
@@ -41,8 +40,7 @@ var federatedworkspacesKind = schema.GroupVersionKind{Group: "types.kubefed.io",
 // Get takes name of the federatedWorkspace, and returns the corresponding federatedWorkspace object, and an error if there is any.
 func (c *FakeFederatedWorkspaces) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(federatedworkspacesResource, c.ns, name), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootGetAction(federatedworkspacesResource, name), &v1beta1.FederatedWorkspace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -52,8 +50,7 @@ func (c *FakeFederatedWorkspaces) Get(name string, options v1.GetOptions) (resul
 // List takes label and field selectors, and returns the list of FederatedWorkspaces that match those selectors.
 func (c *FakeFederatedWorkspaces) List(opts v1.ListOptions) (result *v1beta1.FederatedWorkspaceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(federatedworkspacesResource, federatedworkspacesKind, c.ns, opts), &v1beta1.FederatedWorkspaceList{})
-
+		Invokes(testing.NewRootListAction(federatedworkspacesResource, federatedworkspacesKind, opts), &v1beta1.FederatedWorkspaceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,15 +71,13 @@ func (c *FakeFederatedWorkspaces) List(opts v1.ListOptions) (result *v1beta1.Fed
 // Watch returns a watch.Interface that watches the requested federatedWorkspaces.
 func (c *FakeFederatedWorkspaces) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(federatedworkspacesResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(federatedworkspacesResource, opts))
 }
 
 // Create takes the representation of a federatedWorkspace and creates it.  Returns the server's representation of the federatedWorkspace, and an error, if there is any.
 func (c *FakeFederatedWorkspaces) Create(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(federatedworkspacesResource, c.ns, federatedWorkspace), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootCreateAction(federatedworkspacesResource, federatedWorkspace), &v1beta1.FederatedWorkspace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -92,8 +87,7 @@ func (c *FakeFederatedWorkspaces) Create(federatedWorkspace *v1beta1.FederatedWo
 // Update takes the representation of a federatedWorkspace and updates it. Returns the server's representation of the federatedWorkspace, and an error, if there is any.
 func (c *FakeFederatedWorkspaces) Update(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(federatedworkspacesResource, c.ns, federatedWorkspace), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootUpdateAction(federatedworkspacesResource, federatedWorkspace), &v1beta1.FederatedWorkspace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -104,8 +98,7 @@ func (c *FakeFederatedWorkspaces) Update(federatedWorkspace *v1beta1.FederatedWo
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeFederatedWorkspaces) UpdateStatus(federatedWorkspace *v1beta1.FederatedWorkspace) (*v1beta1.FederatedWorkspace, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(federatedworkspacesResource, "status", c.ns, federatedWorkspace), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(federatedworkspacesResource, "status", federatedWorkspace), &v1beta1.FederatedWorkspace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -115,14 +108,13 @@ func (c *FakeFederatedWorkspaces) UpdateStatus(federatedWorkspace *v1beta1.Feder
 // Delete takes name of the federatedWorkspace and deletes it. Returns an error if one occurs.
 func (c *FakeFederatedWorkspaces) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(federatedworkspacesResource, c.ns, name), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootDeleteAction(federatedworkspacesResource, name), &v1beta1.FederatedWorkspace{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeFederatedWorkspaces) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedworkspacesResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(federatedworkspacesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedWorkspaceList{})
 	return err
@@ -131,8 +123,7 @@ func (c *FakeFederatedWorkspaces) DeleteCollection(options *v1.DeleteOptions, li
 // Patch applies the patch and returns the patched federatedWorkspace.
 func (c *FakeFederatedWorkspaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedWorkspace, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(federatedworkspacesResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedWorkspace{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(federatedworkspacesResource, name, pt, data, subresources...), &v1beta1.FederatedWorkspace{})
 	if obj == nil {
 		return nil, err
 	}
