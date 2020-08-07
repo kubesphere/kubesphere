@@ -544,14 +544,35 @@ func (h *iamHandler) ModifyPassword(request *restful.Request, response *restful.
 	}
 
 	operator, ok := apirequest.UserFrom(request.Request.Context())
-	// change password by self
-	if ok && operator.GetName() == username {
+
+	if !ok {
+		err = errors.NewInternalError(fmt.Errorf("cannot obtain user info"))
+		klog.Error(err)
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	userManagement := authorizer.AttributesRecord{
+		Resource:        "users/password",
+		Verb:            "update",
+		ResourceScope:   apirequest.GlobalScope,
+		ResourceRequest: true,
+		User:            operator,
+	}
+
+	decision, _, err := h.authorizer.Authorize(userManagement)
+	if err != nil {
+		klog.Error(err)
+		api.HandleInternalError(response, request, err)
+		return
+	}
+
+	// only the user manager can modify the password without verifying the old password
+	// if old password is defined must be verified
+	if decision != authorizer.DecisionAllow || passwordReset.CurrentPassword != "" {
 		if err = h.im.PasswordVerify(username, passwordReset.CurrentPassword); err != nil {
 			if err == im.AuthFailedIncorrectPassword {
 				err = errors.NewBadRequest("incorrect old password")
-				klog.Warning(err)
-				handleError(request, response, err)
-				return
 			}
 			klog.Error(err)
 			handleError(request, response, err)
@@ -565,6 +586,7 @@ func (h *iamHandler) ModifyPassword(request *restful.Request, response *restful.
 		handleError(request, response, err)
 		return
 	}
+
 	response.WriteEntity(servererr.None)
 }
 
