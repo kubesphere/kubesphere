@@ -305,7 +305,7 @@ func (h *iamHandler) DescribeNamespaceMember(request *restful.Request, response 
 	}
 
 	queryParam := query.New()
-	queryParam.Filters[query.FieldName] = query.Value(username)
+	queryParam.Filters[query.FieldNames] = query.Value(username)
 	queryParam.Filters[iamv1alpha2.ScopeNamespace] = query.Value(namespace)
 
 	result, err := h.im.ListUsers(queryParam)
@@ -363,7 +363,7 @@ func (h *iamHandler) DescribeWorkspaceMember(request *restful.Request, response 
 	username := request.PathParameter("workspacemember")
 
 	queryParam := query.New()
-	queryParam.Filters[query.FieldName] = query.Value(username)
+	queryParam.Filters[query.FieldNames] = query.Value(username)
 	queryParam.Filters[iamv1alpha2.ScopeWorkspace] = query.Value(workspace)
 
 	result, err := h.im.ListUsers(queryParam)
@@ -1060,7 +1060,7 @@ func (h *iamHandler) DescribeClusterMember(request *restful.Request, response *r
 	username := request.PathParameter("clustermember")
 
 	queryParam := query.New()
-	queryParam.Filters[query.FieldName] = query.Value(username)
+	queryParam.Filters[query.FieldNames] = query.Value(username)
 	queryParam.Filters[iamv1alpha2.ScopeCluster] = "true"
 
 	result, err := h.im.ListUsers(queryParam)
