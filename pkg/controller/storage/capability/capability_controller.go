@@ -191,7 +191,7 @@ func (c *StorageCapabilityController) handlerCSIDriver(obj interface{}) {
 	}
 	for _, storageClass := range storageClasses {
 		if storageClass.Provisioner == csiDriver.Name {
-			klog.Info("enqueue StorageClass when handler csiDriver", storageClass)
+			klog.V(4).Infof("enqueue StorageClass %s when handling csiDriver", storageClass.Name)
 			c.enqueueStorageClass(storageClass)
 		}
 	}
