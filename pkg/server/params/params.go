@@ -43,37 +43,49 @@ func ParsePaging(req *restful.Request) (limit, offset int) {
 	return
 }
 
-func ParseConditions(req *restful.Request) (*Conditions, error) {
+var (
+	invalidKeyRegex = regexp.MustCompile(`[\s(){}\[\]]`)
+)
 
-	conditionsStr := req.QueryParameter(ConditionsParam)
+// Ref: stdlib url.ParseQuery
+func parseConditions(conditionsStr string) (*Conditions, error) {
+	// string likes: key1=value1,key2~value2,key3=
+	// exact query: key=value, if value is empty means label value must be ""
+	// fuzzy query: key~value, if value is empty means label value is "" or label key not exist
+	var conditions = &Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
 
-	conditions := &Conditions{Match: make(map[string]string, 0), Fuzzy: make(map[string]string, 0)}
-
-	if conditionsStr == "" {
-		return conditions, nil
-	}
-
-	// ?conditions=key1=value1,key2~value2,key3=
-	for _, item := range strings.Split(conditionsStr, ",") {
-		// exact query: key=value, if value is empty means label value must be ""
-		// fuzzy query: key~value, if value is empty means label value is "" or label key not exist
-		if groups := regexp.MustCompile(`(\S+)([=~])(\S+)?`).FindStringSubmatch(item); len(groups) >= 3 {
-			value := ""
-
-			if len(groups) > 3 {
-				value = groups[3]
-			}
-
-			if groups[2] == "=" {
-				conditions.Match[groups[1]] = value
-			} else {
-				conditions.Fuzzy[groups[1]] = value
-			}
+	for conditionsStr != "" {
+		key := conditionsStr
+		if i := strings.Index(key, ","); i >= 0 {
+			key, conditionsStr = key[:i], key[i+1:]
 		} else {
+			conditionsStr = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		var isFuzzy = false
+		if i := strings.IndexAny(key, "~="); i >= 0 {
+			if key[i] == '~' {
+				isFuzzy = true
+			}
+			key, value = key[:i], key[i+1:]
+		}
+		if invalidKeyRegex.MatchString(key) {
 			return nil, fmt.Errorf("invalid conditions")
+		}
+		if isFuzzy {
+			conditions.Fuzzy[key] = value
+		} else {
+			conditions.Match[key] = value
 		}
 	}
 	return conditions, nil
+}
+
+func ParseConditions(req *restful.Request) (*Conditions, error) {
+	return parseConditions(req.QueryParameter(ConditionsParam))
 }
 
 type Conditions struct {
