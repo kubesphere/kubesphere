@@ -26,6 +26,7 @@ import (
 // KubeSphere uses the layout `yyyy.MM.dd`.
 const layoutISO = "2006.01.02"
 
+// Always do calculation based on UTC.
 func ResolveIndexNames(prefix string, start, end time.Time) string {
 	if end.IsZero() {
 		end = time.Now()
@@ -37,8 +38,12 @@ func ResolveIndexNames(prefix string, start, end time.Time) string {
 	}
 
 	var indices []string
-	for i := 0; i <= int(end.Sub(start).Hours()/24); i++ {
-		suffix := end.Add(time.Duration(-i) * 24 * time.Hour).Format(layoutISO)
+	days := int(end.Sub(start).Hours() / 24)
+	if start.Add(time.Duration(days)*24*time.Hour).UTC().Day() != end.UTC().Day() {
+		days++
+	}
+	for i := 0; i <= days; i++ {
+		suffix := end.Add(time.Duration(-i) * 24 * time.Hour).UTC().Format(layoutISO)
 		indices = append(indices, fmt.Sprintf("%s-%s", prefix, suffix))
 	}
 
