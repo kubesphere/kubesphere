@@ -317,7 +317,7 @@ func makeWorkloadMetricExpr(metric, tmpl string, o monitoring.QueryOptions) stri
 	default:
 		o.WorkloadKind = ".*"
 	}
-	workloadSelector = fmt.Sprintf(`namespace="%s", workload=~"%s:%s"`, o.NamespaceName, o.WorkloadKind, o.ResourceFilter)
+	workloadSelector = fmt.Sprintf(`namespace="%s", workload=~"%s:(%s)"`, o.NamespaceName, o.WorkloadKind, o.ResourceFilter)
 
 	if strings.Contains(metric, "deployment") {
 		kindSelector = fmt.Sprintf(`namespace="%s", deployment!="", deployment=~"%s"`, o.NamespaceName, o.ResourceFilter)
