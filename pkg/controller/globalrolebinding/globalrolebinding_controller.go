@@ -39,7 +39,6 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	modeldevops "kubesphere.io/kubesphere/pkg/models/devops"
 	devops "kubesphere.io/kubesphere/pkg/simple/client/devops"
 
 	"reflect"
@@ -58,7 +57,6 @@ const (
 type Controller struct {
 	k8sClient                           kubernetes.Interface
 	ksClient                            kubesphere.Interface
-	globalRoleBindingInformer           iamv1alpha2informers.GlobalRoleBindingInformer
 	globalRoleBindingLister             iamv1alpha2listers.GlobalRoleBindingLister
 	globalRoleBindingSynced             cache.InformerSynced
 	fedGlobalRoleBindingCache           cache.Store
@@ -76,8 +74,10 @@ type Controller struct {
 	devopsClient        devops.Interface
 }
 
-func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface, globalRoleBindingInformer iamv1alpha2informers.GlobalRoleBindingInformer,
-	fedGlobalRoleBindingCache cache.Store, fedGlobalRoleBindingCacheController cache.Controller, multiClusterEnabled bool, devopsClient devops.Interface) *Controller {
+func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface,
+	globalRoleBindingInformer iamv1alpha2informers.GlobalRoleBindingInformer,
+	fedGlobalRoleBindingCache cache.Store, fedGlobalRoleBindingCacheController cache.Controller,
+	multiClusterEnabled bool) *Controller {
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
@@ -90,7 +90,6 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 	ctl := &Controller{
 		k8sClient:                           k8sClient,
 		ksClient:                            ksClient,
-		globalRoleBindingInformer:           globalRoleBindingInformer,
 		globalRoleBindingLister:             globalRoleBindingInformer.Lister(),
 		globalRoleBindingSynced:             globalRoleBindingInformer.Informer().HasSynced,
 		fedGlobalRoleBindingCache:           fedGlobalRoleBindingCache,
@@ -98,7 +97,6 @@ func NewController(k8sClient kubernetes.Interface, ksClient kubesphere.Interface
 		workqueue:                           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "GlobalRoleBinding"),
 		recorder:                            recorder,
 		multiClusterEnabled:                 multiClusterEnabled,
-		devopsClient:                        devopsClient,
 	}
 	klog.Info("Setting up event handlers")
 	globalRoleBindingInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -230,13 +228,6 @@ func (c *Controller) reconcile(key string) error {
 
 	if globalRoleBinding.RoleRef.Name == iamv1alpha2.PlatformAdmin {
 		if err := c.assignClusterAdminRole(globalRoleBinding); err != nil {
-			klog.Error(err)
-			return err
-		}
-	}
-
-	if c.devopsClient != nil {
-		if err := c.assignDevOpsAdminRole(globalRoleBinding); err != nil {
 			klog.Error(err)
 			return err
 		}
@@ -428,16 +419,6 @@ func (c *Controller) ensureNotControlledByKubefed(globalRoleBinding *iamv1alpha2
 		_, err := c.ksClient.IamV1alpha2().GlobalRoleBindings().Update(globalRoleBinding)
 		if err != nil {
 			klog.Error(err)
-		}
-	}
-	return nil
-}
-
-func (c *Controller) assignDevOpsAdminRole(globalRoleBinding *iamv1alpha2.GlobalRoleBinding) error {
-	if username := findExpectUsername(globalRoleBinding); username != "" {
-		if err := c.devopsClient.AssignGlobalRole(modeldevops.JenkinsAdminRoleName, username); err != nil {
-			klog.Errorf("%+v", err)
-			return err
 		}
 	}
 	return nil

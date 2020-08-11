@@ -100,7 +100,8 @@ func (f *fixture) newController() (*Controller, ksinformers.SharedInformerFactor
 		nil, nil,
 		ksinformers.Iam().V1alpha2().LoginRecords(),
 		k8sinformers.Core().V1().ConfigMaps(),
-		ldapClient, options.NewAuthenticateOptions(), false)
+		ldapClient, nil,
+		options.NewAuthenticateOptions(), false)
 	c.userSynced = alwaysReady
 	c.recorder = &record.FakeRecorder{}
 

@@ -44,7 +44,9 @@ import (
 	iamv1alpha2informers "kubesphere.io/kubesphere/pkg/client/informers/externalversions/iam/v1alpha2"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
+	modelsdevops "kubesphere.io/kubesphere/pkg/models/devops"
 	"kubesphere.io/kubesphere/pkg/models/kubeconfig"
+	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	ldapclient "kubesphere.io/kubesphere/pkg/simple/client/ldap"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
@@ -65,19 +67,18 @@ const (
 )
 
 type Controller struct {
-	k8sClient           kubernetes.Interface
-	ksClient            kubesphere.Interface
-	kubeconfig          kubeconfig.Interface
-	userInformer        iamv1alpha2informers.UserInformer
-	userLister          iamv1alpha2listers.UserLister
-	userSynced          cache.InformerSynced
-	loginRecordInformer iamv1alpha2informers.LoginRecordInformer
-	loginRecordLister   iamv1alpha2listers.LoginRecordLister
-	loginRecordSynced   cache.InformerSynced
-	cmSynced            cache.InformerSynced
-	fedUserCache        cache.Store
-	fedUserController   cache.Controller
-	ldapClient          ldapclient.Interface
+	k8sClient         kubernetes.Interface
+	ksClient          kubesphere.Interface
+	kubeconfig        kubeconfig.Interface
+	userLister        iamv1alpha2listers.UserLister
+	userSynced        cache.InformerSynced
+	loginRecordLister iamv1alpha2listers.LoginRecordLister
+	loginRecordSynced cache.InformerSynced
+	cmSynced          cache.InformerSynced
+	fedUserCache      cache.Store
+	fedUserController cache.Controller
+	ldapClient        ldapclient.Interface
+	devopsClient      devops.Interface
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -97,6 +98,7 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 	loginRecordInformer iamv1alpha2informers.LoginRecordInformer,
 	configMapInformer corev1informers.ConfigMapInformer,
 	ldapClient ldapclient.Interface,
+	devopsClient devops.Interface,
 	authenticationOptions *authoptions.AuthenticationOptions,
 	multiClusterEnabled bool) *Controller {
 
@@ -114,16 +116,15 @@ func NewUserController(k8sClient kubernetes.Interface, ksClient kubesphere.Inter
 		k8sClient:             k8sClient,
 		ksClient:              ksClient,
 		kubeconfig:            kubeconfigOperator,
-		userInformer:          userInformer,
 		userLister:            userInformer.Lister(),
 		userSynced:            userInformer.Informer().HasSynced,
-		loginRecordInformer:   loginRecordInformer,
 		loginRecordLister:     loginRecordInformer.Lister(),
 		loginRecordSynced:     loginRecordInformer.Informer().HasSynced,
 		cmSynced:              configMapInformer.Informer().HasSynced,
 		fedUserCache:          fedUserCache,
 		fedUserController:     fedUserController,
 		ldapClient:            ldapClient,
+		devopsClient:          devopsClient,
 		workqueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Users"),
 		recorder:              recorder,
 		multiClusterEnabled:   multiClusterEnabled,
@@ -295,6 +296,14 @@ func (c *Controller) reconcile(key string) error {
 				return err
 			}
 
+			if c.devopsClient != nil {
+				// unassign jenkins role, unassign multiple times is allowed
+				if err := c.unassignDevOpsAdminRole(user); err != nil {
+					klog.Error(err)
+					return err
+				}
+			}
+
 			if err = c.deleteLoginRecords(user); err != nil {
 				klog.Error(err)
 				return err
@@ -332,6 +341,15 @@ func (c *Controller) reconcile(key string) error {
 	if c.kubeconfig != nil {
 		// ensure user kubeconfig configmap is created
 		if err = c.kubeconfig.CreateKubeConfig(user); err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
+	if c.devopsClient != nil {
+		// assign jenkins role after user create, assign multiple times is allowed
+		// used as logged-in users can do anything
+		if err := c.assignDevOpsAdminRole(user); err != nil {
 			klog.Error(err)
 			return err
 		}
@@ -496,6 +514,22 @@ func (c *Controller) updateFederatedUser(fedUser *iamv1alpha2.FederatedUser) err
 		return err
 	}
 
+	return nil
+}
+
+func (c *Controller) assignDevOpsAdminRole(user *iamv1alpha2.User) error {
+	if err := c.devopsClient.AssignGlobalRole(modelsdevops.JenkinsAdminRoleName, user.Name); err != nil {
+		klog.Errorf("%+v", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Controller) unassignDevOpsAdminRole(user *iamv1alpha2.User) error {
+	if err := c.devopsClient.UnAssignGlobalRole(modelsdevops.JenkinsAdminRoleName, user.Name); err != nil {
+		klog.Errorf("%+v", err)
+		return err
+	}
 	return nil
 }
 

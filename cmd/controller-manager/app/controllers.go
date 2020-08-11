@@ -202,12 +202,14 @@ func addControllers(
 		go fedWorkspaceRoleBindingCacheController.Run(stopCh)
 	}
 
-	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(), client.Config(),
+	userController := user.NewUserController(client.Kubernetes(), client.KubeSphere(),
+		client.Config(),
 		kubesphereInformer.Iam().V1alpha2().Users(),
 		fedUserCache, fedUserCacheController,
 		kubesphereInformer.Iam().V1alpha2().LoginRecords(),
 		kubernetesInformer.Core().V1().ConfigMaps(),
-		ldapClient, authenticationOptions, multiClusterEnabled)
+		ldapClient, devopsClient,
+		authenticationOptions, multiClusterEnabled)
 
 	loginRecordController := user.NewLoginRecordController(
 		client.Kubernetes(),
@@ -235,7 +237,9 @@ func addControllers(
 		kubesphereInformer.Tenant().V1alpha2().WorkspaceTemplates(), multiClusterEnabled)
 
 	globalRoleBindingController := globalrolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
-		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(), fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController, multiClusterEnabled, devopsClient)
+		kubesphereInformer.Iam().V1alpha2().GlobalRoleBindings(),
+		fedGlobalRoleBindingCache, fedGlobalRoleBindingCacheController,
+		multiClusterEnabled)
 
 	workspaceRoleBindingController := workspacerolebinding.NewController(client.Kubernetes(), client.KubeSphere(),
 		kubesphereInformer.Iam().V1alpha2().WorkspaceRoleBindings(),
