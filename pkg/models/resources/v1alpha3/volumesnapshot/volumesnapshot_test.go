@@ -208,13 +208,17 @@ func TestListVolumeSnapshot(t *testing.T) {
 			}
 			Expect(snapshotStatus(snapshot)).To(Equal(statusReady))
 		})
+
+		It("snapshot.DeletionTimestamp != nil", func() {
+			deleteTime := v1.Now()
+			snapshot.DeletionTimestamp = &deleteTime
+			defer func() {
+				snapshot.DeletionTimestamp = nil
+			}()
+			Expect(snapshotStatus(snapshot)).To(Equal(statusDeleting))
+		})
+
 	})
 
 	RunSpecs(t, "volume snapshot getter list")
 }
-
-//func TestVolumeSnapshotStatus( t *testing.T)  {
-//	RegisterFailHandler(Fail)
-//
-//	RunSpecs(t, "volume snapshot status")
-//}
