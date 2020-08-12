@@ -295,15 +295,14 @@ func (es *Elasticsearch) ExportLogs(sf logging.SearchFilter, w io.Writer) error 
 	for _, hit := range res.AllHits {
 		data = append(data, hit.Log)
 	}
-	if len(data) == 0 {
-		return nil
-	}
 
 	// limit to retrieve max 100k records
 	for i := 0; i < 100; i++ {
-		data, id, err = es.scroll(id)
-		if err != nil {
-			return err
+		if i != 0 {
+			data, id, err = es.scroll(id)
+			if err != nil {
+				return err
+			}
 		}
 		if len(data) == 0 {
 			return nil
