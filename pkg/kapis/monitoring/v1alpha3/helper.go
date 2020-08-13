@@ -37,7 +37,7 @@ const (
 	ComponentAPIServer = "apiserver"
 	ComponentScheduler = "scheduler"
 
-	ErrNoHit           = "'end' must be after the namespace creation time."
+	ErrNoHit           = "'end' or 'time' must be after the namespace creation time."
 	ErrParamConflict   = "'time' and the combination of 'start' and 'end' are mutually exclusive."
 	ErrInvalidStartEnd = "'start' must be before 'end'."
 	ErrInvalidPage     = "Invalid parameter 'page'."
@@ -256,21 +256,23 @@ func (h handler) makeQueryOptions(r reqParams, lvl monitoring.Level) (q queryOpt
 		cts := ns.CreationTimestamp.Time
 
 		// Query should happen no earlier than namespace's creation time.
-		// For range query, check and mutate `start`. For instant query, check and mutate `time`.
+		// For range query, check and mutate `start`. For instant query, check `time`.
 		// In range query, if `start` and `end` are both before namespace's creation time, it causes no hit.
 		if !q.isRangeQuery() {
 			if q.time.Before(cts) {
-				q.time = cts
+				return q, errors.New(ErrNoHit)
 			}
 		} else {
-			if q.start.Before(cts) {
-				q.start = cts
-			}
 			if q.end.Before(cts) {
 				return q, errors.New(ErrNoHit)
 			}
+			if q.start.Before(cts) {
+				q.start = q.end
+				for q.start.Add(-q.step).After(cts) {
+					q.start = q.start.Add(-q.step)
+				}
+			}
 		}
-
 	}
 
 	// Parse sorting and paging params

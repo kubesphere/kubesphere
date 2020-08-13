@@ -104,7 +104,7 @@ func TestParseRequestParams(t *testing.T) {
 				},
 			},
 			expected: queryOptions{
-				start:        time.Unix(1585836666, 0),
+				start:        time.Unix(1585836699, 0),
 				end:          time.Unix(1585839999, 0),
 				step:         time.Minute,
 				identifier:   model.IdentifierNamespace,
@@ -131,17 +131,7 @@ func TestParseRequestParams(t *testing.T) {
 					},
 				},
 			},
-			expected: queryOptions{
-				time:         time.Unix(1585836666, 0),
-				identifier:   model.IdentifierNamespace,
-				metricFilter: ".*",
-				namedMetrics: model.NamespaceMetrics,
-				option: monitoring.NamespaceOption{
-					ResourceFilter: ".*",
-					NamespaceName:  "default",
-				},
-			},
-			expectedErr: false,
+			expectedErr: true,
 		},
 		{
 			params: reqParams{
