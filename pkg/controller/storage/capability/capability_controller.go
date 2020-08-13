@@ -386,7 +386,7 @@ func (c *StorageCapabilityController) capabilityFromProvisioner(provisioner stri
 		}
 		return nil, err
 	}
-	klog.V(4).Infof("get provisioner capability:%s %v", provisioner, provisionerCapability)
+	klog.V(4).Infof("get provisioner capability:%s %s", provisioner, provisionerCapability.Name)
 	capabilitySpec := &capability.StorageClassCapabilitySpec{
 		Features: provisionerCapability.Spec.Features,
 	}
