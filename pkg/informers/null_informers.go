@@ -21,23 +21,37 @@ import (
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
+	ksfake "kubesphere.io/kubesphere/pkg/client/clientset/versioned/fake"
 	ksinformers "kubesphere.io/kubesphere/pkg/client/informers/externalversions"
 	appinformers "sigs.k8s.io/application/pkg/client/informers/externalversions"
+	"time"
 )
 
 type nullInformerFactory struct {
+	fakeK8sInformerFactory informers.SharedInformerFactory
+	fakeKsInformerFactory  ksinformers.SharedInformerFactory
 }
 
 func NewNullInformerFactory() InformerFactory {
-	return &nullInformerFactory{}
+	fakeClient := fake.NewSimpleClientset()
+	fakeInformerFactory := informers.NewSharedInformerFactory(fakeClient, time.Minute*10)
+
+	fakeKsClient := ksfake.NewSimpleClientset()
+	fakeKsInformerFactory := ksinformers.NewSharedInformerFactory(fakeKsClient, time.Minute*10)
+
+	return &nullInformerFactory{
+		fakeK8sInformerFactory: fakeInformerFactory,
+		fakeKsInformerFactory:  fakeKsInformerFactory,
+	}
 }
 
 func (n nullInformerFactory) KubernetesSharedInformerFactory() informers.SharedInformerFactory {
-	return nil
+	return n.fakeK8sInformerFactory
 }
 
 func (n nullInformerFactory) KubeSphereSharedInformerFactory() ksinformers.SharedInformerFactory {
-	return nil
+	return n.fakeKsInformerFactory
 }
 
 func (n nullInformerFactory) IstioSharedInformerFactory() istioinformers.SharedInformerFactory {

@@ -45,7 +45,7 @@ type NotFoundError struct {
 	Reason error `json:"reason"`
 }
 
-type GraphResponse struct {
+type graphResponse struct {
 	cytoscape.Config
 }
 
@@ -65,6 +65,6 @@ type appHealthResponse struct {
 	models.AppHealth
 }
 
-type MetricsResponse struct {
+type metricsResponse struct {
 	prometheus.Metrics
 }

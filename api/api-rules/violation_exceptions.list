@@ -65,7 +65,6 @@ API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchJobTrigger,CreateActionJobsToTrigger
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchJobTrigger,DeleteActionJobsToTrigger
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,BitbucketServerSource
-API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,Description
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,GitHubSource
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,GitSource
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,MultiBranchJobTrigger
@@ -74,7 +73,6 @@ API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,SourceType
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,SvnSource
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,MultiBranchPipeline,TimerTrigger
-API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,NoScmPipeline,Description
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,NoScmPipeline,DisableConcurrent
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,NoScmPipeline,RemoteTrigger
 API rule violation: names_match,kubesphere.io/kubesphere/pkg/apis/devops/v1alpha3,NoScmPipeline,TimerTrigger

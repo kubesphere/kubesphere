@@ -60,76 +60,91 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Doc("List clusters available to users").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.POST("/workspaces").
 		To(handler.CreateWorkspace).
 		Reads(tenantv1alpha2.WorkspaceTemplate{}).
 		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Create workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.DELETE("/workspaces/{workspace}").
 		To(handler.DeleteWorkspace).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Doc("Delete workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.PUT("/workspaces/{workspace}").
 		To(handler.UpdateWorkspace).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Reads(tenantv1alpha2.WorkspaceTemplate{}).
 		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Update workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.PATCH("/workspaces/{workspace}").
 		To(handler.PatchWorkspace).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Consumes(mimePatch...).
 		Reads(tenantv1alpha2.WorkspaceTemplate{}).
 		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Update workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces").
 		To(handler.ListWorkspaces).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
 		Doc("List all workspaces that belongs to the current user").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}").
 		To(handler.DescribeWorkspace).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, api.StatusOK, tenantv1alpha2.WorkspaceTemplate{}).
 		Doc("Describe workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/clusters").
 		To(handler.ListWorkspaceClusters).
+		Param(ws.PathParameter("workspace", "workspace name")).
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Doc("List clusters authorized to the specified workspace.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
 
 	ws.Route(ws.GET("/namespaces").
 		To(handler.ListNamespaces).
-		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/federatednamespaces").
 		To(handler.ListFederatedNamespaces).
-		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the federated namespaces for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/federatednamespaces").
 		To(handler.ListFederatedNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the federated namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
 		To(handler.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the namespaces of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/devops").
 		To(handler.ListDevOpsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
 		Doc("List the devops projects of the specified workspace for the current user").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/devops").
 		To(handler.ListDevOpsProjects).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -138,18 +153,23 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.DescribeNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("namespace", "project name")).
 		Doc("Retrieve namespace details.").
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.DELETE("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.DeleteNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("namespace", "project name")).
 		Doc("Delete namespace.").
 		Returns(http.StatusOK, api.StatusOK, errors.None).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.POST("/workspaces/{workspace}/namespaces").
 		To(handler.CreateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -157,6 +177,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.GET("/workspaces/{workspace}/workspacemembers/{workspacemember}/namespaces").
 		To(handler.ListNamespaces).
 		Param(ws.PathParameter("workspace", "workspace name")).
@@ -165,16 +186,20 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, k8s
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.PUT("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.UpdateNamespace).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("namespace", "project name")).
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))
+
 	ws.Route(ws.PATCH("/workspaces/{workspace}/namespaces/{namespace}").
 		To(handler.PatchNamespace).
 		Consumes(mimePatch...).
 		Param(ws.PathParameter("workspace", "workspace name")).
+		Param(ws.PathParameter("namespace", "project name")).
 		Reads(corev1.Namespace{}).
 		Returns(http.StatusOK, api.StatusOK, corev1.Namespace{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TenantResourcesTag}))

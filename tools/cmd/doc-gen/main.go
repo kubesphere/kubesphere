@@ -36,6 +36,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/informers"
 	devopsv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha2"
+	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
 	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
@@ -110,12 +111,13 @@ func generateSwaggerJson() []byte {
 
 	informerFactory := informers.NewNullInformerFactory()
 
-	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fake.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory), am.NewReadOnlyOperator(informerFactory), authoptions.NewAuthenticateOptions()))
+	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fake.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), ""))
+	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fake.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), authoptions.NewAuthenticateOptions()))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, informerFactory, nil))
 	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, nil))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))
-	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, clientsets.Kubernetes(), informerFactory))
+	urlruntime.Must(resourcesv1alpha2.AddToContainer(container, clientsets.Kubernetes(), informerFactory, ""))
 	urlruntime.Must(resourcesv1alpha3.AddToContainer(container, informerFactory))
 	urlruntime.Must(tenantv1alpha2.AddToContainer(container, informerFactory, nil, nil, nil, nil, nil))
 	urlruntime.Must(terminalv1alpha2.AddToContainer(container, clientsets.Kubernetes(), nil))
@@ -194,7 +196,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 				Name: "Apache",
 				URL:  "http://www.apache.org/licenses/",
 			},
-			Version: version.Version,
+			Version: version.Get().GitVersion,
 		},
 	}
 

@@ -41,6 +41,8 @@ func AddToContainer(c *restful.Container, client kubernetes.Interface, config *r
 
 	webservice.Route(webservice.GET("/namespaces/{namespace}/pods/{pod}").
 		To(handler.handleTerminalSession).
+		Param(webservice.PathParameter("namespace", "namespace of which the pod located in")).
+		Param(webservice.PathParameter("pod", "name of the pod")).
 		Doc("create terminal session").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.TerminalTag}).
 		Writes(models.PodInfo{}))

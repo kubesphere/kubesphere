@@ -76,13 +76,16 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Param(ws.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.User{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	ws.Route(ws.GET("/users").
 		To(handler.ListUsers).
 		Doc("List all users in global scope.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.User{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
+
 	ws.Route(ws.GET("/users/{user}/loginrecords").
 		To(handler.ListUserLoginRecords).
+		Param(ws.PathParameter("user", "username of the user")).
 		Doc("List user's login records.").
 		Returns(http.StatusOK, api.StatusOK, api.ListResult{Items: []interface{}{iamv1alpha2.LoginRecord{}}}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
@@ -261,6 +264,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/globalroles/{globalrole}").
 		To(handler.DescribeGlobalRole).
+		Param(ws.PathParameter("globalrole", "global role name")).
 		Doc("Retrieve global role details.").
 		Returns(http.StatusOK, api.StatusOK, iamv1alpha2.GlobalRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
@@ -299,6 +303,7 @@ func AddToContainer(container *restful.Container, im im.IdentityManagementInterf
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))
 	ws.Route(ws.GET("/clusterroles/{clusterrole}").
 		To(handler.DescribeClusterRole).
+		Param(ws.PathParameter("clusterrole", "cluster role name")).
 		Doc("Retrieve cluster role details.").
 		Returns(http.StatusOK, api.StatusOK, rbacv1.ClusterRole{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AccessManagementTag}))

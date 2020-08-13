@@ -74,7 +74,6 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 
 		ws.Route(ws.GET("/devops/{devops}/credentials/{credential}").
 			To(handler.GetCredential).
-			Param(ws.PathParameter("workspace", "workspace name")).
 			Param(ws.PathParameter("devops", "project name")).
 			Param(ws.PathParameter("credential", "pipeline name")).
 			Doc("get the credential of the specified devops for the current user").
@@ -83,7 +82,6 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 
 		ws.Route(ws.PUT("/devops/{devops}/credentials/{credential}").
 			To(handler.UpdateCredential).
-			Param(ws.PathParameter("workspace", "workspace name")).
 			Param(ws.PathParameter("devops", "project name")).
 			Param(ws.PathParameter("credential", "credential name")).
 			Doc("put the credential of the specified devops for the current user").
@@ -119,6 +117,7 @@ func AddToContainer(container *restful.Container, devopsClient devopsClient.Inte
 
 		ws.Route(ws.GET("/devops/{devops}/pipelines/{pipeline}").
 			To(handler.GetPipeline).
+			Operation("getPipelineByName").
 			Param(ws.PathParameter("devops", "project name")).
 			Param(ws.PathParameter("pipeline", "pipeline name")).
 			Doc("get the pipeline of the specified devops for the current user").
