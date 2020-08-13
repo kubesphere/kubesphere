@@ -129,7 +129,7 @@ func FillDestinationPort(vs *clientgonetworkingv1alpha3.VirtualService, service 
 	// fill tcp port
 	for i := range vs.Spec.Tcp {
 		for j := range vs.Spec.Tcp[i].Route {
-			if vs.Spec.Tcp[i].Route[j].Destination.Port.Number == 0 {
+			if vs.Spec.Tcp[i].Route[j].Destination.Port == nil || vs.Spec.Tcp[i].Route[j].Destination.Port.Number == 0 {
 				vs.Spec.Tcp[i].Route[j].Destination.Port = &v1alpha3.PortSelector{
 					Number: uint32(service.Spec.Ports[0].Port),
 				}
