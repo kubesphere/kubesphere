@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	GroupName = "monitoring.kubesphere.io"
-	RespOK    = "ok"
+	groupName = "monitoring.kubesphere.io"
+	respOK    = "ok"
 )
 
-var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha3"}
+var GroupVersion = schema.GroupVersion{Group: groupName, Version: "v1alpha3"}
 
 func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monitoringClient monitoring.Interface, factory informers.InformerFactory, opClient openpitrix.Client) error {
 	ws := runtime.NewWebService(GroupVersion)
@@ -48,7 +48,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Doc("Get platform-level metric data.").
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.KubeSphereMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/cluster").
@@ -61,7 +61,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ClusterMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes").
@@ -79,7 +79,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}").
@@ -93,7 +93,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NodeMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces").
@@ -111,7 +111,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}").
@@ -126,7 +126,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("type", "Additional operations. Currently available types is statistics. It retrieves the total number of namespaces, devops projects, members and roles in this workspace at the moment.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkspaceMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/workspaces/{workspace}/namespaces").
@@ -145,7 +145,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces").
@@ -163,7 +163,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}").
@@ -177,7 +177,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads").
@@ -196,7 +196,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}").
@@ -216,7 +216,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.WorkloadMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods").
@@ -235,7 +235,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}").
@@ -250,7 +250,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/workloads/{kind}/{workload}/pods").
@@ -271,7 +271,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods").
@@ -290,7 +290,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/nodes/{node}/pods/{pod}").
@@ -305,7 +305,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PodMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers").
@@ -325,7 +325,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/pods/{pod}/containers/{container}").
@@ -341,14 +341,14 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ContainerMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/storageclasses/{storageclass}/persistentvolumeclaims").
 		To(h.handlePVCMetricsQuery).
 		Doc("Get PVC-level metric data of the specific storageclass's PVCs.").
 		Param(ws.PathParameter("storageclass", "The name of the storageclass.").DataType("string").Required(true)).
-		Param(ws.PathParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
@@ -360,14 +360,14 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims").
 		To(h.handlePVCMetricsQuery).
 		Doc("Get PVC-level metric data of the specific namespace's PVCs.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
-		Param(ws.PathParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("resources_filter", "The PVC filter consists of a regexp pattern. It specifies which PVC data to return. For example, the following filter matches any pod whose name begins with redis: `redis.*`.").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
@@ -379,7 +379,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("limit", "Page size, the maximum number of results in a single page. Defaults to 5.").DataType("integer").Required(false).DefaultValue("5")).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/persistentvolumeclaims/{pvc}").
@@ -387,14 +387,14 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Doc("Get PVC-level metric data of a specific PVC. Navigate to the PVC by the PVC's namespace.").
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Param(ws.PathParameter("pvc", "PVC name.").DataType("string").Required(true)).
-		Param(ws.PathParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
+		Param(ws.QueryParameter("metrics_filter", "The metric name filter consists of a regexp pattern. It specifies which metric data to return. For example, the following filter matches both PVC available and used inodes: `pvc_inodes_available|pvc_inodes_used`. View available metrics at [kubesphere.io](https://docs.kubesphere.io/advanced-v2.0/zh-CN/api-reference/monitoring-metrics/).").DataType("string").Required(false)).
 		Param(ws.QueryParameter("start", "Start time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1559347200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("end", "End time of query. Use **start** and **end** to retrieve metric data over a time span. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(false)).
 		Param(ws.QueryParameter("step", "Time interval. Retrieve metric data at a fixed interval within the time range of start and end. It requires both **start** and **end** are provided. The format is [0-9]+[smhdwy]. Defaults to 10m (i.e. 10 min).").DataType("string").DefaultValue("10m").Required(false)).
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.PVCMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/components/{component}").
@@ -408,7 +408,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ComponentMetricsTag}).
 		Writes(model.Metrics{}).
-		Returns(http.StatusOK, RespOK, model.Metrics{})).
+		Returns(http.StatusOK, respOK, model.Metrics{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/targets/metadata").
@@ -417,7 +417,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.PathParameter("namespace", "The name of the namespace.").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMetricsTag}).
 		Writes(model.Metadata{}).
-		Returns(http.StatusOK, RespOK, model.Metadata{})).
+		Returns(http.StatusOK, respOK, model.Metadata{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/targets/labelsets").
@@ -429,7 +429,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("end", "End time of query. It is a string with Unix time format, eg. 1561939200. ").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMetricsTag}).
 		Writes(model.MetricLabelSet{}).
-		Returns(http.StatusOK, RespOK, model.MetricLabelSet{})).
+		Returns(http.StatusOK, respOK, model.MetricLabelSet{})).
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/namespaces/{namespace}/targets/query").
@@ -443,7 +443,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, monito
 		Param(ws.QueryParameter("time", "A timestamp in Unix time format. Retrieve metric data at a single point in time. Defaults to now. Time and the combination of start, end, step are mutually exclusive.").DataType("string").Required(false)).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.CustomMetricsTag}).
 		Writes(monitoring.Metric{}).
-		Returns(http.StatusOK, RespOK, monitoring.Metric{})).
+		Returns(http.StatusOK, respOK, monitoring.Metric{})).
 		Produces(restful.MIME_JSON)
 
 	c.Add(ws)

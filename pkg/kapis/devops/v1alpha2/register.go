@@ -280,7 +280,6 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Doc("Get steps details inside a activity node. For a node, the steps which defined inside the node.").
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 			Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-			Param(webservice.PathParameter("branch", "the name of branch, same as repository branch.")).
 			Param(webservice.PathParameter("run", "pipeline run ID, the unique ID for a pipeline once build.")).
 			Returns(http.StatusOK, RespOK, []devops.NodesDetail{}).
 			Writes(devops.NodesDetail{}))
@@ -484,9 +483,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Produces("text/html; charset=utf-8").
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 			Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
-			Param(webservice.QueryParameter("delay", "the delay time to scan").
-				Required(false).
-				DataFormat("delay=%d")))
+			Param(webservice.QueryParameter("delay", "the delay time to scan").Required(false).DataFormat("delay=%d")))
 
 		// match /job/project-8QnvykoJw4wZ/job/test-1/indexing/consoleText
 		webservice.Route(webservice.GET("/devops/{devops}/pipelines/{pipeline}/consolelog").
@@ -520,9 +517,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsScmTag}).
 			Doc("List all organizations of the specified source configuration management (SCM) such as Github.").
 			Param(webservice.PathParameter("scm", "the ID of the source configuration management (SCM).")).
-			Param(webservice.QueryParameter("credentialId", "credential ID for source configuration management (SCM).").
-				Required(true).
-				DataFormat("credentialId=%s")).
+			Param(webservice.QueryParameter("credentialId", "credential ID for source configuration management (SCM).").Required(true).DataFormat("credentialId=%s")).
 			Returns(http.StatusOK, RespOK, []devops.SCMOrg{}).
 			Writes([]devops.SCMOrg{}))
 
@@ -533,15 +528,9 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Doc("List all repositories in the specified organization.").
 			Param(webservice.PathParameter("scm", "The ID of the source configuration management (SCM).")).
 			Param(webservice.PathParameter("organization", "organization ID, such as github username.")).
-			Param(webservice.QueryParameter("credentialId", "credential ID for SCM.").
-				Required(true).
-				DataFormat("credentialId=%s")).
-			Param(webservice.QueryParameter("pageNumber", "page number.").
-				Required(true).
-				DataFormat("pageNumber=%d")).
-			Param(webservice.QueryParameter("pageSize", "the item count of one page.").
-				Required(true).
-				DataFormat("pageSize=%d")).
+			Param(webservice.QueryParameter("credentialId", "credential ID for SCM.").Required(true).DataFormat("credentialId=%s")).
+			Param(webservice.QueryParameter("pageNumber", "page number.").Required(true).DataFormat("pageNumber=%d")).
+			Param(webservice.QueryParameter("pageSize", "the item count of one page.").Required(true).DataFormat("pageSize=%d")).
 			Returns(http.StatusOK, RespOK, devops.OrgRepo{}).
 			Writes(devops.OrgRepo{}))
 
@@ -570,9 +559,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsWebhookTag}).
 			Doc("Get commit notification by HTTP GET method. Git webhook will request here.").
 			Produces("text/plain; charset=utf-8").
-			Param(webservice.QueryParameter("url", "Git url").
-				Required(true).
-				DataFormat("url=%s")))
+			Param(webservice.QueryParameter("url", "Git url").Required(true).DataFormat("url=%s")))
 
 		// Gitlab or some other scm managers can only use HTTP method. match /git/notifyCommit/?url=
 		webservice.Route(webservice.POST("/webhook/git").
@@ -581,9 +568,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			Doc("Get commit notification by HTTP POST method. Git webhook will request here.").
 			Consumes("application/json").
 			Produces("text/plain; charset=utf-8").
-			Param(webservice.QueryParameter("url", "Git url").
-				Required(true).
-				DataFormat("url=%s")))
+			Param(webservice.QueryParameter("url", "Git url").Required(true).DataFormat("url=%s")))
 
 		webservice.Route(webservice.POST("/webhook/github").
 			To(projectPipelineHandler.GithubWebhook).
@@ -595,9 +580,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			To(projectPipelineHandler.CheckScriptCompile).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.QueryParameter("pipeline", "the name of the CI/CD pipeline").
-				Required(false).
-				DataFormat("pipeline=%s")).
+			Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline").DataFormat("pipeline=%s")).
 			Consumes("application/x-www-form-urlencoded", "charset=utf-8").
 			Produces("application/json", "charset=utf-8").
 			Doc("Check pipeline script compile.").
@@ -609,7 +592,6 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 			To(projectPipelineHandler.CheckCron).
 			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsPipelineTag}).
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
-			Param(webservice.PathParameter("pipeline", "the name of the CI/CD pipeline")).
 			Produces("application/json", "charset=utf-8").
 			Doc("Check cron script compile.").
 			Reads(devops.CronData{}).
@@ -705,7 +687,8 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 		return err
 	}
 	parse.Path = strings.Trim(parse.Path, "/")
-	webservice.Route(webservice.GET("/jenkins/{path:*}").
+	webservice.Route(webservice.GET("/jenkins/{path:[*]}").
+		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
 		To(func(request *restful.Request, response *restful.Response) {
 			u := request.Request.URL
 			u.Host = parse.Host
