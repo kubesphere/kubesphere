@@ -27,6 +27,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
+	"sort"
 )
 
 // Those annotations were added to node only for display purposes
@@ -69,14 +70,44 @@ func (c nodesGetter) Get(_, name string) (runtime.Object, error) {
 	return node, nil
 }
 
-func (c nodesGetter) List(_ string, query *query.Query) (*api.ListResult, error) {
-	nodes, err := c.informers.Core().V1().Nodes().Lister().List(query.Selector())
+func (c nodesGetter) List(_ string, q *query.Query) (*api.ListResult, error) {
+	nodes, err := c.informers.Core().V1().Nodes().Lister().List(q.Selector())
 	if err != nil {
 		return nil, err
 	}
 
+	var filtered []*v1.Node
+	for _, object := range nodes {
+		selected := true
+		for field, value := range q.Filters {
+			if !c.filter(object, query.Filter{Field: field, Value: value}) {
+				selected = false
+				break
+			}
+		}
+
+		if selected {
+			filtered = append(filtered, object)
+		}
+	}
+
+	// sort by sortBy field
+	sort.Slice(filtered, func(i, j int) bool {
+		if !q.Ascending {
+			return c.compare(filtered[i], filtered[j], q.SortBy)
+		}
+		return !c.compare(filtered[i], filtered[j], q.SortBy)
+	})
+
+	total := len(filtered)
+	if q.Pagination == nil {
+		q.Pagination = query.NoPagination
+	}
+	start, end := q.Pagination.GetValidPagination(total)
+	selectedNodes := filtered[start:end]
+
 	// ignore the error, skip annotating process if error happened
-	pods, _ := c.informers.Core().V1().Pods().Lister().Pods("").List(query.Selector())
+	pods, _ := c.informers.Core().V1().Pods().Lister().Pods("").List(labels.Everything())
 	var nonTerminatedPodsList []*v1.Pod
 	for _, pod := range pods {
 		if pod.Status.Phase != v1.PodSucceeded && pod.Status.Phase != v1.PodFailed {
@@ -84,13 +115,16 @@ func (c nodesGetter) List(_ string, query *query.Query) (*api.ListResult, error)
 		}
 	}
 
-	var result []runtime.Object
-	for _, node := range nodes {
+	var result []interface{}
+	for _, node := range selectedNodes {
 		c.annotateNode(node, nonTerminatedPodsList)
 		result = append(result, node)
 	}
 
-	return v1alpha3.DefaultList(result, query, c.compare, c.filter), nil
+	return &api.ListResult{
+		TotalItems: total,
+		Items:      result,
+	}, nil
 }
 
 func (c nodesGetter) compare(left runtime.Object, right runtime.Object, field query.Field) bool {
