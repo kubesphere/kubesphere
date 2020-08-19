@@ -443,22 +443,13 @@ func (v *VirtualServiceController) addDestinationRule(obj interface{}) {
 		return
 	}
 
-	_, err = v.virtualServiceLister.VirtualServices(dr.Namespace).Get(dr.Name)
+	key, err := cache.MetaNamespaceKeyFunc(service)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			key, err := cache.MetaNamespaceKeyFunc(service)
-			if err != nil {
-				utilruntime.HandleError(fmt.Errorf("get service %s/%s key failed", service.Namespace, service.Name))
-				return
-			}
-
-			v.queue.Add(key)
-		}
-	} else {
-		// Already have a virtualservice created.
+		utilruntime.HandleError(fmt.Errorf("get service %s/%s key failed", service.Namespace, service.Name))
+		return
 	}
 
-	return
+	v.queue.Add(key)
 }
 
 // when a strategy created
