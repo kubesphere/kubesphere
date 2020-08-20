@@ -286,7 +286,10 @@ func (r *ReconcileNamespace) initRoles(namespace *corev1.Namespace) error {
 				old.Annotations = role.Annotations
 				old.Rules = role.Rules
 
-				return r.Update(context.Background(), &old)
+				if err := r.Update(context.Background(), &old); err != nil {
+					klog.Error(err)
+					return err
+				}
 			}
 		}
 	}
