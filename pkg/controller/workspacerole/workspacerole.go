@@ -130,7 +130,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 		synced = append(synced, c.fedWorkspaceRoleCacheController.HasSynced)
 	}
 
-	if ok := cache.WaitForCacheSync(stopCh); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, synced...); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 

@@ -34,7 +34,7 @@ type KubernetesOptions struct {
 
 	// kubernetes clientset qps
 	// +optional
-	QPS float32 `json:"qps,omitemtpy" yaml:"qps"`
+	QPS float32 `json:"qps,omitempty" yaml:"qps"`
 
 	// kubernetes clientset burst
 	// +optional
