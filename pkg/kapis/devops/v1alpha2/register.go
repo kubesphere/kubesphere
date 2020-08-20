@@ -687,7 +687,7 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 		return err
 	}
 	parse.Path = strings.Trim(parse.Path, "/")
-	webservice.Route(webservice.GET("/jenkins/{path:[*]}").
+	webservice.Route(webservice.GET("/jenkins/{path:*}").
 		Param(webservice.PathParameter("path", "Path stands for any suffix path.")).
 		To(func(request *restful.Request, response *restful.Response) {
 			u := request.Request.URL
