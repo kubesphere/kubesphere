@@ -115,7 +115,7 @@ func (c nodesGetter) List(_ string, q *query.Query) (*api.ListResult, error) {
 		}
 	}
 
-	var result []interface{}
+	var result = make([]interface{}, 0)
 	for _, node := range selectedNodes {
 		c.annotateNode(node, nonTerminatedPodsList)
 		result = append(result, node)
