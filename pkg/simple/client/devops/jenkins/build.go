@@ -405,7 +405,7 @@ func (j *Jenkins) GetProjectPipelineBuildByType(projectId, pipelineId string, st
 	return build.Raw, nil
 }
 func (j *Jenkins) GetMultiBranchPipelineBuildByType(projectId, pipelineId, branch string, status string) (*devops.Build, error) {
-	job, err := j.GetJob(pipelineId, projectId, branch)
+	job, err := j.GetJob(branch, projectId, pipelineId)
 	if err != nil {
 		return nil, restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 	}
