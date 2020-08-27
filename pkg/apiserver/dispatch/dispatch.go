@@ -153,6 +153,12 @@ func (c *clusterDispatch) Dispatch(w http.ResponseWriter, req *http.Request, han
 		// req.Header['Authorization'] before authentication.
 		req.Header.Set("X-KubeSphere-Authorization", req.Header.Get("Authorization"))
 
+		// If cluster kubeconfig using token authentication, transport will not override authorization header,
+		// this will cause requests reject by kube-apiserver since kubesphere authorization header is not
+		// acceptable. Delete this header is safe since we are using X-KubeSphere-Authorization.
+		// https://github.com/kubernetes/client-go/blob/master/transport/round_trippers.go#L285
+		req.Header.Del("Authorization")
+
 		// Dirty trick again. The kube-apiserver apiserver proxy rejects all proxy requests with dryRun parameter
 		// https://github.com/kubernetes/kubernetes/pull/66083
 		// Really don't understand why they do this. And here we are, bypass with replacing 'dryRun'
