@@ -67,9 +67,9 @@ func TestNewSshCredential(t *testing.T) {
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			"username":   []byte(username),
-			"passphrase": []byte(passphrase),
-			"privatekey": []byte(privatekey),
+			"username":    []byte(username),
+			"passphrase":  []byte(passphrase),
+			"private_key": []byte(privatekey),
 		},
 		Type: "credential.devops.kubesphere.io/ssh-auth",
 	}
