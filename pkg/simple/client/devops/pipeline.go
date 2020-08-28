@@ -894,9 +894,10 @@ type BranchPipeline struct {
 			Name  string `json:"name,omitempty" description:"name"`
 			Value string `json:"value,omitempty" description:"value"`
 		} `json:"defaultParameterValue,omitempty" description:""`
-		Description string `json:"description,omitempty" description:"description"`
-		Name        string `json:"name,omitempty" description:"name"`
-		Type        string `json:"type,omitempty" description:"type"`
+		Description string        `json:"description,omitempty" description:"description"`
+		Name        string        `json:"name,omitempty" description:"name"`
+		Type        string        `json:"type,omitempty" description:"type"`
+		Choices     []interface{} `json:"choices,omitempty" description:"choices"`
 	} `json:"parameters,omitempty"`
 	Permissions struct {
 		Create    bool `json:"create,omitempty" description:"create action"`
