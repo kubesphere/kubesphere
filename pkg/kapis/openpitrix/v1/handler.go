@@ -927,6 +927,11 @@ func handleOpenpitrixError(resp *restful.Response, err error) {
 		api.HandleBadRequest(resp, nil, err)
 		return
 	}
+	if status.Code(err) == codes.FailedPrecondition {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
 	klog.Errorln(err)
 	api.HandleInternalError(resp, nil, err)
 }
