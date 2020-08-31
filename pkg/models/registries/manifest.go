@@ -55,7 +55,8 @@ func (r *Registry) ImageManifest(image Image, token string) (*ImageManifest, err
 			log.Error(statusUnauthorized)
 			return nil, restful.NewError(resp.StatusCode, statusUnauthorized)
 		}
-		log.Error("got response: " + string(resp.StatusCode) + string(respBody))
+
+		log.Errorf("got response: %d%s", resp.StatusCode, respBody)
 		return nil, restful.NewError(resp.StatusCode, "got image manifest failed")
 	}
 

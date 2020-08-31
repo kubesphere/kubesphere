@@ -22,8 +22,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,9 +38,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -67,16 +68,16 @@ func TestSyncHandler(t *testing.T) {
 	}{
 		{
 			name: "mount pvc on deploy",
-			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID("123")),
 			sc:   getFakeStorageClass("fake-sc", "fake.sc.com"),
 			deploy: getFakeDeployment("fake-deploy", "234", 1,
-				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123))),
+				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID("123"))),
 			pvcKey:   "default/fake-pvc",
 			hasError: false,
 		},
 		{
 			name:     "unmounted pvc",
-			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID("123")),
 			sc:       getFakeStorageClass("fake-sc", "fake.sc.com"),
 			pvcKey:   "default/fake-pvc",
 			hasError: true,
