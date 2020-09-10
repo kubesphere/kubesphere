@@ -48,7 +48,7 @@ const (
 	// SSHAuthPrivateKey is the key of the passphrase for SecretTypeSSHAuth secrets
 	SSHAuthPassphraseKey = "passphrase"
 	// SSHAuthPrivateKey is the key of the privatekey for SecretTypeSSHAuth secrets
-	SSHAuthPrivateKey = "privatekey"
+	SSHAuthPrivateKey = "private_key"
 
 	// SecretTypeSecretText contains data.
 	//

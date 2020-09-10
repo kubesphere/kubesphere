@@ -274,6 +274,7 @@ func (d devopsOperator) ListPipelineObj(projectName string, limit, offset int) (
 //credentialobj in crd
 func (d devopsOperator) CreateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
