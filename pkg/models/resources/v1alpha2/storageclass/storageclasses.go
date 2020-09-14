@@ -107,7 +107,7 @@ func (s *storageClassesSearcher) countPersistentVolumeClaims(name string) int {
 	var count int
 
 	for _, pvc := range pvcs {
-		if *pvc.Spec.StorageClassName == name || (pvc.Annotations != nil && pvc.Annotations[corev1.BetaStorageClassAnnotation] == name) {
+		if (pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == name) || (pvc.Annotations != nil && pvc.Annotations[corev1.BetaStorageClassAnnotation] == name) {
 			count++
 		}
 	}
