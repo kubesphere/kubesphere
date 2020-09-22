@@ -3,9 +3,9 @@
 # that can be found in the LICENSE file.
 FROM alpine:3.11
 
-COPY  /bin/cmd/controller-manager /usr/local/bin/
-
 RUN apk add --no-cache ca-certificates
+
+COPY  /bin/cmd/controller-manager /usr/local/bin/
 
 EXPOSE 8443 8080
 
