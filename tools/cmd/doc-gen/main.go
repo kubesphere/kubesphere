@@ -144,6 +144,10 @@ func generateSwaggerJson() []byte {
 			Tags: []string{constants.ClusterResourcesTag, constants.NamespaceResourcesTag, constants.UserResourcesTag},
 		},
 		{
+			Name: "AppStore",
+			Tags: []string{constants.OpenpitrixTag},
+		},
+		{
 			Name: "Monitoring",
 			Tags: []string{constants.ComponentStatusTag},
 		},

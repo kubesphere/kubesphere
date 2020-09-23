@@ -36,9 +36,6 @@ const (
 var GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
 func AddToContainer(c *restful.Container, factory informers.InformerFactory, op op.Client) error {
-	if op == nil {
-		return nil
-	}
 	mimePatch := []string{restful.MIME_JSON, runtime.MimeMergePatchJson, runtime.MimeJsonPatchJson}
 	webservice := runtime.NewWebService(GroupVersion)
 	handler := newOpenpitrixHandler(factory, op)
@@ -46,7 +43,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("List all applications").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -60,7 +57,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/workspaces/{workspace}/namespaces/{namespace}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("List all applications within the specified namespace").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -75,7 +72,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/workspaces/{workspace}/namespaces/{namespace}/applications/{application}").
 		To(handler.DescribeApplication).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("Describe the specified application of the namespace").
 		Param(webservice.PathParameter("namespace", "the name of the project").Required(true)).
 		Param(webservice.PathParameter("application", "the id of the application").Required(true)))
@@ -83,7 +80,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/workspaces/{workspace}/clusters/{cluster}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("List all applications in special cluster").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -98,7 +95,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/workspaces/{workspace}/clusters/{cluster}/namespaces/{namespace}/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("List all applications within the specified namespace").
 		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
 			Required(false).
@@ -114,7 +111,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.GET("/workspaces/{workspace}/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
 		To(handler.DescribeApplication).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Doc("Describe the specified application of the namespace").
 		Param(webservice.PathParameter("cluster", "the name of the cluster.").Required(true)).
 		Param(webservice.PathParameter("namespace", "the name of the project").Required(true)).
@@ -123,7 +120,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.POST("/workspaces/{workspace}/clusters/{cluster}/namespaces/{namespace}/applications").
 		To(handler.CreateApplication).
 		Doc("Deploy a new application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Reads(openpitrix2.CreateClusterRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("cluster", "the name of the cluster.").Required(true)).
@@ -133,7 +130,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Consumes(mimePatch...).
 		To(handler.ModifyApplication).
 		Doc("Modify application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Reads(openpitrix2.ModifyClusterAttributesRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("cluster", "the name of the cluster.").Required(true)).
@@ -143,7 +140,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.DELETE("/workspaces/{workspace}/clusters/{cluster}/namespaces/{namespace}/applications/{application}").
 		To(handler.DeleteApplication).
 		Doc("Delete the specified application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("cluster", "the name of the cluster.").Required(true)).
 		Param(webservice.PathParameter("namespace", "the name of the project").Required(true)).
@@ -153,7 +150,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Consumes(mimePatch...).
 		To(handler.UpgradeApplication).
 		Doc("Upgrade application").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Reads(openpitrix2.UpgradeClusterRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("cluster", "the name of the cluster.").Required(true)).
@@ -228,6 +225,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Param(webservice.PathParameter("app", "app template id")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}/versions/{version}").
 		To(handler.DescribeAppVersion).
@@ -249,16 +247,19 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Param(webservice.PathParameter("app", "app template id")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/workspaces/{workspace}/apps/{app}/versions/{version}/audits").
 		To(handler.ListAppVersionAudits).
 		Doc("List audits information of version-specific app template").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/audits").
 		To(handler.ListAppVersionAudits).
 		Doc("List audits information of version-specific app template").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
@@ -266,23 +267,27 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		To(handler.GetAppVersionPackage).
 		Doc("Get packages of version-specific app").
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.GetAppVersionPackageResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.POST("/apps/{app}/versions/{version}/action").
 		To(handler.DoAppVersionAction).
 		Doc("Perform submit or other operations on app").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.POST("/workspaces/{workspace}/apps/{app}/versions/{version}/action").
 		To(handler.DoAppVersionAction).
 		Doc("Perform submit or other operations on app").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.GET("/apps/{app}/versions/{version}/files").
 		To(handler.GetAppVersionFiles).
 		Doc("Get app template package files").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.GetAppVersionPackageFilesResponse{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
@@ -296,11 +301,13 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			Required(false).
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionReview{}))
 	webservice.Route(webservice.GET("/apps/{app}/audits").
 		To(handler.ListAppVersionAudits).
 		Doc("List audits information of the specific app template").
 		Param(webservice.PathParameter("app", "app template id")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.AppVersionAudit{}))
 	webservice.Route(webservice.POST("/apps").
 		To(handler.CreateApp).
@@ -359,12 +366,14 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice.Route(webservice.POST("/apps/{app}/action").
 		To(handler.DoAppAction).
 		Doc("Perform recover or suspend operation on app").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
 	webservice.Route(webservice.POST("/workspaces/{workspace}/apps/{app}/action").
 		To(handler.DoAppAction).
 		Doc("Perform recover or suspend operation on app").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
 		Param(webservice.PathParameter("version", "app template version id")).
 		Param(webservice.PathParameter("app", "app template id")))
@@ -380,6 +389,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/workspaces/{workspace}/apps").
 		To(handler.ListApps).
@@ -394,6 +404,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.POST("/categories").
 		To(handler.CreateCategory).
@@ -434,12 +445,14 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 
 	webservice.Route(webservice.GET("/attachments/{attachment}").
 		To(handler.DescribeAttachment).
 		Doc("Get attachment by attachment id").
 		Param(webservice.PathParameter("attachment", "attachment id")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, openpitrix2.Attachment{}))
 
 	webservice.Route(webservice.POST("/repos").
@@ -507,6 +520,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DataFormat("limit=%d,page=%d").
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 	webservice.Route(webservice.GET("/workspaces/{workspace}/repos").
@@ -521,6 +535,7 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 			DefaultValue("limit=10,page=1")).
 		Param(webservice.QueryParameter(params.ReverseParam, "sort parameters, e.g. reverse=true")).
 		Param(webservice.QueryParameter(params.OrderByParam, "sort parameters, e.g. orderBy=createTime")).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}))
 
 	webservice.Route(webservice.POST("/repos/{repo}/action").
@@ -528,22 +543,26 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 		Doc("Start index repository event").
 		Reads(openpitrix2.RepoActionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.POST("/workspaces/{workspace}/repos/{repo}/action").
 		To(handler.DoRepoAction).
 		Doc("Start index repository event").
 		Reads(openpitrix2.RepoActionRequest{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.GET("/repos/{repo}/events").
 		To(handler.ListRepoEvents).
 		Doc("Get repository events").
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.PathParameter("repo", "repo id")))
 	webservice.Route(webservice.GET("/workspaces/{workspace}/repos/{repo}/events").
 		To(handler.ListRepoEvents).
 		Doc("Get repository events").
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.OpenpitrixTag}).
 		Param(webservice.PathParameter("repo", "repo id")))
 
 	c.Add(webservice)
