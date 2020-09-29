@@ -93,7 +93,7 @@ type IdentityProviderOptions struct {
 	Type string `json:"type" yaml:"type"`
 
 	// The options of identify provider
-	Provider *DynamicOptions `json:"-" yaml:"provider"`
+	Provider *DynamicOptions `json:"provider" yaml:"provider"`
 }
 
 type Token struct {
