@@ -112,6 +112,7 @@ var NodeMetrics = []string{
 	"node_load5",
 	"node_load15",
 	"node_pod_abnormal_ratio",
+	"node_pleg_quantile",
 }
 
 var WorkspaceMetrics = []string{
