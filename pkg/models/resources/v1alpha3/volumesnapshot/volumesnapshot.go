@@ -97,7 +97,7 @@ func snapshotStatus(item *v1beta1.VolumeSnapshot) string {
 	if item != nil && item.Status != nil && item.Status.ReadyToUse != nil && *item.Status.ReadyToUse {
 		status = statusReady
 	}
-	if item != nil && item.DeletionTimestamp != nil{
+	if item != nil && item.DeletionTimestamp != nil {
 		status = statusDeleting
 	}
 	return status
