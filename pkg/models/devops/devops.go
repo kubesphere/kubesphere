@@ -299,6 +299,7 @@ func (d devopsOperator) DeleteCredentialObj(projectName string, secret string) e
 
 func (d devopsOperator) UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error) {
 	projectObj, err := d.ksInformers.Devops().V1alpha3().DevOpsProjects().Lister().Get(projectName)
+	secret.Annotations[devopsv1alpha3.CredentialAutoSyncAnnoKey] = "true"
 	if err != nil {
 		return nil, err
 	}
