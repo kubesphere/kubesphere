@@ -112,6 +112,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 
 	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.enqueueObject,
+		UpdateFunc: func(old, new interface{}) { v.enqueueObject(new) },
 		DeleteFunc: v.enqueueObject,
 	})
 
@@ -120,6 +121,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 
 	statefulSetInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.enqueueObject,
+		UpdateFunc: func(old, new interface{}) { v.enqueueObject(new) },
 		DeleteFunc: v.enqueueObject,
 	})
 
@@ -128,6 +130,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 
 	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.enqueueObject,
+		UpdateFunc: func(old, new interface{}) { v.enqueueObject(new) },
 		DeleteFunc: v.enqueueObject,
 	})
 
@@ -136,6 +139,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 
 	strategyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.enqueueObject,
+		UpdateFunc: func(old, new interface{}) { v.enqueueObject(new) },
 		DeleteFunc: v.enqueueObject,
 	})
 
@@ -144,6 +148,7 @@ func NewApplicationController(serviceInformer coreinformers.ServiceInformer,
 
 	servicePolicyInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    v.enqueueObject,
+		UpdateFunc: func(old, new interface{}) { v.enqueueObject(new) },
 		DeleteFunc: v.enqueueObject,
 	})
 
