@@ -28,6 +28,10 @@ type Interface interface {
 	GlobalRoles() GlobalRoleInformer
 	// GlobalRoleBindings returns a GlobalRoleBindingInformer.
 	GlobalRoleBindings() GlobalRoleBindingInformer
+	// Groups returns a GroupInformer.
+	Groups() GroupInformer
+	// GroupBindings returns a GroupBindingInformer.
+	GroupBindings() GroupBindingInformer
 	// LoginRecords returns a LoginRecordInformer.
 	LoginRecords() LoginRecordInformer
 	// RoleBases returns a RoleBaseInformer.
@@ -59,6 +63,16 @@ func (v *version) GlobalRoles() GlobalRoleInformer {
 // GlobalRoleBindings returns a GlobalRoleBindingInformer.
 func (v *version) GlobalRoleBindings() GlobalRoleBindingInformer {
 	return &globalRoleBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Groups returns a GroupInformer.
+func (v *version) Groups() GroupInformer {
+	return &groupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// GroupBindings returns a GroupBindingInformer.
+func (v *version) GroupBindings() GroupBindingInformer {
+	return &groupBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // LoginRecords returns a LoginRecordInformer.

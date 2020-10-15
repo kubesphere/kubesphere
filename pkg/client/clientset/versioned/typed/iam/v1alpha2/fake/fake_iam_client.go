@@ -36,6 +36,14 @@ func (c *FakeIamV1alpha2) GlobalRoleBindings() v1alpha2.GlobalRoleBindingInterfa
 	return &FakeGlobalRoleBindings{c}
 }
 
+func (c *FakeIamV1alpha2) Groups() v1alpha2.GroupInterface {
+	return &FakeGroups{c}
+}
+
+func (c *FakeIamV1alpha2) GroupBindings() v1alpha2.GroupBindingInterface {
+	return &FakeGroupBindings{c}
+}
+
 func (c *FakeIamV1alpha2) LoginRecords() v1alpha2.LoginRecordInterface {
 	return &FakeLoginRecords{c}
 }

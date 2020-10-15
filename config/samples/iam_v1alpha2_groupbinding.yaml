@@ -1,0 +1,12 @@
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: GroupBinding
+metadata:
+  name: groupbinding-sample1
+groupRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: groupdemo
+users:
+- user1
+- user2
+
