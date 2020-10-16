@@ -23,13 +23,15 @@ import (
 )
 
 const (
-	IdentifierNode      = "node"
-	IdentifierWorkspace = "workspace"
-	IdentifierNamespace = "namespace"
-	IdentifierWorkload  = "workload"
-	IdentifierPod       = "pod"
-	IdentifierContainer = "container"
-	IdentifierPVC       = "persistentvolumeclaim"
+	IdentifierNode        = "node"
+	IdentifierWorkspace   = "workspace"
+	IdentifierNamespace   = "namespace"
+	IdentifierWorkload    = "workload"
+	IdentifierPod         = "pod"
+	IdentifierContainer   = "container"
+	IdentifierPVC         = "persistentvolumeclaim"
+	IdentifierService     = "service"
+	IdentifierApplication = "application"
 
 	OrderAscending  = "asc"
 	OrderDescending = "desc"

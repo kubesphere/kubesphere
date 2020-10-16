@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/json-iterator/go"
 	"strconv"
+	"time"
 )
 
 const (
@@ -54,8 +55,32 @@ type MetricValue struct {
 	// The type of Point is a float64 array with fixed length of 2.
 	// So Point will always be initialized as [0, 0], rather than nil.
 	// To allow empty Sample, we should declare Sample to type *Point
-	Sample *Point  `json:"value,omitempty" description:"time series, values of vector type"`
-	Series []Point `json:"values,omitempty" description:"time series, values of matrix type"`
+	Sample         *Point        `json:"value,omitempty" description:"time series, values of vector type"`
+	Series         []Point       `json:"values,omitempty" description:"time series, values of matrix type"`
+	ExportSample   *ExportPoint  `json:"exported_value,omitempty" description:"exported time series, values of vector type"`
+	ExportedSeries []ExportPoint `json:"exported_values,omitempty" description:"exported time series, values of matrix type"`
+
+	MinValue float64 `json:"min_value" description:"minimum value from monitor points"`
+	MaxValue float64 `json:"max_value" description:"maximum value from monitor points"`
+	AvgValue float64 `json:"avg_value" description:"average value from monitor points"`
+	SumValue float64 `json:"sum_value" description:"sum value from monitor points"`
+	Fee      float64 `json:"fee" description:"resource fee"`
+}
+
+func (mv *MetricValue) TransferToExportedMetricValue() {
+
+	if mv.Sample != nil {
+		sample := mv.Sample.transferToExported()
+		mv.ExportSample = &sample
+		mv.Sample = nil
+	}
+
+	for _, item := range mv.Series {
+		mv.ExportedSeries = append(mv.ExportedSeries, item.transferToExported())
+	}
+	mv.Series = nil
+
+	return
 }
 
 func (p Point) Timestamp() float64 {
@@ -64,6 +89,10 @@ func (p Point) Timestamp() float64 {
 
 func (p Point) Value() float64 {
 	return p[1]
+}
+
+func (p Point) transferToExported() ExportPoint {
+	return ExportPoint{p[0], p[1]}
 }
 
 // MarshalJSON implements json.Marshaler. It will be called when writing JSON to HTTP response
@@ -111,4 +140,28 @@ func (p *Point) UnmarshalJSON(b []byte) error {
 	p[0] = ts
 	p[1] = valf
 	return nil
+}
+
+type ExportPoint [2]float64
+
+func (p ExportPoint) Timestamp() string {
+	return time.Unix(int64(p[0]), 0).Format("2006-01-02 03:04:05 PM")
+}
+
+func (p ExportPoint) Value() float64 {
+	return p[1]
+}
+
+// MarshalJSON implements json.Marshaler. It will be called when writing JSON to HTTP response
+// Inspired by prometheus/client_golang
+func (p ExportPoint) MarshalJSON() ([]byte, error) {
+	t, err := jsoniter.Marshal(p.Timestamp())
+	if err != nil {
+		return nil, err
+	}
+	v, err := jsoniter.Marshal(strconv.FormatFloat(p.Value(), 'f', -1, 64))
+	if err != nil {
+		return nil, err
+	}
+	return []byte(fmt.Sprintf("[%s,%s]", t, v)), nil
 }

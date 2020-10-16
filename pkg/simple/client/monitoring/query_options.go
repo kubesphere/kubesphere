@@ -16,6 +16,12 @@ limitations under the License.
 
 package monitoring
 
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
 type Level int
 
 const (
@@ -23,15 +29,37 @@ const (
 	LevelNode
 	LevelWorkspace
 	LevelNamespace
+	LevelApplication
 	LevelWorkload
+	LevelService
 	LevelPod
 	LevelContainer
 	LevelPVC
 	LevelComponent
 )
 
+var MeteringLevelMap = map[string]int{
+	"LevelCluster":     LevelCluster,
+	"LevelNode":        LevelNode,
+	"LevelWorkspace":   LevelWorkspace,
+	"LevelNamespace":   LevelNamespace,
+	"LevelApplication": LevelApplication,
+	"LevelWorkload":    LevelWorkload,
+	"LevelService":     LevelService,
+	"LevelPod":         LevelPod,
+	"LevelContainer":   LevelContainer,
+	"LevelPVC":         LevelPVC,
+	"LevelComponent":   LevelComponent,
+}
+
 type QueryOption interface {
 	Apply(*QueryOptions)
+}
+
+type Meteroptions struct {
+	Start time.Time
+	End   time.Time
+	Step  time.Duration
 }
 
 type QueryOptions struct {
@@ -48,6 +76,10 @@ type QueryOptions struct {
 	ContainerName             string
 	StorageClassName          string
 	PersistentVolumeClaimName string
+	PVCFilter                 string
+	ApplicationName           string
+	ServiceName               string
+	MeterOptions              *Meteroptions
 }
 
 func NewQueryOptions() *QueryOptions {
@@ -61,31 +93,41 @@ func (_ ClusterOption) Apply(o *QueryOptions) {
 }
 
 type NodeOption struct {
-	ResourceFilter string
-	NodeName       string
+	ResourceFilter   string
+	NodeName         string
+	PVCFilter        string
+	StorageClassName string
 }
 
 func (no NodeOption) Apply(o *QueryOptions) {
 	o.Level = LevelNode
 	o.ResourceFilter = no.ResourceFilter
 	o.NodeName = no.NodeName
+	o.PVCFilter = no.PVCFilter
+	o.StorageClassName = no.StorageClassName
 }
 
 type WorkspaceOption struct {
-	ResourceFilter string
-	WorkspaceName  string
+	ResourceFilter   string
+	WorkspaceName    string
+	PVCFilter        string
+	StorageClassName string
 }
 
 func (wo WorkspaceOption) Apply(o *QueryOptions) {
 	o.Level = LevelWorkspace
 	o.ResourceFilter = wo.ResourceFilter
 	o.WorkspaceName = wo.WorkspaceName
+	o.PVCFilter = wo.PVCFilter
+	o.StorageClassName = wo.StorageClassName
 }
 
 type NamespaceOption struct {
-	ResourceFilter string
-	WorkspaceName  string
-	NamespaceName  string
+	ResourceFilter   string
+	WorkspaceName    string
+	NamespaceName    string
+	PVCFilter        string
+	StorageClassName string
 }
 
 func (no NamespaceOption) Apply(o *QueryOptions) {
@@ -93,6 +135,41 @@ func (no NamespaceOption) Apply(o *QueryOptions) {
 	o.ResourceFilter = no.ResourceFilter
 	o.WorkspaceName = no.WorkspaceName
 	o.NamespaceName = no.NamespaceName
+	o.PVCFilter = no.PVCFilter
+	o.StorageClassName = no.StorageClassName
+}
+
+type ApplicationsOption struct {
+	NamespaceName    string
+	Applications     []string
+	StorageClassName string
+}
+
+func (aso ApplicationsOption) Apply(o *QueryOptions) {
+	// nothing should be done
+	return
+}
+
+type ApplicationOption struct {
+	NamespaceName         string
+	Application           string
+	ApplicationComponents []string
+	StorageClassName      string
+}
+
+func (ao ApplicationOption) Apply(o *QueryOptions) {
+	o.Level = LevelApplication
+	o.NamespaceName = ao.NamespaceName
+	o.ApplicationName = ao.Application
+	o.StorageClassName = ao.StorageClassName
+
+	app_components := strings.Join(ao.ApplicationComponents[:], "|")
+
+	if len(app_components) > 0 {
+		o.ResourceFilter = fmt.Sprintf(`namespace="%s", workload=~"%s"`, o.NamespaceName, app_components)
+	} else {
+		o.ResourceFilter = fmt.Sprintf(`namespace="%s", workload=~"%s"`, o.NamespaceName, ".*")
+	}
 }
 
 type WorkloadOption struct {
@@ -106,6 +183,37 @@ func (wo WorkloadOption) Apply(o *QueryOptions) {
 	o.ResourceFilter = wo.ResourceFilter
 	o.NamespaceName = wo.NamespaceName
 	o.WorkloadKind = wo.WorkloadKind
+}
+
+type ServicesOption struct {
+	NamespaceName string
+	Services      []string
+}
+
+func (sso ServicesOption) Apply(o *QueryOptions) {
+	// nothing should be done
+	return
+}
+
+type ServiceOption struct {
+	ResourceFilter string
+	NamespaceName  string
+	ServiceName    string
+	PodNames       []string
+}
+
+func (so ServiceOption) Apply(o *QueryOptions) {
+	o.Level = LevelService
+	o.NamespaceName = so.NamespaceName
+	o.ServiceName = so.ServiceName
+
+	pod_names := strings.Join(so.PodNames, "|")
+
+	if len(pod_names) > 0 {
+		o.ResourceFilter = fmt.Sprintf(`pod=~"%s", namespace="%s"`, pod_names, o.NamespaceName)
+	} else {
+		o.ResourceFilter = fmt.Sprintf(`pod=~"%s", namespace="%s"`, ".*", o.NamespaceName)
+	}
 }
 
 type PodOption struct {
@@ -157,10 +265,27 @@ func (po PVCOption) Apply(o *QueryOptions) {
 	o.NamespaceName = po.NamespaceName
 	o.StorageClassName = po.StorageClassName
 	o.PersistentVolumeClaimName = po.PersistentVolumeClaimName
+
+	// for meter
+	o.PVCFilter = po.PersistentVolumeClaimName
 }
 
 type ComponentOption struct{}
 
 func (_ ComponentOption) Apply(o *QueryOptions) {
 	o.Level = LevelComponent
+}
+
+type MeterOption struct {
+	Start time.Time
+	End   time.Time
+	Step  time.Duration
+}
+
+func (mo MeterOption) Apply(o *QueryOptions) {
+	o.MeterOptions = &Meteroptions{
+		Start: mo.Start,
+		End:   mo.End,
+		Step:  mo.Step,
+	}
 }

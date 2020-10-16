@@ -37,6 +37,7 @@ import (
 	auditingv1alpha1 "kubesphere.io/kubesphere/pkg/api/auditing/v1alpha1"
 	eventsv1alpha1 "kubesphere.io/kubesphere/pkg/api/events/v1alpha1"
 	loggingv1alpha2 "kubesphere.io/kubesphere/pkg/api/logging/v1alpha2"
+	meteringv1alpha1 "kubesphere.io/kubesphere/pkg/api/metering/v1alpha1"
 	clusterv1alpha1 "kubesphere.io/kubesphere/pkg/apis/cluster/v1alpha1"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha2"
@@ -50,11 +51,16 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/events"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/logging"
+	"kubesphere.io/kubesphere/pkg/models/metering"
+	"kubesphere.io/kubesphere/pkg/models/monitoring"
 	resources "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3"
 	resourcesv1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
+	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	auditingclient "kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	eventsclient "kubesphere.io/kubesphere/pkg/simple/client/events"
 	loggingclient "kubesphere.io/kubesphere/pkg/simple/client/logging"
+	monitoringclient "kubesphere.io/kubesphere/pkg/simple/client/monitoring"
+	opclient "kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/utils/stringutils"
 )
 
@@ -79,6 +85,8 @@ type Interface interface {
 	PatchNamespace(workspace string, namespace *corev1.Namespace) (*corev1.Namespace, error)
 	PatchWorkspace(workspace string, data json.RawMessage) (*tenantv1alpha2.WorkspaceTemplate, error)
 	ListClusters(info user.Info) (*api.ListResult, error)
+	Metering(user user.Info, queryParam *meteringv1alpha1.Query) (monitoring.Metrics, error)
+	MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query) (metering.ResourceStatistic, error)
 }
 
 type tenantOperator struct {
@@ -90,9 +98,10 @@ type tenantOperator struct {
 	events         events.Interface
 	lo             logging.LoggingOperator
 	auditing       auditing.Interface
+	mo             monitoring.MonitoringOperator
 }
 
-func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer) Interface {
+func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ksclient kubesphere.Interface, evtsClient eventsclient.Client, loggingClient loggingclient.Client, auditingclient auditingclient.Client, am am.AccessManagementInterface, authorizer authorizer.Authorizer, monitoringclient monitoringclient.Interface, opClient opclient.Client, resourceGetter *resourcev1alpha3.ResourceGetter) Interface {
 	return &tenantOperator{
 		am:             am,
 		authorizer:     authorizer,
@@ -102,6 +111,7 @@ func New(informers informers.InformerFactory, k8sclient kubernetes.Interface, ks
 		events:         events.NewEventsOperator(evtsClient),
 		lo:             logging.NewLoggingOperator(loggingClient),
 		auditing:       auditing.NewEventsOperator(auditingclient),
+		mo:             monitoring.NewMonitoringOperator(monitoringclient, nil, k8sclient, informers, opClient, resourceGetter),
 	}
 }
 
@@ -949,6 +959,38 @@ func (t *tenantOperator) Auditing(user user.Info, queryParam *auditingv1alpha1.Q
 		filter.ObjectRefNamespaceMap = namespaceCreateTimeMap
 		filter.WorkspaceMap = workspaceCreateTimeMap
 	})
+}
+
+func (t *tenantOperator) Metering(user user.Info, query *meteringv1alpha1.Query) (metrics monitoring.Metrics, err error) {
+
+	var opt QueryOptions
+
+	opt, err = t.makeQueryOptions(user, *query, query.Level)
+	if err != nil {
+		return
+	}
+	metrics, err = t.ProcessNamedMetersQuery(opt)
+
+	return
+}
+
+func (t *tenantOperator) MeteringHierarchy(user user.Info, queryParam *meteringv1alpha1.Query) (metering.ResourceStatistic, error) {
+	res, err := t.Metering(user, queryParam)
+	if err != nil {
+		return metering.ResourceStatistic{}, err
+	}
+
+	// get pods stat info under ns
+	podsStats := t.transformMetricData(res)
+
+	// classify pods stats
+	resourceStats, err := t.classifyPodStats(user, queryParam.NamespaceName, podsStats)
+	if err != nil {
+		klog.Error(err)
+		return metering.ResourceStatistic{}, err
+	}
+
+	return resourceStats, nil
 }
 
 func contains(objects []runtime.Object, object runtime.Object) bool {

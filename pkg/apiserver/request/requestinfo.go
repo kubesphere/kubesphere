@@ -31,12 +31,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/constants"
 	netutils "kubesphere.io/kubesphere/pkg/utils/net"
-
-	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type RequestInfoResolver interface {

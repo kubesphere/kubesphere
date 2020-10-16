@@ -30,6 +30,8 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/monitoring"
 )
 
+const MeteringDefaultTimeout = 20 * time.Second
+
 // prometheus implements monitoring interface backed by Prometheus
 type prometheus struct {
 	client apiv1.API
@@ -140,6 +142,108 @@ func (p prometheus) GetNamedMetricsOverTime(metrics []string, start, end time.Ti
 
 			wg.Done()
 		}(metric)
+	}
+
+	wg.Wait()
+
+	return res
+}
+
+func (p prometheus) GetNamedMeters(meters []string, ts time.Time, opts []monitoring.QueryOption) []monitoring.Metric {
+	var res []monitoring.Metric
+	var wg sync.WaitGroup
+	var mtx sync.Mutex
+
+	queryOptions := monitoring.NewQueryOptions()
+
+	for _, opt := range opts {
+		opt.Apply(queryOptions)
+	}
+
+	prometheusCtx, cancel := context.WithTimeout(context.Background(), MeteringDefaultTimeout)
+	defer cancel()
+
+	for _, meter := range meters {
+
+		wg.Add(1)
+
+		go func(metric string) {
+			parsedResp := monitoring.Metric{MetricName: metric}
+
+			begin := time.Now()
+			value, _, err := p.client.Query(prometheusCtx, makeMeterExpr(metric, *queryOptions), ts)
+			end := time.Now()
+			timeElapsed := end.Unix() - begin.Unix()
+			if timeElapsed > int64(MeteringDefaultTimeout.Seconds())/2 {
+				klog.Warningf("long time query[cost %v seconds], expr: %v", timeElapsed, makeMeterExpr(metric, *queryOptions))
+			}
+
+			if err != nil {
+				parsedResp.Error = err.Error()
+			} else {
+				parsedResp.MetricData = parseQueryResp(value, nil)
+			}
+
+			mtx.Lock()
+			res = append(res, parsedResp)
+			mtx.Unlock()
+
+			wg.Done()
+		}(meter)
+
+	}
+
+	wg.Wait()
+
+	return res
+}
+
+func (p prometheus) GetNamedMetersOverTime(meters []string, start, end time.Time, step time.Duration, opts []monitoring.QueryOption) []monitoring.Metric {
+	var res []monitoring.Metric
+	var wg sync.WaitGroup
+	var mtx sync.Mutex
+
+	queryOptions := monitoring.NewQueryOptions()
+
+	for _, opt := range opts {
+		opt.Apply(queryOptions)
+	}
+
+	timeRange := apiv1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
+	}
+
+	prometheusCtx, cancel := context.WithTimeout(context.Background(), MeteringDefaultTimeout)
+	defer cancel()
+
+	for _, meter := range meters {
+
+		wg.Add(1)
+
+		go func(metric string) {
+			parsedResp := monitoring.Metric{MetricName: metric}
+			begin := time.Now()
+			value, _, err := p.client.QueryRange(prometheusCtx, makeMeterExpr(metric, *queryOptions), timeRange)
+			end := time.Now()
+			timeElapsed := end.Unix() - begin.Unix()
+			if timeElapsed > int64(MeteringDefaultTimeout.Seconds())/2 {
+				klog.Warningf("long time query[cost %v seconds], expr: %v", timeElapsed, makeMeterExpr(metric, *queryOptions))
+			}
+
+			if err != nil {
+				parsedResp.Error = err.Error()
+			} else {
+				parsedResp.MetricData = parseQueryRangeResp(value, nil)
+			}
+
+			mtx.Lock()
+			res = append(res, parsedResp)
+			mtx.Unlock()
+
+			wg.Done()
+		}(meter)
 	}
 
 	wg.Wait()
