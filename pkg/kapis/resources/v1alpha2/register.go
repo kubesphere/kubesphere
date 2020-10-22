@@ -86,7 +86,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		To(handler.GetKubectlPod).
 		Doc("get user's kubectl pod").
 		Param(webservice.PathParameter("user", "username")).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.UserResourcesTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ToolboxTag}).
 		Returns(http.StatusOK, api.StatusOK, models.PodInfo{}))
 
 	webservice.Route(webservice.GET("/users/{user}/kubeconfig").
@@ -95,7 +95,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 		Doc("get users' kubeconfig").
 		Param(webservice.PathParameter("user", "username")).
 		Returns(http.StatusOK, api.StatusOK, "").
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.UserResourcesTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.ToolboxTag}))
 
 	webservice.Route(webservice.GET("/components").
 		To(handler.handleGetComponents).
@@ -130,7 +130,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 
 	webservice.Route(webservice.POST("registry/verify").
 		To(handler.handleVerifyRegistryCredential).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.RegistryTag}).
 		Doc("verify if a user has access to the docker registry").
 		Reads(api.RegistryCredential{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}))
@@ -152,7 +152,7 @@ func AddToContainer(c *restful.Container, k8sClient kubernetes.Interface, factor
 	)
 	webservice.Route(webservice.POST("git/verify").
 		To(handler.handleVerifyGitCredential).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.VerificationTag}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.GitTag}).
 		Doc("Verify if the kubernetes secret has read access to the git repository").
 		Reads(gitmodel.AuthInfo{}).
 		Returns(http.StatusOK, api.StatusOK, errors.Error{}),

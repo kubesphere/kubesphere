@@ -100,9 +100,10 @@ func buildOperation(ws *restful.WebService, r restful.Route, patterns map[string
 	for k, v := range r.ResponseErrors {
 		r := buildResponse(v, cfg)
 		props.StatusCodeResponses[k] = r
-		if 200 == k { // any 2xx code?
-			o.Responses.Default = &r
-		}
+	}
+	if r.DefaultResponse != nil {
+		r := buildResponse(*r.DefaultResponse, cfg)
+		o.Responses.Default = &r
 	}
 	if len(o.Responses.StatusCodeResponses) == 0 {
 		o.Responses.StatusCodeResponses[200] = spec.Response{ResponseProps: spec.ResponseProps{Description: http.StatusText(http.StatusOK)}}
@@ -132,6 +133,13 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 	p.Description = param.Description
 	p.Name = param.Name
 	p.Required = param.Required
+
+	if len(param.AllowableValues) > 0 {
+		p.Enum = make([]interface{}, 0, len(param.AllowableValues))
+		for key := range param.AllowableValues {
+			p.Enum = append(p.Enum, key)
+		}
+	}
 
 	if param.Kind == restful.PathParameterKind {
 		p.Pattern = pattern
@@ -223,7 +231,7 @@ func isPrimitiveType(modelName string) bool {
 	if len(modelName) == 0 {
 		return false
 	}
-	return strings.Contains("uint uint8 uint16 uint32 uint64 int int8 int16 int32 int64 float32 float64 bool string byte rune time.Time", modelName)
+	return strings.Contains("uint uint8 uint16 uint32 uint64 int int8 int16 int32 int64 float32 float64 bool string byte rune time.Time time.Duration", modelName)
 }
 
 func jsonSchemaType(modelName string) string {
@@ -245,6 +253,7 @@ func jsonSchemaType(modelName string) string {
 		"float32":   "number",
 		"bool":      "boolean",
 		"time.Time": "string",
+		"time.Duration": "integer",
 	}
 	mapped, ok := schemaMap[modelName]
 	if !ok {

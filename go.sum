@@ -124,10 +124,10 @@ github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 h1:aZtFdDNWY/yH86J
 github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 h1:dWB6v3RcOy03t/bUadywsbyrQwCqZeNIEX6M1OtSZOM=
 github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2/go.mod h1:gNh8nYJoAm43RfaxurUnxr+N1PwuFV3ZMl/efxlIlY8=
-github.com/emicklei/go-restful v2.9.5+incompatible h1:spTtZBk5DYEvbxMVutUuTyh1Ao2r4iyvLdACqsl/Ljk=
-github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
-github.com/emicklei/go-restful-openapi v1.0.0 h1:ZFk3RuCl8ZmG1yUAF/mSbXRi5cuyA/k5+EpHayuuTXM=
-github.com/emicklei/go-restful-openapi v1.0.0/go.mod h1:Q+bHVYfUWv1fvC4FNTsz2AVvFSsXAC7RCiWjF1Sva1A=
+github.com/emicklei/go-restful v2.14.3+incompatible h1:i59XyRHAxKCVBw3vHzQlpP/+pi89wH1v1HL+RKyVgxk=
+github.com/emicklei/go-restful v2.14.3+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
+github.com/emicklei/go-restful-openapi v1.4.1 h1:SocVTIQWnXyit4dotTrwmncBAjtRaBmfcHjo3XGcCm4=
+github.com/emicklei/go-restful-openapi v1.4.1/go.mod h1:kWQ8rQMVQ6G6lePwjDveJ00KjAUr/jq6z1X8DrDP3Gc=
 github.com/emirpasic/gods v1.12.0 h1:QAUIPSaCu4G+POclxeqb3F+WPpdKqFGlw36+yOzGlrg=
 github.com/emirpasic/gods v1.12.0/go.mod h1:YfzfFFoVP/catgzJb4IKIqXjX78Ha8FMSDh3ymbK86o=
 github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5/go.mod h1:a2zkGnVExMxdzMo3M0Hi/3sEU+cWnZpSni0O6/Yb/P0=

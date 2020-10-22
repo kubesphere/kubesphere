@@ -84,7 +84,7 @@ func AddPipelineToWebService(webservice *restful.WebService, devopsClient devops
 		webservice.Route(webservice.GET("/devops/{devops}/credentials/{credential}/usage").
 			To(projectPipelineHandler.GetProjectCredentialUsage).
 			Doc("Get the specified credential usage of the DevOps project").
-			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsProjectCredentialTag}).
+			Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsCredentialTag}).
 			Param(webservice.PathParameter("devops", "DevOps project's ID, e.g. project-RRRRAzLBlLEm")).
 			Param(webservice.PathParameter("credential", "credential's ID, e.g. dockerhub-id")).
 			Returns(http.StatusOK, RespOK, devops.Credential{}))
@@ -697,7 +697,9 @@ func AddJenkinsToContainer(webservice *restful.WebService, devopsClient devops.I
 			u.Path = strings.Replace(request.Request.URL.Path, fmt.Sprintf("/kapis/%s/%s/jenkins", GroupVersion.Group, GroupVersion.Version), "", 1)
 			httpProxy := proxy.NewUpgradeAwareHandler(u, http.DefaultTransport, false, false, &errorResponder{})
 			httpProxy.ServeHTTP(response, request.Request)
-		}).Returns(http.StatusOK, RespOK, nil))
+		}).
+		Returns(http.StatusOK, RespOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsJenkinsTag}))
 	return nil
 }
 
