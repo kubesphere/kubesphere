@@ -18,6 +18,8 @@ package v1alpha2
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +36,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	servererr "kubesphere.io/kubesphere/pkg/server/errors"
-	"strings"
 )
 
 type iamHandler struct {
@@ -141,7 +142,14 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 	if strings.HasSuffix(request.Request.URL.Path, iamv1alpha2.ResourcesPluralWorkspaceRole) {
 		workspace := request.PathParameter("workspace")
 		username := request.PathParameter("workspacemember")
-		workspaceRole, err := h.am.GetWorkspaceRoleOfUser(username, workspace)
+
+		user, err := h.im.DescribeUser(username)
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
+
+		workspaceRoles, err := h.am.GetWorkspaceRoleOfUser(username, user.Spec.Groups, workspace)
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -151,19 +159,33 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			api.HandleInternalError(response, request, err)
 			return
 		}
+		templateRoles := make(map[string]*rbacv1.Role)
+		for _, role := range workspaceRoles {
+			// merge template Role
+			result, err := h.am.ListWorkspaceRoles(&query.Query{
+				Pagination: query.NoPagination,
+				SortBy:     "",
+				Ascending:  false,
+				Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
+			})
 
-		result, err := h.am.ListWorkspaceRoles(&query.Query{
-			Pagination: query.NoPagination,
-			SortBy:     "",
-			Ascending:  false,
-			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(workspaceRole.Name)},
-		})
-		if err != nil {
-			api.HandleInternalError(response, request, err)
-			return
+			if err != nil {
+				api.HandleInternalError(response, request, err)
+				return
+			}
+
+			for _, obj := range result.Items {
+				templateRole := obj.(*rbacv1.Role)
+				templateRoles[templateRole.Name] = templateRole
+			}
 		}
 
-		response.WriteEntity(result.Items)
+		results := make([]*rbacv1.Role, 0, len(templateRoles))
+		for _, value := range templateRoles {
+			results = append(results, value)
+		}
+
+		response.WriteEntity(results)
 		return
 	}
 
@@ -175,8 +197,13 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			return
 		}
 
-		role, err := h.am.GetNamespaceRoleOfUser(username, namespace)
+		user, err := h.im.DescribeUser(username)
+		if err != nil {
+			api.HandleInternalError(response, request, err)
+			return
+		}
 
+		roles, err := h.am.GetNamespaceRoleOfUser(username, user.Spec.Groups, namespace)
 		if err != nil {
 			// if role binding not exist return empty list
 			if errors.IsNotFound(err) {
@@ -187,19 +214,33 @@ func (h *iamHandler) RetrieveMemberRoleTemplates(request *restful.Request, respo
 			return
 		}
 
-		result, err := h.am.ListRoles(namespace, &query.Query{
-			Pagination: query.NoPagination,
-			SortBy:     "",
-			Ascending:  false,
-			Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
-		})
+		templateRoles := make(map[string]*rbacv1.Role)
+		for _, role := range roles {
+			// merge template Role
+			result, err := h.am.ListRoles(namespace, &query.Query{
+				Pagination: query.NoPagination,
+				SortBy:     "",
+				Ascending:  false,
+				Filters:    map[query.Field]query.Value{iamv1alpha2.AggregateTo: query.Value(role.Name)},
+			})
 
-		if err != nil {
-			api.HandleInternalError(response, request, err)
-			return
+			if err != nil {
+				api.HandleInternalError(response, request, err)
+				return
+			}
+
+			for _, obj := range result.Items {
+				templateRole := obj.(*rbacv1.Role)
+				templateRoles[templateRole.Name] = templateRole
+			}
 		}
 
-		response.WriteEntity(result.Items)
+		results := make([]*rbacv1.Role, 0, len(templateRoles))
+		for _, value := range templateRoles {
+			results = append(results, value)
+		}
+
+		response.WriteEntity(results)
 		return
 	}
 }

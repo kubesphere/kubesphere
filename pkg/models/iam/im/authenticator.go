@@ -20,6 +20,8 @@ package im
 
 import (
 	"fmt"
+	"net/mail"
+
 	"github.com/go-ldap/ldap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,7 +34,6 @@ import (
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
 	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"net/mail"
 )
 
 var (
@@ -131,8 +132,9 @@ func (im *passwordAuthenticator) Authenticate(username, password string) (authus
 
 	if checkPasswordHash(password, user.Spec.EncryptedPassword) {
 		return &authuser.DefaultInfo{
-			Name: user.Name,
-			UID:  string(user.UID),
+			Name:   user.Name,
+			UID:    string(user.UID),
+			Groups: user.Spec.Groups,
 		}, nil
 	}
 

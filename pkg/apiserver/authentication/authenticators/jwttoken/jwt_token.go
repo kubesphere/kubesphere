@@ -18,9 +18,11 @@ package jwttoken
 
 import (
 	"context"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
+	iamv1alpha2listers "kubesphere.io/kubesphere/pkg/client/listers/iam/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 )
 
@@ -31,11 +33,13 @@ import (
 // because some resources are public accessible.
 type tokenAuthenticator struct {
 	tokenOperator im.TokenManagementInterface
+	userLister    iamv1alpha2listers.UserLister
 }
 
-func NewTokenAuthenticator(tokenOperator im.TokenManagementInterface) authenticator.Token {
+func NewTokenAuthenticator(tokenOperator im.TokenManagementInterface, userLister iamv1alpha2listers.UserLister) authenticator.Token {
 	return &tokenAuthenticator{
 		tokenOperator: tokenOperator,
+		userLister:    userLister,
 	}
 }
 
@@ -46,11 +50,16 @@ func (t *tokenAuthenticator) AuthenticateToken(ctx context.Context, token string
 		return nil, false, err
 	}
 
+	dbUser, err := t.userLister.Get(providedUser.GetName())
+	if err != nil {
+		return nil, false, err
+	}
+
 	return &authenticator.Response{
 		User: &user.DefaultInfo{
 			Name:   providedUser.GetName(),
 			UID:    providedUser.GetUID(),
-			Groups: []string{user.AllAuthenticated},
+			Groups: append(dbUser.Spec.Groups, user.AllAuthenticated),
 		},
 	}, true, nil
 }
