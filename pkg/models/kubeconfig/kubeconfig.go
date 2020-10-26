@@ -23,6 +23,9 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"strings"
+	"time"
+
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,7 +43,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/constants"
 	"kubesphere.io/kubesphere/pkg/utils/pkiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 )
 
 const (
@@ -79,17 +81,23 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 
 	configName := fmt.Sprintf(kubeconfigNameFormat, user.Name)
 
-	_, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
+	cm, err := o.configMapInformer.Lister().ConfigMaps(constants.KubeSphereControlNamespace).Get(configName)
 
-	// already exist
+	groups := strings.Join(user.Spec.Groups, ".")
+
 	if err == nil {
-		return nil
-	}
-
-	// internal error
-	if !errors.IsNotFound(err) {
-		klog.Error(err)
-		return err
+		if cm.Labels[iamv1alpha2.GroupReferenceLabel] == groups {
+			// already exist and groups are same.
+			return nil
+		}
+		// remove the old configmap if groups are changed.
+		o.k8sClient.CoreV1().ConfigMaps(constants.KubeSphereControlNamespace).Delete(configName, &metav1.DeleteOptions{})
+	} else {
+		// internal error
+		if !errors.IsNotFound(err) {
+			klog.Error(err)
+			return err
+		}
 	}
 
 	// create if not exist
@@ -104,7 +112,7 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		}
 	}
 
-	clientKey, err := o.createCSR(user.Name)
+	clientKey, err := o.createCSR(user.Name, user.Spec.Groups)
 
 	if err != nil {
 		klog.Errorln(err)
@@ -140,9 +148,19 @@ func (o *operator) CreateKubeConfig(user *iamv1alpha2.User) error {
 		return err
 	}
 
-	cm := &corev1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: configMapKind, APIVersion: configMapAPIVersion},
-		ObjectMeta: metav1.ObjectMeta{Name: configName, Labels: map[string]string{constants.UsernameLabelKey: user.Name}},
-		Data:       map[string]string{kubeconfigFileName: string(kubeconfig)}}
+	cm = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: configName,
+			Labels: map[string]string{
+				constants.UsernameLabelKey:      user.Name,
+				iamv1alpha2.GroupReferenceLabel: groups,
+			},
+		},
+		Data: map[string]string{kubeconfigFileName: string(kubeconfig)}}
 
 	err = controllerutil.SetControllerReference(user, cm, scheme.Scheme)
 
@@ -195,10 +213,10 @@ func (o *operator) GetKubeConfig(username string) (string, error) {
 	return string(data), nil
 }
 
-func (o *operator) createCSR(username string) ([]byte, error) {
+func (o *operator) createCSR(username string, groups []string) ([]byte, error) {
 	csrConfig := &certutil.Config{
 		CommonName:   username,
-		Organization: nil,
+		Organization: append(groups, user.AllAuthenticated),
 		AltNames:     certutil.AltNames{},
 		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
