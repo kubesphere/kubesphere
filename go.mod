@@ -21,8 +21,8 @@ require (
 	github.com/elastic/go-elasticsearch/v6 v6.8.2
 	github.com/elastic/go-elasticsearch/v7 v7.3.0
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
-	github.com/emicklei/go-restful v2.11.1+incompatible
-	github.com/emicklei/go-restful-openapi v1.0.0
+	github.com/emicklei/go-restful v2.14.3+incompatible
+	github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/go-ldap/ldap v3.0.3+incompatible
@@ -94,6 +94,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
 	k8s.io/kubectl v0.17.3
+	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	openpitrix.io/openpitrix v0.4.9-0.20200611125425-ae07f141e797
 	sigs.k8s.io/application v1.0.0
 	sigs.k8s.io/controller-runtime v0.5.0
@@ -187,8 +188,8 @@ replace (
 	github.com/elastic/go-elasticsearch/v7 => github.com/elastic/go-elasticsearch/v7 v7.3.0
 	github.com/elazarl/goproxy => github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2
 	github.com/elazarl/goproxy/ext => github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2
-	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.9.5+incompatible
-	github.com/emicklei/go-restful-openapi => github.com/emicklei/go-restful-openapi v1.0.0
+	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.14.3+incompatible
+	github.com/emicklei/go-restful-openapi => github.com/emicklei/go-restful-openapi v1.4.1
 	github.com/emirpasic/gods => github.com/emirpasic/gods v1.12.0
 	github.com/erikstmartin/go-testdb => github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
 	github.com/evanphx/json-patch => github.com/evanphx/json-patch v4.5.0+incompatible

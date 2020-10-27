@@ -12,7 +12,7 @@ func NewOpenAPIService(config Config) *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path(config.APIPath)
 	ws.Produces(restful.MIME_JSON)
-	if config.DisableCORS {
+	if !config.DisableCORS {
 		ws.Filter(enableCORS)
 	}
 
@@ -45,6 +45,7 @@ func BuildSwagger(config Config) *spec.Swagger {
 	}
 	swagger := &spec.Swagger{
 		SwaggerProps: spec.SwaggerProps{
+			Host:        config.Host,
 			Swagger:     "2.0",
 			Paths:       paths,
 			Definitions: definitions,
