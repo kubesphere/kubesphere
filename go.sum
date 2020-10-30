@@ -296,8 +296,8 @@ github.com/kubernetes-csi/csi-lib-utils v0.7.0/go.mod h1:bze+2G9+cmoHxN6+WyG1qT4
 github.com/kubernetes-csi/csi-test v2.0.0+incompatible/go.mod h1:YxJ4UiuPWIhMBkxUKY5c267DyA0uDZ/MtAimhx/2TA0=
 github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0 h1:a1cpbNAdOTHO7Lk5UO5tjcbYPEEamIxmzATt+pKoDhc=
 github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0/go.mod h1:dV5oB3U62KBdlf9ADWkMmjGd3USauqQtwIm2OZb5mqI=
-github.com/kubesphere/kiali v0.15.1-0.20200520152915-769a61d75460 h1:EcC/7blefyiDDDq3xfBlQj/vHL2ytz/JEpgHkeXKbpc=
-github.com/kubesphere/kiali v0.15.1-0.20200520152915-769a61d75460/go.mod h1:Y1EqeixoXkKkU8I+yvOfhdh21+8+etFE6wYOVT2XFdI=
+github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d h1:/q8KYXKrLMfK4izrP3dzy6Uq8dQF8IbowRWDKiI1/Rg=
+github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d/go.mod h1:Y1EqeixoXkKkU8I+yvOfhdh21+8+etFE6wYOVT2XFdI=
 github.com/kubesphere/sonargo v0.0.2 h1:hsSRE3sv3mkPcUAeSABdp7rtfcNW2zzeHXzFa01CTkU=
 github.com/kubesphere/sonargo v0.0.2/go.mod h1:ww8n9ANlDXhX5PBZ18iaRnCgEkXN0GMml3/KZXOZ11w=
 github.com/leodido/go-urn v1.1.0/go.mod h1:+cyI34gQWZcE1eQU7NVgKkkzdXDQHr1dBMtdAPozLkw=
