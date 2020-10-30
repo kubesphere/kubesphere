@@ -207,7 +207,7 @@ func (conf *Config) stripEmptyOptions() {
 		conf.NetworkOptions = nil
 	}
 
-	if conf.ServiceMeshOptions != nil && conf.ServiceMeshOptions.IstioPilotHost == "" &&
+	if conf.ServiceMeshOptions != nil &&
 		conf.ServiceMeshOptions.ServicemeshPrometheusHost == "" &&
 		conf.ServiceMeshOptions.JaegerQueryHost == "" {
 		conf.ServiceMeshOptions = nil

@@ -65,7 +65,6 @@ func newTestConfig() (*Config, error) {
 			Burst:      1e6,
 		},
 		ServiceMeshOptions: &servicemesh.Options{
-			IstioPilotHost:            "http://istio-pilot.istio-system.svc:9090",
 			JaegerQueryHost:           "http://jaeger-query.istio-system.svc:80",
 			ServicemeshPrometheusHost: "http://prometheus-k8s.kubesphere-monitoring-system.svc",
 		},

@@ -20,9 +20,6 @@ import "github.com/spf13/pflag"
 
 type Options struct {
 
-	// istio pilot discovery service url
-	IstioPilotHost string `json:"istioPilotHost,omitempty" yaml:"istioPilotHost"`
-
 	// jaeger query service url
 	JaegerQueryHost string `json:"jaegerQueryHost,omitempty" yaml:"jaegerQueryHost"`
 
@@ -33,7 +30,6 @@ type Options struct {
 // NewServiceMeshOptions returns a `zero` instance
 func NewServiceMeshOptions() *Options {
 	return &Options{
-		IstioPilotHost:            "",
 		JaegerQueryHost:           "",
 		ServicemeshPrometheusHost: "",
 	}
@@ -54,14 +50,9 @@ func (s *Options) ApplyTo(options *Options) {
 		options.JaegerQueryHost = s.JaegerQueryHost
 	}
 
-	if s.IstioPilotHost != "" {
-		options.IstioPilotHost = s.IstioPilotHost
-	}
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
-	fs.StringVar(&s.IstioPilotHost, "istio-pilot-host", c.IstioPilotHost, ""+
-		"istio pilot discovery service url")
 
 	fs.StringVar(&s.JaegerQueryHost, "jaeger-query-host", c.JaegerQueryHost, ""+
 		"jaeger query service url")

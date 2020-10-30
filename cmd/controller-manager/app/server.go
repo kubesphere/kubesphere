@@ -205,7 +205,7 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	}
 
 	// TODO(jeff): refactor config with CRD
-	servicemeshEnabled := s.ServiceMeshOptions != nil && len(s.ServiceMeshOptions.IstioPilotHost) != 0
+	servicemeshEnabled := s.ServiceMeshOptions != nil
 	if err = addControllers(mgr,
 		kubernetesClient,
 		informerFactory,

@@ -106,8 +106,5 @@ func initializeServicemeshConfig(s *options.ServerRunOptions) {
 	config.ExternalServices.PrometheusServiceURL = s.ServiceMeshOptions.ServicemeshPrometheusHost
 	config.ExternalServices.PrometheusCustomMetricsURL = config.ExternalServices.PrometheusServiceURL
 
-	// Set istio pilot discovery service url
-	config.ExternalServices.Istio.UrlServiceVersion = s.ServiceMeshOptions.IstioPilotHost
-
 	kconfig.Set(config)
 }
