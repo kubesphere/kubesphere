@@ -890,9 +890,9 @@ type BranchPipeline struct {
 	Parameters   []struct {
 		Class                 string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
 		DefaultParameterValue struct {
-			Class string `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
-			Name  string `json:"name,omitempty" description:"name"`
-			Value string `json:"value,omitempty" description:"value"`
+			Class string      `json:"_class,omitempty" description:"It’s a fully qualified name and is an identifier of the producer of this resource's capability."`
+			Name  string      `json:"name,omitempty" description:"name"`
+			Value interface{} `json:"value,omitempty" description:"value, string or bool type"`
 		} `json:"defaultParameterValue,omitempty" description:""`
 		Description string        `json:"description,omitempty" description:"description"`
 		Name        string        `json:"name,omitempty" description:"name"`
