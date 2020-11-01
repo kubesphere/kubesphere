@@ -11,8 +11,8 @@ about: Create a report to help us improve
 
 > Please delete this section including header before submitting
 >
-> This form is to report bugs. For general usage questions refer to our Slack channel
->        [KubeSphere-users](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTdkNTc3OTdmNzdiODViZjViNTU5ZDY3M2I2MzY4MTI4OGZlOTJmMDg5ZTFiMDAwYzNlZDY5NjA0NzZlNDU5NmY)
+> This form is to report bugs. For general usage questions you can join our Slack channel
+>        [KubeSphere-users](https://join.slack.com/t/kubesphere/shared_invite/enQtNTE3MDIxNzUxNzQ0LTZkNTdkYWNiYTVkMTM5ZThhODY1MjAyZmVlYWEwZmQ3ODQ1NmM1MGVkNWEzZTRhNzk0MzM5MmY4NDc3ZWVhMjE)
 
 **Describe the Bug**
 A clear and concise description of what the bug is.
