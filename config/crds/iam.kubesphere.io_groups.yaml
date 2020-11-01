@@ -1,0 +1,58 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: groups.iam.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.labels.kubesphere\.io/workspace
+    name: Workspace
+    type: string
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - group
+    kind: Group
+    listKind: GroupList
+    plural: groups
+    singular: group
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: Group is the Schema for the groups API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: GroupSpec defines the desired state of Group
+          type: object
+        status:
+          description: GroupStatus defines the observed state of Group
+          type: object
+      type: object
+  version: v1alpha2
+  versions:
+  - name: v1alpha2
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

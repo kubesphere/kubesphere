@@ -22,6 +22,8 @@ type PostBuildSwaggerObjectFunc func(s *spec.Swagger)
 
 // Config holds service api metadata.
 type Config struct {
+	// [optional] If set then set this field with the generated Swagger Object
+	Host string
 	// WebServicesURL is a DEPRECATED field; it never had any effect in this package.
 	WebServicesURL string
 	// APIPath is the path where the JSON api is avaiable , e.g. /apidocs.json

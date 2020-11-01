@@ -440,6 +440,12 @@ func (c *clusterController) syncCluster(key string) error {
 		return nil
 	}
 
+	// currently we didn't set cluster.Spec.Enable when creating cluster at client side, so only check
+	// if we enable cluster.Spec.JoinFederation now
+	if cluster.Spec.JoinFederation == false {
+		return nil
+	}
+
 	// save a old copy of cluster
 	oldCluster := cluster.DeepCopy()
 

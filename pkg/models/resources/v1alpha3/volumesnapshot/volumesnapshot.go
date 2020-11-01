@@ -28,6 +28,7 @@ import (
 const (
 	statusCreating = "creating"
 	statusReady    = "ready"
+	statusDeleting = "deleting"
 
 	volumeSnapshotClassName   = "volumeSnapshotClassName"
 	persistentVolumeClaimName = "persistentVolumeClaimName"
@@ -95,6 +96,9 @@ func snapshotStatus(item *v1beta1.VolumeSnapshot) string {
 	status := statusCreating
 	if item != nil && item.Status != nil && item.Status.ReadyToUse != nil && *item.Status.ReadyToUse {
 		status = statusReady
+	}
+	if item != nil && item.DeletionTimestamp != nil {
+		status = statusDeleting
 	}
 	return status
 }

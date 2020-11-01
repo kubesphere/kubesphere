@@ -50,7 +50,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		Reads(auth.TokenReview{}).
 		To(handler.TokenReview).
 		Returns(http.StatusOK, api.StatusOK, auth.TokenReview{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	// Only support implicit grant flow
 	// https://tools.ietf.org/html/rfc6749#section-4.2
@@ -64,15 +64,22 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		Param(ws.QueryParameter("redirect_uri", "After completing its interaction with the resource owner, "+
 			"the authorization server directs the resource owner's user-agent back to the client.The redirection endpoint "+
 			"URI MUST be an absolute URI as defined by [RFC3986] Section 4.3.").Required(false)).
-		To(handler.Authorize))
+		To(handler.Authorize).
+		Returns(http.StatusFound, http.StatusText(http.StatusFound), "").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 	// Resource Owner Password Credentials Grant
 	// https://tools.ietf.org/html/rfc6749#section-4.3
 	ws.Route(ws.POST("/token").
 		Consumes("application/x-www-form-urlencoded").
-		Doc("The resource owner password credentials grant type is suitable in\n" +
-			"cases where the resource owner has a trust relationship with the\n" +
+		Doc("The resource owner password credentials grant type is suitable in\n"+
+			"cases where the resource owner has a trust relationship with the\n"+
 			"client, such as the device operating system or a highly privileged application.").
-		To(handler.Token))
+		Param(ws.FormParameter("grant_type", "Value MUST be set to \"password\".").Required(true)).
+		Param(ws.FormParameter("username", "The resource owner username.").Required(true)).
+		Param(ws.FormParameter("password", "The resource owner password.").Required(true)).
+		To(handler.Token).
+		Returns(http.StatusOK, http.StatusText(http.StatusOK), &oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	// Authorization callback URL, where the end of the URL contains the identity provider name.
 	// The provider name is also used to build the callback URL.
@@ -92,7 +99,8 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		Param(ws.QueryParameter("state", "if the \"state\" parameter was present in the client authorization request."+
 			"The exact value received from the client.").Required(true)).
 		To(handler.oAuthCallBack).
-		Returns(http.StatusOK, api.StatusOK, oauth.Token{}))
+		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	c.Add(ws)
 
@@ -107,7 +115,7 @@ func AddToContainer(c *restful.Container, im im.IdentityManagementInterface, tok
 		Doc("KubeSphere APIs support token-based authentication via the Authtoken request header. The POST Login API is used to retrieve the authentication token. After the authentication token is obtained, it must be inserted into the Authtoken header for all requests.").
 		Reads(auth.LoginRequest{}).
 		Returns(http.StatusOK, api.StatusOK, oauth.Token{}).
-		Metadata(restfulspec.KeyOpenAPITags, []string{constants.IdentityManagementTag}))
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.AuthenticationTag}))
 
 	c.Add(legacy)
 

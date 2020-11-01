@@ -1,0 +1,69 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: groupbindings.iam.kubesphere.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .groupRef.name
+    name: Group
+    type: string
+  - JSONPath: .users
+    name: Users
+    type: string
+  group: iam.kubesphere.io
+  names:
+    categories:
+    - group
+    kind: GroupBinding
+    listKind: GroupBindingList
+    plural: groupbindings
+    singular: groupbinding
+  scope: Cluster
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: GroupBinding is the Schema for the groupbindings API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        groupRef:
+          description: Ref defines the desired relation of GroupBinding
+          properties:
+            apiGroup:
+              type: string
+            kind:
+              type: string
+            name:
+              type: string
+          type: object
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        users:
+          items:
+            type: string
+          type: array
+      type: object
+  version: v1alpha2
+  versions:
+  - name: v1alpha2
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

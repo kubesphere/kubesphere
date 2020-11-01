@@ -39,21 +39,23 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 	if st.Kind() == reflect.Ptr {
 		st = st.Elem()
 	}
+	if b.isSliceOrArrayType(st.Kind()) {
+		st = st.Elem()
+	}
 
 	modelName := keyFrom(st, b.Config)
 	if nameOverride != "" {
 		modelName = nameOverride
 	}
 	// no models needed for primitive types
-	if b.isPrimitiveType(modelName) {
+	if b.isPrimitiveType(modelName, st.Kind()) {
 		return nil
 	}
 	// golang encoding/json packages says array and slice values encode as
 	// JSON arrays, except that []byte encodes as a base64-encoded string.
 	// If we see a []byte here, treat it at as a primitive type (string)
 	// and deal with it in buildArrayTypeProperty.
-	if (st.Kind() == reflect.Slice || st.Kind() == reflect.Array) &&
-		st.Elem().Kind() == reflect.Uint8 {
+	if b.isByteArrayType(st) {
 		return nil
 	}
 	// see if we already have visited this model
@@ -70,9 +72,10 @@ func (b definitionBuilder) addModel(st reflect.Type, nameOverride string) *spec.
 	// reference the model before further initializing (enables recursive structs)
 	b.Definitions[modelName] = sm
 
-	// check for slice or array
-	if st.Kind() == reflect.Slice || st.Kind() == reflect.Array {
-		st = st.Elem()
+	if st.Kind() == reflect.Map {
+		_, sm = b.buildMapType(st, "value", modelName)
+		b.Definitions[modelName] = sm
+		return &sm
 	}
 	// check for structure or primitive type
 	if st.Kind() != reflect.Struct {
@@ -165,7 +168,7 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 			prop.Type = []string{pType}
 		}
 		if prop.Format == "" {
-			prop.Format = b.jsonSchemaFormat(keyFrom(fieldType, b.Config))
+			prop.Format = b.jsonSchemaFormat(keyFrom(fieldType, b.Config), fieldType.Kind())
 		}
 		return jsonName, modelDescription, prop
 	}
@@ -185,15 +188,11 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 	case fieldKind == reflect.Struct:
 		jsonName, prop := b.buildStructTypeProperty(field, jsonName, model)
 		return jsonName, modelDescription, prop
-	case fieldKind == reflect.Slice || fieldKind == reflect.Array:
+	case b.isSliceOrArrayType(fieldKind):
 		jsonName, prop := b.buildArrayTypeProperty(field, jsonName, modelName)
 		return jsonName, modelDescription, prop
 	case fieldKind == reflect.Ptr:
 		jsonName, prop := b.buildPointerTypeProperty(field, jsonName, modelName)
-		return jsonName, modelDescription, prop
-	case fieldKind == reflect.String:
-		stringt := "string"
-		prop.Type = []string{stringt}
 		return jsonName, modelDescription, prop
 	case fieldKind == reflect.Map:
 		jsonName, prop := b.buildMapTypeProperty(field, jsonName, modelName)
@@ -201,10 +200,10 @@ func (b definitionBuilder) buildProperty(field reflect.StructField, model *spec.
 	}
 
 	fieldTypeName := keyFrom(fieldType, b.Config)
-	if b.isPrimitiveType(fieldTypeName) {
-		mapped := b.jsonSchemaType(fieldTypeName)
+	if b.isPrimitiveType(fieldTypeName, fieldKind) {
+		mapped := b.jsonSchemaType(fieldTypeName, fieldKind)
 		prop.Type = []string{mapped}
-		prop.Format = b.jsonSchemaFormat(fieldTypeName)
+		prop.Format = b.jsonSchemaFormat(fieldTypeName, fieldKind)
 		return jsonName, modelDescription, prop
 	}
 	modelType := keyFrom(fieldType, b.Config)
@@ -294,13 +293,13 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 	}
 	var pType = "array"
 	prop.Type = []string{pType}
-	isPrimitive := b.isPrimitiveType(fieldType.Elem().Name())
+	isPrimitive := b.isPrimitiveType(fieldType.Elem().Name(), fieldType.Elem().Kind())
 	elemTypeName := b.getElementTypeName(modelName, jsonName, fieldType.Elem())
 	prop.Items = &spec.SchemaOrArray{
 		Schema: &spec.Schema{},
 	}
 	if isPrimitive {
-		mapped := b.jsonSchemaType(elemTypeName)
+		mapped := b.jsonSchemaType(elemTypeName, fieldType.Elem().Kind())
 		prop.Items.Schema.Type = []string{mapped}
 	} else {
 		prop.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
@@ -316,37 +315,62 @@ func (b definitionBuilder) buildArrayTypeProperty(field reflect.StructField, jso
 }
 
 func (b definitionBuilder) buildMapTypeProperty(field reflect.StructField, jsonName, modelName string) (nameJson string, prop spec.Schema) {
+	nameJson, prop = b.buildMapType(field.Type, jsonName, modelName)
 	setPropertyMetadata(&prop, field)
-	fieldType := field.Type
+	return nameJson, prop
+}
+
+func (b definitionBuilder) buildMapType(mapType reflect.Type, jsonName, modelName string) (nameJson string, prop spec.Schema) {
 	var pType = "object"
 	prop.Type = []string{pType}
 
 	// As long as the element isn't an interface, we should be able to figure out what the
 	// intended type is and represent it in `AdditionalProperties`.
 	// See: https://swagger.io/docs/specification/data-models/dictionaries/
-	if fieldType.Elem().Kind().String() != "interface" {
-		isPrimitive := b.isPrimitiveType(fieldType.Elem().Name())
-		elemTypeName := b.getElementTypeName(modelName, jsonName, fieldType.Elem())
+	if mapType.Elem().Kind().String() != "interface" {
+		isSlice := b.isSliceOrArrayType(mapType.Elem().Kind())
+		if isSlice && !b.isByteArrayType(mapType.Elem()) {
+			mapType = mapType.Elem()
+		}
+		isPrimitive := b.isPrimitiveType(mapType.Elem().Name(), mapType.Elem().Kind())
+		elemTypeName := b.getElementTypeName(modelName, jsonName, mapType.Elem())
 		prop.AdditionalProperties = &spec.SchemaOrBool{
 			Schema: &spec.Schema{},
 		}
-		if isPrimitive {
-			mapped := b.jsonSchemaType(elemTypeName)
-			prop.AdditionalProperties.Schema.Type = []string{mapped}
+		// golang encoding/json packages says array and slice values encode as
+		// JSON arrays, except that []byte encodes as a base64-encoded string.
+		// If we see a []byte here, treat it at as a string
+		if b.isByteArrayType(mapType.Elem()) {
+			prop.AdditionalProperties.Schema.Type = []string{"string"}
 		} else {
-			prop.AdditionalProperties.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
-		}
-		// add|overwrite model for element type
-		if fieldType.Elem().Kind() == reflect.Ptr {
-			fieldType = fieldType.Elem()
-		}
-		if !isPrimitive {
-			b.addModel(fieldType.Elem(), elemTypeName)
+			if isSlice {
+				var item *spec.Schema
+				if isPrimitive {
+					mapped := b.jsonSchemaType(elemTypeName, mapType.Kind())
+					item = &spec.Schema{}
+					item.Type = []string{mapped}
+					item.Format = b.jsonSchemaFormat(elemTypeName, mapType.Kind())
+				} else {
+					item = spec.RefProperty("#/definitions/" + elemTypeName)
+				}
+				prop.AdditionalProperties.Schema = spec.ArrayProperty(item)
+			} else if isPrimitive {
+				mapped := b.jsonSchemaType(elemTypeName, mapType.Elem().Kind())
+				prop.AdditionalProperties.Schema.Type = []string{mapped}
+			} else {
+				prop.AdditionalProperties.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemTypeName)
+			}
+			// add|overwrite model for element type
+			if mapType.Elem().Kind() == reflect.Ptr {
+				mapType = mapType.Elem()
+			}
+			if !isPrimitive {
+				b.addModel(mapType.Elem(), elemTypeName)
+			}
 		}
 	}
 	return jsonName, prop
 }
-
 func (b definitionBuilder) buildPointerTypeProperty(field reflect.StructField, jsonName, modelName string) (nameJson string, prop spec.Schema) {
 	setPropertyMetadata(&prop, field)
 	fieldType := field.Type
@@ -355,13 +379,13 @@ func (b definitionBuilder) buildPointerTypeProperty(field reflect.StructField, j
 	if fieldType.Elem().Kind() == reflect.Slice || fieldType.Elem().Kind() == reflect.Array {
 		var pType = "array"
 		prop.Type = []string{pType}
-		isPrimitive := b.isPrimitiveType(fieldType.Elem().Elem().Name())
+		isPrimitive := b.isPrimitiveType(fieldType.Elem().Elem().Name(), fieldType.Elem().Elem().Kind())
 		elemName := b.getElementTypeName(modelName, jsonName, fieldType.Elem().Elem())
 		prop.Items = &spec.SchemaOrArray{
 			Schema: &spec.Schema{},
 		}
 		if isPrimitive {
-			primName := b.jsonSchemaType(elemName)
+			primName := b.jsonSchemaType(elemName, fieldType.Elem().Elem().Kind())
 			prop.Items.Schema.Type = []string{primName}
 		} else {
 			prop.Items.Schema.Ref = spec.MustCreateRef("#/definitions/" + elemName)
@@ -373,10 +397,11 @@ func (b definitionBuilder) buildPointerTypeProperty(field reflect.StructField, j
 	} else {
 		// non-array, pointer type
 		fieldTypeName := keyFrom(fieldType.Elem(), b.Config)
-		var pType = b.jsonSchemaType(fieldTypeName) // no star, include pkg path
-		if b.isPrimitiveType(fieldTypeName) {
+		isPrimitive := b.isPrimitiveType(fieldTypeName, fieldType.Elem().Kind())
+		var pType = b.jsonSchemaType(fieldTypeName, fieldType.Elem().Kind()) // no star, include pkg path
+		if isPrimitive {
 			prop.Type = []string{pType}
-			prop.Format = b.jsonSchemaFormat(fieldTypeName)
+			prop.Format = b.jsonSchemaFormat(fieldTypeName, fieldType.Elem().Kind())
 			return jsonName, prop
 		}
 		prop.Ref = spec.MustCreateRef("#/definitions/" + pType)
@@ -385,7 +410,9 @@ func (b definitionBuilder) buildPointerTypeProperty(field reflect.StructField, j
 			elemName = modelName + "." + jsonName
 			prop.Ref = spec.MustCreateRef("#/definitions/" + elemName)
 		}
-		b.addModel(fieldType.Elem(), elemName)
+		if !isPrimitive {
+			b.addModel(fieldType.Elem(), elemName)
+		}
 	}
 	return jsonName, prop
 }
@@ -416,12 +443,34 @@ func keyFrom(st reflect.Type, cfg Config) string {
 	return key
 }
 
+func (b definitionBuilder) isSliceOrArrayType(t reflect.Kind) bool {
+	return t == reflect.Slice || t == reflect.Array
+}
+
+// Does the type represent a []byte?
+func (b definitionBuilder) isByteArrayType(t reflect.Type) bool {
+	return (t.Kind() == reflect.Slice || t.Kind() == reflect.Array) &&
+		t.Elem().Kind() == reflect.Uint8
+}
+
 // see also https://golang.org/ref/spec#Numeric_types
-func (b definitionBuilder) isPrimitiveType(modelName string) bool {
+func (b definitionBuilder) isPrimitiveType(modelName string, modelKind reflect.Kind) bool {
+	switch modelKind {
+	case reflect.Bool:
+		return true
+	case reflect.Float32, reflect.Float64,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return true
+	case reflect.String:
+		return true
+	}
+
 	if len(modelName) == 0 {
 		return false
 	}
-	return strings.Contains("uint uint8 uint16 uint32 uint64 int int8 int16 int32 int64 float32 float64 bool string byte rune time.Time", modelName)
+
+	return strings.Contains("time.Time time.Duration json.Number", modelName)
 }
 
 // jsonNameOfField returns the name of the field as it should appear in JSON format
@@ -440,54 +489,80 @@ func (b definitionBuilder) jsonNameOfField(field reflect.StructField) string {
 }
 
 // see also http://json-schema.org/latest/json-schema-core.html#anchor8
-func (b definitionBuilder) jsonSchemaType(modelName string) string {
+func (b definitionBuilder) jsonSchemaType(modelName string, modelKind reflect.Kind) string {
 	schemaMap := map[string]string{
-		"uint":   "integer",
-		"uint8":  "integer",
-		"uint16": "integer",
-		"uint32": "integer",
-		"uint64": "integer",
-
-		"int":   "integer",
-		"int8":  "integer",
-		"int16": "integer",
-		"int32": "integer",
-		"int64": "integer",
-
-		"byte":      "integer",
-		"float64":   "number",
-		"float32":   "number",
-		"bool":      "boolean",
-		"time.Time": "string",
+		"time.Time":     "string",
+		"time.Duration": "integer",
+		"json.Number":   "number",
 	}
-	mapped, ok := schemaMap[modelName]
-	if !ok {
-		return modelName // use as is (custom or struct)
+
+	if mapped, ok := schemaMap[modelName]; ok {
+		return mapped
 	}
-	return mapped
+
+	// check if original type is primitive
+	switch modelKind {
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Float32, reflect.Float64:
+		return "number"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "integer"
+	case reflect.String:
+		return "string"
+	}
+
+	return modelName // use as is (custom or struct)
 }
 
-func (b definitionBuilder) jsonSchemaFormat(modelName string) string {
+func (b definitionBuilder) jsonSchemaFormat(modelName string, modelKind reflect.Kind) string {
 	if b.Config.SchemaFormatHandler != nil {
 		if mapped := b.Config.SchemaFormatHandler(modelName); mapped != "" {
 			return mapped
 		}
 	}
+
 	schemaMap := map[string]string{
-		"int":        "int32",
-		"int32":      "int32",
-		"int64":      "int64",
-		"byte":       "byte",
-		"uint":       "integer",
-		"uint8":      "byte",
-		"float64":    "double",
-		"float32":    "float",
-		"time.Time":  "date-time",
-		"*time.Time": "date-time",
+		"time.Time":      "date-time",
+		"*time.Time":     "date-time",
+		"time.Duration":  "integer",
+		"*time.Duration": "integer",
+		"json.Number":    "double",
+		"*json.Number":   "double",
 	}
-	mapped, ok := schemaMap[modelName]
-	if !ok {
-		return "" // no format
+
+	if mapped, ok := schemaMap[modelName]; ok {
+		return mapped
 	}
-	return mapped
+
+	// check if original type is primitive
+	switch modelKind {
+	case reflect.Float32:
+		return "float"
+	case reflect.Float64:
+		return "double"
+	case reflect.Int:
+		return "int32"
+	case reflect.Int8:
+		return "byte"
+	case reflect.Int16:
+		return "integer"
+	case reflect.Int32:
+		return "int32"
+	case reflect.Int64:
+		return "int64"
+	case reflect.Uint:
+		return "integer"
+	case reflect.Uint8:
+		return "byte"
+	case reflect.Uint16:
+		return "integer"
+	case reflect.Uint32:
+		return "integer"
+	case reflect.Uint64:
+		return "integer"
+	}
+
+	return "" // no format
 }

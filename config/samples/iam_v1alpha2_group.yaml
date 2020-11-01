@@ -1,0 +1,4 @@
+apiVersion: iam.kubesphere.io/v1alpha2
+kind: Group
+metadata:
+  name: group2

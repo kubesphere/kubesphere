@@ -18,11 +18,13 @@ package v1alpha1
 
 import (
 	"github.com/emicklei/go-restful"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sinformers "k8s.io/client-go/informers"
 	"kubesphere.io/kubesphere/pkg/api"
 	"kubesphere.io/kubesphere/pkg/apiserver/runtime"
 	"kubesphere.io/kubesphere/pkg/client/informers/externalversions"
+	"kubesphere.io/kubesphere/pkg/constants"
 	"net/http"
 )
 
@@ -47,13 +49,15 @@ func AddToContainer(container *restful.Container,
 		Doc("Return deployment yaml for cluster agent.").
 		Param(webservice.PathParameter("cluster", "Name of the cluster.").Required(true)).
 		To(h.generateAgentDeployment).
-		Returns(http.StatusOK, api.StatusOK, nil))
+		Returns(http.StatusOK, api.StatusOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.MultiClusterTag}))
 
 	webservice.Route(webservice.POST("/clusters/validation").
 		Doc("").
 		Param(webservice.BodyParameter("cluster", "cluster specification")).
 		To(h.validateCluster).
-		Returns(http.StatusOK, api.StatusOK, nil))
+		Returns(http.StatusOK, api.StatusOK, nil).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.MultiClusterTag}))
 
 	container.Add(webservice)
 
