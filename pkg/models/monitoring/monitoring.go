@@ -40,7 +40,7 @@ type MonitoringOperator interface {
 	GetMetadata(namespace string) Metadata
 	GetMetricLabelSet(metric, namespace string, start, end time.Time) MetricLabelSet
 
-	// TODO: refactor
+	// TODO: expose KubeSphere self metrics in Prometheus format
 	GetKubeSphereStats() Metrics
 	GetWorkspaceStats(workspace string) Metrics
 }
