@@ -18,6 +18,7 @@ package network
 
 import (
 	"github.com/spf13/pflag"
+
 	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
 )
 
@@ -30,6 +31,7 @@ type Options struct {
 	NSNPOptions         NSNPOptions    `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
 	EnableIPPool        bool           `json:"enableIPPool,omitempty" yaml:"enableIPPool"`
 	IPPoolOptions       ippool.Options `json:"ippoolOptions,omitempty" yaml:"ippoolOptions,omitempty"`
+	WeaveScopeHost      string         `json:"weaveScopeHost,omitempty" yaml:"weaveScopeHost,omitempty"`
 }
 
 // NewNetworkOptions returns a `zero` instance
@@ -43,6 +45,7 @@ func NewNetworkOptions() *Options {
 		IPPoolOptions: ippool.Options{
 			Calico: nil,
 		},
+		WeaveScopeHost: "",
 	}
 }
 
@@ -56,6 +59,7 @@ func (s *Options) ApplyTo(options *Options) {
 	options.EnableIPPool = s.EnableIPPool
 	options.NSNPOptions = s.NSNPOptions
 	options.IPPoolOptions = s.IPPoolOptions
+	options.WeaveScopeHost = s.WeaveScopeHost
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
@@ -63,4 +67,6 @@ func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 		"This field instructs KubeSphere to enable network policy or not.")
 	fs.BoolVar(&s.EnableIPPool, "enable-ippool", c.EnableIPPool,
 		"This field instructs KubeSphere to enable ippool or not.")
+	fs.StringVar(&s.WeaveScopeHost, "weave-scope-host", c.WeaveScopeHost,
+		"Weave Scope service endpoint which build a topology API of the applications and the containers running on the hosts")
 }

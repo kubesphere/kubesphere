@@ -31,6 +31,7 @@ import (
 const ScopeQueryUrl = "http://%s/api/topology/services"
 
 type handler struct {
+	// if weave scope installed in the cluster, it is maybe `weave-scope-app.weave`
 	weaveScopeHost string
 }
 

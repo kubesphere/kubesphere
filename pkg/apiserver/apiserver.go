@@ -58,6 +58,7 @@ import (
 	devopsv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/devops/v1alpha3"
 	iamapi "kubesphere.io/kubesphere/pkg/kapis/iam/v1alpha2"
 	monitoringv1alpha3 "kubesphere.io/kubesphere/pkg/kapis/monitoring/v1alpha3"
+	networkv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/network/v1alpha2"
 	notificationv1 "kubesphere.io/kubesphere/pkg/kapis/notification/v1"
 	"kubesphere.io/kubesphere/pkg/kapis/oauth"
 	openpitrixv1 "kubesphere.io/kubesphere/pkg/kapis/openpitrix/v1"
@@ -199,6 +200,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 		im.NewLoginRecorder(s.KubernetesClient.KubeSphere()),
 		s.Config.AuthenticationOptions))
 	urlruntime.Must(servicemeshv1alpha2.AddToContainer(s.container))
+	urlruntime.Must(networkv1alpha2.AddToContainer(s.container, s.Config.NetworkOptions.WeaveScopeHost))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(s.container,
 		s.InformerFactory.KubeSphereSharedInformerFactory(),
 		s.DevopsClient,
