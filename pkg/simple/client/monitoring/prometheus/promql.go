@@ -109,6 +109,7 @@ var promQLTemplates = map[string]string{
 	"node_load5":                  `node:load5:ratio{$1}`,
 	"node_load15":                 `node:load15:ratio{$1}`,
 	"node_pod_abnormal_ratio":     `node:pod_abnormal:ratio{$1}`,
+	"node_pleg_quantile":          `node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{$1}`,
 
 	// workspace
 	"workspace_cpu_usage":                  `round(sum by (workspace) (namespace:container_cpu_usage_seconds_total:sum_rate{namespace!="", $1}), 0.001)`,
