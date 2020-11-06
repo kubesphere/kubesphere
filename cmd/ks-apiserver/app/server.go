@@ -18,10 +18,13 @@ package app
 
 import (
 	"fmt"
+
 	kconfig "github.com/kiali/kiali/config"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/klog"
+
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
@@ -40,6 +43,8 @@ func NewAPIServerCommand() *cobra.Command {
 			GenericServerRunOptions: s.GenericServerRunOptions,
 			Config:                  conf,
 		}
+	} else {
+		klog.Fatal("Failed to load configuration from disk", err)
 	}
 
 	cmd := &cobra.Command{
