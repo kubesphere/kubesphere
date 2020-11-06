@@ -226,7 +226,7 @@ func (c *Controller) reconcile(key string) error {
 	} else {
 		// The object is being deleted
 		if sliceutil.HasString(groupBinding.ObjectMeta.Finalizers, finalizer) {
-			if err = c.bindUser(groupBinding); err != nil {
+			if err = c.unbindUser(groupBinding); err != nil {
 				klog.Error(err)
 				return err
 			}
@@ -257,67 +257,65 @@ func (c *Controller) Start(stopCh <-chan struct{}) error {
 	return c.Run(4, stopCh)
 }
 
-// Udpate user's Group property. So no need to query user's groups when authorizing.
-func (c *Controller) bindUser(groupBinding *iamv1alpha2.GroupBinding) error {
-
-	users := make([]string, 0)
-	// Ignore the user if the user if being deleted.
-	for _, u := range groupBinding.Users {
-		if user, err := c.ksClient.IamV1alpha2().Users().Get(u, metav1.GetOptions{}); err == nil && user.ObjectMeta.DeletionTimestamp.IsZero() {
-			users = append(users, u)
+func (c *Controller) unbindUser(groupBinding *iamv1alpha2.GroupBinding) error {
+	return c.updateUserGroups(groupBinding, func(groups []string, group string) (bool, []string) {
+		// remove a group from the groups
+		if sliceutil.HasString(groups, group) {
+			groups := sliceutil.RemoveString(groups, func(item string) bool {
+				return item == group
+			})
+			return true, groups
 		}
-	}
+		return false, groups
+	})
+}
 
-	// Nothing to do
-	if len(users) == 0 {
-		return nil
-	}
+func (c *Controller) bindUser(groupBinding *iamv1alpha2.GroupBinding) error {
+	return c.updateUserGroups(groupBinding, func(groups []string, group string) (bool, []string) {
+		// add group to the groups
+		if !sliceutil.HasString(groups, group) {
+			groups := append(groups, group)
+			return true, groups
+		}
+		return false, groups
+	})
+}
 
-	// Get all GroupBindings and check whether user exists in the Group.
-	listOptions := metav1.ListOptions{}
-	groupBindingList, err := c.ksClient.IamV1alpha2().GroupBindings().List(listOptions)
-	if err != nil {
-		klog.Error(err)
-		return err
-	}
+// Udpate user's Group property. So no need to query user's groups when authorizing.
+func (c *Controller) updateUserGroups(groupBinding *iamv1alpha2.GroupBinding, operator func(groups []string, group string) (bool, []string)) error {
 
-	userGroups := make(map[string][]string)
-	for _, item := range groupBindingList.Items {
-		if item.ObjectMeta.DeletionTimestamp.IsZero() {
-			for _, u := range users {
-				if sliceutil.HasString(item.Users, u) {
-					if userGroups[u] == nil {
-						userGroups[u] = make([]string, 0)
+	for _, u := range groupBinding.Users {
+		// Ignore the user if the user if being deleted.
+		if user, err := c.ksClient.IamV1alpha2().Users().Get(u, metav1.GetOptions{}); err == nil && user.ObjectMeta.DeletionTimestamp.IsZero() {
+
+			if errors.IsNotFound(err) {
+				klog.Infof("user %s doesn't exist any more", u)
+				continue
+			}
+
+			if changed, groups := operator(user.Spec.Groups, groupBinding.GroupRef.Name); changed {
+
+				if err := c.patchUser(user, groups); err != nil {
+					if errors.IsNotFound(err) {
+						klog.Infof("user %s doesn't exist any more", u)
+						continue
 					}
-					userGroups[u] = append(userGroups[u], item.GroupRef.Name)
+					klog.Error(err)
+					return err
 				}
 			}
-		}
-	}
-	for k, v := range userGroups {
-		if err := c.patchUser(k, v); err != nil {
-			if errors.IsNotFound(err) {
-				klog.Infof("user %s doesn't exist any more", k)
-				return nil
-			}
-			klog.Error(err)
-			return err
 		}
 	}
 	return nil
 }
 
-func (c *Controller) patchUser(userName string, groups []string) error {
-	if user, err := c.ksClient.IamV1alpha2().Users().Get(userName, metav1.GetOptions{}); err == nil && user.ObjectMeta.DeletionTimestamp.IsZero() {
-		newUser := user.DeepCopy()
-		newUser.Spec.Groups = groups
-		patch := client.MergeFrom(user)
-		patchData, _ := patch.Data(newUser)
-		if _, err := c.ksClient.IamV1alpha2().Users().
-			Patch(userName, patch.Type(), patchData); err != nil {
-			return err
-		}
-	} else {
+func (c *Controller) patchUser(user *iamv1alpha2.User, groups []string) error {
+	newUser := user.DeepCopy()
+	newUser.Spec.Groups = groups
+	patch := client.MergeFrom(user)
+	patchData, _ := patch.Data(newUser)
+	if _, err := c.ksClient.IamV1alpha2().Users().
+		Patch(user.Name, patch.Type(), patchData); err != nil {
 		return err
 	}
 	return nil
