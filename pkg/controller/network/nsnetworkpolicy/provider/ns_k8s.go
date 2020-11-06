@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/controller/network/types"
 	"reflect"
 	"strings"
 	"sync"
@@ -35,7 +36,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
-	"kubesphere.io/kubesphere/pkg/controller/network"
 )
 
 const (
@@ -246,7 +246,7 @@ func NewNsNetworkPolicyProvider(client kubernetes.Interface, npInformer informer
 		// Filter in only objects that are written by policy controller.
 		m := make(map[string]interface{})
 		for _, policy := range policies {
-			if strings.HasPrefix(policy.Name, network.NSNPPrefix) {
+			if strings.HasPrefix(policy.Name, types.NSNPPrefix) {
 				policy.ObjectMeta = metav1.ObjectMeta{Name: policy.Name, Namespace: policy.Namespace}
 				k := c.GetKey(policy.Name, policy.Namespace)
 				m[k] = *policy

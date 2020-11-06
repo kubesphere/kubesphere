@@ -18,6 +18,18 @@ limitations under the License.
 
 package v1alpha1
 
+// IPAMBlockListerExpansion allows custom methods to be added to
+// IPAMBlockLister.
+type IPAMBlockListerExpansion interface{}
+
+// IPAMHandleListerExpansion allows custom methods to be added to
+// IPAMHandleLister.
+type IPAMHandleListerExpansion interface{}
+
+// IPPoolListerExpansion allows custom methods to be added to
+// IPPoolLister.
+type IPPoolListerExpansion interface{}
+
 // NamespaceNetworkPolicyListerExpansion allows custom methods to be added to
 // NamespaceNetworkPolicyLister.
 type NamespaceNetworkPolicyListerExpansion interface{}

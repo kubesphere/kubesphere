@@ -109,6 +109,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Iam().V1alpha2().WorkspaceRoleBindings().Informer()}, nil
 
 		// Group=network.kubesphere.io, Version=v1alpha1
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ipamblocks"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPAMBlocks().Informer()}, nil
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ipamhandles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPAMHandles().Informer()}, nil
+	case networkv1alpha1.SchemeGroupVersion.WithResource("ippools"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().IPPools().Informer()}, nil
 	case networkv1alpha1.SchemeGroupVersion.WithResource("namespacenetworkpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1alpha1().NamespaceNetworkPolicies().Informer()}, nil
 

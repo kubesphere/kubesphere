@@ -148,7 +148,3 @@ type NamespaceNetworkPolicyList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []NamespaceNetworkPolicy `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&NamespaceNetworkPolicy{}, &NamespaceNetworkPolicyList{})
-}

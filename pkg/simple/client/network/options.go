@@ -16,23 +16,32 @@ limitations under the License.
 
 package network
 
-import "github.com/spf13/pflag"
+import (
+	"github.com/spf13/pflag"
+	"kubesphere.io/kubesphere/pkg/simple/client/network/ippool"
+)
 
 type NSNPOptions struct {
 	AllowedIngressNamespaces []string `json:"allowedIngressNamespaces,omitempty" yaml:"allowedIngressNamespaces,omitempty"`
 }
 
 type Options struct {
-	EnableNetworkPolicy bool        `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy"`
-	NSNPOptions         NSNPOptions `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
+	EnableNetworkPolicy bool           `json:"enableNetworkPolicy,omitempty" yaml:"enableNetworkPolicy"`
+	NSNPOptions         NSNPOptions    `json:"nsnpOptions,omitempty" yaml:"nsnpOptions,omitempty"`
+	EnableIPPool        bool           `json:"enableIPPool,omitempty" yaml:"enableIPPool"`
+	IPPoolOptions       ippool.Options `json:"ippoolOptions,omitempty" yaml:"ippoolOptions,omitempty"`
 }
 
 // NewNetworkOptions returns a `zero` instance
 func NewNetworkOptions() *Options {
 	return &Options{
 		EnableNetworkPolicy: false,
+		EnableIPPool:        false,
 		NSNPOptions: NSNPOptions{
 			AllowedIngressNamespaces: []string{},
+		},
+		IPPoolOptions: ippool.Options{
+			Calico: nil,
 		},
 	}
 }
@@ -44,10 +53,14 @@ func (s *Options) Validate() []error {
 
 func (s *Options) ApplyTo(options *Options) {
 	options.EnableNetworkPolicy = s.EnableNetworkPolicy
+	options.EnableIPPool = s.EnableIPPool
 	options.NSNPOptions = s.NSNPOptions
+	options.IPPoolOptions = s.IPPoolOptions
 }
 
 func (s *Options) AddFlags(fs *pflag.FlagSet, c *Options) {
 	fs.BoolVar(&s.EnableNetworkPolicy, "enable-network-policy", c.EnableNetworkPolicy,
 		"This field instructs KubeSphere to enable network policy or not.")
+	fs.BoolVar(&s.EnableIPPool, "enable-ippool", c.EnableIPPool,
+		"This field instructs KubeSphere to enable ippool or not.")
 }

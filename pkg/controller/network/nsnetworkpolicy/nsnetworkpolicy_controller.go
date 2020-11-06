@@ -18,6 +18,7 @@ package nsnetworkpolicy
 
 import (
 	"fmt"
+	"kubesphere.io/kubesphere/pkg/controller/network/types"
 	"net"
 	"sort"
 	"strings"
@@ -43,8 +44,7 @@ import (
 	nspolicy "kubesphere.io/kubesphere/pkg/client/informers/externalversions/network/v1alpha1"
 	workspace "kubesphere.io/kubesphere/pkg/client/informers/externalversions/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
-	"kubesphere.io/kubesphere/pkg/controller/network"
-	"kubesphere.io/kubesphere/pkg/controller/network/provider"
+	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy/provider"
 	options "kubesphere.io/kubesphere/pkg/simple/client/network"
 )
 
@@ -62,7 +62,7 @@ const (
 
 	NodeNSNPAnnotationKey = "kubesphere.io/snat-node-ips"
 
-	AnnotationNPNAME = network.NSNPPrefix + "network-isolate"
+	AnnotationNPNAME = types.NSNPPrefix + "network-isolate"
 
 	//TODO: configure it
 	DNSLocalIP        = "169.254.25.10"
@@ -222,7 +222,7 @@ func (c *NSNetworkPolicyController) convertPeer(peer v1alpha1.NetworkPolicyPeer,
 func (c *NSNetworkPolicyController) convertToK8sNP(n *v1alpha1.NamespaceNetworkPolicy) (*netv1.NetworkPolicy, error) {
 	np := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      network.NSNPPrefix + n.Name,
+			Name:      types.NSNPPrefix + n.Name,
 			Namespace: n.Namespace,
 		},
 		Spec: netv1.NetworkPolicySpec{
@@ -564,7 +564,7 @@ func (c *NSNetworkPolicyController) syncNSNP(key string) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(4).Infof("NSNP %v has been deleted", key)
-			c.provider.Delete(c.provider.GetKey(network.NSNPPrefix+name, namespace))
+			c.provider.Delete(c.provider.GetKey(types.NSNPPrefix+name, namespace))
 			return nil
 		}
 

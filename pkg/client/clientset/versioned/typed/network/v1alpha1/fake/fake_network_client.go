@@ -28,6 +28,18 @@ type FakeNetworkV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeNetworkV1alpha1) IPAMBlocks() v1alpha1.IPAMBlockInterface {
+	return &FakeIPAMBlocks{c}
+}
+
+func (c *FakeNetworkV1alpha1) IPAMHandles() v1alpha1.IPAMHandleInterface {
+	return &FakeIPAMHandles{c}
+}
+
+func (c *FakeNetworkV1alpha1) IPPools() v1alpha1.IPPoolInterface {
+	return &FakeIPPools{c}
+}
+
 func (c *FakeNetworkV1alpha1) NamespaceNetworkPolicies(namespace string) v1alpha1.NamespaceNetworkPolicyInterface {
 	return &FakeNamespaceNetworkPolicies{c, namespace}
 }

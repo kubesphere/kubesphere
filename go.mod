@@ -14,6 +14,8 @@ require (
 	github.com/aws/aws-sdk-go v1.25.21
 	github.com/beevik/etree v1.1.0
 	github.com/container-storage-interface/spec v1.2.0
+	github.com/containernetworking/cni v0.8.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v1.4.2-0.20190822205725-ed20165a37b4
