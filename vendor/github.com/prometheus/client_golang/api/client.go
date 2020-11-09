@@ -25,42 +25,6 @@ import (
 	"time"
 )
 
-func NewErrorAPI(err error, warnings []string) Error {
-	if err == nil && warnings == nil {
-		return nil
-	}
-	return &ErrorAPI{err, warnings}
-}
-
-type ErrorAPI struct {
-	err      error
-	warnings []string
-}
-
-func (w *ErrorAPI) Err() error {
-	return w.err
-}
-
-func (w *ErrorAPI) Error() string {
-	if w.err != nil {
-		return w.err.Error()
-	}
-	return "Warnings: " + strings.Join(w.warnings, " , ")
-}
-
-func (w *ErrorAPI) Warnings() []string {
-	return w.warnings
-}
-
-// Error encapsulates an error + warning
-type Error interface {
-	error
-	// Err returns the underlying error.
-	Err() error
-	// Warnings returns a list of warnings.
-	Warnings() []string
-}
-
 // DefaultRoundTripper is used if no RoundTripper is set in Config.
 var DefaultRoundTripper http.RoundTripper = &http.Transport{
 	Proxy: http.ProxyFromEnvironment,
@@ -91,32 +55,7 @@ func (cfg *Config) roundTripper() http.RoundTripper {
 // Client is the interface for an API client.
 type Client interface {
 	URL(ep string, args map[string]string) *url.URL
-	Do(context.Context, *http.Request) (*http.Response, []byte, Error)
-}
-
-// DoGetFallback will attempt to do the request as-is, and on a 405 it will fallback to a GET request.
-func DoGetFallback(c Client, ctx context.Context, u *url.URL, args url.Values) (*http.Response, []byte, Error) {
-	req, err := http.NewRequest(http.MethodPost, u.String(), strings.NewReader(args.Encode()))
-	if err != nil {
-		return nil, nil, NewErrorAPI(err, nil)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, body, err := c.Do(ctx, req)
-	if resp != nil && resp.StatusCode == http.StatusMethodNotAllowed {
-		u.RawQuery = args.Encode()
-		req, err = http.NewRequest(http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, nil, NewErrorAPI(err, nil)
-		}
-
-	} else {
-		if err != nil {
-			return resp, body, NewErrorAPI(err, nil)
-		}
-		return resp, body, nil
-	}
-	return c.Do(ctx, req)
+	Do(context.Context, *http.Request) (*http.Response, []byte, error)
 }
 
 // NewClient returns a new Client.
@@ -154,7 +93,7 @@ func (c *httpClient) URL(ep string, args map[string]string) *url.URL {
 	return &u
 }
 
-func (c *httpClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, Error) {
+func (c *httpClient) Do(ctx context.Context, req *http.Request) (*http.Response, []byte, error) {
 	if ctx != nil {
 		req = req.WithContext(ctx)
 	}
@@ -166,7 +105,7 @@ func (c *httpClient) Do(ctx context.Context, req *http.Request) (*http.Response,
 	}()
 
 	if err != nil {
-		return nil, nil, NewErrorAPI(err, nil)
+		return nil, nil, err
 	}
 
 	var body []byte
@@ -186,5 +125,5 @@ func (c *httpClient) Do(ctx context.Context, req *http.Request) (*http.Response,
 	case <-done:
 	}
 
-	return resp, body, NewErrorAPI(err, nil)
+	return resp, body, err
 }

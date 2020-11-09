@@ -93,7 +93,7 @@ func (in *Client) GetSourceWorkloads(namespace string, namespaceCreationTime tim
 		reporter, servicename, namespace, int(queryInterval.Seconds()))
 	log.Debugf("GetSourceWorkloads query: %s", query)
 	promtimer := internalmetrics.GetPrometheusProcessingTimePrometheusTimer("GetSourceWorkloads")
-	result, err := in.api.Query(context.Background(), query, queryTime)
+	result, _, err := in.api.Query(context.Background(), query, queryTime)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (in *Client) GetDestinationServices(namespace string, namespaceCreationTime
 		reporter, workloadname, namespace, int(queryInterval.Seconds()), groupBy)
 	log.Debugf("GetDestinationServices query: %s", query)
 	promtimer := internalmetrics.GetPrometheusProcessingTimePrometheusTimer("GetDestinationServices")
-	result, err := in.api.Query(context.Background(), query, queryTime)
+	result, _, err := in.api.Query(context.Background(), query, queryTime)
 	if err != nil {
 		return nil, err
 	}
