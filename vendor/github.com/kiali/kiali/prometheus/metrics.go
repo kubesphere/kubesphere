@@ -173,7 +173,7 @@ func fetchHistogramRange(api v1.API, metricName, labels, grouping string, q *Bas
 }
 
 func fetchTimestamp(api v1.API, query string, t time.Time) (model.Vector, error) {
-	result, err := api.Query(context.Background(), query, t)
+	result, _, err := api.Query(context.Background(), query, t)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func fetchTimestamp(api v1.API, query string, t time.Time) (model.Vector, error)
 }
 
 func fetchRange(api v1.API, query string, bounds v1.Range) *Metric {
-	result, err := api.QueryRange(context.Background(), query, bounds)
+	result, _, err := api.QueryRange(context.Background(), query, bounds)
 	if err != nil {
 		return &Metric{err: err}
 	}
@@ -259,7 +259,7 @@ func getItemRequestRates(api v1.API, namespace, item, itemLabelSuffix string, qu
 func getRequestRatesForLabel(api v1.API, time time.Time, labels, ratesInterval string) (model.Vector, error) {
 	query := fmt.Sprintf("rate(istio_requests_total{%s}[%s])", labels, ratesInterval)
 	promtimer := internalmetrics.GetPrometheusProcessingTimePrometheusTimer("Metrics-GetRequestRates")
-	result, err := api.Query(context.Background(), query, time)
+	result, _, err := api.Query(context.Background(), query, time)
 	if err != nil {
 		return model.Vector{}, err
 	}

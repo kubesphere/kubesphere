@@ -17,10 +17,10 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 => github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc => github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
+# github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 => github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 github.com/alecthomas/template
 github.com/alecthomas/template/parse
-# github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf => github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
+# github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4 => github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 github.com/alecthomas/units
 # github.com/andybalholm/cascadia v1.0.0 => github.com/andybalholm/cascadia v1.0.0
 github.com/andybalholm/cascadia
@@ -67,12 +67,18 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/beevik/etree v1.1.0 => github.com/beevik/etree v1.1.0
 github.com/beevik/etree
-# github.com/beorn7/perks v1.0.0 => github.com/beorn7/perks v1.0.0
+# github.com/beorn7/perks v1.0.1 => github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.0+incompatible => github.com/blang/semver v3.5.0+incompatible
 github.com/blang/semver
+# github.com/cespare/xxhash/v2 v2.1.1
+github.com/cespare/xxhash/v2
 # github.com/container-storage-interface/spec v1.2.0 => github.com/container-storage-interface/spec v1.2.0
 github.com/container-storage-interface/spec/lib/go/csi
+# github.com/containernetworking/cni v0.8.0
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/current
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f => github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/journal
@@ -225,7 +231,7 @@ github.com/golang/glog
 github.com/golang/groupcache/lru
 # github.com/golang/mock v1.2.0 => github.com/golang/mock v1.2.0
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.3.2 => github.com/golang/protobuf v1.3.2
+# github.com/golang/protobuf v1.4.3 => github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -239,7 +245,7 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db => github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
-# github.com/google/go-cmp v0.3.1 => github.com/google/go-cmp v0.3.0
+# github.com/google/go-cmp v0.4.0 => github.com/google/go-cmp v0.3.0
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -300,11 +306,11 @@ github.com/inconshreveable/mousetrap
 github.com/jbenet/go-context/io
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af => github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/json-iterator/go v1.1.9 => github.com/json-iterator/go v1.1.8
+# github.com/json-iterator/go v1.1.10 => github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
-# github.com/kiali/kiali v1.25.0 => github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d
+# github.com/kiali/kiali v1.26.0 => github.com/kubesphere/kiali v0.15.1-0.20201110082537-0c2b977257d4
 github.com/kiali/kiali/business
 github.com/kiali/kiali/business/checkers
 github.com/kiali/kiali/business/checkers/destinationrules
@@ -480,22 +486,24 @@ github.com/projectcalico/libcalico-go/lib/scope
 github.com/projectcalico/libcalico-go/lib/selector
 github.com/projectcalico/libcalico-go/lib/selector/parser
 github.com/projectcalico/libcalico-go/lib/selector/tokenizer
-# github.com/prometheus/client_golang v1.2.1 => github.com/prometheus/client_golang v0.9.4
+github.com/projectcalico/libcalico-go/lib/set
+# github.com/prometheus/client_golang v1.8.0 => github.com/prometheus/client_golang v1.5.1
 github.com/prometheus/client_golang/api
 github.com/prometheus/client_golang/api/prometheus/v1
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 => github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
+# github.com/prometheus/client_model v0.2.0 => github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.4.1 => github.com/prometheus/common v0.4.0
+# github.com/prometheus/common v0.14.0 => github.com/prometheus/common v0.9.1
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/log
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.0.2 => github.com/prometheus/procfs v0.0.2
+# github.com/prometheus/procfs v0.0.8 => github.com/prometheus/procfs v0.0.8
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
+github.com/prometheus/procfs/internal/util
 # github.com/prometheus/prometheus v1.8.2 => github.com/prometheus/prometheus v1.8.2
 github.com/prometheus/prometheus/promql
 github.com/prometheus/prometheus/storage
@@ -614,7 +622,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20200625001655-4c5254603344 => golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -632,7 +640,7 @@ golang.org/x/net/websocket
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 => golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20191220220014-0732a990476f => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
+# golang.org/x/sys v0.0.0-20200122134326-e047566fdf82 => golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -789,7 +797,7 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 gopkg.in/tomb.v1
 # gopkg.in/warnings.v0 v0.1.2 => gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.8 => gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.3.0 => gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20190905181640-827449938966 => gopkg.in/yaml.v3 v3.0.0-20190905181640-827449938966
 gopkg.in/yaml.v3

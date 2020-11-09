@@ -38,16 +38,16 @@ require (
 	github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
 	github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 	github.com/golang/mock v1.2.0
-	github.com/golang/protobuf v1.3.2
-	github.com/google/go-cmp v0.3.1
+	github.com/golang/protobuf v1.4.3
+	github.com/google/go-cmp v0.4.0
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/go-version v1.2.0 // indirect
-	github.com/json-iterator/go v1.1.9
+	github.com/json-iterator/go v1.1.10
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/kiali/kiali v1.25.0
+	github.com/kiali/kiali v1.26.0
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.0
 	github.com/kubesphere/sonargo v0.0.2
 	github.com/lib/pq v1.2.0 // indirect
@@ -62,8 +62,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectcalico/kube-controllers v3.8.8+incompatible
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-	github.com/prometheus/client_golang v1.2.1
-	github.com/prometheus/common v0.4.1
+	github.com/prometheus/client_golang v1.8.0
+	github.com/prometheus/common v0.14.0
 	github.com/prometheus/prometheus v1.8.2
 	github.com/sony/sonyflake v1.0.0
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -74,13 +74,13 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.26.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20190905181640-827449938966
 	istio.io/api v0.0.0-20191111210003-35e06ef8d838
 	istio.io/client-go v0.0.0-20191113122552-9bd0ba57c3d2
@@ -283,7 +283,7 @@ replace (
 	github.com/kelseyhightower/envconfig => github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kevinburke/ssh_config => github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 	github.com/keybase/go-ps => github.com/keybase/go-ps v0.0.0-20161005175911-668c8856d999
-	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20201030070213-04b6506d6c7d
+	github.com/kiali/kiali => github.com/kubesphere/kiali v0.15.1-0.20201110082537-0c2b977257d4
 	github.com/kisielk/errcheck => github.com/kisielk/errcheck v1.2.0
 	github.com/kisielk/gotool => github.com/kisielk/gotool v1.0.0
 	github.com/koding/multiconfig => github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
@@ -348,10 +348,10 @@ replace (
 	github.com/projectcalico/go-yaml-wrapper => github.com/projectcalico/go-yaml-wrapper v0.0.0-20161127220527-598e54215bee
 	github.com/projectcalico/kube-controllers => github.com/projectcalico/kube-controllers v3.8.8+incompatible
 	github.com/projectcalico/libcalico-go => github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.4
-	github.com/prometheus/client_model => github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
-	github.com/prometheus/common => github.com/prometheus/common v0.4.0
-	github.com/prometheus/procfs => github.com/prometheus/procfs v0.0.2
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.5.1
+	github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/common => github.com/prometheus/common v0.9.1
+	github.com/prometheus/procfs => github.com/prometheus/procfs v0.0.8
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2
 	github.com/rcrowley/go-metrics => github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446
