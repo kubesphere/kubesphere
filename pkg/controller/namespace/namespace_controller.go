@@ -33,6 +33,7 @@ import (
 	iamv1alpha2 "kubesphere.io/kubesphere/pkg/apis/iam/v1alpha2"
 	tenantv1alpha1 "kubesphere.io/kubesphere/pkg/apis/tenant/v1alpha1"
 	"kubesphere.io/kubesphere/pkg/constants"
+	"kubesphere.io/kubesphere/pkg/utils/k8sutil"
 	"kubesphere.io/kubesphere/pkg/utils/sliceutil"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -140,69 +141,76 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.bindWorkspace(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err = r.initRoles(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err = r.initCreatorRoleBinding(instance); err != nil {
-		return reconcile.Result{}, err
+	// initialize subresource if created by kubesphere
+	if workspace := instance.Labels[constants.WorkspaceLabelKey]; workspace != "" {
+		if err = r.bindWorkspace(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err = r.initRoles(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err = r.initCreatorRoleBinding(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	} else {
+		r.unbindWorkspace(instance)
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileNamespace) isControlledByWorkspace(namespace *corev1.Namespace) (bool, error) {
-
-	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
-
-	// without workspace label
-	if workspaceName == "" {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (r *ReconcileNamespace) bindWorkspace(namespace *corev1.Namespace) error {
-
 	workspaceName := namespace.Labels[constants.WorkspaceLabelKey]
-
-	if workspaceName == "" {
-		return nil
-	}
-
 	workspace := &tenantv1alpha1.Workspace{}
-
-	err := r.Get(context.TODO(), types.NamespacedName{Name: workspaceName}, workspace)
-
-	if err != nil {
+	if err := r.Get(context.TODO(), types.NamespacedName{Name: workspaceName}, workspace); err != nil {
 		// skip if workspace not found
 		if errors.IsNotFound(err) {
+			klog.Warning(err)
 			return nil
 		}
 		klog.Error(err)
 		return err
 	}
 
-	// federated namespace not controlled by workspace
-	if namespace.Labels[constants.KubefedManagedLabel] != "true" && !metav1.IsControlledBy(namespace, workspace) {
-		namespace.OwnerReferences = nil
+	if !metav1.IsControlledBy(namespace, workspace) {
+		workspace.OwnerReferences = removeWorkspaceOwnerReference(workspace.OwnerReferences)
 		if err := controllerutil.SetControllerReference(workspace, namespace, r.scheme); err != nil {
 			klog.Error(err)
 			return err
 		}
-		err = r.Update(context.TODO(), namespace)
-		if err != nil {
+
+		if err := r.Update(context.TODO(), namespace); err != nil {
 			klog.Error(err)
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (r *ReconcileNamespace) unbindWorkspace(namespace *corev1.Namespace) error {
+
+	if k8sutil.IsControlledBy(namespace.OwnerReferences, tenantv1alpha1.ResourceKindWorkspace, "") {
+		namespace := namespace.DeepCopy()
+		namespace.OwnerReferences = removeWorkspaceOwnerReference(namespace.OwnerReferences)
+		if err := r.Update(context.TODO(), namespace); err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Remove workspace kind owner reference of the namespace
+func removeWorkspaceOwnerReference(ownerReferences []metav1.OwnerReference) []metav1.OwnerReference {
+	tmp := make([]metav1.OwnerReference, 0)
+	for _, owner := range ownerReferences {
+		if owner.Kind != tenantv1alpha1.ResourceKindWorkspace {
+			tmp = append(tmp, owner)
+		}
+	}
+	return tmp
 }
 
 func (r *ReconcileNamespace) deleteRouter(namespace string) error {
