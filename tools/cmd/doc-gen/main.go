@@ -21,14 +21,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
+
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
@@ -50,13 +52,13 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
+	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	fakedevops "kubesphere.io/kubesphere/pkg/simple/client/devops/fake"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	fakes3 "kubesphere.io/kubesphere/pkg/simple/client/s3/fake"
 	"kubesphere.io/kubesphere/pkg/version"
-	"log"
 )
 
 var output string
@@ -119,7 +121,7 @@ func generateSwaggerJson() []byte {
 		informerFactory.KubeSphereSharedInformerFactory(), "", "", ""))
 	urlruntime.Must(devopsv1alpha2.AddToContainer(container, informerFactory.KubeSphereSharedInformerFactory(), &fakedevops.Devops{}, nil, clientsets.KubeSphere(), fakes3.NewFakeS3(), ""))
 	urlruntime.Must(devopsv1alpha3.AddToContainer(container, &fakedevops.Devops{}, clientsets.Kubernetes(), clientsets.KubeSphere(), informerFactory.KubeSphereSharedInformerFactory(), informerFactory.KubernetesSharedInformerFactory()))
-	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), authoptions.NewAuthenticateOptions()))
+	urlruntime.Must(iamv1alpha2.AddToContainer(container, im.NewOperator(clientsets.KubeSphere(), informerFactory, nil), am.NewReadOnlyOperator(informerFactory), group.New(informerFactory, clientsets.KubeSphere(), clientsets.Kubernetes()), authoptions.NewAuthenticateOptions()))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(container, clientsets.Kubernetes(), nil, informerFactory, nil))
 	urlruntime.Must(openpitrixv1.AddToContainer(container, informerFactory, openpitrix.NewMockClient(nil)))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(container, clientsets.Kubernetes()))
